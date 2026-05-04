@@ -1,0 +1,16 @@
+[build]
+command = "npm run build"
+publish = ".next"
+
+[functions]
+node_bundler = "esbuild"
+
+[[redirects]]
+from = "/*"
+to = "/index.html"
+status = 200
+
+[env.production]
+ANTHROPIC_API_KEY = ""
+NEXT_PUBLIC_SUPABASE_ANON_KEY = ""
+NEXT_PUBLIC_SUPABASE_URL = ""
