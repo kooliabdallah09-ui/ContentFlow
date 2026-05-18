@@ -3,11 +3,13 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { FileText, Share2, Mail, Calendar, BarChart3, Settings, LogOut } from 'lucide-react'
+import { FileText, Share2, Mail, Calendar, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useState } from 'react'
 
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [collapsed, setCollapsed] = useState(false)
 
   const handleLogout = async () => {
     const supabase = getSupabase()
@@ -30,38 +32,31 @@ export default function Sidebar() {
   const isActive = (href: string) => pathname === href
 
   return (
-    <div className="fixed left-0 top-0 h-screen w-64 z-40">
+    <div className={`fixed left-0 top-0 h-screen bg-black border-r border-white/10 z-40 transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
       <style>{`
-        .sidebar-glass {
-          background: rgba(255, 255, 255, 0.08);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
-          border-right: 1px solid rgba(255, 255, 255, 0.15);
-          background-image: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.05) 100%);
-        }
-
         .nav-item {
           position: relative;
           display: flex;
           align-items: center;
           gap: 12px;
           padding: 12px 16px;
-          margin: 0 12px;
-          border-radius: 10px;
-          color: rgba(100, 116, 139, 0.8);
+          margin: 0 8px;
+          border-radius: 8px;
+          color: rgba(255, 255, 255, 0.6);
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           cursor: pointer;
         }
 
         .nav-item:hover {
-          color: rgba(30, 41, 59, 1);
-          background: rgba(255, 255, 255, 0.1);
+          color: #00ff00;
+          background: rgba(0, 255, 0, 0.1);
         }
 
         .nav-item.active {
-          color: #3b82f6;
-          background: rgba(59, 130, 246, 0.15);
+          color: #00ff00;
+          background: rgba(0, 255, 0, 0.15);
           font-weight: 600;
+          box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
         }
 
         .nav-item.active::before {
@@ -71,31 +66,57 @@ export default function Sidebar() {
           top: 0;
           bottom: 0;
           width: 3px;
-          background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+          background: #00ff00;
           border-radius: 0 3px 3px 0;
         }
 
         .sidebar-brand {
-          font-family: 'Fraunces', serif;
-          font-weight: 700;
+          font-weight: 800;
           font-size: 24px;
-          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          color: #00ff00;
+          text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
         }
 
         .divider {
           height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+          background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.2), transparent);
           margin: 16px 0;
+        }
+
+        .toggle-btn {
+          position: absolute;
+          right: -12px;
+          top: 24px;
+          background: #00ff00;
+          color: #000;
+          border: none;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+        }
+
+        .toggle-btn:hover {
+          box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
         }
       `}</style>
 
-      <div className="sidebar-glass h-full flex flex-col p-6 overflow-y-auto">
+      <div className="h-full flex flex-col p-6 overflow-y-auto relative">
+        {/* Toggle Button */}
+        <button
+          onClick={() => setCollapsed(!collapsed)}
+          className="toggle-btn"
+        >
+          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+        </button>
+
         {/* Brand */}
         <Link href="/dashboard" className="mb-8 block">
-          <div className="sidebar-brand">CF</div>
+          <div className="sidebar-brand">{collapsed ? 'C' : 'CF'}</div>
         </Link>
 
         {/* Navigation Items */}
@@ -107,10 +128,11 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                title={collapsed ? item.label : ''}
                 className={`nav-item ${active ? 'active' : ''}`}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                <span className="text-sm font-500">{item.label}</span>
+                {!collapsed && <span className="text-sm font-500">{item.label}</span>}
               </Link>
             )
           })}
@@ -122,10 +144,11 @@ export default function Sidebar() {
         {/* Logout Button */}
         <button
           onClick={handleLogout}
+          title={collapsed ? 'Logout' : ''}
           className="nav-item group w-full justify-start"
         >
           <LogOut className="w-5 h-5 flex-shrink-0 group-hover:rotate-180 transition-transform duration-300" />
-          <span className="text-sm font-500">Logout</span>
+          {!collapsed && <span className="text-sm font-500">Logout</span>}
         </button>
       </div>
     </div>

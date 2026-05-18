@@ -71,16 +71,18 @@ export default function DashboardPage() {
         }
 
         .btn-primary {
-          background: #ffffff;
+          background: #00ff00;
           color: #000000;
           transition: all 0.3s ease;
           font-weight: 600;
-          border: 1px solid #ffffff;
+          border: 1px solid #00ff00;
+          box-shadow: 0 0 15px rgba(0, 255, 0, 0.3);
         }
 
         .btn-primary:hover {
-          background: #f0f0f0;
+          background: #00dd00;
           transform: translateY(-2px);
+          box-shadow: 0 0 25px rgba(0, 255, 0, 0.5);
         }
 
         .feature-icon {

@@ -76,8 +76,8 @@ export default function EmailGeneratorPage() {
         .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
         .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); outline: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05); }
         .input-glass option { background: #000; color: white; }
-        .btn-primary { background: #ffffff; color: #000000; box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1); font-weight: 600; }
-        .btn-primary:hover:not(:disabled) { background: #f0f0f0; transform: translateY(-2px); }
+        .btn-primary { background: #00ff00; color: #000000; box-shadow: 0 10px 25px rgba(0, 255, 0, 0.3); font-weight: 600; }
+        .btn-primary:hover:not(:disabled) { background: #00dd00; transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0, 255, 0, 0.5); }
         .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
       `}</style>
 

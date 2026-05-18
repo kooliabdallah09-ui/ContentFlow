@@ -9,6 +9,7 @@ export default function PricingPage() {
       name: 'Free',
       price: 0,
       credits: 50,
+      currency: '€',
       description: 'Perfect for getting started',
       features: [
         'Blog post generation',
@@ -25,6 +26,7 @@ export default function PricingPage() {
       name: 'Starter',
       price: 19,
       credits: 1000,
+      currency: '€',
       description: 'For emerging creators',
       features: [
         'All Free features',
@@ -42,6 +44,7 @@ export default function PricingPage() {
       name: 'Pro',
       price: 49,
       credits: 4000,
+      currency: '€',
       description: 'For serious creators',
       features: [
         'All Starter features',
@@ -60,6 +63,7 @@ export default function PricingPage() {
       name: 'Agency',
       price: 149,
       credits: 15000,
+      currency: '€',
       description: 'For agencies & enterprises',
       features: [
         'All Pro features',
@@ -105,13 +109,15 @@ export default function PricingPage() {
         }
 
         .pricing-card.featured {
-          border: 2px solid rgba(255, 255, 255, 0.3);
+          border: 2px solid #00ff00;
           transform: scale(1.05);
+          box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
         }
 
         .pricing-card.featured:hover {
           transform: scale(1.05) translateY(-4px);
-          border-color: rgba(255, 255, 255, 0.5);
+          border-color: #00ff00;
+          box-shadow: 0 0 40px rgba(0, 255, 0, 0.4);
         }
 
         .btn-primary {
@@ -150,9 +156,9 @@ export default function PricingPage() {
       `}</style>
 
       {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md">
+      <div className="border-b border-green-400/30 bg-black/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-8 py-12">
-          <h1 className="text-5xl font-black mb-4">Simple, Transparent Pricing</h1>
+          <h1 className="text-5xl font-black mb-4">Simple, <span className="text-green-400">Transparent</span> Pricing</h1>
           <p className="text-white/60 text-lg max-w-2xl">
             Choose the perfect plan for your content creation needs. All plans include access to all generators.
           </p>
@@ -171,7 +177,7 @@ export default function PricingPage() {
             >
               {plan.highlighted && (
                 <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                  <span className="bg-white text-black px-4 py-1 rounded-full text-xs font-black">
+                  <span className="bg-green-400 text-black px-4 py-1 rounded-full text-xs font-black shadow-lg shadow-green-400/50">
                     MOST POPULAR
                   </span>
                 </div>
@@ -182,15 +188,19 @@ export default function PricingPage() {
 
               <div className="mb-8">
                 <div className="text-4xl font-black mb-1">
-                  €{plan.price}
+                  <span className={plan.highlighted ? 'text-green-400' : 'text-white'}>{plan.currency}{plan.price}</span>
                   <span className="text-lg text-white/60 font-600">/month</span>
                 </div>
-                <div className="text-white/60 text-sm">
+                <div className={plan.highlighted ? 'text-green-400/70 text-sm' : 'text-white/60 text-sm'}>
                   {plan.credits.toLocaleString()} credits included
                 </div>
               </div>
 
-              <button className={plan.name === 'Pro' || plan.name === 'Agency' ? 'btn-secondary' : 'btn-primary'}>
+              <button className={`w-full py-3 rounded-lg font-600 text-sm ${
+                plan.highlighted
+                  ? 'bg-green-400 text-black hover:bg-green-300 hover:shadow-lg hover:shadow-green-400/50'
+                  : 'bg-white text-black hover:bg-gray-100'
+              }`}>
                 {plan.cta}
               </button>
 

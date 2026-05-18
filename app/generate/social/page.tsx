@@ -162,8 +162,8 @@ export default function SocialGeneratorPage() {
         .input-glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; color: white; }
         .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
         .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); outline: none; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05); }
-        .btn-primary { background: #ffffff; color: #000000; box-shadow: 0 12px 30px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; font-weight: 600; }
-        .btn-primary:hover:not(:disabled) { background: #f0f0f0; transform: translateY(-3px); }
+        .btn-primary { background: #00ff00; color: #000000; box-shadow: 0 12px 30px rgba(0, 255, 0, 0.3); transition: all 0.3s ease; font-weight: 600; }
+        .btn-primary:hover:not(:disabled) { background: #00dd00; transform: translateY(-3px); box-shadow: 0 18px 45px rgba(0, 255, 0, 0.5); }
         .platform-card { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .platform-card:hover { transform: translateY(-4px); }
       `}</style>

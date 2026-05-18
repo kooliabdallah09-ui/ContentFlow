@@ -118,8 +118,8 @@ export default function CalendarPage() {
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { font-family: 'Inter', sans-serif; }
         .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .btn-primary { background: #ffffff; color: #000000; box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; font-weight: 600; }
-        .btn-primary:hover:not(:disabled) { background: #f0f0f0; transform: translateY(-2px); }
+        .btn-primary { background: #00ff00; color: #000000; box-shadow: 0 10px 25px rgba(0, 255, 0, 0.3); transition: all 0.3s ease; font-weight: 600; }
+        .btn-primary:hover:not(:disabled) { background: #00dd00; transform: translateY(-2px); box-shadow: 0 15px 40px rgba(0, 255, 0, 0.5); }
         .calendar-day { min-h-24; border: 1px solid rgba(255, 255, 255, 0.1); }
         .calendar-day-number { font-weight: 600; color: #ffffff; }
       `}</style>
