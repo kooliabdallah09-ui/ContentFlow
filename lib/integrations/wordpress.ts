@@ -24,9 +24,13 @@ export class WordPressPublisher {
   async publish(payload: WordPressPublishPayload): Promise<string> {
     try {
       // First, upload featured image if provided
-      let featuredMediaId = null
+      let featuredMediaId: number | null = null
       if (payload.featuredImageUrl) {
-        featuredMediaId = await this.uploadMedia(payload.featuredImageUrl)
+        try {
+          featuredMediaId = await this.uploadMedia(payload.featuredImageUrl)
+        } catch (e) {
+          console.warn('Failed to upload featured image, continuing without it')
+        }
       }
 
       // Create the post
@@ -63,35 +67,32 @@ export class WordPressPublisher {
   }
 
   private async uploadMedia(imageUrl: string): Promise<number> {
-    try {
-      const imageResponse = await fetch(imageUrl)
-      if (!imageResponse.ok) throw new Error('Failed to fetch image')
+    const imageResponse = await fetch(imageUrl)
+    if (!imageResponse.ok) throw new Error('Failed to fetch image')
 
-      const buffer = await imageResponse.arrayBuffer()
-      const filename = `featured-${Date.now()}.jpg`
+    const buffer = await imageResponse.arrayBuffer()
+    const filename = `featured-${Date.now()}.jpg`
+    const mimeType = 'image/jpeg'
 
-      const formData = new FormData()
-      formData.append('file', new Blob([buffer], { type: 'image/jpeg' }), filename)
+    // Use FormData for multipart upload
+    const form = new FormData()
+    form.append('file', new Blob([buffer], { type: mimeType }), filename)
 
-      const response = await fetch(`${this.siteUrl}/wp-json/wp/v2/media`, {
-        method: 'POST',
-        headers: {
-          Authorization: this.getAuthHeader(),
-        },
-        body: formData,
-      })
+    const response = await fetch(`${this.siteUrl}/wp-json/wp/v2/media`, {
+      method: 'POST',
+      headers: {
+        Authorization: this.getAuthHeader(),
+      },
+      body: form,
+    })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.message || `HTTP ${response.status}`)
-      }
-
-      const media = await response.json()
-      return media.id
-    } catch (error) {
-      console.warn(`Failed to upload featured image: ${error instanceof Error ? error.message : 'Unknown error'}`)
-      return null
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.message || `HTTP ${response.status}`)
     }
+
+    const media = await response.json()
+    return media.id
   }
 
   async verifyCredentials(): Promise<boolean> {
@@ -106,7 +107,6 @@ export class WordPressPublisher {
       return false
     }
   }
-}
 
 export function initializeWordPressPublisher(
   siteUrl: string,
