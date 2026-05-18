@@ -39,7 +39,11 @@ export default function RootLayout({
       setUser(session?.user)
       setLoading(false)
 
-      if (!session?.user && !pathname.includes('/auth')) {
+      // Allow public pages without authentication
+      const publicPages = ['/', '/privacy', '/auth', '/presentation']
+      const isPublicPage = publicPages.some(page => pathname === page || pathname.startsWith(page + '/'))
+
+      if (!session?.user && !isPublicPage) {
         router.push('/auth/login')
       }
     })
@@ -58,7 +62,8 @@ export default function RootLayout({
   const isAuthPage = pathname.includes('/auth')
   const isLandingPage = pathname === '/landing'
   const isOnboarding = pathname === '/onboarding'
-  const showSidebar = user && !isAuthPage && !isLandingPage && !isOnboarding
+  const isPresentationPage = pathname === '/presentation'
+  const showSidebar = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage
 
   return (
     <html

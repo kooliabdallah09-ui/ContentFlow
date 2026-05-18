@@ -312,13 +312,13 @@ export default function LandingPage() {
           </div>
 
           {/* Main Headline */}
-          <h1 className="serif-headline text-6xl md:text-7xl mb-6 leading-tight text-white">
-            Create content<br />that actually converts
+          <h1 className="serif-headline text-7xl md:text-8xl mb-8 leading-tight text-white font-black tracking-tight">
+            AI-Powered<br />Content Creation<br />Platform
           </h1>
 
           {/* Subheading */}
-          <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-10 leading-relaxed font-300">
-            From SEO blogs to viral social posts to email sequences. Generated with real intelligence, not generic templates.
+          <p className="text-xl md:text-2xl text-white/85 max-w-3xl mx-auto mb-12 leading-relaxed font-300">
+            Generate blogs, social posts, UGC videos, and more with Claude AI. Ship 10x faster than your competition.
           </p>
 
           {/* CTA Section */}
@@ -366,13 +366,13 @@ export default function LandingPage() {
       <section id="features" className="py-24 px-6 bg-gradient-to-b from-transparent via-slate-50 to-transparent">
         <div className="max-w-6xl mx-auto">
           {/* Section Header */}
-          <div className="text-center mb-20">
-            <p className="text-blue-600 font-600 text-sm uppercase tracking-wide mb-4">What You Get</p>
-            <h2 className="serif-headline text-5xl text-slate-900 mb-4">
-              Three generators.<br />Infinite possibilities.
+          <div className="text-center mb-24">
+            <p className="text-blue-600 font-700 text-sm uppercase tracking-widest mb-6">EVERYTHING YOU NEED</p>
+            <h2 className="serif-headline text-6xl md:text-7xl text-slate-900 mb-6 leading-tight">
+              One platform.<br />Unlimited content.
             </h2>
-            <p className="text-slate-600 text-lg max-w-2xl mx-auto">
-              Build once, publish everywhere. Powered by Claude AI.
+            <p className="text-slate-600 text-xl max-w-3xl mx-auto leading-relaxed">
+              From SEO-optimized blogs to viral social posts to professional UGC videos. All powered by Claude AI.
             </p>
           </div>
 
@@ -442,39 +442,84 @@ export default function LandingPage() {
             }
           `}</style>
 
-          <div className="feature-grid">
-            {/* Left Card - Blue Gradient */}
-            <div className="feature-liquid-card liquid-glass-blue">
-              <h3 className="serif-headline text-3xl mb-6">Content Generation</h3>
-              <p className="text-base leading-relaxed mb-8 opacity-95">
-                Create high-quality content in seconds. Choose from three powerful generators tailored for different platforms and purposes.
+          {/* Feature Grid - Now with 4 products */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+            {/* Blog Generator */}
+            <div className="feature-liquid-card liquid-glass-light group">
+              <div className="text-4xl mb-4">📝</div>
+              <h3 className="serif-headline text-3xl text-slate-900 mb-4">Blog Posts</h3>
+              <p className="text-slate-700 text-base leading-relaxed mb-6">
+                SEO-optimized long-form content that ranks and converts.
               </p>
-              <div className="space-y-4">
-                <div className="check-mark">Blog posts: SEO-optimized, 600-3000 words</div>
-                <div className="check-mark">Social posts: Platform-optimized for all networks</div>
-                <div className="check-mark">Email sequences: Complete nurture flows</div>
-                <div className="check-mark">Full AI enhancement with Claude</div>
+              <div className="space-y-3">
+                <div className="check-mark text-slate-700">
+                  <span className="font-500">600-3000 word articles</span>
+                </div>
+                <div className="check-mark text-slate-700">
+                  <span className="font-500">Meta descriptions & headers</span>
+                </div>
+                <div className="check-mark text-slate-700">
+                  <span className="font-500">WordPress publishing</span>
+                </div>
               </div>
             </div>
 
-            {/* Right Card - Light Glass */}
-            <div className="feature-liquid-card liquid-glass-light">
-              <h3 className="serif-headline text-3xl text-slate-900 mb-6">Smart Publishing</h3>
-              <p className="text-slate-700 text-base leading-relaxed mb-8">
-                Manage, schedule, and publish across multiple platforms seamlessly. One place to control your entire content strategy.
+            {/* Social Posts */}
+            <div className="feature-liquid-card liquid-glass-blue">
+              <div className="text-4xl mb-4">✨</div>
+              <h3 className="serif-headline text-3xl mb-4">Social Posts</h3>
+              <p className="text-base leading-relaxed mb-6 opacity-95">
+                Platform-optimized viral content that drives engagement.
               </p>
-              <div className="space-y-4">
+              <div className="space-y-3">
+                <div className="check-mark">
+                  <span className="font-500">Twitter, LinkedIn, Instagram</span>
+                </div>
+                <div className="check-mark">
+                  <span className="font-500">Tone & style customization</span>
+                </div>
+                <div className="check-mark">
+                  <span className="font-500">Hashtag optimization</span>
+                </div>
+              </div>
+            </div>
+
+            {/* UGC Videos */}
+            <div className="feature-liquid-card liquid-glass-light">
+              <div className="text-4xl mb-4">🎬</div>
+              <h3 className="serif-headline text-3xl text-slate-900 mb-4">UGC Videos</h3>
+              <p className="text-slate-700 text-base leading-relaxed mb-6">
+                AI avatars with lip-sync deliver product demos in seconds.
+              </p>
+              <div className="space-y-3">
                 <div className="check-mark text-slate-700">
-                  <span>Content Calendar: Schedule for optimal timing</span>
+                  <span className="font-500">Professional avatars</span>
                 </div>
                 <div className="check-mark text-slate-700">
-                  <span>Multi-Platform: Publish to Twitter, LinkedIn, and more</span>
+                  <span className="font-500">Multiple voice options</span>
                 </div>
                 <div className="check-mark text-slate-700">
-                  <span>Analytics: Track performance and engagement</span>
+                  <span className="font-500">TikTok/Reels ready</span>
                 </div>
-                <div className="check-mark text-slate-700">
-                  <span>Brand Consistency: Maintain your voice everywhere</span>
+              </div>
+            </div>
+
+            {/* Email Sequences */}
+            <div className="feature-liquid-card liquid-glass-blue group">
+              <div className="text-4xl mb-4">💌</div>
+              <h3 className="serif-headline text-3xl mb-4">Email Sequences</h3>
+              <p className="text-base leading-relaxed mb-6 opacity-95">
+                Complete nurture flows that convert cold leads into customers.
+              </p>
+              <div className="space-y-3">
+                <div className="check-mark">
+                  <span className="font-500">Multi-email sequences</span>
+                </div>
+                <div className="check-mark">
+                  <span className="font-500">Personalization tokens</span>
+                </div>
+                <div className="check-mark">
+                  <span className="font-500">A/B tested templates</span>
                 </div>
               </div>
             </div>
@@ -486,11 +531,14 @@ export default function LandingPage() {
       <section id="pricing" className="py-24 px-6">
         <div className="max-w-5xl mx-auto">
           {/* Section Header */}
-          <div className="text-center mb-20">
-            <p className="text-blue-600 font-600 text-sm uppercase tracking-wide mb-4">Pricing</p>
-            <h2 className="serif-headline text-5xl text-slate-900 mb-4">
+          <div className="text-center mb-24">
+            <p className="text-blue-600 font-700 text-sm uppercase tracking-widest mb-6">TRANSPARENT PRICING</p>
+            <h2 className="serif-headline text-6xl md:text-7xl text-slate-900 mb-6">
               Simple plans.<br />No surprises.
             </h2>
+            <p className="text-slate-600 text-xl max-w-2xl mx-auto">
+              Choose a plan that works for you, from solo creators to entire agencies.
+            </p>
           </div>
 
           {/* Pricing Cards - Liquid Glass */}
@@ -614,20 +662,31 @@ export default function LandingPage() {
       </section>
 
       {/* Final CTA */}
-      <section className="py-20 px-6 bg-slate-100 text-slate-900 border-t border-slate-200">
+      <section className="py-24 px-6 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white border-t border-slate-800">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="serif-headline text-5xl mb-6">
+          <div className="inline-block mb-6 glass-card px-4 py-2 rounded-full text-sm font-500">
+            🚀 Start creating today
+          </div>
+          <h2 className="serif-headline text-6xl md:text-7xl mb-8 leading-tight">
             Your content,<br />Supercharged.
           </h2>
-          <p className="text-slate-600 text-lg mb-10 max-w-2xl mx-auto">
-            Stop writing in circles. Start creating content that matters.
+          <p className="text-xl text-white/80 mb-12 max-w-2xl mx-auto leading-relaxed">
+            Join 2,500+ creators shipping better content, faster. With Claude AI doing the heavy lifting.
           </p>
-          <Link
-            href="/auth/signup"
-            className="btn-primary inline-block px-10 py-4 rounded-lg font-600 text-lg"
-          >
-            Try for Free
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link
+              href="/auth/signup"
+              className="btn-primary inline-block px-10 py-4 rounded-lg font-600 text-lg"
+            >
+              Get Started Free
+            </Link>
+            <Link
+              href="/privacy"
+              className="inline-block px-10 py-4 rounded-lg font-600 text-lg border border-white/30 hover:border-white/50 text-white transition"
+            >
+              Learn More
+            </Link>
+          </div>
         </div>
       </section>
 

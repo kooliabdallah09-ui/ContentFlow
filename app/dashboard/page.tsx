@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import Link from 'next/link'
-import { FileText, Share2, Mail, Calendar, BarChart3, Sparkles } from 'lucide-react'
+import { FileText, Share2, Mail, Calendar, BarChart3, Sparkles, Film } from 'lucide-react'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ blogs: 0, social: 0, emails: 0, total: 0 })
@@ -180,7 +180,7 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
             {/* Blog Generator */}
             <Link
               href="/generate/blog"
@@ -225,6 +225,23 @@ export default function DashboardPage() {
                 Build complete email sequences that convert.
               </p>
               <div className="mt-6 text-emerald-600 text-sm font-600 group-hover:translate-x-1 transition">
+                Create →
+              </div>
+            </Link>
+
+            {/* UGC Videos - NEW */}
+            <Link
+              href="/generate/ugc"
+              className="glass-card p-8 rounded-2xl group cursor-pointer border-t-2 border-indigo-400 hover:border-indigo-500 relative overflow-hidden"
+            >
+              <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-indigo-400/20 to-purple-400/20 rounded-full -mr-8 -mt-8"></div>
+              <div className="feature-icon mb-6 group-hover:scale-110 transition bg-gradient-to-br from-indigo-100 to-purple-100"><Film className="w-6 h-6 text-indigo-600" /></div>
+              <h3 className="serif-headline text-xl text-slate-900 mb-2">UGC Videos</h3>
+              <p className="text-xs text-indigo-600 mb-4 font-600">AI Avatars</p>
+              <p className="text-sm text-slate-600 group-hover:text-slate-900 transition">
+                Generate professional UGC videos with AI avatars.
+              </p>
+              <div className="mt-6 text-indigo-600 text-sm font-600 group-hover:translate-x-1 transition">
                 Create →
               </div>
             </Link>
