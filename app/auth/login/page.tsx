@@ -28,56 +28,50 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 flex items-center justify-center px-6 overflow-hidden">
+    <div className="min-h-screen bg-black text-white flex items-center justify-center px-6 overflow-hidden">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
         * {
           font-family: 'Inter', sans-serif;
         }
 
-        .serif-headline {
-          font-family: 'Fraunces', serif;
-          font-weight: 700;
-          letter-spacing: -1.5px;
-        }
-
         .glass-card {
-          background: rgba(255, 255, 255, 0.45);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.6);
+          background: rgba(255, 255, 255, 0.03);
+          backdrop-filter: blur(10px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .input-glass {
-          background: rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.05);
           backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.4);
-          color: #1e293b;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: white;
           transition: all 0.3s ease;
         }
 
         .input-glass::placeholder {
-          color: rgba(30, 41, 59, 0.5);
+          color: rgba(255, 255, 255, 0.5);
         }
 
         .input-glass:focus {
-          background: rgba(255, 255, 255, 0.9);
-          border-color: rgba(59, 130, 246, 0.5);
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(0, 255, 0, 0.5);
+          box-shadow: 0 0 0 3px rgba(0, 255, 0, 0.1);
           outline: none;
         }
 
         .btn-primary {
-          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-          color: white;
+          background: #00ff00;
+          color: #000000;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
-          box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2);
+          box-shadow: 0 10px 25px rgba(0, 255, 0, 0.3);
         }
 
         .btn-primary:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 15px 40px rgba(59, 130, 246, 0.35);
+          box-shadow: 0 15px 40px rgba(0, 255, 0, 0.5);
+          background: #00dd00;
         }
 
         .btn-primary:disabled {
@@ -85,17 +79,10 @@ export default function LoginPage() {
           cursor: not-allowed;
         }
 
-        .text-gradient {
-          background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-        }
-
         .error-message {
           background: rgba(239, 68, 68, 0.1);
           border: 1px solid rgba(239, 68, 68, 0.3);
-          color: #991b1b;
+          color: #ff6b6b;
           border-radius: 8px;
           padding: 12px 16px;
           font-size: 14px;
@@ -104,7 +91,7 @@ export default function LoginPage() {
         .organic-shape {
           position: absolute;
           border-radius: 50%;
-          opacity: 0.05;
+          opacity: 0.1;
         }
 
         .shape-1 {
@@ -112,7 +99,7 @@ export default function LoginPage() {
           right: -100px;
           width: 600px;
           height: 600px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.3) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(0, 255, 0, 0.15) 0%, transparent 70%);
         }
 
         .shape-2 {
@@ -120,7 +107,7 @@ export default function LoginPage() {
           left: -100px;
           width: 500px;
           height: 500px;
-          background: radial-gradient(circle, rgba(139, 92, 246, 0.3) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(0, 255, 0, 0.1) 0%, transparent 70%);
         }
       `}</style>
 
@@ -130,19 +117,19 @@ export default function LoginPage() {
       <div className="max-w-md w-full relative z-10">
         <div className="text-center mb-12">
           <Link href="/" className="inline-block">
-            <div className="serif-headline text-3xl text-slate-900 mb-8">
-              Content<span className="text-gradient">Flow</span>
+            <div className="text-3xl font-black mb-8">
+              Content<span className="text-green-400">Flow</span>
             </div>
           </Link>
-          <h1 className="serif-headline text-3xl text-slate-900 mb-3">Welcome back</h1>
-          <p className="text-slate-600">Sign in to continue creating amazing content</p>
+          <h1 className="text-3xl font-black mb-3">Welcome back</h1>
+          <p className="text-white/60">Sign in to continue creating amazing content</p>
         </div>
 
         <form className="space-y-5" onSubmit={handleLogin}>
           {error && <div className="error-message">{error}</div>}
 
           <div>
-            <label className="block text-sm font-500 text-slate-700 mb-2">Email</label>
+            <label className="block text-sm font-500 text-white/70 mb-2">Email</label>
             <input
               type="email"
               placeholder="your@email.com"
@@ -154,7 +141,7 @@ export default function LoginPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-500 text-slate-700 mb-2">Password</label>
+            <label className="block text-sm font-500 text-white/70 mb-2">Password</label>
             <input
               type="password"
               placeholder="••••••••"
@@ -175,9 +162,9 @@ export default function LoginPage() {
         </form>
 
         <div className="mt-8 text-center text-sm">
-          <p className="text-slate-600">
+          <p className="text-white/60">
             Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-blue-600 hover:text-blue-700 font-600 transition">
+            <Link href="/auth/signup" className="text-green-400 hover:text-green-300 font-600 transition">
               Sign up
             </Link>
           </p>
