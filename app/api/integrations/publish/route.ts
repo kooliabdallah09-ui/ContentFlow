@@ -3,6 +3,7 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { initializeTwitterPublisher } from '@/lib/integrations/twitter'
 import { publishToInstagram, publishToFacebook } from '@/lib/integrations/instagram'
+import { initializeWordPressPublisher } from '@/lib/integrations/wordpress'
 
 export async function POST(request: NextRequest) {
   try {
@@ -92,7 +93,20 @@ export async function POST(request: NextRequest) {
     const featuredImage = content.metadata?.featuredImage || null
 
     // Publish based on platform
-    if (platform === 'twitter') {
+    if (platform === 'wordpress') {
+      const publisher = initializeWordPressPublisher(
+        integration.metadata?.siteUrl,
+        integration.account_id,
+        integration.access_token
+      )
+
+      publishedId = await publisher.publish({
+        title: content.title,
+        content: content.body,
+        excerpt: content.meta_description,
+        featuredImageUrl: featuredImage,
+      })
+    } else if (platform === 'twitter') {
       const publisher = initializeTwitterPublisher(
         integration.access_token,
         '',

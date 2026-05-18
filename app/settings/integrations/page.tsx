@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { CheckCircle, Link2, ArrowRight, Lock } from 'lucide-react'
+import { CheckCircle, Link2, ArrowRight, Lock, X } from 'lucide-react'
 
 interface Integration {
   platform: string
@@ -13,6 +13,7 @@ interface Integration {
 // Real official logos from CDN
 const PlatformLogo = ({ platform }: { platform: string }) => {
   const logoMap: Record<string, string> = {
+    wordpress: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/wordpress.svg',
     twitter: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/x.svg',
     linkedin: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/linkedin.svg',
     instagram: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/instagram.svg',
@@ -31,6 +32,7 @@ const PlatformLogo = ({ platform }: { platform: string }) => {
 }
 
 const PLATFORMS = [
+  { id: 'wordpress', name: 'WordPress', color: 'blue' },
   { id: 'twitter', name: 'X (Twitter)', color: 'slate' },
   { id: 'instagram', name: 'Instagram', color: 'pink' },
   { id: 'facebook', name: 'Facebook', color: 'blue' },
@@ -45,6 +47,9 @@ export default function IntegrationsPage() {
   const [loading, setLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [showWordPressModal, setShowWordPressModal] = useState(false)
+  const [wordPressForm, setWordPressForm] = useState({ siteUrl: '', username: '', appPassword: '' })
+  const [wordPressLoading, setWordPressLoading] = useState(false)
 
   useEffect(() => {
     // Show message from redirect
@@ -92,10 +97,43 @@ export default function IntegrationsPage() {
   }, [])
 
   const handleConnect = (platform: string) => {
-    if (platform === 'twitter') {
+    if (platform === 'wordpress') {
+      setShowWordPressModal(true)
+    } else if (platform === 'twitter') {
       window.location.href = '/api/integrations/twitter/connect'
     } else if (platform === 'instagram' || platform === 'facebook') {
       window.location.href = `/api/integrations/connect/${platform}`
+    }
+  }
+
+  const handleWordPressConnect = async () => {
+    if (!wordPressForm.siteUrl || !wordPressForm.username || !wordPressForm.appPassword) {
+      setMessage({ type: 'error', text: 'Please fill in all fields' })
+      return
+    }
+
+    setWordPressLoading(true)
+    try {
+      const response = await fetch('/api/integrations/connect/wordpress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wordPressForm),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setMessage({ type: 'error', text: data.error || 'Failed to connect WordPress' })
+      } else {
+        setMessage({ type: 'success', text: 'WordPress connected successfully!' })
+        setShowWordPressModal(false)
+        setWordPressForm({ siteUrl: '', username: '', appPassword: '' })
+        fetchIntegrations()
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Connection failed' })
+    } finally {
+      setWordPressLoading(false)
     }
   }
 
@@ -325,6 +363,90 @@ export default function IntegrationsPage() {
           </div>
         </div>
       </div>
+
+      {/* WordPress Modal */}
+      {showWordPressModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-slate-200">
+              <h2 className="text-lg font-600 text-slate-900">Connect WordPress</h2>
+              <button
+                onClick={() => setShowWordPressModal(false)}
+                className="text-slate-500 hover:text-slate-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <p className="text-sm text-slate-600 mb-6">
+                Enter your WordPress site details. You'll need to create an <strong>Application Password</strong> in your WordPress admin settings.
+              </p>
+
+              <div>
+                <label className="block text-sm font-500 text-slate-900 mb-2">
+                  Site URL
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://myblog.com"
+                  value={wordPressForm.siteUrl}
+                  onChange={(e) => setWordPressForm({ ...wordPressForm, siteUrl: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-500 text-slate-900 mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  placeholder="your-username"
+                  value={wordPressForm.username}
+                  onChange={(e) => setWordPressForm({ ...wordPressForm, username: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-500 text-slate-900 mb-2">
+                  Application Password
+                </label>
+                <input
+                  type="password"
+                  placeholder="Paste your app password here"
+                  value={wordPressForm.appPassword}
+                  onChange={(e) => setWordPressForm({ ...wordPressForm, appPassword: e.target.value })}
+                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-slate-500 mt-2">
+                  <a href="https://wordpress.com/support/application-passwords/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                    Learn how to create an app password →
+                  </a>
+                </p>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-slate-200 flex gap-3">
+              <button
+                onClick={() => setShowWordPressModal(false)}
+                disabled={wordPressLoading}
+                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-slate-700 font-500 hover:bg-slate-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleWordPressConnect}
+                disabled={wordPressLoading}
+                className="btn-primary flex-1 px-4 py-2 rounded-lg text-white font-500 disabled:opacity-50"
+              >
+                {wordPressLoading ? 'Connecting...' : 'Connect'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
