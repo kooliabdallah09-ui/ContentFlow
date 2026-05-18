@@ -512,61 +512,76 @@ export default function LandingPage() {
             }
           `}</style>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Starter */}
-            <div className="pricing-card p-12 rounded-xl">
-              <h3 className="text-2xl font-black mb-2">Starter</h3>
-              <p className="text-white/60 text-sm mb-8">For individuals</p>
-              <div className="mb-10">
-                <span className="text-5xl font-black">Free</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* Free */}
+            <div className="pricing-card p-8 rounded-xl">
+              <h3 className="text-xl font-black mb-2">Free</h3>
+              <p className="text-white/60 text-xs mb-6">For testing</p>
+              <div className="mb-8">
+                <span className="text-4xl font-black">0€</span>
+                <span className="text-xs text-white/60">/month</span>
               </div>
-              <ul className="space-y-4 text-white/70 text-sm mb-10">
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> 5 generations/month</li>
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> All content types</li>
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> Community support</li>
+              <ul className="space-y-2 text-white/70 text-xs mb-8">
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> 50 credits/month</li>
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> 150 bonus credits</li>
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> All generators</li>
               </ul>
-              <Link
-                href="/auth/signup"
-                className="btn-secondary w-full py-4 rounded-md font-700 text-center text-sm transition block"
-              >
+              <Link href="/auth/signup" className="btn-secondary w-full py-3 rounded-md font-600 text-xs text-center transition block">
                 Get Started
               </Link>
             </div>
 
-            {/* Professional - Featured */}
-            <div className="pricing-featured p-12 rounded-xl transform md:scale-105 md:relative md:z-10">
-              <div className="text-xs font-black text-white/80 uppercase tracking-widest mb-4">Most Popular</div>
-              <h3 className="text-2xl font-black mb-2 text-white">Professional</h3>
-              <p className="text-white/80 text-sm mb-8">For creators & teams</p>
-              <div className="mb-10">
-                <span className="text-5xl font-black text-white">$49</span>
-                <span className="text-sm text-white/80">/month</span>
+            {/* Starter */}
+            <div className="pricing-card p-8 rounded-xl">
+              <h3 className="text-xl font-black mb-2">Starter</h3>
+              <p className="text-white/60 text-xs mb-6">For creators</p>
+              <div className="mb-8">
+                <span className="text-4xl font-black">19€</span>
+                <span className="text-xs text-white/60">/month</span>
               </div>
-              <ul className="space-y-4 text-white text-sm mb-10">
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> Unlimited generations</li>
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> Content calendar</li>
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> Priority support</li>
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> Analytics</li>
+              <ul className="space-y-2 text-white/70 text-xs mb-8">
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> 1,000 credits/month</li>
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> UGC videos</li>
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> Advanced analytics</li>
               </ul>
-              <button className="btn-primary w-full py-4 rounded-md font-700 text-sm transition">
+              <Link href="/auth/signup" className="btn-secondary w-full py-3 rounded-md font-600 text-xs text-center transition block">
+                Start Free Trial
+              </Link>
+            </div>
+
+            {/* Pro - Featured */}
+            <div className="pricing-featured p-8 rounded-xl transform lg:scale-105 lg:relative lg:z-10">
+              <div className="text-xs font-black text-white/80 uppercase tracking-widest mb-3">Most Popular</div>
+              <h3 className="text-xl font-black mb-2 text-white">Pro</h3>
+              <p className="text-white/80 text-xs mb-6">For serious creators</p>
+              <div className="mb-8">
+                <span className="text-4xl font-black text-white">49€</span>
+                <span className="text-xs text-white/80">/month</span>
+              </div>
+              <ul className="space-y-2 text-white text-xs mb-8">
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> 4,000 credits/month</li>
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> Premium avatars</li>
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> Content calendar</li>
+              </ul>
+              <button className="btn-primary w-full py-3 rounded-md font-600 text-xs transition">
                 Start Free Trial
               </button>
             </div>
 
-            {/* Enterprise */}
-            <div className="pricing-card p-12 rounded-xl">
-              <h3 className="text-2xl font-black mb-2">Enterprise</h3>
-              <p className="text-white/60 text-sm mb-8">For agencies & teams</p>
-              <div className="mb-10">
-                <span className="text-5xl font-black">Custom</span>
+            {/* Agency */}
+            <div className="pricing-card p-8 rounded-xl">
+              <h3 className="text-xl font-black mb-2">Agency</h3>
+              <p className="text-white/60 text-xs mb-6">For teams</p>
+              <div className="mb-8">
+                <span className="text-4xl font-black">149€</span>
+                <span className="text-xs text-white/60">/month</span>
               </div>
-              <ul className="space-y-4 text-white/70 text-sm mb-10">
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> Custom limits</li>
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> API access</li>
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> Dedicated support</li>
-                <li className="flex items-center gap-3"><Zap className="w-4 h-4" /> SSO & compliance</li>
+              <ul className="space-y-2 text-white/70 text-xs mb-8">
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> 15,000 credits/month</li>
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> Multi-client dashboard</li>
+                <li className="flex items-center gap-2"><Zap className="w-3 h-3" /> Priority support</li>
               </ul>
-              <button className="btn-secondary w-full py-4 rounded-md font-700 text-sm transition">
+              <button className="btn-secondary w-full py-3 rounded-md font-600 text-xs transition">
                 Contact Sales
               </button>
             </div>
