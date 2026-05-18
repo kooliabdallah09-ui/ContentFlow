@@ -1,6 +1,7 @@
 'use client'
 
 import { Clock, User, Calendar, Share2, Bookmark } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 
 interface BlogPostPreviewProps {
   headline: string
@@ -91,28 +92,20 @@ export default function BlogPostPreview({
 
       {/* Main Content */}
       <div className="prose prose-lg max-w-none mb-12 text-slate-700">
-        {content.split('\n\n').map((paragraph, idx) => {
-          if (paragraph.startsWith('##')) {
-            const title = paragraph.replace(/^##\s*/, '')
-            return (
-              <h2
-                key={idx}
-                id={`section-${idx}`}
-                className="text-3xl font-bold text-slate-900 mt-12 mb-6 scroll-mt-20"
-              >
-                {title}
-              </h2>
-            )
-          }
-          if (paragraph.startsWith('#')) {
-            return null
-          }
-          return (
-            <p key={idx} className="text-lg leading-8 text-slate-700 mb-6">
-              {paragraph}
-            </p>
-          )
-        })}
+        <ReactMarkdown
+          components={{
+            h2: ({node, ...props}) => <h2 {...props} className="text-3xl font-bold text-slate-900 mt-12 mb-6 scroll-mt-20" />,
+            h3: ({node, ...props}) => <h3 {...props} className="text-2xl font-bold text-slate-900 mt-8 mb-4" />,
+            p: ({node, ...props}) => <p {...props} className="text-lg leading-8 text-slate-700 mb-6" />,
+            strong: ({node, ...props}) => <strong {...props} className="font-bold text-slate-900" />,
+            em: ({node, ...props}) => <em {...props} className="italic" />,
+            ul: ({node, ...props}) => <ul {...props} className="list-disc list-inside mb-6 text-lg text-slate-700" />,
+            ol: ({node, ...props}) => <ol {...props} className="list-decimal list-inside mb-6 text-lg text-slate-700" />,
+            li: ({node, ...props}) => <li {...props} className="mb-2" />,
+          }}
+        >
+          {content}
+        </ReactMarkdown>
       </div>
 
       {/* FAQs Section */}
