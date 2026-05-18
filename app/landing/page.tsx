@@ -141,7 +141,82 @@ export default function LandingPage() {
           height: 1px;
           background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.1), transparent);
         }
+
+        /* Animated background elements */
+        .background-glow {
+          position: fixed;
+          pointer-events: none;
+          mix-blend-mode: screen;
+        }
+
+        @keyframes float1 {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          50% { transform: translateY(-20px) translateX(10px); }
+        }
+
+        @keyframes float2 {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          50% { transform: translateY(20px) translateX(-10px); }
+        }
+
+        @keyframes float3 {
+          0%, 100% { transform: translateY(0px) translateX(0px); }
+          50% { transform: translateY(-15px) translateX(-15px); }
+        }
+
+        .glow-1 {
+          width: 500px;
+          height: 500px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+          border-radius: 50%;
+          top: -200px;
+          left: -200px;
+          animation: float1 8s ease-in-out infinite;
+        }
+
+        .glow-2 {
+          width: 400px;
+          height: 400px;
+          background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 70%);
+          border-radius: 50%;
+          top: 50%;
+          right: -150px;
+          animation: float2 10s ease-in-out infinite 2s;
+        }
+
+        .glow-3 {
+          width: 300px;
+          height: 300px;
+          background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, transparent 70%);
+          border-radius: 50%;
+          bottom: -100px;
+          left: 50%;
+          animation: float3 12s ease-in-out infinite 4s;
+        }
+
+        /* Particle grid */
+        .particle {
+          position: absolute;
+          width: 1px;
+          height: 1px;
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 50%;
+        }
+
+        @keyframes particles {
+          0%, 100% { opacity: 0.3; }
+          50% { opacity: 0.8; }
+        }
+
+        .particle-animated {
+          animation: particles 4s ease-in-out infinite;
+        }
       `}</style>
+
+      {/* Background Elements */}
+      <div className="background-glow glow-1"></div>
+      <div className="background-glow glow-2"></div>
+      <div className="background-glow glow-3"></div>
 
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 nav-glass">
