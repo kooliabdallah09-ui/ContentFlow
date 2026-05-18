@@ -113,28 +113,27 @@ export default function CalendarPage() {
   const emptyDays = Array.from({ length: firstDayOfMonth(currentDate) }, (_, i) => i)
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-amber-50 to-slate-50">
+    <div className="min-h-screen bg-black text-white">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { font-family: 'Inter', sans-serif; }
-        .serif-headline { font-family: 'Fraunces', serif; font-weight: 700; }
-        .glass-card { background: rgba(255, 255, 255, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.7); }
-        .btn-primary { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); box-shadow: 0 10px 25px rgba(245, 158, 11, 0.2); transition: all 0.3s ease; }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(245, 158, 11, 0.35); }
-        .calendar-day { min-h-24; border: 1px solid rgba(255, 255, 255, 0.2); }
-        .calendar-day-number { font-weight: 600; color: #0f172a; }
+        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-primary { background: #ffffff; color: #000000; box-shadow: 0 10px 25px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; font-weight: 600; }
+        .btn-primary:hover:not(:disabled) { background: #f0f0f0; transform: translateY(-2px); }
+        .calendar-day { min-h-24; border: 1px solid rgba(255, 255, 255, 0.1); }
+        .calendar-day-number { font-weight: 600; color: #ffffff; }
       `}</style>
 
       {/* Header */}
-      <div className="bg-gradient-to-br from-amber-50 via-orange-50 to-amber-50 border-b border-white/20 py-12 px-6">
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md py-12 px-6">
         <div className="max-w-7xl mx-auto">
           <div className="flex items-center gap-4 mb-4">
-            <Link href="/dashboard" className="text-amber-600 hover:text-amber-700">
+            <Link href="/dashboard" className="text-white/60 hover:text-white/80">
               ← Back to Dashboard
             </Link>
           </div>
-          <h1 className="serif-headline text-5xl text-slate-900 mb-3">Content Calendar</h1>
-          <p className="text-slate-600 text-lg">
+          <h1 className="text-5xl font-black mb-3">Content Calendar</h1>
+          <p className="text-white/60 text-lg">
             Schedule and manage your content across all platforms
           </p>
         </div>
@@ -146,18 +145,18 @@ export default function CalendarPage() {
           <div
             className={`mb-6 rounded-lg p-4 border flex items-start gap-3 ${
               message.type === 'success'
-                ? 'bg-green-50 border-green-200'
-                : 'bg-red-50 border-red-200'
+                ? 'bg-green-900/20 border-green-800/50'
+                : 'bg-red-900/20 border-red-800/50'
             }`}
           >
             {message.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
             ) : (
-              <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+              <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
             )}
             <p
               className={`text-sm font-600 ${
-                message.type === 'success' ? 'text-green-800' : 'text-red-800'
+                message.type === 'success' ? 'text-green-300' : 'text-red-300'
               }`}
             >
               {message.text}
@@ -169,14 +168,14 @@ export default function CalendarPage() {
         <div className="flex items-center justify-between mb-8">
           <button
             onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-            className="btn-primary px-4 py-2 text-white rounded-lg font-600 text-sm"
+            className="btn-primary px-4 py-2 rounded-lg font-600 text-sm"
           >
             ← Previous
           </button>
-          <h2 className="serif-headline text-3xl text-slate-900">{monthName}</h2>
+          <h2 className="text-3xl font-black">{monthName}</h2>
           <button
             onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-            className="btn-primary px-4 py-2 text-white rounded-lg font-600 text-sm"
+            className="btn-primary px-4 py-2 rounded-lg font-600 text-sm"
           >
             Next →
           </button>
@@ -189,7 +188,7 @@ export default function CalendarPage() {
             {dayNames.map((day) => (
               <div
                 key={day}
-                className="text-center font-600 text-slate-700 py-2 text-sm"
+                className="text-center font-600 text-white/60 py-2 text-sm"
               >
                 {day}
               </div>
@@ -200,7 +199,7 @@ export default function CalendarPage() {
           <div className="grid grid-cols-7 gap-2 auto-rows-min">
             {/* Empty Days */}
             {emptyDays.map((_, index) => (
-              <div key={`empty-${index}`} className="calendar-day bg-slate-50/50 rounded-lg"></div>
+              <div key={`empty-${index}`} className="calendar-day bg-white/5 rounded-lg"></div>
             ))}
 
             {/* Actual Days */}
@@ -216,24 +215,24 @@ export default function CalendarPage() {
                   key={day}
                   className={`calendar-day rounded-lg p-2 transition ${
                     isToday
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'bg-white/50 hover:bg-white/70'
+                      ? 'bg-white/10 border border-white/20'
+                      : 'bg-white/5 hover:bg-white/10'
                   }`}
                 >
-                  <div className={`calendar-day-number text-sm mb-1 ${isToday ? 'text-blue-600' : ''}`}>
+                  <div className={`calendar-day-number text-sm mb-1 ${isToday ? 'text-blue-400' : ''}`}>
                     {day}
                   </div>
                   <div className="space-y-1">
                     {content.map((item) => (
                       <div
                         key={item.id}
-                        className="text-xs bg-gradient-to-r from-blue-500 to-blue-600 text-white px-2 py-1 rounded truncate cursor-pointer hover:shadow-md transition group relative"
+                        className="text-xs bg-white/20 text-white px-2 py-1 rounded truncate cursor-pointer hover:shadow-md transition group relative"
                         title={item.content.title}
                       >
                         {item.content.title.substring(0, 15)}
-                        <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 w-48 bg-slate-900 text-white text-xs p-3 rounded-lg z-10">
+                        <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 w-48 bg-white/10 border border-white/20 text-white text-xs p-3 rounded-lg z-10">
                           <p className="font-600 mb-1">{item.content.title}</p>
-                          <p className="text-xs text-slate-300 mb-2">
+                          <p className="text-xs text-white/60 mb-2">
                             {item.platforms.join(', ')}
                           </p>
                           <div className="flex gap-2">
@@ -244,13 +243,13 @@ export default function CalendarPage() {
                                   new Date(item.scheduled_date)
                                 )
                               }
-                              className="text-xs bg-blue-600 px-2 py-1 rounded hover:bg-blue-700"
+                              className="text-xs bg-white/20 px-2 py-1 rounded hover:bg-white/30"
                             >
                               Reschedule
                             </button>
                             <button
                               onClick={() => handleDelete(item.content_id)}
-                              className="text-xs bg-red-600 px-2 py-1 rounded hover:bg-red-700"
+                              className="text-xs bg-red-900/50 px-2 py-1 rounded hover:bg-red-900/70"
                             >
                               Delete
                             </button>
@@ -268,7 +267,7 @@ export default function CalendarPage() {
         {/* Upcoming Posts */}
         {scheduledContent.length > 0 && (
           <div className="glass-card rounded-2xl p-8">
-            <h2 className="serif-headline text-2xl text-slate-900 mb-6">
+            <h2 className="text-2xl font-black mb-6">
               Upcoming Posts ({scheduledContent.length})
             </h2>
             <div className="space-y-4">
@@ -278,29 +277,29 @@ export default function CalendarPage() {
                 .map((item) => (
                   <div
                     key={item.id}
-                    className="border border-slate-200 rounded-lg p-4 hover:shadow-md transition"
+                    className="border border-white/10 rounded-lg p-4 hover:shadow-md transition"
                   >
                     <div className="flex items-start justify-between mb-2">
                       <div>
-                        <h3 className="font-600 text-slate-900">{item.content.title}</h3>
-                        <p className="text-sm text-slate-500">
+                        <h3 className="font-600 text-white">{item.content.title}</h3>
+                        <p className="text-sm text-white/60">
                           {new Date(item.scheduled_date).toLocaleString()}
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        <span className="text-xs bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-600">
+                        <span className="text-xs bg-white/10 text-white/70 px-3 py-1 rounded-full font-600">
                           {item.content.content_type}
                         </span>
                       </div>
                     </div>
-                    <p className="text-sm text-slate-600 mb-3 line-clamp-2">
+                    <p className="text-sm text-white/70 mb-3 line-clamp-2">
                       {item.content.body}
                     </p>
                     <div className="flex gap-2">
                       {item.platforms.map((platform) => (
                         <span
                           key={platform}
-                          className="text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded"
+                          className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded"
                         >
                           {platform}
                         </span>
@@ -315,14 +314,14 @@ export default function CalendarPage() {
         {scheduledContent.length === 0 && !loading && (
           <div className="glass-card rounded-2xl p-12 text-center">
             <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center">
-                <CalendarIcon className="w-8 h-8 text-blue-600" />
+              <div className="w-16 h-16 bg-white/10 rounded-xl flex items-center justify-center">
+                <CalendarIcon className="w-8 h-8 text-white/70" />
               </div>
             </div>
-            <p className="text-slate-600 mb-4 text-lg font-500">No scheduled content yet</p>
+            <p className="text-white/60 mb-4 text-lg font-500">No scheduled content yet</p>
             <Link
               href="/generate/blog"
-              className="btn-primary px-6 py-2 text-white rounded-lg font-600 inline-block"
+              className="btn-primary px-6 py-2 rounded-lg font-600 inline-block"
             >
               Create and Schedule Content
             </Link>
