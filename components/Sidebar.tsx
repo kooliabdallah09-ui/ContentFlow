@@ -6,10 +6,9 @@ import { getSupabase } from '@/lib/auth'
 import { FileText, Share2, Mail, Calendar, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean; onToggle?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [collapsed, setCollapsed] = useState(false)
 
   const handleLogout = async () => {
     const supabase = getSupabase()
@@ -32,19 +31,20 @@ export default function Sidebar() {
   const isActive = (href: string) => pathname === href
 
   return (
-    <div className={`fixed left-0 top-0 h-screen bg-black border-r border-white/10 z-40 transition-all duration-300 ${collapsed ? 'w-20' : 'w-64'}`}>
+    <div className={`fixed left-0 top-0 h-screen bg-black border-r border-white/10 z-40 transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`}>
       <style>{`
         .nav-item {
           position: relative;
           display: flex;
           align-items: center;
+          justify-content: center;
           gap: 12px;
           padding: 12px 16px;
-          margin: 0 8px;
-          border-radius: 8px;
-          color: rgba(255, 255, 255, 0.6);
+          border-radius: 10px;
+          color: rgba(255, 255, 255, 0.65);
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           cursor: pointer;
+          white-space: nowrap;
         }
 
         .nav-item:hover {
@@ -56,18 +56,27 @@ export default function Sidebar() {
           color: #00ff00;
           background: rgba(0, 255, 0, 0.15);
           font-weight: 600;
-          box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+          box-shadow: 0 0 16px rgba(0, 255, 0, 0.25);
         }
 
         .nav-item.active::before {
           content: '';
           position: absolute;
           left: 0;
-          top: 0;
-          bottom: 0;
+          top: 6px;
+          bottom: 6px;
           width: 3px;
           background: #00ff00;
           border-radius: 0 3px 3px 0;
+        }
+
+        .sidebar-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 16px;
+          padding: 0;
+          min-height: 36px;
         }
 
         .sidebar-brand {
@@ -77,50 +86,80 @@ export default function Sidebar() {
           text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
         }
 
-        .divider {
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.2), transparent);
-          margin: 16px 0;
-        }
-
-        .toggle-btn {
-          position: absolute;
-          right: -12px;
-          top: 24px;
+        .sidebar-toggle {
           background: #00ff00;
           color: #000;
           border: none;
-          border-radius: 50%;
-          width: 24px;
-          height: 24px;
+          border-radius: 8px;
+          width: 36px;
+          height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
-          transition: all 0.3s ease;
+          transition: all 0.2s ease;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          flex-shrink: 0;
+          margin: 0 auto;
         }
 
-        .toggle-btn:hover {
-          box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
+        .sidebar-toggle:hover {
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+          background: #00dd00;
+        }
+
+        .sidebar-toggle:active {
+          transform: scale(0.92);
+        }
+
+        .divider {
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.15), transparent);
+          margin: 20px 8px;
+        }
+
+.sidebar-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(0, 255, 0, 0.2) transparent;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar {
+          width: 6px;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: rgba(0, 255, 0, 0.2);
+          border-radius: 3px;
+        }
+
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(0, 255, 0, 0.3);
         }
       `}</style>
 
-      <div className="h-full flex flex-col p-6 overflow-y-auto relative">
-        {/* Toggle Button */}
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="toggle-btn"
-        >
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </button>
-
-        {/* Brand */}
-        <Link href="/dashboard" className="mb-8 block">
-          <div className="sidebar-brand">{collapsed ? 'C' : 'CF'}</div>
-        </Link>
+      <div className="h-full flex flex-col p-3 overflow-y-auto relative sidebar-scroll">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          {isOpen && (
+            <Link href="/dashboard" className="block">
+              <div className="sidebar-brand">CF</div>
+            </Link>
+          )}
+          <button
+            onClick={onToggle}
+            className="sidebar-toggle ml-auto"
+            title={isOpen ? 'Hide sidebar' : 'Show sidebar'}
+          >
+            {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+          </button>
+        </div>
 
         {/* Navigation Items */}
-        <nav className="flex-1 space-y-2">
+        <nav className="flex-1 flex flex-col items-center gap-2">
           {navItems.map((item) => {
             const Icon = item.icon
             const active = isActive(item.href)
@@ -128,11 +167,11 @@ export default function Sidebar() {
               <Link
                 key={item.href}
                 href={item.href}
-                title={collapsed ? item.label : ''}
+                title={!isOpen ? item.label : ''}
                 className={`nav-item ${active ? 'active' : ''}`}
               >
                 <Icon className="w-5 h-5 flex-shrink-0" />
-                {!collapsed && <span className="text-sm font-500">{item.label}</span>}
+                {isOpen && <span className="text-sm font-500">{item.label}</span>}
               </Link>
             )
           })}
@@ -144,11 +183,11 @@ export default function Sidebar() {
         {/* Logout Button */}
         <button
           onClick={handleLogout}
-          title={collapsed ? 'Logout' : ''}
-          className="nav-item group w-full justify-start"
+          title={!isOpen ? 'Logout' : ''}
+          className="nav-item group"
         >
           <LogOut className="w-5 h-5 flex-shrink-0 group-hover:rotate-180 transition-transform duration-300" />
-          {!collapsed && <span className="text-sm font-500">Logout</span>}
+          {isOpen && <span className="text-sm font-500">Logout</span>}
         </button>
       </div>
     </div>

@@ -162,8 +162,10 @@ export default function SocialGeneratorPage() {
         .input-glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; color: white; }
         .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
         .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); outline: none; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05); }
-        .btn-primary { background: #00ff00; color: #000000; box-shadow: 0 12px 30px rgba(0, 255, 0, 0.3); transition: all 0.3s ease; font-weight: 600; }
-        .btn-primary:hover:not(:disabled) { background: #00dd00; transform: translateY(-3px); box-shadow: 0 18px 45px rgba(0, 255, 0, 0.5); }
+        .btn-primary { background: #00ff00; color: #000000; box-shadow: 0 8px 24px rgba(0, 255, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; letter-spacing: -0.5px; }
+        .btn-primary:hover:not(:disabled) { background: #00dd00; transform: translateY(-3px); box-shadow: 0 12px 32px rgba(0, 255, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+        .btn-primary:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0, 255, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
         .platform-card { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .platform-card:hover { transform: translateY(-4px); }
       `}</style>

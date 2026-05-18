@@ -10,14 +10,14 @@ export default function PricingPage() {
       price: 0,
       credits: 50,
       currency: '€',
-      description: 'Perfect for getting started',
+      description: 'For individuals testing the platform',
       features: [
-        'Blog post generation',
-        'Social media posts',
-        'Email sequences',
         '50 credits/month',
+        '150 bonus credits at signup',
+        'All content generators',
         'Basic analytics',
-        'Community support'
+        'Community support',
+        'Single account'
       ],
       cta: 'Get Started',
       highlighted: false
@@ -27,15 +27,14 @@ export default function PricingPage() {
       price: 19,
       credits: 1000,
       currency: '€',
-      description: 'For emerging creators',
+      description: 'For creators & small teams',
       features: [
-        'All Free features',
-        'Priority generation',
-        'UGC video generation',
         '1,000 credits/month',
-        'Advanced analytics',
-        'Email support',
-        'Custom branding'
+        'Unlimited text generations',
+        '~50 UGC videos included',
+        '1 social media account',
+        '30-day history',
+        'Email support'
       ],
       cta: 'Start Free Trial',
       highlighted: false
@@ -45,16 +44,14 @@ export default function PricingPage() {
       price: 49,
       credits: 4000,
       currency: '€',
-      description: 'For serious creators',
+      description: 'For serious creators & teams',
       features: [
-        'All Starter features',
-        'Unlimited generations',
-        'API access',
         '4,000 credits/month',
-        'Real-time analytics',
-        'Priority support',
-        'Custom integrations',
-        'Team collaboration'
+        'Premium Avatar IV videos',
+        'Unlimited high-quality generations',
+        '3 social media accounts',
+        'Content calendar & scheduling',
+        'Priority support'
       ],
       cta: 'Start Free Trial',
       highlighted: true
@@ -66,14 +63,12 @@ export default function PricingPage() {
       currency: '€',
       description: 'For agencies & enterprises',
       features: [
-        'All Pro features',
-        'Dedicated account manager',
-        'Custom workflows',
         '15,000 credits/month',
-        'Advanced API features',
-        '24/7 phone support',
-        'SLA guarantee',
-        'White-label options'
+        '10 client accounts included',
+        'Multi-client dashboard',
+        'All AI models & features',
+        'Priority & phone support',
+        'Dedicated account manager'
       ],
       cta: 'Contact Sales',
       highlighted: false
