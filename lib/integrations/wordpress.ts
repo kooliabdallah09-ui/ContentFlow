@@ -107,6 +107,7 @@ export class WordPressPublisher {
       return false
     }
   }
+}
 
 export function initializeWordPressPublisher(
   siteUrl: string,
