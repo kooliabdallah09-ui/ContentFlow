@@ -165,33 +165,36 @@ export default function LandingPage() {
         }
 
         .glow-1 {
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, transparent 70%);
+          width: 800px;
+          height: 800px;
+          background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, rgba(59, 130, 246, 0.1) 40%, transparent 70%);
           border-radius: 50%;
-          top: -200px;
-          left: -200px;
-          animation: float1 8s ease-in-out infinite;
+          top: -300px;
+          left: -300px;
+          animation: float1 15s ease-in-out infinite;
+          filter: blur(80px);
         }
 
         .glow-2 {
-          width: 400px;
-          height: 400px;
-          background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, transparent 70%);
+          width: 700px;
+          height: 700px;
+          background: radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, rgba(168, 85, 247, 0.1) 40%, transparent 70%);
           border-radius: 50%;
-          top: 50%;
-          right: -150px;
-          animation: float2 10s ease-in-out infinite 2s;
+          top: 30%;
+          right: -250px;
+          animation: float2 18s ease-in-out infinite 2s;
+          filter: blur(80px);
         }
 
         .glow-3 {
-          width: 300px;
-          height: 300px;
-          background: radial-gradient(circle, rgba(14, 165, 233, 0.1) 0%, transparent 70%);
+          width: 600px;
+          height: 600px;
+          background: radial-gradient(circle, rgba(14, 165, 233, 0.3) 0%, rgba(14, 165, 233, 0.08) 40%, transparent 70%);
           border-radius: 50%;
-          bottom: -100px;
-          left: 50%;
-          animation: float3 12s ease-in-out infinite 4s;
+          bottom: -250px;
+          left: 10%;
+          animation: float3 20s ease-in-out infinite 4s;
+          filter: blur(80px);
         }
 
         /* Particle grid */
