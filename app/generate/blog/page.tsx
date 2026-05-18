@@ -117,53 +117,69 @@ export default function BlogGeneratorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50 to-slate-50">
+    <div className="min-h-screen bg-black text-white">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
         * { font-family: 'Inter', sans-serif; }
-        .serif-headline { font-family: 'Fraunces', serif; font-weight: 700; }
 
         .glass-card {
-          background: rgba(255, 255, 255, 0.5);
+          background: rgba(255, 255, 255, 0.03);
           backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.1);
         }
 
         .input-glass {
-          background: rgba(255, 255, 255, 0.7);
+          background: rgba(255, 255, 255, 0.05);
           backdrop-filter: blur(8px);
-          border: 1px solid rgba(168, 85, 247, 0.3);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: white;
         }
 
         .input-glass:focus {
-          background: rgba(255, 255, 255, 0.95);
-          border-color: rgba(168, 85, 247, 0.6);
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.2);
           outline: none;
-          box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+          box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+        }
+
+        .input-glass::placeholder {
+          color: rgba(255, 255, 255, 0.5);
+        }
+
+        .input-glass option {
+          background: #000;
+          color: white;
         }
 
         .btn-primary {
-          background: linear-gradient(135deg, #a855f7 0%, #7c3aed 100%);
+          background: #ffffff;
+          color: #000000;
           transition: all 0.3s ease;
-          box-shadow: 0 10px 25px rgba(168, 85, 247, 0.2);
+          font-weight: 600;
+          border: 1px solid #ffffff;
         }
 
         .btn-primary:hover:not(:disabled) {
+          background: #f0f0f0;
           transform: translateY(-2px);
-          box-shadow: 0 15px 40px rgba(168, 85, 247, 0.35);
+        }
+
+        .btn-primary:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
         }
       `}</style>
 
       {/* Header */}
-      <div className="bg-gradient-to-br from-purple-50 via-violet-50 to-purple-50 border-b border-white/20 py-12 px-6">
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md py-12 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-purple-500 to-violet-600 text-white px-4 py-2 rounded-full text-sm font-600 mb-4 shadow-lg shadow-purple-500/20">
+          <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-600 mb-4 border border-white/20">
             <Sparkles className="w-4 h-4" />
             AI-Powered Blog Writing
           </div>
-          <h1 className="serif-headline text-5xl text-slate-900 mb-3">Blog Post Generator</h1>
-          <p className="text-slate-600 text-lg max-w-2xl">
+          <h1 className="text-5xl font-black mb-3">Blog Post Generator</h1>
+          <p className="text-white/60 text-lg max-w-2xl">
             Generate SEO-optimized, high-converting blog posts in minutes. Powered by advanced AI.
           </p>
         </div>
@@ -173,11 +189,11 @@ export default function BlogGeneratorPage() {
       {/* Form */}
       <div className="space-y-6">
         <div>
-          <h2 className="serif-headline text-2xl text-slate-900 mb-6">Create Your Blog Post</h2>
+          <h2 className="text-2xl font-black mb-6">Create Your Blog Post</h2>
         </div>
 
         <div>
-          <label className="block text-sm font-600 text-slate-700 mb-2">Blog Topic</label>
+          <label className="block text-sm font-600 text-white/70 mb-2">Blog Topic</label>
           <textarea
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
@@ -188,7 +204,7 @@ export default function BlogGeneratorPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-600 text-slate-700 mb-2">Tone of Voice</label>
+          <label className="block text-sm font-600 text-white/70 mb-2">Tone of Voice</label>
           <select
             value={tone}
             onChange={(e) => setTone(e.target.value)}
@@ -202,7 +218,7 @@ export default function BlogGeneratorPage() {
         </div>
 
         <div>
-          <label className="block text-sm font-600 text-slate-700 mb-2">Content Length</label>
+          <label className="block text-sm font-600 text-white/70 mb-2">Content Length</label>
           <select
             value={length}
             onChange={(e) => setLength(e.target.value)}
@@ -217,14 +233,14 @@ export default function BlogGeneratorPage() {
         <button
           onClick={handleGenerate}
           disabled={loading || !topic}
-          className="btn-primary w-full text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-600 text-sm mt-6"
+          className="btn-primary w-full py-3 rounded-lg font-600 text-sm mt-6"
         >
           {loading ? 'Creating your blog post...' : 'Generate Blog Post'}
         </button>
 
         {error && (
-          <div className="rounded-lg bg-red-50 p-4 border border-red-200">
-            <p className="text-sm font-600 text-red-800">{error}</p>
+          <div className="rounded-lg bg-red-900/20 p-4 border border-red-800/50">
+            <p className="text-sm font-600 text-red-300">{error}</p>
           </div>
         )}
       </div>
@@ -242,8 +258,8 @@ export default function BlogGeneratorPage() {
               faqs={content.faqs}
             />
 
-            <div className="mt-12 bg-slate-50 rounded-2xl p-8 border border-slate-200">
-              <h2 className="serif-headline text-2xl text-slate-900 mb-6">Edit & Publish</h2>
+            <div className="mt-12 glass-card rounded-2xl p-8">
+              <h2 className="text-2xl font-black mb-6">Edit & Publish</h2>
               <Editor
                 initialContent={content.content}
                 onSave={handleSave}
@@ -255,19 +271,19 @@ export default function BlogGeneratorPage() {
 
         {!content && !loading && (
           <div className="glass-card rounded-2xl p-12 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-xl mb-4">
-              <FileText className="w-8 h-8 text-blue-600" />
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-white/10 rounded-xl mb-4">
+              <FileText className="w-8 h-8 text-white/70" />
             </div>
-            <p className="text-slate-600 font-500 text-lg">Generate a blog post to see the preview here</p>
+            <p className="text-white/60 font-500 text-lg">Generate a blog post to see the preview here</p>
           </div>
         )}
 
         {loading && (
           <div className="glass-card rounded-2xl p-12 text-center">
             <div className="inline-block">
-              <div className="animate-spin rounded-full h-10 w-10 border-4 border-blue-600/20 border-t-blue-600"></div>
+              <div className="animate-spin rounded-full h-10 w-10 border-4 border-white/20 border-t-white"></div>
             </div>
-            <p className="text-slate-600 mt-6 font-500">Creating your blog post with AI...</p>
+            <p className="text-white/60 mt-6 font-500">Creating your blog post with AI...</p>
           </div>
         )}
       </div>

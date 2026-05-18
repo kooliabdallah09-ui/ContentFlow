@@ -146,42 +146,40 @@ export default function SocialGeneratorPage() {
   }
 
   const platformColors: Record<string, { bg: string; border: string; ringColor: string; logoColor: string }> = {
-    twitter: { bg: 'bg-slate-50 hover:bg-slate-100', border: 'border-slate-200 hover:border-slate-400', ringColor: 'ring-slate-400', logoColor: 'text-slate-900' },
-    linkedin: { bg: 'bg-blue-50 hover:bg-blue-100', border: 'border-blue-200 hover:border-blue-400', ringColor: 'ring-blue-400', logoColor: 'text-blue-700' },
-    instagram: { bg: 'bg-pink-50 hover:bg-pink-100', border: 'border-pink-200 hover:border-pink-400', ringColor: 'ring-pink-400', logoColor: 'text-pink-600' },
-    facebook: { bg: 'bg-indigo-50 hover:bg-indigo-100', border: 'border-indigo-200 hover:border-indigo-400', ringColor: 'ring-indigo-400', logoColor: 'text-indigo-700' },
-    tiktok: { bg: 'bg-black bg-opacity-5 hover:bg-opacity-10', border: 'border-slate-200 hover:border-slate-400', ringColor: 'ring-slate-400', logoColor: 'text-black' },
+    twitter: { bg: 'bg-white/5 hover:bg-white/10', border: 'border-white/20 hover:border-white/40', ringColor: 'ring-white/40', logoColor: 'text-white/70' },
+    linkedin: { bg: 'bg-white/5 hover:bg-white/10', border: 'border-white/20 hover:border-white/40', ringColor: 'ring-white/40', logoColor: 'text-white/70' },
+    instagram: { bg: 'bg-white/5 hover:bg-white/10', border: 'border-white/20 hover:border-white/40', ringColor: 'ring-white/40', logoColor: 'text-white/70' },
+    facebook: { bg: 'bg-white/5 hover:bg-white/10', border: 'border-white/20 hover:border-white/40', ringColor: 'ring-white/40', logoColor: 'text-white/70' },
+    tiktok: { bg: 'bg-white/5 hover:bg-white/10', border: 'border-white/20 hover:border-white/40', ringColor: 'ring-white/40', logoColor: 'text-white/70' },
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50">
+    <div className="min-h-screen bg-black text-white">
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { font-family: 'Inter', sans-serif; }
-        .serif-headline { font-family: 'Fraunces', serif; font-weight: 700; }
-        .glass-card { background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.8); }
-        .input-glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(226, 232, 240, 0.8); transition: all 0.3s ease; }
-        .input-glass:focus { background: rgba(255, 255, 255, 0.95); border-color: rgba(59, 130, 246, 0.6); outline: none; box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-        .btn-primary { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 12px 30px rgba(59, 130, 246, 0.25); transition: all 0.3s ease; }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 18px 45px rgba(59, 130, 246, 0.4); }
+        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .input-glass { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; color: white; }
+        .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
+        .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); outline: none; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05); }
+        .btn-primary { background: #ffffff; color: #000000; box-shadow: 0 12px 30px rgba(255, 255, 255, 0.1); transition: all 0.3s ease; font-weight: 600; }
+        .btn-primary:hover:not(:disabled) { background: #f0f0f0; transform: translateY(-3px); }
         .platform-card { transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
         .platform-card:hover { transform: translateY(-4px); }
       `}</style>
 
       {/* Header */}
-      <div className="border-b border-white/40 py-16 px-6 backdrop-blur-sm">
+      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md py-16 px-6">
         <div className="max-w-7xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-full text-sm font-600 mb-6 shadow-lg shadow-blue-500/20">
+          <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-600 mb-6 border border-white/20">
             <Sparkles className="w-4 h-4" />
             AI-Powered Multi-Platform Creation
           </div>
-          <h1 className="serif-headline text-6xl text-slate-900 mb-4 leading-tight">
+          <h1 className="text-6xl font-black mb-4 leading-tight">
             Create Stunning <br />
-            <span className="bg-gradient-to-r from-blue-600 to-blue-500 bg-clip-text text-transparent">
-              Social Posts
-            </span>
+            Social Posts
           </h1>
-          <p className="text-slate-600 text-lg max-w-2xl leading-relaxed">
+          <p className="text-white/60 text-lg max-w-2xl leading-relaxed">
             Generate beautiful, platform-optimized content with AI-generated visuals. One input, five platforms, infinite possibilities.
           </p>
         </div>
@@ -194,19 +192,19 @@ export default function SocialGeneratorPage() {
             <div className="glass-card rounded-2xl p-8 space-y-7 sticky top-8">
               {/* Topic Input */}
               <div>
-                <label className="block text-sm font-700 text-slate-900 mb-3 tracking-tight">Your Topic</label>
+                <label className="block text-sm font-700 text-white/70 mb-3 tracking-tight">Your Topic</label>
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
                   placeholder="What should the posts be about? Be specific..."
-                  className="input-glass w-full px-4 py-3 rounded-xl text-sm placeholder-slate-400 resize-none"
+                  className="input-glass w-full px-4 py-3 rounded-xl text-sm resize-none"
                   rows={5}
                 />
               </div>
 
               {/* Platforms Selection */}
               <div>
-                <label className="block text-sm font-700 text-slate-900 mb-4 tracking-tight">Choose Platforms</label>
+                <label className="block text-sm font-700 text-white/70 mb-4 tracking-tight">Choose Platforms</label>
                 <div className="grid grid-cols-1 gap-3">
                   {['twitter', 'linkedin', 'instagram', 'facebook', 'tiktok'].map((platform) => {
                     const colors = platformColors[platform as keyof typeof platformColors]
@@ -217,19 +215,19 @@ export default function SocialGeneratorPage() {
                         onClick={() => togglePlatform(platform)}
                         className={`platform-card relative flex items-center gap-4 px-5 py-4 rounded-xl border-2 font-500 text-sm transition-all ${
                           isSelected
-                            ? `${colors.bg} ${colors.border} ring-2 ring-offset-2 ring-${colors.ringColor.split('-')[1]}-400`
-                            : `bg-white border-slate-200 text-slate-600 hover:border-slate-300`
+                            ? `${colors.bg} ${colors.border} ring-2 ring-offset-2 ring-offset-black ring-white/40`
+                            : `bg-white/5 border-white/20 text-white/60 hover:border-white/30`
                         }`}
                       >
                         <div className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition ${
-                          isSelected ? `bg-gradient-to-br from-blue-500 to-blue-600 border-transparent` : 'border-slate-300 bg-white'
+                          isSelected ? `bg-white border-transparent` : 'border-white/30 bg-transparent'
                         }`}>
-                          {isSelected && <Check className="text-white w-4 h-4" />}
+                          {isSelected && <Check className="text-black w-4 h-4" />}
                         </div>
                         <div className={`flex-shrink-0 transition ${colors.logoColor} filter brightness-100`}>
                           <PlatformLogo platform={platform} size="medium" />
                         </div>
-                        <span className={isSelected ? 'text-slate-900' : 'text-slate-700'}>
+                        <span className={isSelected ? 'text-white' : 'text-white/60'}>
                           {platformNames[platform]}
                         </span>
                       </button>
@@ -255,8 +253,8 @@ export default function SocialGeneratorPage() {
               </button>
 
               {error && (
-                <div className="rounded-xl bg-red-50 p-4 border border-red-200">
-                  <p className="text-sm font-600 text-red-800">{error}</p>
+                <div className="rounded-xl bg-red-900/20 p-4 border border-red-800/50">
+                  <p className="text-sm font-600 text-red-300">{error}</p>
                 </div>
               )}
             </div>
@@ -276,32 +274,32 @@ export default function SocialGeneratorPage() {
                 {platforms.map((platform) => {
                   const colors = platformColors[platform as keyof typeof platformColors]
                   return (
-                    <div key={platform} className="glass-card rounded-2xl overflow-hidden border border-white/40">
-                      <div className={`${colors.bg} px-6 py-5 border-b border-white/20 flex items-center gap-3`}>
+                    <div key={platform} className="glass-card rounded-2xl overflow-hidden border border-white/10">
+                      <div className={`${colors.bg} px-6 py-5 border-b border-white/10 flex items-center gap-3`}>
                         <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 ${colors.logoColor}`}>
                           <PlatformLogo platform={platform} size="large" />
                         </div>
-                        <h3 className="serif-headline text-lg text-slate-900">
+                        <h3 className="text-lg font-black text-white">
                           {platformNames[platform]}
                         </h3>
-                        <span className="ml-auto text-xs font-600 text-slate-600 bg-white/60 px-3 py-1.5 rounded-full">
+                        <span className="ml-auto text-xs font-600 text-white/60 bg-white/10 px-3 py-1.5 rounded-full border border-white/20">
                           {content[platform]?.length || 0} {content[platform]?.length === 1 ? 'post' : 'posts'}
                         </span>
                       </div>
-                      <div className="divide-y divide-white/20">
+                      <div className="divide-y divide-white/10">
                         {content[platform]?.map((post: string, idx: number) => (
-                          <div key={idx} className="p-6 hover:bg-white/20 transition">
+                          <div key={idx} className="p-6 hover:bg-white/5 transition">
                             {/* Generated Image */}
                             {generatingImages && !images[platform]?.[idx] && (
-                              <div className="mb-5 bg-gradient-to-br from-slate-100 to-slate-50 rounded-xl h-56 flex items-center justify-center border border-slate-200">
+                              <div className="mb-5 bg-white/5 rounded-xl h-56 flex items-center justify-center border border-white/10">
                                 <div className="text-center">
-                                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-600/20 border-t-blue-600 mx-auto mb-3"></div>
-                                  <p className="text-xs text-slate-600 font-500">Generating image...</p>
+                                  <div className="animate-spin rounded-full h-8 w-8 border-4 border-white/20 border-t-white mx-auto mb-3"></div>
+                                  <p className="text-xs text-white/60 font-500">Generating image...</p>
                                 </div>
                               </div>
                             )}
                             {images[platform]?.[idx] && (
-                              <div className="mb-5 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                              <div className="mb-5 rounded-xl overflow-hidden border border-white/10 shadow-sm">
                                 <img
                                   src={images[platform][idx]}
                                   alt="Generated post image"
@@ -311,20 +309,20 @@ export default function SocialGeneratorPage() {
                             )}
 
                             {/* Post Text */}
-                            <p className="text-slate-700 whitespace-pre-wrap text-sm leading-relaxed font-400 mb-5">{post}</p>
+                            <p className="text-white/80 whitespace-pre-wrap text-sm leading-relaxed font-400 mb-5">{post}</p>
 
                             {/* Actions */}
                             <div className="flex gap-2 flex-wrap">
-                              <button className="text-xs bg-blue-100 text-blue-700 px-3 py-2 rounded-lg hover:bg-blue-200 font-600 flex items-center gap-1.5 transition">
+                              <button className="text-xs bg-white/10 text-white/70 px-3 py-2 rounded-lg hover:bg-white/20 font-600 flex items-center gap-1.5 transition border border-white/20">
                                 <Copy className="w-3 h-3" />
                                 Copy
                               </button>
-                              <button className="text-xs bg-slate-100 text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-200 font-600 flex items-center gap-1.5 transition">
+                              <button className="text-xs bg-white/10 text-white/70 px-3 py-2 rounded-lg hover:bg-white/20 font-600 flex items-center gap-1.5 transition border border-white/20">
                                 <Edit2 className="w-3 h-3" />
                                 Edit
                               </button>
                               {images[platform]?.[idx] && (
-                                <button className="text-xs bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg hover:bg-emerald-200 font-600 flex items-center gap-1.5 transition">
+                                <button className="text-xs bg-white/10 text-white/70 px-3 py-2 rounded-lg hover:bg-white/20 font-600 flex items-center gap-1.5 transition border border-white/20">
                                   <Download className="w-3 h-3" />
                                   Download
                                 </button>
@@ -338,22 +336,22 @@ export default function SocialGeneratorPage() {
                 })}
               </div>
             ) : loading ? (
-              <div className="glass-card rounded-2xl p-16 text-center border border-white/40">
+              <div className="glass-card rounded-2xl p-16 text-center border border-white/10">
                 <div className="inline-block mb-6">
-                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-600/20 border-t-blue-600"></div>
+                  <div className="animate-spin rounded-full h-12 w-12 border-4 border-white/20 border-t-white"></div>
                 </div>
-                <p className="text-slate-600 font-500 text-lg">Creating your posts...</p>
-                <p className="text-slate-500 text-sm mt-2">This usually takes 10-15 seconds</p>
+                <p className="text-white font-500 text-lg">Creating your posts...</p>
+                <p className="text-white/60 text-sm mt-2">This usually takes 10-15 seconds</p>
               </div>
             ) : (
-              <div className="glass-card rounded-2xl p-16 text-center border border-white/40">
+              <div className="glass-card rounded-2xl p-16 text-center border border-white/10">
                 <div className="flex justify-center mb-6">
-                  <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-blue-50 rounded-2xl flex items-center justify-center">
-                    <Smartphone className="w-10 h-10 text-blue-600" />
+                  <div className="w-20 h-20 bg-white/10 rounded-2xl flex items-center justify-center">
+                    <Smartphone className="w-10 h-10 text-white/70" />
                   </div>
                 </div>
-                <h3 className="serif-headline text-xl text-slate-900 mb-2">Ready to create?</h3>
-                <p className="text-slate-600 text-sm">Enter a topic and select your platforms to get started</p>
+                <h3 className="text-xl font-black text-white mb-2">Ready to create?</h3>
+                <p className="text-white/60 text-sm">Enter a topic and select your platforms to get started</p>
               </div>
             )}
           </div>
