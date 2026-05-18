@@ -77,7 +77,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-black">
         {showSidebar && <Sidebar />}
-        <div className={showSidebar ? 'ml-20' : ''}>
+        <div className={showSidebar ? 'ml-64' : ''}>
           {!loading && children}
         </div>
       </body>
