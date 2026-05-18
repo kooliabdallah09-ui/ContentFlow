@@ -5,8 +5,12 @@ export async function GET(request: NextRequest) {
   const appId = process.env.FACEBOOK_APP_ID
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback/instagram`
 
-  // For development testing, use minimal scopes
-  const scopes = 'pages_read_engagement,pages_manage_posts'
+  const scopes = [
+    'instagram_basic',
+    'instagram_content_publish',
+    'pages_manage_metadata',
+    'pages_read_engagement',
+  ].join(',')
 
   const facebookOAuthUrl = `https://www.facebook.com/v18.0/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${encodeURIComponent(scopes)}&state=${state}&response_type=code`
 
