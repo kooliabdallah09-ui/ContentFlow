@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import Link from 'next/link'
 import { FileText, Share2, Mail, Calendar, BarChart3, Sparkles, Film } from 'lucide-react'
+import CreditBalance from '@/components/CreditBalance'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState({ blogs: 0, social: 0, emails: 0, total: 0 })
@@ -132,9 +133,12 @@ export default function DashboardPage() {
               </h1>
               <p className="text-white/60">Keep the creative flow going. Pick a generator below.</p>
             </div>
-            <div className="text-right">
-              <div className="text-4xl font-black text-white">{stats.total}</div>
-              <div className="text-white/60 text-sm">pieces created</div>
+            <div className="flex items-end gap-6">
+              <CreditBalance />
+              <div className="text-right">
+                <div className="text-4xl font-black text-white">{stats.total}</div>
+                <div className="text-white/60 text-sm">pieces created</div>
+              </div>
             </div>
           </div>
         </div>
