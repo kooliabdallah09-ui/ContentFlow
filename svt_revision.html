@@ -1,0 +1,1159 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Révision SVT - Hormones et Puberté</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        nav {
+            background: #f8f9fa;
+            padding: 0;
+            border-bottom: 2px solid #e9ecef;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        nav a {
+            display: block;
+            padding: 15px 20px;
+            color: #495057;
+            text-decoration: none;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        nav a:hover, nav a.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        section {
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 2em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #764ba2;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-size: 1.4em;
+        }
+
+        .definition {
+            background: #f0f4ff;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 1.05em;
+        }
+
+        .key-point {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .key-point strong {
+            color: #856404;
+        }
+
+        .diagram {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            padding: 30px;
+            margin: 30px 0;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .diagram-item {
+            display: inline-block;
+            margin: 0 15px;
+            vertical-align: middle;
+        }
+
+        .arrow {
+            display: inline-block;
+            margin: 0 10px;
+            color: #667eea;
+            font-size: 1.5em;
+        }
+
+        .table-container {
+            overflow-x: auto;
+            margin: 30px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .question {
+            background: #e7f3ff;
+            border-left: 5px solid #0066cc;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 5px;
+        }
+
+        .question strong {
+            color: #0066cc;
+        }
+
+        .answer {
+            background: #f0fdf4;
+            border-left: 5px solid #22c55e;
+            padding: 20px;
+            margin: 15px 0 25px 0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .answer.show {
+            display: block;
+        }
+
+        .toggle-answer {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+        }
+
+        .toggle-answer:hover {
+            background: #0052a3;
+        }
+
+        .list-item {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+
+        .list-item:before {
+            content: "▸";
+            color: #667eea;
+            font-weight: bold;
+            margin-left: -20px;
+            margin-right: 10px;
+        }
+
+        .graph {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .graph p {
+            color: #666;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            border-top: 1px solid #dee2e6;
+        }
+
+        .case-study {
+            background: #f5f0ff;
+            border: 2px solid #764ba2;
+            padding: 20px;
+            margin: 25px 0;
+            border-radius: 10px;
+        }
+
+        .case-study h4 {
+            color: #764ba2;
+            margin-bottom: 15px;
+        }
+
+        .vocab {
+            display: inline-block;
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            margin: 5px;
+            border-radius: 4px;
+            font-weight: 500;
+            color: #667eea;
+        }
+
+        @media (max-width: 1024px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .diagram-item {
+                display: block;
+                margin: 15px 0;
+            }
+
+            .diagram {
+                padding: 20px 15px;
+            }
+
+            table {
+                font-size: 0.95em;
+            }
+
+            th, td {
+                padding: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            * {
+                -webkit-tap-highlight-color: transparent;
+            }
+
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 30px 15px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+
+            .header p {
+                font-size: 0.95em;
+            }
+
+            nav ul {
+                flex-direction: row;
+                overflow-x: auto;
+                padding: 0 10px;
+                gap: 5px;
+            }
+
+            nav a {
+                padding: 12px 12px;
+                font-size: 0.85em;
+                white-space: nowrap;
+                flex-shrink: 0;
+            }
+
+            .content {
+                padding: 20px 15px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+                margin-bottom: 20px;
+                padding-bottom: 8px;
+            }
+
+            h3 {
+                font-size: 1.15em;
+                margin-top: 20px;
+                margin-bottom: 12px;
+            }
+
+            .definition {
+                padding: 15px;
+                margin: 15px 0;
+                font-size: 0.95em;
+                border-radius: 8px;
+            }
+
+            .key-point {
+                padding: 15px;
+                margin: 15px 0;
+                font-size: 0.95em;
+            }
+
+            .diagram {
+                padding: 20px 12px;
+                margin: 20px 0;
+                border-radius: 8px;
+                min-height: auto;
+            }
+
+            .diagram-item {
+                display: block;
+                margin: 12px 0;
+                padding: 12px 15px !important;
+                font-size: 0.9em;
+                border-radius: 8px;
+            }
+
+            .arrow {
+                font-size: 1.2em;
+                margin: 8px 0;
+            }
+
+            .table-container {
+                margin: 20px 0;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            table {
+                font-size: 0.85em;
+                width: 100%;
+            }
+
+            th {
+                padding: 12px 10px;
+                font-size: 0.9em;
+            }
+
+            td {
+                padding: 10px 8px;
+                font-size: 0.85em;
+            }
+
+            .question {
+                padding: 15px;
+                margin: 18px 0;
+                border-radius: 8px;
+                font-size: 0.95em;
+            }
+
+            .question strong {
+                display: block;
+                margin-bottom: 10px;
+            }
+
+            .answer {
+                padding: 15px;
+                margin: 12px 0 18px 0;
+                font-size: 0.9em;
+                border-radius: 8px;
+            }
+
+            .toggle-answer {
+                padding: 10px 15px;
+                font-size: 0.85em;
+                width: 100%;
+                margin-top: 10px;
+                border-radius: 6px;
+            }
+
+            .case-study {
+                padding: 15px;
+                margin: 18px 0;
+                border-radius: 8px;
+                border-width: 2px;
+            }
+
+            .case-study h4 {
+                font-size: 1em;
+                margin-bottom: 10px;
+            }
+
+            .case-study p {
+                font-size: 0.9em;
+                margin-bottom: 8px;
+            }
+
+            .list-item {
+                margin: 10px 0;
+                padding-left: 20px;
+                font-size: 0.95em;
+            }
+
+            .graph {
+                padding: 15px;
+                margin: 20px 0;
+                border-radius: 8px;
+            }
+
+            .graph p {
+                font-size: 0.9em;
+                margin: 8px 0;
+            }
+
+            footer {
+                padding: 15px 10px;
+                font-size: 0.9em;
+            }
+
+            footer p {
+                font-size: 0.85em;
+                margin: 5px 0;
+            }
+
+            /* Responsive Grid for Case Studies */
+            .case-study div {
+                margin: 10px 0;
+            }
+
+            /* Ensure long content wraps properly */
+            .diagram-item {
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+
+            /* Mobile-friendly table grid */
+            @supports (display: grid) {
+                table {
+                    display: block;
+                    overflow-x: auto;
+                    white-space: nowrap;
+                    border-radius: 8px;
+                }
+            }
+
+            /* Touch-friendly button size */
+            .toggle-answer {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            /* Better spacing for lists */
+            div[style*="display: flex"] {
+                flex-direction: column !important;
+                gap: 15px !important;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 8px;
+            }
+
+            .header {
+                padding: 20px 12px;
+            }
+
+            .header h1 {
+                font-size: 1.3em;
+            }
+
+            .header p {
+                font-size: 0.9em;
+            }
+
+            nav a {
+                padding: 10px 8px;
+                font-size: 0.8em;
+            }
+
+            .content {
+                padding: 15px 12px;
+            }
+
+            h2 {
+                font-size: 1.3em;
+                margin-bottom: 15px;
+            }
+
+            h3 {
+                font-size: 1.05em;
+                margin-top: 15px;
+            }
+
+            .definition, .key-point, .question, .answer, .case-study {
+                padding: 12px;
+                margin: 12px 0;
+                font-size: 0.9em;
+            }
+
+            .toggle-answer {
+                padding: 10px;
+                font-size: 0.8em;
+            }
+
+            table {
+                font-size: 0.75em;
+            }
+
+            th, td {
+                padding: 8px 6px;
+            }
+
+            footer {
+                padding: 12px 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Révision SVT</h1>
+            <p>Hormones et Contrôle Hormonal de la Puberté</p>
+        </div>
+
+        <nav>
+            <ul>
+                <li><a href="#" class="nav-link active" data-section="essentials">À Réviser ⭐</a></li>
+                <li><a href="#" class="nav-link" data-section="definitions">Définitions</a></li>
+                <li><a href="#" class="nav-link" data-section="schema">Schéma</a></li>
+                <li><a href="#" class="nav-link" data-section="concepts">Concepts Clés</a></li>
+                <li><a href="#" class="nav-link" data-section="bilan">Bilan</a></li>
+                <li><a href="#" class="nav-link" data-section="documents">Documents</a></li>
+                <li><a href="#" class="nav-link" data-section="exercices">Exercices</a></li>
+            </ul>
+        </nav>
+
+        <div class="content">
+            <!-- SECTION ESSENTIALS -->
+            <section id="essentials" class="active">
+                <h2>⭐ À Réviser pour l'Éval</h2>
+
+                <h3>1. Définition d'une Hormone</h3>
+                <div class="definition">
+                    <strong>Une hormone est une substance fabriquée par un organe, libérée dans le sang et qui agit sur le fonctionnement d'un organe cible.</strong>
+                </div>
+
+                <h3>2. Schéma du Contrôle Hormonal de la Puberté</h3>
+
+                <div style="background: #f8f9fa; padding: 40px 20px; border-radius: 15px; margin: 30px 0; position: relative; min-height: 800px;">
+
+                    <!-- GLANDE CÉRÉBRALE -->
+                    <div style="text-align: center; margin-bottom: 80px;">
+                        <div style="background: #667eea; color: white; padding: 20px 30px; border-radius: 10px; display: inline-block; font-weight: 600; font-size: 1.1em; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                            🧠 GLANDE CÉRÉBRALE
+                        </div>
+                        <p style="margin-top: 10px; color: #666; font-size: 0.9em;">Hypothalamus / Hypophyse</p>
+                    </div>
+
+                    <!-- FLÈCHE 1 -->
+                    <div style="text-align: center; margin-bottom: 80px;">
+                        <svg style="width: 100%; height: 60px; display: inline-block;">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="#667eea" />
+                                </marker>
+                            </defs>
+                            <line x1="50%" y1="0" x2="50%" y2="50" stroke="#667eea" stroke-width="3" marker-end="url(#arrowhead)" />
+                        </svg>
+                        <p style="color: #667eea; font-weight: 600; margin-top: -10px;">Sécrète des hormones</p>
+                    </div>
+
+                    <!-- GONADE - STRUCTURE COMPLEXE -->
+                    <div style="background: white; border: 3px solid #ffc107; border-radius: 15px; padding: 30px; margin-bottom: 80px; box-shadow: 0 4px 15px rgba(255, 193, 7, 0.2);">
+                        <div style="text-align: center; font-weight: 600; font-size: 1.2em; color: #666; margin-bottom: 30px;">
+                            ⚤ GONADE
+                            <p style="font-size: 0.9em; font-weight: normal; margin-top: 5px;">(Testicule ou Ovaire)</p>
+                        </div>
+
+                        <!-- DEUX BRANCHES -->
+                        <div style="display: flex; gap: 40px; justify-content: space-between; align-items: flex-start;">
+
+                            <!-- BRANCHE GAUCHE: Production de gamètes -->
+                            <div style="flex: 1; text-align: center;">
+                                <div style="color: #764ba2; font-weight: 600; margin-bottom: 15px; font-size: 0.95em;">PRODUCTION DE GAMÈTE</div>
+                                <div style="background: #f0fdf4; border: 2px dashed #22c55e; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                    <p style="color: #166534; font-weight: 600;">Spermatozoïdes</p>
+                                    <p style="color: #666; font-size: 0.9em; margin-top: 5px;">40-500 millions/éjaculation</p>
+                                    <p style="color: #666; font-size: 0.85em; margin-top: 5px;"><em>ou</em></p>
+                                    <p style="color: #166534; font-weight: 600; margin-top: 5px;">Ovules</p>
+                                    <p style="color: #666; font-size: 0.9em; margin-top: 5px;">Production cyclique</p>
+                                </div>
+                                <p style="color: #764ba2; font-size: 0.9em;">← Production</p>
+                            </div>
+
+                            <!-- BRANCHE DROITE: Hormones et transport -->
+                            <div style="flex: 1; text-align: center;">
+                                <div style="color: #764ba2; font-weight: 600; margin-bottom: 15px; font-size: 0.95em;">HORMONES SEXUELLES</div>
+                                <div style="background: #fff3e0; border: 2px dashed #ff9800; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                                    <p style="color: #e65100; font-weight: 600;">Testostérone</p>
+                                    <p style="color: #666; font-size: 0.9em; margin-top: 5px;">ou</p>
+                                    <p style="color: #e65100; font-weight: 600; margin-top: 5px;">Œstrogènes</p>
+                                    <p style="color: #e65100; font-weight: 600; margin-top: 3px;">Progestérone</p>
+                                </div>
+                                <svg style="width: 100%; height: 40px; display: block; margin-bottom: 10px;">
+                                    <defs>
+                                        <marker id="arrowhead2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                            <polygon points="0 0, 10 3, 0 6" fill="#ff9800" />
+                                        </marker>
+                                    </defs>
+                                    <circle cx="50%" cy="5" r="3" fill="#ff9800" />
+                                    <line x1="50%" y1="10" x2="50%" y2="35" stroke="#ff9800" stroke-width="2" marker-end="url(#arrowhead2)" />
+                                </svg>
+                                <p style="color: #ff9800; font-size: 0.9em;"><strong>VAISSEAU SANGUIN</strong></p>
+                                <p style="color: #666; font-size: 0.85em;">Voie de transport</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- FLÈCHE 2 -->
+                    <div style="text-align: center; margin-bottom: 80px;">
+                        <svg style="width: 100%; height: 60px; display: inline-block;">
+                            <defs>
+                                <marker id="arrowhead3" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+                                    <polygon points="0 0, 10 3, 0 6" fill="#ff9800" />
+                                </marker>
+                            </defs>
+                            <line x1="50%" y1="0" x2="50%" y2="50" stroke="#ff9800" stroke-width="3" marker-end="url(#arrowhead3)" />
+                        </svg>
+                        <p style="color: #ff9800; font-weight: 600; margin-top: -10px;">Transport par le sang</p>
+                    </div>
+
+                    <!-- ORGANE CIBLE -->
+                    <div style="background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); border: 3px solid #22c55e; border-radius: 15px; padding: 30px; text-align: center; box-shadow: 0 4px 15px rgba(34, 197, 94, 0.2);">
+                        <div style="font-weight: 600; font-size: 1.1em; color: #166534; margin-bottom: 20px;">ORGANE CIBLE - TOUT LE CORPS</div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #22c55e;">
+                                <p style="font-weight: 600; color: #166534; margin-bottom: 5px;">Chez les garçons</p>
+                                <p style="color: #666; font-size: 0.9em;">• Voix grave</p>
+                                <p style="color: #666; font-size: 0.9em;">• Pilosité</p>
+                                <p style="color: #666; font-size: 0.9em;">• Muscles développés</p>
+                                <p style="color: #666; font-size: 0.9em;">• Acné</p>
+                            </div>
+                            <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #22c55e;">
+                                <p style="font-weight: 600; color: #166534; margin-bottom: 5px;">Chez les filles</p>
+                                <p style="color: #666; font-size: 0.9em;">• Développement seins</p>
+                                <p style="color: #666; font-size: 0.9em;">• Pilosité pubienne</p>
+                                <p style="color: #666; font-size: 0.9em;">• Élargissement bassin</p>
+                                <p style="color: #666; font-size: 0.9em;">• Règles</p>
+                            </div>
+                        </div>
+
+                        <div style="background: #fef3c7; padding: 15px; border-radius: 8px; border-left: 4px solid #f59e0b;">
+                            <p style="font-weight: 600; color: #92400e;">↓</p>
+                            <p style="font-weight: 600; color: #92400e;">CARACTÈRES SEXUELS SECONDAIRES</p>
+                        </div>
+                    </div>
+
+                    <!-- RÉTROACTION -->
+                    <div style="margin-top: 60px; padding: 20px; background: #f3f4f6; border-radius: 10px; border-left: 4px solid #8b5cf6;">
+                        <p style="color: #6b21a8; font-weight: 600; margin-bottom: 10px;">⟲ RÉTROACTION</p>
+                        <p style="color: #666; font-size: 0.95em;">Les hormones sexuelles régulent les hormones cérébrales pour maintenir l'équilibre du système</p>
+                    </div>
+
+                </div>
+
+                <div class="key-point">
+                    <strong>Mécanisme :</strong><br>
+                    • Cerveau produit des hormones<br>
+                    • Transport par les vaisseaux sanguins<br>
+                    • Stimulation des gonades<br>
+                    • Gonades produisent des hormones sexuelles<br>
+                    • Développement des caractères sexuels secondaires
+                </div>
+
+                <h3>3. Exercice d'Application</h3>
+
+                <div class="question">
+                    <strong>Q1 : Comparer la quantité d'hormones cérébrales chez un enfant pubère vs un enfant atteint du syndrome de Kallmann</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        Enfant pubère : 4-4.5 u.a.<br>
+                        Enfant Kallmann : 0.5-0.8 u.a.<br><br>
+                        <strong>→ 8-9 fois moins d'hormones dans le syndrome de Kallmann</strong>
+                    </div>
+                </div>
+
+                <div class="question">
+                    <strong>Q2 : Quel est l'effet des hormones cérébrales sur les organes reproducteurs ?</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        Les hormones cérébrales <strong>stimulent/activent</strong> les gonades :<br>
+                        • Production de spermatozoïdes chez les garçons<br>
+                        • Ovulation chez les filles<br><br>
+                        Elles sont <strong>essentielles</strong> pour le fonctionnement reproducteur.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <strong>Q3 : Pourquoi appelle-t-on "hormones" ces substances cérébrales ?</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        Parce qu'elles remplissent la définition d'une hormone :<br>
+                        ✓ Fabriquées par une glande (cerveau)<br>
+                        ✓ Libérées dans le sang<br>
+                        ✓ Agissent sur un organe cible (gonades)
+                    </div>
+                </div>
+
+                <div class="question">
+                    <strong>Q4 : Construire le schéma fonctionnel du contrôle hormonal</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; margin-top: 10px;">
+                            <p style="text-align: center; font-weight: 600;">CERVEAU<br>↓<br>Hormones cérébrales<br>↓<br>Sang (transport)<br>↓<br>GONADES<br>↓<br>Hormones sexuelles<br>↓<br>Caractères sexuels secondaires</p>
+                        </div>
+                    </div>
+                </div>
+
+            </section>
+
+            <!-- SECTION DÉFINITIONS -->
+            <section id="definitions">
+                <h2>Définitions Essentielles</h2>
+
+                <h3>Hormone</h3>
+                <div class="definition">
+                    <strong>Une hormone est une substance fabriquée par un organe, libérée dans le sang et qui agit sur le fonctionnement d'un organe cible.</strong>
+                </div>
+
+                <h3>Gamète</h3>
+                <div class="definition">
+                    Un <strong>gamète</strong> est une cellule reproductrice. Chez l'homme, c'est le spermatozoïde. Chez la femme, c'est l'ovule.
+                </div>
+
+                <h3>Spermatozoïde</h3>
+                <div class="definition">
+                    Le <strong>spermatozoïde</strong> est un gamète mâle, c'est-à-dire une cellule reproductrice produite par les testicules. À partir de la puberté, sa production est <strong>continue</strong> chez les hommes.
+                </div>
+
+                <h3>Puberté</h3>
+                <div class="definition">
+                    La <strong>puberté</strong> est la période de transformation du corps due à une augmentation progressive des concentrations sanguines de certaines hormones. Ces hormones sont fabriquées par le cerveau et déclenchent le développement des organes reproducteurs.
+                </div>
+
+                <h3>Caractères Sexuels Secondaires</h3>
+                <div class="definition">
+                    Les <strong>caractères sexuels secondaires</strong> sont les transformations observées à la puberté (pilosité, timbre de voix, forme du corps, etc.) déclenchées par les hormones sexuelles provenant des gonades.
+                </div>
+
+                <h3>Contrôle Hormonal</h3>
+                <div class="definition">
+                    Le <strong>contrôle hormonal</strong> est une relation entre les organes assurée par les hormones. C'est un système de communication chimique dans le corps.
+                </div>
+            </section>
+
+            <!-- SECTION SCHÉMA -->
+            <section id="schema">
+                <h2>Schéma du Contrôle Hormonal de la Puberté</h2>
+
+                <div class="diagram">
+                    <div style="margin-bottom: 30px;">
+                        <div class="diagram-item" style="background: #e9ecef; padding: 15px 20px; border-radius: 8px; font-weight: 600;">
+                            🧠 GLANDE CÉRÉBRALE
+                        </div>
+                        <div class="arrow">↓</div>
+                        <p style="color: #666; font-size: 0.9em;">Sécrète des hormones</p>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <div class="diagram-item" style="background: #fff3cd; padding: 15px 20px; border-radius: 8px; font-weight: 600;">
+                            ⚤ GONADE<br>(Testicule ou Ovaire)
+                        </div>
+                        <div class="arrow">↓</div>
+                        <p style="color: #666; font-size: 0.9em;">Produit des hormones sexuelles</p>
+                    </div>
+
+                    <div style="margin-bottom: 30px;">
+                        <div class="diagram-item" style="background: #f0fdf4; padding: 15px 20px; border-radius: 8px; font-weight: 600;">
+                            ✨ ORGANE CIBLE<br>(Corps entier)
+                        </div>
+                        <div class="arrow">↓</div>
+                        <p style="color: #666; font-size: 0.9em;">Développement des caractères sexuels secondaires</p>
+                    </div>
+                </div>
+
+                <h3>Transport des Hormones</h3>
+                <div class="key-point">
+                    Les hormones se déplacent par les <strong>vaisseaux sanguins</strong> (voie de transport) qui constituent la liaison entre la glande productrice et l'organe cible.
+                </div>
+
+                <h3>Rôles de la Production de Gamètes</h3>
+                <div class="diagram">
+                    <p><strong>Testicules :</strong> Production continue de spermatozoïdes à partir de la puberté</p>
+                    <p style="margin-top: 15px;"><strong>Ovaires :</strong> Libération d'ovules périodiquement (cycliquement)</p>
+                </div>
+            </section>
+
+            <!-- SECTION CONCEPTS CLÉ -->
+            <section id="concepts">
+                <h2>Concepts Clés</h2>
+
+                <h3>Le Système de Feedback Hormonal</h3>
+                <div class="key-point">
+                    <strong>Important :</strong> Les hormones des gonades contrôlent le développement des caractères sexuels secondaires ET maintiennent un système de rétroaction avec le cerveau pour réguler les hormones cérébrales.
+                </div>
+
+                <h3>Rôle des Hormones Ovariennes</h3>
+                <div class="list-item">Déclenchent l'apparition des caractères sexuels secondaires féminins</div>
+                <div class="list-item">Déterminent l'état de la couche superficielle de l'utérus (endomètre)</div>
+                <div class="list-item">Diminution progressive → déclenche les règles</div>
+
+                <h3>Rôle des Hormones Testiculaires</h3>
+                <div class="list-item">Déclenchent l'apparition des caractères sexuels secondaires masculins</div>
+                <div class="list-item">Assurent la production continue de spermatozoïdes</div>
+
+                <h3>Chronologie de la Puberté</h3>
+                <div class="key-point">
+                    <strong>Processus progressif :</strong> L'augmentation des concentrations sanguines d'hormones cérébrales est <strong>graduelle</strong>, ce qui déclenche progressivement la puberté et ses transformations.
+                </div>
+
+                <h3>Cas du Syndrome de Kallmann</h3>
+                <div class="case-study">
+                    <h4>Qu'est-ce que c'est ?</h4>
+                    <p>Trouble où les individus atteints n'ont pas de puberté spontanée car les gonades ne se développent pas (pas de quantité suffisante d'hormones cérébrales).</p>
+
+                    <h4>Conséquences :</h4>
+                    <div class="list-item">Absence d'hormones sexuelles dans le sang</div>
+                    <div class="list-item">Pas de développement des gonades</div>
+                    <div class="list-item">Pas de caractères sexuels secondaires</div>
+                    <div class="list-item">Pas de production de gamètes</div>
+                </div>
+            </section>
+
+            <!-- SECTION BILAN -->
+            <section id="bilan">
+                <h2>Bilan du Cours</h2>
+
+                <h3>Les Testicules</h3>
+                <div class="definition">
+                    Les testicules produisent des <strong>spermatozoïdes</strong>, qui sont des <strong>gamètes</strong> (cellules reproductrices). À partir de la puberté, la production de spermatozoïdes est <strong>continue</strong> chez les hommes.
+                </div>
+
+                <h3>Mécanisme du Contrôle Hormonal (Résumé)</h3>
+                <table>
+                    <tr>
+                        <th>Étape</th>
+                        <th>Description</th>
+                    </tr>
+                    <tr>
+                        <td>1. Déclenchement</td>
+                        <td>Le cerveau sécrète des hormones lors de la puberté</td>
+                    </tr>
+                    <tr>
+                        <td>2. Transport</td>
+                        <td>Les hormones circulent par les vaisseaux sanguins</td>
+                    </tr>
+                    <tr>
+                        <td>3. Développement</td>
+                        <td>Les gonades se développent et produisent des hormones sexuelles</td>
+                    </tr>
+                    <tr>
+                        <td>4. Action</td>
+                        <td>Les hormones sexuelles déclenchent les caractères sexuels secondaires</td>
+                    </tr>
+                    <tr>
+                        <td>5. Régulation</td>
+                        <td>Les hormones sexuelles régulent le système par rétroaction</td>
+                    </tr>
+                </table>
+
+                <h3>Points Essentiels à Retenir</h3>
+                <div class="key-point">
+                    ✓ Une hormone est une substance chimique de communication<br>
+                    ✓ Les hormones agissent sur des organes cibles<br>
+                    ✓ La puberté est contrôlée par des hormones du cerveau<br>
+                    ✓ Les gonades produisent des hormones et des gamètes<br>
+                    ✓ Le système hormonal fonctionne par rétroaction<br>
+                    ✓ Les caractères sexuels secondaires sont dus aux hormones sexuelles
+                </div>
+            </section>
+
+            <!-- SECTION DOCUMENTS -->
+            <section id="documents">
+                <h2>Documents à Exploiter</h2>
+
+                <h3>Document 1 : Syndrome de Kallmann</h3>
+                <div class="case-study">
+                    <h4>Observation</h4>
+                    <p>Des enfants ou des garçons atteignent la puberté et sont stériles. Leurs organes reproducteurs ne se développent pas.</p>
+
+                    <h4>Données Importantes</h4>
+                    <table>
+                        <tr>
+                            <th>Population</th>
+                            <th>Nombre moyen d'ovulations/an</th>
+                            <th>Quantité d'hormones cérébrales (u.a.)</th>
+                        </tr>
+                        <tr>
+                            <td>Fille pubère</td>
+                            <td>12</td>
+                            <td>4.5</td>
+                        </tr>
+                        <tr>
+                            <td>Fille atteinte du syndrome</td>
+                            <td>0</td>
+                            <td>0.5</td>
+                        </tr>
+                        <tr>
+                            <td>Garçon pubère</td>
+                            <td>40-500 millions</td>
+                            <td>4</td>
+                        </tr>
+                        <tr>
+                            <td>Garçon atteint du syndrome</td>
+                            <td>0</td>
+                            <td>0.8</td>
+                        </tr>
+                    </table>
+
+                    <p style="margin-top: 15px; font-weight: 600;">💡 Conclusion : Le manque d'hormones cérébrales = absence de développement des gonades</p>
+                </div>
+
+                <h3>Document 2 : Schéma Fonctionnel du Mode d'Action d'une Hormone</h3>
+                <div class="diagram">
+                    <p style="font-weight: 600; margin-bottom: 15px;">Pathways d'une Hormone</p>
+                    <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid #ddd;">
+                        <p><strong>Organe producteur</strong> (ex: hypophyse) → sécrète l'hormone</p>
+                        <p style="margin-top: 10px;">↓</p>
+                        <p><strong>Libération de l'hormone</strong> dans le sang</p>
+                        <p style="margin-top: 10px;">↓</p>
+                        <p><strong>Transport par le sang</strong> (voie sanguine)</p>
+                        <p style="margin-top: 10px;">↓</p>
+                        <p><strong>Modification du fonctionnement</strong> de l'organe cible</p>
+                    </div>
+                </div>
+
+                <h3>Document 3 & 4 : Expériences</h3>
+                <div class="case-study">
+                    <h4>Expérience 1 : Destruction d'une glande du cerveau chez le rat mâle</h4>
+                    <p><strong>Résultat :</strong> Diminution de la production des spermatozoïdes par les testicules</p>
+
+                    <h4>Expérience 2 : Injection dans le sang de substances produites par le cerveau</h4>
+                    <p><strong>Résultat :</strong> Reprise de la production des spermatozoïdes par les testicules</p>
+
+                    <p style="margin-top: 20px; font-weight: 600;">💡 Conclusion : Les hormones cérébrales contrôlent la production de spermatozoïdes</p>
+                </div>
+
+                <h3>Document 5 & 6 : Évolution Hormonale au Cours du Temps</h3>
+                <div class="graph">
+                    <p><strong>Graphiques montrant :</strong></p>
+                    <div class="list-item">Augmentation progressive des hormones cérébrales pendant la puberté</div>
+                    <div class="list-item">Augmentation correspondante du taux de testostérone (hormones sexuelles)</div>
+                    <div class="list-item">Chez les filles : évolution cyclique des hormones ovariennes</div>
+                    <div class="list-item">Chez les garçons : augmentation progressive et maintien élevé</div>
+                </div>
+            </section>
+
+            <!-- SECTION EXERCICES -->
+            <section id="exercices">
+                <h2>Exercices d'Application</h2>
+
+                <h3>C1A5 : À la recherche de l'origine du déclenchement de la puberté</h3>
+
+                <div class="question">
+                    <strong>Q1 : À partir du document 1, comparer la quantité de substances cérébrales d'une fille ou d'un garçon pubères à celle d'une fille ou d'un garçon atteints du syndrome de Kallmann.</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        <strong>Réponse :</strong><br>
+                        • Fille pubère : 4.5 u.a. vs Fille Kallmann : 0.5 u.a.<br>
+                        • Garçon pubère : 4 u.a. vs Garçon Kallmann : 0.8 u.a.<br><br>
+                        <strong>Observation :</strong> Les individus pubères ont une quantité <strong>beaucoup plus élevée</strong> d'hormones cérébrales que ceux atteints du syndrome. C'est 8-9 fois plus !
+                    </div>
+                </div>
+
+                <div class="question">
+                    <strong>Q2 : À partir des informations 1 et 2 du document 1 et du document 2, déterminer quel est l'effet des substances cérébrales sur les organes reproducteurs.</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        <strong>Réponse :</strong><br>
+                        Les substances cérébrales stimulent/favorisent :<br>
+                        • <strong>La production de spermatozoïdes</strong> chez les garçons (40-500 millions vs 0)<br>
+                        • <strong>L'ovulation</strong> chez les filles (12 ovulations vs 0)<br><br>
+                        <strong>Conclusion :</strong> Les hormones cérébrales sont <strong>essentielles</strong> pour le fonctionnement des organes reproducteurs.
+                    </div>
+                </div>
+
+                <div class="question">
+                    <strong>Q3 : À l'aide des documents 1 et 2, justifier le terme « d'hormones » donné à ces substances cérébrales. Donner le nom de l'organe producteur et le nom de l'organe cible.</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        <strong>Réponse :</strong><br>
+                        <strong>Justification :</strong> Ces substances méritent le terme "hormones" car :<br>
+                        • Elles sont <strong>fabriquées par un organe</strong> (organe producteur)<br>
+                        • Elles sont <strong>libérées dans le sang</strong><br>
+                        • Elles <strong>agissent sur un organe cible</strong> (testicules ou ovaires)<br><br>
+                        <strong>Organe producteur :</strong> Glande endocrine du cerveau (hypothalamus/hypophyse)<br>
+                        <strong>Organe cible :</strong> Testicules et ovaires (gonades)
+                    </div>
+                </div>
+
+                <div class="question">
+                    <strong>Q4 : Décrire les graphiques sur le document 2 (évolution hormonale).</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        <strong>Réponse :</strong><br>
+                        <strong>Avant la puberté :</strong> Les concentrations d'hormones sont très faibles<br><br>
+                        <strong>Pendant la puberté :</strong><br>
+                        • Les hormones cérébrales <strong>augmentent progressivement</strong><br>
+                        • Les hormones sexuelles <strong>augmentent en parallèle</strong><br>
+                        • Chez les filles : évolution <strong>cyclique</strong> (montées et descentes régulières)<br>
+                        • Chez les garçons : augmentation <strong>progressive et maintien</strong> à un niveau élevé<br><br>
+                        <strong>Après la puberté :</strong> Les niveaux se stabilisent mais restent élevés
+                    </div>
+                </div>
+
+                <div class="question">
+                    <strong>Q5 : À partir des documents 2, 3 et 4 expliquer la relation existant entre la quantité d'hormones cérébrales, le développement des organes reproducteurs et les caractères secondaires.</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        <strong>Réponse :</strong><br>
+                        <strong>Chaîne de causalité :</strong><br><br>
+                        <strong>↑ Hormones cérébrales</strong> (au moment de la puberté)<br>
+                        ↓<br>
+                        Stimulent les <strong>gonades (testicules/ovaires)</strong> à se développer<br>
+                        ↓<br>
+                        Les gonades produisent des <strong>hormones sexuelles</strong><br>
+                        ↓<br>
+                        <strong>Hormones sexuelles</strong> déclenchent l'apparition des <strong>caractères sexuels secondaires</strong><br><br>
+                        <strong>Schéma résumé :</strong><br>
+                        Cerveau → Hormones cérébrales → Gonades → Hormones sexuelles → Caractères secondaires
+                    </div>
+                </div>
+
+                <div class="question">
+                    <strong>Q6 : Sur le modèle du schéma 3 dans le document 1, construire un schéma fonctionnel expliquant comment le développement des organes reproducteurs est déclenché à la puberté.</strong>
+                    <button class="toggle-answer" onclick="toggleAnswer(this)">Afficher la réponse</button>
+                    <div class="answer">
+                        <strong>Réponse : Schéma Fonctionnel</strong><br><br>
+                        <div style="background: #f0f4ff; padding: 15px; border-radius: 8px; margin: 10px 0;">
+                            <p style="text-align: center; font-weight: 600;">Organe producteur<br>↓<br>CERVEAU<br>(Hypothalamus/Hypophyse)<br><br>Libération de l'hormone<br>↓<br>Hormones cérébrales (GnRH, FSH, LH)<br><br>Vaisseau sanguin<br>(voie de transport)<br>↓<br>Atteint l'organe cible<br>↓<br>GONADES<br>(Testicules ou Ovaires)<br><br>Modification du fonctionnement<br>↓<br>Développement et production d'hormones sexuelles<br>↓<br>Apparition des caractères sexuels secondaires</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>📖 Ressource de révision complète pour l'évaluation d'SVT</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">Bonne chance ! 💪</p>
+        </footer>
+    </div>
+
+    <script>
+        // Navigation
+        document.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+
+                document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+                document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+
+                link.classList.add('active');
+                const sectionId = link.getAttribute('data-section');
+                document.getElementById(sectionId).classList.add('active');
+
+                window.scrollTo(0, 0);
+            });
+        });
+
+        // Toggle answers
+        function toggleAnswer(btn) {
+            const answer = btn.nextElementSibling;
+            answer.classList.toggle('show');
+            btn.textContent = answer.classList.contains('show') ? 'Masquer la réponse' : 'Afficher la réponse';
+        }
+
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight') {
+                const next = document.querySelector('.nav-link.active').parentElement.nextElementSibling;
+                if (next) next.querySelector('.nav-link').click();
+            } else if (e.key === 'ArrowLeft') {
+                const prev = document.querySelector('.nav-link.active').parentElement.previousElementSibling;
+                if (prev) prev.querySelector('.nav-link').click();
+            }
+        });
+    </script>
+</body>
+</html>

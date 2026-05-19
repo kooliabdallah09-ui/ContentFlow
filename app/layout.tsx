@@ -76,7 +76,7 @@ export default function RootLayout({
           @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
         `}</style>
       </head>
-      <body className={`min-h-full flex flex-col bg-black ${showSidebar ? 'ml-20' : ''}`}>
+      <body className={`min-h-full flex flex-col bg-black ${showSidebar && sidebarOpen ? 'ml-64' : showSidebar ? 'ml-20' : ''}`}>
         {showSidebar && <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />}
         <div>
           {!loading && children}
