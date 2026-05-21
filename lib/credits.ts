@@ -98,7 +98,7 @@ export async function deductCredits(
   return { newBalance: credits.balance - amount }
 }
 
-export async function addCredits(userId: string, amount: number, transactionType: string = 'purchase', description?: string) {
+export async function addCredits(userId: string, amount: number, transactionType: 'generation' | 'purchase' | 'refund' | 'monthly_reset' | 'bonus' = 'purchase', description?: string) {
   const supabase = getSupabase()
   if (!supabase) throw new Error('Supabase not available')
 
