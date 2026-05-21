@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signup } from '@/lib/auth'
 import Link from 'next/link'
 
 export default function SignupPage() {
@@ -19,7 +18,17 @@ export default function SignupPage() {
     setError('')
 
     try {
-      await signup(email, password, fullName)
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, fullName }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Signup failed')
+      }
+
       router.push('/onboarding')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed')
