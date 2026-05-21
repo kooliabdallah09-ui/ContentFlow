@@ -25,6 +25,7 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
     { href: '/generate/email', label: 'Email', icon: Mail },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
+    { href: '/settings/brand', label: 'Brand', icon: Settings },
     { href: '/settings/integrations', label: 'Integrations', icon: Settings },
   ]
 
