@@ -2,7 +2,7 @@
 create extension if not exists "uuid-ossp";
 
 -- Users table (Supabase auth_users already exists)
-create table public.profiles (
+create table if not exists public.profiles (
   id uuid references auth.users(id) on delete cascade primary key,
   email text unique,
   full_name text,
@@ -10,7 +10,7 @@ create table public.profiles (
 );
 
 -- Brand profiles
-create table public.brand_profiles (
+create table if not exists public.brand_profiles (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users(id) on delete cascade,
   company_name text,
@@ -23,7 +23,7 @@ create table public.brand_profiles (
 );
 
 -- Content
-create table public.content (
+create table if not exists public.content (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users(id) on delete cascade,
   content_type text check (content_type in ('blog', 'social', 'email', 'website', 'ads')),
@@ -36,7 +36,7 @@ create table public.content (
 );
 
 -- Content calendar
-create table public.content_calendar (
+create table if not exists public.content_calendar (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users(id) on delete cascade,
   content_id uuid references public.content(id) on delete cascade,
@@ -50,7 +50,7 @@ create table public.content_calendar (
 );
 
 -- Integrations
-create table public.integrations (
+create table if not exists public.integrations (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users(id) on delete cascade,
   platform text,
@@ -60,7 +60,7 @@ create table public.integrations (
 );
 
 -- Content Analytics
-create table public.content_analytics (
+create table if not exists public.content_analytics (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users(id) on delete cascade,
   content_id uuid references public.content(id) on delete cascade,
@@ -77,7 +77,7 @@ create table public.content_analytics (
 );
 
 -- User Credits
-create table public.user_credits (
+create table if not exists public.user_credits (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users(id) on delete cascade unique,
   balance integer default 0,
@@ -89,7 +89,7 @@ create table public.user_credits (
 );
 
 -- Credit Transactions
-create table public.credit_transactions (
+create table if not exists public.credit_transactions (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users(id) on delete cascade,
   amount integer,
@@ -101,7 +101,7 @@ create table public.credit_transactions (
 );
 
 -- Credit Pricing (cost per generation type)
-create table public.credit_pricing (
+create table if not exists public.credit_pricing (
   id uuid default uuid_generate_v4() primary key,
   content_type text unique check (content_type in ('blog', 'social', 'email', 'image', 'video', 'voice')),
   base_cost integer,
@@ -110,7 +110,7 @@ create table public.credit_pricing (
 );
 
 -- UGC Content (User Generated Content - Images, Videos, etc)
-create table public.ugc_content (
+create table if not exists public.ugc_content (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references auth.users(id) on delete cascade,
   content_type text check (content_type in ('image', 'video', 'voice')),
@@ -128,15 +128,15 @@ create table public.ugc_content (
 );
 
 -- Create indexes
-create index content_user_id on public.content(user_id);
-create index calendar_user_id on public.content_calendar(user_id);
-create index integrations_user_id on public.integrations(user_id);
-create index brand_user_id on public.brand_profiles(user_id);
-create index analytics_user_id on public.content_analytics(user_id);
-create index analytics_content_id on public.content_analytics(content_id);
-create index analytics_platform on public.content_analytics(platform);
-create index user_credits_user_id on public.user_credits(user_id);
-create index credit_transactions_user_id on public.credit_transactions(user_id);
-create index credit_transactions_type on public.credit_transactions(transaction_type);
-create index ugc_content_user_id on public.ugc_content(user_id);
-create index ugc_content_type on public.ugc_content(content_type);
+create index if not existscontent_user_id on public.content(user_id);
+create index if not existscalendar_user_id on public.content_calendar(user_id);
+create index if not existsintegrations_user_id on public.integrations(user_id);
+create index if not existsbrand_user_id on public.brand_profiles(user_id);
+create index if not existsanalytics_user_id on public.content_analytics(user_id);
+create index if not existsanalytics_content_id on public.content_analytics(content_id);
+create index if not existsanalytics_platform on public.content_analytics(platform);
+create index if not existsuser_credits_user_id on public.user_credits(user_id);
+create index if not existscredit_transactions_user_id on public.credit_transactions(user_id);
+create index if not existscredit_transactions_type on public.credit_transactions(transaction_type);
+create index if not existsugc_content_user_id on public.ugc_content(user_id);
+create index if not existsugc_content_type on public.ugc_content(content_type);
