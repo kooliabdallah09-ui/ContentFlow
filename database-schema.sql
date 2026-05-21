@@ -128,15 +128,15 @@ create table if not exists public.ugc_content (
 );
 
 -- Create indexes
-create index if not existscontent_user_id on public.content(user_id);
-create index if not existscalendar_user_id on public.content_calendar(user_id);
-create index if not existsintegrations_user_id on public.integrations(user_id);
-create index if not existsbrand_user_id on public.brand_profiles(user_id);
-create index if not existsanalytics_user_id on public.content_analytics(user_id);
-create index if not existsanalytics_content_id on public.content_analytics(content_id);
-create index if not existsanalytics_platform on public.content_analytics(platform);
-create index if not existsuser_credits_user_id on public.user_credits(user_id);
-create index if not existscredit_transactions_user_id on public.credit_transactions(user_id);
-create index if not existscredit_transactions_type on public.credit_transactions(transaction_type);
-create index if not existsugc_content_user_id on public.ugc_content(user_id);
-create index if not existsugc_content_type on public.ugc_content(content_type);
+create index if not exists content_user_id on public.content(user_id);
+create index if not exists calendar_user_id on public.content_calendar(user_id);
+create index if not exists integrations_user_id on public.integrations(user_id);
+create index if not exists brand_user_id on public.brand_profiles(user_id);
+create index if not exists analytics_user_id on public.content_analytics(user_id);
+create index if not exists analytics_content_id on public.content_analytics(content_id);
+create index if not exists analytics_platform on public.content_analytics(platform);
+create index if not exists user_credits_user_id on public.user_credits(user_id);
+create index if not exists credit_transactions_user_id on public.credit_transactions(user_id);
+create index if not exists credit_transactions_type on public.credit_transactions(transaction_type);
+create index if not exists ugc_content_user_id on public.ugc_content(user_id);
+create index if not exists ugc_content_type on public.ugc_content(content_type);
