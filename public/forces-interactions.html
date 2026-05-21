@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Forces et Interactions - Révision 4ème</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        nav {
+            display: flex;
+            gap: 10px;
+            padding: 20px;
+            background: #f8f9fa;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        nav button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 25px;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid #667eea;
+        }
+
+        nav button:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        nav button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        section {
+            display: none;
+        }
+
+        section.active {
+            display: block;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 25px;
+            font-size: 2em;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .card {
+            background: #f8f9fa;
+            border-left: 5px solid #667eea;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: translateX(5px);
+        }
+
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.3em;
+        }
+
+        .card p {
+            line-height: 1.8;
+            color: #555;
+        }
+
+        .diagram {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .characteristic-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .characteristic-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .characteristic-item strong {
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 10px;
+        }
+
+        .formula {
+            background: #e3f2fd;
+            border: 2px solid #667eea;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 1.1em;
+            margin: 20px 0;
+            text-align: center;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .exercise {
+            background: #fff3e0;
+            border-left: 5px solid #ff9800;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 10px;
+        }
+
+        .exercise h4 {
+            color: #ff9800;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .exercise-num {
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .solution {
+            background: #e8f5e9;
+            border-left: 5px solid #4caf50;
+            padding: 15px;
+            margin: 10px 0 0 0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .solution.show {
+            display: block;
+        }
+
+        .solution-btn {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            transition: all 0.3s;
+        }
+
+        .solution-btn:hover {
+            background: #f57c00;
+        }
+
+        svg {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 600;
+        }
+
+        .tip {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            color: #0c5460;
+        }
+
+        .tip::before {
+            content: "💡 ";
+            font-weight: bold;
+        }
+
+        footer {
+            background: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #999;
+            border-top: 1px solid #ddd;
+        }
+
+        /* RESPONSIVE - Mobile */
+        @media (max-width: 768px) {
+            .container {
+                border-radius: 0;
+            }
+
+            header h1 {
+                font-size: 1.8em;
+                margin-bottom: 5px;
+            }
+
+            header p {
+                font-size: 0.95em;
+            }
+
+            nav {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            nav button {
+                border-radius: 0;
+                border: none;
+                border-bottom: 2px solid #ddd;
+                width: 100%;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            h2 {
+                font-size: 1.5em;
+                margin-bottom: 15px;
+            }
+
+            .card {
+                padding: 15px;
+                margin: 15px 0;
+            }
+
+            .card h3 {
+                font-size: 1.1em;
+                margin-bottom: 8px;
+            }
+
+            .card p {
+                font-size: 0.95em;
+                line-height: 1.6;
+            }
+
+            .diagram {
+                padding: 15px;
+                margin: 15px 0;
+            }
+
+            /* SVG Responsive */
+            svg {
+                width: 100% !important;
+                height: auto !important;
+                min-height: 300px !important;
+            }
+
+            .characteristic-list {
+                grid-template-columns: 1fr;
+            }
+
+            .characteristic-item {
+                padding: 15px;
+            }
+
+            .formula {
+                font-size: 0.95em;
+                padding: 15px;
+            }
+
+            .exercise {
+                padding: 15px;
+                margin: 15px 0;
+            }
+
+            .solution-btn {
+                width: 100%;
+                padding: 12px;
+            }
+
+            table {
+                font-size: 0.9em;
+            }
+        }
+
+        /* RESPONSIVE - Très petit écran */
+        @media (max-width: 480px) {
+            header h1 {
+                font-size: 1.4em;
+            }
+
+            h2 {
+                font-size: 1.3em;
+            }
+
+            .card p {
+                font-size: 0.9em;
+            }
+
+            .content {
+                padding: 15px;
+            }
+
+            nav button {
+                padding: 8px 12px;
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚡ Forces et Interactions</h1>
+            <p>Révision - Physique 4ème</p>
+        </header>
+
+        <nav>
+            <button class="nav-btn active" data-section="concepts">Concepts</button>
+            <button class="nav-btn" data-section="modelisation">Modélisation</button>
+            <button class="nav-btn" data-section="poids-masse">Poids & Masse</button>
+            <button class="nav-btn" data-section="exercices">Exercices</button>
+        </nav>
+
+        <div class="content">
+            <!-- SECTION 1: CONCEPTS -->
+            <section id="concepts" class="active">
+                <h2>Concepts Fondamentaux</h2>
+
+                <div class="card">
+                    <h3>Qu'est-ce qu'une Interaction ?</h3>
+                    <p>Une <span class="highlight">interaction</span> est une <strong>action réciproque</strong> entre deux corps. Chaque interaction peut être modélisée par des <strong>forces</strong>.</p>
+                </div>
+
+                <div class="card">
+                    <h3>Les Deux Types d'Interactions</h3>
+                </div>
+
+                <div class="characteristic-list">
+                    <div class="characteristic-item">
+                        <strong>Interaction de Contact</strong>
+                        <p>Les deux corps se touchent</p>
+                        <p style="font-size: 0.9em; margin-top: 5px;">Exemple: Pousser un objet</p>
+                    </div>
+                    <div class="characteristic-item">
+                        <strong>Interaction à Distance</strong>
+                        <p>Les corps n'ont pas besoin de se toucher</p>
+                        <p style="font-size: 0.9em; margin-top: 5px;">Exemple: Attraction gravitationnelle</p>
+                    </div>
+                </div>
+
+                <div class="diagram">
+                    <h4>Diagramme Objet-Interaction</h4>
+                    <svg viewBox="0 0 500 380" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="min-height: 350px;">
+                        <!-- Objet étudié EN HAUT (centre) -->
+                        <ellipse cx="250" cy="50" rx="65" ry="50" fill="#667eea" opacity="0.2" stroke="#667eea" stroke-width="3"/>
+                        <text x="250" y="60" text-anchor="middle" font-weight="bold" font-size="15">Objet étudié</text>
+
+                        <!-- Objet A EN BAS À GAUCHE -->
+                        <ellipse cx="130" cy="300" rx="60" ry="50" fill="#764ba2" opacity="0.2" stroke="#764ba2" stroke-width="3"/>
+                        <text x="130" y="310" text-anchor="middle" font-weight="bold" font-size="13">Objet A</text>
+
+                        <!-- Objet B EN BAS À DROITE (symétrique) -->
+                        <ellipse cx="370" cy="300" rx="60" ry="50" fill="#ff9800" opacity="0.2" stroke="#ff9800" stroke-width="3"/>
+                        <text x="370" y="310" text-anchor="middle" font-weight="bold" font-size="13">Objet B</text>
+
+                        <!-- Flèche PLEINE: A → Objet étudié (CONTACT) -->
+                        <line x1="170" y1="250" x2="225" y2="105" stroke="#000" stroke-width="3"/>
+                        <text x="140" y="175" font-size="12" font-weight="bold" fill="#000">Contact</text>
+
+                        <!-- Flèche POINTILLÉE: B → Objet étudié (DISTANCE) -->
+                        <line x1="330" y1="250" x2="275" y2="105" stroke="#000" stroke-width="3" stroke-dasharray="8,6"/>
+                        <text x="355" y="175" font-size="12" font-weight="bold" fill="#000">Distance</text>
+                    </svg>
+                    <div class="tip">
+                        <strong>━━ Flèche pleine</strong> = interaction de contact | <strong>- - - Flèche pointillée</strong> = interaction à distance
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 2: MODÉLISATION -->
+            <section id="modelisation">
+                <h2>Modélisation d'une Force</h2>
+
+                <div class="card">
+                    <h3>Comment Représenter une Force ?</h3>
+                    <p>Une force se représente par un <strong>vecteur flèche</strong> qui part du <strong>point d'application</strong>. Cette flèche indique la <strong>direction</strong>, le <strong>sens</strong> et sa longueur est <strong>proportionnelle à sa valeur</strong>.</p>
+                </div>
+
+                <div class="card">
+                    <h3>📝 La Notation Scientifique</h3>
+                    <p>La notation scientifique d'une force s'écrit avec:</p>
+                    <ul style="margin-left: 20px; margin-top: 10px; line-height: 2;">
+                        <li><strong><span style="font-style: italic;">F</span> avec une flèche au-dessus</strong> (pour indiquer que c'est un vecteur)</li>
+                        <li><strong>Des indices (auteur/receveur)</strong> en bas à droite</li>
+                    </ul>
+                    <p style="margin-top: 15px;">Exemple: <strong><span style="font-style: italic;">F</span><sub>voiture/homme</sub></strong> = force exercée par la voiture sur l'homme</p>
+                    <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.9;">
+                        <li><strong>La lettre F</strong> : C'est la première lettre du mot « Force ». Elle peut avoir une petite flèche au-dessus pour indiquer que c'est un <strong>vecteur</strong> (une grandeur qui a une direction et un sens, pas seulement une valeur).</li>
+                        <li><strong>Les indices (voiture/homme)</strong> : Ils permettent de comprendre en un coup d'œil qui fait quoi.
+                            <ul style="margin-left: 20px; margin-top: 8px;">
+                                <li>Le <strong>premier mot (auteur)</strong> = l'objet qui <strong>exerce la force</strong></li>
+                                <li>Le <strong>deuxième mot (receveur)</strong> = l'objet qui <strong>subit la force</strong></li>
+                            </ul>
+                        </li>
+                        <li><strong>Exemple</strong>: <span style="font-style: italic;">F</span><sub>ressort/trousse</sub> = force exercée par le ressort sur la trousse</li>
+                    </ul>
+                </div>
+
+                <div class="diagram">
+                    <h4>Schéma de Modélisation - Exemple Concret</h4>
+                    <p style="text-align: center; margin-bottom: 10px; font-style: italic; color: #555;">📌 Une <strong>trousse attachée à un ressort</strong> (le ressort l'empêche de tomber)</p>
+                    <p style="text-align: center; margin-bottom: 20px; font-weight: 600; font-size: 1.1em;">Échelle: 1 cm = 10 N</p>
+                    <svg viewBox="0 0 700 320" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="min-height: 320px;">
+                        <!-- Point d'application (gros point) -->
+                        <circle cx="350" cy="80" r="7" fill="#000"/>
+                        <text x="350" y="110" text-anchor="middle" font-size="11" font-weight="bold" fill="#000">Point d'application</text>
+
+                        <!-- Force 1: Vers le HAUT (ressort) -->
+                        <line x1="350" y1="80" x2="350" y2="10" stroke="#4ecdc4" stroke-width="5"/>
+                        <polygon points="350,10 340,30 360,30" fill="#4ecdc4"/>
+
+                        <!-- Label Force ressort (LEFT) -->
+                        <!-- Flèche au-dessus du F -->
+                        <line x1="75" y1="15" x2="90" y2="15" stroke="#4ecdc4" stroke-width="2"/>
+                        <polygon points="90,15 86,10 86,20" fill="#4ecdc4"/>
+                        <text x="80" y="35" font-size="12" font-weight="bold" fill="#4ecdc4"><tspan font-style="italic">F</tspan></text>
+                        <text x="50" y="55" font-size="10" font-weight="bold" fill="#4ecdc4">ressort/trousse</text>
+                        <text x="80" y="73" font-size="11" font-weight="bold" fill="#4ecdc4">= 50 N</text>
+
+                        <!-- Force 2: Vers le BAS (poids) -->
+                        <line x1="350" y1="80" x2="350" y2="190" stroke="#ff6b6b" stroke-width="5"/>
+                        <polygon points="350,190 340,170 360,170" fill="#ff6b6b"/>
+
+                        <!-- Label Force poids (RIGHT) -->
+                        <!-- Flèche au-dessus du F -->
+                        <line x1="515" y1="35" x2="530" y2="35" stroke="#ff6b6b" stroke-width="2"/>
+                        <polygon points="530,35 526,30 526,40" fill="#ff6b6b"/>
+                        <text x="520" y="55" font-size="12" font-weight="bold" fill="#ff6b6b"><tspan font-style="italic">F</tspan></text>
+                        <text x="510" y="75" font-size="10" font-weight="bold" fill="#ff6b6b">Terre/trousse</text>
+                        <text x="540" y="93" font-size="11" font-weight="bold" fill="#ff6b6b">= 50 N</text>
+
+                        <!-- Note -->
+                        <text x="350" y="280" text-anchor="middle" font-size="12" fill="#555" font-style="italic">Les deux forces sont égales: la trousse est en équilibre! ⚖️</text>
+                    </svg>
+                </div>
+
+                <div class="card">
+                    <h3>Les 4 Caractéristiques d'une Force</h3>
+                </div>
+
+                <div class="characteristic-list">
+                    <div class="characteristic-item">
+                        <strong>Point d'application</strong>
+                        <p>Où s'exerce la force (le point de départ de la flèche)</p>
+                    </div>
+                    <div class="characteristic-item">
+                        <strong>Direction</strong>
+                        <p>La ligne suivie par la force (horizontal, vertical, diagonal...)</p>
+                    </div>
+                    <div class="characteristic-item">
+                        <strong>Sens</strong>
+                        <p>Vers où va la force (droite, gauche, haut, bas...)</p>
+                    </div>
+                    <div class="characteristic-item">
+                        <strong>Valeur (Intensité)</strong>
+                        <p>La "puissance" mesurée en <strong>Newton (N)</strong></p>
+                    </div>
+                </div>
+
+                <div class="tip">
+                    Sur un schéma, la longueur du vecteur est proportionnelle à la valeur de la force. Plus la flèche est longue, plus la force est grande !
+                </div>
+            </section>
+
+            <!-- SECTION 3: POIDS ET MASSE -->
+            <section id="poids-masse">
+                <h2>Poids et Masse</h2>
+
+                <div class="card">
+                    <h3>⚠️ Attention: Poids ≠ Masse</h3>
+                    <p>Ce ne sont <strong>pas</strong> la même chose !</p>
+                    <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.8;">
+                        <li><strong>Masse:</strong> Quantité de matière, mesurée en <strong>kg</strong>, ne change pas</li>
+                        <li><strong>Poids:</strong> Force due à la gravité, mesurée en <strong>Newton (N)</strong>, peut changer</li>
+                    </ul>
+                </div>
+
+                <div class="formula">
+                    P = m × g
+                </div>
+
+                <div class="card">
+                    <p><strong>P</strong> = Poids (en Newton - N)<br>
+                    <strong>m</strong> = Masse (en kilogramme - kg)<br>
+                    <strong>g</strong> = Intensité du champ de pesanteur = <strong>10 N/kg</strong> (sur Terre)</p>
+                </div>
+
+                <div class="card">
+                    <h3>Exemple Pratique</h3>
+                    <p>Un objet a une masse de 5 kg.</p>
+                    <p style="margin-top: 10px;"><strong>Calcul du poids:</strong></p>
+                    <p style="background: #e3f2fd; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                        P = m × g = 5 × 10 = <strong>50 N</strong>
+                    </p>
+                </div>
+
+                <div class="characteristic-list">
+                    <div class="characteristic-item">
+                        <strong>Conversion Clé</strong>
+                        <p>1 Newton = 0,1 kg</p>
+                        <p style="font-size: 0.85em; margin-top: 5px;">(ou 1 kg = 10 N)</p>
+                    </div>
+                    <div class="characteristic-item">
+                        <strong>Sur la Terre</strong>
+                        <p>Poids = 10 × Masse</p>
+                        <p style="font-size: 0.85em; margin-top: 5px;">Un objet de 2 kg pèse 20 N</p>
+                    </div>
+                </div>
+
+                <div class="tip">
+                    Le poids change selon le lieu! Sur la Lune, g = 1,6 N/kg, donc un objet pèse 6 fois moins sur la Lune que sur Terre, mais sa masse reste la même.
+                </div>
+            </section>
+
+            <!-- SECTION 4: EXERCICES -->
+            <section id="exercices">
+                <h2>Entraînement: Exercices</h2>
+
+                <div class="exercise">
+                    <h4><span class="exercise-num">Exercice 1:</span> Caractéristiques d'une Force</h4>
+                    <p>Un objet est poussé horizontalement vers la droite avec une force de 25 N.</p>
+                    <p style="margin-top: 10px;">Identifie les 4 caractéristiques de cette force:</p>
+
+                    <button class="solution-btn" onclick="toggleSolution(this)">Voir la solution</button>
+                    <div class="solution">
+                        <p><strong>Point d'application:</strong> Le point où la main pousse l'objet</p>
+                        <p><strong>Direction:</strong> Horizontale</p>
+                        <p><strong>Sens:</strong> Vers la droite</p>
+                        <p><strong>Valeur:</strong> 25 N</p>
+                    </div>
+                </div>
+
+                <div class="exercise">
+                    <h4><span class="exercise-num">Exercice 2:</span> Calcul du Poids</h4>
+                    <p>Calcule le poids d'un objet qui a une masse de 8 kg sur Terre (g = 10 N/kg).</p>
+
+                    <button class="solution-btn" onclick="toggleSolution(this)">Voir la solution</button>
+                    <div class="solution">
+                        <p><strong>Formule:</strong> P = m × g</p>
+                        <p><strong>Application:</strong> P = 8 × 10 = 80 N</p>
+                        <p style="margin-top: 10px;"><strong>Réponse:</strong> L'objet pèse 80 N</p>
+                    </div>
+                </div>
+
+                <div class="exercise">
+                    <h4><span class="exercise-num">Exercice 3:</span> Problème avec Masse et Poids</h4>
+                    <p>Un sac a une masse de 12 kg. En utilisant l'échelle 1 cm pour 20 N, dessine le vecteur représentant son poids.</p>
+
+                    <button class="solution-btn" onclick="toggleSolution(this)">Voir la solution</button>
+                    <div class="solution">
+                        <p><strong>Étape 1:</strong> Calculer le poids</p>
+                        <p>P = m × g = 12 × 10 = 120 N</p>
+
+                        <p style="margin-top: 15px;"><strong>Étape 2:</strong> Convertir selon l'échelle</p>
+                        <p>Échelle: 1 cm = 20 N</p>
+                        <p>Longueur du vecteur = 120 ÷ 20 = 6 cm</p>
+
+                        <p style="margin-top: 15px;"><strong>Étape 3:</strong> Le vecteur</p>
+                        <p>Direction: verticale | Sens: vers le bas | Longueur: 6 cm</p>
+                    </div>
+                </div>
+
+                <div class="exercise">
+                    <h4><span class="exercise-num">Exercice 4:</span> Diagramme Objet-Interaction</h4>
+                    <p>Trace le diagramme objet-interaction pour: <strong>une voiture poussée par une personne sur une route avec la Terre qui l'attire vers le bas</strong>.</p>
+
+                    <button class="solution-btn" onclick="toggleSolution(this)">Voir la solution</button>
+                    <div class="solution">
+                        <p><strong>Objet étudié:</strong> La voiture (en haut)</p>
+
+                        <p style="margin-top: 10px;"><strong>Interactions:</strong></p>
+                        <ul style="margin-left: 20px; margin-top: 5px;">
+                            <li><strong>Personne → Voiture:</strong> Flèche pleine (contact)</li>
+                            <li><strong>Terre → Voiture:</strong> Flèche pointillée (à distance/gravité)</li>
+                        </ul>
+
+                        <p style="margin-top: 10px;">
+                            <svg viewBox="0 0 420 340" width="100%" height="auto" preserveAspectRatio="xMidYMid meet" style="min-height: 340px;">
+                                <!-- Voiture EN HAUT (objet étudié) -->
+                                <ellipse cx="210" cy="50" rx="60" ry="50" fill="#667eea" opacity="0.2" stroke="#667eea" stroke-width="3"/>
+                                <text x="210" y="60" text-anchor="middle" font-weight="bold" font-size="13">Voiture</text>
+
+                                <!-- Personne EN BAS À GAUCHE (symétrique) -->
+                                <ellipse cx="105" cy="280" rx="55" ry="45" fill="#764ba2" opacity="0.2" stroke="#764ba2" stroke-width="3"/>
+                                <text x="105" y="290" text-anchor="middle" font-weight="bold" font-size="12">Personne</text>
+
+                                <!-- Terre EN BAS À DROITE (symétrique) -->
+                                <ellipse cx="315" cy="280" rx="55" ry="45" fill="#ff9800" opacity="0.2" stroke="#ff9800" stroke-width="3"/>
+                                <text x="315" y="290" text-anchor="middle" font-weight="bold" font-size="12">Terre</text>
+
+                                <!-- Flèche PLEINE: Personne → Voiture (contact) -->
+                                <line x1="145" y1="235" x2="190" y2="105" stroke="#000" stroke-width="3"/>
+                                <text x="125" y="170" font-size="11" font-weight="bold" fill="#000">Contact</text>
+
+                                <!-- Flèche POINTILLÉE: Terre → Voiture (distance) -->
+                                <line x1="275" y1="235" x2="230" y2="105" stroke="#000" stroke-width="3" stroke-dasharray="8,6"/>
+                                <text x="305" y="170" font-size="11" font-weight="bold" fill="#000">Distance</text>
+                            </svg>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="exercise">
+                    <h4><span class="exercise-num">Exercice 5:</span> Conversion Masse-Poids</h4>
+                    <p>Complète le tableau:</p>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <tr style="background: #667eea; color: white;">
+                            <th style="border: 1px solid #667eea; padding: 10px;">Masse (kg)</th>
+                            <th style="border: 1px solid #667eea; padding: 10px;">Poids (N)</th>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 10px;">3</td>
+                            <td style="border: 1px solid #ddd; padding: 10px;">?</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 10px;">7</td>
+                            <td style="border: 1px solid #ddd; padding: 10px;">?</td>
+                        </tr>
+                        <tr>
+                            <td style="border: 1px solid #ddd; padding: 10px;">15</td>
+                            <td style="border: 1px solid #ddd; padding: 10px;">?</td>
+                        </tr>
+                    </table>
+
+                    <button class="solution-btn" onclick="toggleSolution(this)">Voir la solution</button>
+                    <div class="solution">
+                        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                            <tr style="background: #4caf50; color: white;">
+                                <th style="border: 1px solid #4caf50; padding: 10px;">Masse (kg)</th>
+                                <th style="border: 1px solid #4caf50; padding: 10px;">Poids (N)</th>
+                            </tr>
+                            <tr style="background: #e8f5e9;">
+                                <td style="border: 1px solid #4caf50; padding: 10px;">3</td>
+                                <td style="border: 1px solid #4caf50; padding: 10px;"><strong>30 N</strong> (3 × 10)</td>
+                            </tr>
+                            <tr style="background: #e8f5e9;">
+                                <td style="border: 1px solid #4caf50; padding: 10px;">7</td>
+                                <td style="border: 1px solid #4caf50; padding: 10px;"><strong>70 N</strong> (7 × 10)</td>
+                            </tr>
+                            <tr style="background: #e8f5e9;">
+                                <td style="border: 1px solid #4caf50; padding: 10px;">15</td>
+                                <td style="border: 1px solid #4caf50; padding: 10px;"><strong>150 N</strong> (15 × 10)</td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <footer>
+            <p>📚 Créé pour ta révision en Physique 4ème | Bonne chance pour ton évaluation! 🚀</p>
+        </footer>
+    </div>
+
+    <script>
+        // Navigation entre sections
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Retirer la classe active de tous les boutons et sections
+                document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+
+                // Ajouter active au bouton cliqué et à la section correspondante
+                btn.classList.add('active');
+                const sectionId = btn.getAttribute('data-section');
+                document.getElementById(sectionId).classList.add('active');
+            });
+        });
+
+        // Afficher/masquer les solutions
+        function toggleSolution(btn) {
+            const solution = btn.nextElementSibling;
+            solution.classList.toggle('show');
+            btn.textContent = solution.classList.contains('show') ? 'Masquer la solution' : 'Voir la solution';
+        }
+    </script>
+</body>
+</html>
