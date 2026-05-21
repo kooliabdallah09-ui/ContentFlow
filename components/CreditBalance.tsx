@@ -28,6 +28,22 @@ export default function CreditBalance() {
           const data = await response.json()
           setBalance(data.balance)
           setPlan(data.plan)
+        } else if (response.status === 404) {
+          // Credits not initialized yet, initialize them
+          const initResponse = await fetch('/api/credits/init', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${sessionData.session.access_token}`,
+            },
+            body: JSON.stringify({ plan: 'free' }),
+          })
+
+          if (initResponse.ok) {
+            const data = await initResponse.json()
+            setBalance(data.data.balance)
+            setPlan(data.data.plan)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch credits:', error)

@@ -23,14 +23,21 @@ export async function GET(request: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const credits = await getUserCredits(userData.user.id)
-
-    return Response.json({
-      balance: credits.balance,
-      plan: credits.plan,
-      monthlyCredits: credits.monthly_credits,
-      resetDate: credits.reset_date,
-    })
+    try {
+      const credits = await getUserCredits(userData.user.id)
+      return Response.json({
+        balance: credits.balance,
+        plan: credits.plan,
+        monthlyCredits: credits.monthly_credits,
+        resetDate: credits.reset_date,
+      })
+    } catch (err) {
+      // Credits not found, return 404
+      return Response.json(
+        { error: 'Credits not initialized' },
+        { status: 404 }
+      )
+    }
   } catch (error) {
     return Response.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch credits' },
