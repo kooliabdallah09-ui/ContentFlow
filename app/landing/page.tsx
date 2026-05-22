@@ -4,31 +4,21 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { ArrowRight, Zap, Sparkles, Video, Mail } from 'lucide-react'
 
-const FONT_STYLES = [
-  'font-black',
-  'font-bold italic',
-  'font-black tracking-widest',
-  'font-black -skew-x-12',
-]
+const WORDS = ['content', 'creations', 'posts', 'media', 'material', 'campaigns', 'stories']
 
 function AnimatedWord() {
-  const [fontIndex, setFontIndex] = useState(0)
+  const [wordIndex, setWordIndex] = useState(0)
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setFontIndex((prev) => (prev + 1) % FONT_STYLES.length)
-    }, 600)
+      setWordIndex((prev) => (prev + 1) % WORDS.length)
+    }, 1500)
     return () => clearInterval(interval)
   }, [])
 
   return (
-    <span
-      className={`${FONT_STYLES[fontIndex]} transition-all duration-300 inline-block`}
-      style={{
-        transform: fontIndex % 2 === 0 ? 'scaleY(1)' : 'scaleY(1)',
-      }}
-    >
-      content
+    <span className="inline-block min-w-64 transition-opacity duration-300">
+      {WORDS[wordIndex]}
     </span>
   )
 }
