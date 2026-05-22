@@ -12,12 +12,18 @@ function AnimatedWord() {
   useEffect(() => {
     const interval = setInterval(() => {
       setWordIndex((prev) => (prev + 1) % WORDS.length)
-    }, 1500)
+    }, 2000)
     return () => clearInterval(interval)
   }, [])
 
   return (
-    <span className="inline-block min-w-64 transition-opacity duration-300">
+    <span
+      className="inline-block min-w-64"
+      style={{
+        animation: 'slideDown 2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      }}
+      key={wordIndex}
+    >
       {WORDS[wordIndex]}
     </span>
   )
@@ -44,6 +50,25 @@ export default function LandingPage() {
 
         * {
           font-family: 'Inter', sans-serif;
+        }
+
+        @keyframes slideDown {
+          0% {
+            opacity: 0;
+            transform: translateY(-60px);
+          }
+          10% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          90% {
+            opacity: 1;
+            transform: translateY(0);
+          }
+          100% {
+            opacity: 0;
+            transform: translateY(60px);
+          }
         }
 
         /* Modern dark theme */
