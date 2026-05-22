@@ -84,9 +84,8 @@ export default function LandingPage() {
         /* Modern dark theme */
         .hero-section {
           background:
-            radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-          background-size: 40px 40px;
-          background-position: 0 0;
+            radial-gradient(circle, rgba(255, 255, 255, 0.15) 1.5px, transparent 1.5px);
+          background-size: 35px 35px;
           background-color: #000000;
           position: relative;
           overflow: hidden;
@@ -96,7 +95,7 @@ export default function LandingPage() {
           content: '';
           position: absolute;
           inset: 0;
-          background: linear-gradient(135deg, #000000 0%, #0a0a2e 50%, #000000 100%);
+          background: linear-gradient(135deg, rgba(0, 0, 0, 0.4) 0%, rgba(10, 10, 46, 0.3) 50%, rgba(0, 0, 0, 0.4) 100%);
           animation: gradientShift 15s ease-in-out infinite;
           pointer-events: none;
         }
