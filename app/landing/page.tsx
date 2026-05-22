@@ -1,8 +1,37 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ArrowRight, Zap, Sparkles, Video, Mail } from 'lucide-react'
+
+const FONT_STYLES = [
+  'font-black',
+  'font-bold italic',
+  'font-black tracking-widest',
+  'font-black -skew-x-12',
+]
+
+function AnimatedWord() {
+  const [fontIndex, setFontIndex] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setFontIndex((prev) => (prev + 1) % FONT_STYLES.length)
+    }, 600)
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <span
+      className={`${FONT_STYLES[fontIndex]} transition-all duration-300 inline-block`}
+      style={{
+        transform: fontIndex % 2 === 0 ? 'scaleY(1)' : 'scaleY(1)',
+      }}
+    >
+      content
+    </span>
+  )
+}
 
 export default function LandingPage() {
   const [email, setEmail] = useState('')
@@ -249,7 +278,7 @@ export default function LandingPage() {
         <div className="hero-content max-w-5xl w-full text-center relative z-10">
           {/* Main Headline - Bold, Large */}
           <h1 className="text-7xl md:text-8xl lg:text-9xl font-black mb-8 leading-tight tracking-tighter">
-            Create content<br />that converts.
+            Create <AnimatedWord /><br />that converts.
           </h1>
 
           {/* Subheading - Minimal, Clear */}
