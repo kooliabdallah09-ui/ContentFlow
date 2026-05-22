@@ -26,9 +26,9 @@ export async function POST(request: Request) {
     const { plan = 'free' } = await request.json()
 
     // Check if credits already initialized
-    const { data: existingCredits } = await supabase
+    const { data: existingCredits, error: checkError } = await supabase
       .from('user_credits')
-      .select('id')
+      .select('*')
       .eq('user_id', userData.user.id)
       .single()
 
@@ -36,8 +36,34 @@ export async function POST(request: Request) {
       return Response.json({ message: 'Credits already initialized', data: existingCredits })
     }
 
-    // Initialize credits
-    const credits = await initializeUserCredits(userData.user.id, plan)
+    // Initialize credits directly on server
+    const PLAN_CREDITS: any = {
+      free: { monthly: 50, signup_bonus: 150 },
+      starter: { monthly: 1000 },
+      pro: { monthly: 4000 },
+      agency: { monthly: 15000 },
+    }
+
+    const monthlyCredits = PLAN_CREDITS[plan].monthly
+    const resetDate = new Date()
+    resetDate.setMonth(resetDate.getMonth() + 1)
+    resetDate.setDate(1)
+
+    const { data: credits, error: insertError } = await supabase
+      .from('user_credits')
+      .insert({
+        user_id: userData.user.id,
+        balance: monthlyCredits + (plan === 'free' ? PLAN_CREDITS.free.signup_bonus : 0),
+        plan,
+        monthly_credits: monthlyCredits,
+        reset_date: resetDate.toISOString(),
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      throw insertError
+    }
 
     return Response.json({ data: credits }, { status: 201 })
   } catch (error) {
