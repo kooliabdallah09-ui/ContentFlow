@@ -104,15 +104,15 @@ export default function PricingPage() {
         }
 
         .pricing-card.featured {
-          border: 2px solid #00ff00;
+          border: 2px solid #A855F7;
           transform: scale(1.05);
-          box-shadow: 0 0 30px rgba(0, 255, 0, 0.2);
+          box-shadow: 0 0 30px rgba(168, 85, 247, 0.2);
         }
 
         .pricing-card.featured:hover {
           transform: scale(1.05) translateY(-4px);
-          border-color: #00ff00;
-          box-shadow: 0 0 40px rgba(0, 255, 0, 0.4);
+          border-color: #A855F7;
+          box-shadow: 0 0 40px rgba(168, 85, 247, 0.4);
         }
 
         .btn-primary {

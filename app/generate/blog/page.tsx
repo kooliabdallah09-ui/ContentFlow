@@ -153,24 +153,24 @@ export default function BlogGeneratorPage() {
         }
 
         .btn-primary {
-          background: #00ff00;
+          background: #A855F7;
           color: #000000;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           font-weight: 700;
           border: none;
-          box-shadow: 0 8px 24px rgba(0, 255, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
           letter-spacing: -0.5px;
         }
 
         .btn-primary:hover:not(:disabled) {
-          background: #00dd00;
+          background: #9333ea;
           transform: translateY(-3px);
-          box-shadow: 0 12px 32px rgba(0, 255, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .btn-primary:active:not(:disabled) {
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 255, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .btn-primary:disabled {

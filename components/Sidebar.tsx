@@ -49,15 +49,15 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
         }
 
         .nav-item:hover {
-          color: #00ff00;
-          background: rgba(0, 255, 0, 0.1);
+          color: #A855F7;
+          background: rgba(168, 85, 247, 0.1);
         }
 
         .nav-item.active {
-          color: #00ff00;
-          background: rgba(0, 255, 0, 0.15);
+          color: #A855F7;
+          background: rgba(168, 85, 247, 0.15);
           font-weight: 600;
-          box-shadow: 0 0 16px rgba(0, 255, 0, 0.25);
+          box-shadow: 0 0 16px rgba(168, 85, 247, 0.25);
         }
 
         .nav-item.active::before {
@@ -67,7 +67,7 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
           top: 6px;
           bottom: 6px;
           width: 3px;
-          background: #00ff00;
+          background: #A855F7;
           border-radius: 0 3px 3px 0;
         }
 
@@ -83,12 +83,12 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
         .sidebar-brand {
           font-weight: 800;
           font-size: 24px;
-          color: #00ff00;
-          text-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
+          color: #A855F7;
+          text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
         }
 
         .sidebar-toggle {
-          background: #00ff00;
+          background: #A855F7;
           color: #000;
           border: none;
           border-radius: 8px;
@@ -106,7 +106,7 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
 
         .sidebar-toggle:hover {
           box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-          background: #00dd00;
+          background: #9333ea;
         }
 
         .sidebar-toggle:active {
@@ -115,13 +115,13 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
 
         .divider {
           height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.15), transparent);
+          background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.15), transparent);
           margin: 20px 8px;
         }
 
 .sidebar-scroll {
           scrollbar-width: thin;
-          scrollbar-color: rgba(0, 255, 0, 0.2) transparent;
+          scrollbar-color: rgba(168, 85, 247, 0.2) transparent;
         }
 
         .sidebar-scroll::-webkit-scrollbar {
@@ -133,12 +133,12 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
         }
 
         .sidebar-scroll::-webkit-scrollbar-thumb {
-          background: rgba(0, 255, 0, 0.2);
+          background: rgba(168, 85, 247, 0.2);
           border-radius: 3px;
         }
 
         .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(0, 255, 0, 0.3);
+          background: rgba(168, 85, 247, 0.3);
         }
       `}</style>
 

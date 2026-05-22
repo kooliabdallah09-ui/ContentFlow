@@ -71,8 +71,8 @@ export default function CreditBalance() {
         <div className="animate-pulse h-8 w-32 bg-white/10 rounded"></div>
       ) : balance !== null ? (
         <>
-          <div className="bg-green-400/20 p-2 rounded-lg">
-            <Zap className="w-5 h-5 text-green-400" />
+          <div className="bg-purple-500/20 p-2 rounded-lg">
+            <Zap className="w-5 h-5 text-purple-400" />
           </div>
           <div>
             <div className="text-xs text-white/60 uppercase tracking-wider font-600">Credits</div>

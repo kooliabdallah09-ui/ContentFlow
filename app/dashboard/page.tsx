@@ -72,24 +72,24 @@ export default function DashboardPage() {
         }
 
         .btn-primary {
-          background: #00ff00;
+          background: #A855F7;
           color: #000000;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           font-weight: 700;
           border: none;
-          box-shadow: 0 8px 24px rgba(0, 255, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
           letter-spacing: -0.5px;
         }
 
         .btn-primary:hover {
-          background: #00dd00;
+          background: #9333ea;
           transform: translateY(-3px);
-          box-shadow: 0 12px 32px rgba(0, 255, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .btn-primary:active {
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(0, 255, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
         }
 
         .feature-icon {
@@ -126,17 +126,17 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="border-b border-white/10 bg-black/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-8 py-8">
-          <div className="flex items-end justify-between">
+          <div className="flex flex-col gap-6">
             <div>
               <h1 className="text-4xl font-black mb-2">
                 Welcome back, {userName}
               </h1>
               <p className="text-white/60">Keep the creative flow going. Pick a generator below.</p>
             </div>
-            <div className="flex items-end gap-6">
+            <div className="flex items-center gap-6">
               <CreditBalance />
-              <div className="text-right">
-                <div className="text-4xl font-black text-white">{stats.total}</div>
+              <div>
+                <div className="text-3xl font-black text-white">{stats.total}</div>
                 <div className="text-white/60 text-sm">pieces created</div>
               </div>
             </div>

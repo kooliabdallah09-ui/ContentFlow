@@ -140,9 +140,9 @@ export default function BrandSettingsPage() {
         .glass-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
         .input-glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.3s ease; }
         .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
-        .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(0, 255, 0, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(0, 255, 0, 0.1); }
-        .btn-primary { background: #00ff00; color: #000000; transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; }
-        .btn-primary:hover:not(:disabled) { background: #00dd00; transform: translateY(-2px); }
+        .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(168, 85, 247, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1); }
+        .btn-primary { background: #A855F7; color: #000000; transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; }
+        .btn-primary:hover:not(:disabled) { background: #9333ea; transform: translateY(-2px); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
       `}</style>
 

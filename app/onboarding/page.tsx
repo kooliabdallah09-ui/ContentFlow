@@ -109,16 +109,16 @@ export default function OnboardingPage() {
         .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .input-glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.3s ease; }
         .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
-        .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(0, 255, 0, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(0, 255, 0, 0.1); }
+        .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(168, 85, 247, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1); }
         .input-glass option { background: #000; color: white; }
-        .btn-primary { background: #00ff00; color: #000000; box-shadow: 0 8px 24px rgba(0, 255, 0, 0.25); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; }
-        .btn-primary:hover:not(:disabled) { background: #00dd00; transform: translateY(-2px); box-shadow: 0 12px 32px rgba(0, 255, 0, 0.4); }
+        .btn-primary { background: #A855F7; color: #000000; box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; }
+        .btn-primary:hover:not(:disabled) { background: #9333ea; transform: translateY(-2px); box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
         .btn-secondary { background: transparent; border: 1px solid rgba(255, 255, 255, 0.2); color: white; transition: all 0.3s ease; }
         .btn-secondary:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.4); }
         .tone-option { position: relative; cursor: pointer; transition: all 0.3s ease; }
-        .tone-option input[type="radio"] { appearance: none; position: absolute; width: 20px; height: 20px; accent-color: #00ff00; }
-        .tone-option:has(input:checked) { background: rgba(0, 255, 0, 0.15); border-color: #00ff00; }
+        .tone-option input[type="radio"] { appearance: none; position: absolute; width: 20px; height: 20px; accent-color: #A855F7; }
+        .tone-option:has(input:checked) { background: rgba(168, 85, 247, 0.15); border-color: #A855F7; }
       `}</style>
 
       <div className="flex items-center justify-center min-h-screen p-4">
