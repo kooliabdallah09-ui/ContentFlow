@@ -4,39 +4,56 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { ArrowRight, Zap, Sparkles, Video, Mail } from 'lucide-react'
 
-const FONT_STYLES = [
-  { className: 'font-black', style: { letterSpacing: '-0.02em' } },
-  { className: 'font-black', style: { letterSpacing: '0.05em' } },
-  { className: 'font-bold italic', style: { letterSpacing: '0.02em' } },
-  { className: 'font-black uppercase', style: { letterSpacing: '0.08em', fontSize: '0.95em' } },
-  { className: 'font-black', style: { letterSpacing: '0', fontStyle: 'italic', opacity: 0.95 } },
-  { className: 'font-black', style: { letterSpacing: '0.03em', fontWeight: '800' } },
-]
-
-function AnimatedWord() {
-  const [styleIndex, setStyleIndex] = useState(0)
-  const currentStyle = FONT_STYLES[styleIndex]
+function CountUpStat({ target, label }: { target: number; label: string }) {
+  const [count, setCount] = useState(0)
+  const [hasStarted, setHasStarted] = useState(false)
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setStyleIndex((prev) => (prev + 1) % FONT_STYLES.length)
-    }, 200)
-    return () => clearInterval(interval)
-  }, [])
+    if (!hasStarted) return
+
+    let current = 0
+    const increment = Math.ceil(target / 30)
+    const timer = setInterval(() => {
+      current += increment
+      if (current >= target) {
+        setCount(target)
+        clearInterval(timer)
+      } else {
+        setCount(current)
+      }
+    }, 50)
+
+    return () => clearInterval(timer)
+  }, [hasStarted, target])
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setHasStarted(true)
+      }
+    }, { threshold: 0.5 })
+
+    const element = document.getElementById(`stat-${label}`)
+    if (element) observer.observe(element)
+
+    return () => observer.disconnect()
+  }, [label])
 
   return (
-    <span
-      className={`${currentStyle.className} transition-all duration-150 inline-block`}
-      style={currentStyle.style}
-    >
-      content
-    </span>
+    <div id={`stat-${label}`} className="flex items-center gap-2">
+      <span className="text-white font-bold">
+        {count.toLocaleString()}
+        {label.includes('creators') ? '+' : '+'}
+      </span>
+      <span>{label}</span>
+    </div>
   )
 }
 
 export default function LandingPage() {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
+  const [isAnnual, setIsAnnual] = useState(false)
 
   const handleSubscribe = (e: React.FormEvent) => {
     e.preventDefault()
@@ -57,11 +74,19 @@ export default function LandingPage() {
           font-family: 'Inter', sans-serif;
         }
 
+        /* Animated gradient background */
+        @keyframes gradientShift {
+          0% { background: linear-gradient(135deg, #000000 0%, #0a0a2e 50%, #000000 100%); }
+          50% { background: linear-gradient(135deg, #0a0a2e 0%, #16213e 50%, #0a0a2e 100%); }
+          100% { background: linear-gradient(135deg, #000000 0%, #0a0a2e 50%, #000000 100%); }
+        }
+
         /* Modern dark theme */
         .hero-section {
-          background: #000000;
+          background: linear-gradient(135deg, #000000 0%, #0a0a2e 50%, #000000 100%);
           position: relative;
           overflow: hidden;
+          animation: gradientShift 15s ease-in-out infinite;
         }
 
         .hero-section::before {
@@ -89,27 +114,43 @@ export default function LandingPage() {
         .btn-primary {
           background: #ffffff;
           color: #000000;
-          transition: all 0.3s ease;
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
           font-weight: 600;
           border: 1px solid #ffffff;
+          position: relative;
+          overflow: hidden;
+          box-shadow: 0 4px 15px rgba(255, 255, 255, 0.1);
         }
 
         .btn-primary:hover {
-          background: #f0f0f0;
+          background: #ffffff;
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-primary:active {
           transform: translateY(-2px);
         }
 
         .btn-secondary {
           background: transparent;
           color: #ffffff;
-          border: 1.5px solid #ffffff;
-          transition: all 0.3s ease;
+          border: 1.5px solid rgba(255, 255, 255, 0.5);
+          transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
           font-weight: 600;
+          position: relative;
+          overflow: hidden;
         }
 
         .btn-secondary:hover {
-          background: #ffffff;
-          color: #000000;
+          background: rgba(255, 255, 255, 0.1);
+          color: #ffffff;
+          border-color: #ffffff;
+          transform: translateY(-4px);
+          box-shadow: 0 8px 20px rgba(255, 255, 255, 0.15);
+        }
+
+        .btn-secondary:active {
           transform: translateY(-2px);
         }
 
@@ -132,17 +173,41 @@ export default function LandingPage() {
           outline: none;
         }
 
+        @keyframes float {
+          0%, 100% { transform: translateY(0px); }
+          50% { transform: translateY(-8px); }
+        }
+
         .feature-card {
           background: rgba(255, 255, 255, 0.03);
           border: 1px solid rgba(255, 255, 255, 0.1);
-          transition: all 0.4s ease;
+          transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
           backdrop-filter: blur(10px);
+          animation: float 6s ease-in-out infinite;
+        }
+
+        .feature-card:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+
+        .feature-card:nth-child(3) {
+          animation-delay: 0.4s;
+        }
+
+        .feature-card:nth-child(4) {
+          animation-delay: 0.6s;
+        }
+
+        .feature-card:nth-child(5) {
+          animation-delay: 0.8s;
         }
 
         .feature-card:hover {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(255, 255, 255, 0.2);
-          transform: translateY(-4px);
+          background: rgba(255, 255, 255, 0.1);
+          border-color: rgba(255, 255, 255, 0.3);
+          transform: translateY(-12px);
+          box-shadow: 0 20px 40px rgba(255, 255, 255, 0.1);
+          animation-play-state: paused;
         }
 
         .pricing-card {
@@ -279,7 +344,7 @@ export default function LandingPage() {
         <div className="hero-content max-w-5xl w-full text-center relative z-10">
           {/* Main Headline - Bold, Large */}
           <h1 className="text-7xl md:text-8xl lg:text-9xl font-black mb-8 leading-tight tracking-tighter">
-            Create <AnimatedWord /><br />that converts.
+            Create content<br />that converts.
           </h1>
 
           {/* Subheading - Minimal, Clear */}
@@ -310,13 +375,9 @@ export default function LandingPage() {
 
           {/* Social Proof */}
           <div className="flex justify-center gap-8 items-center text-sm text-white/60">
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold">2,500+</span> creators using
-            </div>
+            <CountUpStat target={2500} label="creators using" />
             <div className="divider" style={{ width: '1px', height: '20px' }}></div>
-            <div className="flex items-center gap-2">
-              <span className="text-white font-bold">50K+</span> pieces created
-            </div>
+            <CountUpStat target={50000} label="pieces created" />
           </div>
         </div>
       </section>
@@ -479,9 +540,34 @@ export default function LandingPage() {
             <h2 className="text-6xl md:text-7xl font-black mb-8">
               Simple, transparent<br />pricing.
             </h2>
-            <p className="text-white/70 text-lg max-w-2xl mx-auto">
+            <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
               Choose a plan that works for you, from solo creators to teams and agencies.
             </p>
+
+            {/* Pricing Toggle */}
+            <div className="flex items-center justify-center gap-6 mb-12">
+              <span className={`text-sm font-600 transition ${!isAnnual ? 'text-white' : 'text-white/60'}`}>
+                Monthly
+              </span>
+              <button
+                onClick={() => setIsAnnual(!isAnnual)}
+                className={`relative w-16 h-8 rounded-full transition-all ${
+                  isAnnual
+                    ? 'bg-green-400'
+                    : 'bg-white/20'
+                }`}
+              >
+                <div
+                  className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all transform ${
+                    isAnnual ? 'translate-x-8' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+              <span className={`text-sm font-600 transition ${isAnnual ? 'text-white' : 'text-white/60'}`}>
+                Annual
+                {isAnnual && <span className="text-green-400 ml-2 text-xs">Save 20%</span>}
+              </span>
+            </div>
           </div>
 
           {/* Pricing Cards - Liquid Glass */}
