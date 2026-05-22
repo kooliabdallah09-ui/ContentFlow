@@ -83,10 +83,22 @@ export default function LandingPage() {
 
         /* Modern dark theme */
         .hero-section {
-          background: linear-gradient(135deg, #000000 0%, #0a0a2e 50%, #000000 100%);
+          background:
+            radial-gradient(circle, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+          background-size: 40px 40px;
+          background-position: 0 0;
+          background-color: #000000;
           position: relative;
           overflow: hidden;
+        }
+
+        .hero-section::after {
+          content: '';
+          position: absolute;
+          inset: 0;
+          background: linear-gradient(135deg, #000000 0%, #0a0a2e 50%, #000000 100%);
           animation: gradientShift 15s ease-in-out infinite;
+          pointer-events: none;
         }
 
         .hero-section::before {
@@ -102,7 +114,7 @@ export default function LandingPage() {
 
         .hero-content {
           position: relative;
-          z-index: 10;
+          z-index: 20;
         }
 
         .nav-glass {
@@ -290,6 +302,11 @@ export default function LandingPage() {
           left: 10%;
           animation: float3 20s ease-in-out infinite 4s;
           filter: blur(80px);
+        }
+
+        /* Background glows z-index */
+        .hero-section .background-glow {
+          z-index: 5;
         }
 
         /* Particle grid */
