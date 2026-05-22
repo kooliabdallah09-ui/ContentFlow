@@ -4,27 +4,28 @@ import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { ArrowRight, Zap, Sparkles, Video, Mail } from 'lucide-react'
 
-const WORDS = ['content', 'creations', 'posts', 'media', 'material', 'campaigns', 'stories']
+const FONT_STYLES = [
+  'font-black',
+  'font-bold italic',
+  'font-black tracking-widest',
+  'font-black -skew-x-3',
+  'font-black scale-y-125',
+  'font-black opacity-90',
+]
 
 function AnimatedWord() {
-  const [wordIndex, setWordIndex] = useState(0)
+  const [styleIndex, setStyleIndex] = useState(0)
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setWordIndex((prev) => (prev + 1) % WORDS.length)
-    }, 2000)
+      setStyleIndex((prev) => (prev + 1) % FONT_STYLES.length)
+    }, 200)
     return () => clearInterval(interval)
   }, [])
 
   return (
-    <span
-      className="inline-block min-w-64"
-      style={{
-        animation: 'slideDown 2s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-      }}
-      key={wordIndex}
-    >
-      {WORDS[wordIndex]}
+    <span className={`${FONT_STYLES[styleIndex]} transition-all duration-150 inline-block`}>
+      content
     </span>
   )
 }
@@ -50,25 +51,6 @@ export default function LandingPage() {
 
         * {
           font-family: 'Inter', sans-serif;
-        }
-
-        @keyframes slideDown {
-          0% {
-            opacity: 0;
-            transform: translateY(-60px);
-          }
-          10% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-          90% {
-            opacity: 1;
-            transform: translateY(0);
-          }
-          100% {
-            opacity: 0;
-            transform: translateY(60px);
-          }
         }
 
         /* Modern dark theme */
