@@ -5,16 +5,17 @@ import { useState, useEffect } from 'react'
 import { ArrowRight, Zap, Sparkles, Video, Mail } from 'lucide-react'
 
 const FONT_STYLES = [
-  'font-black',
-  'font-bold italic',
-  'font-black tracking-widest',
-  'font-black -skew-x-3',
-  'font-black scale-y-125',
-  'font-black opacity-90',
+  { className: 'font-black', style: { letterSpacing: '-0.02em' } },
+  { className: 'font-black', style: { letterSpacing: '0.05em' } },
+  { className: 'font-bold italic', style: { letterSpacing: '0.02em' } },
+  { className: 'font-black uppercase', style: { letterSpacing: '0.08em', fontSize: '0.95em' } },
+  { className: 'font-black', style: { letterSpacing: '0', fontStyle: 'italic', opacity: 0.95 } },
+  { className: 'font-black', style: { letterSpacing: '0.03em', fontWeight: '800' } },
 ]
 
 function AnimatedWord() {
   const [styleIndex, setStyleIndex] = useState(0)
+  const currentStyle = FONT_STYLES[styleIndex]
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -24,7 +25,10 @@ function AnimatedWord() {
   }, [])
 
   return (
-    <span className={`${FONT_STYLES[styleIndex]} transition-all duration-150 inline-block`}>
+    <span
+      className={`${currentStyle.className} transition-all duration-150 inline-block`}
+      style={currentStyle.style}
+    >
       content
     </span>
   )
