@@ -137,12 +137,12 @@ export default function BrandSettingsPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
         * { font-family: 'Inter', sans-serif; }
-        .glass-card { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
-        .input-glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.3s ease; }
-        .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
-        .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(168, 85, 247, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1); }
-        .btn-primary { background: #A855F7; color: #000000; transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; }
-        .btn-primary:hover:not(:disabled) { background: #9333ea; transform: translateY(-2px); }
+        .glass-card { background: rgba(255, 255, 255, 0.04); border: 1.5px solid rgba(6, 182, 212, 0.15); backdrop-filter: blur(12px); border-radius: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); }
+        .input-glass { background: rgba(255, 255, 255, 0.06); border: 1.5px solid rgba(6, 182, 212, 0.2); color: white; transition: all 0.3s ease; border-radius: 12px; }
+        .input-glass::placeholder { color: rgba(255, 255, 255, 0.45); }
+        .input-glass:focus { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); }
+        .btn-primary { background: linear-gradient(135deg, #06B6D4, #0891B2); color: #ffffff; transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 600; border: none; border-radius: 12px; box-shadow: 0 6px 20px rgba(6, 182, 212, 0.25); }
+        .btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, #0891B2, #0c7a99); transform: translateY(-2px); box-shadow: 0 10px 28px rgba(6, 182, 212, 0.35); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
       `}</style>
 
@@ -158,8 +158,8 @@ export default function BrandSettingsPage() {
           {/* Success Message */}
           {success && (
             <div className="rounded-lg bg-green-900/20 p-4 border border-green-800/50 flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm font-600 text-green-300">{success}</p>
+              <CheckCircle className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
+              <p className="text-sm font-600 text-cyan-300">{success}</p>
             </div>
           )}
 

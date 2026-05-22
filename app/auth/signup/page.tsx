@@ -47,49 +47,52 @@ export default function SignupPage() {
         }
 
         .glass-card {
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.04);
+          backdrop-filter: blur(12px);
+          border: 1.5px solid rgba(6, 182, 212, 0.15);
+          border-radius: 20px;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
         }
 
         .input-glass {
-          background: rgba(255, 255, 255, 0.05);
+          background: rgba(255, 255, 255, 0.06);
           backdrop-filter: blur(8px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
+          border: 1.5px solid rgba(6, 182, 212, 0.2);
           color: white;
           transition: all 0.3s ease;
+          border-radius: 12px;
         }
 
         .input-glass::placeholder {
-          color: rgba(255, 255, 255, 0.5);
+          color: rgba(255, 255, 255, 0.45);
         }
 
         .input-glass:focus {
-          background: rgba(255, 255, 255, 0.1);
-          border-color: rgba(168, 85, 247, 0.5);
-          box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1);
+          background: rgba(6, 182, 212, 0.08);
+          border-color: rgba(6, 182, 212, 0.5);
+          box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
           outline: none;
         }
 
         .btn-primary {
-          background: #A855F7;
-          color: #000000;
+          background: linear-gradient(135deg, #06B6D4, #0891B2);
+          color: #ffffff;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
-          box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-          font-weight: 700;
-          letter-spacing: -0.5px;
+          box-shadow: 0 6px 20px rgba(6, 182, 212, 0.25);
+          font-weight: 600;
+          letter-spacing: -0.3px;
           border: none;
+          border-radius: 12px;
         }
 
         .btn-primary:hover:not(:disabled) {
-          transform: translateY(-3px);
-          box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-          background: #9333ea;
+          transform: translateY(-2px);
+          box-shadow: 0 10px 28px rgba(6, 182, 212, 0.35);
         }
 
         .btn-primary:active:not(:disabled) {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          transform: translateY(0);
+          box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
         }
 
         .btn-primary:disabled {
@@ -99,11 +102,12 @@ export default function SignupPage() {
 
         .error-message {
           background: rgba(239, 68, 68, 0.1);
-          border: 1px solid rgba(239, 68, 68, 0.3);
+          border: 1.5px solid rgba(239, 68, 68, 0.3);
           color: #ff6b6b;
-          border-radius: 8px;
-          padding: 12px 16px;
+          border-radius: 12px;
+          padding: 14px 18px;
           font-size: 14px;
+          font-weight: 500;
         }
 
         .organic-shape {
@@ -117,7 +121,7 @@ export default function SignupPage() {
           right: -100px;
           width: 600px;
           height: 600px;
-          background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%);
         }
 
         .shape-2 {
@@ -125,7 +129,7 @@ export default function SignupPage() {
           left: -100px;
           width: 500px;
           height: 500px;
-          background: radial-gradient(circle, rgba(168, 85, 247, 0.1) 0%, transparent 70%);
+          background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
         }
       `}</style>
 
@@ -136,7 +140,7 @@ export default function SignupPage() {
         <div className="text-center mb-12">
           <Link href="/" className="inline-block">
             <div className="text-3xl font-black mb-8">
-              Content<span className="text-green-400">Flow</span>
+              Content<span className="text-cyan-400">Flow</span>
             </div>
           </Link>
           <h1 className="text-3xl font-black mb-3">Get started</h1>
@@ -194,7 +198,7 @@ export default function SignupPage() {
         <div className="mt-8 text-center text-sm">
           <p className="text-white/60">
             Already have an account?{' '}
-            <Link href="/auth/login" className="text-green-400 hover:text-green-300 font-600 transition">
+            <Link href="/auth/login" className="text-cyan-400 hover:text-cyan-300 font-600 transition">
               Sign in
             </Link>
           </p>

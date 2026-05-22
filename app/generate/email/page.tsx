@@ -76,9 +76,9 @@ export default function EmailGeneratorPage() {
         .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
         .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); outline: none; box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05); }
         .input-glass option { background: #000; color: white; }
-        .btn-primary { background: #A855F7; color: #000000; box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; letter-spacing: -0.5px; }
-        .btn-primary:hover:not(:disabled) { background: #9333ea; transform: translateY(-3px); box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
-        .btn-primary:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+        .btn-primary { background: #06B6D4; color: #000000; box-shadow: 0 8px 24px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; letter-spacing: -0.5px; }
+        .btn-primary:hover:not(:disabled) { background: #0891B2; transform: translateY(-3px); box-shadow: 0 12px 32px rgba(6, 182, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+        .btn-primary:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
       `}</style>
 

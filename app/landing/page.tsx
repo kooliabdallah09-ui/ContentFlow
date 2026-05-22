@@ -277,7 +277,7 @@ export default function LandingPage() {
         .glow-2 {
           width: 700px;
           height: 700px;
-          background: radial-gradient(circle, rgba(168, 85, 247, 0.35) 0%, rgba(168, 85, 247, 0.1) 40%, transparent 70%);
+          background: radial-gradient(circle, rgba(6, 182, 212, 0.35) 0%, rgba(6, 182, 212, 0.1) 40%, transparent 70%);
           border-radius: 50%;
           top: 30%;
           right: -250px;
@@ -574,7 +574,7 @@ export default function LandingPage() {
               </button>
               <span className={`text-sm font-600 transition ${isAnnual ? 'text-white' : 'text-white/60'}`}>
                 Annual
-                {isAnnual && <span className="text-green-400 ml-2 text-xs">Save 20%</span>}
+                {isAnnual && <span className="text-cyan-400 ml-2 text-xs">Save 20%</span>}
               </span>
             </div>
           </div>

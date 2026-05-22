@@ -106,19 +106,19 @@ export default function OnboardingPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
         * { font-family: 'Inter', sans-serif; }
-        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .input-glass { background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1); color: white; transition: all 0.3s ease; }
-        .input-glass::placeholder { color: rgba(255, 255, 255, 0.5); }
-        .input-glass:focus { background: rgba(255, 255, 255, 0.1); border-color: rgba(168, 85, 247, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.1); }
+        .glass-card { background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(12px); border: 1.5px solid rgba(6, 182, 212, 0.15); border-radius: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); }
+        .input-glass { background: rgba(255, 255, 255, 0.06); border: 1.5px solid rgba(6, 182, 212, 0.2); color: white; transition: all 0.3s ease; border-radius: 12px; }
+        .input-glass::placeholder { color: rgba(255, 255, 255, 0.45); }
+        .input-glass:focus { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); }
         .input-glass option { background: #000; color: white; }
-        .btn-primary { background: #A855F7; color: #000000; box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; }
-        .btn-primary:hover:not(:disabled) { background: #9333ea; transform: translateY(-2px); box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4); }
+        .btn-primary { background: linear-gradient(135deg, #06B6D4, #0891B2); color: #ffffff; box-shadow: 0 6px 20px rgba(6, 182, 212, 0.25); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 600; border: none; border-radius: 12px; }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(6, 182, 212, 0.35); }
         .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-        .btn-secondary { background: transparent; border: 1px solid rgba(255, 255, 255, 0.2); color: white; transition: all 0.3s ease; }
-        .btn-secondary:hover { background: rgba(255, 255, 255, 0.05); border-color: rgba(255, 255, 255, 0.4); }
-        .tone-option { position: relative; cursor: pointer; transition: all 0.3s ease; }
-        .tone-option input[type="radio"] { appearance: none; position: absolute; width: 20px; height: 20px; accent-color: #A855F7; }
-        .tone-option:has(input:checked) { background: rgba(168, 85, 247, 0.15); border-color: #A855F7; }
+        .btn-secondary { background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(255, 255, 255, 0.15); color: white; transition: all 0.3s ease; border-radius: 12px; }
+        .btn-secondary:hover { background: rgba(6, 182, 212, 0.1); border-color: rgba(6, 182, 212, 0.3); }
+        .tone-option { position: relative; cursor: pointer; transition: all 0.3s ease; border-radius: 12px; border: 1.5px solid rgba(6, 182, 212, 0.15); }
+        .tone-option input[type="radio"] { appearance: none; position: absolute; width: 20px; height: 20px; accent-color: #06B6D4; }
+        .tone-option:has(input:checked) { background: rgba(6, 182, 212, 0.2); border-color: rgba(6, 182, 212, 0.5); }
       `}</style>
 
       <div className="flex items-center justify-center min-h-screen p-4">
@@ -130,7 +130,7 @@ export default function OnboardingPage() {
                 <div
                   key={s}
                   className={`h-1.5 flex-1 rounded-full transition ${
-                    s <= step ? 'bg-green-400' : 'bg-white/10'
+                    s <= step ? 'bg-cyan-400' : 'bg-white/10'
                   }`}
                 />
               ))}
@@ -145,8 +145,8 @@ export default function OnboardingPage() {
               <div className="space-y-6">
                 <div>
                   <div className="flex items-center gap-2 mb-4">
-                    <Sparkles className="w-6 h-6 text-green-400" />
-                    <span className="text-xs font-600 text-green-400 uppercase tracking-wider">Brand Setup</span>
+                    <Sparkles className="w-6 h-6 text-cyan-400" />
+                    <span className="text-xs font-600 text-cyan-400 uppercase tracking-wider">Brand Setup</span>
                   </div>
                   <h2 className="text-5xl font-black text-white mb-3">
                     Let's build your brand profile

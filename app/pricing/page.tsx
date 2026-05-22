@@ -104,15 +104,15 @@ export default function PricingPage() {
         }
 
         .pricing-card.featured {
-          border: 2px solid #A855F7;
+          border: 2px solid #06B6D4;
           transform: scale(1.05);
-          box-shadow: 0 0 30px rgba(168, 85, 247, 0.2);
+          box-shadow: 0 0 30px rgba(6, 182, 212, 0.2);
         }
 
         .pricing-card.featured:hover {
           transform: scale(1.05) translateY(-4px);
-          border-color: #A855F7;
-          box-shadow: 0 0 40px rgba(168, 85, 247, 0.4);
+          border-color: #06B6D4;
+          box-shadow: 0 0 40px rgba(6, 182, 212, 0.4);
         }
 
         .btn-primary {
@@ -153,7 +153,7 @@ export default function PricingPage() {
       {/* Header */}
       <div className="border-b border-green-400/30 bg-black/50 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-8 py-12">
-          <h1 className="text-5xl font-black mb-4">Simple, <span className="text-green-400">Transparent</span> Pricing</h1>
+          <h1 className="text-5xl font-black mb-4">Simple, <span className="text-cyan-400">Transparent</span> Pricing</h1>
           <p className="text-white/60 text-lg max-w-2xl">
             Choose the perfect plan for your content creation needs. All plans include access to all generators.
           </p>
@@ -183,10 +183,10 @@ export default function PricingPage() {
 
               <div className="mb-8">
                 <div className="text-4xl font-black mb-1">
-                  <span className={plan.highlighted ? 'text-green-400' : 'text-white'}>{plan.currency}{plan.price}</span>
+                  <span className={plan.highlighted ? 'text-cyan-400' : 'text-white'}>{plan.currency}{plan.price}</span>
                   <span className="text-lg text-white/60 font-600">/month</span>
                 </div>
-                <div className={plan.highlighted ? 'text-green-400/70 text-sm' : 'text-white/60 text-sm'}>
+                <div className={plan.highlighted ? 'text-cyan-400/70 text-sm' : 'text-white/60 text-sm'}>
                   {plan.credits.toLocaleString()} credits included
                 </div>
               </div>

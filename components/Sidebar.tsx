@@ -40,24 +40,26 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
           align-items: center;
           justify-content: center;
           gap: 12px;
-          padding: 12px 16px;
-          border-radius: 10px;
-          color: rgba(255, 255, 255, 0.65);
+          padding: 14px 18px;
+          border-radius: 14px;
+          color: rgba(255, 255, 255, 0.7);
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
           cursor: pointer;
           white-space: nowrap;
+          font-weight: 500;
         }
 
         .nav-item:hover {
-          color: #A855F7;
-          background: rgba(168, 85, 247, 0.1);
+          color: #06B6D4;
+          background: rgba(6, 182, 212, 0.12);
+          transform: translateX(4px);
         }
 
         .nav-item.active {
-          color: #A855F7;
-          background: rgba(168, 85, 247, 0.15);
+          color: #ffffff;
+          background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(6, 182, 212, 0.1));
           font-weight: 600;
-          box-shadow: 0 0 16px rgba(168, 85, 247, 0.25);
+          box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
         }
 
         .nav-item.active::before {
@@ -67,7 +69,7 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
           top: 6px;
           bottom: 6px;
           width: 3px;
-          background: #A855F7;
+          background: #06B6D4;
           border-radius: 0 3px 3px 0;
         }
 
@@ -83,30 +85,32 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
         .sidebar-brand {
           font-weight: 800;
           font-size: 24px;
-          color: #A855F7;
-          text-shadow: 0 0 10px rgba(168, 85, 247, 0.3);
+          color: #06B6D4;
+          text-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
         }
 
         .sidebar-toggle {
-          background: #A855F7;
-          color: #000;
-          border: none;
-          border-radius: 8px;
-          width: 36px;
-          height: 36px;
+          background: rgba(6, 182, 212, 0.15);
+          color: #06B6D4;
+          border: 1.5px solid rgba(6, 182, 212, 0.3);
+          border-radius: 12px;
+          width: 40px;
+          height: 40px;
           display: flex;
           align-items: center;
           justify-content: center;
           cursor: pointer;
           transition: all 0.2s ease;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          box-shadow: 0 2px 8px rgba(6, 182, 212, 0.1);
           flex-shrink: 0;
           margin: 0 auto;
         }
 
         .sidebar-toggle:hover {
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-          background: #9333ea;
+          box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
+          background: rgba(6, 182, 212, 0.25);
+          border-color: rgba(6, 182, 212, 0.5);
+          transform: scale(1.05);
         }
 
         .sidebar-toggle:active {
@@ -115,13 +119,13 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
 
         .divider {
           height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.15), transparent);
+          background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.15), transparent);
           margin: 20px 8px;
         }
 
 .sidebar-scroll {
           scrollbar-width: thin;
-          scrollbar-color: rgba(168, 85, 247, 0.2) transparent;
+          scrollbar-color: rgba(6, 182, 212, 0.2) transparent;
         }
 
         .sidebar-scroll::-webkit-scrollbar {
@@ -133,12 +137,12 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
         }
 
         .sidebar-scroll::-webkit-scrollbar-thumb {
-          background: rgba(168, 85, 247, 0.2);
+          background: rgba(6, 182, 212, 0.2);
           border-radius: 3px;
         }
 
         .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(168, 85, 247, 0.3);
+          background: rgba(6, 182, 212, 0.3);
         }
       `}</style>
 

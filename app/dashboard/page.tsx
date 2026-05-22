@@ -58,38 +58,40 @@ export default function DashboardPage() {
         }
 
         .glass-card {
-          background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
+          background: rgba(255, 255, 255, 0.04);
+          border: 1.5px solid rgba(6, 182, 212, 0.15);
+          border-radius: 18px;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
           transition: all 0.3s ease;
         }
 
         .glass-card:hover {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(255, 255, 255, 0.2);
-          transform: translateY(-4px);
+          background: rgba(6, 182, 212, 0.05);
+          border-color: rgba(6, 182, 212, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);
         }
 
         .btn-primary {
-          background: #A855F7;
-          color: #000000;
+          background: linear-gradient(135deg, #06B6D4, #0891B2);
+          color: #ffffff;
           transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
-          font-weight: 700;
+          font-weight: 600;
           border: none;
-          box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3);
-          letter-spacing: -0.5px;
+          border-radius: 12px;
+          box-shadow: 0 6px 20px rgba(6, 182, 212, 0.25);
+          letter-spacing: -0.3px;
         }
 
         .btn-primary:hover {
-          background: #9333ea;
-          transform: translateY(-3px);
-          box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          transform: translateY(-2px);
+          box-shadow: 0 10px 28px rgba(6, 182, 212, 0.35);
         }
 
         .btn-primary:active {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+          transform: translateY(0);
+          box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
         }
 
         .feature-icon {

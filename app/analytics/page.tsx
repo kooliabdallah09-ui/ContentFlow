@@ -32,7 +32,7 @@ const StatCard = ({ icon: Icon, label, value, change }: any) => (
     {change && (
       <p
         className={`text-xs font-600 ${
-          change > 0 ? 'text-green-400' : 'text-red-400'
+          change > 0 ? 'text-cyan-400' : 'text-red-400'
         }`}
       >
         {change > 0 ? '↑' : '↓'} {Math.abs(change)}%
@@ -68,10 +68,10 @@ export default function AnalyticsPage() {
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
         * { font-family: 'Inter', sans-serif; }
-        .glass-card { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .btn-primary { background: #A855F7; color: #000000; box-shadow: 0 8px 24px rgba(168, 85, 247, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; letter-spacing: -0.5px; }
-        .btn-primary:hover:not(:disabled) { background: #9333ea; transform: translateY(-3px); box-shadow: 0 12px 32px rgba(168, 85, 247, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
-        .btn-primary:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+        .glass-card { background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .btn-primary { background: #06B6D4; color: #000000; box-shadow: 0 8px 24px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; letter-spacing: -0.5px; }
+        .btn-primary:hover:not(:disabled) { background: #0891B2; transform: translateY(-3px); box-shadow: 0 12px 32px rgba(6, 182, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
+        .btn-primary:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
       `}</style>
 
       {/* Header */}
