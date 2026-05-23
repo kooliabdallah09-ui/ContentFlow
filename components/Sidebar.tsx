@@ -30,8 +30,7 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
     { href: '/library', label: 'Library', icon: Library },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { href: '/settings/brand', label: 'Brand', icon: Settings },
-    { href: '/settings/integrations', label: 'Integrations', icon: Settings },
+    { href: '/settings', label: 'Settings', icon: Settings },
   ]
 
   const isActive = (href: string) => pathname === href
