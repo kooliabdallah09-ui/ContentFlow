@@ -1,3 +1,4 @@
+import { generateImage } from '@/lib/flux-pro'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
@@ -11,75 +12,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Call Google Gemini Image Generation API (Nanobanana)
-    const apiKey = process.env.GOOGLE_GEMINI_API_KEY
-
-    if (!apiKey) {
-      console.error('GOOGLE_GEMINI_API_KEY not set')
-      return NextResponse.json(
-        {
-          error: 'Image generation not configured',
-          image: '', // Return empty string so UI doesn't break
-        },
-        { status: 200 } // Return 200 so it doesn't error out
-      )
+    const imagePrompt = generateImagePrompt(post, platform)
+    const sizeMap: Record<string, string> = {
+      twitter: '1024x512',
+      linkedin: '1200x628',
+      instagram: '1024x1024',
+      facebook: '1200x628',
+      tiktok: '768x1024',
     }
 
-    const imagePrompt = generateImagePrompt(post, platform)
+    const size = sizeMap[platform] || '1024x1024'
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: imagePrompt,
-                },
-              ],
-            },
-          ],
-          generationConfig: {
-            maxOutputTokens: 1024,
-            temperature: 0.7,
-          },
-        }),
-      }
-    )
+    try {
+      const result = await generateImage(imagePrompt, size, 1)
+      const imageUrl = result.imageUrls[0]
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      console.error('Gemini API error:', errorData)
+      return NextResponse.json({ image: imageUrl })
+    } catch (error) {
+      console.error('Flux Pro image generation failed:', error)
       return NextResponse.json(
         {
-          error: 'Image generation failed',
+          error: 'Image generation not available',
           image: '',
         },
-        { status: 200 } // Return 200 so UI doesn't break
+        { status: 200 }
       )
     }
-
-    const data = await response.json()
-
-    // Extract base64 image from response
-    if (
-      data.candidates &&
-      data.candidates[0]?.content?.parts &&
-      data.candidates[0].content.parts[0]?.inlineData
-    ) {
-      const base64Image = data.candidates[0].content.parts[0].inlineData.data
-      const mimeType = data.candidates[0].content.parts[0].inlineData.mimeType || 'image/jpeg'
-      const dataUrl = `data:${mimeType};base64,${base64Image}`
-
-      return NextResponse.json({ image: dataUrl })
-    }
-
-    return NextResponse.json({ image: '' })
   } catch (error) {
     console.error('Image generation error:', error)
     return NextResponse.json(
@@ -87,7 +45,7 @@ export async function POST(request: NextRequest) {
         error: error instanceof Error ? error.message : 'Image generation failed',
         image: '',
       },
-      { status: 200 } // Return 200 so UI doesn't break
+      { status: 200 }
     )
   }
 }
