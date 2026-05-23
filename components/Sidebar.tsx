@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { FileText, Share2, Mail, Calendar, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight, Image as ImageIcon, Mic2 } from 'lucide-react'
+import { FileText, Share2, Mail, Calendar, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight, Image as ImageIcon, Mic2, Film } from 'lucide-react'
 import { useState } from 'react'
 
 export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean; onToggle?: () => void }) {
@@ -25,6 +25,7 @@ export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean;
     { href: '/generate/email', label: 'Email', icon: Mail },
     { href: '/generate/image', label: 'Image', icon: ImageIcon },
     { href: '/generate/voice', label: 'Voice', icon: Mic2 },
+    { href: '/generate/video', label: 'Video', icon: Film },
     { href: '/calendar', label: 'Calendar', icon: Calendar },
     { href: '/analytics', label: 'Analytics', icon: BarChart3 },
     { href: '/settings/brand', label: 'Brand', icon: Settings },
