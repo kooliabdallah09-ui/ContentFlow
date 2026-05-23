@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 interface UseAutoSaveOptions {
   key: string
@@ -12,23 +12,25 @@ export function useAutoSave<T extends Record<string, any>>(
 ) {
   const { key, delay = 1000, onRestore } = options
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const restoredRef = useRef(false)
 
-  // Restore data on mount
+  // Restore data on mount (only once)
   useEffect(() => {
-    if (typeof window === 'undefined') return
+    if (typeof window === 'undefined' || restoredRef.current) return
 
     const saved = localStorage.getItem(key)
     if (saved) {
       try {
         const restoredData = JSON.parse(saved)
+        restoredRef.current = true
         onRestore?.(restoredData)
       } catch (err) {
         console.error('Failed to restore auto-saved data:', err)
       }
     }
-  }, [key, onRestore])
+  }, [key])
 
-  // Auto-save data
+  // Auto-save data (skip initial restore update)
   useEffect(() => {
     if (typeof window === 'undefined') return
 
