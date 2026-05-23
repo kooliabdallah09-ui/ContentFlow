@@ -5,6 +5,8 @@ import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
 import { Sparkles } from 'lucide-react'
+import { showSuccess, showError } from '@/lib/notifications'
+import { useAutoSave } from '@/lib/useAutoSave'
 
 interface UGCComponent {
   image?: { url: string; id: string }
@@ -19,6 +21,22 @@ export default function UGCGeneratorPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [creditsLoading, setCreditsLoading] = useState(true)
+  const [formData, setFormData] = useState({
+    ugcType: 'image-with-voiceover',
+    productName: '',
+    productDescription: '',
+    benefits: '',
+    callToAction: '',
+    style: 'realistic',
+    imageSize: '1024x1024',
+    avatarId: 'sarah',
+    voiceId: 'rachel',
+  })
+
+  useAutoSave(formData, {
+    key: 'ugcGeneratorFormState',
+    onRestore: (data) => setFormData(data),
+  })
 
   // Load credit balance
   useEffect(() => {
@@ -124,8 +142,11 @@ export default function UGCGeneratorPage() {
       setComponents(data.components)
       setUgcType(settings.ugcType)
       setCreditBalance(data.newBalance)
+      showSuccess('UGC package generated successfully', 'Complete package ready to use')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate UGC package')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate UGC package'
+      setError(errorMessage)
+      showError('Generation failed', errorMessage)
     } finally {
       setLoading(false)
     }

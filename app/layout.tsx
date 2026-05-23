@@ -6,6 +6,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { Geist, Geist_Mono } from "next/font/google";
 import Sidebar from '@/components/Sidebar'
+import ToastContainer from '@/components/ToastContainer'
 import "./globals.css";
 
 const geistSans = Geist({
@@ -81,6 +82,7 @@ export default function RootLayout({
         <div>
           {!loading && children}
         </div>
+        <ToastContainer />
       </body>
     </html>
   );

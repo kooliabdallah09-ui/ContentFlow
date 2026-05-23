@@ -5,6 +5,8 @@ import { getSupabase } from '@/lib/auth'
 import VoiceSettings from '@/components/VoiceSettings'
 import VoicePreview from '@/components/VoicePreview'
 import { Sparkles } from 'lucide-react'
+import { showSuccess, showError } from '@/lib/notifications'
+import { useAutoSave } from '@/lib/useAutoSave'
 
 export default function VoiceGeneratorPage() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
@@ -14,6 +16,17 @@ export default function VoiceGeneratorPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [creditsLoading, setCreditsLoading] = useState(true)
+  const [formData, setFormData] = useState({
+    text: '',
+    voiceId: 'rachel',
+    stability: 0.5,
+    similarityBoost: 0.75,
+  })
+
+  useAutoSave(formData, {
+    key: 'voiceGeneratorFormState',
+    onRestore: (data) => setFormData(data),
+  })
 
   // Load credit balance
   useEffect(() => {
@@ -115,8 +128,11 @@ export default function VoiceGeneratorPage() {
       setDuration(data.duration)
       setCharacterCount(data.characterCount)
       setCreditBalance(data.newBalance)
+      showSuccess('Voiceover generated successfully', `${Math.ceil(data.duration / 60)}m ${Math.round(data.duration % 60)}s duration`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate voice')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate voice'
+      setError(errorMessage)
+      showError('Generation failed', errorMessage)
     } finally {
       setLoading(false)
     }

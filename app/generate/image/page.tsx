@@ -5,6 +5,8 @@ import { getSupabase } from '@/lib/auth'
 import ImageSettings from '@/components/ImageSettings'
 import ImagePreview from '@/components/ImagePreview'
 import { Sparkles } from 'lucide-react'
+import { showSuccess, showError } from '@/lib/notifications'
+import { useAutoSave } from '@/lib/useAutoSave'
 
 export default function ImageGeneratorPage() {
   const [images, setImages] = useState<string[]>([])
@@ -12,6 +14,17 @@ export default function ImageGeneratorPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [creditsLoading, setCreditsLoading] = useState(true)
+  const [formData, setFormData] = useState({
+    prompt: '',
+    style: 'realistic',
+    size: '1024x1024',
+    quantity: 1,
+  })
+
+  useAutoSave(formData, {
+    key: 'imageGeneratorFormState',
+    onRestore: (data) => setFormData(data),
+  })
 
   // Load credit balance
   useEffect(() => {
@@ -111,8 +124,11 @@ export default function ImageGeneratorPage() {
       const data = await response.json()
       setImages(data.images)
       setCreditBalance(data.newBalance)
+      showSuccess('Images generated successfully', `${settings.quantity} image(s) created`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate image')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate image'
+      setError(errorMessage)
+      showError('Generation failed', errorMessage)
     } finally {
       setLoading(false)
     }

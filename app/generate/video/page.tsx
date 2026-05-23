@@ -5,6 +5,8 @@ import { getSupabase } from '@/lib/auth'
 import VideoSettings from '@/components/VideoSettings'
 import VideoPreview from '@/components/VideoPreview'
 import { Sparkles } from 'lucide-react'
+import { showSuccess, showError } from '@/lib/notifications'
+import { useAutoSave } from '@/lib/useAutoSave'
 
 export default function VideoGeneratorPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
@@ -13,6 +15,16 @@ export default function VideoGeneratorPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [creditsLoading, setCreditsLoading] = useState(true)
+  const [formData, setFormData] = useState({
+    script: '',
+    avatarId: 'sarah',
+    voiceId: 'rachel',
+  })
+
+  useAutoSave(formData, {
+    key: 'videoGeneratorFormState',
+    onRestore: (data) => setFormData(data),
+  })
 
   // Load credit balance
   useEffect(() => {
@@ -112,8 +124,11 @@ export default function VideoGeneratorPage() {
       setVideoUrl(data.videoUrl)
       setDuration(data.duration)
       setCreditBalance(data.newBalance)
+      showSuccess('Video generated successfully', `${Math.ceil(data.duration / 60)}m ${Math.round(data.duration % 60)}s duration`)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to generate video')
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate video'
+      setError(errorMessage)
+      showError('Generation failed', errorMessage)
     } finally {
       setLoading(false)
     }
