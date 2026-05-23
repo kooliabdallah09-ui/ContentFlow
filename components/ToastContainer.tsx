@@ -21,7 +21,9 @@ export default function ToastContainer() {
       }
     })
 
-    return () => unsubscribe()
+    return () => {
+      unsubscribe()
+    }
   }, [])
 
   const getIcon = (type: Toast['type']) => {

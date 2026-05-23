@@ -22,6 +22,23 @@ create table if not exists public.brand_profiles (
   updated_at timestamp default now()
 );
 
+-- Monthly Plans
+create table if not exists public.user_monthly_plans (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references auth.users(id) on delete cascade,
+  month integer check (month >= 1 and month <= 12),
+  year integer,
+  plan_data jsonb,
+  industry text,
+  audience text,
+  platforms text[],
+  frequency text check (frequency in ('light', 'moderate', 'heavy')),
+  status text check (status in ('draft', 'active', 'completed')) default 'active',
+  created_at timestamp default now(),
+  updated_at timestamp default now(),
+  unique(user_id, month, year)
+);
+
 -- Content
 create table if not exists public.content (
   id uuid default uuid_generate_v4() primary key,
@@ -140,3 +157,5 @@ create index if not exists credit_transactions_user_id on public.credit_transact
 create index if not exists credit_transactions_type on public.credit_transactions(transaction_type);
 create index if not exists ugc_content_user_id on public.ugc_content(user_id);
 create index if not exists ugc_content_type on public.ugc_content(content_type);
+create index if not exists monthly_plans_user_id on public.user_monthly_plans(user_id);
+create index if not exists monthly_plans_month_year on public.user_monthly_plans(month, year);

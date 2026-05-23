@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
-import { Sparkles } from 'lucide-react'
+import { Icon } from '@/components/Icons'
 import { showSuccess, showError } from '@/lib/notifications'
 import { useAutoSave } from '@/lib/useAutoSave'
 
@@ -153,51 +153,36 @@ export default function UGCGeneratorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
-        * { font-family: 'Inter', sans-serif; }
-
-        .glass-card {
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-      `}</style>
-
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-600 mb-4 border border-white/20">
-            <Sparkles className="w-4 h-4" />
-            Complete UGC Solution
-          </div>
-          <h1 className="text-5xl font-black mb-3">UGC Package Generator</h1>
-          <p className="text-white/60 text-lg max-w-2xl">
-            Create complete UGC packages with images, voiceovers, and videos. Everything you need for professional product marketing.
-          </p>
+    <div className="content">
+      <div className="page-head">
+        <div className="page-meta">
+          <span className="dot" />
+          <span className="eyebrow">Complete Product Marketing Kit</span>
         </div>
+        <h1 className="page-title">Create UGC <em>Packages</em></h1>
+        <p className="page-sub">Generate complete UGC packages with images, voiceovers, and videos all at once. Professional product marketing made simple.</p>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-2 gap-8 p-8 max-w-7xl mx-auto h-[calc(100vh-320px)]">
-        {/* Left: Builder */}
-        <div className="glass-card rounded-2xl p-8 overflow-y-auto">
-          <h2 className="text-2xl font-black mb-6">Create Your Package</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '24px' }}>
+        {/* Form */}
+        <div>
+          <div className="section-head">
+            <h2 className="section-title">Create Package</h2>
+          </div>
+
           <UGCPackageBuilder
             onGenerate={handleGenerate}
             isLoading={loading}
             creditBalance={creditBalance}
           />
 
-          {/* Credit Balance Display */}
+          {/* Credit Balance */}
           {!creditsLoading && (
-            <div className="mt-8 pt-8 border-t border-white/10">
-              <div className="flex items-center justify-between">
+            <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <p className="text-sm text-white/60">Total Credits</p>
-                  <p className="text-2xl font-black text-cyan-400">
+                  <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>Total Credits</span>
+                  <p style={{ fontSize: '20px', fontWeight: 600, color: 'var(--accent)' }}>
                     {creditBalance}
                   </p>
                 </div>
@@ -206,9 +191,11 @@ export default function UGCGeneratorPage() {
           )}
         </div>
 
-        {/* Right: Preview */}
-        <div className="glass-card rounded-2xl p-8 overflow-hidden flex flex-col">
-          <h2 className="text-2xl font-black mb-6">Your UGC Package</h2>
+        {/* Preview */}
+        <div>
+          <div className="section-head">
+            <h2 className="section-title">Your Package</h2>
+          </div>
           <UGCPackagePreview
             components={components}
             ugcType={ugcType}

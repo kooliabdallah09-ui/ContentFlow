@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { Calendar, Clock, Plus, Trash2, Edit2, Play, Pause } from 'lucide-react'
+import { Icon } from '@/components/Icons'
 import { showSuccess, showError } from '@/lib/notifications'
 
 interface ScheduledJob {
@@ -141,190 +141,208 @@ export default function SchedulerPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Clock className="w-6 h-6 text-cyan-400" />
-              <h1 className="text-4xl font-black">Content Scheduler</h1>
-            </div>
-            <button
-              onClick={() => {
-                setEditingJob(null)
-                setShowForm(!showForm)
-              }}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-semibold transition-colors flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Schedule Job
-            </button>
-          </div>
-          <p className="text-white/60">
-            Automate your content generation with scheduled jobs
-          </p>
+    <div className="content">
+      <div className="page-head">
+        <div className="page-meta">
+          <span className="dot" />
+          <span className="eyebrow">Automation & Scheduling</span>
         </div>
+        <h1 className="page-title">Content <em>Scheduler</em></h1>
+        <p className="page-sub">Automate your content generation with scheduled jobs. Set it once and let the AI work for you.</p>
+      </div>
 
-        {/* Form */}
-        {showForm && (
-          <div className="mb-8 p-6 bg-white/5 border border-white/10 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">
-              {editingJob ? 'Edit Job' : 'Create New Job'}
-            </h2>
+      {/* Form */}
+      {showForm && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px', marginBottom: '24px' }}>
+          <h2 className="section-title" style={{ fontSize: '16px', marginBottom: '18px' }}>
+            {editingJob ? 'Edit Job' : 'Create New Job'}
+          </h2>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-white/60 mb-2">Job Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g., Weekly Blog Post"
-                  defaultValue={editingJob?.name || ''}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-500/50"
-                />
-              </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div className="form-row">
+              <label htmlFor="jobName" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                Job Name
+              </label>
+              <input
+                id="jobName"
+                type="text"
+                placeholder="e.g., Weekly Blog Post"
+                defaultValue={editingJob?.name || ''}
+                className="input"
+              />
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-white/60 mb-2">Type</label>
-                  <select
-                    defaultValue={editingJob?.type || 'blog'}
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500/50"
-                  >
-                    <option value="blog">Blog Post</option>
-                    <option value="social">Social Post</option>
-                    <option value="email">Email</option>
-                    <option value="image">Image</option>
-                    <option value="voice">Voice</option>
-                    <option value="video">Video</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm text-white/60 mb-2">Recurring</label>
-                  <select
-                    defaultValue={editingJob?.recurring || 'once'}
-                    className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500/50"
-                  >
-                    <option value="once">Once</option>
-                    <option value="hourly">Hourly</option>
-                    <option value="daily">Daily</option>
-                    <option value="weekly">Weekly</option>
-                    <option value="monthly">Monthly</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-white/60 mb-2">
-                  Schedule Time
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div className="form-row">
+                <label htmlFor="jobType" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                  Type
                 </label>
-                <input
-                  type="datetime-local"
-                  defaultValue={editingJob?.scheduledTime || ''}
-                  className="w-full px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500/50"
-                />
+                <select
+                  id="jobType"
+                  defaultValue={editingJob?.type || 'blog'}
+                  className="select"
+                >
+                  <option value="blog">Blog Post</option>
+                  <option value="social">Social Post</option>
+                  <option value="email">Email</option>
+                  <option value="image">Image</option>
+                  <option value="voice">Voice</option>
+                  <option value="video">Video</option>
+                </select>
               </div>
 
-              <div className="flex gap-3 justify-end">
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="px-4 py-2 rounded-lg border border-white/20 text-white font-medium hover:bg-white/10 transition-colors"
+              <div className="form-row">
+                <label htmlFor="recurring" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                  Recurring
+                </label>
+                <select
+                  id="recurring"
+                  defaultValue={editingJob?.recurring || 'once'}
+                  className="select"
                 >
-                  Cancel
+                  <option value="once">Once</option>
+                  <option value="hourly">Hourly</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-row">
+              <label htmlFor="scheduleTime" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+                Schedule Time
+              </label>
+              <input
+                id="scheduleTime"
+                type="datetime-local"
+                defaultValue={editingJob?.scheduledTime || ''}
+                className="input"
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '6px' }}>
+              <button
+                onClick={() => setShowForm(false)}
+                className="btn btn-ghost"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  showSuccess('Job scheduled successfully')
+                  setShowForm(false)
+                }}
+                className="btn btn-primary"
+              >
+                <Icon.Sparkle style={{ width: 14, height: 14 }} />
+                Save Job
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Schedule Button */}
+      {!showForm && (
+        <div style={{ marginBottom: '24px' }}>
+          <button
+            onClick={() => {
+              setEditingJob(null)
+              setShowForm(true)
+            }}
+            className="btn btn-primary"
+          >
+            <Icon.Sparkle style={{ width: 14, height: 14 }} />
+            Schedule New Job
+          </button>
+        </div>
+      )}
+
+      {/* Jobs List */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.6 }}>
+          Loading scheduled jobs...
+        </div>
+      ) : jobs.length === 0 ? (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 20px', textAlign: 'center' }}>
+          <div style={{ fontSize: '40px', marginBottom: '12px' }}>📅</div>
+          <p style={{ color: 'var(--ink)', fontSize: '14px', marginBottom: '12px' }}>No scheduled jobs yet</p>
+          <p className="eyebrow">Schedule your first automated job</p>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '18px' }}>
+          {jobs.map((job) => (
+            <div
+              key={job.id}
+              style={{
+                background: 'var(--surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--r-lg)',
+                padding: '16px',
+              }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '12px' }}>
+                <div>
+                  <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                    {job.name}
+                  </h3>
+                  <p className="eyebrow" style={{ textTransform: 'capitalize' }}>
+                    {job.type} • {getRecurringLabel(job.recurring)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleToggle(job.id, job.enabled)}
+                  style={{
+                    padding: '4px 8px',
+                    borderRadius: 'var(--r-sm)',
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    background: job.enabled ? 'var(--good)' : 'var(--border)',
+                    color: job.enabled ? 'var(--bg)' : 'var(--ink-dim)',
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {job.enabled ? '✓ Enabled' : 'Disabled'}
                 </button>
+              </div>
+
+              {/* Timing */}
+              <div style={{ fontSize: '12px', color: 'var(--ink-dim)', marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid var(--border)' }}>
+                {job.lastRun && (
+                  <p style={{ marginBottom: '4px' }}>
+                    Last: {new Date(job.lastRun).toLocaleDateString()}
+                  </p>
+                )}
+                <p>Next: {getNextRunDisplay(job)}</p>
+              </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   onClick={() => {
-                    showSuccess('Job scheduled successfully')
-                    setShowForm(false)
+                    setEditingJob(job)
+                    setShowForm(true)
                   }}
-                  className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-colors"
+                  className="btn btn-ghost"
+                  style={{ flex: 1, fontSize: '12px', padding: '8px 12px' }}
                 >
-                  Save Job
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(job.id)}
+                  className="btn btn-ghost"
+                  style={{ flex: 1, fontSize: '12px', padding: '8px 12px', color: 'var(--danger)' }}
+                >
+                  Delete
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Jobs List */}
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-white/60">Loading scheduled jobs...</div>
-          </div>
-        ) : jobs.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <Calendar className="w-12 h-12 text-white/20 mb-4" />
-            <p className="text-white/60 mb-4">No scheduled jobs yet</p>
-            <button
-              onClick={() => setShowForm(true)}
-              className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium"
-            >
-              Schedule your first job
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {jobs.map((job) => (
-              <div
-                key={job.id}
-                className="p-6 bg-white/5 border border-white/10 rounded-lg hover:border-cyan-500/50 transition-colors"
-              >
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">{job.name}</h3>
-                    <p className="text-sm text-white/60 mt-1 capitalize">
-                      {job.type} • {getRecurringLabel(job.recurring)}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => handleToggle(job.id, job.enabled)}
-                    className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${
-                      job.enabled
-                        ? 'bg-green-900/30 text-green-300'
-                        : 'bg-white/10 text-white/50'
-                    }`}
-                  >
-                    {job.enabled ? 'Enabled' : 'Disabled'}
-                  </button>
-                </div>
-
-                {/* Timing Info */}
-                <div className="space-y-2 mb-4 text-sm">
-                  {job.lastRun && (
-                    <p className="text-white/60">
-                      Last run: {new Date(job.lastRun).toLocaleString()}
-                    </p>
-                  )}
-                  <p className="text-white/60">Next run: {getNextRunDisplay(job)}</p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setEditingJob(job)
-                      setShowForm(true)
-                    }}
-                    className="flex-1 px-3 py-2 rounded border border-white/20 text-white text-sm font-medium hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(job.id)}
-                    className="flex-1 px-3 py-2 rounded border border-red-700/50 text-red-300 text-sm font-medium hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

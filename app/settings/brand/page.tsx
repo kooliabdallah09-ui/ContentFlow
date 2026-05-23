@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { Save, AlertCircle, CheckCircle } from 'lucide-react'
+import { Icon } from '@/components/Icons'
 
 export default function BrandSettingsPage() {
   const [loading, setLoading] = useState(true)
@@ -31,12 +31,14 @@ export default function BrandSettingsPage() {
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) return
 
-      const { data } = await supabase
+      const { data: profiles } = await supabase
         .from('brand_profiles')
         .select('*')
         .eq('user_id', userData.user.id)
-        .single()
+        .order('created_at', { ascending: false })
+        .limit(1)
 
+      const data = profiles?.[0]
       if (data) {
         setBrandProfile(data)
         setFormData({
@@ -62,6 +64,11 @@ export default function BrandSettingsPage() {
   }
 
   const handleSave = async () => {
+    if (!formData.companyName.trim()) {
+      setError('Company name is required')
+      return
+    }
+
     setSaving(true)
     setError('')
     setSuccess('')
@@ -78,7 +85,6 @@ export default function BrandSettingsPage() {
         .filter((s) => s.trim())
 
       if (brandProfile?.id) {
-        // Update existing
         const { error: updateError } = await supabase
           .from('brand_profiles')
           .update({
@@ -93,7 +99,6 @@ export default function BrandSettingsPage() {
 
         if (updateError) throw updateError
       } else {
-        // Create new
         const { error: insertError } = await supabase
           .from('brand_profiles')
           .insert({
@@ -108,9 +113,8 @@ export default function BrandSettingsPage() {
         if (insertError) throw insertError
       }
 
-      setSuccess('Brand profile updated successfully!')
+      setSuccess('Brand profile saved successfully')
       await loadBrandProfile()
-
       setTimeout(() => setSuccess(''), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save profile')
@@ -121,102 +125,118 @@ export default function BrandSettingsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black text-white p-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            <div className="h-8 bg-white/10 rounded w-1/4"></div>
-            <div className="h-40 bg-white/10 rounded"></div>
-          </div>
+      <div className="content">
+        <div className="page-head">
+          <h1 className="page-title">Brand <em>Settings</em></h1>
         </div>
+        <div style={{ opacity: 0.5 }}>Loading...</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        * { font-family: 'Inter', sans-serif; }
-        .glass-card { background: rgba(255, 255, 255, 0.04); border: 1.5px solid rgba(6, 182, 212, 0.15); backdrop-filter: blur(12px); border-radius: 18px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); }
-        .input-glass { background: rgba(255, 255, 255, 0.06); border: 1.5px solid rgba(6, 182, 212, 0.2); color: white; transition: all 0.3s ease; border-radius: 12px; }
-        .input-glass::placeholder { color: rgba(255, 255, 255, 0.45); }
-        .input-glass:focus { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.5); outline: none; box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15); }
-        .btn-primary { background: linear-gradient(135deg, #06B6D4, #0891B2); color: #ffffff; transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 600; border: none; border-radius: 12px; box-shadow: 0 6px 20px rgba(6, 182, 212, 0.25); }
-        .btn-primary:hover:not(:disabled) { background: linear-gradient(135deg, #0891B2, #0c7a99); transform: translateY(-2px); box-shadow: 0 10px 28px rgba(6, 182, 212, 0.35); }
-        .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-      `}</style>
-
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md py-12 px-8">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-4xl font-black mb-2">Brand Settings</h1>
-          <p className="text-white/60">Manage your company profile and brand voice. This information is used to personalize all generated content.</p>
+    <div className="content">
+      <div className="page-head">
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px', overflowX: 'auto' }}>
+          <a href="/settings/brand" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--accent)', borderBottom: '2px solid var(--accent)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Brand</a>
+          <a href="/settings/account" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Account</a>
+          <a href="/settings/billing" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Billing</a>
+          <a href="/settings/integrations" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Integrations</a>
         </div>
+        <h1 className="page-title">Brand <em>Settings</em></h1>
+        <p className="page-sub">Manage your company profile and brand voice. This information personalizes all generated content.</p>
       </div>
 
-      <div className="max-w-4xl mx-auto px-8 py-12">
-        <div className="glass-card rounded-2xl p-8 space-y-8">
-          {/* Success Message */}
+      <div className="brand-grid">
+        <div className="brand-card">
           {success && (
-            <div className="rounded-lg bg-green-900/20 p-4 border border-green-800/50 flex items-start gap-3">
-              <CheckCircle className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm font-600 text-cyan-300">{success}</p>
+            <div style={{
+              background: 'var(--good)',
+              color: 'var(--accent-ink)',
+              padding: '12px 14px',
+              borderRadius: 'var(--r-sm)',
+              marginBottom: '18px',
+              fontSize: '13px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              ✓ {success}
             </div>
           )}
 
-          {/* Error Message */}
           {error && (
-            <div className="rounded-lg bg-red-900/20 p-4 border border-red-800/50 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <p className="text-sm font-600 text-red-300">{error}</p>
+            <div style={{
+              background: 'var(--danger)',
+              color: 'white',
+              padding: '12px 14px',
+              borderRadius: 'var(--r-sm)',
+              marginBottom: '18px',
+              fontSize: '13px',
+              fontWeight: 500,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px'
+            }}>
+              ✕ {error}
             </div>
           )}
 
-          {/* Company Name */}
-          <div>
-            <label className="block text-sm font-600 text-white/80 mb-3">Company/Product Name *</label>
+          <div className="form-row">
+            <label htmlFor="company" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+              Company/Product Name <span style={{ color: 'var(--accent)' }}>*</span>
+            </label>
             <input
+              id="company"
               type="text"
               value={formData.companyName}
               onChange={(e) => handleInputChange('companyName', e.target.value)}
               placeholder="Your company or product name"
-              className="input-glass w-full px-4 py-3 rounded-lg text-sm"
+              className="input"
             />
-            <p className="text-xs text-white/50 mt-2">This is used to maintain consistency across all generated content.</p>
+            <span className="eyebrow" style={{ marginTop: '6px' }}>Used to maintain consistency across all generated content</span>
           </div>
 
-          {/* Description */}
-          <div>
-            <label className="block text-sm font-600 text-white/80 mb-3">Product/Service Description *</label>
+          <div className="form-row">
+            <label htmlFor="description" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+              Product/Service Description <span style={{ color: 'var(--accent)' }}>*</span>
+            </label>
             <textarea
+              id="description"
               value={formData.description}
               onChange={(e) => handleInputChange('description', e.target.value)}
               placeholder="What do you do? What problem do you solve? What makes you unique?"
-              className="input-glass w-full px-4 py-3 rounded-lg text-sm resize-none"
+              className="textarea"
               rows={4}
             />
-            <p className="text-xs text-white/50 mt-2">Used in blog posts, social media, and email content to ensure accuracy.</p>
+            <span className="eyebrow" style={{ marginTop: '6px' }}>Used in blog posts, social media, and email content</span>
           </div>
 
-          {/* Target Audience */}
-          <div>
-            <label className="block text-sm font-600 text-white/80 mb-3">Target Audience *</label>
+          <div className="form-row">
+            <label htmlFor="audience" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+              Target Audience <span style={{ color: 'var(--accent)' }}>*</span>
+            </label>
             <textarea
+              id="audience"
               value={formData.targetAudience}
               onChange={(e) => handleInputChange('targetAudience', e.target.value)}
               placeholder="e.g., Busy professionals aged 25-45, interested in productivity"
-              className="input-glass w-full px-4 py-3 rounded-lg text-sm resize-none"
+              className="textarea"
               rows={4}
             />
-            <p className="text-xs text-white/50 mt-2">Helps AI tailor messaging and tone to resonate with your audience.</p>
+            <span className="eyebrow" style={{ marginTop: '6px' }}>Helps AI tailor messaging and tone to resonate with your audience</span>
           </div>
 
-          {/* Tone of Voice */}
-          <div>
-            <label className="block text-sm font-600 text-white/80 mb-3">Brand Voice *</label>
+          <div className="form-row">
+            <label htmlFor="tone" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+              Brand Voice <span style={{ color: 'var(--accent)' }}>*</span>
+            </label>
             <select
+              id="tone"
               value={formData.toneOfVoice}
               onChange={(e) => handleInputChange('toneOfVoice', e.target.value)}
-              className="input-glass w-full px-4 py-3 rounded-lg text-sm"
+              className="select"
             >
               <option value="">Select a tone...</option>
               <option value="Professional & Authoritative">Professional & Authoritative</option>
@@ -225,50 +245,53 @@ export default function BrandSettingsPage() {
               <option value="Educational & Helpful">Educational & Helpful</option>
               <option value="Inspirational & Motivating">Inspirational & Motivating</option>
             </select>
-            <p className="text-xs text-white/50 mt-2">Determines the writing style and personality of all generated content.</p>
+            <span className="eyebrow" style={{ marginTop: '6px' }}>Determines the writing style and personality of all generated content</span>
           </div>
 
-          {/* Voice Samples */}
-          <div>
-            <label className="block text-sm font-600 text-white/80 mb-3">Voice Samples (Optional)</label>
+          <div className="form-row">
+            <label htmlFor="samples" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+              Voice Samples <span style={{ color: 'var(--ink-fade)' }}>(Optional)</span>
+            </label>
             <textarea
+              id="samples"
               value={formData.voiceSamples}
               onChange={(e) => handleInputChange('voiceSamples', e.target.value)}
-              placeholder="Paste examples of your writing or content that reflect your brand voice. One example per line."
-              className="input-glass w-full px-4 py-3 rounded-lg text-sm resize-none"
+              placeholder="Paste examples of your writing that reflect your brand voice. One example per line."
+              className="textarea"
               rows={4}
             />
-            <p className="text-xs text-white/50 mt-2">Real examples help the AI better understand and replicate your unique voice.</p>
+            <span className="eyebrow" style={{ marginTop: '6px' }}>Real examples help the AI better understand and replicate your unique voice</span>
           </div>
 
-          {/* Save Button */}
-          <div className="flex gap-3 pt-6 border-t border-white/10">
+          <div className="divider" style={{ margin: '18px 0' }} />
+
+          <div style={{ display: 'flex', gap: '12px' }}>
             <button
               onClick={handleSave}
               disabled={saving || !formData.companyName.trim()}
-              className="btn-primary px-6 py-3 rounded-lg font-600 text-sm flex items-center gap-2 disabled:opacity-50"
+              className="btn btn-primary"
+              style={{ opacity: saving || !formData.companyName.trim() ? 0.6 : 1, cursor: saving || !formData.companyName.trim() ? 'not-allowed' : 'pointer' }}
             >
-              <Save className="w-4 h-4" />
+              <Icon.Settings style={{ width: 14, height: 14 }} />
               {saving ? 'Saving...' : 'Save Changes'}
             </button>
             <button
               onClick={loadBrandProfile}
-              className="px-6 py-3 rounded-lg font-600 text-sm border border-white/20 text-white hover:bg-white/5 transition"
+              className="btn btn-ghost"
             >
               Reset
             </button>
           </div>
         </div>
 
-        {/* Info Card */}
-        <div className="glass-card rounded-2xl p-6 mt-8">
-          <h3 className="text-lg font-black mb-3 text-white">💡 How this information is used</h3>
-          <ul className="space-y-2 text-sm text-white/70">
-            <li>✓ All content generators reference your brand profile for consistency</li>
-            <li>✓ Blog posts incorporate your company details and value proposition</li>
-            <li>✓ Social media content matches your target audience and tone</li>
-            <li>✓ Email campaigns use your brand voice and messaging</li>
-            <li>✓ You can update this anytime, and future content will reflect the changes</li>
+        <div className="brand-card">
+          <div className="eyebrow" style={{ marginBottom: '14px', display: 'block' }}>💡 How this is used</div>
+          <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <li style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>✓ All content generators reference your brand profile</li>
+            <li style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>✓ Blog posts incorporate your company details and value prop</li>
+            <li style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>✓ Social media content matches your target audience</li>
+            <li style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>✓ Email campaigns use your brand voice</li>
+            <li style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>✓ Update anytime, future content reflects changes</li>
           </ul>
         </div>
       </div>

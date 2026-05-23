@@ -28,158 +28,83 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center px-6 overflow-hidden">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    <div style={{ background: 'var(--bg)', color: 'var(--ink)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+      <div style={{ maxWidth: '420px', width: '100%' }}>
+        {/* Logo */}
+        <Link href="/" style={{ display: 'inline-block', marginBottom: '48px' }}>
+          <div style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px', fontFamily: 'var(--font-serif)' }}>
+            Content<em style={{ fontStyle: 'italic', color: 'var(--accent)' }}>flow</em>
+          </div>
+        </Link>
 
-        * {
-          font-family: 'Inter', sans-serif;
-        }
-
-        .glass-card {
-          background: rgba(255, 255, 255, 0.04);
-          backdrop-filter: blur(12px);
-          border: 1.5px solid rgba(6, 182, 212, 0.15);
-          border-radius: 20px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        }
-
-        .input-glass {
-          background: rgba(255, 255, 255, 0.06);
-          backdrop-filter: blur(8px);
-          border: 1.5px solid rgba(6, 182, 212, 0.2);
-          color: white;
-          transition: all 0.3s ease;
-          border-radius: 12px;
-        }
-
-        .input-glass::placeholder {
-          color: rgba(255, 255, 255, 0.45);
-        }
-
-        .input-glass:focus {
-          background: rgba(6, 182, 212, 0.08);
-          border-color: rgba(6, 182, 212, 0.5);
-          box-shadow: 0 0 0 3px rgba(6, 182, 212, 0.15);
-          outline: none;
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #06B6D4, #0891B2);
-          color: #ffffff;
-          transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
-          box-shadow: 0 6px 20px rgba(6, 182, 212, 0.25);
-          font-weight: 600;
-          letter-spacing: -0.3px;
-          border: none;
-          border-radius: 12px;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 28px rgba(6, 182, 212, 0.35);
-        }
-
-        .btn-primary:active:not(:disabled) {
-          transform: translateY(0);
-          box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
-        }
-
-        .btn-primary:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
-        }
-
-        .error-message {
-          background: rgba(239, 68, 68, 0.1);
-          border: 1.5px solid rgba(239, 68, 68, 0.3);
-          color: #ff6b6b;
-          border-radius: 12px;
-          padding: 14px 18px;
-          font-size: 14px;
-          font-weight: 500;
-        }
-
-        .organic-shape {
-          position: absolute;
-          border-radius: 50%;
-          opacity: 0.1;
-        }
-
-        .shape-1 {
-          top: -200px;
-          right: -100px;
-          width: 600px;
-          height: 600px;
-          background: radial-gradient(circle, rgba(6, 182, 212, 0.15) 0%, transparent 70%);
-        }
-
-        .shape-2 {
-          bottom: -100px;
-          left: -100px;
-          width: 500px;
-          height: 500px;
-          background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
-        }
-      `}</style>
-
-      <div className="organic-shape shape-1"></div>
-      <div className="organic-shape shape-2"></div>
-
-      <div className="max-w-md w-full relative z-10">
-        <div className="text-center mb-12">
-          <Link href="/" className="inline-block">
-            <div className="text-3xl font-black mb-8">
-              Content<span className="text-cyan-400">Flow</span>
-            </div>
-          </Link>
-          <h1 className="text-3xl font-black mb-3">Welcome back</h1>
-          <p className="text-white/60">Sign in to continue creating amazing content</p>
+        {/* Header */}
+        <div style={{ marginBottom: '32px' }}>
+          <h1 style={{ fontSize: '32px', fontWeight: 700, marginBottom: '8px', fontFamily: 'var(--font-serif)' }}>
+            Welcome back
+          </h1>
+          <p style={{ fontSize: '14px', color: 'var(--ink-dim)' }}>
+            Sign in to continue creating amazing content
+          </p>
         </div>
 
-        <form className="space-y-5" onSubmit={handleLogin}>
-          {error && <div className="error-message">{error}</div>}
+        {/* Form */}
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Error */}
+          {error && (
+            <div style={{ background: 'var(--danger)', color: 'white', padding: '12px 16px', borderRadius: 'var(--r-md)', fontSize: '13px' }}>
+              {error}
+            </div>
+          )}
 
-          <div>
-            <label className="block text-sm font-500 text-white/70 mb-2">Email</label>
+          {/* Email */}
+          <div className="form-row">
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+              Email
+            </label>
             <input
               type="email"
               placeholder="your@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input-glass w-full px-4 py-3 rounded-lg text-sm"
+              className="input"
               required
+              disabled={loading}
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-500 text-white/70 mb-2">Password</label>
+          {/* Password */}
+          <div className="form-row">
+            <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+              Password
+            </label>
             <input
               type="password"
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input-glass w-full px-4 py-3 rounded-lg text-sm"
+              className="input"
               required
+              disabled={loading}
             />
           </div>
 
+          {/* Submit */}
           <button
             type="submit"
             disabled={loading}
-            className="btn-primary w-full py-3 rounded-lg font-600 text-sm mt-6 disabled:opacity-50"
+            className="btn btn-primary"
+            style={{ width: '100%', marginTop: '8px', opacity: loading ? 0.6 : 1 }}
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm">
-          <p className="text-white/60">
-            Don't have an account?{' '}
-            <Link href="/auth/signup" className="text-cyan-400 hover:text-cyan-300 font-600 transition">
-              Sign up
-            </Link>
-          </p>
+        {/* Sign Up Link */}
+        <div style={{ marginTop: '24px', textAlign: 'center', fontSize: '13px', color: 'var(--ink-dim)' }}>
+          Don't have an account?{' '}
+          <Link href="/auth/signup" style={{ color: 'var(--accent)', textDecoration: 'none', fontWeight: 600 }}>
+            Sign up
+          </Link>
         </div>
       </div>
     </div>

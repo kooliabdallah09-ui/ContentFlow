@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Volume2, Zap } from 'lucide-react'
+import { Icon } from './Icons'
 
 interface VoiceSettingsProps {
   onGenerate: (settings: {
@@ -32,7 +32,7 @@ export default function VoiceSettings({
   const [stability, setStability] = useState(0.5)
   const [similarityBoost, setSimilarityBoost] = useState(0.75)
 
-  const creditCost = 150
+  const creditCost = 3
   const charCount = text.length
   const maxChars = 5000
   const canGenerate = creditBalance >= creditCost && text.trim().length > 0
@@ -50,38 +50,49 @@ export default function VoiceSettings({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-600 text-white/90 mb-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div className="form-row">
+        <label htmlFor="text" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
           Text to Synthesize
         </label>
         <textarea
+          id="text"
           value={text}
           onChange={(e) => setText(e.target.value.slice(0, maxChars))}
-          placeholder="Enter the text you want to convert to speech... Be clear and expressive."
-          className="w-full px-4 py-3 bg-white/5 border border-cyan-400/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition h-40 resize-none"
+          placeholder="Enter the text you want to convert to speech..."
+          className="textarea"
+          style={{ minHeight: '120px' }}
           disabled={isLoading}
           maxLength={maxChars}
         />
-        <div className="flex justify-between items-center mt-2">
-          <p className="text-xs text-white/50">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+          <p className="eyebrow">
             {charCount} / {maxChars} characters
           </p>
           {charCount >= maxChars * 0.9 && (
-            <p className="text-xs text-yellow-400">Approaching limit</p>
+            <p className="eyebrow" style={{ color: 'var(--danger)' }}>Approaching limit</p>
           )}
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-600 text-white/90 mb-3">
+      <div className="form-row">
+        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
           Voice Selection
         </label>
-        <div className="space-y-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {VOICES.map((voice) => (
             <label
               key={voice.id}
-              className="flex items-center p-3 bg-white/5 border border-cyan-400/20 rounded-lg cursor-pointer hover:bg-white/10 hover:border-cyan-400/40 transition"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 12px',
+                background: voiceId === voice.id ? 'var(--accent-soft)' : 'var(--surface)',
+                border: `1px solid ${voiceId === voice.id ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 'var(--r-sm)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
             >
               <input
                 type="radio"
@@ -90,76 +101,71 @@ export default function VoiceSettings({
                 checked={voiceId === voice.id}
                 onChange={(e) => setVoiceId(e.target.value)}
                 disabled={isLoading}
-                className="accent-cyan-400 cursor-pointer"
+                style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
               />
-              <div className="ml-3 flex-1">
-                <p className="font-600 text-white">{voice.name}</p>
-                <p className="text-xs text-white/50">{voice.description}</p>
+              <div style={{ marginLeft: '10px', flex: 1 }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>{voice.name}</p>
+                <p className="eyebrow">{voice.description}</p>
               </div>
             </label>
           ))}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-600 text-white/90 mb-3">
-            Stability
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div className="form-row">
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+            Stability: <span style={{ color: 'var(--accent)' }}>{stability.toFixed(1)}</span>
           </label>
-          <div className="space-y-2">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={stability}
-              onChange={(e) => setStability(parseFloat(e.target.value))}
-              disabled={isLoading}
-              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-            />
-            <div className="flex justify-between text-xs text-white/50">
-              <span>Less Stable</span>
-              <span className="font-600 text-white">{stability.toFixed(1)}</span>
-              <span>More Stable</span>
-            </div>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={stability}
+            onChange={(e) => setStability(parseFloat(e.target.value))}
+            disabled={isLoading}
+            style={{ width: '100%', height: '6px', accentColor: 'var(--accent)' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: 'var(--ink-dim)' }}>
+            <span>Less Stable</span>
+            <span>More Stable</span>
           </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-600 text-white/90 mb-3">
-            Similarity Boost
+        <div className="form-row">
+          <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
+            Similarity: <span style={{ color: 'var(--accent)' }}>{similarityBoost.toFixed(1)}</span>
           </label>
-          <div className="space-y-2">
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.1"
-              value={similarityBoost}
-              onChange={(e) => setSimilarityBoost(parseFloat(e.target.value))}
-              disabled={isLoading}
-              className="w-full h-2 bg-white/10 rounded-lg appearance-none cursor-pointer accent-cyan-400"
-            />
-            <div className="flex justify-between text-xs text-white/50">
-              <span>Less Similar</span>
-              <span className="font-600 text-white">{similarityBoost.toFixed(1)}</span>
-              <span>More Similar</span>
-            </div>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={similarityBoost}
+            onChange={(e) => setSimilarityBoost(parseFloat(e.target.value))}
+            disabled={isLoading}
+            style={{ width: '100%', height: '6px', accentColor: 'var(--accent)' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '11px', color: 'var(--ink-dim)' }}>
+            <span>Less Similar</span>
+            <span>More Similar</span>
           </div>
         </div>
       </div>
 
-      <div className="pt-2 space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Credit Cost:</span>
-          <span className="font-600 text-cyan-400">{creditCost} credits</span>
+      <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+          <span className="eyebrow">Credit Cost:</span>
+          <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{creditCost} credits</span>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Your Balance:</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+          <span className="eyebrow">Your Balance:</span>
           <span
-            className={`font-600 ${
-              creditBalance >= creditCost ? 'text-emerald-400' : 'text-red-400'
-            }`}
+            style={{
+              fontWeight: 600,
+              color: creditBalance >= creditCost ? 'var(--good)' : 'var(--danger)',
+            }}
           >
             {creditBalance} credits
           </span>
@@ -168,14 +174,15 @@ export default function VoiceSettings({
         <button
           onClick={handleSubmit}
           disabled={!canGenerate || isLoading}
-          className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 disabled:from-white/10 disabled:to-white/10 disabled:text-white/50 text-white font-600 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+          className="btn btn-primary"
+          style={{ width: '100%', marginTop: '12px', opacity: canGenerate && !isLoading ? 1 : 0.6, cursor: canGenerate && !isLoading ? 'pointer' : 'not-allowed' }}
         >
-          <Volume2 className="w-5 h-5" />
+          <Icon.Sparkle style={{ width: 14, height: 14 }} />
           {isLoading ? 'Generating...' : 'Generate Voice'}
         </button>
 
         {!canGenerate && text.trim().length > 0 && (
-          <p className="text-xs text-red-400 text-center">
+          <p className="eyebrow" style={{ color: 'var(--danger)', textAlign: 'center', fontSize: '11px' }}>
             Not enough credits. Need {creditCost}, have {creditBalance}
           </p>
         )}

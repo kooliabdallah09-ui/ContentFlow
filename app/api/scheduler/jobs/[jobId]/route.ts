@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function PATCH(
   request: Request,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -10,6 +10,7 @@ export async function PATCH(
   }
 
   const token = authHeader.slice(7)
+  const { jobId } = await params
 
   try {
     const { enabled } = await request.json()
@@ -28,7 +29,7 @@ export async function PATCH(
     const { data: job, error: fetchError } = await supabase
       .from('scheduled_jobs')
       .select('user_id')
-      .eq('id', params.jobId)
+      .eq('id', jobId)
       .single()
 
     if (fetchError || job?.user_id !== userData.user.id) {
@@ -39,7 +40,7 @@ export async function PATCH(
     const { error } = await supabase
       .from('scheduled_jobs')
       .update({ enabled })
-      .eq('id', params.jobId)
+      .eq('id', jobId)
 
     if (error) {
       console.error('Update error:', error)
@@ -55,7 +56,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -63,6 +64,7 @@ export async function DELETE(
   }
 
   const token = authHeader.slice(7)
+  const { jobId } = await params
 
   try {
     const supabase = createClient(
@@ -79,7 +81,7 @@ export async function DELETE(
     const { data: job, error: fetchError } = await supabase
       .from('scheduled_jobs')
       .select('user_id')
-      .eq('id', params.jobId)
+      .eq('id', jobId)
       .single()
 
     if (fetchError || job?.user_id !== userData.user.id) {
@@ -90,7 +92,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('scheduled_jobs')
       .update({ deleted_at: new Date().toISOString() })
-      .eq('id', params.jobId)
+      .eq('id', jobId)
 
     if (error) {
       console.error('Delete error:', error)

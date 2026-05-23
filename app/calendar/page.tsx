@@ -3,332 +3,273 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Calendar as CalendarIcon, CheckCircle, XCircle } from 'lucide-react'
-
-interface ScheduledContent {
-  id: string
-  content_id: string
-  scheduled_date: string
-  platforms: string[]
-  status: string
-  content: {
-    id: string
-    title: string
-    content_type: string
-    body: string
-  }
-}
+import { getSupabase } from '@/lib/auth'
+import { Icon } from '@/components/Icons'
+import { DailySuggestion } from '@/lib/planner'
+import { showError } from '@/lib/notifications'
 
 export default function CalendarPage() {
   const router = useRouter()
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [scheduledContent, setScheduledContent] = useState<ScheduledContent[]>([])
+  const [plan, setPlan] = useState<DailySuggestion[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-
-  const daysInMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-  const firstDayOfMonth = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1).getDay()
+  const [selectedDay, setSelectedDay] = useState<DailySuggestion | null>(null)
+  const [month, setMonth] = useState(new Date())
 
   useEffect(() => {
-    fetchScheduledContent()
-  }, [currentDate])
+    fetchMonthlyPlan()
+  }, [month])
 
-  const fetchScheduledContent = async () => {
+  const fetchMonthlyPlan = async () => {
     try {
       setLoading(true)
-      const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1)
-      const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0)
+      const supabase = getSupabase()
+      if (!supabase) return
 
-      const response = await fetch(
-        `/api/calendar/list?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`
-      )
-      const data = await response.json()
-      setScheduledContent(data.data || [])
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData?.session?.access_token) return
+
+      const response = await fetch(`/api/planner/get-monthly-plan?month=${month.getMonth() + 1}&year=${month.getFullYear()}`, {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setPlan(data.plan || [])
+      }
     } catch (error) {
-      console.error('Failed to fetch scheduled content:', error)
+      console.error('Failed to fetch plan:', error)
+      showError('Failed to load plan')
     } finally {
       setLoading(false)
     }
   }
 
-  const getContentForDate = (date: number) => {
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), date)
-      .toISOString()
-      .split('T')[0]
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+  const monthName = month.toLocaleString('default', { month: 'long', year: 'numeric' })
 
-    return scheduledContent.filter(
-      (item) => item.scheduled_date.split('T')[0] === dateStr
+  const daysInMonth = new Date(month.getFullYear(), month.getMonth() + 1, 0).getDate()
+  const firstDay = new Date(month.getFullYear(), month.getMonth(), 1).getDay()
+  const emptyDays = Array.from({ length: firstDay }, (_, i) => i)
+
+  const handlePrevMonth = () => {
+    setMonth(new Date(month.getFullYear(), month.getMonth() - 1))
+  }
+
+  const handleNextMonth = () => {
+    setMonth(new Date(month.getFullYear(), month.getMonth() + 1))
+  }
+
+  const getSuggestionForDay = (dayNum: number) => {
+    const dateStr = new Date(month.getFullYear(), month.getMonth(), dayNum).toISOString().split('T')[0]
+    return plan.find(s => s.date === dateStr)
+  }
+
+  const getStatusIcon = (completed: boolean) => completed ? '✅' : '⭕'
+
+  if (loading) {
+    return (
+      <div className="content">
+        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.6 }}>
+          Loading your calendar...
+        </div>
+      </div>
     )
   }
 
-  const handleReschedule = async (contentId: string, newDate: Date) => {
-    try {
-      const response = await fetch('/api/calendar/reschedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contentId,
-          newDate: newDate.toISOString(),
-        }),
-      })
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Content rescheduled successfully' })
-        fetchScheduledContent()
-        setTimeout(() => setMessage(null), 3000)
-      } else {
-        setMessage({ type: 'error', text: 'Failed to reschedule' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Rescheduling failed' })
-    }
-  }
-
-  const handleDelete = async (contentId: string) => {
-    if (!confirm('Delete this scheduled content?')) return
-
-    try {
-      const response = await fetch('/api/calendar/delete', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contentId }),
-      })
-
-      if (response.ok) {
-        setMessage({ type: 'success', text: 'Scheduled content removed' })
-        fetchScheduledContent()
-        setTimeout(() => setMessage(null), 3000)
-      } else {
-        setMessage({ type: 'error', text: 'Failed to delete' })
-      }
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Deletion failed' })
-    }
-  }
-
-  const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
-  const days = Array.from({ length: daysInMonth(currentDate) }, (_, i) => i + 1)
-  const emptyDays = Array.from({ length: firstDayOfMonth(currentDate) }, (_, i) => i)
-
   return (
-    <div className="min-h-screen bg-black text-white">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-        * { font-family: 'Inter', sans-serif; }
-        .glass-card { background: rgba(255, 255, 255, 0.04); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .btn-primary { background: #06B6D4; color: #000000; box-shadow: 0 8px 24px rgba(6, 182, 212, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.3); transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1); font-weight: 700; border: none; letter-spacing: -0.5px; }
-        .btn-primary:hover:not(:disabled) { background: #0891B2; transform: translateY(-3px); box-shadow: 0 12px 32px rgba(6, 182, 212, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
-        .btn-primary:active:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3); }
-        .calendar-day { min-h-24; border: 1px solid rgba(255, 255, 255, 0.1); }
-        .calendar-day-number { font-weight: 600; color: #ffffff; }
-      `}</style>
+    <div className="content">
+      <div className="page-head">
+        <div className="page-meta">
+          <span className="dot" />
+          <Link href="/dashboard" className="eyebrow" style={{ color: 'var(--accent)', textDecoration: 'none' }}>
+            ← Back to Dashboard
+          </Link>
+        </div>
+        <h1 className="page-title">Your Monthly <em>Plan</em></h1>
+        <p className="page-sub">Follow your AI-suggested content calendar. Click any day to create content.</p>
+      </div>
 
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-4">
-            <Link href="/dashboard" className="text-white/60 hover:text-white/80">
-              ← Back to Dashboard
-            </Link>
-          </div>
-          <h1 className="text-5xl font-black mb-3">Content Calendar</h1>
-          <p className="text-white/60 text-lg">
-            Schedule and manage your content across all platforms
-          </p>
+      {/* Month Navigation */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', gap: '12px' }}>
+        <button
+          onClick={handlePrevMonth}
+          className="btn btn-ghost"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          <Icon.ChevronL style={{ width: 16, height: 16 }} />
+          Previous
+        </button>
+        <h2 className="section-title" style={{ margin: 0, fontSize: '20px' }}>{monthName}</h2>
+        <button
+          onClick={handleNextMonth}
+          className="btn btn-ghost"
+          style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
+          Next
+          <Icon.ChevronR style={{ width: 16, height: 16 }} />
+        </button>
+      </div>
+
+      {/* Calendar Grid */}
+      <div className="cal-wrap" style={{ marginBottom: '24px' }}>
+        {/* Day Headers */}
+        <div className="cal-grid-head">
+          {dayNames.map(day => (
+            <div key={day} style={{ textAlign: 'center', padding: '12px', fontSize: '12px', fontWeight: 600, color: 'var(--ink-mute)' }}>
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Days */}
+        <div className="cal-grid">
+          {/* Empty cells */}
+          {emptyDays.map((_, i) => (
+            <div key={`empty-${i}`} className="day-card" style={{ opacity: 0, pointerEvents: 'none' }} />
+          ))}
+
+          {/* Day cells */}
+          {Array.from({ length: daysInMonth }, (_, i) => i + 1).map(dayNum => {
+            const suggestion = getSuggestionForDay(dayNum)
+            return (
+              <button
+                key={dayNum}
+                onClick={() => suggestion && setSelectedDay(suggestion)}
+                className="day-card"
+                style={{
+                  cursor: suggestion ? 'pointer' : 'default',
+                  opacity: suggestion ? 1 : 0.5,
+                }}
+              >
+                <div className="day-head">
+                  <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink-mute)' }}>{dayNum}</div>
+                </div>
+                {suggestion && (
+                  <div className="day-items">
+                    <div style={{ fontSize: '24px' }}>{suggestion.icon}</div>
+                    <div style={{ fontSize: '16px' }}>{getStatusIcon(suggestion.completed)}</div>
+                  </div>
+                )}
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      <div className="p-8 max-w-7xl mx-auto">
-        {/* Message Alert */}
-        {message && (
-          <div
-            className={`mb-6 rounded-lg p-4 border flex items-start gap-3 ${
-              message.type === 'success'
-                ? 'bg-green-900/20 border-green-800/50'
-                : 'bg-red-900/20 border-red-800/50'
-            }`}
-          >
-            {message.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-cyan-400 flex-shrink-0 mt-0.5" />
-            ) : (
-              <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-            )}
-            <p
-              className={`text-sm font-600 ${
-                message.type === 'success' ? 'text-cyan-300' : 'text-red-300'
-              }`}
-            >
-              {message.text}
-            </p>
-          </div>
-        )}
-
-        {/* Calendar Controls */}
-        <div className="flex items-center justify-between mb-8">
-          <button
-            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1))}
-            className="btn-primary px-4 py-2 rounded-lg font-600 text-sm"
-          >
-            ← Previous
-          </button>
-          <h2 className="text-3xl font-black">{monthName}</h2>
-          <button
-            onClick={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1))}
-            className="btn-primary px-4 py-2 rounded-lg font-600 text-sm"
-          >
-            Next →
-          </button>
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="glass-card rounded-2xl p-6 mb-8">
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 gap-2 mb-4">
-            {dayNames.map((day) => (
-              <div
-                key={day}
-                className="text-center font-600 text-white/60 py-2 text-sm"
-              >
-                {day}
+      {/* Selected Day Details */}
+      {selectedDay && (
+        <div className="sugg" style={{ marginBottom: '24px' }}>
+          <div className="sugg-head">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '32px' }}>{selectedDay.icon}</span>
+              <div>
+                <div className="sugg-type">{selectedDay.contentType}</div>
+                <h3 className="sugg-hook">{selectedDay.title}</h3>
               </div>
-            ))}
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontSize: '20px', marginBottom: '6px' }}>{getStatusIcon(selectedDay.completed)}</div>
+              <span className="eyebrow">{selectedDay.completed ? 'Completed' : 'Not started'}</span>
+            </div>
           </div>
 
-          {/* Calendar Days */}
-          <div className="grid grid-cols-7 gap-2 auto-rows-min">
-            {/* Empty Days */}
-            {emptyDays.map((_, index) => (
-              <div key={`empty-${index}`} className="calendar-day bg-white/5 rounded-lg"></div>
-            ))}
+          <div className="sugg-body">
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '18px', marginBottom: '18px' }}>
+              <div>
+                <span className="eyebrow">Date</span>
+                <p style={{ fontSize: '14px', color: 'var(--ink)', marginTop: '4px' }}>
+                  {selectedDay.day}, {new Date(selectedDay.date).toLocaleDateString()}
+                </p>
+              </div>
+              <div>
+                <span className="eyebrow">Suggested time</span>
+                <p style={{ fontSize: '14px', color: 'var(--ink)', marginTop: '4px' }}>{selectedDay.suggestedTime}</p>
+              </div>
+            </div>
 
-            {/* Actual Days */}
-            {days.map((day) => {
-              const content = getContentForDate(day)
-              const isToday =
-                day === new Date().getDate() &&
-                currentDate.getMonth() === new Date().getMonth() &&
-                currentDate.getFullYear() === new Date().getFullYear()
+            <div style={{ marginBottom: '18px' }}>
+              <span className="eyebrow">Description</span>
+              <p style={{ fontSize: '14px', color: 'var(--ink-dim)', marginTop: '6px', lineHeight: 1.6 }}>
+                {selectedDay.description}
+              </p>
+            </div>
 
+            <div style={{ marginBottom: '18px' }}>
+              <span className="eyebrow">Platforms</span>
+              <div className="sugg-tags">
+                {selectedDay.platforms.map(platform => (
+                  <span key={platform} style={{ padding: '6px 12px' }}>{platform}</span>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <span className="eyebrow">Why this content</span>
+              <p style={{ fontSize: '13px', color: 'var(--ink-fade)', marginTop: '6px', lineHeight: 1.5 }}>
+                {selectedDay.reason}
+              </p>
+            </div>
+          </div>
+
+          <div className="sugg-foot">
+            <button
+              onClick={() => router.push(`/generate/from-calendar?date=${selectedDay.date}&contentType=${selectedDay.contentType}`)}
+              className="btn btn-primary"
+            >
+              <Icon.Sparkle style={{ width: 14, height: 14 }} />
+              Create {selectedDay.contentType}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Week Overview */}
+      {plan.length > 0 && (
+        <div style={{ marginTop: '24px' }}>
+          <div className="section-head">
+            <h2 className="section-title">This Week</h2>
+          </div>
+          <div className="week-strip">
+            {plan.slice(0, 7).map(day => {
+              const date = new Date(day.date)
+              const isToday = date.toDateString() === new Date().toDateString()
               return (
-                <div
-                  key={day}
-                  className={`calendar-day rounded-lg p-2 transition ${
-                    isToday
-                      ? 'bg-white/10 border border-white/20'
-                      : 'bg-white/5 hover:bg-white/10'
-                  }`}
+                <button
+                  key={day.date}
+                  onClick={() => setSelectedDay(day)}
+                  className="day-card"
+                  style={{
+                    background: isToday ? 'var(--accent-soft)' : 'var(--surface)',
+                    borderColor: isToday ? 'var(--accent)' : 'var(--border)',
+                  }}
                 >
-                  <div className={`calendar-day-number text-sm mb-1 ${isToday ? 'text-blue-400' : ''}`}>
-                    {day}
+                  <div style={{ fontSize: '11px', color: 'var(--ink-mute)', fontWeight: 600, marginBottom: '6px' }}>
+                    {day.day}
                   </div>
-                  <div className="space-y-1">
-                    {content.map((item) => (
-                      <div
-                        key={item.id}
-                        className="text-xs bg-white/20 text-white px-2 py-1 rounded truncate cursor-pointer hover:shadow-md transition group relative"
-                        title={item.content.title}
-                      >
-                        {item.content.title.substring(0, 15)}
-                        <div className="hidden group-hover:block absolute bottom-full left-0 mb-2 w-48 bg-white/10 border border-white/20 text-white text-xs p-3 rounded-lg z-10">
-                          <p className="font-600 mb-1">{item.content.title}</p>
-                          <p className="text-xs text-white/60 mb-2">
-                            {item.platforms.join(', ')}
-                          </p>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() =>
-                                handleReschedule(
-                                  item.content_id,
-                                  new Date(item.scheduled_date)
-                                )
-                              }
-                              className="text-xs bg-white/20 px-2 py-1 rounded hover:bg-white/30"
-                            >
-                              Reschedule
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.content_id)}
-                              className="text-xs bg-red-900/50 px-2 py-1 rounded hover:bg-red-900/70"
-                            >
-                              Delete
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div style={{ fontSize: '20px', marginBottom: '6px' }}>{day.icon}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--ink-dim)', marginBottom: '6px' }}>
+                    {day.contentType}
                   </div>
-                </div>
+                  <div style={{ fontSize: '14px' }}>{getStatusIcon(day.completed)}</div>
+                </button>
               )
             })}
           </div>
         </div>
+      )}
 
-        {/* Upcoming Posts */}
-        {scheduledContent.length > 0 && (
-          <div className="glass-card rounded-2xl p-8">
-            <h2 className="text-2xl font-black mb-6">
-              Upcoming Posts ({scheduledContent.length})
-            </h2>
-            <div className="space-y-4">
-              {scheduledContent
-                .sort((a, b) => new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime())
-                .slice(0, 5)
-                .map((item) => (
-                  <div
-                    key={item.id}
-                    className="border border-white/10 rounded-lg p-4 hover:shadow-md transition"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div>
-                        <h3 className="font-600 text-white">{item.content.title}</h3>
-                        <p className="text-sm text-white/60">
-                          {new Date(item.scheduled_date).toLocaleString()}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <span className="text-xs bg-white/10 text-white/70 px-3 py-1 rounded-full font-600">
-                          {item.content.content_type}
-                        </span>
-                      </div>
-                    </div>
-                    <p className="text-sm text-white/70 mb-3 line-clamp-2">
-                      {item.content.body}
-                    </p>
-                    <div className="flex gap-2">
-                      {item.platforms.map((platform) => (
-                        <span
-                          key={platform}
-                          className="text-xs bg-white/10 text-white/70 px-2 py-1 rounded"
-                        >
-                          {platform}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-
-        {scheduledContent.length === 0 && !loading && (
-          <div className="glass-card rounded-2xl p-12 text-center">
-            <div className="flex justify-center mb-4">
-              <div className="w-16 h-16 bg-white/10 rounded-xl flex items-center justify-center">
-                <CalendarIcon className="w-8 h-8 text-white/70" />
-              </div>
-            </div>
-            <p className="text-white/60 mb-4 text-lg font-500">No scheduled content yet</p>
-            <Link
-              href="/generate/blog"
-              className="btn-primary px-6 py-2 rounded-lg font-600 inline-block"
-            >
-              Create and Schedule Content
-            </Link>
-          </div>
-        )}
-      </div>
+      {/* Empty State */}
+      {plan.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '40px 20px', opacity: 0.6 }}>
+          <p style={{ marginBottom: '18px' }}>No monthly plan yet. Complete onboarding to generate your personalized content calendar.</p>
+          <Link href="/onboarding/plan" className="btn btn-primary">
+            <Icon.Sparkle style={{ width: 14, height: 14 }} />
+            Create Monthly Plan
+          </Link>
+        </div>
+      )}
     </div>
   )
 }

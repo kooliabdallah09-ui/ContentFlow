@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { Search, Download, Trash2, Eye, Filter } from 'lucide-react'
+import { Icon } from '@/components/Icons'
 import { showError, showSuccess } from '@/lib/notifications'
 
 interface LibraryItem {
@@ -24,44 +24,45 @@ export default function LibraryPage() {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [previewItem, setPreviewItem] = useState<LibraryItem | null>(null)
 
-  useEffect(() => {
-    const fetchLibrary = async () => {
-      try {
-        const supabase = getSupabase()
-        if (!supabase) {
-          setLoading(false)
-          return
-        }
-
-        const { data: sessionData } = await supabase.auth.getSession()
-        if (!sessionData?.session?.user?.id) {
-          setLoading(false)
-          return
-        }
-
-        const response = await fetch('/api/library', {
-          headers: {
-            Authorization: `Bearer ${sessionData.session.access_token}`,
-          },
-        })
-
-        if (response.ok) {
-          const data = await response.json()
-          setItems(data.items || [])
-        } else {
-          showError('Failed to load library')
-        }
-      } catch (err) {
-        console.error('Failed to fetch library:', err)
-        showError('Failed to load library')
-      } finally {
+  const fetchLibrary = async () => {
+    try {
+      setLoading(true)
+      const supabase = getSupabase()
+      if (!supabase) {
         setLoading(false)
+        return
       }
-    }
 
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData?.session?.user?.id) {
+        setLoading(false)
+        return
+      }
+
+      const response = await fetch('/api/library', {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        setItems(data.items || [])
+      } else {
+        showError('Failed to load library')
+      }
+    } catch (err) {
+      console.error('Failed to fetch library:', err)
+      showError('Failed to load library')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
     const timer = setTimeout(() => {
       fetchLibrary()
-    }, 300)
+    }, 500)
 
     return () => clearTimeout(timer)
   }, [])
@@ -151,206 +152,249 @@ export default function LibraryPage() {
     return labels[type] || type
   }
 
-  const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      image: 'bg-blue-900/30 text-blue-200 border-blue-700/50',
-      voice: 'bg-purple-900/30 text-purple-200 border-purple-700/50',
-      video: 'bg-pink-900/30 text-pink-200 border-pink-700/50',
-      ugc_package: 'bg-cyan-900/30 text-cyan-200 border-cyan-700/50',
-    }
-    return colors[type] || 'bg-white/10 text-white/70 border-white/20'
-  }
-
   return (
-    <div className="min-h-screen bg-black text-white p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-black mb-2">Content Library</h1>
-          <p className="text-white/60">View and manage all your generated content</p>
+    <div className="content">
+      <div className="page-head">
+        <h1 className="page-title">Content <em>Library</em></h1>
+        <p className="page-sub">View and manage all your generated content</p>
+      </div>
+
+      {/* Search and Filter Bar */}
+      <div className="lib-search">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+          <Icon.Search style={{ width: 16, height: 16, color: 'var(--ink-mute)' }} />
+          <input
+            type="text"
+            placeholder="Search content..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="input"
+            style={{ flex: 1, background: 'transparent', border: 'none', padding: 0 }}
+          />
         </div>
 
-        {/* Search and Filter Bar */}
-        <div className="flex gap-4 mb-8">
-          <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
-            <input
-              type="text"
-              placeholder="Search content..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-500/50"
-            />
-          </div>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <select
+            value={filterType}
+            onChange={(e) => setFilterType(e.target.value)}
+            className="select"
+            style={{ padding: '10px 12px' }}
+          >
+            <option value="all">All Types</option>
+            <option value="image">Images</option>
+            <option value="voice">Voices</option>
+            <option value="video">Videos</option>
+            <option value="ugc_package">UGC Packages</option>
+          </select>
 
-          <div className="flex gap-2">
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white focus:outline-none focus:border-cyan-500/50"
+          {selectedItems.size > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="btn btn-ghost"
+              style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
-              <option value="all">All Types</option>
-              <option value="image">Images</option>
-              <option value="voice">Voices</option>
-              <option value="video">Videos</option>
-              <option value="ugc_package">UGC Packages</option>
-            </select>
-
-            {selectedItems.size > 0 && (
-              <button
-                onClick={handleBulkDelete}
-                className="px-4 py-2 rounded-lg bg-red-900/30 border border-red-700/50 text-red-200 hover:bg-red-900/50 transition-colors flex items-center gap-2"
-              >
-                <Trash2 className="w-4 h-4" />
-                Delete {selectedItems.size}
-              </button>
-            )}
-          </div>
+              <Icon.X style={{ width: 14, height: 14 }} />
+              Delete {selectedItems.size}
+            </button>
+          )}
         </div>
+      </div>
 
-        {/* Content Grid */}
-        {loading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-white/60">Loading your library...</div>
-          </div>
-        ) : filteredItems.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-64">
-            <div className="text-white/60 mb-2">No content found</div>
-            {items.length === 0 && (
-              <p className="text-white/40 text-sm">Start generating content to see it here</p>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredItems.map((item) => (
-              <div
-                key={item.id}
-                className="group relative bg-white/5 border border-white/10 rounded-lg overflow-hidden hover:border-cyan-500/50 transition-colors"
-              >
-                {/* Preview/Thumbnail */}
-                <div className="aspect-square bg-white/5 flex items-center justify-center relative overflow-hidden">
-                  {item.content_type === 'image' ? (
-                    <img
-                      src={item.storage_url}
-                      alt="Generated content"
-                      className="w-full h-full object-cover"
-                    />
-                  ) : item.content_type === 'video' ? (
-                    <video
-                      src={item.storage_url}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : item.content_type === 'voice' ? (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="text-4xl">🎙️</div>
-                      <span className="text-xs text-white/60">Audio</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-2">
-                      <div className="text-4xl">📦</div>
-                      <span className="text-xs text-white/60">Package</span>
-                    </div>
-                  )}
-
-                  {/* Overlay with Actions */}
-                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                    <button
-                      onClick={() => setPreviewItem(item)}
-                      className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-                    >
-                      <Eye className="w-5 h-5" />
-                    </button>
-                    <a
-                      href={item.storage_url}
-                      download
-                      className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-                    >
-                      <Download className="w-5 h-5" />
-                    </a>
-                    <button
-                      onClick={() => handleDelete(item.id)}
-                      className="p-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  {/* Checkbox */}
-                  <input
-                    type="checkbox"
-                    checked={selectedItems.has(item.id)}
-                    onChange={(e) => {
-                      const newSet = new Set(selectedItems)
-                      if (e.target.checked) {
-                        newSet.add(item.id)
-                      } else {
-                        newSet.delete(item.id)
-                      }
-                      setSelectedItems(newSet)
-                    }}
-                    className="absolute top-2 left-2 w-4 h-4 cursor-pointer"
+      {/* Content Grid */}
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.6 }}>
+          Loading your library...
+        </div>
+      ) : filteredItems.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.6 }}>
+          <p>No content found</p>
+          {items.length === 0 && (
+            <p style={{ fontSize: '13px', opacity: 0.7 }}>Start generating content to see it here</p>
+          )}
+        </div>
+      ) : (
+        <div className="lib-grid">
+          {filteredItems.map((item) => (
+            <div
+              key={item.id}
+              className="lib-card"
+              style={{ textAlign: 'left', cursor: 'pointer' }}
+              onClick={() => setPreviewItem(item)}
+            >
+              {/* Thumbnail */}
+              <div className="lib-thumb">
+                {item.content_type === 'image' ? (
+                  <img
+                    src={item.storage_url}
+                    alt="Generated content"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
-                </div>
+                ) : item.content_type === 'video' ? (
+                  <video
+                    src={item.storage_url}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : item.content_type === 'voice' ? (
+                  <div className="lib-thumb-label">🎙️ Audio</div>
+                ) : (
+                  <div className="lib-thumb-label">📦 Package</div>
+                )}
 
-                {/* Info */}
-                <div className="p-3">
-                  <div className="flex items-start justify-between mb-2">
-                    <span
-                      className={`text-xs px-2 py-1 rounded border ${getTypeColor(
-                        item.content_type
-                      )}`}
-                    >
-                      {getTypeLabel(item.content_type)}
-                    </span>
-                    <span className="text-xs text-cyan-400">{item.credit_cost} credits</span>
-                  </div>
+                {/* Checkbox */}
+                <input
+                  type="checkbox"
+                  checked={selectedItems.has(item.id)}
+                  onChange={(e) => {
+                    e.stopPropagation()
+                    const newSet = new Set(selectedItems)
+                    if (e.target.checked) {
+                      newSet.add(item.id)
+                    } else {
+                      newSet.delete(item.id)
+                    }
+                    setSelectedItems(newSet)
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '10px',
+                    left: '10px',
+                    width: '18px',
+                    height: '18px',
+                    cursor: 'pointer',
+                    accentColor: 'var(--accent)',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                />
 
-                  <p className="text-xs text-white/60 line-clamp-2">
-                    {item.metadata?.prompt ||
-                      item.metadata?.text ||
-                      item.metadata?.script ||
-                      item.metadata?.productName ||
-                      'Generated content'}
-                  </p>
-
-                  <p className="text-xs text-white/40 mt-2">
-                    {new Date(item.created_at).toLocaleDateString()}
-                  </p>
+                {/* Actions Overlay */}
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'rgba(0,0,0,0.6)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  opacity: 0,
+                  transition: 'opacity 0.2s',
+                }} className="lib-card-overlay">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setPreviewItem(item)
+                    }}
+                    className="icon-btn"
+                    style={{ padding: '8px', background: 'rgba(255,255,255,0.15)' }}
+                  >
+                    <Icon.Search style={{ width: 16, height: 16 }} />
+                  </button>
+                  <a
+                    href={item.storage_url}
+                    download
+                    className="icon-btn"
+                    style={{ padding: '8px', background: 'rgba(255,255,255,0.15)' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Icon.Arrow style={{ width: 16, height: 16 }} />
+                  </a>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleDelete(item.id)
+                    }}
+                    className="icon-btn"
+                    style={{ padding: '8px', background: 'rgba(200,0,0,0.3)', color: 'var(--danger)' }}
+                  >
+                    <Icon.X style={{ width: 16, height: 16 }} />
+                  </button>
                 </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+
+              {/* Metadata */}
+              <div className="lib-meta">
+                <div className="lib-type-row">
+                  <span className="tag" style={{ padding: '4px 8px', fontSize: '11px' }}>
+                    {getTypeLabel(item.content_type)}
+                  </span>
+                  <span style={{ fontSize: '12px', color: 'var(--accent)' }}>
+                    {item.credit_cost} credits
+                  </span>
+                </div>
+
+                <p className="lib-title">
+                  {item.metadata?.prompt ||
+                    item.metadata?.text ||
+                    item.metadata?.script ||
+                    item.metadata?.productName ||
+                    'Generated content'}
+                </p>
+
+                <p className="lib-meta-row">
+                  {new Date(item.created_at).toLocaleDateString()}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Preview Modal */}
       {previewItem && (
         <div
-          className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.8)',
+            zIndex: 50,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '16px',
+          }}
           onClick={() => setPreviewItem(null)}
         >
           <div
-            className="bg-black border border-white/10 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-auto"
+            style={{
+              background: 'var(--bg)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)',
+              maxWidth: '600px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflowY: 'auto',
+            }}
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 flex items-center justify-between p-4 border-b border-white/10 bg-black/50 backdrop-blur">
-              <h2 className="text-lg font-semibold">
+            {/* Modal Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              padding: '16px 20px',
+              borderBottom: '1px solid var(--border)',
+              position: 'sticky',
+              top: 0,
+              background: 'var(--bg)',
+            }}>
+              <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>
                 {getTypeLabel(previewItem.content_type)}
               </h2>
               <button
                 onClick={() => setPreviewItem(null)}
-                className="text-white/60 hover:text-white"
+                className="icon-btn"
+                style={{ padding: '6px' }}
               >
-                ✕
+                <Icon.X style={{ width: 18, height: 18 }} />
               </button>
             </div>
 
-            <div className="p-6">
+            {/* Modal Content */}
+            <div style={{ padding: '20px' }}>
               {previewItem.content_type === 'image' && (
                 <img
                   src={previewItem.storage_url}
                   alt="Preview"
-                  className="w-full rounded-lg"
+                  style={{ width: '100%', borderRadius: 'var(--r-md)' }}
                 />
               )}
 
@@ -358,7 +402,7 @@ export default function LibraryPage() {
                 <video
                   src={previewItem.storage_url}
                   controls
-                  className="w-full rounded-lg"
+                  style={{ width: '100%', borderRadius: 'var(--r-md)' }}
                 />
               )}
 
@@ -366,78 +410,75 @@ export default function LibraryPage() {
                 <audio
                   src={previewItem.storage_url}
                   controls
-                  className="w-full"
+                  style={{ width: '100%' }}
                 />
               )}
 
               {previewItem.content_type === 'ugc_package' && (
-                <div className="space-y-4">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   {previewItem.metadata?.image && (
                     <div>
-                      <h3 className="text-sm font-semibold text-white/80 mb-2">
-                        Image
-                      </h3>
+                      <span className="eyebrow">Image</span>
                       <img
                         src={previewItem.metadata.image}
                         alt="Package image"
-                        className="w-full rounded-lg max-h-64 object-cover"
+                        style={{ width: '100%', borderRadius: 'var(--r-md)', marginTop: '8px', maxHeight: '200px', objectFit: 'cover' }}
                       />
                     </div>
                   )}
 
                   {previewItem.metadata?.voice && (
                     <div>
-                      <h3 className="text-sm font-semibold text-white/80 mb-2">
-                        Voiceover
-                      </h3>
+                      <span className="eyebrow">Voiceover</span>
                       <audio
                         src={previewItem.metadata.voice}
                         controls
-                        className="w-full"
+                        style={{ width: '100%', marginTop: '8px' }}
                       />
                     </div>
                   )}
 
                   {previewItem.metadata?.video && (
                     <div>
-                      <h3 className="text-sm font-semibold text-white/80 mb-2">
-                        Video
-                      </h3>
+                      <span className="eyebrow">Video</span>
                       <video
                         src={previewItem.metadata.video}
                         controls
-                        className="w-full rounded-lg max-h-64 object-cover"
+                        style={{ width: '100%', borderRadius: 'var(--r-md)', marginTop: '8px', maxHeight: '200px', objectFit: 'cover' }}
                       />
                     </div>
                   )}
 
                   {previewItem.metadata?.productName && (
-                    <div className="bg-white/5 rounded p-3 text-sm">
-                      <p>
-                        <span className="text-white/60">Product:</span>{' '}
-                        <span className="text-white">
-                          {previewItem.metadata.productName}
-                        </span>
-                      </p>
+                    <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-sm)', padding: '12px', fontSize: '13px' }}>
+                      <span style={{ color: 'var(--ink-fade)' }}>Product: </span>
+                      <span style={{ color: 'var(--ink)' }}>{previewItem.metadata.productName}</span>
                     </div>
                   )}
                 </div>
               )}
 
-              <div className="mt-6 flex gap-2">
+              {/* Actions */}
+              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
                 <a
                   href={previewItem.storage_url}
                   download
-                  className="flex-1 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-700 text-white font-medium transition-colors flex items-center justify-center gap-2"
+                  className="btn btn-primary"
+                  style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                  onClick={(e) => e.stopPropagation()}
                 >
-                  <Download className="w-4 h-4" />
+                  <Icon.Arrow style={{ width: 14, height: 14 }} />
                   Download
                 </a>
                 <button
-                  onClick={() => handleDelete(previewItem.id)}
-                  className="px-4 py-2 rounded-lg bg-red-900/30 hover:bg-red-900/50 text-red-200 font-medium transition-colors flex items-center gap-2"
+                  onClick={() => {
+                    handleDelete(previewItem.id)
+                    setPreviewItem(null)
+                  }}
+                  className="btn btn-ghost"
+                  style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Icon.X style={{ width: 14, height: 14 }} />
                   Delete
                 </button>
               </div>
@@ -445,6 +486,12 @@ export default function LibraryPage() {
           </div>
         </div>
       )}
+
+      <style>{`
+        .lib-card:hover .lib-card-overlay {
+          opacity: 1;
+        }
+      `}</style>
     </div>
   )
 }

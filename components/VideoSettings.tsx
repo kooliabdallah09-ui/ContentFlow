@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Film, Zap } from 'lucide-react'
+import { Icon } from './Icons'
 
 interface VideoSettingsProps {
   onGenerate: (settings: {
@@ -38,7 +38,7 @@ export default function VideoSettings({
   const [avatarId, setAvatarId] = useState(AVATARS[0].id)
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
 
-  const creditCost = 300
+  const creditCost = 100
   const charCount = script.length
   const maxChars = 3000
   const estimatedDuration = Math.ceil((script.split(/\s+/).length / 150) * 60)
@@ -57,40 +57,51 @@ export default function VideoSettings({
   }
 
   return (
-    <div className="space-y-6">
-      <div>
-        <label className="block text-sm font-600 text-white/90 mb-3">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+      <div className="form-row">
+        <label htmlFor="script" style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
           Video Script
         </label>
         <textarea
+          id="script"
           value={script}
           onChange={(e) => setScript(e.target.value.slice(0, maxChars))}
-          placeholder="Write the script for your video. Be clear and engaging. Estimated duration will be shown below."
-          className="w-full px-4 py-3 bg-white/5 border border-cyan-400/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition h-40 resize-none"
+          placeholder="Write the script for your video. Be clear and engaging."
+          className="textarea"
+          style={{ minHeight: '120px' }}
           disabled={isLoading}
           maxLength={maxChars}
         />
-        <div className="flex justify-between items-center mt-2">
-          <p className="text-xs text-white/50">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
+          <p className="eyebrow">
             {charCount} / {maxChars} characters
           </p>
           {estimatedDuration > 0 && (
-            <p className="text-xs text-cyan-400">
+            <p className="eyebrow" style={{ color: 'var(--accent)' }}>
               Est. Duration: ~{estimatedDuration}s
             </p>
           )}
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-600 text-white/90 mb-3">
+      <div className="form-row">
+        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
           Select Avatar
         </label>
-        <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflow: 'auto' }}>
           {AVATARS.map((avatar) => (
             <label
               key={avatar.id}
-              className="flex items-center p-3 bg-white/5 border border-cyan-400/20 rounded-lg cursor-pointer hover:bg-white/10 hover:border-cyan-400/40 transition"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 12px',
+                background: avatarId === avatar.id ? 'var(--accent-soft)' : 'var(--surface)',
+                border: `1px solid ${avatarId === avatar.id ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 'var(--r-sm)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
             >
               <input
                 type="radio"
@@ -99,28 +110,35 @@ export default function VideoSettings({
                 checked={avatarId === avatar.id}
                 onChange={(e) => setAvatarId(e.target.value)}
                 disabled={isLoading}
-                className="accent-cyan-400 cursor-pointer"
+                style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
               />
-              <div className="ml-3 flex-1">
-                <p className="font-600 text-white">{avatar.name}</p>
-                <p className="text-xs text-white/50">
-                  {avatar.gender} • {avatar.accent}
-                </p>
+              <div style={{ marginLeft: '10px', flex: 1 }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>{avatar.name}</p>
+                <p className="eyebrow">{avatar.gender} • {avatar.accent}</p>
               </div>
             </label>
           ))}
         </div>
       </div>
 
-      <div>
-        <label className="block text-sm font-600 text-white/90 mb-3">
+      <div className="form-row">
+        <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
           Select Voice
         </label>
-        <div className="space-y-2 max-h-48 overflow-y-auto">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflow: 'auto' }}>
           {VOICES.map((voice) => (
             <label
               key={voice.id}
-              className="flex items-center p-3 bg-white/5 border border-cyan-400/20 rounded-lg cursor-pointer hover:bg-white/10 hover:border-cyan-400/40 transition"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                padding: '10px 12px',
+                background: voiceId === voice.id ? 'var(--accent-soft)' : 'var(--surface)',
+                border: `1px solid ${voiceId === voice.id ? 'var(--accent)' : 'var(--border)'}`,
+                borderRadius: 'var(--r-sm)',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
             >
               <input
                 type="radio"
@@ -129,28 +147,29 @@ export default function VideoSettings({
                 checked={voiceId === voice.id}
                 onChange={(e) => setVoiceId(e.target.value)}
                 disabled={isLoading}
-                className="accent-cyan-400 cursor-pointer"
+                style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
               />
-              <div className="ml-3 flex-1">
-                <p className="font-600 text-white">{voice.name}</p>
-                <p className="text-xs text-white/50">{voice.accent}</p>
+              <div style={{ marginLeft: '10px', flex: 1 }}>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>{voice.name}</p>
+                <p className="eyebrow">{voice.accent}</p>
               </div>
             </label>
           ))}
         </div>
       </div>
 
-      <div className="pt-2 space-y-3">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Credit Cost:</span>
-          <span className="font-600 text-cyan-400">{creditCost} credits</span>
+      <div style={{ paddingTop: '12px', borderTop: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+          <span className="eyebrow">Credit Cost:</span>
+          <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{creditCost} credits</span>
         </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Your Balance:</span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
+          <span className="eyebrow">Your Balance:</span>
           <span
-            className={`font-600 ${
-              creditBalance >= creditCost ? 'text-emerald-400' : 'text-red-400'
-            }`}
+            style={{
+              fontWeight: 600,
+              color: creditBalance >= creditCost ? 'var(--good)' : 'var(--danger)',
+            }}
           >
             {creditBalance} credits
           </span>
@@ -159,14 +178,15 @@ export default function VideoSettings({
         <button
           onClick={handleSubmit}
           disabled={!canGenerate || isLoading}
-          className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 disabled:from-white/10 disabled:to-white/10 disabled:text-white/50 text-white font-600 rounded-lg transition duration-200 flex items-center justify-center gap-2"
+          className="btn btn-primary"
+          style={{ width: '100%', marginTop: '12px', opacity: canGenerate && !isLoading ? 1 : 0.6, cursor: canGenerate && !isLoading ? 'pointer' : 'not-allowed' }}
         >
-          <Film className="w-5 h-5" />
+          <Icon.Sparkle style={{ width: 14, height: 14 }} />
           {isLoading ? 'Generating...' : 'Generate Video'}
         </button>
 
         {!canGenerate && script.trim().length > 0 && (
-          <p className="text-xs text-red-400 text-center">
+          <p className="eyebrow" style={{ color: 'var(--danger)', textAlign: 'center', fontSize: '11px' }}>
             Not enough credits. Need {creditCost}, have {creditBalance}
           </p>
         )}

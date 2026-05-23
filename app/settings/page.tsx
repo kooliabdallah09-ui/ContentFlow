@@ -1,8 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
-import { Settings, Bell, Lock, User, Trash2, LogOut } from 'lucide-react'
+import { Settings, Bell, Lock, User, Trash2, LogOut, Briefcase, ArrowRight } from 'lucide-react'
 import { showSuccess, showError } from '@/lib/notifications'
 import { useRouter } from 'next/navigation'
 
@@ -149,6 +150,27 @@ export default function SettingsPage() {
             <h1 className="text-4xl font-black">Settings</h1>
           </div>
           <p className="text-white/60">Manage your account and preferences</p>
+        </div>
+
+        {/* Brand Settings Quick Link */}
+        <div className="mb-8">
+          <Link
+            href="/settings/brand"
+            className="block bg-gradient-to-r from-cyan-600/20 to-cyan-600/10 border border-cyan-500/30 rounded-lg p-6 hover:from-cyan-600/30 hover:to-cyan-600/20 transition-colors group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+                  <Briefcase className="w-6 h-6 text-cyan-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-1">Brand Profile</h3>
+                  <p className="text-sm text-white/60">Set up your company name, description, and brand voice for AI-powered content generation</p>
+                </div>
+              </div>
+              <ArrowRight className="w-5 h-5 text-cyan-400 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </Link>
         </div>
 
         {/* Settings Sections */}

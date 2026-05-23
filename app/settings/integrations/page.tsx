@@ -1,452 +1,263 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import { getSupabase } from '@/lib/auth'
 import Link from 'next/link'
-import { CheckCircle, Link2, ArrowRight, Lock, X } from 'lucide-react'
+import { showSuccess, showError } from '@/lib/notifications'
 
 interface Integration {
   platform: string
-  connected_at: string
+  name: string
+  icon: string
+  description: string
+  connected: boolean
+  connectedAt?: string
+  accountName?: string
 }
-
-// Real official logos from CDN
-const PlatformLogo = ({ platform }: { platform: string }) => {
-  const logoMap: Record<string, string> = {
-    wordpress: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/wordpress.svg',
-    twitter: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/x.svg',
-    linkedin: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/linkedin.svg',
-    instagram: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/instagram.svg',
-    facebook: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/facebook.svg',
-    tiktok: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/tiktok.svg',
-  }
-
-  return (
-    <img
-      src={logoMap[platform]}
-      alt={platform}
-      className="w-6 h-6 object-contain"
-      loading="lazy"
-    />
-  )
-}
-
-const PLATFORMS = [
-  { id: 'wordpress', name: 'WordPress', color: 'blue' },
-  { id: 'twitter', name: 'X (Twitter)', color: 'slate' },
-  { id: 'instagram', name: 'Instagram', color: 'pink' },
-  { id: 'facebook', name: 'Facebook', color: 'blue' },
-  { id: 'linkedin', name: 'LinkedIn', color: 'blue', comingSoon: true },
-  { id: 'tiktok', name: 'TikTok', color: 'tiktok', comingSoon: true },
-]
 
 export default function IntegrationsPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
-  const [disconnecting, setDisconnecting] = useState<string | null>(null)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [showWordPressModal, setShowWordPressModal] = useState(false)
-  const [wordPressForm, setWordPressForm] = useState({ siteUrl: '', username: '', appPassword: '' })
-  const [wordPressLoading, setWordPressLoading] = useState(false)
+  const [connecting, setConnecting] = useState<string | null>(null)
 
   useEffect(() => {
-    // Show message from redirect
-    const success = searchParams.get('success')
-    const error = searchParams.get('error')
+    loadIntegrations()
+  }, [])
 
-    if (success === 'twitter_connected') {
-      setMessage({ type: 'success', text: 'Twitter account connected successfully!' })
-      fetchIntegrations()
-    } else if (success === 'instagram') {
-      setMessage({ type: 'success', text: 'Instagram account connected successfully!' })
-      fetchIntegrations()
-    } else if (success === 'facebook') {
-      setMessage({ type: 'success', text: 'Facebook account connected successfully!' })
-      fetchIntegrations()
-    } else if (error) {
-      const errorText = error === 'invalid_state' ? 'Security check failed. Please try again.' :
-                        error === 'no_code' ? 'Authorization was not completed.' :
-                        `Connection failed: ${error}`
-      setMessage({ type: 'error', text: errorText })
-    }
-
-    // Clear message after 5 seconds
-    if (success || error) {
-      const timer = setTimeout(() => setMessage(null), 5000)
-      return () => clearTimeout(timer)
-    }
-  }, [searchParams])
-
-  const fetchIntegrations = async () => {
+  const loadIntegrations = async () => {
     try {
-      setLoading(true)
-      const response = await fetch('/api/integrations/status')
-      const data = await response.json()
-      setIntegrations(data.integrations || [])
+      const supabase = getSupabase()
+      if (!supabase) return
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData?.session?.access_token) return
+
+      const response = await fetch('/api/integrations/list', {
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+        },
+      }).catch(() => null)
+
+      if (response?.ok) {
+        const data = await response.json()
+        setIntegrations(data.integrations || defaultIntegrations)
+      } else {
+        setIntegrations(defaultIntegrations)
+      }
     } catch (error) {
-      console.error('Failed to fetch integrations:', error)
+      console.error('Failed to load integrations:', error)
+      setIntegrations(defaultIntegrations)
     } finally {
       setLoading(false)
     }
   }
 
-  useEffect(() => {
-    fetchIntegrations()
-  }, [])
-
-  const handleConnect = (platform: string) => {
-    if (platform === 'wordpress') {
-      setShowWordPressModal(true)
-    } else if (platform === 'twitter') {
-      window.location.href = '/api/integrations/twitter/connect'
-    } else if (platform === 'instagram' || platform === 'facebook') {
-      window.location.href = `/api/integrations/connect/${platform}`
-    }
-  }
-
-  const handleWordPressConnect = async () => {
-    if (!wordPressForm.siteUrl || !wordPressForm.username || !wordPressForm.appPassword) {
-      setMessage({ type: 'error', text: 'Please fill in all fields' })
-      return
-    }
-
-    setWordPressLoading(true)
+  const handleConnect = async (platform: string) => {
+    setConnecting(platform)
     try {
-      const response = await fetch('/api/integrations/connect/wordpress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(wordPressForm),
-      })
+      const supabase = getSupabase()
+      if (!supabase) throw new Error('Not authenticated')
 
-      const data = await response.json()
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData?.session?.access_token) throw new Error('No session')
 
-      if (!response.ok) {
-        setMessage({ type: 'error', text: data.error || 'Failed to connect WordPress' })
-      } else {
-        setMessage({ type: 'success', text: 'WordPress connected successfully!' })
-        setShowWordPressModal(false)
-        setWordPressForm({ siteUrl: '', username: '', appPassword: '' })
-        fetchIntegrations()
-      }
+      const redirectUrl = `/api/integrations/${platform}/connect?redirectTo=${encodeURIComponent(window.location.href)}`
+      window.location.href = redirectUrl
     } catch (error) {
-      setMessage({ type: 'error', text: 'Connection failed' })
-    } finally {
-      setWordPressLoading(false)
+      showError('Connection failed', error instanceof Error ? error.message : 'Please try again')
+      setConnecting(null)
     }
   }
 
   const handleDisconnect = async (platform: string) => {
-    setDisconnecting(platform)
+    if (!confirm(`Disconnect ${platform}?`)) return
+
     try {
-      const response = await fetch('/api/integrations/disconnect', {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error('Not authenticated')
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData?.session?.access_token) throw new Error('No session')
+
+      const response = await fetch(`/api/integrations/${platform}/disconnect`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ platform }),
+        headers: {
+          Authorization: `Bearer ${sessionData.session.access_token}`,
+          'Content-Type': 'application/json',
+        },
       })
 
-      if (response.ok) {
-        setMessage({ type: 'success', text: `${platform} disconnected successfully` })
-        fetchIntegrations()
-      } else {
-        setMessage({ type: 'error', text: 'Failed to disconnect' })
-      }
+      if (!response.ok) throw new Error('Failed to disconnect')
+
+      setIntegrations((prev) =>
+        prev.map((int) =>
+          int.platform === platform
+            ? { ...int, connected: false, connectedAt: undefined, accountName: undefined }
+            : int
+        )
+      )
+
+      showSuccess('Disconnected', `${platform} has been disconnected`)
     } catch (error) {
-      setMessage({ type: 'error', text: 'Disconnection failed' })
-    } finally {
-      setDisconnecting(null)
+      showError('Disconnection failed', error instanceof Error ? error.message : 'Please try again')
     }
   }
 
-  const isConnected = (platform: string) => {
-    return integrations.some((i) => i.platform === platform)
+  const defaultIntegrations: Integration[] = [
+    {
+      platform: 'instagram',
+      name: 'Instagram',
+      icon: '📷',
+      description: 'Connect your Instagram account to schedule posts and track engagement',
+      connected: false,
+    },
+    {
+      platform: 'twitter',
+      name: 'Twitter / X',
+      icon: '𝕏',
+      description: 'Share your content directly to Twitter and track performance',
+      connected: false,
+    },
+    {
+      platform: 'facebook',
+      name: 'Facebook',
+      icon: '👍',
+      description: 'Post to Facebook pages and manage your social presence',
+      connected: false,
+    },
+    {
+      platform: 'linkedin',
+      name: 'LinkedIn',
+      icon: '💼',
+      description: 'Share professional content with your LinkedIn network',
+      connected: false,
+    },
+    {
+      platform: 'tiktok',
+      name: 'TikTok',
+      icon: '🎵',
+      description: 'Reach millions with short-form video content on TikTok',
+      connected: false,
+    },
+    {
+      platform: 'youtube',
+      name: 'YouTube',
+      icon: '▶️',
+      description: 'Upload and manage your YouTube channel',
+      connected: false,
+    },
+  ]
+
+  if (loading) {
+    return (
+      <div className="content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '4px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+          <p style={{ color: 'var(--ink-dim)', fontSize: '14px' }}>Loading integrations...</p>
+          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      </div>
+    )
   }
 
-  const colorMap = {
-    slate: 'text-slate-700',
-    blue: 'text-blue-700',
-    pink: 'text-pink-700',
-    tiktok: 'text-black',
-  }
-
-  const bgColorMap = {
-    slate: 'bg-slate-100',
-    blue: 'bg-blue-100',
-    pink: 'bg-pink-100',
-    tiktok: 'bg-black/5',
-  }
+  const connectedCount = integrations.filter((i) => i.connected).length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
-        * { font-family: 'Inter', sans-serif; }
-        .serif-headline { font-family: 'Fraunces', serif; font-weight: 700; }
-        .btn-primary { background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.2); transition: all 0.3s ease; }
-        .btn-primary:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 15px 40px rgba(59, 130, 246, 0.35); }
-      `}</style>
+    <div className="content">
+      <div className="page-head">
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px', overflowX: 'auto' }}>
+          <a href="/settings/brand" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Brand</a>
+          <a href="/settings/account" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Account</a>
+          <a href="/settings/billing" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Billing</a>
+          <a href="/settings/integrations" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--accent)', borderBottom: '2px solid var(--accent)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Integrations</a>
+        </div>
+        <h1 className="page-title">Integrations</h1>
+        <p className="page-sub">Connect your social media accounts to schedule and track your content across platforms.</p>
+      </div>
 
-      {/* Header */}
-      <div className="border-b border-slate-200 py-8 px-6">
-        <div className="max-w-7xl mx-auto">
-          <Link href="/dashboard" className="inline-flex items-center gap-2 text-slate-600 hover:text-blue-600 transition mb-6">
-            <ArrowRight className="w-4 h-4 rotate-180" />
-            <span className="text-sm font-500">Back to Dashboard</span>
-          </Link>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px', marginBottom: '32px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
           <div>
-            <h1 className="serif-headline text-4xl text-slate-900 mb-2">Integrations</h1>
-            <p className="text-slate-600">
-              Connect your accounts to publish content across multiple platforms
+            <p className="eyebrow" style={{ marginBottom: '8px' }}>Connected Accounts</p>
+            <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--accent)' }}>
+              {connectedCount} / {integrations.length}
+            </p>
+          </div>
+          <div>
+            <p className="eyebrow" style={{ marginBottom: '8px' }}>Coverage</p>
+            <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--ink)' }}>
+              {Math.round((connectedCount / integrations.length) * 100)}%
             </p>
           </div>
         </div>
       </div>
 
-      <div className="p-8 max-w-7xl mx-auto">
-        {/* Message Alert */}
-        {message && (
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
+        {integrations.map((integration) => (
           <div
-            className={`mb-8 rounded-lg p-4 border flex items-start gap-3 ${
-              message.type === 'success'
-                ? 'bg-green-50 border-green-200'
-                : 'bg-red-50 border-red-200'
-            }`}
+            key={integration.platform}
+            style={{
+              background: 'var(--surface)',
+              border: integration.connected ? '2px solid var(--accent)' : '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)',
+              padding: '24px',
+              display: 'flex',
+              flexDirection: 'column',
+            }}
           >
-            {message.type === 'success' ? (
-              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-            ) : (
-              <div className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5">✕</div>
-            )}
-            <p
-              className={`text-sm font-500 ${
-                message.type === 'success' ? 'text-green-800' : 'text-red-800'
-              }`}
-            >
-              {message.text}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <div style={{ fontSize: '32px' }}>{integration.icon}</div>
+              {integration.connected && (
+                <div style={{ background: 'var(--good)', color: 'white', fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--r-sm)' }}>
+                  Connected
+                </div>
+              )}
+            </div>
+
+            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+              {integration.name}
+            </h3>
+
+            <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginBottom: '16px', flex: 1, lineHeight: 1.5 }}>
+              {integration.description}
             </p>
+
+            {integration.connected ? (
+              <button
+                onClick={() => handleDisconnect(integration.platform)}
+                className="btn btn-ghost"
+                style={{ width: '100%' }}
+              >
+                Disconnect
+              </button>
+            ) : (
+              <button
+                onClick={() => handleConnect(integration.platform)}
+                disabled={connecting === integration.platform}
+                className="btn btn-primary"
+                style={{ width: '100%', opacity: connecting === integration.platform ? 0.6 : 1 }}
+              >
+                {connecting === integration.platform ? 'Connecting...' : 'Connect'}
+              </button>
+            )}
           </div>
-        )}
-
-        {/* Integrations Grid */}
-        <div className="mb-16">
-          <h2 className="text-lg font-600 text-slate-900 mb-6">Available Integrations</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {PLATFORMS.map((platform) => {
-              const connected = isConnected(platform.id)
-              const colorClass = colorMap[platform.color as keyof typeof colorMap]
-              const bgColorClass = bgColorMap[platform.color as keyof typeof bgColorMap]
-
-              return (
-                <div
-                  key={platform.id}
-                  className="border border-slate-200 rounded-lg p-6 hover:border-slate-300 hover:shadow-sm transition"
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className={`${bgColorClass} rounded-lg p-3 w-fit flex items-center justify-center`}>
-                      <div className={`w-6 h-6 ${colorClass}`}>
-                        <PlatformLogo platform={platform.id} />
-                      </div>
-                    </div>
-                    {platform.comingSoon && (
-                      <span className="bg-slate-100 text-slate-700 text-xs font-600 px-2.5 py-1 rounded">
-                        Coming soon
-                      </span>
-                    )}
-                    {connected && (
-                      <CheckCircle className="w-5 h-5 text-green-600" />
-                    )}
-                  </div>
-
-                  <h3 className="font-600 text-slate-900 mb-1">{platform.name}</h3>
-                  <p className="text-sm text-slate-600 mb-4">
-                    {connected
-                      ? 'Account connected and ready to publish'
-                      : 'Connect your account to enable publishing'}
-                  </p>
-
-                  {connected ? (
-                    <button
-                      onClick={() => handleDisconnect(platform.id)}
-                      disabled={disconnecting === platform.id}
-                      className="w-full text-sm font-500 py-2 px-4 border border-red-200 text-red-700 rounded-lg hover:bg-red-50 disabled:opacity-50 transition"
-                    >
-                      {disconnecting === platform.id ? 'Disconnecting...' : 'Disconnect'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleConnect(platform.id)}
-                      disabled={platform.comingSoon || loading}
-                      className="btn-primary w-full text-white text-sm font-500 py-2 px-4 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition"
-                    >
-                      {platform.comingSoon ? (
-                        <>
-                          <Lock className="w-4 h-4" />
-                          Coming soon
-                        </>
-                      ) : (
-                        <>
-                          <Link2 className="w-4 h-4" />
-                          Connect
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* How It Works Section */}
-        <div className="border-t border-slate-200 pt-12">
-          <h2 className="serif-headline text-2xl text-slate-900 mb-3">How publishing works</h2>
-          <p className="text-slate-600 mb-8">
-            Get your content in front of your audience with just a few clicks
-          </p>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Step 1 */}
-            <div className="relative">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <Link2 className="w-5 h-5 text-blue-600" />
-                  </div>
-                </div>
-                <div className="flex-1 pt-1">
-                  <h3 className="font-600 text-slate-900 mb-2">Connect your account</h3>
-                  <p className="text-sm text-slate-600">
-                    Select a platform and authorize ContentFlow to access your account securely
-                  </p>
-                </div>
-              </div>
-              <div className="hidden md:block absolute top-10 left-[30px] w-px h-16 bg-gradient-to-b from-slate-300 to-transparent" style={{ top: '40px' }} />
-            </div>
-
-            {/* Step 2 */}
-            <div className="relative">
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                  </div>
-                </div>
-                <div className="flex-1 pt-1">
-                  <h3 className="font-600 text-slate-900 mb-2">Create your content</h3>
-                  <p className="text-sm text-slate-600">
-                    Generate blog posts, social media content, or emails using AI-powered tools
-                  </p>
-                </div>
-              </div>
-              <div className="hidden md:block absolute top-10 left-[30px] w-px h-16 bg-gradient-to-b from-slate-300 to-transparent" style={{ top: '40px' }} />
-            </div>
-
-            {/* Step 3 */}
-            <div>
-              <div className="flex items-start gap-4">
-                <div className="flex-shrink-0">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                    <ArrowRight className="w-5 h-5 text-blue-600" />
-                  </div>
-                </div>
-                <div className="flex-1 pt-1">
-                  <h3 className="font-600 text-slate-900 mb-2">Publish instantly</h3>
-                  <p className="text-sm text-slate-600">
-                    Schedule or publish immediately to your connected platforms with one click
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* WordPress Modal */}
-      {showWordPressModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-slate-200">
-              <h2 className="text-lg font-600 text-slate-900">Connect WordPress</h2>
-              <button
-                onClick={() => setShowWordPressModal(false)}
-                className="text-slate-500 hover:text-slate-700"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4">
-              <p className="text-sm text-slate-600 mb-6">
-                Enter your WordPress site details. You'll need to create an <strong>Application Password</strong> in your WordPress admin settings.
-              </p>
-
-              <div>
-                <label className="block text-sm font-500 text-slate-900 mb-2">
-                  Site URL
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://myblog.com"
-                  value={wordPressForm.siteUrl}
-                  onChange={(e) => setWordPressForm({ ...wordPressForm, siteUrl: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-500 text-slate-900 mb-2">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  placeholder="your-username"
-                  value={wordPressForm.username}
-                  onChange={(e) => setWordPressForm({ ...wordPressForm, username: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-500 text-slate-900 mb-2">
-                  Application Password
-                </label>
-                <input
-                  type="password"
-                  placeholder="Paste your app password here"
-                  value={wordPressForm.appPassword}
-                  onChange={(e) => setWordPressForm({ ...wordPressForm, appPassword: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <p className="text-xs text-slate-500 mt-2">
-                  <a href="https://wordpress.com/support/application-passwords/" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                    Learn how to create an app password →
-                  </a>
-                </p>
-              </div>
-            </div>
-
-            <div className="p-6 border-t border-slate-200 flex gap-3">
-              <button
-                onClick={() => setShowWordPressModal(false)}
-                disabled={wordPressLoading}
-                className="flex-1 px-4 py-2 border border-slate-200 rounded-lg text-slate-700 font-500 hover:bg-slate-50 disabled:opacity-50"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleWordPressConnect}
-                disabled={wordPressLoading}
-                className="btn-primary flex-1 px-4 py-2 rounded-lg text-white font-500 disabled:opacity-50"
-              >
-                {wordPressLoading ? 'Connecting...' : 'Connect'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <div style={{ marginTop: '48px', padding: '20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
+        <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '12px' }}>
+          About Integrations
+        </h3>
+        <p style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.6, marginBottom: '12px' }}>
+          Connect your social media accounts to ContentFlow and unlock powerful features:
+        </p>
+        <ul style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.8, listStyle: 'none', padding: 0 }}>
+          <li>✓ Schedule content across multiple platforms at once</li>
+          <li>✓ Track engagement and performance metrics</li>
+          <li>✓ Auto-publish generated content directly to your accounts</li>
+          <li>✓ Analyze what content resonates with your audience</li>
+        </ul>
+      </div>
     </div>
   )
 }

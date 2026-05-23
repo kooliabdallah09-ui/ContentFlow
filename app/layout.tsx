@@ -1,23 +1,12 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import { useRouter, usePathname } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { Geist, Geist_Mono } from "next/font/google";
-import Sidebar from '@/components/Sidebar'
+import { Sidebar } from '@/components/Sidebar'
+import { TopBar } from '@/components/TopBar'
 import ToastContainer from '@/components/ToastContainer'
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export default function RootLayout({
   children,
@@ -26,7 +15,6 @@ export default function RootLayout({
 }>) {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [sidebarOpen, setSidebarOpen] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
 
@@ -37,7 +25,6 @@ export default function RootLayout({
       return
     }
 
-    // Set a timeout to prevent infinite loading
     const timeout = setTimeout(() => {
       setLoading(false)
     }, 3000)
@@ -47,7 +34,6 @@ export default function RootLayout({
       setUser(session?.user)
       setLoading(false)
 
-      // Allow public pages without authentication
       const publicPages = ['/', '/privacy', '/auth', '/presentation']
       const isPublicPage = publicPages.some(page => pathname === page || pathname.startsWith(page + '/'))
 
@@ -62,46 +48,44 @@ export default function RootLayout({
     }
   }, [pathname, router])
 
-  const handleLogout = async () => {
-    const supabase = getSupabase()
-    if (!supabase) return
-
-    await supabase.auth.signOut()
-    router.push('/auth/login')
-  }
-
   const isAuthPage = pathname.includes('/auth')
   const isLandingPage = pathname === '/landing'
   const isOnboarding = pathname === '/onboarding'
   const isPresentationPage = pathname === '/presentation'
-  const showSidebar = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage
+  const showLayout = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage
+
+  if (loading) {
+    return (
+      <html lang="en">
+        <body style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
+          <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'center' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '4px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite' }}></div>
+              </div>
+              <p style={{ color: 'var(--ink-mute)' }}>Loading ContentFlow...</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          </div>
+        </body>
+      </html>
+    )
+  }
 
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <head>
-        <style>{`
-          @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
-        `}</style>
-      </head>
-      <body className={`min-h-full flex flex-col bg-black ${showSidebar && sidebarOpen ? 'ml-64' : showSidebar ? 'ml-20' : ''}`}>
-        {showSidebar && <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />}
-        <div>
-          {loading ? (
-            <div className="min-h-screen flex items-center justify-center">
-              <div className="text-center">
-                <div className="mb-4 flex justify-center">
-                  <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-                </div>
-                <p className="text-white/60">Loading ContentFlow...</p>
-              </div>
+    <html lang="en">
+      <body>
+        {showLayout ? (
+          <div className="app">
+            <Sidebar currentPath={pathname} />
+            <div className="main">
+              <TopBar currentPath={pathname} />
+              {children}
             </div>
-          ) : (
-            children
-          )}
-        </div>
+          </div>
+        ) : (
+          children
+        )}
         <ToastContainer />
       </body>
     </html>

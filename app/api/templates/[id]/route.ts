@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -10,6 +10,7 @@ export async function DELETE(
   }
 
   const token = authHeader.slice(7)
+  const { id } = await params
 
   try {
     const supabase = createClient(
@@ -26,7 +27,7 @@ export async function DELETE(
     const { data: template, error: fetchError } = await supabase
       .from('templates')
       .select('user_id')
-      .eq('id', params.id)
+      .eq('id', id)
       .single()
 
     if (fetchError || template?.user_id !== userData.user.id) {
@@ -37,7 +38,7 @@ export async function DELETE(
     const { error } = await supabase
       .from('templates')
       .delete()
-      .eq('id', params.id)
+      .eq('id', id)
 
     if (error) {
       console.error('Delete error:', error)

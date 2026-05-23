@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function GET(
   request: Request,
-  { params }: { params: { jobId: string } }
+  { params }: { params: Promise<{ jobId: string }> }
 ) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -10,6 +10,7 @@ export async function GET(
   }
 
   const token = authHeader.slice(7)
+  const { jobId } = await params
 
   try {
     const supabase = createClient(
@@ -26,7 +27,7 @@ export async function GET(
     const { data: job, error: jobError } = await supabase
       .from('batch_jobs')
       .select('*')
-      .eq('id', params.jobId)
+      .eq('id', jobId)
       .eq('user_id', userData.user.id)
       .single()
 
@@ -38,7 +39,7 @@ export async function GET(
     const { data: items, error: itemsError } = await supabase
       .from('batch_items')
       .select('*')
-      .eq('batch_job_id', params.jobId)
+      .eq('batch_job_id', jobId)
 
     if (itemsError) {
       console.error('Failed to fetch batch items:', itemsError)

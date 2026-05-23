@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import VoiceSettings from '@/components/VoiceSettings'
 import VoicePreview from '@/components/VoicePreview'
-import { Sparkles } from 'lucide-react'
+import { Icon } from '@/components/Icons'
 import { showSuccess, showError } from '@/lib/notifications'
 import { useAutoSave } from '@/lib/useAutoSave'
 
@@ -28,7 +28,6 @@ export default function VoiceGeneratorPage() {
     onRestore: (data) => setFormData(data),
   })
 
-  // Load credit balance
   useEffect(() => {
     const fetchCredits = async () => {
       try {
@@ -59,7 +58,6 @@ export default function VoiceGeneratorPage() {
           const data = await response.json()
           setCreditBalance(data.balance)
         } else if (response.status === 404) {
-          // Initialize credits
           const initResponse = await fetch('/api/credits/init', {
             method: 'POST',
             headers: {
@@ -139,73 +137,82 @@ export default function VoiceGeneratorPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
-        * { font-family: 'Inter', sans-serif; }
-
-        .glass-card {
-          background: rgba(255, 255, 255, 0.03);
-          backdrop-filter: blur(10px);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-        }
-      `}</style>
-
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md py-12 px-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-full text-sm font-600 mb-4 border border-white/20">
-            <Sparkles className="w-4 h-4" />
-            AI Voice Synthesis
-          </div>
-          <h1 className="text-5xl font-black mb-3">Voice Generator</h1>
-          <p className="text-white/60 text-lg max-w-2xl">
-            Create realistic voiceovers with ElevenLabs. Choose from multiple voices and customize the tone.
-          </p>
+    <div className="content">
+      <div className="page-head">
+        <div className="page-meta">
+          <span className="dot" />
+          <span className="eyebrow">AI Voice Synthesis</span>
         </div>
+        <h1 className="page-title">Create Natural <em>Voiceovers</em></h1>
+        <p className="page-sub">Generate realistic voice narration for your videos and content. Choose from premium voices and customize the tone.</p>
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-2 gap-8 p-8 max-w-7xl mx-auto h-[calc(100vh-320px)]">
-        {/* Left: Settings */}
-        <div className="glass-card rounded-2xl p-8 overflow-y-auto">
-          <h2 className="text-2xl font-black mb-6">Create Voice</h2>
+      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '24px' }}>
+        {/* Form */}
+        <div>
+          <div className="section-head">
+            <h2 className="section-title">Create Voiceover</h2>
+          </div>
+
           <VoiceSettings
             onGenerate={handleGenerate}
             isLoading={loading}
             creditBalance={creditBalance}
           />
 
-          {/* Credit Balance Display */}
+          {/* Credit Balance */}
           {!creditsLoading && (
-            <div className="mt-8 pt-8 border-t border-white/10">
-              <div className="flex items-center justify-between">
+            <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  <p className="text-sm text-white/60">Total Credits</p>
-                  <p className="text-2xl font-black text-cyan-400">
+                  <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>Total Credits</span>
+                  <p style={{ fontSize: '20px', fontWeight: 600, color: 'var(--accent)' }}>
                     {creditBalance}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className="text-xs text-white/50 mb-1">Each generation costs</p>
-                  <p className="text-lg font-700 text-white">150 credits</p>
+                <div style={{ textAlign: 'right' }}>
+                  <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>Per Generation</span>
+                  <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ink)' }}>150 credits</p>
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Right: Preview */}
-        <div className="glass-card rounded-2xl p-8 overflow-hidden flex flex-col">
-          <h2 className="text-2xl font-black mb-6">Generated Voice</h2>
-          <VoicePreview
-            audioUrl={audioUrl}
-            duration={duration}
-            isLoading={loading}
-            error={error}
-            characterCount={characterCount}
-          />
+        {/* Preview */}
+        <div>
+          {audioUrl ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <div className="section-head">
+                <h2 className="section-title">Your Voiceover</h2>
+              </div>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px' }}>
+                <audio src={audioUrl} controls style={{ width: '100%' }} />
+                <div style={{ marginTop: '16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '13px' }}>
+                  <div>
+                    <span className="eyebrow" style={{ display: 'block', marginBottom: '4px' }}>Duration</span>
+                    <p style={{ color: 'var(--ink)' }}>{Math.ceil(duration / 60)}m {Math.round(duration % 60)}s</p>
+                  </div>
+                  <div>
+                    <span className="eyebrow" style={{ display: 'block', marginBottom: '4px' }}>Characters</span>
+                    <p style={{ color: 'var(--ink)' }}>{characterCount.toLocaleString()}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : loading ? (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 20px', textAlign: 'center' }}>
+              <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '4px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+              <p style={{ color: 'var(--ink)', fontSize: '14px', fontWeight: 600 }}>Creating your voiceover...</p>
+              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            </div>
+          ) : (
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 20px', textAlign: 'center' }}>
+              <div style={{ fontSize: '40px', marginBottom: '12px' }}>🎙️</div>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Ready to create?</h3>
+              <p className="eyebrow">Write your script and generate voiceover</p>
+            </div>
+          )}
         </div>
       </div>
     </div>

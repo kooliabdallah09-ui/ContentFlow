@@ -1,207 +1,215 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { Icon } from '@/components/Icons'
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { FileText, Share2, Mail, Calendar, BarChart3, Settings, LogOut, ChevronLeft, ChevronRight, Image as ImageIcon, Mic2, Film, Zap, Library, Rocket, Clock, HelpCircle } from 'lucide-react'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function Sidebar({ isOpen = true, onToggle }: { isOpen?: boolean; onToggle?: () => void }) {
-  const pathname = usePathname()
+interface SidebarProps {
+  currentPath: string
+}
+
+export function Sidebar({ currentPath }: SidebarProps) {
+  const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/')
+  const [creditBalance, setCreditBalance] = useState(0)
+  const [userName, setUserName] = useState('Creator')
+  const [userEmail, setUserEmail] = useState('')
+  const [showUserMenu, setShowUserMenu] = useState(false)
   const router = useRouter()
 
-  const handleLogout = async () => {
-    const supabase = getSupabase()
-    if (!supabase) return
+  useEffect(() => {
+    loadUserData()
+  }, [])
 
-    await supabase.auth.signOut()
-    router.push('/auth/login')
+  const loadUserData = async () => {
+    try {
+      const supabase = getSupabase()
+      if (!supabase) {
+        console.log('Supabase not available')
+        return
+      }
+
+      const { data: userData } = await supabase.auth.getUser()
+      if (userData.user) {
+        setUserName(userData.user.user_metadata?.full_name || userData.user.email?.split('@')[0] || 'Creator')
+        setUserEmail(userData.user.email || '')
+
+        // Fetch credit balance
+        const { data: sessionData } = await supabase.auth.getSession()
+        if (sessionData?.session?.access_token) {
+          try {
+            let response = await fetch('/api/credits/balance', {
+              headers: {
+                Authorization: `Bearer ${sessionData.session.access_token}`,
+              },
+            })
+
+            // If credits not initialized (404), initialize them
+            if (response.status === 404) {
+              console.log('Credits not initialized, initializing...')
+              const initResponse = await fetch('/api/credits/init', {
+                method: 'POST',
+                headers: {
+                  Authorization: `Bearer ${sessionData.session.access_token}`,
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ plan: 'free' }),
+              })
+
+              console.log('Init response status:', initResponse.status)
+
+              if (!initResponse.ok) {
+                const initErrorText = await initResponse.text()
+                console.error('Init failed:', initResponse.status, initErrorText)
+                // Set default credits if init failed
+                setCreditBalance(200)
+              } else {
+                const initData = await initResponse.json()
+                console.log('Credits initialized successfully:', initData)
+                setCreditBalance(initData.data?.balance || 200)
+              }
+            } else if (response.ok) {
+              const data = await response.json()
+              console.log('Credits fetched:', data.balance)
+              setCreditBalance(data.balance || 0)
+            } else {
+              console.error('Failed to fetch credits:', response.status)
+              // Set default balance on error
+              setCreditBalance(200)
+            }
+          } catch (fetchError) {
+            console.error('Error fetching credits:', fetchError)
+            // Set default balance on error
+            setCreditBalance(200)
+          }
+        } else {
+          console.log('No access token available')
+          setCreditBalance(200)
+        }
+      } else {
+        console.log('No user found')
+      }
+    } catch (error) {
+      console.error('Failed to load user data:', error)
+    }
   }
 
-  const navItems = [
-    { href: '/dashboard', label: 'Dashboard', icon: FileText },
-    { href: '/generate/blog', label: 'Blog', icon: FileText },
-    { href: '/generate/social', label: 'Social', icon: Share2 },
-    { href: '/generate/email', label: 'Email', icon: Mail },
-    { href: '/generate/ugc', label: 'UGC Package', icon: Zap },
-    { href: '/generate/image', label: 'Image', icon: ImageIcon },
-    { href: '/generate/voice', label: 'Voice', icon: Mic2 },
-    { href: '/generate/video', label: 'Video', icon: Film },
-    { href: '/batch', label: 'Batch', icon: Rocket },
-    { href: '/scheduler', label: 'Scheduler', icon: Clock },
-    { href: '/library', label: 'Library', icon: Library },
-    { href: '/calendar', label: 'Calendar', icon: Calendar },
-    { href: '/analytics', label: 'Analytics', icon: BarChart3 },
-    { href: '/help', label: 'Help', icon: HelpCircle },
-    { href: '/settings', label: 'Settings', icon: Settings },
-  ]
+  const handleLogout = async () => {
+    try {
+      const supabase = getSupabase()
+      if (supabase) {
+        await supabase.auth.signOut()
+        router.push('/auth/login')
+      }
+    } catch (error) {
+      console.error('Failed to logout:', error)
+    }
+  }
 
-  const isActive = (href: string) => pathname === href
+  const creditPercentage = Math.min((creditBalance / 500) * 100, 100)
 
   return (
-    <div className={`fixed left-0 top-0 h-screen bg-black border-r border-white/10 z-40 transition-all duration-300 ${isOpen ? 'w-64' : 'w-20'}`}>
-      <style>{`
-        .nav-item {
-          position: relative;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 12px;
-          padding: 14px 18px;
-          border-radius: 14px;
-          color: rgba(255, 255, 255, 0.7);
-          transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
-          cursor: pointer;
-          white-space: nowrap;
-          font-weight: 500;
-        }
+    <aside className="rail">
+      <Link href="/" className="brand">
+        <div className="brand-mark">C</div>
+        <div className="brand-name">Content<em>flow</em></div>
+      </Link>
 
-        .nav-item:hover {
-          color: #06B6D4;
-          background: rgba(6, 182, 212, 0.12);
-          transform: translateX(4px);
-        }
-
-        .nav-item.active {
-          color: #ffffff;
-          background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(6, 182, 212, 0.1));
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
-        }
-
-        .nav-item.active::before {
-          content: '';
-          position: absolute;
-          left: 0;
-          top: 6px;
-          bottom: 6px;
-          width: 3px;
-          background: #06B6D4;
-          border-radius: 0 3px 3px 0;
-        }
-
-        .sidebar-header {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-bottom: 16px;
-          padding: 0;
-          min-height: 36px;
-        }
-
-        .sidebar-brand {
-          font-weight: 800;
-          font-size: 24px;
-          color: #06B6D4;
-          text-shadow: 0 0 10px rgba(6, 182, 212, 0.3);
-        }
-
-        .sidebar-toggle {
-          background: rgba(6, 182, 212, 0.15);
-          color: #06B6D4;
-          border: 1.5px solid rgba(6, 182, 212, 0.3);
-          border-radius: 12px;
-          width: 40px;
-          height: 40px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          box-shadow: 0 2px 8px rgba(6, 182, 212, 0.1);
-          flex-shrink: 0;
-          margin: 0 auto;
-        }
-
-        .sidebar-toggle:hover {
-          box-shadow: 0 4px 12px rgba(6, 182, 212, 0.2);
-          background: rgba(6, 182, 212, 0.25);
-          border-color: rgba(6, 182, 212, 0.5);
-          transform: scale(1.05);
-        }
-
-        .sidebar-toggle:active {
-          transform: scale(0.92);
-        }
-
-        .divider {
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(6, 182, 212, 0.15), transparent);
-          margin: 20px 8px;
-        }
-
-.sidebar-scroll {
-          scrollbar-width: thin;
-          scrollbar-color: rgba(6, 182, 212, 0.2) transparent;
-        }
-
-        .sidebar-scroll::-webkit-scrollbar {
-          width: 6px;
-        }
-
-        .sidebar-scroll::-webkit-scrollbar-track {
-          background: transparent;
-        }
-
-        .sidebar-scroll::-webkit-scrollbar-thumb {
-          background: rgba(6, 182, 212, 0.2);
-          border-radius: 3px;
-        }
-
-        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
-          background: rgba(6, 182, 212, 0.3);
-        }
-      `}</style>
-
-      <div className="h-full flex flex-col p-3 overflow-y-auto relative sidebar-scroll">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          {isOpen && (
-            <Link href="/dashboard" className="block">
-              <div className="sidebar-brand">CF</div>
-            </Link>
-          )}
-          <button
-            onClick={onToggle}
-            className="sidebar-toggle ml-auto"
-            title={isOpen ? 'Hide sidebar' : 'Show sidebar'}
-          >
-            {isOpen ? <ChevronLeft className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
-          </button>
-        </div>
-
-        {/* Navigation Items */}
-        <nav className="flex-1 flex flex-col items-center gap-2">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const active = isActive(item.href)
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                title={!isOpen ? item.label : ''}
-                className={`nav-item ${active ? 'active' : ''}`}
-              >
-                <Icon className="w-5 h-5 flex-shrink-0" />
-                {isOpen && <span className="text-sm font-500">{item.label}</span>}
-              </Link>
-            )
-          })}
-        </nav>
-
-        {/* Divider */}
-        <div className="divider" />
-
-        {/* Logout Button */}
-        <button
-          onClick={handleLogout}
-          title={!isOpen ? 'Logout' : ''}
-          className="nav-item group"
-        >
-          <LogOut className="w-5 h-5 flex-shrink-0 group-hover:rotate-180 transition-transform duration-300" />
-          {isOpen && <span className="text-sm font-500">Logout</span>}
-        </button>
+      <div className="rail-section">
+        <div className="rail-label">Workspace</div>
+        <Link href="/dashboard" className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}>
+          <Icon.Dashboard />
+          <span>Dashboard</span>
+          <span className="kbd">D</span>
+        </Link>
+        <Link href="/calendar" className={`nav-item ${isActive('/calendar') ? 'active' : ''}`}>
+          <Icon.Calendar />
+          <span>Calendar</span>
+          <span className="kbd">C</span>
+        </Link>
+        <Link href="/library" className={`nav-item ${isActive('/library') ? 'active' : ''}`}>
+          <Icon.Library />
+          <span>Library</span>
+          <span className="kbd">L</span>
+        </Link>
+        <Link href="/settings/brand" className={`nav-item ${isActive('/settings/brand') ? 'active' : ''}`}>
+          <Icon.Brand />
+          <span>Brand</span>
+          <span className="kbd">B</span>
+        </Link>
       </div>
-    </div>
+
+      <div className="rail-section">
+        <div className="rail-label">Create</div>
+        <Link href="/generate/blog" className={`nav-item ${isActive('/generate/blog') ? 'active' : ''}`}>
+          <Icon.Blog />
+          <span>Blog post</span>
+        </Link>
+        <Link href="/generate/social" className={`nav-item ${isActive('/generate/social') ? 'active' : ''}`}>
+          <Icon.Social />
+          <span>Social</span>
+        </Link>
+        <Link href="/generate/email" className={`nav-item ${isActive('/generate/email') ? 'active' : ''}`}>
+          <Icon.Email />
+          <span>Email</span>
+        </Link>
+        <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`}>
+          <Icon.Image />
+          <span>Image</span>
+        </Link>
+        <Link href="/generate/voice" className={`nav-item ${isActive('/generate/voice') ? 'active' : ''}`}>
+          <Icon.Voice />
+          <span>Voiceover</span>
+        </Link>
+        <Link href="/generate/video" className={`nav-item ${isActive('/generate/video') ? 'active' : ''}`}>
+          <Icon.Video />
+          <span>Video</span>
+        </Link>
+      </div>
+
+      <div className="rail-section">
+        <div className="rail-label">Insights</div>
+        <Link href="/scheduler" className={`nav-item ${isActive('/scheduler') ? 'active' : ''}`}>
+          <Icon.Calendar />
+          <span>Scheduler</span>
+        </Link>
+        <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`}>
+          <Icon.TrendUp />
+          <span>Analytics</span>
+        </Link>
+      </div>
+
+      <div className="rail-footer">
+        <div className="credits-card">
+          <div className="credits-row">
+            <div className="credits-num">{Math.floor(creditBalance / 100)}<em>{(creditBalance % 100).toString().padStart(2, '0')}</em></div>
+            <div className="credits-label">Credits</div>
+          </div>
+          <div className="credits-bar"><div style={{ width: `${creditPercentage}%` }} /></div>
+          <div className="credits-upgrade">Free plan · <u style={{ cursor: 'pointer' }} onClick={() => router.push('/settings/billing')}>Upgrade</u></div>
+        </div>
+        <div className="user-row" style={{ position: 'relative' }}>
+          <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', flex: 1, padding: '8px', borderRadius: 'var(--r-sm)', transition: 'background-color 0.2s', backgroundColor: showUserMenu ? 'var(--surface)' : 'transparent' }} onClick={() => setShowUserMenu(!showUserMenu)}>
+            <div className="avatar">{userName.charAt(0).toUpperCase()}</div>
+            <div style={{ flex: 1 }}>
+              <div className="user-name">{userName}</div>
+              <div className="user-meta">{userEmail}</div>
+            </div>
+          </div>
+          {showUserMenu && (
+            <div style={{ position: 'absolute', bottom: '100%', left: 0, right: 0, marginBottom: '8px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)', zIndex: 1000 }}>
+              <button onClick={() => router.push('/settings/account')} style={{ width: '100%', padding: '10px 12px', border: 'none', background: 'none', color: 'var(--ink)', fontSize: '13px', cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg)')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                Account settings
+              </button>
+              <div style={{ height: '1px', background: 'var(--border)' }} />
+              <button onClick={handleLogout} style={{ width: '100%', padding: '10px 12px', border: 'none', background: 'none', color: 'var(--danger)', fontSize: '13px', cursor: 'pointer', textAlign: 'left', transition: 'background-color 0.2s' }} onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg)')} onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}>
+                Logout
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </aside>
   )
 }
