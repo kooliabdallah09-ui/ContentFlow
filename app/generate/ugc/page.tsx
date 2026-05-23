@@ -31,7 +31,7 @@ export default function UGCGeneratorPage() {
         }
 
         const { data: sessionData } = await supabase.auth.getSession()
-        if (!sessionData.session?.access_token) {
+        if (!sessionData?.session?.access_token) {
           setCreditsLoading(false)
           return
         }
@@ -40,7 +40,12 @@ export default function UGCGeneratorPage() {
           headers: {
             Authorization: `Bearer ${sessionData.session.access_token}`,
           },
-        })
+        }).catch(() => null)
+
+        if (!response) {
+          setCreditsLoading(false)
+          return
+        }
 
         if (response.ok) {
           const data = await response.json()
@@ -54,9 +59,9 @@ export default function UGCGeneratorPage() {
               Authorization: `Bearer ${sessionData.session.access_token}`,
             },
             body: JSON.stringify({ plan: 'free' }),
-          })
+          }).catch(() => null)
 
-          if (initResponse.ok) {
+          if (initResponse?.ok) {
             const data = await initResponse.json()
             setCreditBalance(data.data.balance)
           }
@@ -68,7 +73,11 @@ export default function UGCGeneratorPage() {
       }
     }
 
-    fetchCredits()
+    const timer = setTimeout(() => {
+      fetchCredits()
+    }, 500)
+
+    return () => clearTimeout(timer)
   }, [])
 
   const handleGenerate = async (settings: {
