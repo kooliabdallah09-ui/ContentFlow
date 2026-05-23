@@ -3,404 +3,272 @@
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import Link from 'next/link'
-import { FileText, Share2, Mail, Calendar, BarChart3, Sparkles, Film, Image as ImageIcon, Mic2, Library } from 'lucide-react'
-import CreditBalance from '@/components/CreditBalance'
+import { Icon } from '@/components/Icons'
+import { DailySuggestion } from '@/lib/planner'
+
+interface DashboardStats {
+  piecesShipped: number
+  totalReach: number
+  engagementRate: number
+  bestFormat: string
+  postingStreak: number
+}
 
 export default function DashboardPage() {
-  const [stats, setStats] = useState({ blogs: 0, social: 0, emails: 0, total: 0 })
   const [userName, setUserName] = useState('Creator')
+  const [todaySuggestion, setTodaySuggestion] = useState<DailySuggestion | null>(null)
+  const [stats, setStats] = useState<DashboardStats>({
+    piecesShipped: 0,
+    totalReach: 0,
+    engagementRate: 0,
+    bestFormat: 'Video',
+    postingStreak: 0,
+  })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadStats()
+    loadDashboardData()
   }, [])
 
-  const loadStats = async () => {
-    const supabase = getSupabase()
-    if (!supabase) return
+  const loadDashboardData = async () => {
+    try {
+      const supabase = getSupabase()
+      if (!supabase) return
 
-    const { data: userData } = await supabase.auth.getUser()
-    if (!userData.user) {
-      setUserName('Creator')
-      return
+      const { data: userData } = await supabase.auth.getUser()
+      if (userData.user) {
+        setUserName(userData.user.user_metadata?.full_name || 'Creator')
+      }
+
+      const today = new Date()
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1)
+      const { data: sessionData } = await supabase.auth.getSession()
+
+      // Fetch monthly plan for today's suggestion
+      const planResponse = await fetch(
+        `/api/planner/get-monthly-plan?month=${today.getMonth() + 1}&year=${today.getFullYear()}`,
+        {
+          headers: {
+            Authorization: `Bearer ${sessionData.session?.access_token || ''}`,
+          },
+        }
+      )
+
+      if (planResponse.ok) {
+        const data = await planResponse.json()
+        const plan = data.plan || []
+        const todayDate = today.toISOString().split('T')[0]
+        const todaySugg = plan.find((s: DailySuggestion) => s.date === todayDate)
+        setTodaySuggestion(todaySugg || null)
+      }
+
+      // Fetch analytics data
+      const { data: contentData } = await supabase
+        .from('content')
+        .select('id, content_type, created_at, published')
+        .eq('user_id', userData.user?.id)
+        .eq('published', true)
+        .gte('created_at', monthStart.toISOString())
+
+      const { data: analyticsData } = await supabase
+        .from('content_analytics')
+        .select('impressions, engagement_rate')
+        .eq('user_id', userData.user?.id)
+        .gte('fetched_at', monthStart.toISOString())
+
+      const piecesShipped = contentData?.length || 0
+      const totalReach = analyticsData?.reduce((sum: number, item: any) => sum + (item.impressions || 0), 0) || 0
+      const avgEngagement = analyticsData?.length
+        ? (analyticsData.reduce((sum: number, item: any) => sum + (item.engagement_rate || 0), 0) / analyticsData.length) * 100
+        : 0
+
+      // Determine best format
+      const contentByType = contentData?.reduce((acc: Record<string, number>, item: any) => {
+        acc[item.content_type] = (acc[item.content_type] || 0) + 1
+        return acc
+      }, {})
+      const bestFormat = contentByType ? Object.keys(contentByType).reduce((a, b) =>
+        contentByType[a] > contentByType[b] ? a : b, 'Video') : 'Video'
+
+      // Calculate posting streak (consecutive days with published content)
+      const { data: calendarData } = await supabase
+        .from('content_calendar')
+        .select('published_date, status')
+        .eq('user_id', userData.user?.id)
+        .eq('status', 'published')
+        .order('published_date', { ascending: false })
+        .limit(60)
+
+      let streak = 0
+      if (calendarData && calendarData.length > 0) {
+        let currentDate = new Date(today)
+        currentDate.setHours(0, 0, 0, 0)
+
+        for (const entry of calendarData) {
+          const entryDate = new Date(entry.published_date)
+          entryDate.setHours(0, 0, 0, 0)
+          const dayDiff = Math.floor((currentDate.getTime() - entryDate.getTime()) / (1000 * 60 * 60 * 24))
+
+          if (dayDiff === streak) {
+            streak++
+          } else {
+            break
+          }
+        }
+      }
+
+      setStats({
+        piecesShipped,
+        totalReach,
+        engagementRate: Math.round(avgEngagement * 10) / 10,
+        bestFormat: bestFormat.charAt(0).toUpperCase() + bestFormat.slice(1),
+        postingStreak: streak,
+      })
+    } catch (error) {
+      console.error('Failed to load dashboard:', error)
+    } finally {
+      setLoading(false)
     }
-
-    setUserName(userData.user.user_metadata?.full_name || 'Creator')
-
-    const { data } = await supabase
-      .from('content')
-      .select('content_type')
-      .eq('user_id', userData.user.id)
-
-    const counts = { blogs: 0, social: 0, emails: 0, total: 0 }
-    data?.forEach((item: any) => {
-      counts.total++
-      if (item.content_type === 'blog') counts.blogs++
-      else if (item.content_type === 'social') counts.social++
-      else if (item.content_type === 'email') counts.emails++
-    })
-    setStats(counts)
   }
 
-  // Color schemes for different content types
-  const colorSchemes = {
-    blog: { gradient: 'from-purple-500 to-violet-600', bg: 'bg-purple-50', icon: 'text-purple-600', text: 'text-purple-700' },
-    social: { gradient: 'from-rose-500 to-pink-600', bg: 'bg-rose-50', icon: 'text-rose-600', text: 'text-rose-700' },
-    email: { gradient: 'from-emerald-500 to-teal-600', bg: 'bg-emerald-50', icon: 'text-emerald-600', text: 'text-emerald-700' },
+  if (loading) {
+    return <div className="content">Loading...</div>
   }
+
+  const today = new Date()
+  const monthName = today.toLocaleString('default', { month: 'long' })
+  const dayName = today.toLocaleString('default', { weekday: 'long' })
+  const dayNum = today.getDate()
+
+  // Calculate actual week of year
+  const firstDay = new Date(today.getFullYear(), 0, 1)
+  const daysToWeek = (today.getTime() - firstDay.getTime()) / 86400000
+  const weekNum = Math.ceil((daysToWeek + firstDay.getDay() + 1) / 7)
 
   return (
-    <div className="min-h-screen bg-black text-white">
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
-
-        * {
-          font-family: 'Inter', sans-serif;
-        }
-
-        .glass-card {
-          background: rgba(255, 255, 255, 0.04);
-          border: 1.5px solid rgba(6, 182, 212, 0.15);
-          border-radius: 18px;
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-          transition: all 0.3s ease;
-        }
-
-        .glass-card:hover {
-          background: rgba(6, 182, 212, 0.05);
-          border-color: rgba(6, 182, 212, 0.3);
-          transform: translateY(-2px);
-          box-shadow: 0 8px 24px rgba(6, 182, 212, 0.15);
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #06B6D4, #0891B2);
-          color: #ffffff;
-          transition: all 0.3s cubic-bezier(0.23, 1, 0.320, 1);
-          font-weight: 600;
-          border: none;
-          border-radius: 12px;
-          box-shadow: 0 6px 20px rgba(6, 182, 212, 0.25);
-          letter-spacing: -0.3px;
-        }
-
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 10px 28px rgba(6, 182, 212, 0.35);
-        }
-
-        .btn-primary:active {
-          transform: translateY(0);
-          box-shadow: 0 4px 12px rgba(6, 182, 212, 0.25);
-        }
-
-        .feature-icon {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 24px;
-          background: rgba(255, 255, 255, 0.05);
-        }
-
-        .stat-card {
-          transition: all 0.3s ease;
-        }
-
-        .stat-card:hover {
-          transform: translateY(-4px);
-        }
-
-        .cta-button {
-          background: #ffffff;
-          color: #000000;
-          font-weight: 600;
-          transition: all 0.3s ease;
-        }
-
-        .cta-button:hover {
-          background: #f0f0f0;
-        }
-      `}</style>
-
-      {/* Header */}
-      <div className="border-b border-white/10 bg-black/50 backdrop-blur-md">
-        <div className="max-w-7xl mx-auto px-8 py-8">
-          <div className="flex flex-col gap-6">
-            <div>
-              <h1 className="text-4xl font-black mb-2">
-                Welcome back, {userName}
-              </h1>
-              <p className="text-white/60">Keep the creative flow going. Pick a generator below.</p>
-            </div>
-            <div className="flex items-center gap-6">
-              <CreditBalance />
-              <div>
-                <div className="text-3xl font-black text-white">{stats.total}</div>
-                <div className="text-white/60 text-sm">pieces created</div>
-              </div>
-            </div>
-          </div>
+    <div className="content">
+      <div className="page-head">
+        <div className="page-meta">
+          <span className="dot" />
+          <span className="eyebrow">{dayName} · {monthName} {dayNum} · {today.getFullYear()}</span>
+          <span className="eyebrow" style={{ color: 'var(--ink-fade)' }}>Week {weekNum} of 52</span>
         </div>
+        <h1 className="page-title">
+          Good morning, <em>{userName}.</em><br />
+          {todaySuggestion ? <>Ship something <em>great</em> today.</> : <>Ready to <em>create?</em></>}
+        </h1>
+        <p className="page-sub">
+          {todaySuggestion 
+            ? 'Your AI-suggested content is ready. Approve, edit, or swap for something different.'
+            : 'Check the calendar for your monthly plan, or start fresh with a new idea.'}
+        </p>
       </div>
 
-      <div className="max-w-7xl mx-auto px-8 py-12">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          <div className="stat-card glass-card p-8 rounded-xl">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-white/60 text-sm mb-2 font-500">Blog Posts</p>
-                <div className="text-4xl font-black text-white">{stats.blogs}</div>
-              </div>
-              <div className="feature-icon"><FileText className="w-6 h-6 text-white/70" /></div>
-            </div>
-            <p className="text-xs text-white/50">SEO-optimized articles</p>
+      {/* Hero row */}
+      <div className="hero-grid">
+        <div className="hero-card">
+          <div className="hero-eyebrow">
+            <span className="eyebrow">Today's brief</span>
+            <span className="eyebrow" style={{ color: 'var(--ink-fade)' }}>Generated now</span>
           </div>
-
-          <div className="stat-card glass-card p-8 rounded-xl">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-white/60 text-sm mb-2 font-500">Social Posts</p>
-                <div className="text-4xl font-black text-white">{stats.social}</div>
+          {todaySuggestion ? (
+            <>
+              <h2 className="hero-headline">
+                {todaySuggestion.title.split(' ').slice(0, 3).join(' ')} <em>{todaySuggestion.title.split(' ').slice(3).join(' ')}</em>
+              </h2>
+              <div className="hero-foot">
+                <Link href={`/generate/from-calendar?date=${todaySuggestion.date}&contentType=${todaySuggestion.contentType}`} className="btn btn-primary">
+                  <Icon.Sparkle style={{ width: 14, height: 14 }}/> Create now
+                </Link>
+                <Link href="/calendar" className="btn btn-ghost">Skip <Icon.Arrow style={{ width: 13, height: 13 }}/></Link>
               </div>
-              <div className="feature-icon"><Share2 className="w-6 h-6 text-white/70" /></div>
-            </div>
-            <p className="text-xs text-white/50">Across all platforms</p>
-          </div>
-
-          <div className="stat-card glass-card p-8 rounded-xl">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <p className="text-white/60 text-sm mb-2 font-500">Email Sequences</p>
-                <div className="text-4xl font-black text-white">{stats.emails}</div>
-              </div>
-              <div className="feature-icon"><Mail className="w-6 h-6 text-white/70" /></div>
-            </div>
-            <p className="text-xs text-white/50">Ready to send</p>
-          </div>
-        </div>
-
-        {/* Quick Access Generators */}
-        <div className="mb-12">
-          <div className="flex items-center gap-3 mb-8">
-            <h2 className="text-3xl font-black text-white">Create Content</h2>
-            <span className="text-sm bg-white/10 text-white/70 px-4 py-2 rounded-full font-600 border border-white/20">
-              Pick a type
-            </span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
-            {/* Blog Generator */}
-            <Link
-              href="/generate/blog"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><FileText className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">Blog Post</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">SEO articles</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Generate long-form, optimized content.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                Create →
-              </div>
-            </Link>
-
-            {/* Social Generator */}
-            <Link
-              href="/generate/social"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Share2 className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">Social Posts</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">Multi-platform</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Create platform-optimized posts.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                Create →
-              </div>
-            </Link>
-
-            {/* Email Generator */}
-            <Link
-              href="/generate/email"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Mail className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">Email Sequence</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">Automated flows</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Build complete email sequences.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                Create →
-              </div>
-            </Link>
-
-            {/* UGC Videos - NEW */}
-            <Link
-              href="/generate/ugc"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Film className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">UGC Package</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">Complete Kit</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Generate complete UGC packages.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                Create →
-              </div>
-            </Link>
-
-            {/* Image Generator */}
-            <Link
-              href="/generate/image"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><ImageIcon className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">Images</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">AI Generated</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Create stunning AI images.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                Create →
-              </div>
-            </Link>
-
-            {/* Voice Generator */}
-            <Link
-              href="/generate/voice"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Mic2 className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">Voiceovers</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">AI Voices</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Generate realistic voiceovers.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                Create →
-              </div>
-            </Link>
-
-            {/* Video Generator */}
-            <Link
-              href="/generate/video"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Film className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">AI Videos</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">Avatar Videos</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Create AI avatar videos.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                Create →
-              </div>
-            </Link>
-
-            {/* Content Library */}
-            <Link
-              href="/library"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Library className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">Library</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">All Content</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                View and manage all content.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                Browse →
-              </div>
-            </Link>
-
-            {/* Calendar */}
-            <Link
-              href="/calendar"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Calendar className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">Content Calendar</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">Scheduling</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Schedule and manage posts for future publishing.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                View →
-              </div>
-            </Link>
-
-            {/* Analytics */}
-            <Link
-              href="/analytics"
-              className="glass-card p-8 rounded-xl group cursor-pointer"
-            >
-              <div className="feature-icon mb-6 group-hover:scale-110 transition"><BarChart3 className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">Analytics</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">Performance</p>
-              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Track engagement and content performance metrics.
-              </p>
-              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
-                View →
-              </div>
-            </Link>
-          </div>
-        </div>
-
-        {/* Activity Feed */}
-        <div className="glass-card rounded-2xl p-8">
-          <h2 className="text-2xl font-black text-white mb-6">Recent Activity</h2>
-          <div className="space-y-4">
-            {stats.total === 0 ? (
-              <div className="text-center py-16">
-                <div className="flex justify-center mb-4">
-                  <Sparkles className="w-12 h-12 text-white/40" />
-                </div>
-                <p className="text-white mb-2 text-lg font-500">No content created yet</p>
-                <p className="text-sm text-white/60 mb-8">Start by generating your first blog post, social post, or email sequence</p>
-                <Link
-                  href="/generate/blog"
-                  className="inline-block btn-primary px-8 py-3 rounded-lg font-600 text-sm"
-                >
-                  Create First Post
+            </>
+          ) : (
+            <>
+              <h2 className="hero-headline">
+                No suggestions <em>yet.</em>
+              </h2>
+              <div className="hero-foot">
+                <Link href="/calendar" className="btn btn-primary">
+                  <Icon.Calendar /> View calendar
                 </Link>
               </div>
-            ) : (
-              <>
-                <div className="flex items-start gap-4 py-4 border-b border-white/20">
-                  <FileText className="w-6 h-6 text-white/70 flex-shrink-0 mt-1" />
-                  <div className="flex-1">
-                    <p className="font-600 text-white">Generated {stats.blogs} blog post{stats.blogs !== 1 ? 's' : ''}</p>
-                    <p className="text-sm text-white/60">SEO-optimized content ready to publish</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4 py-4 border-b border-white/20">
-                  <Share2 className="w-6 h-6 text-white/70 flex-shrink-0 mt-1" />
-                  <div className="flex-1">
-                    <p className="font-600 text-white">Generated {stats.social} social post{stats.social !== 1 ? 's' : ''}</p>
-                    <p className="text-sm text-white/60">Multi-platform social content</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-4 py-4">
-                  <Mail className="w-6 h-6 text-white/70 flex-shrink-0 mt-1" />
-                  <div className="flex-1">
-                    <p className="font-600 text-white">Generated {stats.emails} email sequence{stats.emails !== 1 ? 's' : ''}</p>
-                    <p className="text-sm text-white/60">Automated email campaigns</p>
-                  </div>
-                </div>
-              </>
-            )}
+            </>
+          )}
+        </div>
+
+        <div className="streak-card">
+          <div className="eyebrow">Posting streak</div>
+          <h3 className="streak-num">{stats.postingStreak || '–'}<em>d</em></h3>
+          <div className="streak-meta">
+            <div className="streak-dots">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className={`streak-dot ${i < stats.postingStreak ? 'on' : ''}`} />
+              ))}
+            </div>
+            <span>Last 7 days</span>
+          </div>
+          <div className="divider" style={{ margin: '6px 0' }} />
+          <div className="streak-meta" style={{ justifyContent: 'space-between' }}>
+            <span style={{ color: 'var(--ink-mute)' }}>Next milestone</span>
+            <span><strong>30 days</strong> · {Math.max(0, 30 - stats.postingStreak)} away</span>
           </div>
         </div>
       </div>
+
+      {/* Stats */}
+      <div className="section-head">
+        <h2 className="section-title">Momentum <em>this month</em></h2>
+        <div className="section-actions">
+          <Link href="/analytics">Full analytics →</Link>
+        </div>
+      </div>
+      <div className="stats-row">
+        <div className="stat">
+          <span className="stat-label">Pieces shipped</span>
+          <div className="stat-num">{stats.piecesShipped || '–'}</div>
+          <span className="stat-delta">This month</span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">Total reach</span>
+          <div className="stat-num">
+            {stats.totalReach > 0 ? (
+              <>
+                {Math.floor(stats.totalReach / 1000) || stats.totalReach}
+                <em>{stats.totalReach > 999 ? 'k' : ''}</em>
+              </>
+            ) : (
+              '–'
+            )}
+          </div>
+          <span className="stat-delta">Impressions</span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">Engagement rate</span>
+          <div className="stat-num">
+            {stats.engagementRate > 0 ? (
+              <>
+                {stats.engagementRate}
+                <em>%</em>
+              </>
+            ) : (
+              '–'
+            )}
+          </div>
+          <span className="stat-delta">Average</span>
+        </div>
+        <div className="stat">
+          <span className="stat-label">Best format</span>
+          <div className="stat-num" style={{ fontSize: 28, paddingTop: 6, fontFamily: 'var(--font-serif)', fontStyle: 'italic' }}>
+            {stats.bestFormat}
+          </div>
+          <span className="stat-delta">Top performing</span>
+        </div>
+      </div>
+
+      <Link href="/calendar" className="btn btn-primary" style={{ marginTop: '48px' }}>
+        <Icon.Calendar /> View full calendar
+      </Link>
     </div>
   )
 }
