@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { FileText, Eye, Link2, Share2, BarChart3 } from 'lucide-react'
+import { FileText, Eye, Link2, Share2, BarChart3, Zap } from 'lucide-react'
+import { getSupabase } from '@/lib/auth'
+import { showError } from '@/lib/notifications'
 
 interface Metrics {
   totalPosts: number
@@ -45,6 +47,7 @@ export default function AnalyticsPage() {
   const [metrics, setMetrics] = useState<Metrics | null>(null)
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState(30)
+  const [creditUsage, setCreditUsage] = useState<any>(null)
 
   useEffect(() => {
     fetchMetrics()
@@ -53,11 +56,40 @@ export default function AnalyticsPage() {
   const fetchMetrics = async () => {
     try {
       setLoading(true)
-      const response = await fetch(`/api/analytics/metrics?days=${timeRange}`)
-      const data = await response.json()
-      setMetrics(data.metrics)
+      const supabase = getSupabase()
+      if (!supabase) {
+        setLoading(false)
+        return
+      }
+
+      const { data: sessionData } = await supabase.auth.getSession()
+      if (!sessionData?.session?.access_token) {
+        setLoading(false)
+        return
+      }
+
+      // Fetch both social metrics and credit usage
+      const [metricsResponse, creditResponse] = await Promise.all([
+        fetch(`/api/analytics/metrics?days=${timeRange}`),
+        fetch('/api/analytics', {
+          headers: {
+            Authorization: `Bearer ${sessionData.session.access_token}`,
+          },
+        }),
+      ])
+
+      if (metricsResponse.ok) {
+        const metricsData = await metricsResponse.json()
+        setMetrics(metricsData.metrics)
+      }
+
+      if (creditResponse.ok) {
+        const creditData = await creditResponse.json()
+        setCreditUsage(creditData)
+      }
     } catch (error) {
       console.error('Failed to fetch analytics:', error)
+      showError('Failed to load analytics')
     } finally {
       setLoading(false)
     }
@@ -152,6 +184,73 @@ export default function AnalyticsPage() {
                 How well your content resonates with your audience
               </p>
             </div>
+
+            {/* Credit Usage Analytics */}
+            {creditUsage && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                <div className="glass-card rounded-2xl p-8">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-white/60 text-sm font-500 mb-2">
+                        Total Generated
+                      </p>
+                      <div className="text-4xl text-white font-black">
+                        {creditUsage.totalGenerated}
+                      </div>
+                      <p className="text-white/60 text-xs mt-2">content pieces</p>
+                    </div>
+                    <div className="w-12 h-12 bg-white/10 rounded-lg flex items-center justify-center">
+                      <FileText className="w-6 h-6 text-white/70" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="glass-card rounded-2xl p-8">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <p className="text-white/60 text-sm font-500 mb-2">
+                        Credits Used
+                      </p>
+                      <div className="text-4xl text-cyan-400 font-black">
+                        {creditUsage.totalCreditsUsed}
+                      </div>
+                      <p className="text-white/60 text-xs mt-2">total credits</p>
+                    </div>
+                    <div className="w-12 h-12 bg-cyan-500/20 rounded-lg flex items-center justify-center">
+                      <Zap className="w-6 h-6 text-cyan-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Generation by Type */}
+              {Object.keys(creditUsage.generationsByType).length > 0 && (
+                <div className="glass-card rounded-2xl p-8 mb-8">
+                  <h2 className="text-2xl font-black mb-6">Content Generation by Type</h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {Object.entries(creditUsage.generationsByType).map(([type, count]: any) => (
+                      <div key={type} className="border border-white/10 rounded-lg p-4 bg-white/5">
+                        <h3 className="font-600 text-white capitalize mb-3">
+                          {type.replace('_', ' ')}
+                        </h3>
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <p className="text-white/60 text-xs mb-1">Generated</p>
+                            <p className="text-2xl font-bold text-white">{count}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-white/60 text-xs mb-1">Credits</p>
+                            <p className="text-lg font-bold text-cyan-400">
+                              {creditUsage.creditsByType[type] || 0}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            )}
 
             {/* Platform Breakdown */}
             {Object.keys(metrics.platformBreakdown).length > 0 && (

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import Link from 'next/link'
-import { FileText, Share2, Mail, Calendar, BarChart3, Sparkles, Film } from 'lucide-react'
+import { FileText, Share2, Mail, Calendar, BarChart3, Sparkles, Film, Image as ImageIcon, Mic2, Library } from 'lucide-react'
 import CreditBalance from '@/components/CreditBalance'
 
 export default function DashboardPage() {
@@ -192,7 +192,7 @@ export default function DashboardPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6">
             {/* Blog Generator */}
             <Link
               href="/generate/blog"
@@ -247,13 +247,77 @@ export default function DashboardPage() {
               className="glass-card p-8 rounded-xl group cursor-pointer"
             >
               <div className="feature-icon mb-6 group-hover:scale-110 transition"><Film className="w-6 h-6 text-white/70" /></div>
-              <h3 className="text-xl font-black text-white mb-2">UGC Videos</h3>
-              <p className="text-xs text-white/60 mb-4 font-600">AI Avatars</p>
+              <h3 className="text-xl font-black text-white mb-2">UGC Package</h3>
+              <p className="text-xs text-white/60 mb-4 font-600">Complete Kit</p>
               <p className="text-sm text-white/70 group-hover:text-white/90 transition">
-                Generate professional UGC videos.
+                Generate complete UGC packages.
               </p>
               <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
                 Create →
+              </div>
+            </Link>
+
+            {/* Image Generator */}
+            <Link
+              href="/generate/image"
+              className="glass-card p-8 rounded-xl group cursor-pointer"
+            >
+              <div className="feature-icon mb-6 group-hover:scale-110 transition"><ImageIcon className="w-6 h-6 text-white/70" /></div>
+              <h3 className="text-xl font-black text-white mb-2">Images</h3>
+              <p className="text-xs text-white/60 mb-4 font-600">AI Generated</p>
+              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
+                Create stunning AI images.
+              </p>
+              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
+                Create →
+              </div>
+            </Link>
+
+            {/* Voice Generator */}
+            <Link
+              href="/generate/voice"
+              className="glass-card p-8 rounded-xl group cursor-pointer"
+            >
+              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Mic2 className="w-6 h-6 text-white/70" /></div>
+              <h3 className="text-xl font-black text-white mb-2">Voiceovers</h3>
+              <p className="text-xs text-white/60 mb-4 font-600">AI Voices</p>
+              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
+                Generate realistic voiceovers.
+              </p>
+              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
+                Create →
+              </div>
+            </Link>
+
+            {/* Video Generator */}
+            <Link
+              href="/generate/video"
+              className="glass-card p-8 rounded-xl group cursor-pointer"
+            >
+              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Film className="w-6 h-6 text-white/70" /></div>
+              <h3 className="text-xl font-black text-white mb-2">AI Videos</h3>
+              <p className="text-xs text-white/60 mb-4 font-600">Avatar Videos</p>
+              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
+                Create AI avatar videos.
+              </p>
+              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
+                Create →
+              </div>
+            </Link>
+
+            {/* Content Library */}
+            <Link
+              href="/library"
+              className="glass-card p-8 rounded-xl group cursor-pointer"
+            >
+              <div className="feature-icon mb-6 group-hover:scale-110 transition"><Library className="w-6 h-6 text-white/70" /></div>
+              <h3 className="text-xl font-black text-white mb-2">Library</h3>
+              <p className="text-xs text-white/60 mb-4 font-600">All Content</p>
+              <p className="text-sm text-white/70 group-hover:text-white/90 transition">
+                View and manage all content.
+              </p>
+              <div className="mt-6 text-white/60 text-sm font-600 group-hover:translate-x-1 transition">
+                Browse →
               </div>
             </Link>
 
