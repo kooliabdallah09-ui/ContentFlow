@@ -37,7 +37,13 @@ export default function RootLayout({
       return
     }
 
+    // Set a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      setLoading(false)
+    }, 3000)
+
     const { data } = supabase.auth.onAuthStateChange((event: any, session: any) => {
+      clearTimeout(timeout)
       setUser(session?.user)
       setLoading(false)
 
@@ -50,7 +56,10 @@ export default function RootLayout({
       }
     })
 
-    return () => data.subscription.unsubscribe()
+    return () => {
+      clearTimeout(timeout)
+      data?.subscription?.unsubscribe()
+    }
   }, [pathname, router])
 
   const handleLogout = async () => {
@@ -80,7 +89,18 @@ export default function RootLayout({
       <body className={`min-h-full flex flex-col bg-black ${showSidebar && sidebarOpen ? 'ml-64' : showSidebar ? 'ml-20' : ''}`}>
         {showSidebar && <Sidebar isOpen={sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)} />}
         <div>
-          {!loading && children}
+          {loading ? (
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <div className="mb-4 flex justify-center">
+                  <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                </div>
+                <p className="text-white/60">Loading ContentFlow...</p>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
         </div>
         <ToastContainer />
       </body>
