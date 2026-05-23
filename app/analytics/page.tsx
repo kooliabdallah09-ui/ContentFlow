@@ -187,6 +187,7 @@ export default function AnalyticsPage() {
 
             {/* Credit Usage Analytics */}
             {creditUsage && (
+              <>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="glass-card rounded-2xl p-8">
                   <div className="flex items-start justify-between">
@@ -250,6 +251,7 @@ export default function AnalyticsPage() {
                   </div>
                 </div>
               )}
+              </>
             )}
 
             {/* Platform Breakdown */}
