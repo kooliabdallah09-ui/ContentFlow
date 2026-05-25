@@ -153,7 +153,6 @@ export default function OnboardingBrandPage() {
         const err = await res.json()
         throw new Error(err.error || 'Failed to save')
       }
-      showSuccess('Saved!', 'Now select your platforms')
       setStep(2)
     } catch (err) {
       showError('Error', err instanceof Error ? err.message : 'Failed to save')
