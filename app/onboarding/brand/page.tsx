@@ -72,6 +72,9 @@ export default function OnboardingBrandPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [generating, setGenerating] = useState(false)
+  const [genProgress, setGenProgress] = useState(0)
+  const [genStatus, setGenStatus] = useState('')
   const [authChecked, setAuthChecked] = useState(false)
 
   // Step 1: Brand Info
@@ -168,6 +171,25 @@ export default function OnboardingBrandPage() {
     }
     try {
       setLoading(true)
+      setGenerating(true)
+      setGenProgress(0)
+
+      const steps = [
+        { pct: 15, msg: 'Analysing your brand profile...' },
+        { pct: 35, msg: 'Researching content trends...' },
+        { pct: 55, msg: 'Building your 30-day calendar...' },
+        { pct: 75, msg: 'Optimising posting schedule...' },
+        { pct: 90, msg: 'Almost there...' },
+      ]
+      let si = 0
+      const tick = setInterval(() => {
+        if (si < steps.length) {
+          setGenProgress(steps[si].pct)
+          setGenStatus(steps[si].msg)
+          si++
+        }
+      }, 2800)
+
       const supabase = getSupabase()!
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.access_token) throw new Error('Not authenticated')
@@ -184,14 +206,18 @@ export default function OnboardingBrandPage() {
           frequency,
         }),
       })
+      clearInterval(tick)
       if (!res.ok) {
         const err = await res.json()
         throw new Error(err.error || 'Failed to generate plan')
       }
+      setGenProgress(100)
+      setGenStatus('Plan ready!')
       const data = await res.json()
       setGeneratedPlan(data.plan)
-      setStep(3)
+      setTimeout(() => { setGenerating(false); setStep(3) }, 500)
     } catch (err) {
+      setGenerating(false)
       showError('Error', err instanceof Error ? err.message : 'Failed to generate plan')
     } finally {
       setLoading(false)
@@ -362,8 +388,35 @@ export default function OnboardingBrandPage() {
             </div>
           )}
 
+          {/* ── GENERATING OVERLAY ── */}
+          {generating && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px', gap: '32px' }}>
+              <div style={{ textAlign: 'center' }}>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: '28px', fontWeight: 400, margin: '0 0 8px' }}>
+                  Building your <em style={{ fontStyle: 'italic', color: 'var(--ink-dim)' }}>content plan</em>
+                </h2>
+                <p style={{ color: 'var(--ink-dim)', fontSize: '14px', margin: 0 }}>~15 seconds</p>
+              </div>
+              <div style={{ width: '100%', maxWidth: '480px' }}>
+                <div style={{ width: '100%', height: '6px', background: 'var(--border)', borderRadius: '99px', overflow: 'hidden', marginBottom: '16px' }}>
+                  <div style={{
+                    height: '100%',
+                    background: 'var(--accent)',
+                    borderRadius: '99px',
+                    width: `${genProgress}%`,
+                    transition: 'width 600ms cubic-bezier(0.4, 0, 0.2, 1)',
+                  }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '13px', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>{genStatus}</span>
+                  <span style={{ fontSize: '13px', color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)' }}>{genProgress}%</span>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ── STEP 2: Platforms & Frequency ── */}
-          {step === 2 && (
+          {step === 2 && !generating && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
               <div>
                 <label style={labelStyle}>Platforms You Use</label>
