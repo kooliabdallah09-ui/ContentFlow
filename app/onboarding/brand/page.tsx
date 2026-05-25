@@ -225,31 +225,32 @@ export default function OnboardingBrandPage() {
   }
 
   const handleCompletePlan = async () => {
+    if (loading) return
     try {
       setLoading(true)
       const supabase = getSupabase()!
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user?.id) throw new Error('Not authenticated')
 
-      const userId = session.user.id
       const now = new Date()
-      const month = now.getMonth() + 1
-      const year = now.getFullYear()
-
-      await supabase.from('user_monthly_plans').delete()
-        .eq('user_id', userId).eq('month', month).eq('year', year)
-
-      const { error } = await supabase.from('user_monthly_plans').insert({
-        user_id: userId, month, year,
-        plan_data: generatedPlan, status: 'active',
+      const res = await fetch('/api/planner/save-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: session.user.id,
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+          plan_data: generatedPlan,
+        }),
       })
-      if (error) throw error
+      if (!res.ok) {
+        const err = await res.json()
+        throw new Error(err.error || 'Failed to save plan')
+      }
 
       if (typeof window !== 'undefined') {
         sessionStorage.setItem('generatedPlan', JSON.stringify(generatedPlan))
       }
-
-      showSuccess('Plan Ready!', 'Your content calendar is set up')
       router.push('/calendar')
     } catch (err) {
       showError('Error', err instanceof Error ? err.message : 'Failed to save plan')
