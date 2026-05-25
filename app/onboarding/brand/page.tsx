@@ -226,14 +226,20 @@ export default function OnboardingBrandPage() {
 
   const handleCompletePlan = async () => {
     if (loading) return
+    setLoading(true)
     try {
-      setLoading(true)
       const supabase = getSupabase()!
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user?.id) throw new Error('Not authenticated')
 
+      // Always save to sessionStorage so calendar can display the plan
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('generatedPlan', JSON.stringify(generatedPlan))
+      }
+
+      // Best-effort DB save — navigate to calendar regardless of outcome
       const now = new Date()
-      const res = await fetch('/api/planner/save-plan', {
+      fetch('/api/planner/save-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -242,19 +248,11 @@ export default function OnboardingBrandPage() {
           year: now.getFullYear(),
           plan_data: generatedPlan,
         }),
-      })
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to save plan')
-      }
+      }).catch(() => {})
 
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem('generatedPlan', JSON.stringify(generatedPlan))
-      }
       router.push('/calendar')
     } catch (err) {
-      showError('Error', err instanceof Error ? err.message : 'Failed to save plan')
-    } finally {
+      showError('Error', err instanceof Error ? err.message : 'Something went wrong')
       setLoading(false)
     }
   }
