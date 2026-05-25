@@ -20,6 +20,7 @@ export default function AccountSettingsPage() {
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     loadUserProfile()
@@ -99,6 +100,39 @@ export default function AccountSettingsPage() {
       showError('Failed to change password', error instanceof Error ? error.message : 'Please try again')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true)
+
+    try {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error('Not authenticated')
+
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('No access token found')
+
+      const response = await fetch('/api/user/delete', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to delete account')
+      }
+
+      showSuccess('Account deleted', 'Your account and all data have been permanently deleted.')
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 1000)
+    } catch (error) {
+      showError('Failed to delete account', error instanceof Error ? error.message : 'Please try again')
+      setDeleting(false)
     }
   }
 
@@ -237,19 +271,21 @@ export default function AccountSettingsPage() {
         </p>
         <button
           className="btn"
+          disabled={deleting}
           style={{
             background: 'var(--danger)',
             color: 'white',
             border: 'none',
-            cursor: 'pointer',
+            cursor: deleting ? 'not-allowed' : 'pointer',
+            opacity: deleting ? 0.6 : 1,
           }}
           onClick={() => {
-            if (confirm('Are you sure you want to delete your account? This cannot be undone.')) {
-              showError('Not implemented', 'Account deletion is not yet available. Please contact support.')
+            if (confirm('Are you sure you want to delete your account? This cannot be undone. All your data will be permanently deleted.')) {
+              handleDeleteAccount()
             }
           }}
         >
-          Delete Account
+          {deleting ? 'Deleting account...' : 'Delete Account'}
         </button>
       </div>
     </div>

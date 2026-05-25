@@ -266,7 +266,7 @@ export default function SchedulerPage() {
         </div>
       ) : jobs.length === 0 ? (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>📅</div>
+          <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', color: 'var(--ink-mute)' }}><Icon.Calendar style={{ width: 36, height: 36 }} /></div>
           <p style={{ color: 'var(--ink)', fontSize: '14px', marginBottom: '12px' }}>No scheduled jobs yet</p>
           <p className="eyebrow">Schedule your first automated job</p>
         </div>

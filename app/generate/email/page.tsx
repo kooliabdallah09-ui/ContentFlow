@@ -190,7 +190,7 @@ export default function EmailGeneratorPage() {
             </div>
           ) : (
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '40px', marginBottom: '12px' }}>✉️</div>
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', color: 'var(--ink-mute)' }}><Icon.Email style={{ width: 36, height: 36 }} /></div>
               <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Ready to create?</h3>
               <p className="eyebrow">Fill in the details and generate your email sequence</p>
             </div>

@@ -203,7 +203,7 @@ export default function BlogGeneratorPage() {
 
           {!content && !loading && (
             <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '40px 20px', textAlign: 'center' }}>
-              <div style={{ fontSize: '32px', marginBottom: '12px' }}>📝</div>
+              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', color: 'var(--ink-mute)' }}><Icon.Blog style={{ width: 32, height: 32 }} /></div>
               <p style={{ color: 'var(--ink-mute)', fontSize: '13px' }}>Generate a blog post to see the preview here</p>
             </div>
           )}

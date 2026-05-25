@@ -20,6 +20,8 @@ export default function GenerateFromCalendarPage() {
   const [dailySuggestion, setDailySuggestion] = useState<any>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [editedContent, setEditedContent] = useState('')
+  const [aiEditRequest, setAiEditRequest] = useState('')
+  const [applyingAiEdit, setApplyingAiEdit] = useState(false)
 
   useEffect(() => {
     if (date && contentType) {
@@ -32,34 +34,24 @@ export default function GenerateFromCalendarPage() {
       setLoading(true)
       setGenerating(true)
 
-      // For now, we'll use mock data to show the flow
-      // In production, fetch the actual daily suggestion
-      setDailySuggestion({
-        date,
-        contentType,
-        title: 'Product Demo Video',
-        description: 'Short 30-second video showing your product in action',
-        platforms: ['Instagram', 'TikTok'],
-      })
-
       const supabase = getSupabase()
-      if (!supabase) return
+      if (!supabase) throw new Error('Not authenticated')
 
       const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData?.session?.access_token) return
+      if (!sessionData?.session?.access_token) throw new Error('Not authenticated')
 
-      const response = await fetch('/api/generate/from-calendar', {
+      const response = await fetch('/api/generate/auto-content', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${sessionData.session.access_token}`,
         },
         body: JSON.stringify({
-          date,
           contentType,
-          title: 'Product Demo Video',
-          description: 'Short 30-second video showing your product in action',
-          platforms: ['Instagram', 'TikTok'],
+          date,
+          title: 'Daily Content',
+          description: 'Auto-generated based on your brand profile',
+          platforms: ['Instagram', 'TikTok', 'LinkedIn'],
         }),
       })
 
@@ -69,6 +61,15 @@ export default function GenerateFromCalendarPage() {
       }
 
       const data = await response.json()
+
+      setDailySuggestion({
+        date,
+        contentType,
+        title: 'Generated Content',
+        description: 'Auto-generated from your brand profile',
+        platforms: ['Instagram', 'TikTok', 'LinkedIn'],
+      })
+
       setGeneratedContent(data.content)
       setEditedContent(data.content)
     } catch (err) {
@@ -77,6 +78,33 @@ export default function GenerateFromCalendarPage() {
     } finally {
       setLoading(false)
       setGenerating(false)
+    }
+  }
+
+  const handleAiEdit = async () => {
+    if (!aiEditRequest.trim()) return
+    try {
+      setApplyingAiEdit(true)
+      const response = await fetch('/api/generate/refine-content', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentContent: editedContent || generatedContent,
+          editRequest: aiEditRequest,
+        }),
+      })
+      if (!response.ok) {
+        const err = await response.json()
+        throw new Error(err.error || 'Failed to refine content')
+      }
+      const data = await response.json()
+      setGeneratedContent(data.content)
+      setEditedContent(data.content)
+      setAiEditRequest('')
+    } catch (err) {
+      showError('Failed to apply edit', err instanceof Error ? err.message : 'Please try again')
+    } finally {
+      setApplyingAiEdit(false)
     }
   }
 
@@ -248,6 +276,33 @@ export default function GenerateFromCalendarPage() {
           )}
         </div>
       </div>
+
+      {/* AI Edit Input */}
+      {generatedContent && (
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px', marginTop: '16px' }}>
+          <p style={{ fontSize: '12px', fontWeight: 600, color: 'var(--ink)', marginBottom: '10px' }}>Ask AI to change something</p>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <input
+              type="text"
+              value={aiEditRequest}
+              onChange={(e) => setAiEditRequest(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && !applyingAiEdit && handleAiEdit()}
+              placeholder='e.g. "make the hook shorter" or "add more energy to the CTA"'
+              className="input"
+              style={{ flex: 1, fontSize: '13px' }}
+              disabled={applyingAiEdit}
+            />
+            <button
+              onClick={handleAiEdit}
+              disabled={applyingAiEdit || !aiEditRequest.trim()}
+              className="btn btn-primary"
+              style={{ whiteSpace: 'nowrap', opacity: applyingAiEdit || !aiEditRequest.trim() ? 0.6 : 1 }}
+            >
+              {applyingAiEdit ? 'Applying...' : 'Apply'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div style={{ display: 'flex', gap: '12px', marginTop: '24px' }}>

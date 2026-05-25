@@ -8,10 +8,13 @@ import { useRouter } from 'next/navigation'
 
 interface SidebarProps {
   currentPath: string
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
-export function Sidebar({ currentPath }: SidebarProps) {
+export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps) {
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/')
+  const handleNavClick = () => onMobileClose?.()
   const [creditBalance, setCreditBalance] = useState(0)
   const [userName, setUserName] = useState('Creator')
   const [userEmail, setUserEmail] = useState('')
@@ -110,30 +113,30 @@ export function Sidebar({ currentPath }: SidebarProps) {
   const creditPercentage = Math.min((creditBalance / 500) * 100, 100)
 
   return (
-    <aside className="rail">
+    <aside className={`rail${mobileOpen ? ' mobile-open' : ''}`}>
       <Link href="/" className="brand">
-        <div className="brand-mark">C</div>
+        <img src="/logo-icon.png" alt="" style={{ width: '34px', height: '34px', borderRadius: '6px' }} />
         <div className="brand-name">Content<em>flow</em></div>
       </Link>
 
       <div className="rail-section">
         <div className="rail-label">Workspace</div>
-        <Link href="/dashboard" className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`}>
+        <Link href="/dashboard" className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Dashboard />
           <span>Dashboard</span>
           <span className="kbd">D</span>
         </Link>
-        <Link href="/calendar" className={`nav-item ${isActive('/calendar') ? 'active' : ''}`}>
+        <Link href="/calendar" className={`nav-item ${isActive('/calendar') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Calendar />
           <span>Calendar</span>
           <span className="kbd">C</span>
         </Link>
-        <Link href="/library" className={`nav-item ${isActive('/library') ? 'active' : ''}`}>
+        <Link href="/library" className={`nav-item ${isActive('/library') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Library />
           <span>Library</span>
           <span className="kbd">L</span>
         </Link>
-        <Link href="/settings/brand" className={`nav-item ${isActive('/settings/brand') ? 'active' : ''}`}>
+        <Link href="/settings/brand" className={`nav-item ${isActive('/settings/brand') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Brand />
           <span>Brand</span>
           <span className="kbd">B</span>
@@ -142,27 +145,27 @@ export function Sidebar({ currentPath }: SidebarProps) {
 
       <div className="rail-section">
         <div className="rail-label">Create</div>
-        <Link href="/generate/blog" className={`nav-item ${isActive('/generate/blog') ? 'active' : ''}`}>
+        <Link href="/generate/blog" className={`nav-item ${isActive('/generate/blog') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Blog />
           <span>Blog post</span>
         </Link>
-        <Link href="/generate/social" className={`nav-item ${isActive('/generate/social') ? 'active' : ''}`}>
+        <Link href="/generate/social" className={`nav-item ${isActive('/generate/social') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Social />
           <span>Social</span>
         </Link>
-        <Link href="/generate/email" className={`nav-item ${isActive('/generate/email') ? 'active' : ''}`}>
+        <Link href="/generate/email" className={`nav-item ${isActive('/generate/email') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Email />
           <span>Email</span>
         </Link>
-        <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`}>
+        <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Image />
           <span>Image</span>
         </Link>
-        <Link href="/generate/voice" className={`nav-item ${isActive('/generate/voice') ? 'active' : ''}`}>
+        <Link href="/generate/voice" className={`nav-item ${isActive('/generate/voice') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Voice />
           <span>Voiceover</span>
         </Link>
-        <Link href="/generate/video" className={`nav-item ${isActive('/generate/video') ? 'active' : ''}`}>
+        <Link href="/generate/video" className={`nav-item ${isActive('/generate/video') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Video />
           <span>Video</span>
         </Link>
@@ -170,11 +173,11 @@ export function Sidebar({ currentPath }: SidebarProps) {
 
       <div className="rail-section">
         <div className="rail-label">Insights</div>
-        <Link href="/scheduler" className={`nav-item ${isActive('/scheduler') ? 'active' : ''}`}>
+        <Link href="/scheduler" className={`nav-item ${isActive('/scheduler') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Calendar />
           <span>Scheduler</span>
         </Link>
-        <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`}>
+        <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.TrendUp />
           <span>Analytics</span>
         </Link>

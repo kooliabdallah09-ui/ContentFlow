@@ -235,9 +235,9 @@ export default function LibraryPage() {
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                 ) : item.content_type === 'voice' ? (
-                  <div className="lib-thumb-label">🎙️ Audio</div>
+                  <div className="lib-thumb-label">Audio</div>
                 ) : (
-                  <div className="lib-thumb-label">📦 Package</div>
+                  <div className="lib-thumb-label">Package</div>
                 )}
 
                 {/* Checkbox */}

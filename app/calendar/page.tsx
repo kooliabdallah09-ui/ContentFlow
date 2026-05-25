@@ -22,25 +22,63 @@ export default function CalendarPage() {
   const fetchMonthlyPlan = async () => {
     try {
       setLoading(true)
+      const monthNum = month.getMonth() + 1
+      const yearNum = month.getFullYear()
+
+      console.log('Fetching plan for:', monthNum, yearNum)
+
+      // Check if there's a generated plan in sessionStorage (from onboarding)
+      if (typeof window !== 'undefined') {
+        const storedPlan = sessionStorage.getItem('generatedPlan')
+        if (storedPlan) {
+          try {
+            const parsedPlan = JSON.parse(storedPlan)
+            console.log('Using stored plan:', parsedPlan.length, 'days')
+            setPlan(parsedPlan)
+            setLoading(false)
+            return
+          } catch (e) {
+            console.error('Failed to parse stored plan:', e)
+          }
+        }
+      }
+
       const supabase = getSupabase()
-      if (!supabase) return
+      if (!supabase) {
+        console.warn('Supabase not available')
+        setLoading(false)
+        return
+      }
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData?.session?.access_token) return
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData?.user?.id) {
+        console.warn('No user found')
+        setLoading(false)
+        return
+      }
 
-      const response = await fetch(`/api/planner/get-monthly-plan?month=${month.getMonth() + 1}&year=${month.getFullYear()}`, {
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
-      })
+      // Direct query to get the plan
+      const { data: planData, error: queryError } = await supabase
+        .from('user_monthly_plans')
+        .select('plan_data')
+        .eq('user_id', userData.user.id)
+        .eq('month', monthNum)
+        .eq('year', yearNum)
+        .single()
 
-      if (response.ok) {
-        const data = await response.json()
-        setPlan(data.plan || [])
+      if (queryError && queryError.code !== 'PGRST116') {
+        console.error('Query error:', queryError)
+      }
+
+      if (planData?.plan_data) {
+        console.log('Loaded plan from database:', planData.plan_data.length, 'days')
+        setPlan(planData.plan_data)
+      } else {
+        console.log('No plan found in database')
+        setPlan([])
       }
     } catch (error) {
       console.error('Failed to fetch plan:', error)
-      showError('Failed to load plan')
     } finally {
       setLoading(false)
     }
@@ -66,7 +104,25 @@ export default function CalendarPage() {
     return plan.find(s => s.date === dateStr)
   }
 
-  const getStatusIcon = (completed: boolean) => completed ? '✅' : '⭕'
+  const getStatusIcon = (completed: boolean) => completed ? '✓' : '○'
+
+  const getContentTypeLabel = (contentType?: string) => {
+    const types: { [key: string]: string } = {
+      'blog': 'Blog Post',
+      'video': 'Video Script',
+      'social': 'Social Post',
+      'email': 'Email Copy',
+      'infographic': 'Infographic',
+      'podcast': 'Podcast Script',
+      'image': 'Image Post',
+      'case-study': 'Case Study',
+      'product-demo': 'Product Demo',
+      'tutorial': 'Tutorial',
+      'carousel': 'Carousel Post',
+      'reel': 'Reel/Short Video',
+    }
+    return types[contentType?.toLowerCase() || ''] || contentType || 'Content'
+  }
 
   if (loading) {
     return (
@@ -148,8 +204,10 @@ export default function CalendarPage() {
                 </div>
                 {suggestion && (
                   <div className="day-items">
-                    <div style={{ fontSize: '24px' }}>{suggestion.icon}</div>
-                    <div style={{ fontSize: '16px' }}>{getStatusIcon(suggestion.completed)}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--ink-dim)', fontWeight: 500, textAlign: 'center', flex: 1 }}>
+                      {getContentTypeLabel(suggestion.contentType)}
+                    </div>
+                    <div style={{ fontSize: '14px', marginTop: '4px' }}>{getStatusIcon(suggestion.completed)}</div>
                   </div>
                 )}
               </button>
@@ -248,9 +306,8 @@ export default function CalendarPage() {
                   <div style={{ fontSize: '11px', color: 'var(--ink-mute)', fontWeight: 600, marginBottom: '6px' }}>
                     {day.day}
                   </div>
-                  <div style={{ fontSize: '20px', marginBottom: '6px' }}>{day.icon}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--ink-dim)', marginBottom: '6px' }}>
-                    {day.contentType}
+                  <div style={{ fontSize: '11px', color: 'var(--ink-dim)', fontWeight: 500, marginBottom: '6px', textAlign: 'center' }}>
+                    {getContentTypeLabel(day.contentType)}
                   </div>
                   <div style={{ fontSize: '14px' }}>{getStatusIcon(day.completed)}</div>
                 </button>

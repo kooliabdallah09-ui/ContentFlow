@@ -4,15 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Icon } from '@/components/Icons'
 
-const TONES = [
-  { id: 'saffron',  label: 'Saffron',  swatch: ['oklch(0.16 0.006 60)',  'oklch(0.82 0.15 78)'] },
-  { id: 'ink',      label: 'Ink',      swatch: ['oklch(0.155 0.012 250)','oklch(0.72 0.16 252)'] },
-  { id: 'moss',     label: 'Moss',     swatch: ['oklch(0.16 0.012 150)', 'oklch(0.80 0.16 130)'] },
-  { id: 'cocoa',    label: 'Cocoa',    swatch: ['oklch(0.155 0.014 35)', 'oklch(0.70 0.17 32)'] },
-  { id: 'violet',   label: 'Violet',   swatch: ['oklch(0.155 0.014 290)','oklch(0.74 0.18 305)'] },
-  { id: 'midnight', label: 'Midnight', swatch: ['oklch(0.13 0.005 240)', 'oklch(0.86 0.14 90)'] },
-  { id: 'paper',    label: 'Paper',    swatch: ['oklch(0.965 0.014 78)', 'oklch(0.55 0.18 32)'] },
-]
+const DARK_TONES = ['ink', 'moss', 'cocoa', 'violet']
 
 const PLANS = [
   {
@@ -107,23 +99,41 @@ const FAQS = [
 ]
 
 export default function LandingPage() {
-  const [tone, setTone] = useState('saffron')
+  const [tone, setTone] = useState('ink')
+  const [isDark, setIsDark] = useState(true)
+  const [lastDarkTone, setLastDarkTone] = useState('ink')
   const [mounted, setMounted] = useState(false)
   const [pricingPeriod, setPricingPeriod] = useState('a')
   const [openFaq, setOpenFaq] = useState(0)
 
   useEffect(() => {
-    const randomTone = TONES[Math.floor(Math.random() * TONES.length)].id
+    const randomTone = DARK_TONES[Math.floor(Math.random() * DARK_TONES.length)]
     setTone(randomTone)
-    document.documentElement.setAttribute('data-tone', randomTone === 'saffron' ? '' : randomTone)
+    setLastDarkTone(randomTone)
+    document.documentElement.setAttribute('data-tone', randomTone)
     setMounted(true)
   }, [])
+
+  const applyTone = (t: string) => {
+    setTone(t)
+    document.documentElement.setAttribute('data-tone', t)
+  }
+
+  const toggleDark = () => {
+    if (isDark) {
+      applyTone('paper')
+      setIsDark(false)
+    } else {
+      applyTone(lastDarkTone)
+      setIsDark(true)
+    }
+  }
 
   if (!mounted) return null
 
   return (
-    <div className="lp" data-tone={tone === 'saffron' ? undefined : tone}>
-      <Nav />
+    <div className="lp" data-tone={tone}>
+      <Nav isDark={isDark} onToggleDark={toggleDark} />
       <Hero />
       <Logos />
       <Features />
@@ -134,18 +144,17 @@ export default function LandingPage() {
       <Faq openIndex={openFaq} setOpenIndex={setOpenFaq} />
       <Cta />
       <Foot />
-      <TweaksPanel tone={tone} setTone={setTone} />
     </div>
   )
 }
 
-function Nav() {
+function Nav({ isDark, onToggleDark }: { isDark: boolean; onToggleDark: () => void }) {
   return (
     <nav style={{ background: 'var(--bg)', borderBottom: '1px solid var(--border)', padding: '20px 0' }}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'var(--ink)' }}>
-          <div style={{ width: '32px', height: '32px', background: 'var(--accent)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg)', fontWeight: 'bold' }}>C</div>
-          <div style={{ fontSize: '16px', fontWeight: '600' }}>Content<em style={{ fontStyle: 'italic' }}>flow</em></div>
+        <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'var(--ink)' }}>
+          <img src="/logo-icon.png" alt="" style={{ width: '42px', height: '42px', borderRadius: '8px' }} />
+          <span style={{ fontSize: '17px', fontWeight: '600' }}>Content<em style={{ fontStyle: 'italic' }}>flow</em></span>
         </a>
         <div style={{ display: 'flex', gap: '32px' }}>
           <a href="#features" style={{ fontSize: '14px', color: 'var(--ink-dim)', textDecoration: 'none' }}>Features</a>
@@ -153,11 +162,20 @@ function Nav() {
           <a href="#voices" style={{ fontSize: '14px', color: 'var(--ink-dim)', textDecoration: 'none' }}>Voices</a>
           <a href="#faq" style={{ fontSize: '14px', color: 'var(--ink-dim)', textDecoration: 'none' }}>FAQ</a>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--ink-dim)' }}>
             <span style={{ width: '8px', height: '8px', background: 'var(--good)', borderRadius: '50%' }} />
             All systems go
           </div>
+          <button
+            onClick={onToggleDark}
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{ width: '36px', height: '36px', border: '1px solid var(--border)', borderRadius: '8px', background: 'var(--surface)', color: 'var(--ink-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
+          >
+            {isDark
+              ? <Icon.Sun style={{ width: 16, height: 16 }} />
+              : <Icon.Moon style={{ width: 16, height: 16 }} />}
+          </button>
           <a href="/auth/login" style={{ fontSize: '14px', color: 'var(--ink-dim)', textDecoration: 'none' }}>Sign in</a>
           <a href="/auth/signup" style={{ padding: '10px 16px', background: 'var(--accent)', color: 'var(--bg)', borderRadius: '6px', fontSize: '14px', fontWeight: '600', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
             Start free <Icon.Arrow style={{ width: 13, height: 13 }} />
@@ -202,7 +220,7 @@ function Hero() {
               <span><strong>2,500+</strong> creators shipping daily</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '16px' }}>★★★★★</span>
+              <span style={{ display: 'flex', gap: '2px', color: 'var(--accent)' }}>{[0,1,2,3,4].map(i => <Icon.Star key={i} style={{ width: 14, height: 14 }} />)}</span>
               <span><strong>4.9</strong> · 412 reviews</span>
             </div>
           </div>
@@ -617,9 +635,9 @@ function Foot() {
       <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
         <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr', gap: '40px', marginBottom: '40px' }}>
           <div>
-            <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none', color: 'var(--ink)', marginBottom: '16px' }}>
-              <div style={{ width: '32px', height: '32px', background: 'var(--accent)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg)', fontWeight: 'bold' }}>C</div>
-              <div style={{ fontSize: '16px', fontWeight: '600' }}>Content<em style={{ fontStyle: 'italic' }}>flow</em></div>
+            <a href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'var(--ink)', marginBottom: '16px' }}>
+              <img src="/logo-icon.png" alt="" style={{ width: '36px', height: '36px', borderRadius: '6px' }} />
+              <span style={{ fontSize: '16px', fontWeight: '600' }}>Content<em style={{ fontStyle: 'italic' }}>flow</em></span>
             </a>
             <p style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.6 }}>
               An <em>AI content studio</em> for creators who'd rather ship than prompt.
@@ -663,67 +681,3 @@ function Foot() {
   )
 }
 
-function TweaksPanel({ tone, setTone }: { tone: string; setTone: (t: string) => void }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 999 }}>
-      <button
-        onClick={() => setOpen(!open)}
-        style={{
-          padding: '12px 16px',
-          background: 'var(--accent)',
-          color: 'var(--bg)',
-          border: 'none',
-          borderRadius: '8px',
-          fontSize: '14px',
-          fontWeight: '600',
-          cursor: 'pointer',
-          marginBottom: open ? '12px' : '0',
-        }}
-      >
-        🎨 Tweaks
-      </button>
-      {open && (
-        <div style={{
-          background: 'var(--surface)',
-          border: '1px solid var(--border)',
-          borderRadius: '8px',
-          padding: '20px',
-          minWidth: '280px',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
-        }}>
-          <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--ink)', marginBottom: '16px' }}>Color Tone</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-            {TONES.map(t => (
-              <button
-                key={t.id}
-                onClick={() => {
-                  setTone(t.id)
-                  document.documentElement.setAttribute('data-tone', t.id === 'saffron' ? '' : t.id)
-                }}
-                style={{
-                  padding: '8px',
-                  background: tone === t.id ? 'var(--accent)' : 'var(--bg)',
-                  border: tone === t.id ? '2px solid var(--accent)' : '1px solid var(--border)',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '10px',
-                }}
-              >
-                <div style={{ display: 'flex', gap: '3px' }}>
-                  <div style={{ width: '6px', height: '6px', background: t.swatch[0], borderRadius: '1px' }} />
-                  <div style={{ width: '6px', height: '6px', background: t.swatch[1], borderRadius: '1px' }} />
-                </div>
-                <span style={{ color: tone === t.id ? 'var(--bg)' : 'var(--ink-dim)' }}>{t.label}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}

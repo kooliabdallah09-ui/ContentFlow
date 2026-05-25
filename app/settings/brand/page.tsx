@@ -285,7 +285,7 @@ export default function BrandSettingsPage() {
         </div>
 
         <div className="brand-card">
-          <div className="eyebrow" style={{ marginBottom: '14px', display: 'block' }}>💡 How this is used</div>
+          <div className="eyebrow" style={{ marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '6px' }}><Icon.Info style={{ width: 13, height: 13 }} /> How this is used</div>
           <ul style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <li style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>✓ All content generators reference your brand profile</li>
             <li style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>✓ Blog posts incorporate your company details and value prop</li>

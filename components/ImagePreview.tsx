@@ -1,6 +1,7 @@
 'use client'
 
 import { Download, Save, Loader } from 'lucide-react'
+import { Icon } from '@/components/Icons'
 import Image from 'next/image'
 import { useState } from 'react'
 
@@ -85,7 +86,7 @@ export default function ImagePreview({
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="inline-block p-4 bg-white/5 rounded-full mb-4">
-              <div className="w-8 h-8 text-white/30">🖼️</div>
+              <Icon.Image style={{ width: 32, height: 32, opacity: 0.3 }} />
             </div>
             <p className="text-white/60">Your generated images will appear here</p>
             <p className="text-sm text-white/40 mt-2">

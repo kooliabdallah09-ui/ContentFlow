@@ -27,9 +27,9 @@ export interface MonthlyPlan {
 
 export async function generateMonthlyPlan(
   industry: string,
-  audience: string,
   platforms: string[],
-  frequency: "light" | "moderate" | "heavy"
+  frequency: "light" | "moderate" | "heavy",
+  audience?: string
 ): Promise<DailySuggestion[]> {
   const client = new Anthropic();
 
@@ -39,7 +39,8 @@ export async function generateMonthlyPlan(
     heavy: "5-7 posts per week",
   };
 
-  const prompt = `Generate a 30-day social media content plan for a ${industry} business targeting ${audience}.
+  const audienceText = audience ? `targeting ${audience}` : "for their target audience";
+  const prompt = `Generate a 30-day social media content plan for a ${industry} business ${audienceText}.
 
 Requirements:
 - Posting frequency: ${frequencyMap[frequency]}

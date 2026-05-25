@@ -1,166 +1,175 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import Link from 'next/link'
 import { showSuccess, showError } from '@/lib/notifications'
 
 interface Integration {
+  id: string
   platform: string
-  name: string
-  icon: string
-  description: string
-  connected: boolean
-  connectedAt?: string
-  accountName?: string
+  account_name?: string
+  connected_at: string
 }
 
+const PlatformLogo = ({ id }: { id: string }) => {
+  switch (id) {
+    case 'instagram':
+      return (
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <defs>
+            <radialGradient id="ig-grad" cx="30%" cy="107%" r="130%">
+              <stop offset="0%" stopColor="#fdf497" />
+              <stop offset="5%" stopColor="#fdf497" />
+              <stop offset="45%" stopColor="#fd5949" />
+              <stop offset="60%" stopColor="#d6249f" />
+              <stop offset="90%" stopColor="#285AEB" />
+            </radialGradient>
+          </defs>
+          <rect width="36" height="36" rx="9" fill="url(#ig-grad)" />
+          <rect x="10" y="10" width="16" height="16" rx="4.5" stroke="white" strokeWidth="2" fill="none" />
+          <circle cx="18" cy="18" r="4" stroke="white" strokeWidth="2" fill="none" />
+          <circle cx="24" cy="12" r="1.2" fill="white" />
+        </svg>
+      )
+    case 'tiktok':
+      return (
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="9" fill="#010101" />
+          <path d="M23.5 8h-3.3v13.5a3.2 3.2 0 01-3.2 3.1 3.2 3.2 0 01-3.2-3.1 3.2 3.2 0 013.2-3.1c.3 0 .6 0 .9.1V15a6.5 6.5 0 00-.9-.1 6.5 6.5 0 00-6.5 6.5A6.5 6.5 0 0017 28a6.5 6.5 0 006.5-6.5V14a9.8 9.8 0 005.8 1.9v-3.3a6.5 6.5 0 01-5.8-4.6z" fill="white" />
+          <path d="M23.5 8h-3.3v13.5a3.2 3.2 0 01-3.2 3.1 3.2 3.2 0 01-3.2-3.1 3.2 3.2 0 013.2-3.1c.3 0 .6 0 .9.1V15a6.5 6.5 0 00-.9-.1 6.5 6.5 0 00-6.5 6.5A6.5 6.5 0 0017 28a6.5 6.5 0 006.5-6.5V14a9.8 9.8 0 005.8 1.9v-3.3a6.5 6.5 0 01-5.8-4.6z" fill="#69C9D0" fillOpacity="0.5" />
+        </svg>
+      )
+    case 'linkedin':
+      return (
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="9" fill="#0A66C2" />
+          <path d="M12 14h3v10h-3V14zm1.5-4.5a1.75 1.75 0 110 3.5 1.75 1.75 0 010-3.5zM17 14h2.9v1.4h.1c.4-.8 1.4-1.6 2.9-1.6 3.1 0 3.6 2 3.6 4.7V24h-3v-4.8c0-1.1 0-2.6-1.6-2.6s-1.9 1.3-1.9 2.5V24H17V14z" fill="white" />
+        </svg>
+      )
+    case 'twitter':
+      return (
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="9" fill="#000000" />
+          <path d="M20.3 16.3L26.5 9h-1.5l-5.3 6.2L15.3 9H10l6.5 9.5L10 27h1.5l5.7-6.6 4.5 6.6H27L20.3 16.3zm-2 2.3l-.7-1-5.3-7.6h2.3l4.3 6.2.7 1 5.6 8h-2.3l-4.6-6.6z" fill="white" />
+        </svg>
+      )
+    case 'youtube':
+      return (
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="9" fill="#FF0000" />
+          <path d="M28.5 13.5a2.5 2.5 0 00-1.8-1.8C25 11.2 18 11.2 18 11.2s-7 0-8.7.5a2.5 2.5 0 00-1.8 1.8C7 15.2 7 18 7 18s0 2.8.5 4.5a2.5 2.5 0 001.8 1.8c1.7.5 8.7.5 8.7.5s7 0 8.7-.5a2.5 2.5 0 001.8-1.8c.5-1.7.5-4.5.5-4.5s0-2.8-.5-4.5z" fill="white" />
+          <path d="M15.5 21.2l5.8-3.2-5.8-3.2v6.4z" fill="#FF0000" />
+        </svg>
+      )
+    case 'facebook':
+      return (
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+          <rect width="36" height="36" rx="9" fill="#1877F2" />
+          <path d="M22 18h-2.7v9H16v-9h-2v-3h2v-1.8C16 11 17.3 9 20 9h2.5v3H21c-.6 0-1 .4-1 1V15H23l-.3 3H20v9h-2.7V18H22z" fill="white" />
+        </svg>
+      )
+    default:
+      return <div style={{ width: 36, height: 36, background: 'var(--border)', borderRadius: 9 }} />
+  }
+}
+
+const platforms = [
+  { id: 'instagram', name: 'Instagram', connectUrl: '/api/integrations/connect/instagram' },
+  { id: 'tiktok', name: 'TikTok', connectUrl: '/api/integrations/connect/tiktok' },
+  { id: 'linkedin', name: 'LinkedIn', connectUrl: '/api/integrations/connect/linkedin' },
+  { id: 'twitter', name: 'X (Twitter)', connectUrl: '/api/integrations/twitter/connect' },
+  { id: 'youtube', name: 'YouTube', connectUrl: '/api/integrations/connect/youtube' },
+  { id: 'facebook', name: 'Facebook', connectUrl: '/api/integrations/connect/facebook' },
+]
+
 export default function IntegrationsPage() {
+  const searchParams = useSearchParams()
   const [integrations, setIntegrations] = useState<Integration[]>([])
   const [loading, setLoading] = useState(true)
-  const [connecting, setConnecting] = useState<string | null>(null)
+  const [disconnecting, setDisconnecting] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadIntegrations()
-  }, [])
-
-  const loadIntegrations = async () => {
+  const loadIntegrations = useCallback(async () => {
     try {
+      setLoading(true)
       const supabase = getSupabase()
       if (!supabase) return
-
       const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData?.session?.access_token) return
-
-      const response = await fetch('/api/integrations/list', {
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
-      }).catch(() => null)
-
-      if (response?.ok) {
-        const data = await response.json()
-        setIntegrations(data.integrations || defaultIntegrations)
-      } else {
-        setIntegrations(defaultIntegrations)
-      }
+      if (!sessionData.session) return
+      const { data, error } = await supabase
+        .from('integrations')
+        .select('*')
+        .eq('user_id', sessionData.session.user.id)
+      if (error) throw error
+      setIntegrations(data || [])
     } catch (error) {
       console.error('Failed to load integrations:', error)
-      setIntegrations(defaultIntegrations)
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
-  const handleConnect = async (platform: string) => {
-    setConnecting(platform)
-    try {
-      const supabase = getSupabase()
-      if (!supabase) throw new Error('Not authenticated')
+  useEffect(() => {
+    loadIntegrations()
+  }, [loadIntegrations])
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData?.session?.access_token) throw new Error('No session')
-
-      const redirectUrl = `/api/integrations/${platform}/connect?redirectTo=${encodeURIComponent(window.location.href)}`
-      window.location.href = redirectUrl
-    } catch (error) {
-      showError('Connection failed', error instanceof Error ? error.message : 'Please try again')
-      setConnecting(null)
+  useEffect(() => {
+    const success = searchParams.get('success')
+    const error = searchParams.get('error')
+    if (success) {
+      const name = platforms.find(p => p.id === success || success.startsWith(p.id))?.name || success
+      showSuccess('Connected!', `${name} connected successfully`)
+      window.history.replaceState({}, '', '/settings/integrations')
+      loadIntegrations()
+    } else if (error) {
+      const messages: Record<string, string> = {
+        instagram_not_configured: 'Instagram app not configured',
+        tiktok_not_configured: 'TikTok app not configured — add TIKTOK_CLIENT_KEY',
+        linkedin_not_configured: 'LinkedIn app not configured — add LINKEDIN_CLIENT_ID',
+        youtube_not_configured: 'YouTube app not configured — add GOOGLE_CLIENT_ID',
+        invalid_state: 'Security check failed, please try again',
+        not_authenticated: 'You must be logged in to connect',
+        callback_error: 'OAuth callback failed, check server logs',
+      }
+      showError('Connection failed', messages[error] || error)
+      window.history.replaceState({}, '', '/settings/integrations')
     }
+  }, [searchParams])
+
+  const handleConnect = async (connectUrl: string) => {
+    const supabase = getSupabase()
+    if (supabase) {
+      const { data } = await supabase.auth.getSession()
+      const userId = data.session?.user.id
+      if (userId) {
+        document.cookie = `cf_user_id=${userId}; path=/; max-age=600; samesite=lax`
+      }
+    }
+    window.location.href = connectUrl
   }
 
   const handleDisconnect = async (platform: string) => {
     if (!confirm(`Disconnect ${platform}?`)) return
-
     try {
+      setDisconnecting(platform)
       const supabase = getSupabase()
-      if (!supabase) throw new Error('Not authenticated')
-
+      if (!supabase) return
       const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData?.session?.access_token) throw new Error('No session')
-
-      const response = await fetch(`/api/integrations/${platform}/disconnect`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!response.ok) throw new Error('Failed to disconnect')
-
-      setIntegrations((prev) =>
-        prev.map((int) =>
-          int.platform === platform
-            ? { ...int, connected: false, connectedAt: undefined, accountName: undefined }
-            : int
-        )
-      )
-
-      showSuccess('Disconnected', `${platform} has been disconnected`)
-    } catch (error) {
-      showError('Disconnection failed', error instanceof Error ? error.message : 'Please try again')
+      if (!sessionData.session) return
+      const { error } = await supabase
+        .from('integrations')
+        .delete()
+        .eq('user_id', sessionData.session.user.id)
+        .eq('platform', platform)
+      if (error) throw error
+      setIntegrations(prev => prev.filter(i => i.platform !== platform))
+      showSuccess('Disconnected', `${platform} disconnected`)
+    } catch {
+      showError('Error', 'Failed to disconnect')
+    } finally {
+      setDisconnecting(null)
     }
   }
-
-  const defaultIntegrations: Integration[] = [
-    {
-      platform: 'instagram',
-      name: 'Instagram',
-      icon: '📷',
-      description: 'Connect your Instagram account to schedule posts and track engagement',
-      connected: false,
-    },
-    {
-      platform: 'twitter',
-      name: 'Twitter / X',
-      icon: '𝕏',
-      description: 'Share your content directly to Twitter and track performance',
-      connected: false,
-    },
-    {
-      platform: 'facebook',
-      name: 'Facebook',
-      icon: '👍',
-      description: 'Post to Facebook pages and manage your social presence',
-      connected: false,
-    },
-    {
-      platform: 'linkedin',
-      name: 'LinkedIn',
-      icon: '💼',
-      description: 'Share professional content with your LinkedIn network',
-      connected: false,
-    },
-    {
-      platform: 'tiktok',
-      name: 'TikTok',
-      icon: '🎵',
-      description: 'Reach millions with short-form video content on TikTok',
-      connected: false,
-    },
-    {
-      platform: 'youtube',
-      name: 'YouTube',
-      icon: '▶️',
-      description: 'Upload and manage your YouTube channel',
-      connected: false,
-    },
-  ]
-
-  if (loading) {
-    return (
-      <div className="content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '4px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-          <p style={{ color: 'var(--ink-dim)', fontSize: '14px' }}>Loading integrations...</p>
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
-      </div>
-    )
-  }
-
-  const connectedCount = integrations.filter((i) => i.connected).length
 
   return (
     <div className="content">
@@ -171,93 +180,72 @@ export default function IntegrationsPage() {
           <a href="/settings/billing" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Billing</a>
           <a href="/settings/integrations" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--accent)', borderBottom: '2px solid var(--accent)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Integrations</a>
         </div>
-        <h1 className="page-title">Integrations</h1>
-        <p className="page-sub">Connect your social media accounts to schedule and track your content across platforms.</p>
+        <h1 className="page-title">Connect Your <em>Platforms</em></h1>
+        <p className="page-sub">Automatically publish your content to your social media accounts.</p>
       </div>
 
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px', marginBottom: '32px' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
-          <div>
-            <p className="eyebrow" style={{ marginBottom: '8px' }}>Connected Accounts</p>
-            <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--accent)' }}>
-              {connectedCount} / {integrations.length}
-            </p>
-          </div>
-          <div>
-            <p className="eyebrow" style={{ marginBottom: '8px' }}>Coverage</p>
-            <p style={{ fontSize: '28px', fontWeight: 700, color: 'var(--ink)' }}>
-              {Math.round((connectedCount / integrations.length) * 100)}%
-            </p>
-          </div>
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.5, fontSize: '13px' }}>
+          Loading...
         </div>
-      </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', maxWidth: '1200px' }}>
+          {platforms.map((platform) => {
+            const integration = integrations.find(i => i.platform === platform.id)
+            const isConnected = !!integration
+            const isDisconnecting = disconnecting === platform.id
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '20px' }}>
-        {integrations.map((integration) => (
-          <div
-            key={integration.platform}
-            style={{
-              background: 'var(--surface)',
-              border: integration.connected ? '2px solid var(--accent)' : '1px solid var(--border)',
-              borderRadius: 'var(--r-lg)',
-              padding: '24px',
-              display: 'flex',
-              flexDirection: 'column',
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <div style={{ fontSize: '32px' }}>{integration.icon}</div>
-              {integration.connected && (
-                <div style={{ background: 'var(--good)', color: 'white', fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--r-sm)' }}>
-                  Connected
+            return (
+              <div
+                key={platform.id}
+                style={{
+                  background: 'var(--surface)',
+                  border: `1px solid ${isConnected ? 'var(--good)' : 'var(--border)'}`,
+                  borderRadius: 'var(--r-lg)',
+                  padding: '20px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <PlatformLogo id={platform.id} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <h3 style={{ margin: '0 0 2px 0', fontSize: '15px', fontWeight: 600, color: 'var(--ink)' }}>
+                      {platform.name}
+                    </h3>
+                    {isConnected ? (
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--good)', fontWeight: 500 }}>
+                        {integration.account_name ? `@${integration.account_name}` : 'Connected'}
+                      </p>
+                    ) : (
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--ink-dim)' }}>
+                        Not connected
+                      </p>
+                    )}
+                  </div>
+                  {isConnected && (
+                    <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--good)', flexShrink: 0 }} />
+                  )}
                 </div>
-              )}
-            </div>
 
-            <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
-              {integration.name}
-            </h3>
-
-            <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginBottom: '16px', flex: 1, lineHeight: 1.5 }}>
-              {integration.description}
-            </p>
-
-            {integration.connected ? (
-              <button
-                onClick={() => handleDisconnect(integration.platform)}
-                className="btn btn-ghost"
-                style={{ width: '100%' }}
-              >
-                Disconnect
-              </button>
-            ) : (
-              <button
-                onClick={() => handleConnect(integration.platform)}
-                disabled={connecting === integration.platform}
-                className="btn btn-primary"
-                style={{ width: '100%', opacity: connecting === integration.platform ? 0.6 : 1 }}
-              >
-                {connecting === integration.platform ? 'Connecting...' : 'Connect'}
-              </button>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div style={{ marginTop: '48px', padding: '20px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
-        <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '12px' }}>
-          About Integrations
-        </h3>
-        <p style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.6, marginBottom: '12px' }}>
-          Connect your social media accounts to ContentFlow and unlock powerful features:
-        </p>
-        <ul style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.8, listStyle: 'none', padding: 0 }}>
-          <li>✓ Schedule content across multiple platforms at once</li>
-          <li>✓ Track engagement and performance metrics</li>
-          <li>✓ Auto-publish generated content directly to your accounts</li>
-          <li>✓ Analyze what content resonates with your audience</li>
-        </ul>
-      </div>
+                <button
+                  onClick={() =>
+                    isConnected
+                      ? handleDisconnect(platform.id)
+                      : handleConnect(platform.connectUrl)
+                  }
+                  disabled={isDisconnecting}
+                  className={isConnected ? 'btn btn-ghost' : 'btn btn-primary'}
+                  style={{ padding: '10px 12px', fontSize: '13px', opacity: isDisconnecting ? 0.6 : 1 }}
+                >
+                  {isDisconnecting ? 'Disconnecting...' : isConnected ? 'Disconnect' : 'Connect'}
+                </button>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { Icon } from '@/components/Icons'
 
 interface EditorProps {
   initialContent: string
@@ -110,9 +111,9 @@ export function Editor({ initialContent, onSave, onSchedule, contentId }: Editor
             Content
           </label>
           <div className="flex gap-4 text-xs text-slate-500">
-            <span>📝 {wordCount} words</span>
-            <span>⏱️ {estimatedReadTime} min read</span>
-            <span>🔤 {charCount} chars</span>
+            <span>{wordCount} words</span>
+            <span>{estimatedReadTime} min read</span>
+            <span>{charCount} chars</span>
           </div>
         </div>
         <textarea
@@ -130,21 +131,21 @@ export function Editor({ initialContent, onSave, onSchedule, contentId }: Editor
           disabled={isSaving || !title.trim()}
           className="btn-primary col-span-2 text-white py-3 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed font-600 text-sm"
         >
-          {isSaving ? '💾 Saving...' : '💾 Save to Library'}
+          <Icon.Save style={{ width: 14, height: 14, marginRight: 6 }} />{isSaving ? 'Saving...' : 'Save to Library'}
         </button>
         <button
           onClick={handleCopy}
           disabled={!content.trim()}
           className="border border-slate-300 text-slate-700 py-3 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-600 text-sm transition"
         >
-          {copied ? '✓ Copied!' : '📋 Copy'}
+          <Icon.Copy style={{ width: 14, height: 14, marginRight: 6 }} />{copied ? 'Copied!' : 'Copy'}
         </button>
         <button
           onClick={handleDownload}
           disabled={!content.trim()}
           className="border border-slate-300 text-slate-700 py-3 rounded-lg hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed font-600 text-sm transition"
         >
-          ⬇️ Download
+          Download
         </button>
       </div>
 
@@ -153,7 +154,7 @@ export function Editor({ initialContent, onSave, onSchedule, contentId }: Editor
           onClick={() => setShowSchedule(!showSchedule)}
           className="w-full border border-blue-300 text-blue-600 py-2 rounded-lg hover:bg-blue-50 font-600 text-sm transition mt-2"
         >
-          📅 Schedule for Later
+          <Icon.Calendar style={{ width: 14, height: 14, marginRight: 6 }} />Schedule for Later
         </button>
       )}
 
@@ -202,7 +203,7 @@ export function Editor({ initialContent, onSave, onSchedule, contentId }: Editor
               disabled={isSaving}
               className="flex-1 btn-primary text-white py-2 rounded-lg disabled:opacity-50 font-600 text-sm"
             >
-              {isSaving ? '⏳ Scheduling...' : '✓ Schedule'}
+              {isSaving ? 'Scheduling...' : 'Schedule'}
             </button>
             <button
               onClick={() => setShowSchedule(false)}

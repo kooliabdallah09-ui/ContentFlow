@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
+import { Icon } from '@/components/Icons'
 import { showError } from '@/lib/notifications'
 
 interface Metrics {
@@ -276,7 +277,7 @@ export default function AnalyticsPage() {
         </>
       ) : (
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 20px', textAlign: 'center' }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>📊</div>
+          <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', color: 'var(--ink-mute)' }}><Icon.BarChart style={{ width: 36, height: 36 }} /></div>
           <p style={{ color: 'var(--ink)', fontSize: '14px', marginBottom: '6px' }}>No analytics data available yet</p>
           <p className="eyebrow">Analytics data will appear once you publish content to your connected platforms</p>
         </div>

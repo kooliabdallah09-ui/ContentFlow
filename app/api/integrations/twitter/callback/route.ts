@@ -1,136 +1,89 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
+import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
+  const base = process.env.NEXT_PUBLIC_APP_URL
   try {
     const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            try {
-              cookieStore.set(name, value, options)
-            } catch {
-              // Silently fail
-            }
-          },
-          remove(name: string) {
-            try {
-              cookieStore.delete(name)
-            } catch {
-              // Silently fail
-            }
-          },
-        },
-      }
-    )
-
-    // Get authorization code and state
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
     const state = searchParams.get('state')
     const error = searchParams.get('error')
 
-    if (error) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=${error}`
-      )
-    }
+    if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
+    if (!code || !state) return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
 
-    if (!code || !state) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=missing_params`
-      )
-    }
+    const storedStateFull = cookieStore.get('twitter_oauth_state')?.value || ''
+    const [storedState, userId] = storedStateFull.split('::')
+    if (!storedState || storedState !== state)
+      return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
+    if (!userId)
+      return NextResponse.redirect(`${base}/settings/integrations?error=missing_user`)
 
-    // Verify state from cookie
-    const storedState = cookieStore.get('twitter_oauth_state')?.value
-    if (!storedState || storedState !== state) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=invalid_state`
-      )
-    }
+    const codeVerifier = cookieStore.get('twitter_code_verifier')?.value
+    if (!codeVerifier)
+      return NextResponse.redirect(`${base}/settings/integrations?error=missing_code_verifier`)
 
-    // Get current user
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser()
-
-    if (authError || !user) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/auth/login?error=unauthorized`
-      )
-    }
-
-    // Exchange code for tokens
-    const tokenResponse = await fetch('https://twitter.com/2/oauth2/token', {
+    // Exchange code for tokens (PKCE — no client_secret needed)
+    const tokenResponse = await fetch('https://api.x.com/2/oauth2/token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
         client_id: process.env.TWITTER_CLIENT_ID!,
-        client_secret: process.env.TWITTER_CLIENT_SECRET!,
-        redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/twitter/callback`,
+        redirect_uri: `${base}/api/integrations/twitter/callback`,
+        code_verifier: codeVerifier,
       }).toString(),
     })
 
     const tokens = await tokenResponse.json()
+    if (!tokens.access_token)
+      return NextResponse.redirect(`${base}/settings/integrations?error=token_exchange_failed`)
 
-    if (!tokens.access_token) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=token_exchange_failed`
-      )
-    }
+    // Get Twitter username
+    const userRes = await fetch('https://api.x.com/2/users/me', {
+      headers: { Authorization: `Bearer ${tokens.access_token}` },
+    })
+    const userData = await userRes.json()
+    const username = userData?.data?.username || null
 
-    // Save tokens to database
-    const { data: existingIntegration } = await supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    const { data: existing } = await supabase
       .from('integrations')
       .select('id')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .eq('platform', 'twitter')
       .single()
 
-    if (existingIntegration) {
-      // Update existing integration
-      await supabase
-        .from('integrations')
-        .update({
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token || null,
-        })
-        .eq('id', existingIntegration.id)
+    if (existing?.id) {
+      await supabase.from('integrations').update({
+        account_name: username,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token || null,
+        connected_at: new Date().toISOString(),
+      }).eq('id', existing.id)
     } else {
-      // Create new integration
-      await supabase.from('integrations').insert([
-        {
-          user_id: user.id,
-          platform: 'twitter',
-          access_token: tokens.access_token,
-          refresh_token: tokens.refresh_token || null,
-        },
-      ])
+      await supabase.from('integrations').insert({
+        user_id: userId,
+        platform: 'twitter',
+        account_name: username,
+        access_token: tokens.access_token,
+        refresh_token: tokens.refresh_token || null,
+        connected_at: new Date().toISOString(),
+      })
     }
 
-    // Clear state cookie
-    const response = NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?success=twitter_connected`
-    )
+    const response = NextResponse.redirect(`${base}/settings/integrations?success=twitter`)
     response.cookies.delete('twitter_oauth_state')
-
+    response.cookies.delete('twitter_code_verifier')
     return response
   } catch (error) {
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=${error instanceof Error ? error.message : 'Unknown error'}`
-    )
+    return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
   }
 }

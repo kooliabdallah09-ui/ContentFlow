@@ -1,49 +1,69 @@
-import { createClient } from "@supabase/supabase-js";
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
-export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
-  }
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-  const token = authHeader.slice(7);
-  const { searchParams } = new URL(request.url);
-  const month = parseInt(searchParams.get("month") || String(new Date().getMonth() + 1));
-  const year = parseInt(searchParams.get("year") || String(new Date().getFullYear()));
-
+export async function GET(request: NextRequest) {
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
+    )
 
-    const { data: userData, error: userError } = await supabase.auth.getUser(token);
-    if (userError || !userData?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    // Get the authorization header
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: planData, error: planError } = await supabase
-      .from("user_monthly_plans")
-      .select("plan_data")
-      .eq("user_id", userData.user.id)
-      .eq("month", month)
-      .eq("year", year)
-      .single();
+    const token = authHeader.substring(7)
 
-    if (planError) {
-      return Response.json({ error: "Plan not found" }, { status: 404 });
+    // Verify the token and get user info
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const plan = typeof planData.plan_data === "string"
-      ? JSON.parse(planData.plan_data)
-      : planData.plan_data;
+    // Get query parameters
+    const { searchParams } = new URL(request.url)
+    const month = searchParams.get('month')
+    const year = searchParams.get('year')
 
-    return Response.json({ plan });
-  } catch (err) {
-    console.error("Error fetching plan:", err);
-    return Response.json(
-      { error: "Failed to fetch plan" },
+    if (!month || !year) {
+      return NextResponse.json(
+        { error: 'Missing month or year parameter' },
+        { status: 400 }
+      )
+    }
+
+    // Fetch the plan from the database
+    const { data, error } = await supabase
+      .from('user_monthly_plans')
+      .select('plan_data')
+      .eq('user_id', user.id)
+      .eq('month', parseInt(month))
+      .eq('year', parseInt(year))
+      .single()
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('Database error:', error)
+      return NextResponse.json(
+        { plan: [] }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      plan: data?.plan_data || [],
+    })
+  } catch (error) {
+    console.error('Get monthly plan error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error', plan: [] },
       { status: 500 }
-    );
+    )
   }
 }
