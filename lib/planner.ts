@@ -72,44 +72,63 @@ ${hasScreenshots ? `- App screenshots available: YES (${brand.screenshotCount} s
 ${brand.keyFeatures ? `- Key screens/features: ${brand.keyFeatures}` : ''}` : ''
 
   const toolCapabilities = `
-CONTENT TOOLS — capabilities and hard limits (strictly follow these):
+CONTENT TOOLS — what ContentFlow's AI generators actually produce (be strictly accurate):
 
-"ugc" → HeyGen AI Avatar video
-  CAN: AI avatar speaks to camera, text overlays, branded backgrounds, call-to-action
-  CANNOT: show real app interface or screenshots — avatar is just talking/presenting
-  GOOD FOR: announcements, testimonials, brand voice, explaining a concept out loud
-  EXAMPLE for ${brand?.name || 'this brand'}: Avatar explains the top 3 benefits, avatar reacts to a customer result
+━━ "ugc" → HeyGen AI Avatar (talking head video)
+   WHAT IT ACTUALLY IS: A pre-built AI character (not the user, not a real human) reads a script on camera with a branded background.
+   CAN produce: avatar speaking a script, text overlays, call-to-action screens, background visuals
+   CANNOT produce: real human footage, screen recordings, unboxing, real customer reactions, anything requiring real-world footage
+   CANNOT show: actual app UI, real product, real people — avatar is purely synthetic
+   CONTENT IDEAS THAT WORK: "Avatar explains why [brand] solves [pain point]", "Avatar announces new feature", "Avatar walks through 3 key benefits"
+   CONTENT IDEAS THAT DO NOT WORK: "Show customer using the product", "Record yourself explaining X", "Screen capture the dashboard"
 
-"video" → Short-form video (Reels/TikTok/YouTube Shorts style)
-  CAN: screen recordings, app walkthroughs, demo footage, text overlays, B-roll
-  REQUIRES SCREENSHOTS/RECORDINGS: only suggest showing the app if hasScreenshots = ${hasScreenshots}
-  GOOD FOR: product demos, tutorials, before/after, feature reveals
-  EXAMPLE: ${hasScreenshots ? `Screen recording of ${brand?.name || 'the app'} dashboard with voiceover` : 'Animated text video explaining a key benefit'}
+━━ "video" → HeyGen AI video (scripted marketing video)
+   WHAT IT ACTUALLY IS: AI-generated short video — animated text, transitions, background footage, voiceover. NOT a screen recorder.
+   CAN produce: scripted narrative with text + voiceover, animated titles, stock-style background clips, brand colors
+   CANNOT produce: real screen recordings, real product demos, actual app UI, live action footage
+   ${hasScreenshots
+     ? `Screenshots ARE available (${brand?.screenshotCount}) — you MAY suggest using them as background/overlay in the video`
+     : `NO screenshots available — do NOT suggest showing the app interface in any video`}
+   CONTENT IDEAS THAT WORK: "Animated explainer: how [brand] works in 3 steps", "Text-driven motivational clip with brand colors"
+   CONTENT IDEAS THAT DO NOT WORK: "Show the app being used", "Screen recording of onboarding flow"
 
-"image" → AI-generated image (Flux Pro)
-  CAN: lifestyle photography, concept visuals, branded mockups, abstract backgrounds, people using devices
-  CANNOT: accurately render a specific app's UI or exact screen
-  GOOD FOR: mood/lifestyle content, quote cards, product concept art
-  EXAMPLE: Person on laptop in a café, device mockup with gradient background
+━━ "image" → Flux Pro AI image generation
+   WHAT IT ACTUALLY IS: Generates a photorealistic or stylistic image from a text description. Cannot replicate specific UIs.
+   CAN produce: lifestyle photos (people using devices/products), concept art, branded backgrounds, illustrated mockups, abstract visuals
+   CANNOT produce: accurate rendering of a specific app's screens, exact product photos, real people's faces
+   CONTENT IDEAS THAT WORK: "Person working on laptop in modern office", "Minimalist device mockup with gradient", "Abstract visual representing productivity"
+   CONTENT IDEAS THAT DO NOT WORK: "Screenshot of the ContentFlow dashboard", "Photo of our product page"
 
-"social" → Text-based post (no image generation involved)
-  CAN: tips, threads, polls, quotes, questions, announcements, listicles
-  GOOD FOR: engagement, community building, shareability
-  EXAMPLE: "3 things I wish I knew before starting content marketing"
+━━ "social" → Claude AI text generation (no visuals)
+   WHAT IT ACTUALLY IS: A written post — text only, no image attached by default.
+   CAN produce: tips, threads, polls, quotes, questions, carousels (text outline), announcements, listicles
+   CANNOT produce: any visual content on its own
+   CONTENT IDEAS THAT WORK: "5 content mistakes killing your reach", "Poll: what's your biggest content struggle?", "Hot take: consistency beats virality"
 
-"blog" → Long-form written article
-  CAN: tutorials, comparisons, case studies, opinion pieces, SEO content
-  GOOD FOR: organic traffic, authority building, email content
-  EXAMPLE: "How ${brand?.name || 'we'} helped a brand grow to 10k followers in 30 days"
+━━ "blog" → Claude AI long-form article
+   WHAT IT ACTUALLY IS: A full written article (500–2000 words).
+   CAN produce: tutorials, comparisons, opinion pieces, case studies, SEO posts, how-to guides
+   CANNOT produce: visual content, videos, infographics
+   CONTENT IDEAS THAT WORK: "The complete guide to repurposing content", "Why AI content tools are changing marketing in 2026"
 
-"voice" → AI voice/audio clip (ElevenLabs)
-  CAN: spoken tips, podcast snippets, audio announcements
-  CANNOT: show anything visual — audio only
-  GOOD FOR: podcast teasers, audio tips, voice notes for social
+━━ "voice" → ElevenLabs AI text-to-speech
+   WHAT IT ACTUALLY IS: An AI voice reads a script. Audio file only — no video, no visuals at all.
+   CAN produce: podcast-style audio clips, audio tips, voice notes, spoken announcements
+   CANNOT produce: anything visual — pure audio output
+   CONTENT IDEAS THAT WORK: "60-second audio tip on content strategy", "Weekly voice note from the brand"
+   CONTENT IDEAS THAT DO NOT WORK: "Show the product in action", anything requiring a visual
 
-"email" → Email/newsletter
-  CAN: feature announcements, weekly roundups, nurture sequences, promotions
-  GOOD FOR: retention, upsell, community updates`
+━━ "email" → Claude AI email/newsletter
+   WHAT IT ACTUALLY IS: Written email content ready to send via any email platform.
+   CAN produce: welcome sequences, weekly newsletters, product announcements, promotional emails, re-engagement
+   CANNOT produce: visual designs — text content only
+
+━━ GLOBAL RULES (never break these):
+   1. Never suggest "record yourself", "film a video", "take a photo" — the user is not recording anything manually
+   2. Never suggest showing the real app interface unless screenshots are available (${hasScreenshots ? 'AVAILABLE ✓' : 'NOT AVAILABLE ✗'})
+   3. Never suggest real customer testimonials or UGC from real users — this is all AI-generated
+   4. Every suggestion must be 100% achievable with only the tools listed above and the brand info provided
+   5. If a great idea requires something unavailable (e.g. real footage), adapt it to what IS possible instead`
 
   const prompt = `You are an expert content strategist creating a 30-day content calendar.
 ${brandSection}
