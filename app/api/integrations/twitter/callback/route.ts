@@ -15,8 +15,8 @@ export async function GET(request: NextRequest) {
     if (!code || !state) return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
 
     const storedStateFull = cookieStore.get('twitter_oauth_state')?.value || ''
-    const [storedState, userId] = storedStateFull.split('::')
-    if (!storedState || storedState !== state)
+    const [, userId] = storedStateFull.split('::')
+    if (!storedStateFull || storedStateFull !== state)
       return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
     if (!userId)
       return NextResponse.redirect(`${base}/settings/integrations?error=missing_user`)
