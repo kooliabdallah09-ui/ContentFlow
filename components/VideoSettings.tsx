@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { Icon } from './Icons'
+import AvatarPicker from './AvatarPicker'
+import { CREDIT_COSTS } from '@/lib/planConfig'
 
 interface VideoSettingsProps {
   onGenerate: (settings: {
@@ -13,20 +15,11 @@ interface VideoSettingsProps {
   creditBalance: number
 }
 
-const AVATARS = [
-  { id: 'avtr_1', name: 'Sarah', gender: 'Female', accent: 'American' },
-  { id: 'avtr_2', name: 'James', gender: 'Male', accent: 'American' },
-  { id: 'avtr_3', name: 'Sophia', gender: 'Female', accent: 'British' },
-  { id: 'avtr_4', name: 'Lucas', gender: 'Male', accent: 'Australian' },
-  { id: 'avtr_5', name: 'Maya', gender: 'Female', accent: 'Indian' },
-]
-
 const VOICES = [
-  { id: 'en-US-Neural2-A', name: 'Professional Female', accent: 'American' },
-  { id: 'en-US-Neural2-C', name: 'Professional Male', accent: 'American' },
-  { id: 'en-GB-Neural2-A', name: 'British Female', accent: 'British' },
-  { id: 'en-GB-Neural2-B', name: 'British Male', accent: 'British' },
-  { id: 'en-AU-Neural2-A', name: 'Australian Female', accent: 'Australian' },
+  { id: '1bd001e7e50f421d891986aad5158bc8', name: 'Professional Female', accent: 'American' },
+  { id: '2d5b0e6cf36f460aa7fc47e3eee4ba54', name: 'Professional Male', accent: 'American' },
+  { id: 'e749e866b30d47e4858cac12a6d13f2f', name: 'British Female', accent: 'British' },
+  { id: '1588bf4c1db74e1dbba1c7b2e9f54b14', name: 'British Male', accent: 'British' },
 ]
 
 export default function VideoSettings({
@@ -35,14 +28,14 @@ export default function VideoSettings({
   creditBalance,
 }: VideoSettingsProps) {
   const [script, setScript] = useState('')
-  const [avatarId, setAvatarId] = useState(AVATARS[0].id)
+  const [avatarId, setAvatarId] = useState('')
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
 
-  const creditCost = 100
+  const creditCost = CREDIT_COSTS.video_standard
   const charCount = script.length
   const maxChars = 3000
   const estimatedDuration = Math.ceil((script.split(/\s+/).length / 150) * 60)
-  const canGenerate = creditBalance >= creditCost && script.trim().length > 0
+  const canGenerate = creditBalance >= creditCost && script.trim().length > 0 && !!avatarId
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -73,59 +66,25 @@ export default function VideoSettings({
           maxLength={maxChars}
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '6px' }}>
-          <p className="eyebrow">
-            {charCount} / {maxChars} characters
-          </p>
+          <p className="eyebrow">{charCount} / {maxChars} characters</p>
           {estimatedDuration > 0 && (
-            <p className="eyebrow" style={{ color: 'var(--accent)' }}>
-              Est. Duration: ~{estimatedDuration}s
-            </p>
+            <p className="eyebrow" style={{ color: 'var(--accent)' }}>Est. ~{estimatedDuration}s</p>
           )}
         </div>
       </div>
 
       <div className="form-row">
         <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
-          Select Avatar
+          Choose Avatar
         </label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflow: 'auto' }}>
-          {AVATARS.map((avatar) => (
-            <label
-              key={avatar.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '10px 12px',
-                background: avatarId === avatar.id ? 'var(--accent-soft)' : 'var(--surface)',
-                border: `1px solid ${avatarId === avatar.id ? 'var(--accent)' : 'var(--border)'}`,
-                borderRadius: 'var(--r-sm)',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              <input
-                type="radio"
-                name="avatar"
-                value={avatar.id}
-                checked={avatarId === avatar.id}
-                onChange={(e) => setAvatarId(e.target.value)}
-                disabled={isLoading}
-                style={{ accentColor: 'var(--accent)', cursor: 'pointer' }}
-              />
-              <div style={{ marginLeft: '10px', flex: 1 }}>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '2px' }}>{avatar.name}</p>
-                <p className="eyebrow">{avatar.gender} • {avatar.accent}</p>
-              </div>
-            </label>
-          ))}
-        </div>
+        <AvatarPicker selectedId={avatarId} onChange={setAvatarId} disabled={isLoading} />
       </div>
 
       <div className="form-row">
         <label style={{ display: 'block', marginBottom: '8px', fontSize: '13px', fontWeight: 600, color: 'var(--ink)' }}>
-          Select Voice
+          Voice
         </label>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '200px', overflow: 'auto' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {VOICES.map((voice) => (
             <label
               key={voice.id}
@@ -165,12 +124,7 @@ export default function VideoSettings({
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px' }}>
           <span className="eyebrow">Your Balance:</span>
-          <span
-            style={{
-              fontWeight: 600,
-              color: creditBalance >= creditCost ? 'var(--good)' : 'var(--danger)',
-            }}
-          >
+          <span style={{ fontWeight: 600, color: creditBalance >= creditCost ? 'var(--good)' : 'var(--danger)' }}>
             {creditBalance} credits
           </span>
         </div>
@@ -185,7 +139,12 @@ export default function VideoSettings({
           {isLoading ? 'Generating...' : 'Generate Video'}
         </button>
 
-        {!canGenerate && script.trim().length > 0 && (
+        {!canGenerate && script.trim().length > 0 && !avatarId && (
+          <p className="eyebrow" style={{ color: 'var(--danger)', textAlign: 'center', fontSize: '11px' }}>
+            Please select an avatar
+          </p>
+        )}
+        {!canGenerate && script.trim().length > 0 && avatarId && creditBalance < creditCost && (
           <p className="eyebrow" style={{ color: 'var(--danger)', textAlign: 'center', fontSize: '11px' }}>
             Not enough credits. Need {creditCost}, have {creditBalance}
           </p>

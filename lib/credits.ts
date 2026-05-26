@@ -1,12 +1,14 @@
 import { getSupabase } from './auth'
+import { CREDIT_COSTS as PLAN_CREDIT_COSTS } from './planConfig'
 
+// Single source of truth — delegate to planConfig
 export const CREDIT_COSTS = {
-  blog: 100,
-  social: 50,
-  email: 75,
-  image: 80,
-  video: 300,
-  voice: 150,
+  blog: PLAN_CREDIT_COSTS.blog,
+  social: PLAN_CREDIT_COSTS.social,
+  email: PLAN_CREDIT_COSTS.email,
+  image: PLAN_CREDIT_COSTS.image,
+  video: PLAN_CREDIT_COSTS.video_standard,
+  voice: PLAN_CREDIT_COSTS.voice,
 } as const
 
 export const PLAN_CREDITS = {

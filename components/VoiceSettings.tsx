@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Icon } from './Icons'
+import { CREDIT_COSTS } from '@/lib/planConfig'
 
 interface VoiceSettingsProps {
   onGenerate: (settings: {
@@ -32,7 +33,7 @@ export default function VoiceSettings({
   const [stability, setStability] = useState(0.5)
   const [similarityBoost, setSimilarityBoost] = useState(0.75)
 
-  const creditCost = 3
+  const creditCost = CREDIT_COSTS.voice
   const charCount = text.length
   const maxChars = 5000
   const canGenerate = creditBalance >= creditCost && text.trim().length > 0
