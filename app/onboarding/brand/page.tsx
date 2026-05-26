@@ -5,6 +5,24 @@ import { getSupabase } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import { showSuccess, showError } from '@/lib/notifications'
 import { DailySuggestion } from '@/lib/planner'
+import { FormatPreferences, FormatFrequency } from '@/lib/planConfig'
+
+const FORMAT_OPTIONS: { id: keyof FormatPreferences; label: string; desc: string }[] = [
+  { id: 'ugc',    label: 'UGC Video',    desc: 'AI avatar brand videos' },
+  { id: 'video',  label: 'Short Video',  desc: 'Reels, clips, demos' },
+  { id: 'image',  label: 'AI Image',     desc: 'Visuals and graphics' },
+  { id: 'social', label: 'Social Post',  desc: 'Text posts and threads' },
+  { id: 'blog',   label: 'Blog Post',    desc: 'Long-form articles' },
+  { id: 'voice',  label: 'Voice / Audio', desc: 'Podcasts and audio clips' },
+  { id: 'email',  label: 'Email',        desc: 'Newsletters and sequences' },
+]
+
+const FREQ_CHIPS: { value: FormatFrequency; label: string }[] = [
+  { value: 0, label: 'Never' },
+  { value: 1, label: 'Light' },
+  { value: 2, label: 'Regular' },
+  { value: 3, label: 'Heavy' },
+]
 
 const PLATFORM_ICONS: Record<string, React.ReactElement> = {
   instagram: (
@@ -90,9 +108,12 @@ export default function OnboardingBrandPage() {
   const [toneOfVoice, setToneOfVoice] = useState('')
   const [brandColors, setBrandColors] = useState('')
 
-  // Step 2: Platforms & Frequency
+  // Step 2: Platforms, Format Preferences & Frequency
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   const [frequency, setFrequency] = useState('moderate')
+  const [formatPrefs, setFormatPrefs] = useState<FormatPreferences>({
+    ugc: 2, video: 2, image: 2, social: 3, blog: 1, voice: 1, email: 1,
+  })
 
   // Step 3: Generated plan
   const [generatedPlan, setGeneratedPlan] = useState<DailySuggestion[]>([])
@@ -204,6 +225,7 @@ export default function OnboardingBrandPage() {
           industry: productType,
           platforms: selectedPlatforms,
           frequency,
+          formatPreferences: formatPrefs,
         }),
       })
       clearInterval(tick)
@@ -416,7 +438,85 @@ export default function OnboardingBrandPage() {
 
           {/* ── STEP 2: Platforms & Frequency ── */}
           {step === 2 && !generating && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '36px' }}>
+
+              {/* Format Mix */}
+              <div>
+                <label style={labelStyle}>Content Format Mix</label>
+                <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginBottom: '16px', marginTop: '4px' }}>
+                  How often do you want each format in your plan?
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  {FORMAT_OPTIONS.map(fmt => {
+                    const val = formatPrefs[fmt.id] ?? 0
+                    return (
+                      <div key={fmt.id} style={{
+                        display: 'flex', alignItems: 'center', gap: '16px',
+                        padding: '12px 16px', borderRadius: 'var(--r-md)',
+                        background: 'var(--surface)', border: '1px solid var(--border)',
+                      }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: '14px', fontWeight: 600 }}>{fmt.label}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--ink-mute)' }}>{fmt.desc}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
+                          {FREQ_CHIPS.map(chip => (
+                            <button
+                              key={chip.value}
+                              onClick={() => setFormatPrefs(p => ({ ...p, [fmt.id]: chip.value }))}
+                              style={{
+                                padding: '4px 10px', borderRadius: '99px', fontSize: '12px',
+                                fontWeight: 500, cursor: 'pointer', border: 'none',
+                                background: val === chip.value ? 'var(--accent)' : 'var(--bg)',
+                                color: val === chip.value ? 'var(--accent-ink)' : 'var(--ink-mute)',
+                                transition: 'all 120ms',
+                              }}
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+                {/* Distribution preview */}
+                {Object.values(formatPrefs).some(v => v && v > 0) && (
+                  <div style={{ marginTop: '14px' }}>
+                    <div style={{ display: 'flex', height: '6px', borderRadius: '99px', overflow: 'hidden', gap: '2px' }}>
+                      {FORMAT_OPTIONS.filter(f => (formatPrefs[f.id] ?? 0) > 0).map(fmt => {
+                        const total = Object.values(formatPrefs).reduce((s, v) => s + (v ?? 0), 0)
+                        const pct = ((formatPrefs[fmt.id] ?? 0) / total) * 100
+                        const colors: Record<string, string> = {
+                          ugc: 'var(--accent)', video: '#6366f1', image: '#06b6d4',
+                          social: '#10b981', blog: '#f59e0b', voice: '#8b5cf6', email: '#ec4899',
+                        }
+                        return (
+                          <div key={fmt.id} style={{
+                            flex: pct, background: colors[fmt.id] || 'var(--accent)',
+                            borderRadius: '99px', minWidth: '4px',
+                          }} />
+                        )
+                      })}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginTop: '8px' }}>
+                      {FORMAT_OPTIONS.filter(f => (formatPrefs[f.id] ?? 0) > 0).map(fmt => {
+                        const colors: Record<string, string> = {
+                          ugc: 'var(--accent)', video: '#6366f1', image: '#06b6d4',
+                          social: '#10b981', blog: '#f59e0b', voice: '#8b5cf6', email: '#ec4899',
+                        }
+                        return (
+                          <span key={fmt.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--ink-dim)' }}>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: colors[fmt.id], display: 'inline-block', flexShrink: 0 }} />
+                            {fmt.label}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label style={labelStyle}>Platforms You Use</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>

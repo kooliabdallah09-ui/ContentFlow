@@ -25,39 +25,13 @@ export default function CalendarPage() {
       const monthNum = month.getMonth() + 1
       const yearNum = month.getFullYear()
 
-      console.log('Fetching plan for:', monthNum, yearNum)
-
-      // Check if there's a generated plan in sessionStorage (from onboarding)
-      if (typeof window !== 'undefined') {
-        const storedPlan = sessionStorage.getItem('generatedPlan')
-        if (storedPlan) {
-          try {
-            const parsedPlan = JSON.parse(storedPlan)
-            console.log('Using stored plan:', parsedPlan.length, 'days')
-            setPlan(parsedPlan)
-            setLoading(false)
-            return
-          } catch (e) {
-            console.error('Failed to parse stored plan:', e)
-          }
-        }
-      }
-
       const supabase = getSupabase()
-      if (!supabase) {
-        console.warn('Supabase not available')
-        setLoading(false)
-        return
-      }
+      if (!supabase) { setLoading(false); return }
 
       const { data: userData } = await supabase.auth.getUser()
-      if (!userData?.user?.id) {
-        console.warn('No user found')
-        setLoading(false)
-        return
-      }
+      if (!userData?.user?.id) { setLoading(false); return }
 
-      // Direct query to get the plan
+      // DB is authoritative — always query first so plan is visible on any device
       const { data: planData, error: queryError } = await supabase
         .from('user_monthly_plans')
         .select('plan_data')
@@ -66,17 +40,27 @@ export default function CalendarPage() {
         .eq('year', yearNum)
         .single()
 
-      if (queryError && queryError.code !== 'PGRST116') {
-        console.error('Query error:', queryError)
+      if (planData?.plan_data) {
+        setPlan(planData.plan_data)
+        // Sync sessionStorage with latest DB data
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('generatedPlan', JSON.stringify(planData.plan_data))
+        }
+        return
       }
 
-      if (planData?.plan_data) {
-        console.log('Loaded plan from database:', planData.plan_data.length, 'days')
-        setPlan(planData.plan_data)
-      } else {
-        console.log('No plan found in database')
-        setPlan([])
+      // DB had nothing (or FK not fixed yet) — fall back to sessionStorage
+      if (typeof window !== 'undefined') {
+        const stored = sessionStorage.getItem('generatedPlan')
+        if (stored) {
+          try {
+            setPlan(JSON.parse(stored))
+            return
+          } catch {}
+        }
       }
+
+      setPlan([])
     } catch (error) {
       console.error('Failed to fetch plan:', error)
     } finally {

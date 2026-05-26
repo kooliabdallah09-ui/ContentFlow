@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { FormatPreferences, buildFormatInstruction } from "@/lib/planConfig";
 
 export interface DailySuggestion {
   date: string;
@@ -29,7 +30,8 @@ export async function generateMonthlyPlan(
   industry: string,
   platforms: string[],
   frequency: "light" | "moderate" | "heavy",
-  audience?: string
+  audience?: string,
+  formatPreferences?: FormatPreferences
 ): Promise<DailySuggestion[]> {
   const client = new Anthropic();
 
@@ -40,16 +42,18 @@ export async function generateMonthlyPlan(
   };
 
   const audienceText = audience ? `targeting ${audience}` : "for their target audience";
+  const formatInstruction = formatPreferences ? buildFormatInstruction(formatPreferences) : ''
+
   const prompt = `Generate a 30-day social media content plan for a ${industry} business ${audienceText}.
 
 Requirements:
 - Posting frequency: ${frequencyMap[frequency]}
 - Platforms: ${platforms.join(", ")}
-- Content types to use: video (short demo/testimonial), image (product/lifestyle), voice (podcast/tips), blog (educational), social (quick tips), ugc (user-generated/customer stories)
-- Create variety - don't repeat same type 2 days in a row
+- Content types available: video, ugc (AI avatar video), image, voice, blog, social, email
+- Create variety — don't repeat the same type 2 days in a row
 - Build a narrative arc: Week 1 (introduce), Week 2 (educate), Week 3 (showcase), Week 4 (convert)
-- Include 2-3 UGC days spread throughout
-- Leave 1-2 flexible buffer days
+- Leave 1-2 buffer days
+${formatInstruction ? `- ${formatInstruction}` : '- Balance content types evenly across the month'}
 
 For each day, provide JSON with:
 {
@@ -58,13 +62,13 @@ For each day, provide JSON with:
   "contentType": "video",
   "title": "Brief title",
   "description": "What the content should show/say (2-3 sentences)",
-  "icon": "emoji",
+  "icon": "short text label",
   "platforms": ["Instagram", "TikTok"],
   "suggestedTime": "7pm",
   "reason": "Why this content on this day"
 }
 
-Return ONLY a JSON array of 30 objects, no markdown formatting, no extra text.`;
+Return ONLY a JSON array, no markdown formatting, no extra text.`;
 
   try {
     const message = await client.messages.create({
