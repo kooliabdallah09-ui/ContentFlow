@@ -2,45 +2,32 @@ import { TwitterApi } from 'twitter-api-v2'
 
 export interface TwitterPublishPayload {
   content: string
-  mediaUrls?: string[]
 }
 
 export class TwitterPublisher {
   private client: TwitterApi
 
-  constructor(accessToken: string, accessTokenSecret: string, apiKey: string, apiSecret: string) {
-    this.client = new TwitterApi({
-      appKey: apiKey,
-      appSecret: apiSecret,
-      accessToken,
-      accessSecret: accessTokenSecret,
-    })
+  // accessToken is an OAuth 2.0 user context token from our PKCE flow
+  constructor(accessToken: string) {
+    this.client = new TwitterApi(accessToken)
   }
 
   async publish(payload: TwitterPublishPayload): Promise<string> {
-    try {
-      const tweet = await this.client.v2.tweet(payload.content)
-      return tweet.data.id
-    } catch (error) {
-      throw new Error(`Failed to publish to Twitter: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
+    const text = payload.content.substring(0, 280)
+    const tweet = await this.client.v2.tweet({ text })
+    return tweet.data.id
   }
 
   async verifyCredentials(): Promise<boolean> {
     try {
       await this.client.v2.me()
       return true
-    } catch (error) {
+    } catch {
       return false
     }
   }
 }
 
-export function initializeTwitterPublisher(
-  accessToken: string,
-  accessTokenSecret: string,
-  apiKey: string,
-  apiSecret: string
-): TwitterPublisher {
-  return new TwitterPublisher(accessToken, accessTokenSecret, apiKey, apiSecret)
+export function initializeTwitterPublisher(accessToken: string): TwitterPublisher {
+  return new TwitterPublisher(accessToken)
 }

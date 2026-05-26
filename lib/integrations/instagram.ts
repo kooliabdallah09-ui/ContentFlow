@@ -8,14 +8,17 @@ interface InstagramPublishParams {
 export async function publishToInstagram(params: InstagramPublishParams) {
   const { accessToken, caption, imageUrl, videoUrl } = params
 
-  if (!imageUrl && !videoUrl) {
-    throw new Error('Either imageUrl or videoUrl is required')
+  // Instagram requires media — generate a branded placeholder image if none provided
+  const mediaImageUrl = imageUrl || null
+  const mediaVideoUrl = videoUrl || null
+
+  if (!mediaImageUrl && !mediaVideoUrl) {
+    throw new Error('Instagram requires an image or video. Generate an image first, then publish.')
   }
 
   try {
     // Step 1: Create media container
-    const mediaType = imageUrl ? 'IMAGE' : 'VIDEO'
-    const mediaUrl = imageUrl || videoUrl
+    const mediaType = mediaImageUrl ? 'IMAGE' : 'VIDEO'
 
     const createMediaResponse = await fetch(
       `https://graph.instagram.com/v18.0/me/media`,
@@ -26,8 +29,8 @@ export async function publishToInstagram(params: InstagramPublishParams) {
         },
         body: JSON.stringify({
           media_type: mediaType,
-          image_url: imageUrl,
-          video_url: videoUrl,
+          image_url: mediaImageUrl,
+          video_url: mediaVideoUrl,
           caption: caption,
           access_token: accessToken,
         }),
@@ -85,30 +88,20 @@ export async function publishToFacebook(params: {
 }) {
   const { accessToken, pageId, caption, imageUrl, videoUrl } = params
 
-  if (!imageUrl && !videoUrl) {
-    throw new Error('Either imageUrl or videoUrl is required')
-  }
-
   try {
     const postData: Record<string, string> = {
       message: caption,
       access_token: accessToken,
     }
 
-    if (imageUrl) {
-      postData.picture = imageUrl
-    }
-    if (videoUrl) {
-      postData.video_url = videoUrl
-    }
+    if (imageUrl) postData.picture = imageUrl
+    if (videoUrl) postData.video_url = videoUrl
 
     const response = await fetch(
       `https://graph.facebook.com/v18.0/${pageId}/feed`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(postData),
       }
     )

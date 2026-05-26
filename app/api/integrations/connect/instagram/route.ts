@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
 
 export async function GET(request: NextRequest) {
-  const state = Math.random().toString(36).substring(7)
+  const userId = request.cookies.get('cf_user_id')?.value || ''
+  const state = `${crypto.randomBytes(16).toString('hex')}::${userId}`
   const appId = process.env.FACEBOOK_APP_ID
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback/instagram`
 

@@ -15,9 +15,10 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Verify state for CSRF protection
-  const storedState = request.cookies.get('oauth_state')?.value
-  if (!state || state !== storedState) {
+  // Verify state for CSRF protection (format: "randomhex::userId")
+  const storedStateFull = request.cookies.get('oauth_state')?.value || ''
+  const [storedState, userId] = storedStateFull.split('::')
+  if (!state || state !== storedStateFull) {
     return NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=invalid_state`
     )
@@ -86,11 +87,14 @@ export async function GET(request: NextRequest) {
         },
       }
     )
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    // Resolve user: prefer userId from state, fall back to session cookie
+    let resolvedUserId = userId
+    if (!resolvedUserId) {
+      const { data: { user } } = await supabase.auth.getUser()
+      resolvedUserId = user?.id || ''
+    }
 
-    if (!user) {
+    if (!resolvedUserId) {
       return NextResponse.redirect(
         `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=not_authenticated`
       )
@@ -101,7 +105,7 @@ export async function GET(request: NextRequest) {
       .from('integrations')
       .upsert(
         {
-          user_id: user.id,
+          user_id: resolvedUserId,
           platform: 'instagram',
           account_id: userData.id,
           account_name: userData.username,
