@@ -138,14 +138,14 @@ export default function IntegrationsPage() {
 
   const handleConnect = async (connectUrl: string) => {
     const supabase = getSupabase()
+    let userId = ''
     if (supabase) {
       const { data } = await supabase.auth.getSession()
-      const userId = data.session?.user.id
-      if (userId) {
-        document.cookie = `cf_user_id=${userId}; path=/; max-age=600; samesite=lax`
-      }
+      userId = data.session?.user.id || ''
     }
-    window.location.href = connectUrl
+    // Pass userId as query param — more reliable than cookies on production
+    const url = userId ? `${connectUrl}?userId=${encodeURIComponent(userId)}` : connectUrl
+    window.location.href = url
   }
 
   const handleDisconnect = async (platform: string) => {

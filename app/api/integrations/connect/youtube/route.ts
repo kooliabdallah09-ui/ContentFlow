@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import crypto from 'crypto'
 
 export async function GET(request: NextRequest) {
-  const state = crypto.randomBytes(16).toString('hex')
+  const userId = request.nextUrl.searchParams.get('userId') || ''
+  const state = `${crypto.randomBytes(16).toString('hex')}::${userId}`
   const clientId = process.env.GOOGLE_CLIENT_ID
   const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback/youtube`
 

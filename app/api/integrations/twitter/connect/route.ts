@@ -7,7 +7,7 @@ function base64URLEncode(buffer: Buffer) {
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.cookies.get('cf_user_id')?.value || ''
+    const userId = request.nextUrl.searchParams.get('userId') || request.cookies.get('cf_user_id')?.value || ''
     const state = crypto.randomBytes(32).toString('hex')
     const codeVerifier = base64URLEncode(crypto.randomBytes(32))
     const codeChallenge = base64URLEncode(

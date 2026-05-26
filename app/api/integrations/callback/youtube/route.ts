@@ -10,8 +10,9 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
 
-  const storedState = request.cookies.get('youtube_oauth_state')?.value
-  if (!state || state !== storedState) return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
+  const storedStateFull = request.cookies.get('youtube_oauth_state')?.value || ''
+  const [, userIdFromState] = storedStateFull.split('::')
+  if (!state || state !== storedStateFull) return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
   if (!code) return NextResponse.redirect(`${base}/settings/integrations?error=no_code`)
 
   try {
@@ -36,17 +37,7 @@ export async function GET(request: NextRequest) {
     const profile = await profileRes.json()
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-    const allCookies = request.cookies.getAll()
-    const sbCookie = allCookies.find(c => c.name.startsWith('sb-') && c.name.endsWith('-auth-token'))
-    let userId: string | null = null
-    if (sbCookie) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(sbCookie.value))
-        const token = Array.isArray(parsed) ? parsed[0] : parsed
-        const { data } = await supabase.auth.getUser(token)
-        userId = data.user?.id || null
-      } catch {}
-    }
+    const userId = userIdFromState || null
     if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=not_authenticated`)
 
     await supabase.from('integrations').upsert({
