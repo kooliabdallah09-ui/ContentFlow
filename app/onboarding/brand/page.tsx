@@ -107,6 +107,23 @@ export default function OnboardingBrandPage() {
   const [customerPainPoints, setCustomerPainPoints] = useState('')
   const [toneOfVoice, setToneOfVoice] = useState('')
   const [brandColors, setBrandColors] = useState('')
+  // App/Software specific
+  const [appScreenshots, setAppScreenshots] = useState<{ file: File; preview: string }[]>([])
+  const [appKeyFeatures, setAppKeyFeatures] = useState('')
+
+  const isSoftwareProduct = ['app', 'saas', 'software', 'platform', 'tool', 'website', 'web', 'mobile', 'extension', 'plugin']
+    .some(kw => productType.toLowerCase().includes(kw))
+
+  const handleScreenshotAdd = (files: FileList) => {
+    const newFiles = Array.from(files).slice(0, 8 - appScreenshots.length)
+    newFiles.forEach(file => {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setAppScreenshots(prev => [...prev, { file, preview: reader.result as string }])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
 
   // Step 2: Platforms, Format Preferences & Frequency
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
@@ -226,6 +243,18 @@ export default function OnboardingBrandPage() {
           platforms: selectedPlatforms,
           frequency,
           formatPreferences: formatPrefs,
+          brandContext: {
+            name: companyName,
+            description,
+            productType,
+            targetAudience,
+            toneOfVoice,
+            uniqueValue,
+            brandMission,
+            customerPainPoints,
+            screenshotCount: appScreenshots.length,
+            keyFeatures: appKeyFeatures,
+          },
         }),
       })
       clearInterval(tick)
@@ -393,6 +422,60 @@ export default function OnboardingBrandPage() {
                 <input type="text" placeholder="e.g., Cyan, White, Dark Gray" value={brandColors} onChange={e => setBrandColors(e.target.value)} style={inputStyle} />
               </div>
 
+              {/* App/Software only */}
+              {isSoftwareProduct && (
+                <>
+                  <div>
+                    <label style={labelStyle}>App Screenshots <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional, up to 8)</span></label>
+                    <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginBottom: '12px', marginTop: '2px' }}>
+                      These help the AI suggest content that accurately shows your product.
+                    </p>
+                    <div
+                      style={{ border: '2px dashed var(--border)', borderRadius: 'var(--r-md)', padding: '20px', textAlign: 'center', cursor: 'pointer', background: 'transparent' }}
+                      onClick={() => document.getElementById('screenshotInput')?.click()}
+                    >
+                      <input
+                        id="screenshotInput" type="file" accept="image/*" multiple style={{ display: 'none' }}
+                        onChange={e => e.target.files && handleScreenshotAdd(e.target.files)}
+                      />
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" style={{ marginBottom: '6px' }}>
+                        <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+                      </svg>
+                      <p style={{ margin: '0 0 2px', fontSize: '13px', fontWeight: 600 }}>
+                        {appScreenshots.length > 0 ? `${appScreenshots.length} screenshot${appScreenshots.length > 1 ? 's' : ''} added — click to add more` : 'Upload screenshots of your app'}
+                      </p>
+                      <p style={{ margin: 0, fontSize: '12px', color: 'var(--ink-mute)' }}>Dashboard, key features, onboarding — anything visual</p>
+                    </div>
+                    {appScreenshots.length > 0 && (
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', marginTop: '12px' }}>
+                        {appScreenshots.map((s, i) => (
+                          <div key={i} style={{ position: 'relative', aspectRatio: '16/9', borderRadius: 'var(--r-sm)', overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border)' }}>
+                            <img src={s.preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            <button
+                              onClick={e => { e.stopPropagation(); setAppScreenshots(prev => prev.filter((_, j) => j !== i)) }}
+                              style={{ position: 'absolute', top: 4, right: 4, width: 18, height: 18, borderRadius: '50%', border: 'none', background: 'rgba(0,0,0,0.7)', color: '#fff', fontSize: 11, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                            >×</button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={labelStyle}>Key Screens & Features</label>
+                    <textarea
+                      placeholder={`Describe your app's main screens and what they show.\ne.g. "Dashboard shows daily stats and credit balance. Generator page has a text input and style selector. Library stores all past creations with preview thumbnails."`}
+                      value={appKeyFeatures}
+                      onChange={e => setAppKeyFeatures(e.target.value)}
+                      style={{ ...inputStyle, minHeight: '100px', resize: 'vertical' }}
+                    />
+                    <p style={{ fontSize: '12px', color: 'var(--ink-mute)', marginTop: '6px' }}>
+                      The AI uses this to suggest content that shows your actual product — not generic app footage.
+                    </p>
+                  </div>
+                </>
+              )}
+
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                 <button onClick={() => router.push('/dashboard')} className="btn btn-ghost" style={{ flex: 1, padding: '12px 16px', fontSize: '14px' }}>
                   Skip
@@ -485,7 +568,7 @@ export default function OnboardingBrandPage() {
                   <div style={{ marginTop: '14px' }}>
                     <div style={{ display: 'flex', height: '6px', borderRadius: '99px', overflow: 'hidden', gap: '2px' }}>
                       {FORMAT_OPTIONS.filter(f => (formatPrefs[f.id] ?? 0) > 0).map(fmt => {
-                        const total = Object.values(formatPrefs).reduce((s, v) => s + (v ?? 0), 0)
+                        const total = Object.values(formatPrefs).reduce((s: number, v) => s + (v ?? 0), 0 as number)
                         const pct = ((formatPrefs[fmt.id] ?? 0) / total) * 100
                         const colors: Record<string, string> = {
                           ugc: 'var(--accent)', video: '#6366f1', image: '#06b6d4',

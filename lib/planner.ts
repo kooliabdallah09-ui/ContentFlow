@@ -1,6 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { FormatPreferences, buildFormatInstruction } from "@/lib/planConfig";
 
+export interface BrandContext {
+  name?: string
+  description?: string
+  productType?: string
+  targetAudience?: string
+  toneOfVoice?: string
+  uniqueValue?: string
+  brandMission?: string
+  customerPainPoints?: string
+  screenshotCount?: number
+  keyFeatures?: string
+}
+
 export interface DailySuggestion {
   date: string;
   day: string;
@@ -31,7 +44,8 @@ export async function generateMonthlyPlan(
   platforms: string[],
   frequency: "light" | "moderate" | "heavy",
   audience?: string,
-  formatPreferences?: FormatPreferences
+  formatPreferences?: FormatPreferences,
+  brand?: BrandContext
 ): Promise<DailySuggestion[]> {
   const client = new Anthropic();
 
@@ -41,34 +55,91 @@ export async function generateMonthlyPlan(
     heavy: "5-7 posts per week",
   };
 
-  const audienceText = audience ? `targeting ${audience}` : "for their target audience";
   const formatInstruction = formatPreferences ? buildFormatInstruction(formatPreferences) : ''
+  const hasScreenshots = (brand?.screenshotCount ?? 0) > 0
 
-  const prompt = `Generate a 30-day social media content plan for a ${industry} business ${audienceText}.
+  const brandSection = brand ? `
+BRAND CONTEXT (use this to make every content idea specific and real — never generic):
+- Brand name: ${brand.name || 'Unknown'}
+- Product type: ${brand.productType || industry}
+- What it does: ${brand.description || 'Not specified'}
+- Target audience: ${brand.targetAudience || audience || 'General'}
+- Tone of voice: ${brand.toneOfVoice || 'Professional'}
+- Unique value: ${brand.uniqueValue || 'Not specified'}
+- Mission: ${brand.brandMission || 'Not specified'}
+- Customer pain points solved: ${brand.customerPainPoints || 'Not specified'}
+${hasScreenshots ? `- App screenshots available: YES (${brand.screenshotCount} screenshots provided — you CAN suggest content showing the actual app interface)` : '- App screenshots available: NO — do NOT suggest content that requires showing the app interface visually'}
+${brand.keyFeatures ? `- Key screens/features: ${brand.keyFeatures}` : ''}` : ''
+
+  const toolCapabilities = `
+CONTENT TOOLS — capabilities and hard limits (strictly follow these):
+
+"ugc" → HeyGen AI Avatar video
+  CAN: AI avatar speaks to camera, text overlays, branded backgrounds, call-to-action
+  CANNOT: show real app interface or screenshots — avatar is just talking/presenting
+  GOOD FOR: announcements, testimonials, brand voice, explaining a concept out loud
+  EXAMPLE for ${brand?.name || 'this brand'}: Avatar explains the top 3 benefits, avatar reacts to a customer result
+
+"video" → Short-form video (Reels/TikTok/YouTube Shorts style)
+  CAN: screen recordings, app walkthroughs, demo footage, text overlays, B-roll
+  REQUIRES SCREENSHOTS/RECORDINGS: only suggest showing the app if hasScreenshots = ${hasScreenshots}
+  GOOD FOR: product demos, tutorials, before/after, feature reveals
+  EXAMPLE: ${hasScreenshots ? `Screen recording of ${brand?.name || 'the app'} dashboard with voiceover` : 'Animated text video explaining a key benefit'}
+
+"image" → AI-generated image (Flux Pro)
+  CAN: lifestyle photography, concept visuals, branded mockups, abstract backgrounds, people using devices
+  CANNOT: accurately render a specific app's UI or exact screen
+  GOOD FOR: mood/lifestyle content, quote cards, product concept art
+  EXAMPLE: Person on laptop in a café, device mockup with gradient background
+
+"social" → Text-based post (no image generation involved)
+  CAN: tips, threads, polls, quotes, questions, announcements, listicles
+  GOOD FOR: engagement, community building, shareability
+  EXAMPLE: "3 things I wish I knew before starting content marketing"
+
+"blog" → Long-form written article
+  CAN: tutorials, comparisons, case studies, opinion pieces, SEO content
+  GOOD FOR: organic traffic, authority building, email content
+  EXAMPLE: "How ${brand?.name || 'we'} helped a brand grow to 10k followers in 30 days"
+
+"voice" → AI voice/audio clip (ElevenLabs)
+  CAN: spoken tips, podcast snippets, audio announcements
+  CANNOT: show anything visual — audio only
+  GOOD FOR: podcast teasers, audio tips, voice notes for social
+
+"email" → Email/newsletter
+  CAN: feature announcements, weekly roundups, nurture sequences, promotions
+  GOOD FOR: retention, upsell, community updates`
+
+  const prompt = `You are an expert content strategist creating a 30-day content calendar.
+${brandSection}
+${toolCapabilities}
+
+TASK: Generate a 30-day content plan for ${brand?.name || `a ${industry} business`}.
 
 Requirements:
 - Posting frequency: ${frequencyMap[frequency]}
 - Platforms: ${platforms.join(", ")}
-- Content types available: video, ugc (AI avatar video), image, voice, blog, social, email
-- Create variety — don't repeat the same type 2 days in a row
-- Build a narrative arc: Week 1 (introduce), Week 2 (educate), Week 3 (showcase), Week 4 (convert)
-- Leave 1-2 buffer days
-${formatInstruction ? `- ${formatInstruction}` : '- Balance content types evenly across the month'}
+- Build a narrative arc: Week 1 (introduce brand/problem), Week 2 (educate/value), Week 3 (showcase/proof), Week 4 (convert/CTA)
+- Leave 1-2 rest/buffer days
+${formatInstruction ? `- ${formatInstruction}` : '- Vary content types — avoid same type 2 days in a row'}
+- Every title and description must be SPECIFIC to ${brand?.name || 'this brand'} — never generic placeholders
+- If suggesting video/ugc that shows the app: only do so when hasScreenshots = ${hasScreenshots}
 
-For each day, provide JSON with:
+For each content day return JSON:
 {
   "date": "2026-06-01",
   "day": "Monday",
-  "contentType": "video",
-  "title": "Brief title",
-  "description": "What the content should show/say (2-3 sentences)",
-  "icon": "short text label",
+  "contentType": "ugc",
+  "title": "Specific, actionable title",
+  "description": "Exactly what to create — specific visuals, script direction, key message (2-3 sentences)",
+  "icon": "short label",
   "platforms": ["Instagram", "TikTok"],
   "suggestedTime": "7pm",
-  "reason": "Why this content on this day"
+  "reason": "Why this format and topic on this day"
 }
 
-Return ONLY a JSON array, no markdown formatting, no extra text.`;
+Return ONLY a valid JSON array. No markdown. No extra text.`;
 
   try {
     const message = await client.messages.create({
