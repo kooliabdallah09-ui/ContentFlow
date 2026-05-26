@@ -6,12 +6,7 @@ async function publishToTwitter(
   accessToken: string,
   content: string
 ): Promise<string> {
-  const publisher = initializeTwitterPublisher(
-    accessToken,
-    '',
-    process.env.TWITTER_API_KEY!,
-    process.env.TWITTER_API_SECRET!
-  )
+  const publisher = initializeTwitterPublisher(accessToken)
 
   const tweetId = await publisher.publish({ content })
   return tweetId

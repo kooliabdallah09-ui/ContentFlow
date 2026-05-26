@@ -195,7 +195,7 @@ export async function POST(request: NextRequest) {
         title: content.title,
         content: body,
         excerpt: content.meta_description,
-        featuredImageUrl: featuredImage,
+        featuredImageUrl: featuredImage ?? undefined,
       })
     }
 
