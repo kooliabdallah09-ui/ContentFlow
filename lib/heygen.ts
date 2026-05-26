@@ -13,22 +13,14 @@ interface GenerationResult {
   timestamp: number
 }
 
-const HEYGEN_API_BASE = 'https://api.heygen.com/v1'
+const HEYGEN_API_BASE = 'https://api.heygen.com'
 
-const AVATARS = [
-  { id: 'avtr_1', name: 'Sarah', gender: 'female', accent: 'American' },
-  { id: 'avtr_2', name: 'James', gender: 'male', accent: 'American' },
-  { id: 'avtr_3', name: 'Sophia', gender: 'female', accent: 'British' },
-  { id: 'avtr_4', name: 'Lucas', gender: 'male', accent: 'Australian' },
-  { id: 'avtr_5', name: 'Maya', gender: 'female', accent: 'Indian' },
-]
-
+// HeyGen v2 voice IDs (from their voice library)
 const VOICES = [
-  { id: 'en-US-Neural2-A', name: 'Professional Female', accent: 'American' },
-  { id: 'en-US-Neural2-C', name: 'Professional Male', accent: 'American' },
-  { id: 'en-GB-Neural2-A', name: 'British Female', accent: 'British' },
-  { id: 'en-GB-Neural2-B', name: 'British Male', accent: 'British' },
-  { id: 'en-AU-Neural2-A', name: 'Australian Female', accent: 'Australian' },
+  { id: '1bd001e7e50f421d891986aad5158bc8', name: 'Professional Female', accent: 'American' },
+  { id: '2d5b0e6cf36f460aa7fc47e3eee4ba54', name: 'Professional Male', accent: 'American' },
+  { id: 'e749e866b30d47e4858cac12a6d13f2f', name: 'British Female', accent: 'British' },
+  { id: '1588bf4c1db74e1dbba1c7b2e9f54b14', name: 'British Male', accent: 'British' },
 ]
 
 export async function generateVideo(
@@ -51,17 +43,28 @@ export async function generateVideo(
   }
 
   try {
-    const response = await fetch(`${HEYGEN_API_BASE}/video/generate`, {
+    const response = await fetch(`${HEYGEN_API_BASE}/v2/video/generate`, {
       method: 'POST',
       headers: {
-        'X-API-KEY': apiKey,
+        'X-Api-Key': apiKey,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        avatar_id: avatarId,
-        script,
-        voice_id: voiceId,
-        background_id: 'bg_professional_1',
+        video_inputs: [
+          {
+            character: {
+              type: 'avatar',
+              avatar_id: avatarId,
+              avatar_style: 'normal',
+            },
+            voice: {
+              type: 'text',
+              input_text: script,
+              voice_id: voiceId,
+            },
+          },
+        ],
+        dimension: { width: 1280, height: 720 },
       }),
     })
 
@@ -76,7 +79,7 @@ export async function generateVideo(
     const data = (await response.json()) as VideoResponse
 
     return {
-      videoUrl: data.data.video_url,
+      videoUrl: data.data.video_url ?? '',
       videoId: data.data.video_id,
       duration: estimateDuration(script),
       timestamp: Date.now(),
@@ -101,11 +104,11 @@ export async function getVideoStatus(videoId: string): Promise<{
 
   try {
     const response = await fetch(
-      `${HEYGEN_API_BASE}/video/${videoId}`,
+      `${HEYGEN_API_BASE}/v1/video_status.get?video_id=${videoId}`,
       {
         method: 'GET',
         headers: {
-          'X-API-KEY': apiKey,
+          'X-Api-Key': apiKey,
         },
       }
     )
@@ -133,5 +136,4 @@ function estimateDuration(script: string): number {
   return Math.ceil(estimatedSeconds)
 }
 
-export const AVATAR_PRESETS = AVATARS
 export const VOICE_PRESETS = VOICES

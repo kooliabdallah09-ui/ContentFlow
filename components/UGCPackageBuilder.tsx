@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Zap, CheckCircle2 } from 'lucide-react'
+import AvatarPicker from '@/components/AvatarPicker'
 
 interface UGCPackageBuilderProps {
   onGenerate: (settings: {
@@ -52,7 +53,7 @@ export default function UGCPackageBuilder({
   const [callToAction, setCallToAction] = useState('Buy now!')
   const [style, setStyle] = useState('realistic')
   const [imageSize, setImageSize] = useState('1024x1024')
-  const [avatarId, setAvatarId] = useState('avtr_1')
+  const [avatarId, setAvatarId] = useState('')
   const [voiceId, setVoiceId] = useState('en-US-Neural2-A')
 
   const selectedType = UGC_TYPES.find((t) => t.id === ugcType)
@@ -205,21 +206,14 @@ export default function UGCPackageBuilder({
       {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
         <div className="space-y-4">
           <div>
-            <label className="block text-sm font-600 text-white/90 mb-2">
-              Avatar
+            <label className="block text-sm font-600 text-white/90 mb-3">
+              Choose Avatar
             </label>
-            <select
-              value={avatarId}
-              onChange={(e) => setAvatarId(e.target.value)}
-              className="w-full px-4 py-2 bg-white/5 border border-cyan-400/20 rounded-lg text-white focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition"
+            <AvatarPicker
+              selectedId={avatarId}
+              onChange={setAvatarId}
               disabled={isLoading}
-            >
-              <option value="avtr_1">Sarah (Female, American)</option>
-              <option value="avtr_2">James (Male, American)</option>
-              <option value="avtr_3">Sophia (Female, British)</option>
-              <option value="avtr_4">Lucas (Male, Australian)</option>
-              <option value="avtr_5">Maya (Female, Indian)</option>
-            </select>
+            />
           </div>
 
           <div>
