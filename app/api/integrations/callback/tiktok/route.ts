@@ -34,7 +34,8 @@ export async function GET(request: NextRequest) {
       }),
     })
     const tokenData = await tokenRes.json()
-    if (!tokenData.data?.access_token) throw new Error('No access token')
+    console.error('TikTok token response:', JSON.stringify(tokenData))
+    if (!tokenData.data?.access_token) throw new Error(`No access token: ${JSON.stringify(tokenData)}`)
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
     await supabase.from('integrations').upsert({
