@@ -95,13 +95,12 @@ export default function IntegrationsPage() {
       const supabase = getSupabase()
       if (!supabase) return
       const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData.session) return
-      const { data, error } = await supabase
-        .from('integrations')
-        .select('*')
-        .eq('user_id', sessionData.session.user.id)
-      if (error) throw error
-      setIntegrations(data || [])
+      const userId = sessionData.session?.user.id
+      if (!userId) return
+      const res = await fetch(`/api/integrations/status?userId=${encodeURIComponent(userId)}`)
+      if (!res.ok) throw new Error('Failed to fetch')
+      const json = await res.json()
+      setIntegrations(json.integrations || [])
     } catch (error) {
       console.error('Failed to load integrations:', error)
     } finally {
@@ -155,13 +154,14 @@ export default function IntegrationsPage() {
       const supabase = getSupabase()
       if (!supabase) return
       const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData.session) return
-      const { error } = await supabase
-        .from('integrations')
-        .delete()
-        .eq('user_id', sessionData.session.user.id)
-        .eq('platform', platform)
-      if (error) throw error
+      const userId = sessionData.session?.user.id
+      if (!userId) return
+      const res = await fetch('/api/integrations/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platform, userId }),
+      })
+      if (!res.ok) throw new Error('Failed')
       setIntegrations(prev => prev.filter(i => i.platform !== platform))
       showSuccess('Disconnected', `${platform} disconnected`)
     } catch {
