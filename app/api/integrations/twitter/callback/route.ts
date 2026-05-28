@@ -16,12 +16,17 @@ export async function GET(request: NextRequest) {
 
     const storedStateFull = cookieStore.get('twitter_oauth_state')?.value || ''
     const [, userId] = storedStateFull.split('::')
+    console.log('[twitter/callback] state_from_twitter:', state)
+    console.log('[twitter/callback] stored_state_cookie:', storedStateFull)
+    console.log('[twitter/callback] match:', storedStateFull === state)
+    console.log('[twitter/callback] userId:', userId)
     if (!storedStateFull || storedStateFull !== state)
       return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
     if (!userId)
       return NextResponse.redirect(`${base}/settings/integrations?error=missing_user`)
 
     const codeVerifier = cookieStore.get('twitter_code_verifier')?.value
+    console.log('[twitter/callback] has_code_verifier:', !!codeVerifier)
     if (!codeVerifier)
       return NextResponse.redirect(`${base}/settings/integrations?error=missing_code_verifier`)
 
@@ -39,6 +44,7 @@ export async function GET(request: NextRequest) {
     })
 
     const tokens = await tokenResponse.json()
+    console.log('[twitter/callback] token_exchange:', tokens.access_token ? 'OK' : 'FAILED', tokens.error || '')
     if (!tokens.access_token)
       return NextResponse.redirect(`${base}/settings/integrations?error=token_exchange_failed`)
 
@@ -84,6 +90,7 @@ export async function GET(request: NextRequest) {
     response.cookies.delete('twitter_code_verifier')
     return response
   } catch (error) {
+    console.error('[twitter/callback] caught error:', error)
     return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
   }
 }
