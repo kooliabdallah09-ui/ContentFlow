@@ -24,6 +24,39 @@ export default function RootLayout({
     document.documentElement.setAttribute('data-tone', 'cocoa')
   }, [])
 
+  useEffect(() => {
+    const titles: Record<string, string> = {
+      '/': 'ContentFlow — AI Content Studio',
+      '/dashboard': 'Dashboard — ContentFlow',
+      '/calendar': 'Monthly Plan — ContentFlow',
+      '/library': 'Library — ContentFlow',
+      '/analytics': 'Analytics — ContentFlow',
+      '/scheduler': 'Scheduler — ContentFlow',
+      '/generate/blog': 'Blog Post — ContentFlow',
+      '/generate/social': 'Social Post — ContentFlow',
+      '/generate/email': 'Email — ContentFlow',
+      '/generate/image': 'Image — ContentFlow',
+      '/generate/voice': 'Voiceover — ContentFlow',
+      '/generate/video': 'Video — ContentFlow',
+      '/generate/ugc': 'UGC Package — ContentFlow',
+      '/generate/from-calendar': 'Create Content — ContentFlow',
+      '/settings': 'Settings — ContentFlow',
+      '/settings/brand': 'Brand Settings — ContentFlow',
+      '/settings/account': 'Account — ContentFlow',
+      '/settings/billing': 'Billing — ContentFlow',
+      '/settings/integrations': 'Integrations — ContentFlow',
+      '/onboarding': 'Get Started — ContentFlow',
+      '/onboarding/brand': 'Brand Setup — ContentFlow',
+      '/onboarding/plan': 'Content Plan — ContentFlow',
+      '/auth/login': 'Log In — ContentFlow',
+      '/auth/signup': 'Sign Up — ContentFlow',
+      '/pricing': 'Pricing — ContentFlow',
+      '/privacy': 'Privacy Policy — ContentFlow',
+      '/help': 'Help — ContentFlow',
+    }
+    document.title = titles[pathname] ?? 'ContentFlow'
+  }, [pathname])
+
   const toggleTheme = () => {
     const next = isDark ? 'paper' : 'cocoa'
     document.documentElement.setAttribute('data-tone', next)
