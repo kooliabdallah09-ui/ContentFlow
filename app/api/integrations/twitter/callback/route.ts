@@ -28,14 +28,20 @@ export async function GET(request: NextRequest) {
     if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=missing_user`)
     if (!codeVerifier) return NextResponse.redirect(`${base}/settings/integrations?error=missing_code_verifier`)
 
-    // Exchange code for tokens
+    // Exchange code for tokens — Twitter requires Basic Auth even for PKCE public clients
+    const clientId = process.env.TWITTER_CLIENT_ID!
+    const clientSecret = process.env.TWITTER_CLIENT_SECRET || ''
+    const basicAuth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64')
+
     const tokenResponse = await fetch('https://api.x.com/2/oauth2/token', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Basic ${basicAuth}`,
+      },
       body: new URLSearchParams({
         grant_type: 'authorization_code',
         code,
-        client_id: process.env.TWITTER_CLIENT_ID!,
         redirect_uri: `${base}/api/integrations/twitter/callback`,
         code_verifier: codeVerifier,
       }).toString(),
