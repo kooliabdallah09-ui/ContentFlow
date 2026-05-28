@@ -19,10 +19,12 @@ export async function GET(request: NextRequest) {
       const decoded = JSON.parse(Buffer.from(statePayload, 'base64url').toString('utf8'))
       userId = decoded.userId
       codeVerifier = decoded.codeVerifier
-    } catch {
+    } catch (e) {
+      console.error('[tw-cb] state_decode_failed:', String(e), '| payload:', statePayload?.slice(0, 50))
       return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
     }
 
+    console.log('[tw-cb] userId:', userId ? 'ok' : 'MISSING', '| cv:', codeVerifier ? 'ok' : 'MISSING')
     if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=missing_user`)
     if (!codeVerifier) return NextResponse.redirect(`${base}/settings/integrations?error=missing_code_verifier`)
 
@@ -40,6 +42,7 @@ export async function GET(request: NextRequest) {
     })
 
     const tokens = await tokenResponse.json()
+    console.log('[tw-cb] token_ok:', !!tokens.access_token, '| error:', tokens.error, '| desc:', tokens.error_description)
     if (!tokens.access_token)
       return NextResponse.redirect(`${base}/settings/integrations?error=token_exchange_failed`)
 
@@ -67,7 +70,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.redirect(`${base}/settings/integrations?success=twitter`)
   } catch (error) {
-    console.error('[twitter/callback] error:', error)
+    console.error('[tw-cb] caught:', String(error))
     return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
   }
 }
