@@ -8,7 +8,7 @@ function base64URLEncode(buffer: Buffer) {
 export async function GET(request: NextRequest) {
   try {
     const userId = request.nextUrl.searchParams.get('userId') || request.cookies.get('cf_user_id')?.value || ''
-    const state = crypto.randomBytes(32).toString('hex')
+    const stateWithUser = `${crypto.randomBytes(32).toString('hex')}::${userId}`
     const codeVerifier = base64URLEncode(crypto.randomBytes(32))
     const codeChallenge = base64URLEncode(
       crypto.createHash('sha256').update(codeVerifier).digest()
@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
       client_id: process.env.TWITTER_CLIENT_ID!,
       redirect_uri: `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/twitter/callback`,
       scope: 'tweet.read tweet.write users.read offline.access',
-      state,
+      state: stateWithUser,
       code_challenge: codeChallenge,
       code_challenge_method: 'S256',
     })}`
@@ -32,8 +32,7 @@ export async function GET(request: NextRequest) {
       path: '/',
     }
     const response = NextResponse.redirect(url)
-    // Encode userId into state cookie so we don't need a separate cookie
-    response.cookies.set('twitter_oauth_state', `${state}::${userId}`, cookieOpts)
+    response.cookies.set('twitter_oauth_state', stateWithUser, cookieOpts)
     response.cookies.set('twitter_code_verifier', codeVerifier, cookieOpts)
 
     return response
