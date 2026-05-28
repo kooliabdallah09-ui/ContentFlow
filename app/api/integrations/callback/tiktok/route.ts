@@ -37,12 +37,18 @@ export async function GET(request: NextRequest) {
     const token = tokenData.data ?? tokenData
     if (!token.access_token) throw new Error(`No access token: ${JSON.stringify(tokenData)}`)
 
+    const userRes = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=display_name,avatar_url', {
+      headers: { Authorization: `Bearer ${token.access_token}` },
+    })
+    const userData = await userRes.json()
+    const displayName = userData.data?.user?.display_name || token.open_id
+
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
     await supabase.from('integrations').upsert({
       user_id: userId,
       platform: 'tiktok',
       account_id: token.open_id,
-      account_name: token.open_id,
+      account_name: displayName,
       access_token: token.access_token,
       refresh_token: token.refresh_token || null,
       is_connected: true,
