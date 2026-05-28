@@ -1,145 +1,58 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const state = searchParams.get('state')
+  const statePayload = searchParams.get('state')
   const error = searchParams.get('error')
+  const base = process.env.NEXT_PUBLIC_APP_URL
 
-  // Check for errors from Facebook
-  if (error) {
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=${error}`
-    )
-  }
+  if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
+  if (!code || !statePayload) return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
 
-  // Verify state for CSRF protection (format: "randomhex::userId")
-  const storedStateFull = request.cookies.get('fb_oauth_state')?.value || ''
-  const [, userId] = storedStateFull.split('::')
-  if (!state || state !== storedStateFull) {
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=invalid_state`
-    )
+  let userId: string
+  try {
+    const decoded = JSON.parse(Buffer.from(statePayload, 'base64url').toString('utf8'))
+    userId = decoded.userId
+  } catch {
+    return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
   }
-
-  if (!code) {
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=no_code`
-    )
-  }
+  if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=not_authenticated`)
 
   try {
-    // Exchange code for access token
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback/facebook`
-    const tokenResponse = await fetch(
-      `https://graph.facebook.com/v18.0/oauth/access_token`,
-      {
-        method: 'POST',
-        body: new URLSearchParams({
-          client_id: process.env.FACEBOOK_APP_ID!,
-          client_secret: process.env.FACEBOOK_APP_SECRET!,
-          grant_type: 'authorization_code',
-          redirect_uri: redirectUri,
-          code,
-        }),
-      }
-    )
+    const redirectUri = `${base}/api/integrations/callback/facebook`
+    const tokenRes = await fetch('https://graph.facebook.com/v18.0/oauth/access_token', {
+      method: 'POST',
+      body: new URLSearchParams({
+        client_id: process.env.FACEBOOK_APP_ID!,
+        client_secret: process.env.FACEBOOK_APP_SECRET!,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+        code,
+      }),
+    })
+    const tokenData = await tokenRes.json()
+    if (!tokenData.access_token) throw new Error(tokenData.error?.message || 'No access token')
 
-    const tokenData = await tokenResponse.json()
+    const pagesRes = await fetch(`https://graph.facebook.com/v18.0/me/accounts?fields=id,name&access_token=${tokenData.access_token}`)
+    const pagesData = await pagesRes.json()
+    const page = pagesData.data?.[0]
 
-    if (!tokenData.access_token) {
-      throw new Error(tokenData.error?.message || 'Failed to get access token')
-    }
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    await supabase.from('integrations').upsert({
+      user_id: userId,
+      platform: 'facebook',
+      account_id: page?.id || null,
+      account_name: page?.name || null,
+      access_token: tokenData.access_token,
+      is_connected: true,
+      connected_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,platform' })
 
-    // Get user's Facebook pages
-    const pagesResponse = await fetch(
-      `https://graph.facebook.com/v18.0/me/accounts?fields=id,name&access_token=${tokenData.access_token}`
-    )
-
-    const pagesData = await pagesResponse.json()
-
-    if (!pagesData.data || pagesData.data.length === 0) {
-      throw new Error('No Facebook pages found. Please create a page first.')
-    }
-
-    // Use first page as default
-    const page = pagesData.data[0]
-
-    // Store token in Supabase
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            try {
-              cookieStore.set(name, value, options)
-            } catch {
-              // Silently fail
-            }
-          },
-          remove(name: string) {
-            try {
-              cookieStore.delete(name)
-            } catch {
-              // Silently fail
-            }
-          },
-        },
-      }
-    )
-    let resolvedUserId = userId
-    if (!resolvedUserId) {
-      const { data: { user } } = await supabase.auth.getUser()
-      resolvedUserId = user?.id || ''
-    }
-
-    if (!resolvedUserId) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=not_authenticated`
-      )
-    }
-
-    // Upsert integration
-    const { error: dbError } = await supabase
-      .from('integrations')
-      .upsert(
-        {
-          user_id: resolvedUserId,
-          platform: 'facebook',
-          account_id: page.id,
-          account_name: page.name,
-          access_token: tokenData.access_token,
-          is_connected: true,
-          connected_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'user_id,platform',
-        }
-      )
-
-    if (dbError) {
-      console.error('Database error:', dbError)
-      throw dbError
-    }
-
-    // Redirect back with success
-    const response = NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?success=facebook`
-    )
-    response.cookies.delete('fb_oauth_state')
-
-    return response
-  } catch (error) {
-    console.error('OAuth callback error:', error)
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=callback_error`
-    )
+    return NextResponse.redirect(`${base}/settings/integrations?success=facebook`)
+  } catch (err) {
+    console.error('Facebook callback error:', err)
+    return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
   }
 }

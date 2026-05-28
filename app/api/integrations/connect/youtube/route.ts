@@ -3,13 +3,13 @@ import crypto from 'crypto'
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get('userId') || ''
-  const state = `${crypto.randomBytes(16).toString('hex')}::${userId}`
   const clientId = process.env.GOOGLE_CLIENT_ID
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback/youtube`
+  const base = process.env.NEXT_PUBLIC_APP_URL
+  if (!clientId) return NextResponse.redirect(`${base}/settings/integrations?error=youtube_not_configured`)
 
-  if (!clientId) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=youtube_not_configured`)
-  }
+  const nonce = crypto.randomBytes(16).toString('hex')
+  const statePayload = Buffer.from(JSON.stringify({ nonce, userId })).toString('base64url')
+  const redirectUri = `${base}/api/integrations/callback/youtube`
 
   const url = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
     client_id: clientId,
@@ -17,11 +17,9 @@ export async function GET(request: NextRequest) {
     response_type: 'code',
     scope: 'https://www.googleapis.com/auth/youtube.upload https://www.googleapis.com/auth/userinfo.profile',
     access_type: 'offline',
-    state,
+    state: statePayload,
     prompt: 'consent',
   })}`
 
-  const response = NextResponse.redirect(url)
-  response.cookies.set('youtube_oauth_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 600 })
-  return response
+  return NextResponse.redirect(url)
 }

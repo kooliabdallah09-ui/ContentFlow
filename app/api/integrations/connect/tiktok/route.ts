@@ -3,23 +3,21 @@ import crypto from 'crypto'
 
 export async function GET(request: NextRequest) {
   const userId = request.nextUrl.searchParams.get('userId') || ''
-  const state = `${crypto.randomBytes(16).toString('hex')}::${userId}`
   const clientKey = process.env.TIKTOK_CLIENT_KEY
-  const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback/tiktok`
+  const base = process.env.NEXT_PUBLIC_APP_URL
+  if (!clientKey) return NextResponse.redirect(`${base}/settings/integrations?error=tiktok_not_configured`)
 
-  if (!clientKey) {
-    return NextResponse.redirect(`${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=tiktok_not_configured`)
-  }
+  const nonce = crypto.randomBytes(16).toString('hex')
+  const statePayload = Buffer.from(JSON.stringify({ nonce, userId })).toString('base64url')
+  const redirectUri = `${base}/api/integrations/callback/tiktok`
 
   const url = `https://www.tiktok.com/v2/auth/authorize/?${new URLSearchParams({
     client_key: clientKey,
     response_type: 'code',
     scope: 'user.info.basic,video.publish',
     redirect_uri: redirectUri,
-    state,
+    state: statePayload,
   })}`
 
-  const response = NextResponse.redirect(url)
-  response.cookies.set('tiktok_oauth_state', state, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', maxAge: 600 })
-  return response
+  return NextResponse.redirect(url)
 }

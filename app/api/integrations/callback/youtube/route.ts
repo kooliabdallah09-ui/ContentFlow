@@ -4,16 +4,21 @@ import { createClient } from '@supabase/supabase-js'
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
-  const state = searchParams.get('state')
+  const statePayload = searchParams.get('state')
   const error = searchParams.get('error')
   const base = process.env.NEXT_PUBLIC_APP_URL
 
   if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
+  if (!code || !statePayload) return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
 
-  const storedStateFull = request.cookies.get('youtube_oauth_state')?.value || ''
-  const [, userIdFromState] = storedStateFull.split('::')
-  if (!state || state !== storedStateFull) return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
-  if (!code) return NextResponse.redirect(`${base}/settings/integrations?error=no_code`)
+  let userId: string
+  try {
+    const decoded = JSON.parse(Buffer.from(statePayload, 'base64url').toString('utf8'))
+    userId = decoded.userId
+  } catch {
+    return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
+  }
+  if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=not_authenticated`)
 
   try {
     const redirectUri = `${base}/api/integrations/callback/youtube`
@@ -29,7 +34,7 @@ export async function GET(request: NextRequest) {
       }),
     })
     const tokenData = await tokenRes.json()
-    if (!tokenData.access_token) throw new Error('Failed to get access token')
+    if (!tokenData.access_token) throw new Error('No access token')
 
     const profileRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` },
@@ -37,9 +42,6 @@ export async function GET(request: NextRequest) {
     const profile = await profileRes.json()
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-    const userId = userIdFromState || null
-    if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=not_authenticated`)
-
     await supabase.from('integrations').upsert({
       user_id: userId,
       platform: 'youtube',
@@ -51,9 +53,7 @@ export async function GET(request: NextRequest) {
       connected_at: new Date().toISOString(),
     }, { onConflict: 'user_id,platform' })
 
-    const response = NextResponse.redirect(`${base}/settings/integrations?success=youtube`)
-    response.cookies.delete('youtube_oauth_state')
-    return response
+    return NextResponse.redirect(`${base}/settings/integrations?success=youtube`)
   } catch (err) {
     console.error('YouTube callback error:', err)
     return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
