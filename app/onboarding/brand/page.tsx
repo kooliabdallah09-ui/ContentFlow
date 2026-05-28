@@ -288,9 +288,9 @@ export default function OnboardingBrandPage() {
         sessionStorage.setItem('generatedPlan', JSON.stringify(generatedPlan))
       }
 
-      // Best-effort DB save — navigate to calendar regardless of outcome
+      // Save to DB — await it so we can catch errors
       const now = new Date()
-      fetch('/api/planner/save-plan', {
+      const saveRes = await fetch('/api/planner/save-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -299,7 +299,13 @@ export default function OnboardingBrandPage() {
           year: now.getFullYear(),
           plan_data: generatedPlan,
         }),
-      }).catch(() => {})
+      })
+
+      if (!saveRes.ok) {
+        const err = await saveRes.json().catch(() => ({}))
+        console.error('Plan save failed:', err)
+        // Still navigate — sessionStorage fallback will show the plan
+      }
 
       router.push('/calendar')
     } catch (err) {
