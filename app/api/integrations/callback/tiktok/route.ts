@@ -34,17 +34,17 @@ export async function GET(request: NextRequest) {
       }),
     })
     const tokenData = await tokenRes.json()
-    console.error('TikTok token response:', JSON.stringify(tokenData))
-    if (!tokenData.data?.access_token) throw new Error(`No access token: ${JSON.stringify(tokenData)}`)
+    const token = tokenData.data ?? tokenData
+    if (!token.access_token) throw new Error(`No access token: ${JSON.stringify(tokenData)}`)
 
     const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
     await supabase.from('integrations').upsert({
       user_id: userId,
       platform: 'tiktok',
-      account_id: tokenData.data.open_id,
-      account_name: tokenData.data.open_id,
-      access_token: tokenData.data.access_token,
-      refresh_token: tokenData.data.refresh_token || null,
+      account_id: token.open_id,
+      account_name: token.open_id,
+      access_token: token.access_token,
+      refresh_token: token.refresh_token || null,
       is_connected: true,
       connected_at: new Date().toISOString(),
     }, { onConflict: 'user_id,platform' })
