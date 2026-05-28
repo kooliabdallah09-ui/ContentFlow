@@ -42,9 +42,11 @@ export async function GET(request: NextRequest) {
     })
 
     const tokens = await tokenResponse.json()
-    console.log('[tw-cb] token_ok:', !!tokens.access_token, '| error:', tokens.error, '| desc:', tokens.error_description)
-    if (!tokens.access_token)
-      return NextResponse.redirect(`${base}/settings/integrations?error=token_exchange_failed`)
+    if (!tokens.access_token) {
+      const errCode = encodeURIComponent(tokens.error || 'no_token')
+      const errDesc = encodeURIComponent(tokens.error_description || 'unknown')
+      return NextResponse.redirect(`${base}/settings/integrations?error=twitter_${errCode}__${errDesc}`)
+    }
 
     // Get Twitter username
     const userRes = await fetch('https://api.x.com/2/users/me', {
@@ -58,7 +60,7 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    await supabase.from('integrations').upsert({
+    const { error: dbError } = await supabase.from('integrations').upsert({
       user_id: userId,
       platform: 'twitter',
       account_name: username,
@@ -67,6 +69,11 @@ export async function GET(request: NextRequest) {
       connected_at: new Date().toISOString(),
       is_connected: true,
     }, { onConflict: 'user_id,platform' })
+
+    if (dbError) {
+      const errMsg = encodeURIComponent(dbError.message || 'db_error')
+      return NextResponse.redirect(`${base}/settings/integrations?error=db__${errMsg}`)
+    }
 
     return NextResponse.redirect(`${base}/settings/integrations?success=twitter`)
   } catch (error) {
