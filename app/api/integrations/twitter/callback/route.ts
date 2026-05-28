@@ -1,36 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {
   const base = process.env.NEXT_PUBLIC_APP_URL
   try {
-    const cookieStore = await cookies()
     const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
-    const state = searchParams.get('state')
+    const statePayload = searchParams.get('state')
     const error = searchParams.get('error')
 
     if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
-    if (!code || !state) return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
+    if (!code || !statePayload) return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
 
-    const storedStateFull = cookieStore.get('twitter_oauth_state')?.value || ''
-    const [, userId] = storedStateFull.split('::')
-    console.log('[twitter/callback] state_from_twitter:', state)
-    console.log('[twitter/callback] stored_state_cookie:', storedStateFull)
-    console.log('[twitter/callback] match:', storedStateFull === state)
-    console.log('[twitter/callback] userId:', userId)
-    if (!storedStateFull || storedStateFull !== state)
+    // Decode state payload — contains nonce, userId, codeVerifier
+    let userId: string
+    let codeVerifier: string
+    try {
+      const decoded = JSON.parse(Buffer.from(statePayload, 'base64url').toString('utf8'))
+      userId = decoded.userId
+      codeVerifier = decoded.codeVerifier
+    } catch {
       return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
-    if (!userId)
-      return NextResponse.redirect(`${base}/settings/integrations?error=missing_user`)
+    }
 
-    const codeVerifier = cookieStore.get('twitter_code_verifier')?.value
-    console.log('[twitter/callback] has_code_verifier:', !!codeVerifier)
-    if (!codeVerifier)
-      return NextResponse.redirect(`${base}/settings/integrations?error=missing_code_verifier`)
+    if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=missing_user`)
+    if (!codeVerifier) return NextResponse.redirect(`${base}/settings/integrations?error=missing_code_verifier`)
 
-    // Exchange code for tokens (PKCE — no client_secret needed)
+    // Exchange code for tokens
     const tokenResponse = await fetch('https://api.x.com/2/oauth2/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -44,7 +40,6 @@ export async function GET(request: NextRequest) {
     })
 
     const tokens = await tokenResponse.json()
-    console.log('[twitter/callback] token_exchange:', tokens.access_token ? 'OK' : 'FAILED', tokens.error || '')
     if (!tokens.access_token)
       return NextResponse.redirect(`${base}/settings/integrations?error=token_exchange_failed`)
 
@@ -60,37 +55,19 @@ export async function GET(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
 
-    const { data: existing } = await supabase
-      .from('integrations')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('platform', 'twitter')
-      .single()
+    await supabase.from('integrations').upsert({
+      user_id: userId,
+      platform: 'twitter',
+      account_name: username,
+      access_token: tokens.access_token,
+      refresh_token: tokens.refresh_token || null,
+      connected_at: new Date().toISOString(),
+      is_connected: true,
+    }, { onConflict: 'user_id,platform' })
 
-    if (existing?.id) {
-      await supabase.from('integrations').update({
-        account_name: username,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token || null,
-        connected_at: new Date().toISOString(),
-      }).eq('id', existing.id)
-    } else {
-      await supabase.from('integrations').insert({
-        user_id: userId,
-        platform: 'twitter',
-        account_name: username,
-        access_token: tokens.access_token,
-        refresh_token: tokens.refresh_token || null,
-        connected_at: new Date().toISOString(),
-      })
-    }
-
-    const response = NextResponse.redirect(`${base}/settings/integrations?success=twitter`)
-    response.cookies.delete('twitter_oauth_state')
-    response.cookies.delete('twitter_code_verifier')
-    return response
+    return NextResponse.redirect(`${base}/settings/integrations?success=twitter`)
   } catch (error) {
-    console.error('[twitter/callback] caught error:', error)
+    console.error('[twitter/callback] error:', error)
     return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
   }
 }
