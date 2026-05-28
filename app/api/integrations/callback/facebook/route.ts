@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
 
   // Verify state for CSRF protection (format: "randomhex::userId")
-  const storedStateFull = request.cookies.get('oauth_state')?.value || ''
+  const storedStateFull = request.cookies.get('fb_oauth_state')?.value || ''
   const [, userId] = storedStateFull.split('::')
   if (!state || state !== storedStateFull) {
     return NextResponse.redirect(
@@ -133,7 +133,7 @@ export async function GET(request: NextRequest) {
     const response = NextResponse.redirect(
       `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?success=facebook`
     )
-    response.cookies.delete('oauth_state')
+    response.cookies.delete('fb_oauth_state')
 
     return response
   } catch (error) {

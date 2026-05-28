@@ -1,139 +1,86 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
+  const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
   const state = searchParams.get('state')
   const error = searchParams.get('error')
+  const base = process.env.NEXT_PUBLIC_APP_URL
 
-  // Check for errors from Facebook
-  if (error) {
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=${error}`
-    )
-  }
+  if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
 
-  // Verify state for CSRF protection (format: "randomhex::userId")
-  const storedStateFull = request.cookies.get('oauth_state')?.value || ''
-  const [storedState, userId] = storedStateFull.split('::')
-  if (!state || state !== storedStateFull) {
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=invalid_state`
-    )
-  }
-
-  if (!code) {
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=no_code`
-    )
-  }
+  const storedStateFull = request.cookies.get('ig_oauth_state')?.value || ''
+  const [, userId] = storedStateFull.split('::')
+  if (!state || state !== storedStateFull)
+    return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
+  if (!code)
+    return NextResponse.redirect(`${base}/settings/integrations?error=no_code`)
+  if (!userId)
+    return NextResponse.redirect(`${base}/settings/integrations?error=not_authenticated`)
 
   try {
-    // Exchange code for access token
-    const redirectUri = `${process.env.NEXT_PUBLIC_APP_URL}/api/integrations/callback/instagram`
-    const tokenResponse = await fetch(
-      `https://graph.instagram.com/v18.0/oauth/access_token`,
-      {
-        method: 'POST',
-        body: new URLSearchParams({
-          client_id: process.env.FACEBOOK_APP_ID!,
-          client_secret: process.env.FACEBOOK_APP_SECRET!,
-          grant_type: 'authorization_code',
-          redirect_uri: redirectUri,
-          code,
-        }),
-      }
-    )
+    const redirectUri = `${base}/api/integrations/callback/instagram`
 
-    const tokenData = await tokenResponse.json()
-
-    if (!tokenData.access_token) {
+    // Exchange code via Facebook Graph API (Instagram Graph API uses FB token exchange)
+    const tokenRes = await fetch('https://graph.facebook.com/v18.0/oauth/access_token', {
+      method: 'POST',
+      body: new URLSearchParams({
+        client_id: process.env.FACEBOOK_APP_ID!,
+        client_secret: process.env.FACEBOOK_APP_SECRET!,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+        code,
+      }),
+    })
+    const tokenData = await tokenRes.json()
+    if (!tokenData.access_token)
       throw new Error(tokenData.error?.message || 'Failed to get access token')
-    }
 
-    // Get user's Instagram business account
-    const userResponse = await fetch(
-      `https://graph.instagram.com/v18.0/me?fields=id,username&access_token=${tokenData.access_token}`
+    // Get Facebook Pages managed by the user, then find linked Instagram Business account
+    const pagesRes = await fetch(
+      `https://graph.facebook.com/v18.0/me/accounts?fields=id,name,instagram_business_account&access_token=${tokenData.access_token}`
     )
+    const pagesData = await pagesRes.json()
 
-    const userData = await userResponse.json()
+    let igAccountId: string | null = null
+    let igUsername: string | null = null
 
-    // Store token in Supabase
-    const cookieStore = await cookies()
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value
-          },
-          set(name: string, value: string, options: any) {
-            try {
-              cookieStore.set(name, value, options)
-            } catch {
-              // Silently fail
-            }
-          },
-          remove(name: string) {
-            try {
-              cookieStore.delete(name)
-            } catch {
-              // Silently fail
-            }
-          },
-        },
-      }
-    )
-    // Resolve user: prefer userId from state, fall back to session cookie
-    let resolvedUserId = userId
-    if (!resolvedUserId) {
-      const { data: { user } } = await supabase.auth.getUser()
-      resolvedUserId = user?.id || ''
-    }
-
-    if (!resolvedUserId) {
-      return NextResponse.redirect(
-        `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=not_authenticated`
-      )
-    }
-
-    // Upsert integration
-    const { error: dbError } = await supabase
-      .from('integrations')
-      .upsert(
-        {
-          user_id: resolvedUserId,
-          platform: 'instagram',
-          account_id: userData.id,
-          account_name: userData.username,
-          access_token: tokenData.access_token,
-          is_connected: true,
-          connected_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'user_id,platform',
+    if (pagesData.data?.length > 0) {
+      for (const page of pagesData.data) {
+        if (page.instagram_business_account?.id) {
+          igAccountId = page.instagram_business_account.id
+          // Fetch IG username
+          const igRes = await fetch(
+            `https://graph.facebook.com/v18.0/${igAccountId}?fields=id,username&access_token=${tokenData.access_token}`
+          )
+          const igData = await igRes.json()
+          igUsername = igData.username || igAccountId
+          break
         }
-      )
-
-    if (dbError) {
-      console.error('Database error:', dbError)
-      throw dbError
+      }
     }
 
-    // Redirect back with success
-    const response = NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?success=instagram`
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
     )
-    response.cookies.delete('oauth_state')
 
+    await supabase.from('integrations').upsert({
+      user_id: userId,
+      platform: 'instagram',
+      account_id: igAccountId,
+      account_name: igUsername,
+      access_token: tokenData.access_token,
+      is_connected: true,
+      connected_at: new Date().toISOString(),
+    }, { onConflict: 'user_id,platform' })
+
+    const response = NextResponse.redirect(`${base}/settings/integrations?success=instagram`)
+    response.cookies.delete('ig_oauth_state')
     return response
-  } catch (error) {
-    console.error('OAuth callback error:', error)
-    return NextResponse.redirect(
-      `${process.env.NEXT_PUBLIC_APP_URL}/settings/integrations?error=callback_error`
-    )
+  } catch (err) {
+    console.error('Instagram callback error:', err)
+    return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
   }
 }
