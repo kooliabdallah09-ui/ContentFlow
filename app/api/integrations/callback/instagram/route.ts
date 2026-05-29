@@ -10,12 +10,16 @@ export async function GET(request: NextRequest) {
 
   if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
 
-  const storedStateFull = request.cookies.get('ig_oauth_state')?.value || ''
-  const [, userId] = storedStateFull.split('::')
-  if (!state || state !== storedStateFull)
+  if (!code || !state)
+    return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
+
+  let userId: string
+  try {
+    const decoded = JSON.parse(Buffer.from(state, 'base64url').toString('utf8'))
+    userId = decoded.userId
+  } catch {
     return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
-  if (!code)
-    return NextResponse.redirect(`${base}/settings/integrations?error=no_code`)
+  }
   if (!userId)
     return NextResponse.redirect(`${base}/settings/integrations?error=not_authenticated`)
 
@@ -76,9 +80,7 @@ export async function GET(request: NextRequest) {
       connected_at: new Date().toISOString(),
     }, { onConflict: 'user_id,platform' })
 
-    const response = NextResponse.redirect(`${base}/settings/integrations?success=instagram`)
-    response.cookies.delete('ig_oauth_state')
-    return response
+    return NextResponse.redirect(`${base}/settings/integrations?success=instagram`)
   } catch (err) {
     console.error('Instagram callback error:', err)
     return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
