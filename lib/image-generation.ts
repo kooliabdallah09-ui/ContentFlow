@@ -61,8 +61,6 @@ function generateImagePrompt(postContent: string, platform: string): string {
   const platformSpecificInstructions = {
     twitter:
       'Create a vibrant, eye-catching 1024x512 social media graphic with bold typography. Include the main message in large text. Use modern design with gradients and illustrations.',
-    linkedin:
-      'Create a professional 1200x628 LinkedIn image with clean design, corporate colors, and the key message prominently displayed. Include relevant business icons.',
     instagram:
       'Create a 1080x1080 visually stunning square image with vibrant colors, artistic elements, and clear typography. Make it highly engaging for social sharing.',
     facebook:

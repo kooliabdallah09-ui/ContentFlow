@@ -12,7 +12,6 @@ const PlatformLogo = ({ platform, size = 'medium' }: { platform: string; size?: 
 
   const logoMap: Record<string, string> = {
     twitter: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/x.svg',
-    linkedin: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/linkedin.svg',
     instagram: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/instagram.svg',
     facebook: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/facebook.svg',
     tiktok: 'https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/tiktok.svg',
@@ -30,7 +29,7 @@ const PlatformLogo = ({ platform, size = 'medium' }: { platform: string; size?: 
 
 export default function SocialGeneratorPage() {
   const [topic, setTopic] = useState('')
-  const [platforms, setPlatforms] = useState(['twitter', 'linkedin'])
+  const [platforms, setPlatforms] = useState(['twitter', 'instagram'])
   const [loading, setLoading] = useState(false)
   const [generatingImages, setGeneratingImages] = useState(false)
   const [content, setContent] = useState<any>(null)
@@ -129,7 +128,6 @@ export default function SocialGeneratorPage() {
 
   const platformNames: Record<string, string> = {
     twitter: 'X',
-    linkedin: 'LinkedIn',
     instagram: 'Instagram',
     facebook: 'Facebook',
     tiktok: 'TikTok',
@@ -166,7 +164,7 @@ export default function SocialGeneratorPage() {
           <div style={{ marginBottom: '24px' }}>
             <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Platforms</span>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {['twitter', 'linkedin', 'instagram', 'facebook', 'tiktok'].map((platform) => {
+              {['twitter', 'instagram', 'facebook', 'tiktok'].map((platform) => {
                 const isSelected = platforms.includes(platform)
                 return (
                   <label

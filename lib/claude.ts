@@ -56,8 +56,6 @@ export async function generateSocialContent(
 ) {
   const prompts = {
     twitter: 'Generate 3 Twitter posts (280 chars max) with hooks and emojis. Return as JSON array.',
-    linkedin:
-      'Generate 3 LinkedIn posts (professional, long-form). Return as JSON array.',
     instagram: 'Generate 3 Instagram captions with hashtags. Return as JSON array.',
     facebook: 'Generate 3 Facebook posts (community tone). Return as JSON array.',
     tiktok: 'Generate 3 TikTok scripts (hook + main message + CTA). Return as JSON array.',

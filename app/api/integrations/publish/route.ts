@@ -3,7 +3,6 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { initializeTwitterPublisher } from '@/lib/integrations/twitter'
 import { publishToInstagram, publishToFacebook } from '@/lib/integrations/instagram'
-import { publishToLinkedIn } from '@/lib/integrations/linkedin'
 import { publishToYouTube, refreshYouTubeToken } from '@/lib/integrations/youtube'
 import { publishToTikTok, refreshTikTokToken } from '@/lib/integrations/tiktok'
 import { initializeWordPressPublisher } from '@/lib/integrations/wordpress'
@@ -120,17 +119,6 @@ export async function POST(request: NextRequest) {
         videoUrl: videoUrl || undefined,
       })
       if (!result.success) throw new Error(result.error)
-      publishedId = result.postId
-    }
-
-    // --- LINKEDIN ---
-    else if (platform === 'linkedin') {
-      const result = await publishToLinkedIn({
-        accessToken,
-        authorId: integration.account_id,
-        text: caption,
-        imageUrl: featuredImage || undefined,
-      })
       publishedId = result.postId
     }
 

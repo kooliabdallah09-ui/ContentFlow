@@ -40,13 +40,6 @@ const PlatformLogo = ({ id }: { id: string }) => {
           <path d="M23.5 8h-3.3v13.5a3.2 3.2 0 01-3.2 3.1 3.2 3.2 0 01-3.2-3.1 3.2 3.2 0 013.2-3.1c.3 0 .6 0 .9.1V15a6.5 6.5 0 00-.9-.1 6.5 6.5 0 00-6.5 6.5A6.5 6.5 0 0017 28a6.5 6.5 0 006.5-6.5V14a9.8 9.8 0 005.8 1.9v-3.3a6.5 6.5 0 01-5.8-4.6z" fill="#69C9D0" fillOpacity="0.5" />
         </svg>
       )
-    case 'linkedin':
-      return (
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-          <rect width="36" height="36" rx="9" fill="#0A66C2" />
-          <path d="M12 14h3v10h-3V14zm1.5-4.5a1.75 1.75 0 110 3.5 1.75 1.75 0 010-3.5zM17 14h2.9v1.4h.1c.4-.8 1.4-1.6 2.9-1.6 3.1 0 3.6 2 3.6 4.7V24h-3v-4.8c0-1.1 0-2.6-1.6-2.6s-1.9 1.3-1.9 2.5V24H17V14z" fill="white" />
-        </svg>
-      )
     case 'twitter':
       return (
         <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
@@ -77,7 +70,6 @@ const PlatformLogo = ({ id }: { id: string }) => {
 const platforms = [
   { id: 'instagram', name: 'Instagram', connectUrl: '/api/integrations/connect/instagram' },
   { id: 'tiktok', name: 'TikTok', connectUrl: '/api/integrations/connect/tiktok' },
-  { id: 'linkedin', name: 'LinkedIn', connectUrl: '/api/integrations/connect/linkedin' },
   { id: 'twitter', name: 'X (Twitter)', connectUrl: '/api/integrations/twitter/connect' },
   { id: 'youtube', name: 'YouTube', connectUrl: '/api/integrations/connect/youtube' },
   { id: 'facebook', name: 'Facebook', connectUrl: '/api/integrations/connect/facebook' },
@@ -124,7 +116,6 @@ export default function IntegrationsPage() {
       const messages: Record<string, string> = {
         instagram_not_configured: 'Instagram app not configured',
         tiktok_not_configured: 'TikTok app not configured — add TIKTOK_CLIENT_KEY',
-        linkedin_not_configured: 'LinkedIn app not configured — add LINKEDIN_CLIENT_ID',
         youtube_not_configured: 'YouTube app not configured — add GOOGLE_CLIENT_ID',
         invalid_state: 'Security check failed, please try again',
         not_authenticated: 'You must be logged in to connect',

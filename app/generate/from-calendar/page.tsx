@@ -51,7 +51,7 @@ export default function GenerateFromCalendarPage() {
           date,
           title: 'Daily Content',
           description: 'Auto-generated based on your brand profile',
-          platforms: ['Instagram', 'TikTok', 'LinkedIn'],
+          platforms: ['Instagram', 'TikTok', 'Facebook'],
         }),
       })
 
