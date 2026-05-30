@@ -107,10 +107,10 @@ export async function createTalkingPhoto(imageUrl: string): Promise<{ talkingPho
   return { talkingPhotoId }
 }
 
-// Submit a video job using a Photo Avatar instead of a standard avatar
+// Submit a video job using a Photo Avatar (image URL passed directly)
 export async function submitTalkingPhotoVideoJob(
   script: string,
-  talkingPhotoId: string,
+  imageUrl: string,
   voiceId: string = DEFAULT_VOICE_ID,
 ): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY
@@ -124,7 +124,7 @@ export async function submitTalkingPhotoVideoJob(
       video_inputs: [{
         character: {
           type: 'talking_photo',
-          talking_photo_id: talkingPhotoId,
+          talking_photo_url: imageUrl,
         },
         voice: {
           type: 'text',
