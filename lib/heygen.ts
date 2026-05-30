@@ -121,7 +121,6 @@ export async function submitImageToVideoJob(
     aspect_ratio: '9:16',
     expressiveness: 0.8,
     motion_prompt: 'energetic, authentic UGC style, direct eye contact, natural hand gestures',
-    caption: true,
   }
 
   if (audioUrl) {
