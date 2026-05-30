@@ -6,11 +6,11 @@ export async function generateImage(
   const apiKey = process.env.GOOGLE_GEMINI_API_KEY
   if (!apiKey) throw new Error('Gemini API key not configured')
 
-  const parts: object[] = []
+  const requestParts: object[] = []
   if (referenceImageBase64) {
-    parts.push({ inlineData: { mimeType: referenceImageMimeType ?? 'image/jpeg', data: referenceImageBase64 } })
+    requestParts.push({ inlineData: { mimeType: referenceImageMimeType ?? 'image/jpeg', data: referenceImageBase64 } })
   }
-  parts.push({ text: prompt })
+  requestParts.push({ text: prompt })
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
@@ -18,7 +18,7 @@ export async function generateImage(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ parts }],
+        contents: [{ parts: requestParts }],
         generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
       }),
     }
