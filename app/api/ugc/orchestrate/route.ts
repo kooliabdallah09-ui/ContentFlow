@@ -1,5 +1,5 @@
 import { generateImage } from '@/lib/gemini-image'
-import { submitVideoJob, submitTalkingPhotoVideoJob, estimateDuration } from '@/lib/heygen'
+import { submitVideoJob, submitTalkingPhotoVideoJob, createTalkingPhoto, estimateDuration } from '@/lib/heygen'
 import { generatePersonWithProduct } from '@/lib/dalle'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
@@ -165,7 +165,8 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const result = await submitTalkingPhotoVideoJob(spokenScript, heygenImageUrl, voiceId)
+        const { talkingPhotoId } = await createTalkingPhoto(heygenImageUrl)
+        const result = await submitTalkingPhotoVideoJob(spokenScript, talkingPhotoId, voiceId)
         videoId = result.videoId
       } else {
         // Fallback: standard HeyGen avatar

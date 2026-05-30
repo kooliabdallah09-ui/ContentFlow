@@ -84,12 +84,12 @@ export function estimateDuration(script: string): number {
   return Math.ceil((script.split(/\s+/).length / 150) * 60)
 }
 
-// Create a Photo Avatar (talking photo) from any image URL
+// Create a Photo Avatar from an image URL — returns talking_photo_id
 export async function createTalkingPhoto(imageUrl: string): Promise<{ talkingPhotoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY
   if (!apiKey) throw new Error('HeyGen API key not configured')
 
-  const res = await fetch(`${HEYGEN_API_BASE}/v1/talking_photo`, {
+  const res = await fetch(`${HEYGEN_API_BASE}/v2/photo_avatar/photo/create`, {
     method: 'POST',
     headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({ image_url: imageUrl }),
@@ -97,20 +97,25 @@ export async function createTalkingPhoto(imageUrl: string): Promise<{ talkingPho
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || err.error?.message || `HeyGen talking photo error: ${res.statusText}`)
+    throw new Error(err.message || err.error?.message || `HeyGen photo avatar error: ${res.statusText}`)
   }
 
   const data = await res.json()
-  const talkingPhotoId = data?.data?.talking_photo_id
-  if (!talkingPhotoId) throw new Error('HeyGen did not return a talking_photo_id')
+  // Try multiple possible field names in response
+  const talkingPhotoId =
+    data?.data?.photo_avatar_id ??
+    data?.data?.talking_photo_id ??
+    data?.data?.id ??
+    data?.photo_avatar_id
+  if (!talkingPhotoId) throw new Error(`HeyGen did not return a photo avatar ID. Response: ${JSON.stringify(data)}`)
 
   return { talkingPhotoId }
 }
 
-// Submit a video job using a Photo Avatar (image URL passed directly)
+// Submit a video job using a Photo Avatar
 export async function submitTalkingPhotoVideoJob(
   script: string,
-  imageUrl: string,
+  talkingPhotoId: string,
   voiceId: string = DEFAULT_VOICE_ID,
 ): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY
@@ -124,7 +129,7 @@ export async function submitTalkingPhotoVideoJob(
       video_inputs: [{
         character: {
           type: 'talking_photo',
-          talking_photo_url: imageUrl,
+          talking_photo_id: talkingPhotoId,
         },
         voice: {
           type: 'text',
