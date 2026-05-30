@@ -20,7 +20,6 @@ export async function generatePersonWithProduct(
       n: 1,
       size: '1024x1792', // portrait — matches 9:16 video
       quality: 'standard',
-      response_format: 'url',
     }),
   })
 
