@@ -20,7 +20,7 @@ export async function generatePersonWithProduct(
       n: 1,
       size: '1024x1536', // portrait — closest to 9:16
       quality: 'medium',
-      output_format: 'url',
+      output_format: 'png',
     }),
   })
 
