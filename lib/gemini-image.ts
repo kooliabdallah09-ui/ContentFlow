@@ -1,15 +1,30 @@
-// Uses Pollinations.ai — free, no API key needed
 export async function generateImage(prompt: string): Promise<{ imageUrl: string }> {
-  const encoded = encodeURIComponent(prompt)
-  const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&seed=${Date.now()}`
+  const apiKey = process.env.GOOGLE_GEMINI_API_KEY
+  if (!apiKey) throw new Error('Gemini API key not configured')
 
-  // Fetch and convert to base64 so it works reliably in the browser
-  const res = await fetch(url)
-  if (!res.ok) throw new Error('Image generation failed')
+  const res = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-image:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['IMAGE', 'TEXT'] },
+      }),
+    }
+  )
 
-  const buffer = await res.arrayBuffer()
-  const base64 = Buffer.from(buffer).toString('base64')
-  const mimeType = res.headers.get('content-type') || 'image/jpeg'
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.error?.message || `Gemini error: ${res.statusText}`)
+  }
 
-  return { imageUrl: `data:${mimeType};base64,${base64}` }
+  const data = await res.json()
+  const parts = data?.candidates?.[0]?.content?.parts ?? []
+  const imagePart = parts.find((p: any) => p.inlineData?.mimeType?.startsWith('image/'))
+  if (!imagePart) throw new Error('Gemini did not return an image')
+
+  return {
+    imageUrl: `data:${imagePart.inlineData.mimeType};base64,${imagePart.inlineData.data}`,
+  }
 }
