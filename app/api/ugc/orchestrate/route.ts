@@ -76,7 +76,6 @@ export async function POST(request: NextRequest) {
     let totalCost = 0
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
     if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.video
-    if (ugcType === 'all') totalCost += CREDIT_COSTS.video
 
     const { data: userCredits } = await supabase.from('user_credits').select('balance').eq('user_id', userId).single()
     if (!userCredits || userCredits.balance < totalCost) {
@@ -113,6 +112,8 @@ export async function POST(request: NextRequest) {
 
     // Map to allowed content_type values ('image' | 'video' | 'voice')
     const dbContentType = (ugcType === 'image-with-voiceover') ? 'image' : 'video'
+    // Video is async — still rendering; image is done immediately
+    const dbStatus = components.video ? 'generating' : 'completed'
 
     // Save to DB
     const { error: insertError } = await supabase.from('ugc_content').insert({
@@ -122,7 +123,7 @@ export async function POST(request: NextRequest) {
       storage_url: JSON.stringify(components),
       metadata: { ugcType, productName, productDescription, benefits, callToAction, script, generatedAt: new Date().toISOString() },
       credit_cost: totalCost,
-      status: 'completed',
+      status: dbStatus,
     })
 
     if (insertError) {
