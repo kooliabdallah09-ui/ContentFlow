@@ -1,10 +1,3 @@
-interface FluxProResponse {
-  images: Array<{
-    url: string
-  }>
-  request_id: string
-}
-
 interface GenerationResult {
   imageUrls: string[]
   generationId: string
@@ -17,53 +10,48 @@ export async function generateImage(
   quantity: number = 1
 ): Promise<GenerationResult> {
   const apiKey = process.env.FLUX_PRO_API_KEY
-
-  if (!apiKey) {
-    throw new Error('Flux Pro API key not configured')
-  }
+  if (!apiKey) throw new Error('Flux Pro API key not configured')
 
   const [width, height] = size.split('x').map(Number)
 
-  const requestBody = {
-    prompt,
-    model: 'flux-pro-1.0',
-    width,
-    height,
-    num_outputs: Math.min(Math.max(quantity, 1), 4),
+  const taskRes = await fetch('https://api.bfl.ml/v1/flux-pro-1.1', {
+    method: 'POST',
+    headers: {
+      'x-key': apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      prompt,
+      width: width || 1024,
+      height: height || 1024,
+      num_images: Math.min(Math.max(quantity, 1), 4),
+    }),
+  })
+
+  if (!taskRes.ok) {
+    const err = await taskRes.json().catch(() => ({}))
+    throw new Error(err.detail || `Flux API error: ${taskRes.statusText}`)
   }
 
-  try {
-    const response = await fetch('https://api.flux.ai/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
+  const { id } = await taskRes.json()
+
+  // Poll for result (BFL is async)
+  for (let i = 0; i < 60; i++) {
+    await new Promise(r => setTimeout(r, 2000))
+    const pollRes = await fetch(`https://api.bfl.ml/v1/get_result?id=${id}`, {
+      headers: { 'x-key': apiKey },
     })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(
-        errorData.error?.message || `Flux Pro API error: ${response.statusText}`
-      )
+    const result = await pollRes.json()
+    if (result.status === 'Ready') {
+      const urls: string[] = Array.isArray(result.result?.sample)
+        ? result.result.sample
+        : [result.result?.sample].filter(Boolean)
+      return { imageUrls: urls, generationId: id, timestamp: Date.now() }
     }
-
-    const data = (await response.json()) as FluxProResponse
-
-    if (!data.images || data.images.length === 0) {
-      throw new Error('No images returned from Flux Pro')
+    if (result.status === 'Error' || result.status === 'Failed') {
+      throw new Error(result.result?.error || 'Image generation failed')
     }
-
-    return {
-      imageUrls: data.images.map((img) => img.url),
-      generationId: data.request_id,
-      timestamp: Date.now(),
-    }
-  } catch (error) {
-    if (error instanceof Error) {
-      throw error
-    }
-    throw new Error('Failed to generate image with Flux Pro')
   }
+
+  throw new Error('Image generation timed out')
 }
