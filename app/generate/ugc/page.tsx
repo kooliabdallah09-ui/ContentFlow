@@ -10,8 +10,14 @@ import { useAutoSave } from '@/lib/useAutoSave'
 
 interface UGCComponent {
   image?: { url: string; id: string }
-  voice?: { url: string; duration: number }
-  video?: { url: string; id: string; duration: number }
+  script?: string
+  video?: {
+    videoId?: string
+    videoUrl?: string
+    status: 'processing' | 'completed' | 'failed'
+    estimatedDuration?: number
+    duration?: number
+  }
 }
 
 export default function UGCGeneratorPage() {
