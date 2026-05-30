@@ -125,7 +125,7 @@ export async function submitImageToVideoJob(
   }
 
   if (audioUrl) {
-    body.audio = { type: 'url', url: audioUrl }
+    body.audio_url = audioUrl
   } else {
     body.script = script
     body.voice_id = voiceId
