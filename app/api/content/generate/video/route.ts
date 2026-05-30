@@ -1,4 +1,4 @@
-import { generateVideo } from '@/lib/heygen'
+import { submitVideoJob as generateVideo } from '@/lib/heygen'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -76,27 +76,27 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate video with HeyGen
+    // Submit HeyGen job (async)
     const result = await generateVideo(script, avatarId, voiceId)
 
-    // Store in database
+    // Store in database with processing status
     const { error: insertError } = await supabase
       .from('ugc_content')
       .insert({
         user_id: userId,
         content_type: 'video',
         external_id: result.videoId,
-        storage_url: result.videoUrl,
+        storage_url: null,
         metadata: {
           script: script.substring(0, 500),
           avatarId,
           voiceId,
-          duration: result.duration,
           characterCount: script.length,
-          generatedAt: new Date(result.timestamp).toISOString(),
+          generatedAt: new Date().toISOString(),
+          heygenVideoId: result.videoId,
         },
         credit_cost: creditCost,
-        status: 'completed',
+        status: 'processing',
       })
 
     if (insertError) {
@@ -127,15 +127,14 @@ export async function POST(request: NextRequest) {
       amount: creditCost,
       transaction_type: 'generation',
       content_type: 'video',
-      description: `Video generation (${result.duration}s duration)`,
+      description: `Video generation submitted`,
     })
 
     return NextResponse.json(
       {
         success: true,
-        videoUrl: result.videoUrl,
         videoId: result.videoId,
-        duration: result.duration,
+        status: 'processing',
         creditDeducted: creditCost,
         newBalance: userCredits.balance - creditCost,
       },
