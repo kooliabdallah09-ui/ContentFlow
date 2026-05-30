@@ -15,11 +15,10 @@ export async function generatePersonWithProduct(
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'dall-e-3',
+      model: 'dall-e-2',
       prompt,
       n: 1,
-      size: '1024x1792', // portrait — matches 9:16 video
-      quality: 'standard',
+      size: '1024x1024',
     }),
   })
 
