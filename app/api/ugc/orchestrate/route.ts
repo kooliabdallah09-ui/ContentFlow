@@ -15,20 +15,33 @@ async function generateUGCScript(
   productImageBase64?: string,
   productImageMimeType?: string,
 ): Promise<string> {
-  const textPrompt = `Write a 30-second UGC-style video script for a social media ad. Sound like a real person, not a corporate ad. Conversational, energetic, authentic.
+  const textPrompt = `Write a 30-second UGC video script for a social media ad. Format it exactly as shown below — no title, no intro text, just the script.
 
 Product: ${productName}
 Description: ${productDescription}
 Benefits: ${benefits}
 CTA: ${callToAction}
 
-Rules:
-- No stage directions or labels, just the spoken words
-- Start with a hook that grabs attention in the first 3 seconds
-- Keep it under 80 words
-- End with the CTA naturally
+Use this exact format:
 
-Return only the script text.`
+[HOOK — 0:00 to 0:05]
+(brief expression/tone note)
+"spoken hook line — grabs attention immediately"
+
+[BODY — 0:05 to 0:25]
+(tone note)
+"spoken body — authentic, conversational, like talking to a friend. 2-4 sentences."
+
+[CTA — 0:25 to 0:35]
+(tone note)
+"spoken CTA — natural, confident"
+
+Rules:
+- Spoken text always in double quotes
+- Stage directions always in (parentheses)
+- Section headers always in [brackets]
+- No markdown, no title, no hashtags
+- Authentic UGC tone — real person, not corporate`
 
   const content: Anthropic.MessageParam['content'] = productImageBase64
     ? [
@@ -39,11 +52,25 @@ Return only the script text.`
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 300,
+    max_tokens: 600,
     messages: [{ role: 'user', content }],
   })
 
   return (msg.content[0] as { text: string }).text.trim()
+}
+
+// Extract only the spoken lines (in "quotes") for sending to HeyGen TTS
+function extractSpokenLines(script: string): string {
+  const spoken: string[] = []
+  for (const line of script.split('\n')) {
+    const t = line.trim()
+    // Skip section headers [HOOK...], stage directions (...), empty lines
+    if (!t || t.startsWith('[') || t.startsWith('(')) continue
+    // Collect lines that are quoted or plain text (strip surrounding quotes)
+    const clean = t.replace(/^[""“”]|[""“”]$/g, '').trim()
+    if (clean) spoken.push(clean)
+  }
+  return spoken.join(' ')
 }
 
 export async function POST(request: NextRequest) {
@@ -121,7 +148,8 @@ export async function POST(request: NextRequest) {
       if (!avatarId) {
         return NextResponse.json({ error: 'Avatar required for video generation' }, { status: 400 })
       }
-      const { videoId } = await submitVideoJob(script, avatarId, voiceId, productImagePublicUrl)
+      const spokenScript = extractSpokenLines(script)
+      const { videoId } = await submitVideoJob(spokenScript, avatarId, voiceId, productImagePublicUrl)
       components.video = {
         videoId,
         status: 'processing',
