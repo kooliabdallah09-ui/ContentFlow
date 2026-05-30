@@ -119,7 +119,7 @@ export async function submitImageToVideoJob(
     image: { type: 'url', url: imageUrl },
     resolution: '1080p',
     aspect_ratio: '9:16',
-    expressiveness: 0.8,
+    expressiveness: 'high',
     motion_prompt: 'energetic, authentic UGC style, direct eye contact, natural hand gestures',
   }
 
