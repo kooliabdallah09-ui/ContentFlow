@@ -52,7 +52,7 @@ export async function submitVideoJob(
   return { videoId }
 }
 
-// Poll video status — call until status is 'completed' or 'failed'
+// Poll video status — supports both /v3/videos (new) and /v1/video_status.get (legacy)
 export async function getVideoStatus(videoId: string): Promise<{
   status: 'pending' | 'processing' | 'completed' | 'failed'
   videoUrl?: string
@@ -61,6 +61,25 @@ export async function getVideoStatus(videoId: string): Promise<{
   const apiKey = process.env.HEYGEN_API_KEY
   if (!apiKey) throw new Error('HeyGen API key not configured')
 
+  // Try v3 first
+  const v3Res = await fetch(`${HEYGEN_API_BASE}/v3/videos/${videoId}`, {
+    headers: { 'X-Api-Key': apiKey },
+  })
+
+  if (v3Res.ok) {
+    const data = await v3Res.json()
+    const status = data?.data?.status ?? data?.status
+    return {
+      status: status === 'completed' ? 'completed'
+        : status === 'failed' ? 'failed'
+        : status === 'processing' ? 'processing'
+        : 'pending',
+      videoUrl: data?.data?.video_url ?? data?.video_url ?? undefined,
+      duration: data?.data?.duration ?? undefined,
+    }
+  }
+
+  // Fallback to v1 for legacy avatar videos
   const res = await fetch(`${HEYGEN_API_BASE}/v1/video_status.get?video_id=${videoId}`, {
     headers: { 'X-Api-Key': apiKey },
   })
@@ -84,72 +103,37 @@ export function estimateDuration(script: string): number {
   return Math.ceil((script.split(/\s+/).length / 150) * 60)
 }
 
-// Create a Photo Avatar from an image URL — returns talking_photo_id
-export async function createTalkingPhoto(imageUrl: string): Promise<{ talkingPhotoId: string }> {
-  const apiKey = process.env.HEYGEN_API_KEY
-  if (!apiKey) throw new Error('HeyGen API key not configured')
-
-  const res = await fetch(`${HEYGEN_API_BASE}/v2/photo_avatar/photo/create`, {
-    method: 'POST',
-    headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ image_url: imageUrl }),
-  })
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || err.error?.message || `HeyGen photo avatar error: ${res.statusText}`)
-  }
-
-  const data = await res.json()
-  // Try multiple possible field names in response
-  const talkingPhotoId =
-    data?.data?.photo_avatar_id ??
-    data?.data?.talking_photo_id ??
-    data?.data?.id ??
-    data?.photo_avatar_id
-  if (!talkingPhotoId) throw new Error(`HeyGen did not return a photo avatar ID. Response: ${JSON.stringify(data)}`)
-
-  return { talkingPhotoId }
-}
-
-// Submit a video job using a Photo Avatar
-export async function submitTalkingPhotoVideoJob(
+// Submit a video job using a static image — animates the image directly via /v3/videos
+export async function submitImageToVideoJob(
   script: string,
-  talkingPhotoId: string,
+  imageUrl: string,
   voiceId: string = DEFAULT_VOICE_ID,
 ): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY
   if (!apiKey) throw new Error('HeyGen API key not configured')
   if (!script?.trim()) throw new Error('Script cannot be empty')
 
-  const res = await fetch(`${HEYGEN_API_BASE}/v2/video/generate`, {
+  const res = await fetch(`${HEYGEN_API_BASE}/v3/videos`, {
     method: 'POST',
     headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      video_inputs: [{
-        character: {
-          type: 'talking_photo',
-          talking_photo_id: talkingPhotoId,
-        },
-        voice: {
-          type: 'text',
-          input_text: script,
-          voice_id: voiceId,
-        },
-        background: { type: 'color', value: '#F2EDE8' },
-      }],
-      dimension: { width: 1080, height: 1920 },
+      type: 'image',
+      image: { type: 'url', url: imageUrl },
+      script,
+      voice_id: voiceId,
+      resolution: '1080p',
+      aspect_ratio: '9:16',
     }),
   })
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || err.error?.message || `HeyGen error: ${res.statusText}`)
+    throw new Error(err.message || err.error?.message || `HeyGen image-to-video error ${res.status}: ${JSON.stringify(err)}`)
   }
 
   const data = await res.json()
-  const videoId = data?.data?.video_id
-  if (!videoId) throw new Error('HeyGen did not return a video ID')
+  const videoId = data?.data?.video_id ?? data?.video_id
+  if (!videoId) throw new Error(`HeyGen did not return a video ID. Response: ${JSON.stringify(data)}`)
 
   return { videoId }
 }

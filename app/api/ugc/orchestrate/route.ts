@@ -1,5 +1,5 @@
 import { generateImage } from '@/lib/gemini-image'
-import { submitVideoJob, submitTalkingPhotoVideoJob, createTalkingPhoto, estimateDuration } from '@/lib/heygen'
+import { submitVideoJob, submitImageToVideoJob, estimateDuration } from '@/lib/heygen'
 import { generatePersonWithProduct } from '@/lib/dalle'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
@@ -139,8 +139,7 @@ export async function POST(request: NextRequest) {
       let videoId: string
 
       if (process.env.OPENAI_API_KEY) {
-        // gpt-image-1 → generate realistic person holding product
-        // then HeyGen Photo Avatar animates them talking
+        // gpt-image-1 → realistic person holding product → HeyGen animates it talking
         const { imageUrl: rawImageUrl } = await generatePersonWithProduct(
           productName,
           productDescription,
@@ -165,16 +164,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const { talkingPhotoId } = await createTalkingPhoto(heygenImageUrl)
-        const result = await submitTalkingPhotoVideoJob(spokenScript, talkingPhotoId, voiceId)
-        videoId = result.videoId
+        const res = await submitImageToVideoJob(spokenScript, heygenImageUrl, voiceId)
+        videoId = res.videoId
       } else {
-        // Fallback: standard HeyGen avatar
-        if (!avatarId) {
-          return NextResponse.json({ error: 'Avatar required for video generation' }, { status: 400 })
-        }
-        const result = await submitVideoJob(spokenScript, avatarId, voiceId)
-        videoId = result.videoId
+        const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
+        const res = await submitVideoJob(spokenScript, effectiveAvatarId, voiceId)
+        videoId = res.videoId
       }
 
       components.video = {
