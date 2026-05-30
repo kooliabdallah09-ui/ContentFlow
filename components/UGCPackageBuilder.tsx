@@ -54,7 +54,7 @@ export default function UGCPackageBuilder({
   const [style, setStyle] = useState('realistic')
   const [imageSize, setImageSize] = useState('1024x1024')
   const [avatarId, setAvatarId] = useState('')
-  const [voiceId, setVoiceId] = useState('en-US-Neural2-A')
+  const [voiceId, setVoiceId] = useState('1bd001e7e50f421d891986aad5158bc8')
 
   const selectedType = UGC_TYPES.find((t) => t.id === ugcType)
   const creditCost = selectedType?.credits || 0
@@ -226,11 +226,10 @@ export default function UGCPackageBuilder({
               className="w-full px-4 py-2 bg-white/5 border border-cyan-400/20 rounded-lg text-white focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition"
               disabled={isLoading}
             >
-              <option value="en-US-Neural2-A">Female, American</option>
-              <option value="en-US-Neural2-C">Male, American</option>
-              <option value="en-GB-Neural2-A">Female, British</option>
-              <option value="en-GB-Neural2-B">Male, British</option>
-              <option value="en-AU-Neural2-A">Female, Australian</option>
+              <option value="1bd001e7e50f421d891986aad5158bc8">Sofia — American Female</option>
+              <option value="2d5b0e6cf36f460aa7fc47e3eee4ba54">James — American Male</option>
+              <option value="e749e866b30d47e4858cac12a6d13f2f">Emma — British Female</option>
+              <option value="1588bf4c1db74e1dbba1c7b2e9f54b14">Oliver — British Male</option>
             </select>
           </div>
         </div>

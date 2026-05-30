@@ -1,12 +1,20 @@
 'use client'
 
-import { Download, Copy, Loader, Image, Volume2, Film } from 'lucide-react'
-import { useState } from 'react'
+import { Download, Copy, Loader, Film } from 'lucide-react'
+import { useState, useEffect, useRef } from 'react'
+
+interface VideoComponent {
+  videoId?: string
+  videoUrl?: string
+  status: 'processing' | 'completed' | 'failed'
+  estimatedDuration?: number
+  duration?: number
+}
 
 interface UGCComponent {
   image?: { url: string; id: string }
-  voice?: { url: string; duration: number }
-  video?: { url: string; id: string; duration: number }
+  video?: VideoComponent
+  script?: string
 }
 
 interface UGCPackagePreviewProps {
@@ -16,235 +24,166 @@ interface UGCPackagePreviewProps {
   error?: string
 }
 
-export default function UGCPackagePreview({
-  components,
-  ugcType,
-  isLoading,
-  error,
-}: UGCPackagePreviewProps) {
+export default function UGCPackagePreview({ components, ugcType, isLoading, error }: UGCPackagePreviewProps) {
   const [downloading, setDownloading] = useState<string | null>(null)
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
+  const [video, setVideo] = useState<VideoComponent | null>(null)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  // Start polling when we get a video with processing status
+  useEffect(() => {
+    if (components?.video) setVideo(components.video)
+  }, [components])
+
+  useEffect(() => {
+    if (!video?.videoId || video.status !== 'processing') return
+
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/ugc/video-status?videoId=${video.videoId}`)
+        const data = await res.json()
+        if (data.status === 'completed' || data.status === 'failed') {
+          setVideo(prev => prev ? { ...prev, status: data.status, videoUrl: data.videoUrl, duration: data.duration } : prev)
+          clearInterval(pollRef.current!)
+        }
+      } catch {}
+    }, 5000)
+
+    return () => clearInterval(pollRef.current!)
+  }, [video?.videoId, video?.status])
 
   const handleDownload = async (url: string, filename: string) => {
     setDownloading(filename)
     try {
-      const response = await fetch(url)
-      const blob = await response.blob()
-      const downloadUrl = window.URL.createObjectURL(blob)
+      const res = await fetch(url)
+      const blob = await res.blob()
       const a = document.createElement('a')
-      a.href = downloadUrl
+      a.href = window.URL.createObjectURL(blob)
       a.download = filename
-      document.body.appendChild(a)
       a.click()
-      window.URL.revokeObjectURL(downloadUrl)
-      document.body.removeChild(a)
-    } catch (err) {
-      console.error('Download failed:', err)
-    } finally {
-      setDownloading(null)
-    }
+      window.URL.revokeObjectURL(a.href)
+    } catch {}
+    finally { setDownloading(null) }
   }
 
-  const handleCopyUrl = (url: string) => {
-    navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+  const handleCopy = (text: string, key: string) => {
+    navigator.clipboard.writeText(text)
+    setCopied(key)
+    setTimeout(() => setCopied(null), 2000)
   }
+
+  if (isLoading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '16px' }}>
+      <div style={{ padding: '16px', background: 'var(--surface)', borderRadius: '50%' }}>
+        <Loader style={{ width: 28, height: 28, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
+      </div>
+      <p style={{ fontSize: '14px', color: 'var(--ink-dim)', textAlign: 'center' }}>Generating your UGC package…</p>
+      <p style={{ fontSize: '12px', color: 'var(--ink-fade)', textAlign: 'center' }}>Claude is writing the script, Flux is generating the image</p>
+    </div>
+  )
+
+  if (error && !isLoading) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '12px' }}>
+      <p style={{ fontSize: '14px', color: 'var(--bad)', fontWeight: 600 }}>{error}</p>
+      <p style={{ fontSize: '12px', color: 'var(--ink-dim)' }}>Check your input and try again</p>
+    </div>
+  )
+
+  if (!components) return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '12px', opacity: 0.5 }}>
+      <Film style={{ width: 36, height: 36, color: 'var(--ink-dim)' }} />
+      <p style={{ fontSize: '14px', color: 'var(--ink-dim)' }}>Your UGC package will appear here</p>
+    </div>
+  )
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block p-4 bg-white/5 rounded-full mb-4 animate-pulse">
-              <Loader className="w-8 h-8 text-cyan-400 animate-spin" />
-            </div>
-            <p className="text-white/60">Generating your UGC package...</p>
-            <p className="text-sm text-white/40 mt-2">
-              This may take 1-2 minutes for complete packages
-            </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+      {/* Script */}
+      {components.script && (
+        <div className="card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)' }}>
+              AI Script
+            </h3>
+            <button
+              onClick={() => handleCopy(components.script!, 'script')}
+              className="btn btn-ghost"
+              style={{ padding: '4px 10px', fontSize: '12px' }}
+            >
+              <Copy style={{ width: 12, height: 12 }} />
+              {copied === 'script' ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <p style={{ fontSize: '14px', lineHeight: 1.7, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>
+            {components.script}
+          </p>
+        </div>
+      )}
+
+      {/* Image */}
+      {components.image && (
+        <div className="card" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
+            Product Image
+          </h3>
+          <img
+            src={components.image.url}
+            alt="Generated product"
+            style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px', maxHeight: '300px', objectFit: 'contain', background: 'var(--bg)' }}
+          />
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <button onClick={() => handleDownload(components.image!.url, `product-${Date.now()}.png`)} disabled={!!downloading} className="btn btn-ghost" style={{ flex: 1, fontSize: '13px' }}>
+              <Download style={{ width: 14, height: 14 }} />
+              {downloading === 'image' ? 'Downloading…' : 'Download'}
+            </button>
+            <button onClick={() => handleCopy(components.image!.url, 'image')} className="btn btn-ghost" style={{ flex: 1, fontSize: '13px' }}>
+              <Copy style={{ width: 14, height: 14 }} />
+              {copied === 'image' ? 'Copied!' : 'Copy URL'}
+            </button>
           </div>
         </div>
       )}
 
-      {/* Error State */}
-      {error && !isLoading && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block p-3 bg-red-500/10 rounded-full mb-4">
-              <div className="w-8 h-8 text-red-400">!</div>
-            </div>
-            <p className="text-red-400 font-500">{error}</p>
-            <p className="text-sm text-white/40 mt-2">
-              Please check your input and try again
-            </p>
-          </div>
-        </div>
-      )}
+      {/* Video */}
+      {video && (
+        <div className="card" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
+            Avatar Video
+          </h3>
 
-      {/* Empty State */}
-      {!isLoading && !error && !components && (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <div className="inline-block p-4 bg-white/5 rounded-full mb-4">
-              <PackageIcon className="w-8 h-8 text-white/30" />
-            </div>
-            <p className="text-white/60">Your UGC package will appear here</p>
-            <p className="text-sm text-white/40 mt-2">
-              Fill in the product details to generate your complete UGC package
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* Package Preview */}
-      {components && !isLoading && (
-        <div className="flex-1 overflow-y-auto space-y-4">
-          {/* Image Component */}
-          {components.image && (
-            <div className="glass-card rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Image className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-600 text-white">Product Image</h3>
-              </div>
-              <div className="bg-black rounded-lg overflow-hidden mb-3 max-h-48">
-                <img
-                  src={components.image.url}
-                  alt="Generated product image"
-                  className="w-full h-auto object-contain"
-                />
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      components.image!.url,
-                      `ugc-image-${Date.now()}.png`
-                    )
-                  }
-                  disabled={downloading === 'image'}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 border border-white/20 text-white font-600 rounded-lg transition text-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </button>
-                <button
-                  onClick={() => handleCopyUrl(components.image!.url)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-600 rounded-lg transition text-sm"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy URL
-                </button>
-              </div>
+          {video.status === 'processing' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)', marginBottom: '12px' }}>
+              <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
+              <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>HeyGen is rendering your video…</p>
+              <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>Usually takes 2–5 minutes. This page auto-updates.</p>
             </div>
           )}
 
-          {/* Voice Component */}
-          {components.voice && (
-            <div className="glass-card rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Volume2 className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-600 text-white">Voiceover</h3>
-              </div>
-              <div className="bg-black rounded-lg p-3 mb-3">
-                <audio
-                  controls
-                  src={components.voice.url}
-                  className="w-full h-8"
-                />
-              </div>
-              <p className="text-xs text-white/50 mb-3">
-                Duration: {components.voice.duration}s
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      components.voice!.url,
-                      `ugc-voiceover-${Date.now()}.mp3`
-                    )
-                  }
-                  disabled={downloading === 'voice'}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 border border-white/20 text-white font-600 rounded-lg transition text-sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Download
-                </button>
-                <button
-                  onClick={() => handleCopyUrl(components.voice!.url)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-600 rounded-lg transition text-sm"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy URL
-                </button>
-              </div>
-            </div>
+          {video.status === 'failed' && (
+            <p style={{ fontSize: '13px', color: 'var(--bad)', marginBottom: '12px' }}>Video generation failed. Try again.</p>
           )}
 
-          {/* Video Component */}
-          {components.video && (
-            <div className="glass-card rounded-xl p-4">
-              <div className="flex items-center gap-2 mb-3">
-                <Film className="w-5 h-5 text-cyan-400" />
-                <h3 className="font-600 text-white">Video</h3>
-              </div>
-              <div className="bg-black rounded-lg overflow-hidden mb-3 max-h-48">
-                <video
-                  controls
-                  src={components.video.url}
-                  className="w-full h-auto object-contain"
-                />
-              </div>
-              <p className="text-xs text-white/50 mb-3">
-                Duration: {components.video.duration}s
-              </p>
-              <div className="flex gap-2">
-                <button
-                  onClick={() =>
-                    handleDownload(
-                      components.video!.url,
-                      `ugc-video-${Date.now()}.mp4`
-                    )
-                  }
-                  disabled={downloading === 'video'}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 border border-white/20 text-white font-600 rounded-lg transition text-sm"
-                >
-                  <Download className="w-4 h-4" />
+          {video.status === 'completed' && video.videoUrl && (
+            <>
+              <video controls src={video.videoUrl} style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px', maxHeight: '400px', background: '#000' }} />
+              {video.duration && (
+                <p style={{ fontSize: '12px', color: 'var(--ink-fade)', marginBottom: '12px' }}>Duration: {video.duration}s</p>
+              )}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => handleDownload(video.videoUrl!, `ugc-video-${Date.now()}.mp4`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '13px' }}>
+                  <Download style={{ width: 14, height: 14 }} />
                   Download
                 </button>
-                <button
-                  onClick={() => handleCopyUrl(components.video!.url)}
-                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 text-white font-600 rounded-lg transition text-sm"
-                >
-                  <Copy className="w-4 h-4" />
-                  Copy URL
+                <button onClick={() => handleCopy(video.videoUrl!, 'video')} className="btn btn-ghost" style={{ flex: 1, fontSize: '13px' }}>
+                  <Copy style={{ width: 14, height: 14 }} />
+                  {copied === 'video' ? 'Copied!' : 'Copy URL'}
                 </button>
               </div>
-            </div>
+            </>
           )}
         </div>
       )}
     </div>
-  )
-}
-
-function PackageIcon(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      {...props}
-    >
-      <line x1="16.5" y1="9.4" x2="7.5" y2="4.21" />
-      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-      <line x1="12" y1="22.08" x2="12" y2="12" />
-    </svg>
   )
 }
