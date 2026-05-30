@@ -111,10 +111,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Map to allowed content_type values ('image' | 'video' | 'voice')
+    const dbContentType = (ugcType === 'image-with-voiceover') ? 'image' : 'video'
+
     // Save to DB
     const { error: insertError } = await supabase.from('ugc_content').insert({
       user_id: userId,
-      content_type: 'ugc_package',
+      content_type: dbContentType,
       external_id: `ugc-${Date.now()}`,
       storage_url: JSON.stringify(components),
       metadata: { ugcType, productName, productDescription, benefits, callToAction, script, generatedAt: new Date().toISOString() },
