@@ -1,4 +1,4 @@
-import { generateImage } from '@/lib/flux-pro'
+import { generateImage } from '@/lib/gemini-image'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -69,25 +69,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate images with Flux Pro
-    const result = await generateImage(prompt, size, quantity)
+    // Generate image with Gemini
+    const result = await generateImage(prompt)
+    const generationId = `gemini-${Date.now()}`
 
     // Store in database
-    const upsertData = result.imageUrls.map((url, index) => ({
+    const upsertData = [{
       user_id: userId,
       content_type: 'image',
-      external_id: `${result.generationId}-${index}`,
-      storage_url: url,
+      external_id: generationId,
+      storage_url: result.imageUrl,
       metadata: {
         prompt,
         style,
         size,
-        model: 'flux-pro-1.0',
-        generatedAt: new Date(result.timestamp).toISOString(),
+        model: 'gemini-2.0-flash-preview-image-generation',
+        generatedAt: new Date().toISOString(),
       },
       credit_cost: CREDIT_COSTS.image,
       status: 'completed',
-    }))
+    }]
 
     const { error: insertError } = await supabase
       .from('ugc_content')
@@ -127,8 +128,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         success: true,
-        images: result.imageUrls,
-        generationId: result.generationId,
+        images: [result.imageUrl],
+        generationId,
         creditDeducted: creditCost,
         newBalance: userCredits.balance - creditCost,
       },
@@ -138,7 +139,7 @@ export async function POST(request: NextRequest) {
     console.error('Image generation error:', error)
 
     if (error instanceof Error) {
-      if (error.message.includes('Flux Pro API key not configured')) {
+      if (error.message.includes('API key not configured')) {
         return NextResponse.json(
           { error: 'Image generation service not configured' },
           { status: 500 }
