@@ -1,29 +1,11 @@
+// Uses Pollinations.ai — free, no API key needed
 export async function generateImage(prompt: string): Promise<{ imageUrl: string }> {
-  const apiKey = process.env.GOOGLE_GEMINI_API_KEY
-  if (!apiKey) throw new Error('Gemini API key not configured')
+  const encoded = encodeURIComponent(prompt)
+  const url = `https://image.pollinations.ai/prompt/${encoded}?width=1024&height=1024&nologo=true&seed=${Date.now()}`
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        instances: [{ prompt }],
-        parameters: { sampleCount: 1 },
-      }),
-    }
-  )
+  // Verify the image is reachable
+  const res = await fetch(url, { method: 'HEAD' })
+  if (!res.ok) throw new Error('Image generation failed')
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message || `Imagen error: ${res.statusText}`)
-  }
-
-  const data = await res.json()
-  const prediction = data?.predictions?.[0]
-  if (!prediction?.bytesBase64Encoded) throw new Error('Imagen did not return an image')
-
-  return {
-    imageUrl: `data:${prediction.mimeType || 'image/png'};base64,${prediction.bytesBase64Encoded}`,
-  }
+  return { imageUrl: url }
 }
