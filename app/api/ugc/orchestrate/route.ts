@@ -1,4 +1,4 @@
-import { generateImage } from '@/lib/flux-pro'
+import { generateImage } from '@/lib/gemini-image'
 import { submitVideoJob, estimateDuration } from '@/lib/heygen'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
@@ -83,11 +83,9 @@ export async function POST(request: NextRequest) {
     // Generate image if needed
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') {
       const imageResult = await generateImage(
-        `Professional product showcase photo of ${productName}. ${productDescription}. Style: ${style}. Clean background, studio lighting, commercial quality.`,
-        imageSize,
-        1
+        `Professional product showcase photo of ${productName}. ${productDescription}. Style: ${style}. Clean background, studio lighting, commercial quality.`
       )
-      components.image = { url: imageResult.imageUrls[0], id: imageResult.generationId }
+      components.image = { url: imageResult.imageUrl, id: `gemini-${Date.now()}` }
     }
 
     // Submit HeyGen job (async — returns immediately with videoId)
