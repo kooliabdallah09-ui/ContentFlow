@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Zap, CheckCircle2 } from 'lucide-react'
 import AvatarPicker from '@/components/AvatarPicker'
 
 interface UGCPackageBuilderProps {
@@ -21,180 +20,119 @@ interface UGCPackageBuilderProps {
 }
 
 const UGC_TYPES = [
-  {
-    id: 'image-with-voiceover',
-    name: 'Image + Voiceover',
-    description: 'Professional product image with AI voiceover script',
-    credits: 230,
-  },
-  {
-    id: 'video-with-voiceover',
-    name: 'Video + Voiceover',
-    description: 'AI avatar video with synchronized voiceover',
-    credits: 450,
-  },
-  {
-    id: 'all',
-    name: 'Complete UGC Package',
-    description: 'Image + Voice + Video (all three components)',
-    credits: 530,
-  },
+  { id: 'video-with-voiceover', name: 'Avatar Video', description: 'AI avatar speaks your script', credits: 40 },
+  { id: 'image-with-voiceover', name: 'Product Image', description: 'AI-generated product photo', credits: 3 },
+  { id: 'all', name: 'Full Package', description: 'Image + Avatar Video', credits: 43 },
 ]
 
-export default function UGCPackageBuilder({
-  onGenerate,
-  isLoading,
-  creditBalance,
-}: UGCPackageBuilderProps) {
-  const [ugcType, setUgcType] = useState('all')
+const HEYGEN_VOICES = [
+  { id: '1bd001e7e50f421d891986aad5158bc8', label: 'Sofia — American Female' },
+  { id: '2d5b0e6cf36f460aa7fc47e3eee4ba54', label: 'James — American Male' },
+  { id: 'e749e866b30d47e4858cac12a6d13f2f', label: 'Emma — British Female' },
+  { id: '1588bf4c1db74e1dbba1c7b2e9f54b14', label: 'Oliver — British Male' },
+]
+
+export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
+  const [ugcType, setUgcType] = useState('video-with-voiceover')
   const [productName, setProductName] = useState('')
   const [productDescription, setProductDescription] = useState('')
   const [benefits, setBenefits] = useState('')
-  const [callToAction, setCallToAction] = useState('Buy now!')
+  const [callToAction, setCallToAction] = useState('Try it today')
   const [style, setStyle] = useState('realistic')
-  const [imageSize, setImageSize] = useState('1024x1024')
   const [avatarId, setAvatarId] = useState('')
-  const [voiceId, setVoiceId] = useState('1bd001e7e50f421d891986aad5158bc8')
+  const [voiceId, setVoiceId] = useState(HEYGEN_VOICES[0].id)
 
-  const selectedType = UGC_TYPES.find((t) => t.id === ugcType)
-  const creditCost = selectedType?.credits || 0
-  const canGenerate =
-    creditBalance >= creditCost &&
-    productName.trim().length > 0 &&
-    productDescription.trim().length > 0 &&
-    benefits.trim().length > 0
+  const selectedType = UGC_TYPES.find(t => t.id === ugcType)!
+  const canGenerate = creditBalance >= selectedType.credits && productName.trim() && productDescription.trim() && benefits.trim()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canGenerate || isLoading) return
-
-    try {
-      await onGenerate({
-        ugcType,
-        productName,
-        productDescription,
-        benefits,
-        callToAction,
-        style,
-        imageSize,
-        avatarId,
-        voiceId,
-      })
-      setProductName('')
-      setProductDescription('')
-      setBenefits('')
-    } catch {
-      // Error handled in parent
-    }
+    await onGenerate({ ugcType, productName, productDescription, benefits, callToAction, style, imageSize: '1024x1024', avatarId, voiceId })
+    setProductName('')
+    setProductDescription('')
+    setBenefits('')
   }
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+
+      {/* Package type */}
       <div>
-        <label className="block text-sm font-600 text-white/90 mb-3">
-          UGC Package Type
-        </label>
-        <div className="space-y-2">
-          {UGC_TYPES.map((type) => (
-            <label
-              key={type.id}
-              className={`flex items-start p-4 border rounded-lg cursor-pointer transition ${
-                ugcType === type.id
-                  ? 'bg-cyan-500/10 border-cyan-400'
-                  : 'bg-white/5 border-white/20 hover:bg-white/10'
-              }`}
-            >
-              <input
-                type="radio"
-                name="ugcType"
-                value={type.id}
-                checked={ugcType === type.id}
-                onChange={(e) => setUgcType(e.target.value)}
-                disabled={isLoading}
-                className="accent-cyan-400 cursor-pointer mt-1"
-              />
-              <div className="ml-3 flex-1">
-                <p className="font-600 text-white">{type.name}</p>
-                <p className="text-xs text-white/60 mt-1">{type.description}</p>
-                <p className="text-sm font-600 text-cyan-400 mt-2">
-                  {type.credits} credits
-                </p>
+        <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Package Type</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {UGC_TYPES.map(type => (
+            <label key={type.id} style={{
+              display: 'flex', alignItems: 'center', gap: '12px',
+              padding: '14px 16px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+              border: `1px solid ${ugcType === type.id ? 'var(--accent)' : 'var(--border)'}`,
+              background: ugcType === type.id ? 'var(--accent-soft)' : 'var(--surface)',
+              transition: 'all 0.15s',
+            }}>
+              <input type="radio" name="ugcType" value={type.id} checked={ugcType === type.id}
+                onChange={e => setUgcType(e.target.value)} disabled={isLoading}
+                style={{ accentColor: 'var(--accent)', width: 16, height: 16, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{type.name}</p>
+                <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '2px 0 0' }}>{type.description}</p>
               </div>
-              {ugcType === type.id && (
-                <CheckCircle2 className="w-5 h-5 text-cyan-400 flex-shrink-0" />
-              )}
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)', flexShrink: 0 }}>{type.credits} cr</span>
             </label>
           ))}
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-600 text-white/90 mb-2">
-            Product Name *
-          </label>
-          <input
-            type="text"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            placeholder="e.g., Premium Coffee Maker"
-            className="w-full px-4 py-2 bg-white/5 border border-cyan-400/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition"
-            disabled={isLoading}
-          />
+      {/* Product fields */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="form-row">
+          <label className="form-label">Product Name *</label>
+          <input className="input" value={productName} onChange={e => setProductName(e.target.value)}
+            placeholder="e.g. ContentFlow" disabled={isLoading} />
         </div>
 
-        <div>
-          <label className="block text-sm font-600 text-white/90 mb-2">
-            Product Description *
-          </label>
-          <textarea
-            value={productDescription}
-            onChange={(e) => setProductDescription(e.target.value)}
-            placeholder="Describe your product features and what makes it special"
-            className="w-full px-4 py-2 bg-white/5 border border-cyan-400/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition h-20 resize-none"
-            disabled={isLoading}
-          />
+        <div className="form-row">
+          <label className="form-label">Product Description *</label>
+          <textarea className="textarea" rows={3} value={productDescription}
+            onChange={e => setProductDescription(e.target.value)}
+            placeholder="What does it do? What makes it special?" disabled={isLoading} />
         </div>
 
-        <div>
-          <label className="block text-sm font-600 text-white/90 mb-2">
-            Key Benefits *
-          </label>
-          <textarea
-            value={benefits}
-            onChange={(e) => setBenefits(e.target.value)}
-            placeholder="List main benefits (e.g., Fast brewing, Temperature control, Energy efficient)"
-            className="w-full px-4 py-2 bg-white/5 border border-cyan-400/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition h-20 resize-none"
-            disabled={isLoading}
-          />
+        <div className="form-row">
+          <label className="form-label">Key Benefits *</label>
+          <textarea className="textarea" rows={3} value={benefits}
+            onChange={e => setBenefits(e.target.value)}
+            placeholder="e.g. Save time, post to all platforms, AI-powered" disabled={isLoading} />
         </div>
 
-        <div>
-          <label className="block text-sm font-600 text-white/90 mb-2">
-            Call to Action
-          </label>
-          <input
-            type="text"
-            value={callToAction}
-            onChange={(e) => setCallToAction(e.target.value)}
-            placeholder="e.g., Order now, Get yours today"
-            className="w-full px-4 py-2 bg-white/5 border border-cyan-400/20 rounded-lg text-white placeholder:text-white/40 focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition"
-            disabled={isLoading}
-          />
+        <div className="form-row">
+          <label className="form-label">Call to Action</label>
+          <input className="input" value={callToAction} onChange={e => setCallToAction(e.target.value)}
+            placeholder="e.g. Try it free today" disabled={isLoading} />
         </div>
       </div>
 
+      {/* Avatar + voice (only for video types) */}
+      {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
+            <AvatarPicker selectedId={avatarId} onChange={setAvatarId} disabled={isLoading} />
+          </div>
+
+          <div className="form-row">
+            <label className="form-label">Voice</label>
+            <select className="input" value={voiceId} onChange={e => setVoiceId(e.target.value)} disabled={isLoading}>
+              {HEYGEN_VOICES.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+            </select>
+          </div>
+        </div>
+      )}
+
+      {/* Image style (only for image types) */}
       {(ugcType === 'image-with-voiceover' || ugcType === 'all') && (
-        <div>
-          <label className="block text-sm font-600 text-white/90 mb-2">
-            Image Style
-          </label>
-          <select
-            value={style}
-            onChange={(e) => setStyle(e.target.value)}
-            className="w-full px-4 py-2 bg-white/5 border border-cyan-400/20 rounded-lg text-white focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition"
-            disabled={isLoading}
-          >
+        <div className="form-row">
+          <label className="form-label">Image Style</label>
+          <select className="input" value={style} onChange={e => setStyle(e.target.value)} disabled={isLoading}>
             <option value="realistic">Realistic</option>
             <option value="artistic">Artistic</option>
             <option value="professional">Professional</option>
@@ -203,71 +141,32 @@ export default function UGCPackageBuilder({
         </div>
       )}
 
-      {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-600 text-white/90 mb-3">
-              Choose Avatar
-            </label>
-            <AvatarPicker
-              selectedId={avatarId}
-              onChange={setAvatarId}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-600 text-white/90 mb-2">
-              Voice
-            </label>
-            <select
-              value={voiceId}
-              onChange={(e) => setVoiceId(e.target.value)}
-              className="w-full px-4 py-2 bg-white/5 border border-cyan-400/20 rounded-lg text-white focus:outline-none focus:border-cyan-400/50 focus:bg-white/10 transition"
-              disabled={isLoading}
-            >
-              <option value="1bd001e7e50f421d891986aad5158bc8">Sofia — American Female</option>
-              <option value="2d5b0e6cf36f460aa7fc47e3eee4ba54">James — American Male</option>
-              <option value="e749e866b30d47e4858cac12a6d13f2f">Emma — British Female</option>
-              <option value="1588bf4c1db74e1dbba1c7b2e9f54b14">Oliver — British Male</option>
-            </select>
-          </div>
+      {/* Footer */}
+      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+          <span style={{ color: 'var(--ink-dim)' }}>Cost</span>
+          <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{selectedType.credits} credits</span>
         </div>
-      )}
-
-      <div className="pt-2 space-y-3 border-t border-white/10">
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Total Credit Cost:</span>
-          <span className="font-600 text-cyan-400">{creditCost} credits</span>
-        </div>
-        <div className="flex items-center justify-between text-sm">
-          <span className="text-white/60">Your Balance:</span>
-          <span
-            className={`font-600 ${
-              creditBalance >= creditCost ? 'text-emerald-400' : 'text-red-400'
-            }`}
-          >
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+          <span style={{ color: 'var(--ink-dim)' }}>Your balance</span>
+          <span style={{ fontWeight: 600, color: creditBalance >= selectedType.credits ? 'var(--good)' : 'var(--bad)' }}>
             {creditBalance} credits
           </span>
         </div>
 
-        <button
-          onClick={handleSubmit}
-          disabled={!canGenerate || isLoading}
-          className="w-full mt-6 px-6 py-3 bg-gradient-to-r from-cyan-500 to-cyan-600 hover:from-cyan-400 hover:to-cyan-500 disabled:from-white/10 disabled:to-white/10 disabled:text-white/50 text-white font-600 rounded-lg transition duration-200 flex items-center justify-center gap-2"
-        >
-          <Zap className="w-5 h-5" />
-          {isLoading ? 'Generating Package...' : 'Generate UGC Package'}
+        <button type="submit" disabled={!canGenerate || isLoading} className="btn btn-primary"
+          style={{ padding: '12px', fontSize: '14px', marginTop: '4px' }}>
+          {isLoading ? 'Generating…' : 'Generate UGC Package'}
         </button>
 
-        {!canGenerate && (
-          <p className="text-xs text-red-400 text-center">
-            {creditBalance < creditCost
-              ? `Not enough credits. Need ${creditCost}, have ${creditBalance}`
-              : 'Please fill in all required fields'}
+        {!canGenerate && productName && (
+          <p style={{ fontSize: '12px', color: 'var(--bad)', textAlign: 'center' }}>
+            {creditBalance < selectedType.credits
+              ? `Not enough credits. Need ${selectedType.credits}, have ${creditBalance}`
+              : 'Fill in all required fields'}
           </p>
         )}
       </div>
-    </div>
+    </form>
   )
 }
