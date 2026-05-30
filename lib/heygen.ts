@@ -83,3 +83,68 @@ export async function getVideoStatus(videoId: string): Promise<{
 export function estimateDuration(script: string): number {
   return Math.ceil((script.split(/\s+/).length / 150) * 60)
 }
+
+// Create a Photo Avatar (talking photo) from any image URL
+export async function createTalkingPhoto(imageUrl: string): Promise<{ talkingPhotoId: string }> {
+  const apiKey = process.env.HEYGEN_API_KEY
+  if (!apiKey) throw new Error('HeyGen API key not configured')
+
+  const res = await fetch(`${HEYGEN_API_BASE}/v1/talking_photo`, {
+    method: 'POST',
+    headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ image_url: imageUrl }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || err.error?.message || `HeyGen talking photo error: ${res.statusText}`)
+  }
+
+  const data = await res.json()
+  const talkingPhotoId = data?.data?.talking_photo_id
+  if (!talkingPhotoId) throw new Error('HeyGen did not return a talking_photo_id')
+
+  return { talkingPhotoId }
+}
+
+// Submit a video job using a Photo Avatar instead of a standard avatar
+export async function submitTalkingPhotoVideoJob(
+  script: string,
+  talkingPhotoId: string,
+  voiceId: string = DEFAULT_VOICE_ID,
+): Promise<{ videoId: string }> {
+  const apiKey = process.env.HEYGEN_API_KEY
+  if (!apiKey) throw new Error('HeyGen API key not configured')
+  if (!script?.trim()) throw new Error('Script cannot be empty')
+
+  const res = await fetch(`${HEYGEN_API_BASE}/v2/video/generate`, {
+    method: 'POST',
+    headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      video_inputs: [{
+        character: {
+          type: 'talking_photo',
+          talking_photo_id: talkingPhotoId,
+        },
+        voice: {
+          type: 'text',
+          input_text: script,
+          voice_id: voiceId,
+        },
+        background: { type: 'color', value: '#F2EDE8' },
+      }],
+      dimension: { width: 1080, height: 1920 },
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || err.error?.message || `HeyGen error: ${res.statusText}`)
+  }
+
+  const data = await res.json()
+  const videoId = data?.data?.video_id
+  if (!videoId) throw new Error('HeyGen did not return a video ID')
+
+  return { videoId }
+}

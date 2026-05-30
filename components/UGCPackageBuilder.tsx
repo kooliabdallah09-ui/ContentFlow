@@ -174,10 +174,28 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {/* Avatar + voice (only for video types) */}
       {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
-            <AvatarPicker selectedId={avatarId} onChange={setAvatarId} disabled={isLoading} />
-          </div>
+
+          {/* Product photo uploaded → DALL-E generates the avatar automatically */}
+          {productImage ? (
+            <div style={{
+              padding: '14px 16px', borderRadius: 'var(--r-md)',
+              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
+              display: 'flex', gap: '12px', alignItems: 'flex-start',
+            }}>
+              <span style={{ fontSize: '18px', flexShrink: 0 }}>✦</span>
+              <div>
+                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>AI will generate your avatar</p>
+                <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '3px 0 0' }}>
+                  DALL-E 3 creates a realistic person holding your product, then HeyGen animates them speaking the script.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
+              <AvatarPicker selectedId={avatarId} onChange={setAvatarId} disabled={isLoading} />
+            </div>
+          )}
 
           <div className="form-row">
             <label className="form-label">Voice</label>

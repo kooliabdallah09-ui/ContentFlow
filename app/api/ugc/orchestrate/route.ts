@@ -1,5 +1,6 @@
 import { generateImage } from '@/lib/gemini-image'
-import { submitVideoJob, estimateDuration } from '@/lib/heygen'
+import { submitVideoJob, submitTalkingPhotoVideoJob, createTalkingPhoto, estimateDuration } from '@/lib/heygen'
+import { generatePersonWithProduct } from '@/lib/dalle'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -114,25 +115,6 @@ export async function POST(request: NextRequest) {
 
     const components: Record<string, any> = { script }
 
-    // Upload product photo to storage so HeyGen can fetch it as a background URL
-    let productImagePublicUrl: string | undefined
-    if (productImageBase64 && (ugcType === 'video-with-voiceover' || ugcType === 'all')) {
-      try {
-        const ext = (productImageMimeType ?? 'image/jpeg').split('/')[1] ?? 'jpg'
-        const filename = `product-bg/${userId}-${Date.now()}.${ext}`
-        const buffer = Buffer.from(productImageBase64, 'base64')
-        const { error: uploadError } = await supabase.storage
-          .from('ugc-assets')
-          .upload(filename, buffer, { contentType: productImageMimeType ?? 'image/jpeg', upsert: false })
-        if (!uploadError) {
-          const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-          productImagePublicUrl = publicUrl
-        }
-      } catch {
-        // Storage upload failed — video will use default background
-      }
-    }
-
     // Generate image if needed
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') {
       const imageResult = await generateImage(
@@ -143,13 +125,36 @@ export async function POST(request: NextRequest) {
       components.image = { url: imageResult.imageUrl, id: `gemini-${Date.now()}` }
     }
 
-    // Submit HeyGen job (async — returns immediately with videoId)
+    // Submit HeyGen video job
     if (ugcType === 'video-with-voiceover' || ugcType === 'all') {
-      if (!avatarId) {
-        return NextResponse.json({ error: 'Avatar required for video generation' }, { status: 400 })
-      }
       const spokenScript = extractSpokenLines(script)
-      const { videoId } = await submitVideoJob(spokenScript, avatarId, voiceId, productImagePublicUrl)
+
+      // Extract background hint from script (e.g. "[BACKGROUND: bathroom]")
+      const bgMatch = script.match(/\[BACKGROUND:\s*([^\]]+)\]/i)
+      const backgroundContext = bgMatch?.[1]?.trim() ?? 'casual indoor setting'
+
+      let videoId: string
+
+      if (process.env.OPENAI_API_KEY) {
+        // DALL-E 3 → generate realistic person holding product
+        // then HeyGen Photo Avatar animates them talking
+        const { imageUrl: dalleImageUrl } = await generatePersonWithProduct(
+          productName,
+          productDescription,
+          backgroundContext,
+        )
+        const { talkingPhotoId } = await createTalkingPhoto(dalleImageUrl)
+        const result = await submitTalkingPhotoVideoJob(spokenScript, talkingPhotoId, voiceId)
+        videoId = result.videoId
+      } else {
+        // Fallback: standard HeyGen avatar
+        if (!avatarId) {
+          return NextResponse.json({ error: 'Avatar required for video generation' }, { status: 400 })
+        }
+        const result = await submitVideoJob(spokenScript, avatarId, voiceId)
+        videoId = result.videoId
+      }
+
       components.video = {
         videoId,
         status: 'processing',
