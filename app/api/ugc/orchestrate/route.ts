@@ -25,6 +25,8 @@ CTA: ${callToAction}
 
 Use this exact format:
 
+[BACKGROUND: one of: bedroom, bathroom, kitchen, living room, office, gym, outdoor]
+
 [HOOK — 0:00 to 0:05]
 (brief expression/tone note)
 "spoken hook line — grabs attention immediately"
@@ -41,6 +43,7 @@ Rules:
 - Spoken text always in double quotes
 - Stage directions always in (parentheses)
 - Section headers always in [brackets]
+- [BACKGROUND: ...] must be the very first line — choose what fits the product naturally
 - No markdown, no title, no hashtags
 - Authentic UGC tone — real person, not corporate`
 
