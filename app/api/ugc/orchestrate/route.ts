@@ -139,14 +139,33 @@ export async function POST(request: NextRequest) {
       let videoId: string
 
       if (process.env.OPENAI_API_KEY) {
-        // DALL-E 3 → generate realistic person holding product
+        // gpt-image-1 → generate realistic person holding product
         // then HeyGen Photo Avatar animates them talking
-        const { imageUrl: dalleImageUrl } = await generatePersonWithProduct(
+        const { imageUrl: rawImageUrl } = await generatePersonWithProduct(
           productName,
           productDescription,
           backgroundContext,
         )
-        const { talkingPhotoId } = await createTalkingPhoto(dalleImageUrl)
+
+        // HeyGen needs a real HTTPS URL — upload base64 to Supabase if needed
+        let heygenImageUrl = rawImageUrl
+        if (rawImageUrl.startsWith('data:')) {
+          const mimeMatch = rawImageUrl.match(/data:(image\/\w+);base64,/)
+          const mime = mimeMatch?.[1] ?? 'image/png'
+          const ext = mime.split('/')[1]
+          const b64 = rawImageUrl.split(',')[1]
+          const buffer = Buffer.from(b64, 'base64')
+          const filename = `avatar-gen/${userId}-${Date.now()}.${ext}`
+          const { error: upErr } = await supabase.storage
+            .from('ugc-assets')
+            .upload(filename, buffer, { contentType: mime, upsert: false })
+          if (!upErr) {
+            const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+            heygenImageUrl = publicUrl
+          }
+        }
+
+        const { talkingPhotoId } = await createTalkingPhoto(heygenImageUrl)
         const result = await submitTalkingPhotoVideoJob(spokenScript, talkingPhotoId, voiceId)
         videoId = result.videoId
       } else {
