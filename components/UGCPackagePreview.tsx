@@ -22,9 +22,10 @@ interface UGCPackagePreviewProps {
   ugcType: string
   isLoading: boolean
   error?: string
+  creditDeducted?: number
 }
 
-export default function UGCPackagePreview({ components, ugcType, isLoading, error }: UGCPackagePreviewProps) {
+export default function UGCPackagePreview({ components, ugcType, isLoading, error, creditDeducted }: UGCPackagePreviewProps) {
   const [downloading, setDownloading] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [video, setVideo] = useState<VideoComponent | null>(null)
@@ -98,6 +99,20 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+      {/* Cost badge */}
+      {creditDeducted !== undefined && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          padding: '10px 14px', borderRadius: 'var(--r-md)',
+          background: 'var(--accent-soft)', border: '1px solid var(--accent)',
+        }}>
+          <span style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Generation cost</span>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)' }}>
+            {creditDeducted} credit{creditDeducted !== 1 ? 's' : ''}
+          </span>
+        </div>
+      )}
 
       {/* Script */}
       {components.script && (

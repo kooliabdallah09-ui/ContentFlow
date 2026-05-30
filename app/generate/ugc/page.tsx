@@ -24,6 +24,7 @@ export default function UGCGeneratorPage() {
   const [components, setComponents] = useState<UGCComponent | null>(null)
   const [ugcType, setUgcType] = useState('')
   const [creditBalance, setCreditBalance] = useState(200)
+  const [creditDeducted, setCreditDeducted] = useState<number | undefined>(undefined)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [creditsLoading, setCreditsLoading] = useState(true)
@@ -120,6 +121,7 @@ export default function UGCGeneratorPage() {
     setLoading(true)
     setError('')
     setComponents(null)
+    setCreditDeducted(undefined)
 
     try {
       const supabase = getSupabase()
@@ -150,6 +152,7 @@ export default function UGCGeneratorPage() {
       setComponents(data.components)
       setUgcType(settings.ugcType)
       setCreditBalance(data.newBalance)
+      setCreditDeducted(data.creditDeducted)
       showSuccess('UGC package generated successfully', 'Complete package ready to use')
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate UGC package'
@@ -209,6 +212,7 @@ export default function UGCGeneratorPage() {
             ugcType={ugcType}
             isLoading={loading}
             error={error}
+            creditDeducted={creditDeducted}
           />
         </div>
       </div>
