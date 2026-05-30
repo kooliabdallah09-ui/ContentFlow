@@ -1,6 +1,7 @@
 import { generateImage } from '@/lib/gemini-image'
 import { submitVideoJob, submitImageToVideoJob, estimateDuration } from '@/lib/heygen'
 import { generatePersonWithProduct } from '@/lib/dalle'
+import { generateSpeech } from '@/lib/elevenlabs'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -139,32 +140,46 @@ export async function POST(request: NextRequest) {
       let videoId: string
 
       if (process.env.OPENAI_API_KEY) {
-        // gpt-image-1 → realistic person holding product → HeyGen animates it talking
-        const { imageUrl: rawImageUrl } = await generatePersonWithProduct(
-          productName,
-          productDescription,
-          backgroundContext,
-        )
+        // Run image generation and ElevenLabs audio in parallel
+        const [personResult, audioBuffer] = await Promise.all([
+          generatePersonWithProduct(productName, productDescription, backgroundContext),
+          process.env.ELEVENLABS_API_KEY
+            ? generateSpeech(spokenScript, voiceId).catch(() => null)
+            : Promise.resolve(null),
+        ])
 
-        // HeyGen needs a real HTTPS URL — upload base64 to Supabase if needed
-        let heygenImageUrl = rawImageUrl
-        if (rawImageUrl.startsWith('data:')) {
-          const mimeMatch = rawImageUrl.match(/data:(image\/\w+);base64,/)
+        // Upload person image to Supabase
+        let heygenImageUrl = personResult.imageUrl
+        if (heygenImageUrl.startsWith('data:')) {
+          const mimeMatch = heygenImageUrl.match(/data:(image\/\w+);base64,/)
           const mime = mimeMatch?.[1] ?? 'image/png'
           const ext = mime.split('/')[1]
-          const b64 = rawImageUrl.split(',')[1]
-          const buffer = Buffer.from(b64, 'base64')
+          const b64 = heygenImageUrl.split(',')[1]
+          const imgBuf = Buffer.from(b64, 'base64')
           const filename = `avatar-gen/${userId}-${Date.now()}.${ext}`
           const { error: upErr } = await supabase.storage
             .from('ugc-assets')
-            .upload(filename, buffer, { contentType: mime, upsert: false })
+            .upload(filename, imgBuf, { contentType: mime, upsert: false })
           if (!upErr) {
             const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
             heygenImageUrl = publicUrl
           }
         }
 
-        const res = await submitImageToVideoJob(spokenScript, heygenImageUrl, voiceId)
+        // Upload ElevenLabs audio to Supabase if generated
+        let audioUrl: string | undefined
+        if (audioBuffer) {
+          const audioFilename = `audio-gen/${userId}-${Date.now()}.mp3`
+          const { error: audioErr } = await supabase.storage
+            .from('ugc-assets')
+            .upload(audioFilename, audioBuffer, { contentType: 'audio/mpeg', upsert: false })
+          if (!audioErr) {
+            const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
+            audioUrl = publicUrl
+          }
+        }
+
+        const res = await submitImageToVideoJob(spokenScript, heygenImageUrl, voiceId, audioUrl)
         videoId = res.videoId
       } else {
         const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'

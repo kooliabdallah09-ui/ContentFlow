@@ -108,22 +108,33 @@ export async function submitImageToVideoJob(
   script: string,
   imageUrl: string,
   voiceId: string = DEFAULT_VOICE_ID,
+  audioUrl?: string,
 ): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY
   if (!apiKey) throw new Error('HeyGen API key not configured')
   if (!script?.trim()) throw new Error('Script cannot be empty')
 
+  const body: Record<string, unknown> = {
+    type: 'image',
+    image: { type: 'url', url: imageUrl },
+    resolution: '1080p',
+    aspect_ratio: '9:16',
+    expressiveness: 0.8,
+    motion_prompt: 'energetic, authentic UGC style, direct eye contact, natural hand gestures',
+    caption: true,
+  }
+
+  if (audioUrl) {
+    body.audio = { type: 'url', url: audioUrl }
+  } else {
+    body.script = script
+    body.voice_id = voiceId
+  }
+
   const res = await fetch(`${HEYGEN_API_BASE}/v3/videos`, {
     method: 'POST',
     headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      type: 'image',
-      image: { type: 'url', url: imageUrl },
-      script,
-      voice_id: voiceId,
-      resolution: '1080p',
-      aspect_ratio: '9:16',
-    }),
+    body: JSON.stringify(body),
   })
 
   if (!res.ok) {

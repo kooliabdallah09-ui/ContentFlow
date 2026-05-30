@@ -27,11 +27,11 @@ const UGC_TYPES = [
   { id: 'all', name: 'Full Package', description: 'Image + Avatar Video', credits: 43 },
 ]
 
-const HEYGEN_VOICES = [
-  { id: '1bd001e7e50f421d891986aad5158bc8', label: 'Sofia — American Female' },
-  { id: '2d5b0e6cf36f460aa7fc47e3eee4ba54', label: 'James — American Male' },
-  { id: 'e749e866b30d47e4858cac12a6d13f2f', label: 'Emma — British Female' },
-  { id: '1588bf4c1db74e1dbba1c7b2e9f54b14', label: 'Oliver — British Male' },
+const VOICES = [
+  { id: '21m00Tcm4TlvDq8ikWAM', label: 'Rachel — American Female' },
+  { id: 'AZnzlk1XvdvUeBnXmlld', label: 'Domi — American Female' },
+  { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam — American Male' },
+  { id: 'TxGEqnHWrfWFTfGW9XjX', label: 'Josh — American Male' },
 ]
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
@@ -42,7 +42,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [callToAction, setCallToAction] = useState('Try it today')
   const [style, setStyle] = useState('realistic')
   const [avatarId, setAvatarId] = useState('')
-  const [voiceId, setVoiceId] = useState(HEYGEN_VOICES[0].id)
+  const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
   const selectedType = UGC_TYPES.find(t => t.id === ugcType)!
@@ -199,7 +199,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <div className="form-row">
             <label className="form-label">Voice</label>
             <select className="input" value={voiceId} onChange={e => setVoiceId(e.target.value)} disabled={isLoading}>
-              {HEYGEN_VOICES.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+              {VOICES.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
             </select>
           </div>
         </div>
