@@ -11,14 +11,11 @@ async function generateUGCScript(
   productName: string,
   productDescription: string,
   benefits: string,
-  callToAction: string
+  callToAction: string,
+  productImageBase64?: string,
+  productImageMimeType?: string,
 ): Promise<string> {
-  const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 300,
-    messages: [{
-      role: 'user',
-      content: `Write a 30-second UGC-style video script for a social media ad. Sound like a real person, not a corporate ad. Conversational, energetic, authentic.
+  const textPrompt = `Write a 30-second UGC-style video script for a social media ad. Sound like a real person, not a corporate ad. Conversational, energetic, authentic.
 
 Product: ${productName}
 Description: ${productDescription}
@@ -31,8 +28,19 @@ Rules:
 - Keep it under 80 words
 - End with the CTA naturally
 
-Return only the script text.`,
-    }],
+Return only the script text.`
+
+  const content: Anthropic.MessageParam['content'] = productImageBase64
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: productImageMimeType as 'image/jpeg' | 'image/png' | 'image/webp', data: productImageBase64 } },
+        { type: 'text', text: textPrompt },
+      ]
+    : textPrompt
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 300,
+    messages: [{ role: 'user', content }],
   })
 
   return (msg.content[0] as { text: string }).text.trim()
@@ -58,7 +66,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = userData.user.id
-    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId } = await request.json()
+    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType } = await request.json()
 
     if (!ugcType || !productName || !productDescription || !benefits) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -76,14 +84,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate Claude script first
-    const script = await generateUGCScript(productName, productDescription, benefits, callToAction || 'Try it today')
+    const script = await generateUGCScript(productName, productDescription, benefits, callToAction || 'Try it today', productImageBase64, productImageMimeType)
 
     const components: Record<string, any> = { script }
 
     // Generate image if needed
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') {
       const imageResult = await generateImage(
-        `Professional product showcase photo of ${productName}. ${productDescription}. Style: ${style}. Clean background, studio lighting, commercial quality.`
+        `Professional product showcase photo of ${productName}. ${productDescription}. Style: ${style}. Clean background, studio lighting, commercial quality.`,
+        productImageBase64,
+        productImageMimeType,
       )
       components.image = { url: imageResult.imageUrl, id: `gemini-${Date.now()}` }
     }

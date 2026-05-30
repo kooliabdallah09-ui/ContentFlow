@@ -114,6 +114,8 @@ export default function UGCGeneratorPage() {
     imageSize: string
     avatarId: string
     voiceId: string
+    productImageBase64?: string
+    productImageMimeType?: string
   }) => {
     setLoading(true)
     setError('')

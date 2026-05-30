@@ -14,6 +14,8 @@ interface UGCPackageBuilderProps {
     imageSize: string
     avatarId: string
     voiceId: string
+    productImageBase64?: string
+    productImageMimeType?: string
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -41,14 +43,33 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [style, setStyle] = useState('realistic')
   const [avatarId, setAvatarId] = useState('')
   const [voiceId, setVoiceId] = useState(HEYGEN_VOICES[0].id)
+  const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
   const selectedType = UGC_TYPES.find(t => t.id === ugcType)!
   const canGenerate = creditBalance >= selectedType.credits && productName.trim() && productDescription.trim() && benefits.trim()
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      const [header, base64] = dataUrl.split(',')
+      const mimeType = header.match(/data:(.*);base64/)?.[1] ?? 'image/jpeg'
+      setProductImage({ base64, mimeType, preview: dataUrl })
+    }
+    reader.readAsDataURL(file)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canGenerate || isLoading) return
-    await onGenerate({ ugcType, productName, productDescription, benefits, callToAction, style, imageSize: '1024x1024', avatarId, voiceId })
+    await onGenerate({
+      ugcType, productName, productDescription, benefits, callToAction,
+      style, imageSize: '1024x1024', avatarId, voiceId,
+      productImageBase64: productImage?.base64,
+      productImageMimeType: productImage?.mimeType,
+    })
     setProductName('')
     setProductDescription('')
     setBenefits('')
@@ -108,6 +129,45 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <label className="form-label">Call to Action</label>
           <input className="input" value={callToAction} onChange={e => setCallToAction(e.target.value)}
             placeholder="e.g. Try it free today" disabled={isLoading} />
+        </div>
+
+        <div className="form-row">
+          <label className="form-label">Product Photo <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>(optional)</span></label>
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '12px',
+            padding: '12px 14px', borderRadius: 'var(--r-md)',
+            border: '1px dashed var(--border)', cursor: isLoading ? 'default' : 'pointer',
+            background: 'var(--surface)', transition: 'border-color 0.15s',
+          }}>
+            <input type="file" accept="image/jpeg,image/png,image/webp"
+              onChange={handleImageChange} disabled={isLoading}
+              style={{ display: 'none' }} />
+            {productImage ? (
+              <>
+                <img src={productImage.preview} alt="Product"
+                  style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Photo added</p>
+                  <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '2px 0 0' }}>Click to change</p>
+                </div>
+                <button type="button" onClick={e => { e.preventDefault(); setProductImage(null) }}
+                  disabled={isLoading}
+                  style={{ fontSize: '18px', lineHeight: 1, background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: '0 4px' }}>
+                  ×
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{ width: 48, height: 48, borderRadius: '6px', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
+                  📷
+                </div>
+                <div>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Upload product photo</p>
+                  <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '2px 0 0' }}>JPG, PNG or WebP — helps AI generate better visuals</p>
+                </div>
+              </>
+            )}
+          </label>
         </div>
       </div>
 
