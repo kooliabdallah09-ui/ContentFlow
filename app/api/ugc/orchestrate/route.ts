@@ -87,6 +87,25 @@ export async function POST(request: NextRequest) {
 
     const components: Record<string, any> = { script }
 
+    // Upload product photo to storage so HeyGen can fetch it as a background URL
+    let productImagePublicUrl: string | undefined
+    if (productImageBase64 && (ugcType === 'video-with-voiceover' || ugcType === 'all')) {
+      try {
+        const ext = (productImageMimeType ?? 'image/jpeg').split('/')[1] ?? 'jpg'
+        const filename = `product-bg/${userId}-${Date.now()}.${ext}`
+        const buffer = Buffer.from(productImageBase64, 'base64')
+        const { error: uploadError } = await supabase.storage
+          .from('ugc-assets')
+          .upload(filename, buffer, { contentType: productImageMimeType ?? 'image/jpeg', upsert: false })
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+          productImagePublicUrl = publicUrl
+        }
+      } catch {
+        // Storage upload failed — video will use default background
+      }
+    }
+
     // Generate image if needed
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') {
       const imageResult = await generateImage(
@@ -102,7 +121,7 @@ export async function POST(request: NextRequest) {
       if (!avatarId) {
         return NextResponse.json({ error: 'Avatar required for video generation' }, { status: 400 })
       }
-      const { videoId } = await submitVideoJob(script, avatarId, voiceId)
+      const { videoId } = await submitVideoJob(script, avatarId, voiceId, productImagePublicUrl)
       components.video = {
         videoId,
         status: 'processing',

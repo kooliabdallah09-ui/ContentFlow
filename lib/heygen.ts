@@ -13,12 +13,17 @@ export const DEFAULT_VOICE_ID = HEYGEN_VOICES[0].id
 export async function submitVideoJob(
   script: string,
   avatarId: string,
-  voiceId: string = DEFAULT_VOICE_ID
+  voiceId: string = DEFAULT_VOICE_ID,
+  backgroundImageUrl?: string,
 ): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY
   if (!apiKey) throw new Error('HeyGen API key not configured')
   if (!script?.trim()) throw new Error('Script cannot be empty')
   if (script.length > 3000) throw new Error('Script exceeds maximum length of 3000 characters')
+
+  const background = backgroundImageUrl
+    ? { type: 'image', url: backgroundImageUrl }
+    : { type: 'color', value: '#F2EDE8' } // warm off-white — better than stark white
 
   const res = await fetch(`${HEYGEN_API_BASE}/v2/video/generate`, {
     method: 'POST',
@@ -28,6 +33,7 @@ export async function submitVideoJob(
         {
           character: { type: 'avatar', avatar_id: avatarId, avatar_style: 'normal' },
           voice: { type: 'text', input_text: script, voice_id: voiceId },
+          background,
         },
       ],
       dimension: { width: 1080, height: 1920 },
