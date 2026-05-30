@@ -98,14 +98,18 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
                 outline: 'none',
               }}
             >
-              <img
-                src={avatar.preview_image_url}
-                alt={avatar.avatar_name}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                onError={e => {
-                  (e.target as HTMLImageElement).style.display = 'none'
-                }}
-              />
+              {avatar.preview_image_url ? (
+                <img
+                  src={avatar.preview_image_url}
+                  alt={avatar.avatar_name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                />
+              ) : (
+                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', fontSize: '22px', fontWeight: 700, color: 'var(--ink-dim)' }}>
+                  {avatar.avatar_name[0]}
+                </div>
+              )}
 
               {/* Name overlay */}
               <div style={{
