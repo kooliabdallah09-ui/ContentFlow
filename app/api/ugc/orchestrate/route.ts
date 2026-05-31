@@ -207,9 +207,12 @@ export async function POST(request: NextRequest) {
           }
         }
 
+        // If ElevenLabs audio failed, fall back to a valid HeyGen voice ID
+        const heygenFallbackVoiceId = '1bd001e7e50f421d891986aad5158bc8' // Sofia — known-good HeyGen voice
+
         // Submit HeyGen + Kling B-rolls in parallel
         const [heygenRes, brollPrompts] = await Promise.all([
-          submitImageToVideoJob(spokenScript, heygenImageUrl, voiceId, audioUrl),
+          submitImageToVideoJob(spokenScript, heygenImageUrl, audioUrl ? voiceId : heygenFallbackVoiceId, audioUrl),
           process.env.PIAPI_API_KEY
             ? generateBrollPrompts(productName, productDescription, backgroundContext)
             : Promise.resolve(null),

@@ -1,6 +1,6 @@
 export const ELEVENLABS_VOICES = [
-  { id: 's3TPKV1kjDlVtZbl4Ksh', name: 'Adam', accent: 'American Male', description: 'Engaging, friendly & bright' },
-  { id: 'bD9maNcCuQQS75DGuteM', name: 'Sadie', accent: 'American Female', description: 'Calm, gritty & expressive' },
+  { id: 'pNInz6obpgDQGcFmaJgB', name: 'Adam', accent: 'American Male', description: 'Deep, warm' },
+  { id: 'EXAVITQu4vr4xnSDxMaL', name: 'Bella', accent: 'American Female', description: 'Soft, expressive' },
 ]
 
 export const DEFAULT_ELEVENLABS_VOICE_ID = ELEVENLABS_VOICES[0].id
