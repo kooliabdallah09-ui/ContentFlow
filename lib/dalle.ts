@@ -19,16 +19,28 @@ Product: ${productName}
 Description: ${productDescription}
 Setting context: ${background}
 
-Rules:
+First, figure out the natural usage action for this product. Examples:
+- Sunscreen / moisturizer / serum → person applying it to their face or arms, mid-application
+- Perfume / cologne → person spraying it on their wrist or neck, eyes slightly closed
+- Shampoo / hair product → person running it through their hair in the shower or bathroom
+- Makeup / foundation / lipstick → person applying it in front of a mirror, brush or fingers on face
+- Food / drink / supplement → person taking a bite, sipping, or holding it up mid-taste with a reaction
+- Fitness / gym product → person using it during or after a workout
+- Tech / gadget → person using it naturally (typing, wearing, interacting)
+- Clothing / shoes → person wearing it, styled naturally
+- Cleaning product → person using it on a surface
+- Any other product → person actively using it in the most natural, authentic way
+
+Rules for the image prompt:
 - Vertical 9:16 format, TikTok/Reels aesthetic
 - A realistic person (randomize: age 20-32, gender, ethnicity, casual outfit matching the setting)
-- They are holding the product clearly toward the camera with both hands or one hand extended
-- Their face shows a genuine, enthusiastic expression — direct eye contact, mid-smile, as if about to speak
-- Specific real-world environment matching the setting context (describe the room/location with details: furniture, lighting, textures)
-- Natural light from environment (window light, lamp, outdoor sun — no studio flash)
-- Handheld smartphone camera feel: slight handheld motion blur, shallow depth of field, creator/influencer framing
-- Ultra-realistic, 4K, authentic UGC quality — looks like a real TikTok first frame, NOT a stock photo or advertisement
-- The product name/branding must be clearly legible
+- The person is ACTIVELY USING the product — not just holding it. Show the specific usage action mid-gesture
+- Their face shows a genuine reaction — eyes slightly engaged, natural expression caught mid-action
+- The product is clearly visible and identifiable during the usage action
+- Specific real-world environment matching the setting (describe room details: furniture, lighting, textures)
+- Natural light from environment (window light, bathroom mirror light, outdoor sun — no studio flash)
+- Handheld smartphone camera feel: slight motion blur, shallow depth of field, creator/influencer framing
+- Ultra-realistic, 4K, authentic UGC quality — looks like a real TikTok frame, NOT a stock photo
 
 Output ONLY the prompt text, no explanation, no quotes.`,
     }],
