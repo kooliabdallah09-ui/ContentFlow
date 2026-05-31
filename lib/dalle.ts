@@ -70,7 +70,7 @@ export async function generatePersonWithProduct(
       prompt,
       n: 1,
       size: '1024x1536',
-      quality: 'high',
+      quality: 'medium',
       output_format: 'png',
     }),
   })
