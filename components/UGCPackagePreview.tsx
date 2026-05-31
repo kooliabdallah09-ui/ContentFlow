@@ -11,9 +11,17 @@ interface VideoComponent {
   duration?: number
 }
 
+interface BrollClip {
+  taskId: string
+  status: 'processing' | 'completed' | 'failed'
+  videoUrl?: string
+  label?: string
+}
+
 interface UGCComponent {
   image?: { url: string; id: string }
   video?: VideoComponent
+  broll?: BrollClip[]
   script?: string
 }
 
@@ -29,29 +37,51 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [downloading, setDownloading] = useState<string | null>(null)
   const [copied, setCopied] = useState<string | null>(null)
   const [video, setVideo] = useState<VideoComponent | null>(null)
+  const [brolls, setBrolls] = useState<BrollClip[]>([])
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  // Start polling when we get a video with processing status
   useEffect(() => {
     if (components?.video) setVideo(components.video)
+    if (components?.broll) setBrolls(components.broll)
   }, [components])
 
   useEffect(() => {
-    if (!video?.videoId || video.status !== 'processing') return
+    const videoProcessing = video?.videoId && video.status === 'processing'
+    const brollProcessing = brolls.some(b => b.status === 'processing')
+    if (!videoProcessing && !brollProcessing) return
 
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`/api/ugc/video-status?videoId=${video.videoId}`)
+        const params = new URLSearchParams()
+        if (video?.videoId && video.status === 'processing') params.set('videoId', video.videoId)
+        const processingBrolls = brolls.filter(b => b.status === 'processing')
+        if (processingBrolls.length) params.set('brollTaskIds', processingBrolls.map(b => b.taskId).join(','))
+
+        const res = await fetch(`/api/ugc/video-status?${params}`)
         const data = await res.json()
-        if (data.status === 'completed' || data.status === 'failed') {
-          setVideo(prev => prev ? { ...prev, status: data.status, videoUrl: data.videoUrl, duration: data.duration } : prev)
-          clearInterval(pollRef.current!)
+
+        if (data.video) {
+          const v = data.video
+          if (v.status === 'completed' || v.status === 'failed') {
+            setVideo(prev => prev ? { ...prev, status: v.status, videoUrl: v.videoUrl, duration: v.duration } : prev)
+          }
         }
+
+        if (data.broll?.length) {
+          setBrolls(prev => prev.map(b => {
+            const updated = data.broll.find((u: BrollClip) => u.taskId === b.taskId)
+            return updated ? { ...b, status: updated.status, videoUrl: updated.videoUrl } : b
+          }))
+        }
+
+        const allDone = (!video?.videoId || video.status !== 'processing' || data.video?.status === 'completed' || data.video?.status === 'failed')
+          && (!brolls.some(b => b.status === 'processing') || data.broll?.every((b: BrollClip) => b.status === 'completed' || b.status === 'failed'))
+        if (allDone) clearInterval(pollRef.current!)
       } catch {}
     }, 5000)
 
     return () => clearInterval(pollRef.current!)
-  }, [video?.videoId, video?.status])
+  }, [video?.videoId, video?.status, brolls.length])
 
   const handleDownload = async (url: string, filename: string) => {
     setDownloading(filename)
@@ -156,6 +186,46 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
               <Copy style={{ width: 14, height: 14 }} />
               {copied === 'image' ? 'Copied!' : 'Copy URL'}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* B-roll clips */}
+      {brolls.length > 0 && (
+        <div className="card" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '16px' }}>
+            B-Roll Clips
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {brolls.map((clip, i) => (
+              <div key={clip.taskId}>
+                <p style={{ fontSize: '12px', color: 'var(--ink-dim)', marginBottom: '8px', fontWeight: 600 }}>
+                  {clip.label ?? `B-Roll ${i + 1}`}
+                </p>
+                {clip.status === 'processing' && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px', background: 'var(--bg)', borderRadius: 'var(--r-md)' }}>
+                    <Loader style={{ width: 16, height: 16, color: 'var(--accent)', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
+                    <p style={{ fontSize: '12px', color: 'var(--ink-dim)' }}>Kling is generating this B-roll… (~1 min)</p>
+                  </div>
+                )}
+                {clip.status === 'failed' && (
+                  <p style={{ fontSize: '12px', color: 'var(--bad)' }}>B-roll generation failed.</p>
+                )}
+                {clip.status === 'completed' && clip.videoUrl && (
+                  <>
+                    <video controls src={clip.videoUrl} style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: '8px', maxHeight: '300px', background: '#000' }} />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button onClick={() => handleDownload(clip.videoUrl!, `broll-${i + 1}-${Date.now()}.mp4`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '12px' }}>
+                        <Download style={{ width: 12, height: 12 }} /> Download
+                      </button>
+                      <button onClick={() => handleCopy(clip.videoUrl!, `broll-${i}`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '12px' }}>
+                        <Copy style={{ width: 12, height: 12 }} /> {copied === `broll-${i}` ? 'Copied!' : 'Copy URL'}
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}

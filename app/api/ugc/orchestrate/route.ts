@@ -2,6 +2,7 @@ import { generateImage } from '@/lib/gemini-image'
 import { submitVideoJob, submitImageToVideoJob, estimateDuration } from '@/lib/heygen'
 import { generatePersonWithProduct } from '@/lib/dalle'
 import { generateSpeech } from '@/lib/elevenlabs'
+import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -62,6 +63,33 @@ Rules:
   })
 
   return (msg.content[0] as { text: string }).text.trim()
+}
+
+async function generateBrollPrompts(
+  productName: string,
+  productDescription: string,
+  background: string,
+): Promise<[string, string]> {
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 300,
+    messages: [{
+      role: 'user',
+      content: `Write exactly 2 short video generation prompts for cinematic B-roll clips to accompany a UGC ad for "${productName}" (${productDescription}). Setting context: ${background}.
+
+B-roll 1: A close-up product detail shot — the product alone, beautiful lighting, slight camera movement, no people.
+B-roll 2: A lifestyle/context shot — the product being used or in its natural environment, cinematic feel, 9:16 vertical.
+
+Rules:
+- Each prompt on its own line
+- Cinematic, photorealistic, vertical 9:16 format
+- No text or watermarks in the scene
+- Output ONLY the 2 prompts, nothing else`,
+    }],
+  })
+
+  const lines = (msg.content[0] as { text: string }).text.trim().split('\n').filter(Boolean)
+  return [lines[0] ?? `Cinematic close-up of ${productName}, beautiful studio lighting, slow zoom, 9:16 vertical`, lines[1] ?? `Lifestyle shot of ${productName} in a ${background}, natural light, cinematic, 9:16 vertical`]
 }
 
 // Extract only the spoken lines (in "quotes") for sending to HeyGen TTS
@@ -179,8 +207,25 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        const res = await submitImageToVideoJob(spokenScript, heygenImageUrl, voiceId, audioUrl)
-        videoId = res.videoId
+        // Submit HeyGen + Kling B-rolls in parallel
+        const [heygenRes, brollPrompts] = await Promise.all([
+          submitImageToVideoJob(spokenScript, heygenImageUrl, voiceId, audioUrl),
+          process.env.PIAPI_API_KEY
+            ? generateBrollPrompts(productName, productDescription, backgroundContext)
+            : Promise.resolve(null),
+        ])
+        videoId = heygenRes.videoId
+
+        if (brollPrompts) {
+          const [broll1, broll2] = await Promise.all([
+            submitBrollJob(brollPrompts[0]).catch(() => null),
+            submitBrollJob(brollPrompts[1]).catch(() => null),
+          ])
+          components.broll = [
+            broll1 ? { taskId: broll1.taskId, status: 'processing', label: 'Product close-up' } : null,
+            broll2 ? { taskId: broll2.taskId, status: 'processing', label: 'Lifestyle shot' } : null,
+          ].filter(Boolean)
+        }
       } else {
         const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
         const res = await submitVideoJob(spokenScript, effectiveAvatarId, voiceId)
