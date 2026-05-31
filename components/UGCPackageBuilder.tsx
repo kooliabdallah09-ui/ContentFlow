@@ -28,10 +28,8 @@ const UGC_TYPES = [
 ]
 
 const VOICES = [
-  { id: '21m00Tcm4TlvDq8ikWAM', label: 'Rachel — American Female' },
-  { id: 'AZnzlk1XvdvUeBnXmlld', label: 'Domi — American Female' },
-  { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam — American Male' },
-  { id: 'TxGEqnHWrfWFTfGW9XjX', label: 'Josh — American Male' },
+  { id: 's3TPKV1kjDlVtZbl4Ksh', label: 'Adam — Engaging & Friendly (Male)' },
+  { id: 'bD9maNcCuQQS75DGuteM', label: 'Sadie — Calm & Expressive (Female)' },
 ]
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
