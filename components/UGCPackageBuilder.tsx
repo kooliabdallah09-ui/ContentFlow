@@ -28,8 +28,10 @@ const UGC_TYPES = [
 ]
 
 const VOICES = [
-  { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam — Deep & Warm (Male)' },
-  { id: 'EXAVITQu4vr4xnSDxMaL', label: 'Bella — Soft & Expressive (Female)' },
+  { id: 's3TPKV1kjDlVtZbl4Ksh', label: 'Adam — Engaging & Friendly' },
+  { id: 'UaYTS0wayjmO9KD1LR4R', label: 'Asher — Confident & Charismatic' },
+  { id: 'uYXf8XasLslADfZ2MB4u', label: 'Hope — Bubbly & Girly' },
+  { id: 'cVd39cx0VtXNC13y5Y7z', label: 'Hope 2 — Vibrant & Warm' },
 ]
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
