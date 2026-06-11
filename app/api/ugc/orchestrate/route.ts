@@ -226,16 +226,16 @@ export async function POST(request: NextRequest) {
 
         // Save to DB immediately after HeyGen submits — never lose a video ID to a timeout
         components.video = { videoId, status: 'processing', estimatedDuration: estimateDuration(script) }
-        const dbContentTypeEarly = 'video'
-        await supabase.from('ugc_content').insert({
+        const externalId = `ugc-${Date.now()}`
+        const { data: ugcRow } = await supabase.from('ugc_content').insert({
           user_id: userId,
-          content_type: dbContentTypeEarly,
-          external_id: `ugc-${Date.now()}`,
+          content_type: 'video',
+          external_id: externalId,
           storage_url: JSON.stringify(components),
           metadata: { ugcType, productName, productDescription, benefits, callToAction, script, generatedAt: new Date().toISOString() },
           credit_cost: totalCost,
           status: 'generating',
-        })
+        }).select('id').single()
         await supabase.from('user_credits').update({ balance: userCredits.balance - totalCost }).eq('user_id', userId)
         await supabase.from('credit_transactions').insert({
           user_id: userId, amount: totalCost, transaction_type: 'generation',
@@ -256,6 +256,13 @@ export async function POST(request: NextRequest) {
             broll1 ? { taskId: broll1.taskId, status: 'processing', label: 'Product close-up' } : null,
             broll2 ? { taskId: broll2.taskId, status: 'processing', label: 'Lifestyle shot' } : null,
           ].filter(Boolean)
+
+          // Update DB with B-roll task IDs so they're not lost on page reload
+          if (ugcRow?.id) {
+            await supabase.from('ugc_content')
+              .update({ storage_url: JSON.stringify(components) })
+              .eq('id', ugcRow.id)
+          }
         }
 
         return NextResponse.json({
@@ -264,7 +271,9 @@ export async function POST(request: NextRequest) {
         }, { status: 201 })
       } else {
         const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
-        const res = await submitVideoJob(spokenScript, effectiveAvatarId, voiceId)
+        // ElevenLabs voice IDs don't work in legacy HeyGen path — use known HeyGen voice
+        const heygenVoiceId = '1bd001e7e50f421d891986aad5158bc8'
+        const res = await submitVideoJob(spokenScript, effectiveAvatarId, heygenVoiceId)
         videoId = res.videoId
       }
 
