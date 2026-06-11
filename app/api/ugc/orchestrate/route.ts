@@ -69,14 +69,11 @@ async function generateBrollPrompts(
   productName: string,
   productDescription: string,
   background: string,
+  imageBase64?: string,
+  imageMimeType?: string,
 ): Promise<[string, string]> {
-  const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 300,
-    messages: [{
-      role: 'user',
-      content: `Write exactly 2 short video generation prompts for cinematic B-roll clips to accompany a UGC ad for "${productName}" (${productDescription}). Setting context: ${background}.
-
+  const textPrompt = `Write exactly 2 short video generation prompts for cinematic B-roll clips to accompany a UGC ad for "${productName}" (${productDescription}). Setting context: ${background}.
+${imageBase64 ? 'The image above shows the actual product — reference its exact appearance, colors, and packaging in the prompts.\n' : ''}
 B-roll 1: A close-up product detail shot — the product alone on a surface or held in a hand, beautiful lighting, slight slow zoom or tilt, no people, cinematic 9:16 vertical.
 B-roll 2: A usage action shot — determine the natural way to use this product (sunscreen → hands rubbing it into skin; perfume → spraying on wrist; food/drink → taking a bite or sip; tech → hands interacting with it; etc.) and show that specific action close-up, no face, hands only or body only, authentic and cinematic, 9:16 vertical.
 
@@ -84,7 +81,19 @@ Rules:
 - Each prompt on its own line
 - Cinematic, photorealistic, vertical 9:16 format
 - No text, no watermarks, no full face shots
-- Output ONLY the 2 prompts, nothing else`,
+- Output ONLY the 2 prompts, nothing else`
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 300,
+    messages: [{
+      role: 'user',
+      content: imageBase64
+        ? [
+            { type: 'image' as const, source: { type: 'base64' as const, media_type: (imageMimeType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp', data: imageBase64 } },
+            { type: 'text' as const, text: textPrompt },
+          ]
+        : textPrompt,
     }],
   })
 
@@ -172,7 +181,7 @@ export async function POST(request: NextRequest) {
       if (process.env.OPENAI_API_KEY) {
         // Run image generation and ElevenLabs audio in parallel
         const [personResult, audioBuffer] = await Promise.all([
-          generatePersonWithProduct(productName, productDescription, backgroundContext),
+          generatePersonWithProduct(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType),
           process.env.ELEVENLABS_API_KEY
             ? generateSpeech(spokenScript, voiceId).catch(() => null)
             : Promise.resolve(null),
@@ -235,7 +244,7 @@ export async function POST(request: NextRequest) {
 
         // Submit Kling B-rolls after DB is saved — failures here won't lose the main video
         const brollPrompts = process.env.PIAPI_API_KEY
-          ? await generateBrollPrompts(productName, productDescription, backgroundContext).catch(() => null)
+          ? await generateBrollPrompts(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType).catch(() => null)
           : null
 
         if (brollPrompts) {

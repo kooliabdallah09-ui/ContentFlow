@@ -7,18 +7,15 @@ async function buildUGCImagePrompt(
   productName: string,
   productDescription: string,
   background: string,
+  imageBase64?: string,
+  imageMimeType?: string,
 ): Promise<string> {
-  const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 350,
-    messages: [{
-      role: 'user',
-      content: `Write a single detailed image generation prompt for a photorealistic UGC-style social media video thumbnail.
+  const textPrompt = `Write a single detailed image generation prompt for a photorealistic UGC-style social media video thumbnail.
 
 Product: ${productName}
 Description: ${productDescription}
 Setting context: ${background}
-
+${imageBase64 ? '\nThe image above shows the actual product — use its exact appearance, colors, packaging, shape, and any visible branding in the prompt.' : ''}
 Rules:
 - Vertical 9:16 format, TikTok/Reels aesthetic
 - A realistic person (randomize: age 20-32, gender, ethnicity, casual outfit matching the setting)
@@ -29,8 +26,19 @@ Rules:
 - Handheld smartphone camera feel: slight handheld motion blur, shallow depth of field, creator/influencer framing
 - Ultra-realistic, 4K, authentic UGC quality — looks like a real TikTok first frame, NOT a stock photo or advertisement
 
-Output ONLY the prompt text, no explanation, no quotes.`,
-    }],
+Output ONLY the prompt text, no explanation, no quotes.`
+
+  const content: Anthropic.MessageParam['content'] = imageBase64
+    ? [
+        { type: 'image', source: { type: 'base64', media_type: (imageMimeType ?? 'image/jpeg') as 'image/jpeg' | 'image/png' | 'image/webp', data: imageBase64 } },
+        { type: 'text', text: textPrompt },
+      ]
+    : textPrompt
+
+  const msg = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 350,
+    messages: [{ role: 'user', content }],
   })
 
   return (msg.content[0] as { text: string }).text.trim()
@@ -40,11 +48,13 @@ export async function generatePersonWithProduct(
   productName: string,
   productDescription: string,
   background: string = 'casual indoor setting',
+  imageBase64?: string,
+  imageMimeType?: string,
 ): Promise<{ imageUrl: string }> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OpenAI API key not configured')
 
-  const prompt = await buildUGCImagePrompt(productName, productDescription, background)
+  const prompt = await buildUGCImagePrompt(productName, productDescription, background, imageBase64, imageMimeType)
 
   const res = await fetch('https://api.openai.com/v1/images/generations', {
     method: 'POST',
