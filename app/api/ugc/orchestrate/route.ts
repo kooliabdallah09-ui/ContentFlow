@@ -77,13 +77,13 @@ async function generateBrollPrompts(
       role: 'user',
       content: `Write exactly 2 short video generation prompts for cinematic B-roll clips to accompany a UGC ad for "${productName}" (${productDescription}). Setting context: ${background}.
 
-B-roll 1: A close-up product detail shot — the product alone, beautiful lighting, slight camera movement, no people.
-B-roll 2: A lifestyle/context shot — the product being used or in its natural environment, cinematic feel, 9:16 vertical.
+B-roll 1: A close-up product detail shot — the product alone on a surface or held in a hand, beautiful lighting, slight slow zoom or tilt, no people, cinematic 9:16 vertical.
+B-roll 2: A usage action shot — determine the natural way to use this product (sunscreen → hands rubbing it into skin; perfume → spraying on wrist; food/drink → taking a bite or sip; tech → hands interacting with it; etc.) and show that specific action close-up, no face, hands only or body only, authentic and cinematic, 9:16 vertical.
 
 Rules:
 - Each prompt on its own line
 - Cinematic, photorealistic, vertical 9:16 format
-- No text or watermarks in the scene
+- No text, no watermarks, no full face shots
 - Output ONLY the 2 prompts, nothing else`,
     }],
   })

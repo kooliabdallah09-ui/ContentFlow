@@ -38,13 +38,19 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [copied, setCopied] = useState<string | null>(null)
   const [video, setVideo] = useState<VideoComponent | null>(null)
   const [brolls, setBrolls] = useState<BrollClip[]>([])
+  const [stitchRenderId, setStitchRenderId] = useState<string | null>(null)
+  const [stitchStatus, setStitchStatus] = useState<'idle' | 'stitching' | 'completed' | 'failed'>('idle')
+  const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const stitchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const stitchStartedRef = useRef(false)
 
   useEffect(() => {
     if (components?.video) setVideo(components.video)
     if (components?.broll) setBrolls(components.broll)
   }, [components])
 
+  // Main video + B-roll polling
   useEffect(() => {
     const videoProcessing = video?.videoId && video.status === 'processing'
     const brollProcessing = brolls.some(b => b.status === 'processing')
@@ -82,6 +88,53 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
 
     return () => clearInterval(pollRef.current!)
   }, [video?.videoId, video?.status, brolls.length])
+
+  // Auto-trigger stitch when HeyGen + B-roll 1 both complete
+  useEffect(() => {
+    if (stitchStartedRef.current) return
+    if (video?.status !== 'completed' || !video.videoUrl) return
+    if (!brolls.length) return
+    const broll1 = brolls[0]
+    if (broll1.status !== 'completed' || !broll1.videoUrl) return
+
+    stitchStartedRef.current = true
+    setStitchStatus('stitching')
+
+    fetch('/api/ugc/stitch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ talkingHeadUrl: video.videoUrl, broll1Url: broll1.videoUrl }),
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.renderId) setStitchRenderId(data.renderId)
+        else setStitchStatus('failed')
+      })
+      .catch(() => setStitchStatus('failed'))
+  }, [video?.status, video?.videoUrl, brolls])
+
+  // Poll Creatomate stitch status
+  useEffect(() => {
+    if (!stitchRenderId || stitchStatus !== 'stitching') return
+
+    stitchPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/ugc/stitch?renderId=${stitchRenderId}`)
+        const data = await res.json()
+
+        if (data.status === 'succeeded') {
+          setFinalVideoUrl(data.url)
+          setStitchStatus('completed')
+          clearInterval(stitchPollRef.current!)
+        } else if (data.status === 'failed') {
+          setStitchStatus('failed')
+          clearInterval(stitchPollRef.current!)
+        }
+      } catch {}
+    }, 5000)
+
+    return () => clearInterval(stitchPollRef.current!)
+  }, [stitchRenderId, stitchStatus])
 
   const handleDownload = async (url: string, filename: string) => {
     setDownloading(filename)
@@ -227,6 +280,43 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Final stitched video */}
+      {stitchStatus !== 'idle' && (
+        <div className="card" style={{ padding: '20px', border: '1px solid var(--accent)' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
+            ✦ Final Video
+          </h3>
+
+          {stitchStatus === 'stitching' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)' }}>
+              <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
+              <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Stitching your final video…</p>
+              <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>B-roll intro + talking head being combined. Usually ~30–60s.</p>
+            </div>
+          )}
+
+          {stitchStatus === 'failed' && (
+            <p style={{ fontSize: '13px', color: 'var(--bad)' }}>Stitching failed — download the clips above separately.</p>
+          )}
+
+          {stitchStatus === 'completed' && finalVideoUrl && (
+            <>
+              <video controls src={finalVideoUrl} style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px', maxHeight: '400px', background: '#000' }} />
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => handleDownload(finalVideoUrl, `final-ugc-${Date.now()}.mp4`)} className="btn btn-primary" style={{ flex: 1, fontSize: '13px' }}>
+                  <Download style={{ width: 14, height: 14 }} />
+                  Download Final Video
+                </button>
+                <button onClick={() => handleCopy(finalVideoUrl, 'final')} className="btn btn-ghost" style={{ flex: 1, fontSize: '13px' }}>
+                  <Copy style={{ width: 14, height: 14 }} />
+                  {copied === 'final' ? 'Copied!' : 'Copy URL'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
