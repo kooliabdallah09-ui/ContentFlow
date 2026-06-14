@@ -1,5 +1,5 @@
 import { generateImage } from '@/lib/gemini-image'
-import { submitVideoJob, submitImageToVideoJob, estimateDuration } from '@/lib/heygen'
+import { submitVideoJob, submitImageToVideoJob, submitAvatarVideoJob, createPhotoAvatar, estimateDuration } from '@/lib/heygen'
 import { generatePersonWithProduct } from '@/lib/dalle'
 import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
@@ -220,9 +220,20 @@ export async function POST(request: NextRequest) {
 
         // If ElevenLabs audio failed, fall back to a valid HeyGen voice ID
         const heygenFallbackVoiceId = '1bd001e7e50f421d891986aad5158bc8' // Sofia — known-good HeyGen voice
+        const effectiveVoiceId = audioUrl ? voiceId : heygenFallbackVoiceId
 
-        const heygenRes = await submitImageToVideoJob(spokenScript, heygenImageUrl, audioUrl ? voiceId : heygenFallbackVoiceId, audioUrl)
-        videoId = heygenRes.videoId
+        // Try Avatar IV path first (Photo Avatar + motion_prompt + expressiveness) for natural body motion
+        // Fall back to plain image-to-video if photo-avatar creation fails
+        const motionPrompt = `natural confident gestures, slight head movements, expressive hands holding the product up to camera, authentic UGC creator energy`
+        try {
+          const { avatarId: photoAvatarId } = await createPhotoAvatar(heygenImageUrl, `ugc-${userId}-${Date.now()}`)
+          const heygenRes = await submitAvatarVideoJob(spokenScript, photoAvatarId, effectiveVoiceId, audioUrl, motionPrompt)
+          videoId = heygenRes.videoId
+        } catch (avatarErr) {
+          console.warn('Avatar IV path failed, falling back to image-to-video:', avatarErr instanceof Error ? avatarErr.message : avatarErr)
+          const heygenRes = await submitImageToVideoJob(spokenScript, heygenImageUrl, effectiveVoiceId, audioUrl)
+          videoId = heygenRes.videoId
+        }
 
         // Save to DB immediately after HeyGen submits — never lose a video ID to a timeout
         components.video = { videoId, status: 'processing', estimatedDuration: estimateDuration(script) }

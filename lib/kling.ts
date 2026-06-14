@@ -1,8 +1,16 @@
+import { submitFalKlingJob, getFalKlingStatus } from './fal'
+
 const PIAPI_BASE = 'https://api.piapi.ai'
+const FAL_PREFIX = 'fal:'
 
 export async function submitBrollJob(prompt: string): Promise<{ taskId: string }> {
+  if (process.env.FAL_KEY) {
+    const { requestId } = await submitFalKlingJob(prompt)
+    return { taskId: `${FAL_PREFIX}${requestId}` }
+  }
+
   const apiKey = process.env.PIAPI_API_KEY
-  if (!apiKey) throw new Error('PiAPI key not configured')
+  if (!apiKey) throw new Error('Neither FAL_KEY nor PIAPI_API_KEY configured')
 
   const res = await fetch(`${PIAPI_BASE}/api/v1/task`, {
     method: 'POST',
@@ -38,8 +46,12 @@ export async function getBrollStatus(taskId: string): Promise<{
   status: 'pending' | 'processing' | 'completed' | 'failed'
   videoUrl?: string
 }> {
+  if (taskId.startsWith(FAL_PREFIX)) {
+    return getFalKlingStatus(taskId.slice(FAL_PREFIX.length))
+  }
+
   const apiKey = process.env.PIAPI_API_KEY
-  if (!apiKey) throw new Error('PiAPI key not configured')
+  if (!apiKey) throw new Error('PIAPI_API_KEY not configured')
 
   const res = await fetch(`${PIAPI_BASE}/api/v1/task/${taskId}`, {
     headers: { 'x-api-key': apiKey },

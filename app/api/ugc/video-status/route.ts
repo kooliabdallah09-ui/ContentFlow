@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       result.video = status
     }
 
-    if (brollTaskIds && process.env.PIAPI_API_KEY) {
+    if (brollTaskIds && (process.env.FAL_KEY || process.env.PIAPI_API_KEY)) {
       const ids = brollTaskIds.split(',').filter(Boolean)
       const statuses = await Promise.all(ids.map(id => getBrollStatus(id).catch(() => ({ status: 'failed' as const }))))
       result.broll = ids.map((id, i) => ({ taskId: id, ...statuses[i] }))

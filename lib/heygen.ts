@@ -103,6 +103,86 @@ export function estimateDuration(script: string): number {
   return Math.ceil((script.split(/\s+/).length / 150) * 60)
 }
 
+// Create a Photo Avatar from an image URL — unlocks motion_prompt + expressiveness in video generation
+// Returns the avatar_id to use with submitAvatarVideoJob
+export async function createPhotoAvatar(imageUrl: string, name?: string): Promise<{ avatarId: string }> {
+  const apiKey = process.env.HEYGEN_API_KEY
+  if (!apiKey) throw new Error('HeyGen API key not configured')
+
+  const res = await fetch(`${HEYGEN_API_BASE}/v3/avatars`, {
+    method: 'POST',
+    headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      type: 'photo',
+      name: name ?? `ugc-${Date.now()}`,
+      file: { type: 'url', url: imageUrl },
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || err.error?.message || `HeyGen photo avatar error ${res.status}: ${JSON.stringify(err)}`)
+  }
+
+  const data = await res.json()
+  const avatarId =
+    data?.data?.avatar_item?.id ??
+    data?.data?.id ??
+    data?.avatar_item?.id ??
+    data?.avatar_id ??
+    data?.id
+  if (!avatarId) throw new Error(`HeyGen did not return an avatar ID. Response: ${JSON.stringify(data)}`)
+
+  return { avatarId }
+}
+
+// Submit an Avatar IV video using a Photo Avatar id — supports motion_prompt + expressiveness for natural body motion
+export async function submitAvatarVideoJob(
+  script: string,
+  avatarId: string,
+  voiceId: string = DEFAULT_VOICE_ID,
+  audioUrl?: string,
+  motionPrompt?: string,
+): Promise<{ videoId: string }> {
+  const apiKey = process.env.HEYGEN_API_KEY
+  if (!apiKey) throw new Error('HeyGen API key not configured')
+  if (!script?.trim()) throw new Error('Script cannot be empty')
+
+  const body: Record<string, unknown> = {
+    type: 'avatar',
+    avatar_id: avatarId,
+    resolution: '1080p',
+    aspect_ratio: '9:16',
+    expressiveness: 'high',
+  }
+
+  if (motionPrompt) body.motion_prompt = motionPrompt
+
+  if (audioUrl) {
+    body.audio_url = audioUrl
+  } else {
+    body.script = script
+    body.voice_id = voiceId
+  }
+
+  const res = await fetch(`${HEYGEN_API_BASE}/v3/videos`, {
+    method: 'POST',
+    headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || err.error?.message || `HeyGen avatar video error ${res.status}: ${JSON.stringify(err)}`)
+  }
+
+  const data = await res.json()
+  const videoId = data?.data?.video_id ?? data?.video_id
+  if (!videoId) throw new Error(`HeyGen did not return a video ID. Response: ${JSON.stringify(data)}`)
+
+  return { videoId }
+}
+
 // Submit a video job using a static image — animates the image directly via /v3/videos
 export async function submitImageToVideoJob(
   script: string,
