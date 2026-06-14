@@ -102,6 +102,37 @@ Rules:
   return [lines[0] ?? `Cinematic close-up of ${productName}, beautiful studio lighting, slow zoom, 9:16 vertical`, lines[1] ?? `Lifestyle shot of ${productName} in a ${background}, natural light, cinematic, 9:16 vertical`]
 }
 
+// Replace the spoken line in the [HOOK ...] section with a user-picked hook.
+// Preserves the section header, the (tone note) line, and everything else in the script.
+function replaceHook(script: string, newHook: string): string {
+  const lines = script.split('\n')
+  let inHook = false
+  let replaced = false
+  const out: string[] = []
+  for (const line of lines) {
+    const t = line.trim()
+    if (/^\[HOOK\b/i.test(t)) {
+      inHook = true
+      out.push(line)
+      continue
+    }
+    if (inHook && /^\[/.test(t)) {
+      inHook = false
+      out.push(line)
+      continue
+    }
+    if (inHook && !replaced && t && !t.startsWith('(') && !t.startsWith('[')) {
+      out.push(`"${newHook.replace(/^["“”]|["“”]$/g, '').trim()}"`)
+      replaced = true
+      continue
+    }
+    out.push(line)
+  }
+  // If no [HOOK] section was found, prepend a synthetic one so TTS picks it up
+  if (!replaced) return `[HOOK — 0:00 to 0:05]\n"${newHook}"\n\n${script}`
+  return out.join('\n')
+}
+
 // Extract only the spoken lines (in "quotes") for sending to HeyGen TTS
 function extractSpokenLines(script: string): string {
   const spoken: string[] = []
@@ -139,7 +170,7 @@ export async function POST(request: NextRequest) {
 
     const userId = userData.user.id
     const body = await request.json()
-    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType } = body
+    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook } = body
     const rawTier = (body.tier as UGCTier | undefined) ?? DEFAULT_TIER
     const tier: UGCTier = TIERS[rawTier]?.available ? rawTier : DEFAULT_TIER
     const tierCfg = TIERS[tier]
@@ -159,7 +190,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate Claude script first
-    const script = await generateUGCScript(productName, productDescription, benefits, callToAction || 'Try it today', productImageBase64, productImageMimeType)
+    const baseScript = await generateUGCScript(productName, productDescription, benefits, callToAction || 'Try it today', productImageBase64, productImageMimeType)
+    const script = selectedHook && typeof selectedHook === 'string' && selectedHook.trim()
+      ? replaceHook(baseScript, selectedHook.trim())
+      : baseScript
 
     const components: Record<string, any> = { script }
 

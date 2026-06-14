@@ -118,6 +118,7 @@ export default function UGCGeneratorPage() {
     voiceId: string
     productImageBase64?: string
     productImageMimeType?: string
+    selectedHook?: string
   }) => {
     setLoading(true)
     setError('')

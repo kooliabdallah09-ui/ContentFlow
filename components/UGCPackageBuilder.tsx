@@ -3,6 +3,14 @@
 import { useState } from 'react'
 import AvatarPicker from '@/components/AvatarPicker'
 import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
+import { getSupabase } from '@/lib/auth'
+
+interface HookVariant {
+  id: string
+  angle: string
+  tone: string
+  text: string
+}
 
 interface UGCPackageBuilderProps {
   onGenerate: (settings: {
@@ -18,6 +26,7 @@ interface UGCPackageBuilderProps {
     voiceId: string
     productImageBase64?: string
     productImageMimeType?: string
+    selectedHook?: string
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -50,6 +59,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
+  // Hook-preview stage
+  const [hooks, setHooks] = useState<HookVariant[] | null>(null)
+  const [hooksLoading, setHooksLoading] = useState(false)
+  const [hooksError, setHooksError] = useState<string | null>(null)
+
   const selectedType = UGC_TYPES.find(t => t.id === ugcType)!
   const tierCfg = TIERS[tier]
   const includesVideo = ugcType === 'video-with-voiceover' || ugcType === 'all'
@@ -70,18 +84,70 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     reader.readAsDataURL(file)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!canGenerate || isLoading) return
+  const resetForm = () => {
+    setProductName('')
+    setProductDescription('')
+    setBenefits('')
+  }
+
+  const runGenerate = async (selectedHook?: string) => {
     await onGenerate({
       ugcType, tier, productName, productDescription, benefits, callToAction,
       style, imageSize: '1024x1024', avatarId, voiceId,
       productImageBase64: productImage?.base64,
       productImageMimeType: productImage?.mimeType,
+      selectedHook,
     })
-    setProductName('')
-    setProductDescription('')
-    setBenefits('')
+    resetForm()
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!canGenerate || isLoading || hooksLoading) return
+
+    // Image-only packages don't need a hook
+    if (!includesVideo) {
+      await runGenerate()
+      return
+    }
+
+    setHooksError(null)
+    setHooksLoading(true)
+    try {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error('Auth not ready')
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+
+      const res = await fetch('/api/ugc/hooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          productName, productDescription, benefits,
+          productImageBase64: productImage?.base64,
+          productImageMimeType: productImage?.mimeType,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to load hooks')
+      if (!Array.isArray(data.hooks) || data.hooks.length === 0) throw new Error('No hooks returned')
+      setHooks(data.hooks)
+    } catch (err) {
+      setHooksError(err instanceof Error ? err.message : 'Failed to load hooks')
+    } finally {
+      setHooksLoading(false)
+    }
+  }
+
+  const handleHookPick = async (hook: HookVariant) => {
+    setHooks(null)
+    await runGenerate(hook.text)
+  }
+
+  const handleSkipHook = async () => {
+    setHooks(null)
+    await runGenerate()
   }
 
   return (
@@ -282,10 +348,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </span>
         </div>
 
-        <button type="submit" disabled={!canGenerate || isLoading} className="btn btn-primary"
+        <button type="submit" disabled={!canGenerate || isLoading || hooksLoading} className="btn btn-primary"
           style={{ padding: '12px', fontSize: '14px', marginTop: '4px' }}>
-          {isLoading ? 'Generating…' : 'Generate UGC Package'}
+          {isLoading ? 'Generating…' : hooksLoading ? 'Writing hooks…' : includesVideo ? 'Preview hooks → generate' : 'Generate UGC Package'}
         </button>
+
+        {hooksError && (
+          <p style={{ fontSize: '12px', color: 'var(--bad)', textAlign: 'center' }}>{hooksError}</p>
+        )}
 
         {!canGenerate && productName && (
           <p style={{ fontSize: '12px', color: 'var(--bad)', textAlign: 'center' }}>
@@ -295,6 +365,77 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </p>
         )}
       </div>
+
+      {hooks && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          style={{
+            position: 'fixed', inset: 0, zIndex: 100,
+            background: 'rgba(0,0,0,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: '20px',
+          }}
+          onClick={() => !isLoading && setHooks(null)}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              borderRadius: 'var(--r-lg)', padding: '24px',
+              maxWidth: '560px', width: '100%',
+              display: 'flex', flexDirection: 'column', gap: '16px',
+              maxHeight: '90vh', overflowY: 'auto',
+            }}
+          >
+            <div>
+              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--ink)' }}>Pick your hook</h3>
+              <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--ink-dim)' }}>
+                Different angles for the first 5 seconds. Picking one charges {totalCredits} credits.
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {hooks.map(h => (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => handleHookPick(h)}
+                  disabled={isLoading}
+                  style={{
+                    textAlign: 'left', cursor: isLoading ? 'not-allowed' : 'pointer',
+                    padding: '14px 16px', borderRadius: 'var(--r-md)',
+                    border: '1px solid var(--border)', background: 'var(--surface)',
+                    transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', gap: '6px',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', fontWeight: 700 }}>
+                      {h.angle}
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--ink-dim)', fontStyle: 'italic' }}>{h.tone}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--ink)', lineHeight: 1.4 }}>
+                    “{h.text}”
+                  </p>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginTop: '4px' }}>
+              <button type="button" onClick={() => setHooks(null)} disabled={isLoading}
+                className="btn btn-ghost" style={{ fontSize: '13px' }}>
+                Cancel
+              </button>
+              <button type="button" onClick={handleSkipHook} disabled={isLoading}
+                className="btn btn-ghost" style={{ fontSize: '13px' }}>
+                Use original hook
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </form>
   )
 }
