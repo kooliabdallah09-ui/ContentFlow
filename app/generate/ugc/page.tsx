@@ -107,6 +107,7 @@ export default function UGCGeneratorPage() {
 
   const handleGenerate = async (settings: {
     ugcType: string
+    tier: 'lean' | 'premium' | 'hero'
     productName: string
     productDescription: string
     benefits: string

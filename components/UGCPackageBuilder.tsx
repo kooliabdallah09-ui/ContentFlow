@@ -2,10 +2,12 @@
 
 import { useState } from 'react'
 import AvatarPicker from '@/components/AvatarPicker'
+import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
 
 interface UGCPackageBuilderProps {
   onGenerate: (settings: {
     ugcType: string
+    tier: UGCTier
     productName: string
     productDescription: string
     benefits: string
@@ -21,10 +23,12 @@ interface UGCPackageBuilderProps {
   creditBalance: number
 }
 
+const IMAGE_CREDITS = 3
+
 const UGC_TYPES = [
-  { id: 'video-with-voiceover', name: 'Avatar Video', description: 'AI avatar speaks your script', credits: 40 },
-  { id: 'image-with-voiceover', name: 'Product Image', description: 'AI-generated product photo', credits: 3 },
-  { id: 'all', name: 'Full Package', description: 'Image + Avatar Video', credits: 43 },
+  { id: 'video-with-voiceover', name: 'Avatar Video', description: 'AI avatar speaks your script' },
+  { id: 'image-with-voiceover', name: 'Product Image', description: 'AI-generated product photo' },
+  { id: 'all', name: 'Full Package', description: 'Image + Avatar Video' },
 ]
 
 const VOICES = [
@@ -36,6 +40,7 @@ const VOICES = [
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
   const [ugcType, setUgcType] = useState('video-with-voiceover')
+  const [tier, setTier] = useState<UGCTier>(DEFAULT_TIER)
   const [productName, setProductName] = useState('')
   const [productDescription, setProductDescription] = useState('')
   const [benefits, setBenefits] = useState('')
@@ -46,7 +51,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
   const selectedType = UGC_TYPES.find(t => t.id === ugcType)!
-  const canGenerate = creditBalance >= selectedType.credits && productName.trim() && productDescription.trim() && benefits.trim()
+  const tierCfg = TIERS[tier]
+  const includesVideo = ugcType === 'video-with-voiceover' || ugcType === 'all'
+  const includesImage = ugcType === 'image-with-voiceover' || ugcType === 'all'
+  const totalCredits = (includesImage ? IMAGE_CREDITS : 0) + (includesVideo ? tierCfg.videoCredits : 0)
+  const canGenerate = creditBalance >= totalCredits && productName.trim() && productDescription.trim() && benefits.trim()
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -65,7 +74,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     e.preventDefault()
     if (!canGenerate || isLoading) return
     await onGenerate({
-      ugcType, productName, productDescription, benefits, callToAction,
+      ugcType, tier, productName, productDescription, benefits, callToAction,
       style, imageSize: '1024x1024', avatarId, voiceId,
       productImageBase64: productImage?.base64,
       productImageMimeType: productImage?.mimeType,
@@ -82,26 +91,68 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       <div>
         <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Package Type</span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {UGC_TYPES.map(type => (
-            <label key={type.id} style={{
-              display: 'flex', alignItems: 'center', gap: '12px',
-              padding: '14px 16px', borderRadius: 'var(--r-md)', cursor: 'pointer',
-              border: `1px solid ${ugcType === type.id ? 'var(--accent)' : 'var(--border)'}`,
-              background: ugcType === type.id ? 'var(--accent-soft)' : 'var(--surface)',
-              transition: 'all 0.15s',
-            }}>
-              <input type="radio" name="ugcType" value={type.id} checked={ugcType === type.id}
-                onChange={e => setUgcType(e.target.value)} disabled={isLoading}
-                style={{ accentColor: 'var(--accent)', width: 16, height: 16, flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{type.name}</p>
-                <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '2px 0 0' }}>{type.description}</p>
-              </div>
-              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)', flexShrink: 0 }}>{type.credits} cr</span>
-            </label>
-          ))}
+          {UGC_TYPES.map(type => {
+            const typeCredits = (type.id === 'image-with-voiceover' ? IMAGE_CREDITS : 0)
+              + ((type.id === 'video-with-voiceover' || type.id === 'all') ? tierCfg.videoCredits : 0)
+            return (
+              <label key={type.id} style={{
+                display: 'flex', alignItems: 'center', gap: '12px',
+                padding: '14px 16px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+                border: `1px solid ${ugcType === type.id ? 'var(--accent)' : 'var(--border)'}`,
+                background: ugcType === type.id ? 'var(--accent-soft)' : 'var(--surface)',
+                transition: 'all 0.15s',
+              }}>
+                <input type="radio" name="ugcType" value={type.id} checked={ugcType === type.id}
+                  onChange={e => setUgcType(e.target.value)} disabled={isLoading}
+                  style={{ accentColor: 'var(--accent)', width: 16, height: 16, flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{type.name}</p>
+                  <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '2px 0 0' }}>{type.description}</p>
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)', flexShrink: 0 }}>{typeCredits} cr</span>
+              </label>
+            )
+          })}
         </div>
       </div>
+
+      {/* Quality tier — only relevant when video is included */}
+      {includesVideo && (
+        <div>
+          <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Quality Tier</span>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+            {(Object.keys(TIERS) as UGCTier[]).map(key => {
+              const t = TIERS[key]
+              const active = tier === key && t.available
+              const disabled = !t.available || isLoading
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => t.available && setTier(key)}
+                  disabled={disabled}
+                  style={{
+                    textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer',
+                    padding: '14px', borderRadius: 'var(--r-md)',
+                    border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                    background: active ? 'var(--accent-soft)' : 'var(--surface)',
+                    opacity: t.available ? 1 : 0.5,
+                    transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', gap: '6px',
+                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>{t.label}</span>
+                    <span style={{ fontSize: '11px', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>{t.estimatedTime}</span>
+                  </div>
+                  <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: active ? 'var(--accent)' : 'var(--ink-dim)', margin: 0, fontWeight: 600 }}>{t.tagline}</p>
+                  <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: 0, lineHeight: 1.4 }}>{t.description}</p>
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)', marginTop: '4px' }}>{t.videoCredits} cr</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Product fields */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -175,7 +226,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {productImage ? (
+          {productImage && tierCfg.useAvatarIV ? (
             <div style={{
               padding: '14px 16px', borderRadius: 'var(--r-md)',
               background: 'var(--accent-soft)', border: '1px solid var(--accent)',
@@ -221,12 +272,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {/* Footer */}
       <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-          <span style={{ color: 'var(--ink-dim)' }}>Cost</span>
-          <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{selectedType.credits} credits</span>
+          <span style={{ color: 'var(--ink-dim)' }}>Cost{includesVideo ? ` (${tierCfg.label} tier)` : ''}</span>
+          <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{totalCredits} credits</span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
           <span style={{ color: 'var(--ink-dim)' }}>Your balance</span>
-          <span style={{ fontWeight: 600, color: creditBalance >= selectedType.credits ? 'var(--good)' : 'var(--bad)' }}>
+          <span style={{ fontWeight: 600, color: creditBalance >= totalCredits ? 'var(--good)' : 'var(--bad)' }}>
             {creditBalance} credits
           </span>
         </div>
@@ -238,8 +289,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
         {!canGenerate && productName && (
           <p style={{ fontSize: '12px', color: 'var(--bad)', textAlign: 'center' }}>
-            {creditBalance < selectedType.credits
-              ? `Not enough credits. Need ${selectedType.credits}, have ${creditBalance}`
+            {creditBalance < totalCredits
+              ? `Not enough credits. Need ${totalCredits}, have ${creditBalance}`
               : 'Fill in all required fields'}
           </p>
         )}

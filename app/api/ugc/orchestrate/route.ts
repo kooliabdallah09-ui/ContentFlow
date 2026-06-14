@@ -4,6 +4,7 @@ import { generatePersonWithProduct } from '@/lib/dalle'
 import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
+import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -137,16 +138,20 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = userData.user.id
-    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType } = await request.json()
+    const body = await request.json()
+    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType } = body
+    const rawTier = (body.tier as UGCTier | undefined) ?? DEFAULT_TIER
+    const tier: UGCTier = TIERS[rawTier]?.available ? rawTier : DEFAULT_TIER
+    const tierCfg = TIERS[tier]
 
     if (!ugcType || !productName || !productDescription || !benefits) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Calculate credit cost
+    // Calculate credit cost (video cost is tier-dependent)
     let totalCost = 0
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
-    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.video
+    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += tierCfg.videoCredits
 
     const { data: userCredits } = await supabase.from('user_credits').select('balance').eq('user_id', userId).single()
     if (!userCredits || userCredits.balance < totalCost) {
@@ -178,11 +183,14 @@ export async function POST(request: NextRequest) {
 
       let videoId: string
 
-      if (process.env.OPENAI_API_KEY) {
-        // Run image generation and ElevenLabs audio in parallel
+      // Avatar IV path requires OpenAI (for person+product image gen) AND tier.useAvatarIV
+      const useAvatarIVPath = tierCfg.useAvatarIV && !!process.env.OPENAI_API_KEY
+
+      if (useAvatarIVPath) {
+        // Run image generation and ElevenLabs audio in parallel (audio only on tiers that want it)
         const [personResult, audioBuffer] = await Promise.all([
           generatePersonWithProduct(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType),
-          process.env.ELEVENLABS_API_KEY
+          tierCfg.useElevenLabs && process.env.ELEVENLABS_API_KEY
             ? generateSpeech(spokenScript, voiceId).catch(() => null)
             : Promise.resolve(null),
         ])
@@ -234,70 +242,65 @@ export async function POST(request: NextRequest) {
           const heygenRes = await submitImageToVideoJob(spokenScript, heygenImageUrl, effectiveVoiceId, audioUrl)
           videoId = heygenRes.videoId
         }
-
-        // Save to DB immediately after HeyGen submits — never lose a video ID to a timeout
-        components.video = { videoId, status: 'processing', estimatedDuration: estimateDuration(script) }
-        const externalId = `ugc-${Date.now()}`
-        const { data: ugcRow } = await supabase.from('ugc_content').insert({
-          user_id: userId,
-          content_type: 'video',
-          external_id: externalId,
-          storage_url: JSON.stringify(components),
-          metadata: { ugcType, productName, productDescription, benefits, callToAction, script, generatedAt: new Date().toISOString() },
-          credit_cost: totalCost,
-          status: 'generating',
-        }).select('id').single()
-        await supabase.from('user_credits').update({ balance: userCredits.balance - totalCost }).eq('user_id', userId)
-        await supabase.from('credit_transactions').insert({
-          user_id: userId, amount: totalCost, transaction_type: 'generation',
-          content_type: 'ugc_package', description: `UGC package: ${productName}`,
-        })
-
-        // Submit Kling B-rolls after DB is saved — failures here won't lose the main video
-        const brollPrompts = process.env.PIAPI_API_KEY
-          ? await generateBrollPrompts(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType).catch(() => null)
-          : null
-
-        if (brollPrompts) {
-          const [broll1, broll2] = await Promise.all([
-            submitBrollJob(brollPrompts[0]).catch(() => null),
-            submitBrollJob(brollPrompts[1]).catch(() => null),
-          ])
-          components.broll = [
-            broll1 ? { taskId: broll1.taskId, status: 'processing', label: 'Product close-up' } : null,
-            broll2 ? { taskId: broll2.taskId, status: 'processing', label: 'Lifestyle shot' } : null,
-          ].filter(Boolean)
-
-          // Update DB with B-roll task IDs so they're not lost on page reload
-          if (ugcRow?.id) {
-            await supabase.from('ugc_content')
-              .update({ storage_url: JSON.stringify(components) })
-              .eq('id', ugcRow.id)
-          }
-        }
-
-        return NextResponse.json({
-          success: true, ugcType, components, script,
-          creditDeducted: totalCost, newBalance: userCredits.balance - totalCost,
-        }, { status: 201 })
       } else {
+        // Lean path: stock HeyGen avatar, HeyGen TTS, no person-image generation
         const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
-        // ElevenLabs voice IDs don't work in legacy HeyGen path — use known HeyGen voice
         const heygenVoiceId = '1bd001e7e50f421d891986aad5158bc8'
         const res = await submitVideoJob(spokenScript, effectiveAvatarId, heygenVoiceId)
         videoId = res.videoId
       }
 
-      components.video = {
-        videoId,
-        status: 'processing',
-        estimatedDuration: estimateDuration(script),
+      // ---- shared post-submit: save early, submit B-rolls, return ----
+      components.video = { videoId, status: 'processing', estimatedDuration: estimateDuration(script) }
+
+      // Save to DB immediately after HeyGen submits — never lose a video ID to a timeout
+      const { data: ugcRow } = await supabase.from('ugc_content').insert({
+        user_id: userId,
+        content_type: 'video',
+        external_id: `ugc-${Date.now()}`,
+        storage_url: JSON.stringify(components),
+        metadata: { ugcType, productName, productDescription, benefits, callToAction, script, tier, generatedAt: new Date().toISOString() },
+        credit_cost: totalCost,
+        status: 'generating',
+      }).select('id').single()
+      await supabase.from('user_credits').update({ balance: userCredits.balance - totalCost }).eq('user_id', userId)
+      await supabase.from('credit_transactions').insert({
+        user_id: userId, amount: totalCost, transaction_type: 'generation',
+        content_type: 'ugc_package', description: `UGC package: ${productName} (${tier})`,
+      })
+
+      // Submit Kling B-rolls after DB is saved — tier controls how many (lean=1, premium/hero=2)
+      const brollProviderReady = !!(process.env.FAL_KEY || process.env.PIAPI_API_KEY)
+      const brollPrompts = brollProviderReady && tierCfg.brollCount > 0
+        ? await generateBrollPrompts(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType).catch(() => null)
+        : null
+
+      if (brollPrompts) {
+        const promptsToRender = brollPrompts.slice(0, tierCfg.brollCount)
+        const submissions = await Promise.all(
+          promptsToRender.map(p => submitBrollJob(p).catch(() => null))
+        )
+        const labels = ['Product close-up', 'Lifestyle shot']
+        components.broll = submissions
+          .map((sub, i) => sub ? { taskId: sub.taskId, status: 'processing', label: labels[i] ?? `B-roll ${i + 1}` } : null)
+          .filter(Boolean)
+
+        if (ugcRow?.id) {
+          await supabase.from('ugc_content')
+            .update({ storage_url: JSON.stringify(components) })
+            .eq('id', ugcRow.id)
+        }
       }
+
+      return NextResponse.json({
+        success: true, ugcType, components, script,
+        creditDeducted: totalCost, newBalance: userCredits.balance - totalCost,
+      }, { status: 201 })
     }
 
-    // Map to allowed content_type values ('image' | 'video' | 'voice')
-    const dbContentType = (ugcType === 'image-with-voiceover') ? 'image' : 'video'
-    const dbStatus = components.video ? 'generating' : 'completed'
+    // image-only path falls through to single DB save
+    const dbContentType = 'image'
+    const dbStatus = 'completed'
 
     const { error: insertError } = await supabase.from('ugc_content').insert({
       user_id: userId,
