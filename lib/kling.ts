@@ -1,16 +1,23 @@
 import { submitFalKlingJob, getFalKlingStatus } from './fal'
+import { submitReplicateKlingJob, getReplicateKlingStatus } from './replicate'
 
 const PIAPI_BASE = 'https://api.piapi.ai'
 const FAL_PREFIX = 'fal:'
+const REPLICATE_PREFIX = 'replicate:'
 
 export async function submitBrollJob(prompt: string): Promise<{ taskId: string }> {
+  if (process.env.REPLICATE_API_TOKEN) {
+    const { predictionId } = await submitReplicateKlingJob(prompt)
+    return { taskId: `${REPLICATE_PREFIX}${predictionId}` }
+  }
+
   if (process.env.FAL_KEY) {
     const { requestId } = await submitFalKlingJob(prompt)
     return { taskId: `${FAL_PREFIX}${requestId}` }
   }
 
   const apiKey = process.env.PIAPI_API_KEY
-  if (!apiKey) throw new Error('Neither FAL_KEY nor PIAPI_API_KEY configured')
+  if (!apiKey) throw new Error('No B-roll provider configured (REPLICATE_API_TOKEN, FAL_KEY, or PIAPI_API_KEY)')
 
   const res = await fetch(`${PIAPI_BASE}/api/v1/task`, {
     method: 'POST',
@@ -46,6 +53,10 @@ export async function getBrollStatus(taskId: string): Promise<{
   status: 'pending' | 'processing' | 'completed' | 'failed'
   videoUrl?: string
 }> {
+  if (taskId.startsWith(REPLICATE_PREFIX)) {
+    return getReplicateKlingStatus(taskId.slice(REPLICATE_PREFIX.length))
+  }
+
   if (taskId.startsWith(FAL_PREFIX)) {
     return getFalKlingStatus(taskId.slice(FAL_PREFIX.length))
   }

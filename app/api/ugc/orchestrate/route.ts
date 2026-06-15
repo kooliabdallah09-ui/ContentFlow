@@ -304,7 +304,7 @@ export async function POST(request: NextRequest) {
       })
 
       // Submit Kling B-rolls after DB is saved — tier controls how many (lean=1, premium/hero=2)
-      const brollProviderReady = !!(process.env.FAL_KEY || process.env.PIAPI_API_KEY)
+      const brollProviderReady = !!(process.env.REPLICATE_API_TOKEN || process.env.FAL_KEY || process.env.PIAPI_API_KEY)
       const brollPrompts = brollProviderReady && tierCfg.brollCount > 0
         ? await generateBrollPrompts(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType).catch(() => null)
         : null
