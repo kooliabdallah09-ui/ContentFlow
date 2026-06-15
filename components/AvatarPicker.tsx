@@ -52,8 +52,8 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
     return (
       <div>
         <style>{shimmerCss}</style>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-          {Array.from({ length: 12 }).map((_, i) => {
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+          {Array.from({ length: 9 }).map((_, i) => {
             const [c1, c2] = skeletonGradients[i % skeletonGradients.length]
             return (
               <div
@@ -131,12 +131,12 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
 
       {/* Avatar grid — scrollable so a large library doesn't push the form */}
       <div style={{
-        maxHeight: '380px',
+        maxHeight: '520px',
         overflowY: 'auto',
         paddingRight: '4px',
         borderRadius: '8px',
       }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
         {visible.map(avatar => {
           const selected = avatar.avatar_id === selectedId
           const status = imgStatus[avatar.avatar_id] ?? (avatar.preview_image_url ? 'loading' : 'failed')
@@ -205,16 +205,16 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
                 {!showImage && (
                   <span style={{
                     flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '34px', fontWeight: 800, color: 'rgba(255,255,255,0.92)',
+                    fontSize: '46px', fontWeight: 800, color: 'rgba(255,255,255,0.92)',
                     letterSpacing: '-0.02em',
                   }}>
                     {avatar.avatar_name[0]}
                   </span>
                 )}
-                <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff', textAlign: 'center', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff', textAlign: 'center', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
                   {avatar.avatar_name}
                 </span>
-                <span style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                <span style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {avatar.gender}
                 </span>
               </div>
