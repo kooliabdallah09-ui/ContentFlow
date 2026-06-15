@@ -52,7 +52,7 @@ async function fetchHeyGenAvatars(): Promise<HeyGenApiAvatar[]> {
   try {
     const res = await fetch('https://api.heygen.com/v2/avatars', {
       headers: { 'X-Api-Key': apiKey },
-      next: { revalidate: 86400 },
+      next: { revalidate: 300 }, // 5 min while iterating; raise back to 86400 once stable
     })
     if (!res.ok) return []
     const data = await res.json()
@@ -127,8 +127,17 @@ export async function GET() {
     ? buildAvatarList(heygenAvatars)
     : CURATED_AVATARS.map(a => ({ ...a, preview_image_url: proxyUrl(a.preview_image_url) }))
 
+  const publicWithImage = heygenAvatars.filter(a => a.preview_image_url && a.preview_image_url.length > 10).length
+
   return NextResponse.json(
-    { avatars, source: heygenAvatars.length > 0 ? 'heygen+curated' : 'curated' },
-    { headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' } },
+    {
+      avatars,
+      source: heygenAvatars.length > 0 ? 'heygen+curated' : 'curated',
+      _debug: {
+        heygenTotal: heygenAvatars.length,
+        heygenPublicWithImage: publicWithImage,
+      },
+    },
+    { headers: { 'Cache-Control': 'public, max-age=60, s-maxage=60' } },
   )
 }
