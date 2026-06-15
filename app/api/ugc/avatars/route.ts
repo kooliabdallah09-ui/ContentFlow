@@ -35,16 +35,48 @@ function proxyUrl(url: string): string {
   return `/api/ugc/avatar-image?url=${encodeURIComponent(url)}`
 }
 
-// Always return the curated list immediately — no slow upstream API call on the request path.
-// Cache-Control lets the browser hold onto this list for an hour.
+// Ask HeyGen for their CURRENT preview URLs. Cached 24h via Next fetch — only one upstream
+// call per day per region; subsequent requests are instant. If the call fails or our curated
+// IDs aren't in the response, we fall back to the hardcoded URLs (which the AvatarPicker's
+// gradient tile handles gracefully if they also fail).
+async function fetchHeyGenPreviewMap(): Promise<Map<string, { image?: string; video?: string }>> {
+  const apiKey = process.env.HEYGEN_API_KEY
+  if (!apiKey) return new Map()
+
+  try {
+    const res = await fetch('https://api.heygen.com/v2/avatars', {
+      headers: { 'X-Api-Key': apiKey },
+      next: { revalidate: 86400 },
+    })
+    if (!res.ok) return new Map()
+    const data = await res.json()
+    const list: Array<{ avatar_id: string; preview_image_url?: string; preview_video_url?: string }> =
+      data?.data?.avatars ?? []
+    const map = new Map<string, { image?: string; video?: string }>()
+    for (const a of list) {
+      if (a.avatar_id) map.set(a.avatar_id, { image: a.preview_image_url, video: a.preview_video_url })
+    }
+    return map
+  } catch {
+    return new Map()
+  }
+}
+
 export async function GET() {
-  const avatars = CURATED_AVATARS.map(a => ({
-    ...a,
-    preview_image_url: proxyUrl(a.preview_image_url),
-  }))
+  const heygenMap = await fetchHeyGenPreviewMap()
+
+  const avatars = CURATED_AVATARS.map(a => {
+    const live = heygenMap.get(a.avatar_id)
+    const imageUrl = live?.image || a.preview_image_url
+    return {
+      ...a,
+      preview_image_url: proxyUrl(imageUrl),
+      preview_video_url: live?.video,
+    }
+  })
 
   return NextResponse.json(
-    { avatars, source: 'curated' },
+    { avatars, source: heygenMap.size > 0 ? 'heygen+curated' : 'curated' },
     { headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' } },
   )
 }
