@@ -9,12 +9,40 @@ export const HEYGEN_VOICES = [
 
 export const DEFAULT_VOICE_ID = HEYGEN_VOICES[0].id
 
+// Pick a HeyGen fallback voice that matches the avatar's gender.
+// Used when ElevenLabs fails — never serve a female voice on a male avatar (or vice versa).
+export function fallbackVoiceForGender(gender?: string): string {
+  const g = (gender ?? '').toLowerCase()
+  if (g === 'male' || g === 'm') return '2d5b0e6cf36f460aa7fc47e3eee4ba54' // James
+  return '1bd001e7e50f421d891986aad5158bc8' // Sofia
+}
+
+// Built-in gender map for the known stock avatar IDs we ship in the picker fallback.
+// Used server-side when the client doesn't (or can't) pass avatarGender.
+const KNOWN_AVATAR_GENDERS: Record<string, 'Male' | 'Female'> = {
+  'Daisy-inskirt-20220818': 'Female',
+  'Eric_public_pro2_20230608': 'Male',
+  'Susan_public_2_20240328': 'Female',
+  'Tyler-incasualsuit-20220721': 'Male',
+  'Anna_public_3_20240108': 'Female',
+  'Shawn_public_3_20231116': 'Male',
+  'Grace-inblackskirt-20220820': 'Female',
+  'Noah_public_3_20240111': 'Male',
+}
+
+export function inferAvatarGender(avatarId?: string): 'Male' | 'Female' | undefined {
+  if (!avatarId) return undefined
+  return KNOWN_AVATAR_GENDERS[avatarId]
+}
+
 // Submit a video generation job — returns video_id immediately (async, not the final URL)
+// If audioUrl is provided, uses voice type 'audio' so HeyGen lip-syncs to your ElevenLabs track.
 export async function submitVideoJob(
   script: string,
   avatarId: string,
   voiceId: string = DEFAULT_VOICE_ID,
   backgroundImageUrl?: string,
+  audioUrl?: string,
 ): Promise<{ videoId: string }> {
   const apiKey = process.env.HEYGEN_API_KEY
   if (!apiKey) throw new Error('HeyGen API key not configured')
@@ -25,6 +53,10 @@ export async function submitVideoJob(
     ? { type: 'image', url: backgroundImageUrl }
     : { type: 'color', value: '#F2EDE8' } // warm off-white — better than stark white
 
+  const voice = audioUrl
+    ? { type: 'audio', audio_url: audioUrl }
+    : { type: 'text', input_text: script, voice_id: voiceId }
+
   const res = await fetch(`${HEYGEN_API_BASE}/v2/video/generate`, {
     method: 'POST',
     headers: { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' },
@@ -32,7 +64,7 @@ export async function submitVideoJob(
       video_inputs: [
         {
           character: { type: 'avatar', avatar_id: avatarId, avatar_style: 'normal' },
-          voice: { type: 'text', input_text: script, voice_id: voiceId },
+          voice,
           background,
         },
       ],

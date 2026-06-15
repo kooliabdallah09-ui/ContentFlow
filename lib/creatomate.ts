@@ -3,43 +3,71 @@ const CREATOMATE_BASE = 'https://api.creatomate.com/v1'
 export async function submitStitchJob({
   talkingHeadUrl,
   broll1Url,
+  broll2Url,
 }: {
   talkingHeadUrl: string
   broll1Url?: string
+  broll2Url?: string
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.CREATOMATE_API_KEY
   if (!apiKey) throw new Error('Creatomate API key not configured')
 
   const elements: object[] = []
+  const TALKING_HEAD_ID = 'talking_head'
 
+  // 0–4s: B-roll 1 (product close-up) with quick fade-out, audio muted so talking-head VO leads
   if (broll1Url) {
     elements.push({
-      type: 'video',
-      source: broll1Url,
-      track: 1,
-      time: '0 s',
-      duration: '5 s',
-      fit: 'cover',
-      animations: [
-        { time: 'end', duration: '0.5 s', easing: 'linear', type: 'fade', fade: 'out' },
-      ],
+      type: 'video', source: broll1Url, track: 1,
+      time: '0 s', duration: '4 s', fit: 'cover', volume: 0,
+      animations: [{ time: 'end', duration: '0.3 s', easing: 'linear', type: 'fade', fade: 'out' }],
     })
     elements.push({
-      type: 'video',
-      source: talkingHeadUrl,
-      track: 1,
-      time: '4.5 s', // 0.5s overlap with B-roll fade-out
-      fit: 'cover',
+      type: 'video', source: talkingHeadUrl, id: TALKING_HEAD_ID, track: 1,
+      time: '3.7 s', fit: 'cover',
     })
   } else {
     elements.push({
-      type: 'video',
-      source: talkingHeadUrl,
-      track: 1,
-      time: '0 s',
-      fit: 'cover',
+      type: 'video', source: talkingHeadUrl, id: TALKING_HEAD_ID, track: 1,
+      time: '0 s', fit: 'cover',
     })
   }
+
+  // Tail: B-roll 2 (usage shot) appended after the talking head — relative timing
+  if (broll2Url) {
+    elements.push({
+      type: 'video', source: broll2Url, track: 1,
+      time: `${TALKING_HEAD_ID}.end`, duration: '4 s', fit: 'cover', volume: 0,
+      animations: [{ time: 'start', duration: '0.3 s', easing: 'linear', type: 'fade', fade: 'in' }],
+    })
+  }
+
+  // TikTok-style word-by-word captions transcribed from the talking-head audio
+  elements.push({
+    type: 'text',
+    track: 2,
+    time: '0 s',
+    duration: 'end',
+    width: '88%',
+    height: '20%',
+    x_alignment: '50%',
+    y_alignment: '78%',
+    font_family: 'Inter',
+    font_weight: '900',
+    font_size: '8.2 vh',
+    line_height: '110%',
+    text_transform: 'uppercase',
+    fill_color: '#FFFFFF',
+    stroke_color: '#000000',
+    stroke_width: '0.8 vh',
+    transcript_source: TALKING_HEAD_ID,
+    transcript_effect: 'highlight',
+    transcript_color: '#FFD400',
+    transcript_maximum_length: 22,
+    transcript_placement: 'animate',
+    shadow_color: 'rgba(0,0,0,0.55)',
+    shadow_blur: '0.6 vh',
+  })
 
   const res = await fetch(`${CREATOMATE_BASE}/renders`, {
     method: 'POST',

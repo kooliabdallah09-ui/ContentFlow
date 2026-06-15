@@ -89,13 +89,17 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     return () => clearInterval(pollRef.current!)
   }, [video?.videoId, video?.status, brolls.length])
 
-  // Auto-trigger stitch when HeyGen + B-roll 1 both complete
+  // Auto-trigger stitch once HeyGen is done and B-rolls have all settled (completed or failed).
+  // Don't wait forever on a failed B-roll — stitch with whatever we have.
   useEffect(() => {
     if (stitchStartedRef.current) return
     if (video?.status !== 'completed' || !video.videoUrl) return
-    if (!brolls.length) return
-    const broll1 = brolls[0]
-    if (broll1.status !== 'completed' || !broll1.videoUrl) return
+
+    const brollsPending = brolls.some(b => b.status === 'processing')
+    if (brollsPending) return
+
+    const broll1 = brolls[0]?.status === 'completed' ? brolls[0]?.videoUrl : undefined
+    const broll2 = brolls[1]?.status === 'completed' ? brolls[1]?.videoUrl : undefined
 
     stitchStartedRef.current = true
     setStitchStatus('stitching')
@@ -103,7 +107,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     fetch('/api/ugc/stitch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ talkingHeadUrl: video.videoUrl, broll1Url: broll1.videoUrl }),
+      body: JSON.stringify({ talkingHeadUrl: video.videoUrl, broll1Url: broll1, broll2Url: broll2 }),
     })
       .then(r => r.json())
       .then(data => {

@@ -1,6 +1,5 @@
 import { generateImage } from '@/lib/gemini-image'
-import { submitVideoJob, submitImageToVideoJob, submitAvatarVideoJob, createPhotoAvatar, estimateDuration } from '@/lib/heygen'
-import { generatePersonWithProduct } from '@/lib/dalle'
+import { submitVideoJob, estimateDuration, fallbackVoiceForGender, inferAvatarGender } from '@/lib/heygen'
 import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -170,7 +169,7 @@ export async function POST(request: NextRequest) {
 
     const userId = userData.user.id
     const body = await request.json()
-    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook } = body
+    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender } = body
     const rawTier = (body.tier as UGCTier | undefined) ?? DEFAULT_TIER
     const tier: UGCTier = TIERS[rawTier]?.available ? rawTier : DEFAULT_TIER
     const tierCfg = TIERS[tier]
@@ -215,41 +214,16 @@ export async function POST(request: NextRequest) {
       const bgMatch = script.match(/\[BACKGROUND:\s*([^\]]+)\]/i)
       const backgroundContext = bgMatch?.[1]?.trim() ?? 'casual indoor setting'
 
-      let videoId: string
+      // All tiers now use a real HeyGen stock avatar (Arcads-style: real recorded actor,
+      // not an AI-generated person). Premium adds an ElevenLabs voice on top; Lean uses HeyGen TTS.
+      const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
+      const gender = avatarGender || inferAvatarGender(effectiveAvatarId)
 
-      // Avatar IV path requires OpenAI (for person+product image gen) AND tier.useAvatarIV
-      const useAvatarIVPath = tierCfg.useAvatarIV && !!process.env.OPENAI_API_KEY
-
-      if (useAvatarIVPath) {
-        // Run image generation and ElevenLabs audio in parallel (audio only on tiers that want it)
-        const [personResult, audioBuffer] = await Promise.all([
-          generatePersonWithProduct(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType),
-          tierCfg.useElevenLabs && process.env.ELEVENLABS_API_KEY
-            ? generateSpeech(spokenScript, voiceId).catch(() => null)
-            : Promise.resolve(null),
-        ])
-
-        // Upload person image to Supabase
-        let heygenImageUrl = personResult.imageUrl
-        if (heygenImageUrl.startsWith('data:')) {
-          const mimeMatch = heygenImageUrl.match(/data:(image\/\w+);base64,/)
-          const mime = mimeMatch?.[1] ?? 'image/png'
-          const ext = mime.split('/')[1]
-          const b64 = heygenImageUrl.split(',')[1]
-          const imgBuf = Buffer.from(b64, 'base64')
-          const filename = `avatar-gen/${userId}-${Date.now()}.${ext}`
-          const { error: upErr } = await supabase.storage
-            .from('ugc-assets')
-            .upload(filename, imgBuf, { contentType: mime, upsert: false })
-          if (!upErr) {
-            const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-            heygenImageUrl = publicUrl
-          }
-        }
-
-        // Upload ElevenLabs audio to Supabase if generated
-        let audioUrl: string | undefined
-        if (audioBuffer) {
+      // Generate ElevenLabs audio for tiers that want it (Premium / Hero)
+      let audioUrl: string | undefined
+      if (tierCfg.useElevenLabs && process.env.ELEVENLABS_API_KEY) {
+        try {
+          const audioBuffer = await generateSpeech(spokenScript, voiceId)
           const audioFilename = `audio-gen/${userId}-${Date.now()}.mp3`
           const { error: audioErr } = await supabase.storage
             .from('ugc-assets')
@@ -258,31 +232,20 @@ export async function POST(request: NextRequest) {
             const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
             audioUrl = publicUrl
           }
+        } catch (err) {
+          // ElevenLabs failed — log and fall back to gender-matched HeyGen TTS (never wrong gender)
+          console.warn('ElevenLabs failed, using gender-matched HeyGen TTS fallback:', err instanceof Error ? err.message : err)
         }
-
-        // If ElevenLabs audio failed, fall back to a valid HeyGen voice ID
-        const heygenFallbackVoiceId = '1bd001e7e50f421d891986aad5158bc8' // Sofia — known-good HeyGen voice
-        const effectiveVoiceId = audioUrl ? voiceId : heygenFallbackVoiceId
-
-        // Try Avatar IV path first (Photo Avatar + motion_prompt + expressiveness) for natural body motion
-        // Fall back to plain image-to-video if photo-avatar creation fails
-        const motionPrompt = `natural confident gestures, slight head movements, expressive hands holding the product up to camera, authentic UGC creator energy`
-        try {
-          const { avatarId: photoAvatarId } = await createPhotoAvatar(heygenImageUrl, `ugc-${userId}-${Date.now()}`)
-          const heygenRes = await submitAvatarVideoJob(spokenScript, photoAvatarId, effectiveVoiceId, audioUrl, motionPrompt)
-          videoId = heygenRes.videoId
-        } catch (avatarErr) {
-          console.warn('Avatar IV path failed, falling back to image-to-video:', avatarErr instanceof Error ? avatarErr.message : avatarErr)
-          const heygenRes = await submitImageToVideoJob(spokenScript, heygenImageUrl, effectiveVoiceId, audioUrl)
-          videoId = heygenRes.videoId
-        }
-      } else {
-        // Lean path: stock HeyGen avatar, HeyGen TTS, no person-image generation
-        const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
-        const heygenVoiceId = '1bd001e7e50f421d891986aad5158bc8'
-        const res = await submitVideoJob(spokenScript, effectiveAvatarId, heygenVoiceId)
-        videoId = res.videoId
       }
+
+      const fallbackVoiceId = fallbackVoiceForGender(gender)
+      const { videoId } = await submitVideoJob(
+        spokenScript,
+        effectiveAvatarId,
+        fallbackVoiceId, // only used if audioUrl is undefined
+        undefined,
+        audioUrl,
+      )
 
       // ---- shared post-submit: save early, submit B-rolls, return ----
       components.video = { videoId, status: 'processing', estimatedDuration: estimateDuration(script) }

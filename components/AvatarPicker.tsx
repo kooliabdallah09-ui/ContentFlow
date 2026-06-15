@@ -5,7 +5,7 @@ import type { HeyGenAvatar } from '@/app/api/ugc/avatars/route'
 
 interface AvatarPickerProps {
   selectedId: string
-  onChange: (avatarId: string) => void
+  onChange: (avatarId: string, gender?: string) => void
   disabled?: boolean
 }
 
@@ -21,7 +21,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
         setAvatars(data.avatars ?? [])
         // Auto-select first avatar if none selected
         if (!selectedId && data.avatars?.length) {
-          onChange(data.avatars[0].avatar_id)
+          onChange(data.avatars[0].avatar_id, data.avatars[0].gender)
         }
       })
       .catch(() => {})
@@ -82,7 +82,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
           return (
             <button
               key={avatar.avatar_id}
-              onClick={() => !disabled && onChange(avatar.avatar_id)}
+              onClick={() => !disabled && onChange(avatar.avatar_id, avatar.gender)}
               title={avatar.avatar_name}
               style={{
                 position: 'relative',

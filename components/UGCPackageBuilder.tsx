@@ -27,6 +27,7 @@ interface UGCPackageBuilderProps {
     productImageBase64?: string
     productImageMimeType?: string
     selectedHook?: string
+    avatarGender?: string
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -56,6 +57,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [callToAction, setCallToAction] = useState('Try it today')
   const [style, setStyle] = useState('realistic')
   const [avatarId, setAvatarId] = useState('')
+  const [avatarGender, setAvatarGender] = useState<string | undefined>(undefined)
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
@@ -97,6 +99,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       productImageBase64: productImage?.base64,
       productImageMimeType: productImage?.mimeType,
       selectedHook,
+      avatarGender,
     })
     resetForm()
   }
@@ -309,7 +312,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           ) : (
             <div>
               <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
-              <AvatarPicker selectedId={avatarId} onChange={setAvatarId} disabled={isLoading} />
+              <AvatarPicker
+                selectedId={avatarId}
+                onChange={(id, gender) => { setAvatarId(id); setAvatarGender(gender) }}
+                disabled={isLoading}
+              />
             </div>
           )}
 

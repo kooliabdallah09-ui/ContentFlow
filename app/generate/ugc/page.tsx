@@ -119,6 +119,7 @@ export default function UGCGeneratorPage() {
     productImageBase64?: string
     productImageMimeType?: string
     selectedHook?: string
+    avatarGender?: string
   }) => {
     setLoading(true)
     setError('')

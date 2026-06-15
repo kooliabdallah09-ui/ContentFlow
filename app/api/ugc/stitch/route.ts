@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
-    const { talkingHeadUrl, broll1Url } = await request.json()
+    const { talkingHeadUrl, broll1Url, broll2Url } = await request.json()
     if (!talkingHeadUrl) {
       return NextResponse.json({ error: 'Missing talkingHeadUrl' }, { status: 400 })
     }
 
-    const { renderId } = await submitStitchJob({ talkingHeadUrl, broll1Url })
+    const { renderId } = await submitStitchJob({ talkingHeadUrl, broll1Url, broll2Url })
     return NextResponse.json({ renderId })
   } catch (error) {
     return NextResponse.json(
