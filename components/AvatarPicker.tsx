@@ -14,6 +14,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'Male' | 'Female'>('all')
   const [imgStatus, setImgStatus] = useState<Record<string, 'loading' | 'loaded' | 'failed'>>({})
+  const [search, setSearch] = useState('')
 
   const markLoaded = (id: string) => setImgStatus(prev => ({ ...prev, [id]: 'loaded' }))
   const markFailed = (id: string) => setImgStatus(prev => ({ ...prev, [id]: 'failed' }))
@@ -32,7 +33,12 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
       .finally(() => setLoading(false))
   }, [])
 
-  const visible = filter === 'all' ? avatars : avatars.filter(a => a.gender === filter)
+  const q = search.trim().toLowerCase()
+  const visible = avatars.filter(a => {
+    if (filter !== 'all' && a.gender !== filter) return false
+    if (q && !a.avatar_name.toLowerCase().includes(q)) return false
+    return true
+  })
 
   // Inline keyframes so we don't depend on global CSS for the shimmer
   const shimmerCss = `@keyframes avatar-shimmer { 0% { background-position: -100% 0 } 100% { background-position: 200% 0 } }`
@@ -77,6 +83,27 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
   return (
     <div>
       <style>{shimmerCss}</style>
+
+      {/* Search bar */}
+      <input
+        type="text"
+        value={search}
+        onChange={e => setSearch(e.target.value)}
+        disabled={disabled}
+        placeholder={`Search ${avatars.length} avatars by name…`}
+        style={{
+          width: '100%',
+          padding: '8px 12px',
+          marginBottom: '10px',
+          borderRadius: '8px',
+          border: '1px solid var(--border)',
+          background: 'var(--surface)',
+          color: 'var(--ink)',
+          fontSize: '13px',
+          outline: 'none',
+        }}
+      />
+
       {/* Gender filter tabs */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
         {(['all', 'Female', 'Male'] as const).map(f => (
@@ -102,7 +129,13 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
         ))}
       </div>
 
-      {/* Avatar grid */}
+      {/* Avatar grid — scrollable so a large library doesn't push the form */}
+      <div style={{
+        maxHeight: '380px',
+        overflowY: 'auto',
+        paddingRight: '4px',
+        borderRadius: '8px',
+      }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
         {visible.map(avatar => {
           const selected = avatar.avatar_id === selectedId
@@ -213,9 +246,10 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
 
       {visible.length === 0 && (
         <p style={{ fontSize: '13px', color: 'var(--ink-fade)', textAlign: 'center', padding: '20px 0' }}>
-          No avatars available
+          {q ? `No avatars match "${search}"` : 'No avatars available'}
         </p>
       )}
+      </div>
     </div>
   )
 }

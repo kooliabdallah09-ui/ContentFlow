@@ -62,76 +62,62 @@ async function fetchHeyGenAvatars(): Promise<HeyGenApiAvatar[]> {
   }
 }
 
-// Build the avatar list shown in the picker. Strategy: keep curated IDs that HeyGen confirms
-// are still alive (real photo URL), and for any dead curated slot pull a real public avatar
-// from HeyGen's response to fill the gap — so the picker always shows 12 tiles with photos.
+// Cycle through a tasteful gradient palette for non-curated tiles so each avatar still has
+// a distinct visual identity even when its preview image fails to load.
+const PALETTE: Array<[string, string]> = [
+  ['#F8C9D2', '#D87DA1'], ['#FFD3A5', '#FD9853'], ['#D6B4FC', '#7E5BEF'], ['#A0E7E5', '#3DB6B0'],
+  ['#FFAFBD', '#FFC371'], ['#83C5BE', '#006D77'], ['#8FA5C9', '#3B5481'], ['#B8C5A7', '#5E7C4F'],
+  ['#FFCC70', '#C06C84'], ['#E0BBE4', '#957DAD'], ['#FFB997', '#843B62'], ['#FBD3E9', '#BB377D'],
+]
+
+// Build the full avatar list shown in the picker. Strategy:
+//   1. Curated IDs first (in their hand-picked order) — known-good for ContentFlow's pipeline.
+//   2. Then all of HeyGen's public avatars with a real preview image, deduped by first-name
+//      token so the user doesn't see 6x "Aditya" variants of the same person.
+// The picker provides search + filter, so showing hundreds is fine — the user finds by name.
 function buildAvatarList(heygenAvatars: HeyGenApiAvatar[]): HeyGenAvatar[] {
   const heygenById = new Map(heygenAvatars.map(a => [a.avatar_id, a]))
   const usedIds = new Set<string>()
   const usedFirstNames = new Set<string>()
 
-  // Normalize avatar name to its first token (e.g. "Aditya_public_4" → "aditya") so we can
-  // dedupe substitutes — picking 4x Aditya tiles is worse than picking 1x Aditya + 3x others.
-  const firstName = (a: HeyGenApiAvatar): string =>
+  const firstName = (a: { avatar_name?: string; avatar_id: string }): string =>
     (a.avatar_name ?? a.avatar_id).split(/[_\-\s]/)[0].toLowerCase()
 
-  // Pool of HeyGen avatars with non-empty preview images, not already in our curated list,
-  // ready to substitute for dead curated slots.
-  const substitutes = heygenAvatars
-    .filter(a => a.preview_image_url && a.preview_image_url.length > 10)
-    .filter(a => !CURATED_AVATARS.some(c => c.avatar_id === a.avatar_id))
-
-  // Seed used names from curated entries that are alive so substitutes don't collide with them
-  for (const c of CURATED_AVATARS) {
-    const live = heygenById.get(c.avatar_id)
-    if (live?.preview_image_url) usedFirstNames.add(c.avatar_name.toLowerCase())
-  }
-
-  const nextSubstitute = (preferGender?: string): HeyGenApiAvatar | undefined => {
-    const isCandidate = (a: HeyGenApiAvatar, requireGender: boolean): boolean => {
-      if (usedIds.has(a.avatar_id)) return false
-      if (usedFirstNames.has(firstName(a))) return false
-      if (requireGender && preferGender && (a.gender ?? '').toLowerCase() !== preferGender.toLowerCase()) return false
-      return true
-    }
-    // 1st pass: gender-matched + unique name; 2nd pass: any unique name; 3rd: anything unused
-    let found = substitutes.find(a => isCandidate(a, true))
-    if (!found) found = substitutes.find(a => isCandidate(a, false))
-    if (!found) found = substitutes.find(a => !usedIds.has(a.avatar_id))
-    return found
-  }
-
   const result: HeyGenAvatar[] = []
+
+  // 1) Curated entries that are still alive in HeyGen's library
   for (const curated of CURATED_AVATARS) {
     const live = heygenById.get(curated.avatar_id)
     const alive = live?.preview_image_url && live.preview_image_url.length > 10
-    if (alive) {
-      usedIds.add(curated.avatar_id)
-      result.push({
-        ...curated,
-        preview_image_url: proxyUrl(live!.preview_image_url!),
-        preview_video_url: live!.preview_video_url,
-      })
-      continue
-    }
-    // Curated ID is dead in HeyGen's current library — substitute
-    const sub = nextSubstitute(curated.gender)
-    if (sub) {
-      usedIds.add(sub.avatar_id)
-      usedFirstNames.add(firstName(sub))
-      result.push({
-        avatar_id: sub.avatar_id,
-        avatar_name: (sub.avatar_name ?? '').split(/[_\-\s]/)[0] || curated.avatar_name,
-        gender: sub.gender ?? curated.gender,
-        preview_image_url: proxyUrl(sub.preview_image_url!),
-        preview_video_url: sub.preview_video_url,
-        is_public: true,
-        accent: curated.accent, // keep the gradient identity
-      })
-    } else {
-      // No substitutes left — keep the curated tile, gradient fallback will render
-      result.push({ ...curated, preview_image_url: proxyUrl(curated.preview_image_url) })
-    }
+    if (!alive) continue
+    usedIds.add(curated.avatar_id)
+    usedFirstNames.add(curated.avatar_name.toLowerCase())
+    result.push({
+      ...curated,
+      preview_image_url: proxyUrl(live!.preview_image_url!),
+      preview_video_url: live!.preview_video_url,
+    })
+  }
+
+  // 2) All other HeyGen public avatars with images, deduped by first-name token
+  for (const a of heygenAvatars) {
+    if (!a.preview_image_url || a.preview_image_url.length <= 10) continue
+    if (usedIds.has(a.avatar_id)) continue
+    const fn = firstName(a)
+    if (usedFirstNames.has(fn)) continue
+    usedIds.add(a.avatar_id)
+    usedFirstNames.add(fn)
+    const [c1, c2] = PALETTE[result.length % PALETTE.length]
+    const cleanName = (a.avatar_name ?? '').split(/[_\-\s]/)[0] || a.avatar_id.slice(0, 12)
+    result.push({
+      avatar_id: a.avatar_id,
+      avatar_name: cleanName,
+      gender: a.gender || 'Unknown',
+      preview_image_url: proxyUrl(a.preview_image_url),
+      preview_video_url: a.preview_video_url,
+      is_public: true,
+      accent: [c1, c2],
+    })
   }
 
   return result
