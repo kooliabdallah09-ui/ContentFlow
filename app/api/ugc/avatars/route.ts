@@ -68,22 +68,37 @@ async function fetchHeyGenAvatars(): Promise<HeyGenApiAvatar[]> {
 function buildAvatarList(heygenAvatars: HeyGenApiAvatar[]): HeyGenAvatar[] {
   const heygenById = new Map(heygenAvatars.map(a => [a.avatar_id, a]))
   const usedIds = new Set<string>()
+  const usedFirstNames = new Set<string>()
+
+  // Normalize avatar name to its first token (e.g. "Aditya_public_4" → "aditya") so we can
+  // dedupe substitutes — picking 4x Aditya tiles is worse than picking 1x Aditya + 3x others.
+  const firstName = (a: HeyGenApiAvatar): string =>
+    (a.avatar_name ?? a.avatar_id).split(/[_\-\s]/)[0].toLowerCase()
 
   // Pool of HeyGen avatars with non-empty preview images, not already in our curated list,
-  // ready to substitute in for dead curated slots.
+  // ready to substitute for dead curated slots.
   const substitutes = heygenAvatars
     .filter(a => a.preview_image_url && a.preview_image_url.length > 10)
     .filter(a => !CURATED_AVATARS.some(c => c.avatar_id === a.avatar_id))
 
-  let subIdx = 0
+  // Seed used names from curated entries that are alive so substitutes don't collide with them
+  for (const c of CURATED_AVATARS) {
+    const live = heygenById.get(c.avatar_id)
+    if (live?.preview_image_url) usedFirstNames.add(c.avatar_name.toLowerCase())
+  }
+
   const nextSubstitute = (preferGender?: string): HeyGenApiAvatar | undefined => {
-    // First try to match gender, then fall back to any available
-    const matched = substitutes.findIndex((a, i) => i >= subIdx && !usedIds.has(a.avatar_id)
-      && (!preferGender || (a.gender ?? '').toLowerCase() === preferGender.toLowerCase()))
-    if (matched !== -1) { subIdx = matched + 1; return substitutes[matched] }
-    const any = substitutes.findIndex((a, i) => i >= subIdx && !usedIds.has(a.avatar_id))
-    if (any !== -1) { subIdx = any + 1; return substitutes[any] }
-    return undefined
+    const isCandidate = (a: HeyGenApiAvatar, requireGender: boolean): boolean => {
+      if (usedIds.has(a.avatar_id)) return false
+      if (usedFirstNames.has(firstName(a))) return false
+      if (requireGender && preferGender && (a.gender ?? '').toLowerCase() !== preferGender.toLowerCase()) return false
+      return true
+    }
+    // 1st pass: gender-matched + unique name; 2nd pass: any unique name; 3rd: anything unused
+    let found = substitutes.find(a => isCandidate(a, true))
+    if (!found) found = substitutes.find(a => isCandidate(a, false))
+    if (!found) found = substitutes.find(a => !usedIds.has(a.avatar_id))
+    return found
   }
 
   const result: HeyGenAvatar[] = []
@@ -103,6 +118,7 @@ function buildAvatarList(heygenAvatars: HeyGenApiAvatar[]): HeyGenAvatar[] {
     const sub = nextSubstitute(curated.gender)
     if (sub) {
       usedIds.add(sub.avatar_id)
+      usedFirstNames.add(firstName(sub))
       result.push({
         avatar_id: sub.avatar_id,
         avatar_name: (sub.avatar_name ?? '').split(/[_\-\s]/)[0] || curated.avatar_name,
