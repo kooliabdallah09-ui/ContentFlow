@@ -295,30 +295,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {productImage && tierCfg.useAvatarIV ? (
-            <div style={{
-              padding: '14px 16px', borderRadius: 'var(--r-md)',
-              background: 'var(--accent-soft)', border: '1px solid var(--accent)',
-              display: 'flex', gap: '12px', alignItems: 'flex-start',
-            }}>
-              <span style={{ fontSize: '18px', flexShrink: 0 }}>✦</span>
-              <div>
-                <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>AI will generate your avatar</p>
-                <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '3px 0 0' }}>
-                  A realistic person holding your product will be generated and animated speaking the script.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <div>
-              <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
-              <AvatarPicker
-                selectedId={avatarId}
-                onChange={(id, gender) => { setAvatarId(id); setAvatarGender(gender) }}
-                disabled={isLoading}
-              />
-            </div>
-          )}
+          <div>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
+            <AvatarPicker
+              selectedId={avatarId}
+              onChange={(id, gender) => { setAvatarId(id); setAvatarGender(gender) }}
+              disabled={isLoading}
+            />
+          </div>
 
           <div className="form-row">
             <label className="form-label">Voice</label>
