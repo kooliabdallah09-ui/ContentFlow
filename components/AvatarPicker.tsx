@@ -13,6 +13,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
   const [avatars, setAvatars] = useState<HeyGenAvatar[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'Male' | 'Female'>('all')
+  const [imgFailed, setImgFailed] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetch('/api/ugc/avatars')
@@ -79,6 +80,9 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
         {visible.map(avatar => {
           const selected = avatar.avatar_id === selectedId
+          const failed = imgFailed.has(avatar.avatar_id)
+          const showImage = !!avatar.preview_image_url && !failed
+          const [c1, c2] = avatar.accent ?? ['#444', '#222']
           return (
             <button
               key={avatar.avatar_id}
@@ -92,39 +96,47 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
                 border: selected ? '2px solid var(--accent)' : '2px solid transparent',
                 cursor: disabled ? 'default' : 'pointer',
                 padding: 0,
-                background: 'var(--surface)',
+                background: `linear-gradient(135deg, ${c1}, ${c2})`,
                 transition: 'border-color 0.15s, transform 0.1s',
                 transform: selected ? 'scale(1.02)' : 'scale(1)',
                 outline: 'none',
               }}
             >
-              {avatar.preview_image_url ? (
+              {showImage && (
                 <img
                   src={avatar.preview_image_url}
                   alt={avatar.avatar_name}
+                  loading="lazy"
                   style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  onError={e => { (e.target as HTMLImageElement).style.display = 'none' }}
+                  onError={() => setImgFailed(prev => new Set(prev).add(avatar.avatar_id))}
                 />
-              ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--surface)', fontSize: '22px', fontWeight: 700, color: 'var(--ink-dim)' }}>
-                  {avatar.avatar_name[0]}
-                </div>
               )}
 
-              {/* Name overlay */}
+              {/* Always-visible identity (works with OR without the photo) */}
               <div style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                background: 'linear-gradient(transparent, rgba(0,0,0,0.7))',
-                padding: '16px 6px 6px',
-                fontSize: '10px',
-                fontWeight: 600,
-                color: '#fff',
-                textAlign: 'center',
+                position: 'absolute', inset: 0,
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end',
+                padding: '8px 6px',
+                background: showImage
+                  ? 'linear-gradient(transparent 55%, rgba(0,0,0,0.75))'
+                  : 'linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55))',
+                pointerEvents: 'none',
               }}>
-                {avatar.avatar_name}
+                {!showImage && (
+                  <span style={{
+                    flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '34px', fontWeight: 800, color: 'rgba(255,255,255,0.92)',
+                    letterSpacing: '-0.02em',
+                  }}>
+                    {avatar.avatar_name[0]}
+                  </span>
+                )}
+                <span style={{ fontSize: '11px', fontWeight: 700, color: '#fff', textAlign: 'center', textShadow: '0 1px 2px rgba(0,0,0,0.4)' }}>
+                  {avatar.avatar_name}
+                </span>
+                <span style={{ fontSize: '9px', fontWeight: 600, color: 'rgba(255,255,255,0.75)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  {avatar.gender}
+                </span>
               </div>
 
               {/* Selected checkmark */}
