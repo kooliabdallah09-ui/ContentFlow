@@ -35,48 +35,100 @@ function proxyUrl(url: string): string {
   return `/api/ugc/avatar-image?url=${encodeURIComponent(url)}`
 }
 
-// Ask HeyGen for their CURRENT preview URLs. Cached 24h via Next fetch — only one upstream
-// call per day per region; subsequent requests are instant. If the call fails or our curated
-// IDs aren't in the response, we fall back to the hardcoded URLs (which the AvatarPicker's
-// gradient tile handles gracefully if they also fail).
-async function fetchHeyGenPreviewMap(): Promise<Map<string, { image?: string; video?: string }>> {
+interface HeyGenApiAvatar {
+  avatar_id: string
+  avatar_name?: string
+  gender?: string
+  preview_image_url?: string
+  preview_video_url?: string
+}
+
+// Ask HeyGen for their current public avatar library. Cached 24h via Next fetch — only one
+// upstream call per day per region; subsequent requests are instant.
+async function fetchHeyGenAvatars(): Promise<HeyGenApiAvatar[]> {
   const apiKey = process.env.HEYGEN_API_KEY
-  if (!apiKey) return new Map()
+  if (!apiKey) return []
 
   try {
     const res = await fetch('https://api.heygen.com/v2/avatars', {
       headers: { 'X-Api-Key': apiKey },
       next: { revalidate: 86400 },
     })
-    if (!res.ok) return new Map()
+    if (!res.ok) return []
     const data = await res.json()
-    const list: Array<{ avatar_id: string; preview_image_url?: string; preview_video_url?: string }> =
-      data?.data?.avatars ?? []
-    const map = new Map<string, { image?: string; video?: string }>()
-    for (const a of list) {
-      if (a.avatar_id) map.set(a.avatar_id, { image: a.preview_image_url, video: a.preview_video_url })
-    }
-    return map
+    return (data?.data?.avatars ?? []) as HeyGenApiAvatar[]
   } catch {
-    return new Map()
+    return []
   }
 }
 
-export async function GET() {
-  const heygenMap = await fetchHeyGenPreviewMap()
+// Build the avatar list shown in the picker. Strategy: keep curated IDs that HeyGen confirms
+// are still alive (real photo URL), and for any dead curated slot pull a real public avatar
+// from HeyGen's response to fill the gap — so the picker always shows 12 tiles with photos.
+function buildAvatarList(heygenAvatars: HeyGenApiAvatar[]): HeyGenAvatar[] {
+  const heygenById = new Map(heygenAvatars.map(a => [a.avatar_id, a]))
+  const usedIds = new Set<string>()
 
-  const avatars = CURATED_AVATARS.map(a => {
-    const live = heygenMap.get(a.avatar_id)
-    const imageUrl = live?.image || a.preview_image_url
-    return {
-      ...a,
-      preview_image_url: proxyUrl(imageUrl),
-      preview_video_url: live?.video,
+  // Pool of HeyGen avatars with non-empty preview images, not already in our curated list,
+  // ready to substitute in for dead curated slots.
+  const substitutes = heygenAvatars
+    .filter(a => a.preview_image_url && a.preview_image_url.length > 10)
+    .filter(a => !CURATED_AVATARS.some(c => c.avatar_id === a.avatar_id))
+
+  let subIdx = 0
+  const nextSubstitute = (preferGender?: string): HeyGenApiAvatar | undefined => {
+    // First try to match gender, then fall back to any available
+    const matched = substitutes.findIndex((a, i) => i >= subIdx && !usedIds.has(a.avatar_id)
+      && (!preferGender || (a.gender ?? '').toLowerCase() === preferGender.toLowerCase()))
+    if (matched !== -1) { subIdx = matched + 1; return substitutes[matched] }
+    const any = substitutes.findIndex((a, i) => i >= subIdx && !usedIds.has(a.avatar_id))
+    if (any !== -1) { subIdx = any + 1; return substitutes[any] }
+    return undefined
+  }
+
+  const result: HeyGenAvatar[] = []
+  for (const curated of CURATED_AVATARS) {
+    const live = heygenById.get(curated.avatar_id)
+    const alive = live?.preview_image_url && live.preview_image_url.length > 10
+    if (alive) {
+      usedIds.add(curated.avatar_id)
+      result.push({
+        ...curated,
+        preview_image_url: proxyUrl(live!.preview_image_url!),
+        preview_video_url: live!.preview_video_url,
+      })
+      continue
     }
-  })
+    // Curated ID is dead in HeyGen's current library — substitute
+    const sub = nextSubstitute(curated.gender)
+    if (sub) {
+      usedIds.add(sub.avatar_id)
+      result.push({
+        avatar_id: sub.avatar_id,
+        avatar_name: (sub.avatar_name ?? '').split(/[_\-\s]/)[0] || curated.avatar_name,
+        gender: sub.gender ?? curated.gender,
+        preview_image_url: proxyUrl(sub.preview_image_url!),
+        preview_video_url: sub.preview_video_url,
+        is_public: true,
+        accent: curated.accent, // keep the gradient identity
+      })
+    } else {
+      // No substitutes left — keep the curated tile, gradient fallback will render
+      result.push({ ...curated, preview_image_url: proxyUrl(curated.preview_image_url) })
+    }
+  }
+
+  return result
+}
+
+export async function GET() {
+  const heygenAvatars = await fetchHeyGenAvatars()
+  const avatars = heygenAvatars.length > 0
+    ? buildAvatarList(heygenAvatars)
+    : CURATED_AVATARS.map(a => ({ ...a, preview_image_url: proxyUrl(a.preview_image_url) }))
 
   return NextResponse.json(
-    { avatars, source: heygenMap.size > 0 ? 'heygen+curated' : 'curated' },
+    { avatars, source: heygenAvatars.length > 0 ? 'heygen+curated' : 'curated' },
     { headers: { 'Cache-Control': 'public, max-age=3600, s-maxage=86400' } },
   )
 }

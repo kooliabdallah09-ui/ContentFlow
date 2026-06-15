@@ -38,19 +38,38 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
   const shimmerCss = `@keyframes avatar-shimmer { 0% { background-position: -100% 0 } 100% { background-position: 200% 0 } }`
 
   if (loading) {
+    // Subtle gradient palette so each skeleton tile reads as a real placeholder, not a void
+    const skeletonGradients = [
+      ['#3a2f3a', '#2a1f2a'], ['#2f3a3a', '#1f2a2a'], ['#3a3a2f', '#2a2a1f'], ['#3a2f2a', '#2a1f1a'],
+      ['#2f2f3a', '#1f1f2a'], ['#3a2a2f', '#2a1a1f'], ['#2a3a3a', '#1a2a2a'], ['#3a3a3a', '#252525'],
+    ]
     return (
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div
-            key={i}
-            style={{
-              aspectRatio: '3/4',
-              borderRadius: '10px',
-              background: 'var(--surface)',
-              animation: 'pulse 1.5s ease-in-out infinite',
-            }}
-          />
-        ))}
+      <div>
+        <style>{shimmerCss}</style>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
+          {Array.from({ length: 12 }).map((_, i) => {
+            const [c1, c2] = skeletonGradients[i % skeletonGradients.length]
+            return (
+              <div
+                key={i}
+                style={{
+                  position: 'relative',
+                  aspectRatio: '3/4',
+                  borderRadius: '10px',
+                  overflow: 'hidden',
+                  background: `linear-gradient(135deg, ${c1}, ${c2})`,
+                }}
+              >
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(90deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.18) 50%, rgba(255,255,255,0.04) 100%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'avatar-shimmer 1.4s ease-in-out infinite',
+                }} />
+              </div>
+            )
+          })}
+        </div>
       </div>
     )
   }
