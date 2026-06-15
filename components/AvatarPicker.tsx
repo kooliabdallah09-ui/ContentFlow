@@ -13,7 +13,10 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
   const [avatars, setAvatars] = useState<HeyGenAvatar[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'Male' | 'Female'>('all')
-  const [imgFailed, setImgFailed] = useState<Set<string>>(new Set())
+  const [imgStatus, setImgStatus] = useState<Record<string, 'loading' | 'loaded' | 'failed'>>({})
+
+  const markLoaded = (id: string) => setImgStatus(prev => ({ ...prev, [id]: 'loaded' }))
+  const markFailed = (id: string) => setImgStatus(prev => ({ ...prev, [id]: 'failed' }))
 
   useEffect(() => {
     fetch('/api/ugc/avatars')
@@ -30,6 +33,9 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
   }, [])
 
   const visible = filter === 'all' ? avatars : avatars.filter(a => a.gender === filter)
+
+  // Inline keyframes so we don't depend on global CSS for the shimmer
+  const shimmerCss = `@keyframes avatar-shimmer { 0% { background-position: -100% 0 } 100% { background-position: 200% 0 } }`
 
   if (loading) {
     return (
@@ -51,6 +57,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
 
   return (
     <div>
+      <style>{shimmerCss}</style>
       {/* Gender filter tabs */}
       <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
         {(['all', 'Female', 'Male'] as const).map(f => (
@@ -80,8 +87,9 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px' }}>
         {visible.map(avatar => {
           const selected = avatar.avatar_id === selectedId
-          const failed = imgFailed.has(avatar.avatar_id)
-          const showImage = !!avatar.preview_image_url && !failed
+          const status = imgStatus[avatar.avatar_id] ?? (avatar.preview_image_url ? 'loading' : 'failed')
+          const showImage = !!avatar.preview_image_url && status !== 'failed'
+          const isLoading = status === 'loading'
           const [c1, c2] = avatar.accent ?? ['#444', '#222']
           return (
             <button
@@ -107,9 +115,29 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
                   src={avatar.preview_image_url}
                   alt={avatar.avatar_name}
                   loading="lazy"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  onError={() => setImgFailed(prev => new Set(prev).add(avatar.avatar_id))}
+                  style={{
+                    width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+                    opacity: status === 'loaded' ? 1 : 0,
+                    transition: 'opacity 0.25s ease-out',
+                  }}
+                  onLoad={e => {
+                    const img = e.currentTarget
+                    // HeyGen sometimes returns a 200 with a 0×0 image — treat as failed
+                    if (img.naturalWidth < 10) markFailed(avatar.avatar_id)
+                    else markLoaded(avatar.avatar_id)
+                  }}
+                  onError={() => markFailed(avatar.avatar_id)}
                 />
+              )}
+
+              {/* Shimmer while the preview is in flight */}
+              {showImage && isLoading && (
+                <div style={{
+                  position: 'absolute', inset: 0,
+                  background: 'linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.14) 50%, rgba(255,255,255,0.06) 100%)',
+                  backgroundSize: '200% 100%',
+                  animation: 'avatar-shimmer 1.4s ease-in-out infinite',
+                }} />
               )}
 
               {/* Always-visible identity (works with OR without the photo) */}
