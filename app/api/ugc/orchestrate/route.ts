@@ -362,6 +362,13 @@ export async function POST(request: NextRequest) {
         }
 
         const fallbackVoiceId = fallbackVoiceForGender(gender)
+        console.log('[orchestrate] Lean voice pick:', {
+          avatarId: effectiveAvatarId,
+          avatarGenderFromClient: avatarGender,
+          inferredGender: gender,
+          usingElevenLabsAudio: !!audioUrl,
+          fallbackVoiceId,
+        })
         const hey = await submitVideoJob(spokenScript, effectiveAvatarId, fallbackVoiceId, undefined, audioUrl)
         videoId = hey.videoId
       }
