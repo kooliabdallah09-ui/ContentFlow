@@ -256,7 +256,19 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
 
         <div className="form-row">
-          <label className="form-label">Product Photo <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>(optional)</span></label>
+          <label className="form-label">
+            Product Photo{' '}
+            <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>
+              {tier === 'lean' ? '(optional)' : '(required)'}
+            </span>
+          </label>
+          <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '0 0 8px', lineHeight: 1.5 }}>
+            {tier === 'lean'
+              ? 'Optional — used to anchor your real product in B-rolls (Nano Banana + Kling) and write a more accurate script. Skip it for fastest hook testing.'
+              : tier === 'premium'
+              ? 'Required — Nano Banana generates a realistic AI character holding your real product. Without it, Premium can’t run.'
+              : 'Required — Nano Banana composites your real product into the AI character’s hand for the Sora 2 first frame. Without it, Hero can’t run.'}
+          </p>
           <label style={{
             display: 'flex', alignItems: 'center', gap: '12px',
             padding: '12px 14px', borderRadius: 'var(--r-md)',
