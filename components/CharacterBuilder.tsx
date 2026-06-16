@@ -2,37 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
+import { type CharacterProfile, EMPTY_CHARACTER, buildCharacterPrompt } from '@/lib/character'
 
-// Character profile fields — answers feed directly into the Nano Banana hero-frame prompt
-// (used as Sora 2's input_reference). Mirrors the questions from the AI Influencer skill.
-export interface CharacterProfile {
-  gender: string
-  age: string
-  ethnicity: string
-  hair: string
-  uniqueFeatures: string
-  scene: string
-  mood: string
-  outfit: string
-  accessories: string
-}
+export { type CharacterProfile, EMPTY_CHARACTER, buildCharacterPrompt }
 
 export interface SavedPersona extends CharacterProfile {
   id: string
   name: string
   savedAt: string
-}
-
-export const EMPTY_CHARACTER: CharacterProfile = {
-  gender: '',
-  age: '',
-  ethnicity: '',
-  hair: '',
-  uniqueFeatures: '',
-  scene: '',
-  mood: '',
-  outfit: '',
-  accessories: '',
 }
 
 // Option sets per question. Each field also supports an "Other (specify)" free-text input
@@ -336,22 +313,3 @@ export default function CharacterBuilder({ value, onChange, disabled }: Characte
   )
 }
 
-// Build the Nano Banana character prompt from a profile. Falls back gracefully when fields are missing.
-export function buildCharacterPrompt(profile: CharacterProfile): string {
-  const parts: string[] = []
-  if (profile.age) parts.push(profile.age.toLowerCase())
-  if (profile.ethnicity) parts.push(profile.ethnicity.toLowerCase())
-  if (profile.gender) parts.push(profile.gender.toLowerCase() === 'man' ? 'man' : profile.gender.toLowerCase() === 'woman' ? 'woman' : 'person')
-  const intro = parts.length ? parts.join(' ') : 'a real person'
-
-  const details: string[] = []
-  if (profile.hair) details.push(`${profile.hair.toLowerCase()} hair`)
-  if (profile.uniqueFeatures && profile.uniqueFeatures !== 'None') details.push(profile.uniqueFeatures.toLowerCase())
-  if (profile.outfit) details.push(`wearing a ${profile.outfit.toLowerCase()}`)
-  if (profile.accessories && profile.accessories !== 'None') details.push(`with ${profile.accessories.toLowerCase()}`)
-  if (profile.mood) details.push(`${profile.mood.toLowerCase()} energy`)
-
-  const realismAnchors = 'real skin texture with pores and slight imperfections, natural hair with flyaways, candid mid-expression — not a polished portrait'
-
-  return `${intro}${details.length ? ', ' + details.join(', ') : ''}, ${realismAnchors}`
-}
