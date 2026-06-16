@@ -169,6 +169,10 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <Icon.Video />
           <span>Video</span>
         </Link>
+        <Link href="/generate/ugc" className={`nav-item ${isActive('/generate/ugc') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Video />
+          <span>UGC Package</span>
+        </Link>
       </div>
 
       <div className="rail-section">

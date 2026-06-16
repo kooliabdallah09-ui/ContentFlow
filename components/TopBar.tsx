@@ -20,6 +20,7 @@ const TITLES: Record<string, string> = {
   '/generate/image': 'Create / Image',
   '/generate/voice': 'Create / Voiceover',
   '/generate/video': 'Create / Video',
+  '/generate/ugc': 'Create / UGC Package',
   '/scheduler': 'Insights / Scheduler',
   '/analytics': 'Insights / Analytics',
 }
