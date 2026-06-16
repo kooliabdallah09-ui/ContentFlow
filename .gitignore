@@ -42,3 +42,8 @@ next-env.d.ts
 
 # Local Netlify folder
 .netlify
+
+# Generated media — never commit
+*.mp4
+sora-output-video_*
+logo.png
