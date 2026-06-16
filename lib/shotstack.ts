@@ -1,0 +1,177 @@
+// Shotstack stitch provider — drop-in replacement for lib/creatomate.ts.
+// Same public interface (submitStitchJob, getStitchStatus) so the route doesn't care
+// which provider it's talking to.
+//
+// Set SHOTSTACK_ENV=production to use the paid endpoint. Default is 'stage', which
+// is Shotstack's free sandbox (20 min/month, no card required, watermark-free).
+
+const SHOTSTACK_BASE = process.env.SHOTSTACK_ENV === 'production'
+  ? 'https://api.shotstack.io/edge'
+  : 'https://api.shotstack.io/stage'
+
+const TALKING_HEAD_ALIAS = 'talking_head'
+
+export async function submitStitchJob({
+  talkingHeadUrl,
+  broll1Url,
+  broll2Url,
+  audioOverlayUrl,
+}: {
+  talkingHeadUrl: string
+  broll1Url?: string
+  broll2Url?: string
+  audioOverlayUrl?: string  // Hero tier: ElevenLabs voice — mutes talking-head audio
+}): Promise<{ renderId: string }> {
+  const apiKey = process.env.SHOTSTACK_API_KEY
+  if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
+
+  // Mirror the Creatomate timing exactly so the output feels identical:
+  //   0–4s: B-roll1 (muted, fades out)
+  //   3.7s: talking head starts (0.3s crossover)
+  //   talking-head.end: B-roll2 appended (muted, fades in)
+  const talkingHeadStart = broll1Url ? 3.7 : 0
+
+  // Track 1 (bottom): main visual track
+  const visualClips: Record<string, unknown>[] = []
+
+  if (broll1Url) {
+    visualClips.push({
+      asset: { type: 'video', src: broll1Url, volume: 0 },
+      start: 0,
+      length: 4,
+      fit: 'cover',
+      transition: { out: 'fade' },
+    })
+  }
+
+  visualClips.push({
+    asset: {
+      type: 'video',
+      src: talkingHeadUrl,
+      // Mute the talking head when overlay audio is provided (Hero tier)
+      volume: audioOverlayUrl ? 0 : 1,
+    },
+    alias: TALKING_HEAD_ALIAS,
+    start: talkingHeadStart,
+    length: 'auto',
+    fit: 'cover',
+  })
+
+  if (broll2Url) {
+    visualClips.push({
+      asset: { type: 'video', src: broll2Url, volume: 0 },
+      // Append after talking head — Shotstack supports relative timing via merge fields,
+      // but the simplest portable approach is to use 'auto' length on the head and then
+      // start the next clip with a small placeholder. Since we don't know the exact head
+      // length client-side, we let Shotstack chain via the 'after' alias reference.
+      start: `{{ ${TALKING_HEAD_ALIAS}.end }}`,
+      length: 4,
+      fit: 'cover',
+      transition: { in: 'fade' },
+    })
+  }
+
+  const tracks: Record<string, unknown>[] = [{ clips: visualClips }]
+
+  // Optional: ElevenLabs audio overlay (Hero tier) — its own track so it plays full volume
+  if (audioOverlayUrl) {
+    tracks.push({
+      clips: [{
+        asset: { type: 'audio', src: audioOverlayUrl, volume: 1 },
+        start: talkingHeadStart,
+        length: 'auto',
+      }],
+    })
+  }
+
+  // TikTok-style auto-captions transcribed from the talking-head audio.
+  // Track placed above visuals so the captions render on top.
+  tracks.unshift({
+    clips: [{
+      asset: {
+        type: 'caption',
+        src: `alias://${TALKING_HEAD_ALIAS}`,
+        font: {
+          family: 'Inter',
+          weight: 900,
+          size: 64,
+          color: '#FFFFFF',
+          lineHeight: 1.1,
+        },
+        stroke: { color: '#000000', width: 4 },
+        background: { color: 'transparent' },
+        // Highlight active word in yellow — closest analog to Creatomate's transcript_effect
+        highlight: { color: '#FFD400' },
+      },
+      start: talkingHeadStart,
+      length: 'auto',
+      position: 'bottom',
+      offset: { y: -0.22 },  // push up to roughly 78% from the top of frame
+    }],
+  })
+
+  const body = {
+    timeline: {
+      background: '#000000',
+      tracks,
+    },
+    output: {
+      format: 'mp4',
+      size: { width: 1080, height: 1920 },
+      fps: 30,
+    },
+  }
+
+  const res = await fetch(`${SHOTSTACK_BASE}/render`, {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(err.message || err.response?.message || `Shotstack error ${res.status}: ${JSON.stringify(err)}`)
+  }
+
+  const data = await res.json()
+  const renderId = data?.response?.id ?? data?.id
+  if (!renderId) throw new Error(`Shotstack did not return a render ID. Response: ${JSON.stringify(data)}`)
+
+  return { renderId }
+}
+
+// Status normalised to match the Creatomate interface used by the route + UI.
+//   Shotstack:    queued | fetching | rendering | saving | done | failed
+//   Creatomate:   planned | waiting | transcribing | rendering | succeeded | failed
+export async function getStitchStatus(renderId: string): Promise<{
+  status: 'planned' | 'waiting' | 'transcribing' | 'rendering' | 'succeeded' | 'failed'
+  url?: string
+  error?: string
+}> {
+  const apiKey = process.env.SHOTSTACK_API_KEY
+  if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
+
+  const res = await fetch(`${SHOTSTACK_BASE}/render/${renderId}`, {
+    headers: { 'x-api-key': apiKey },
+  })
+
+  if (!res.ok) throw new Error(`Failed to get Shotstack render status: ${res.statusText}`)
+
+  const data = await res.json()
+  const r = data?.response ?? data
+  const rawStatus: string = r?.status ?? 'queued'
+  const url: string | undefined = r?.url ?? undefined
+  const error: string | undefined = r?.error ?? undefined
+
+  const mapped: 'planned' | 'waiting' | 'transcribing' | 'rendering' | 'succeeded' | 'failed' =
+    rawStatus === 'done' ? 'succeeded'
+    : rawStatus === 'failed' ? 'failed'
+    : rawStatus === 'rendering' || rawStatus === 'saving' ? 'rendering'
+    : rawStatus === 'fetching' ? 'waiting'
+    : 'planned'
+
+  return { status: mapped, url, error }
+}

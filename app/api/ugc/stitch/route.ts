@@ -1,5 +1,30 @@
-import { submitStitchJob, getStitchStatus } from '@/lib/creatomate'
+import * as creatomate from '@/lib/creatomate'
+import * as shotstack from '@/lib/shotstack'
 import { NextRequest, NextResponse } from 'next/server'
+
+// Dispatch: Shotstack is preferred when its key is present (cheaper + free tier).
+// Falls back to Creatomate. Render IDs are prefixed so polling routes to the right
+// provider regardless of which one created the render.
+const SHOTSTACK_PREFIX = 'shotstack:'
+
+function provider() {
+  return process.env.SHOTSTACK_API_KEY ? 'shotstack' : 'creatomate'
+}
+
+async function submitStitchJob(input: Parameters<typeof creatomate.submitStitchJob>[0]) {
+  if (provider() === 'shotstack') {
+    const { renderId } = await shotstack.submitStitchJob(input)
+    return { renderId: `${SHOTSTACK_PREFIX}${renderId}` }
+  }
+  return creatomate.submitStitchJob(input)
+}
+
+async function getStitchStatus(renderId: string) {
+  if (renderId.startsWith(SHOTSTACK_PREFIX)) {
+    return shotstack.getStitchStatus(renderId.slice(SHOTSTACK_PREFIX.length))
+  }
+  return creatomate.getStitchStatus(renderId)
+}
 
 export async function POST(request: NextRequest) {
   try {
