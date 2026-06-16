@@ -44,21 +44,56 @@ async function callNanoBanana(prompt: string, referenceImageBase64: string, refe
   return { imageBase64: inline.data, mimeType: inline.mime_type || 'image/png' }
 }
 
-// Generate a product close-up hero shot for B-roll 1. The product appearance comes entirely
-// from the attached reference image — the prompt only directs scene/composition/lighting.
+// Generate a B-roll action frame showing a SPECIFIC application action mid-motion.
+// Used as the start_image for Kling image-to-video — Kling extends the action forward.
+// Two beats per video: actionBeat='application' (the using moment), actionBeat='reaction'
+// (the result/sensory moment). Both anchor the real product via the reference image.
+export async function generateActionFrame(
+  productImageBase64: string,
+  productMimeType: string,
+  productName: string,
+  actionDescription: string,
+  scene: string,
+): Promise<NanoBananaResult> {
+  const prompt = `Using the attached reference image as the exact product (preserve packaging, label text, colours, shape, and proportions exactly as shown — do not redesign or restyle), generate a hyper-realistic phone-camera photograph for a UGC ad B-roll frame.
+
+ACTION HAPPENING IN THIS FRAME: ${actionDescription}
+
+The frame must capture the action mid-moment — frozen at the exact peak of motion, NOT before or after. Examples of what 'mid-moment' means: mid-spray with droplets visible in the air, fingers mid-application with product trail on the skin, hand mid-lift bringing the product toward the face, mouth mid-bite, glass mid-tilt with liquid in motion. The viewer should feel they paused a video at the exact action peak.
+
+SCENE: ${scene}, lived-in and identifiable but not the focus.
+
+CAMERA: phone-camera close-up — hands, body parts (neck, jawline, wrist, lips, fingers), partial face only (chin to nose, or eyes only, or side profile). NEVER a full face portrait — this is a B-roll, the full face belongs to the A-roll. Slight handheld tilt 2°, off-centre composition.
+
+LIGHTING: single soft natural source, real shadow, no studio look, no rim light.
+
+REALISM ANCHORS:
+- Skin texture: pores, hair, slight imperfections, no smoothing
+- Motion blur: subtle on the moving parts (hand, liquid, fabric) — proves it's a frozen second from a video
+- Product still locked to the reference image: same packaging, same label text, same colour
+
+Phone-camera-natural rendering: slight sensor grain, mild highlight clipping where appropriate, no beauty filter, no commercial polish, no over-sharpening. Should look like a real person paused a UGC video at the action peak, NOT like a marketing campaign still.
+
+Vertical 9:16 format. The product is visible and the action with it is unmistakable.`
+
+  return callNanoBanana(prompt, productImageBase64, productMimeType)
+}
+
+// Backwards-compat wrapper for the older static-product-shot call (still used as a fallback
+// when an action description can't be generated). Prefer generateActionFrame for new code.
 export async function generateProductHeroShot(
   productImageBase64: string,
   productMimeType: string,
   productName: string,
   scene: string,
 ): Promise<NanoBananaResult> {
-  const prompt = `Using the attached reference image as the exact product (preserve packaging, label text, colours, shape, and proportions exactly as shown — do not redesign or restyle), generate a cinematic product photograph of ${productName} in a ${scene} context.
-
-The product is the hero of the shot — held at a slight angle so the label is readable but not perfectly square to camera, soft natural lighting from one side casting gentle shadow, shot from a phone-natural angle (not perfectly centred, slight perspective). Vertical 9:16 composition. No people visible in the frame, no hands holding the product. Lifestyle context implied by the background — soft, partially blurred, identifiable as the right space but not distracting.
-
-Phone-camera-natural rendering: slight grain in the shadow areas, natural colour, no beauty filter, no studio-lighting look, no commercial product-shot polish. Should look like a real person snapped this on their iPhone, not a marketing photo.`
-
-  return callNanoBanana(prompt, productImageBase64, productMimeType)
+  return generateActionFrame(
+    productImageBase64,
+    productMimeType,
+    productName,
+    `hand holding the product mid-lift toward the camera, fingers wrapped naturally around it, label angled slightly toward camera`,
+    scene,
+  )
 }
 
 // Generate a character + product hero frame for the A-roll talking head (used in Hero tier).

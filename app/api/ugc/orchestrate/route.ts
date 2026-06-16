@@ -1,6 +1,6 @@
 import { generateImage } from '@/lib/gemini-image'
 import { submitVideoJob, estimateDuration, fallbackVoiceForGender, inferAvatarGender } from '@/lib/heygen'
-import { generateProductHeroShot } from '@/lib/nanobanana'
+import { generateActionFrame } from '@/lib/nanobanana'
 import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -66,23 +66,43 @@ Rules:
   return (msg.content[0] as { text: string }).text.trim()
 }
 
-async function generateBrollPrompts(
+// Generate 2 ACTION DESCRIPTIONS for B-rolls — these describe what physically happens at
+// the action peak (mid-spray, mid-apply, mid-bite). They feed Nano Banana to produce a
+// frozen-mid-action frame, which Kling then animates forward via image-to-video.
+// Action 1 = application (the moment of use). Action 2 = result/sensory (reaction, after-effect).
+async function generateBrollActions(
   productName: string,
   productDescription: string,
   background: string,
   imageBase64?: string,
   imageMimeType?: string,
 ): Promise<[string, string]> {
-  const textPrompt = `Write exactly 2 short video generation prompts for cinematic B-roll clips to accompany a UGC ad for "${productName}" (${productDescription}). Setting context: ${background}.
-${imageBase64 ? 'The image above shows the actual product — reference its exact appearance, colors, and packaging in the prompts.\n' : ''}
-B-roll 1: A close-up product detail shot — the product alone on a surface or held in a hand, beautiful lighting, slight slow zoom or tilt, no people, cinematic 9:16 vertical.
-B-roll 2: A usage action shot — determine the natural way to use this product (sunscreen → hands rubbing it into skin; perfume → spraying on wrist; food/drink → taking a bite or sip; tech → hands interacting with it; etc.) and show that specific action close-up, no face, hands only or body only, authentic and cinematic, 9:16 vertical.
+  const textPrompt = `Decide the most natural way a real person would USE "${productName}" (${productDescription}), then write 2 action descriptions for UGC ad B-roll frames. Setting: ${background}.
+${imageBase64 ? 'The image above shows the actual product — base your action choices on what type of product this is.\n' : ''}
+ACTION 1 — Application moment: the actual physical motion of using the product, mid-action. Examples by product type:
+- Skincare/serum: fingers mid-application on cheek with product trail visible, partial side profile
+- Perfume: wrist mid-spray with mist droplets in the air, fingertip on nozzle
+- Food/drink: glass mid-tilt to lips with liquid in motion, or fork mid-lift with food
+- Supplement/pill: hand mid-tip of bottle into palm, capsule mid-fall
+- Hair: hands mid-massage of product into scalp/hair, strands mid-motion
+- Tech/device: thumb mid-tap on the device, finger pressing a button mid-press
+
+ACTION 2 — Reaction / sensory moment: the result of having just used it, mid-feeling. Examples:
+- Skincare: side profile, fingers gently pressing in the just-applied product, eyes lowered or closed
+- Perfume: wrist raised to nose, neck tilted, eyes half-closed, mid-inhale
+- Food/drink: mid-chew or mid-savor expression, eyes closed or focused
+- Supplement: hand bringing a glass of water to lips after pill, mid-swallow throat motion
+- Hair: head tilted, hand running through hair to feel the result, mid-motion
+- Tech: hand holding/interacting with the device, satisfied expression
+
+Each description should be a single concrete sentence: WHO (hands/wrist/side profile/etc.), DOING WHAT, mid-MOMENT.
 
 Rules:
-- Each prompt on its own line
-- Cinematic, photorealistic, vertical 9:16 format
-- No text, no watermarks, no full face shots
-- Output ONLY the 2 prompts, nothing else`
+- Each description on its own line, ONLY the description, no labels or numbering
+- Mid-action / mid-moment language — frozen at the action peak
+- Body parts only (hands, wrist, neck, jawline, lips, eyes, partial face) — never full face
+- Be specific to THIS product type, not generic
+- Output ONLY the 2 lines, nothing else`
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -99,7 +119,10 @@ Rules:
   })
 
   const lines = (msg.content[0] as { text: string }).text.trim().split('\n').filter(Boolean)
-  return [lines[0] ?? `Cinematic close-up of ${productName}, beautiful studio lighting, slow zoom, 9:16 vertical`, lines[1] ?? `Lifestyle shot of ${productName} in a ${background}, natural light, cinematic, 9:16 vertical`]
+  return [
+    lines[0] ?? `Hand mid-lift bringing ${productName} toward the camera, fingers wrapped around it, label angled toward camera`,
+    lines[1] ?? `Side profile with fingers gently pressing the just-applied ${productName} into the skin, eyes lowered, mid-motion`,
+  ]
 }
 
 // Replace the spoken line in the [HOOK ...] section with a user-picked hook.
@@ -267,44 +290,48 @@ export async function POST(request: NextRequest) {
         content_type: 'ugc_package', description: `UGC package: ${productName} (${tier})`,
       })
 
-      // Submit Kling B-rolls after DB is saved — tier controls how many (lean=1, premium/hero=2).
-      // When a product image is uploaded, B-roll 1 is generated via Nano Banana → Kling image-to-video
-      // (slow cinematic motion on the REAL product). Without a product image, both B-rolls fall back
-      // to Kling text-to-video.
+      // Submit B-rolls after DB is saved. New action-driven pipeline:
+      //   Claude → 2 action descriptions (application moment + reaction moment, product-specific)
+      //   Nano Banana → 2 frozen-mid-action frames anchored on the real product image
+      //   Kling image-to-video → animates each action frame forward into a 5s clip
+      // Falls back gracefully: if Nano Banana fails for a frame, that slot uses Kling text-to-video
+      // with the action description as the prompt. If everything is missing (no product image, no
+      // Gemini key), both B-rolls use Kling text-to-video as before.
       const brollProviderReady = !!(process.env.REPLICATE_API_TOKEN || process.env.FAL_KEY || process.env.PIAPI_API_KEY)
-      const brollPrompts = brollProviderReady && tierCfg.brollCount > 0
-        ? await generateBrollPrompts(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType).catch(() => null)
+      const brollActions = brollProviderReady && tierCfg.brollCount > 0
+        ? await generateBrollActions(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType).catch(() => null)
         : null
 
-      if (brollPrompts) {
-        const promptsToRender = brollPrompts.slice(0, tierCfg.brollCount)
+      if (brollActions) {
+        const actionsToRender = brollActions.slice(0, tierCfg.brollCount)
+        const canUseNanoBanana = !!(productImageBase64 && productImageMimeType && process.env.GEMINI_API_KEY)
 
-        // If a product image + Nano Banana are available, swap B-roll 1's text-to-video prompt
-        // for an image-to-video motion prompt seeded on a Nano Banana hero shot of the real product.
-        let broll1StartImageUrl: string | undefined
-        if (productImageBase64 && productImageMimeType && process.env.GEMINI_API_KEY && promptsToRender.length > 0) {
-          try {
-            const hero = await generateProductHeroShot(productImageBase64, productImageMimeType, productName, backgroundContext)
-            const heroFilename = `nano-banana/${userId}-${Date.now()}.${hero.mimeType.split('/')[1] ?? 'png'}`
-            const heroBuf = Buffer.from(hero.imageBase64, 'base64')
-            const { error: heroErr } = await supabase.storage
-              .from('ugc-assets')
-              .upload(heroFilename, heroBuf, { contentType: hero.mimeType, upsert: false })
-            if (!heroErr) {
-              const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(heroFilename)
-              broll1StartImageUrl = publicUrl
-              // Swap the text-to-video prompt for a motion-only prompt — the appearance comes from the image
-              promptsToRender[0] = `Slow cinematic camera push-in toward the product, slight rotation revealing the label clearly, gentle parallax, soft natural lighting, 9:16 vertical, no people, no extra objects, preserve the product exactly as shown in the starting frame`
+        // For each action: generate a Nano Banana action frame, upload, then submit Kling i2v.
+        // Done in parallel — Nano Banana takes ~5s, can't block on it sequentially.
+        const KLING_I2V_MOTION_PROMPT = 'Continue the action naturally from the starting frame — smooth realistic motion of the hands/body/product, 5 seconds, phone-camera handheld feel, soft natural lighting preserved, 9:16 vertical, no scene cuts, no new objects appearing'
+
+        const submissions = await Promise.all(actionsToRender.map(async (action, i) => {
+          if (canUseNanoBanana) {
+            try {
+              const frame = await generateActionFrame(productImageBase64!, productImageMimeType!, productName, action, backgroundContext)
+              const filename = `nano-banana/${userId}-${Date.now()}-${i}.${frame.mimeType.split('/')[1] ?? 'png'}`
+              const buf = Buffer.from(frame.imageBase64, 'base64')
+              const { error: upErr } = await supabase.storage
+                .from('ugc-assets')
+                .upload(filename, buf, { contentType: frame.mimeType, upsert: false })
+              if (!upErr) {
+                const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+                return await submitBrollJob(KLING_I2V_MOTION_PROMPT, publicUrl).catch(() => null)
+              }
+            } catch (err) {
+              console.warn(`Nano Banana action frame ${i} failed, falling back to Kling text-to-video:`, err instanceof Error ? err.message : err)
             }
-          } catch (err) {
-            console.warn('Nano Banana hero shot failed, falling back to Kling text-to-video for B-roll 1:', err instanceof Error ? err.message : err)
           }
-        }
+          // Fallback: Kling text-to-video with the raw action description
+          return await submitBrollJob(action).catch(() => null)
+        }))
 
-        const submissions = await Promise.all(
-          promptsToRender.map((p, i) => submitBrollJob(p, i === 0 ? broll1StartImageUrl : undefined).catch(() => null))
-        )
-        const labels = ['Product close-up', 'Lifestyle shot']
+        const labels = ['Application moment', 'Reaction moment']
         components.broll = submissions
           .map((sub, i) => sub ? { taskId: sub.taskId, status: 'processing', label: labels[i] ?? `B-roll ${i + 1}` } : null)
           .filter(Boolean)
