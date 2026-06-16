@@ -1,10 +1,12 @@
 import { getVideoStatus } from '@/lib/heygen'
 import { getBrollStatus } from '@/lib/kling'
+import { getSoraStatus } from '@/lib/sora'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   const videoId = request.nextUrl.searchParams.get('videoId')
   const brollTaskIds = request.nextUrl.searchParams.get('brollTaskIds') // comma-separated
+  const provider = request.nextUrl.searchParams.get('provider') // 'heygen' | 'sora-2'
 
   if (!videoId && !brollTaskIds) {
     return NextResponse.json({ error: 'Missing videoId or brollTaskIds' }, { status: 400 })
@@ -14,7 +16,9 @@ export async function GET(request: NextRequest) {
     const result: Record<string, unknown> = {}
 
     if (videoId) {
-      const status = await getVideoStatus(videoId)
+      const status = provider === 'sora-2'
+        ? await getSoraStatus(videoId)
+        : await getVideoStatus(videoId)
       result.video = status
     }
 

@@ -9,6 +9,7 @@ interface VideoComponent {
   status: 'processing' | 'completed' | 'failed'
   estimatedDuration?: number
   duration?: number
+  provider?: 'heygen' | 'sora-2'
 }
 
 interface BrollClip {
@@ -59,7 +60,10 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     pollRef.current = setInterval(async () => {
       try {
         const params = new URLSearchParams()
-        if (video?.videoId && video.status === 'processing') params.set('videoId', video.videoId)
+        if (video?.videoId && video.status === 'processing') {
+          params.set('videoId', video.videoId)
+          if (video.provider) params.set('provider', video.provider)
+        }
         const processingBrolls = brolls.filter(b => b.status === 'processing')
         if (processingBrolls.length) params.set('brollTaskIds', processingBrolls.map(b => b.taskId).join(','))
 

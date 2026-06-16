@@ -1,6 +1,8 @@
 import { generateImage } from '@/lib/gemini-image'
 import { submitVideoJob, estimateDuration, fallbackVoiceForGender, inferAvatarGender } from '@/lib/heygen'
-import { generateActionFrame } from '@/lib/nanobanana'
+import { generateActionFrame, generateCharacterWithProduct } from '@/lib/nanobanana'
+import { submitSoraJob } from '@/lib/sora'
+import { buildSoraPrompt } from '@/lib/sora-prompt'
 import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -238,41 +240,91 @@ export async function POST(request: NextRequest) {
       const bgMatch = script.match(/\[BACKGROUND:\s*([^\]]+)\]/i)
       const backgroundContext = bgMatch?.[1]?.trim() ?? 'casual indoor setting'
 
-      // All tiers now use a real HeyGen stock avatar (Arcads-style: real recorded actor,
-      // not an AI-generated person). Premium adds an ElevenLabs voice on top; Lean uses HeyGen TTS.
-      const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
-      const gender = avatarGender || inferAvatarGender(effectiveAvatarId)
+      // A-roll provider branches by tier:
+      //   - 'heygen-stock' (Lean): pre-recorded HeyGen stock avatar + HeyGen TTS / ElevenLabs
+      //   - 'sora-2'      (Premium, Hero): Nano Banana character+product hero frame → Sora 2
+      //     image-to-video with native audio. No HeyGen, no ElevenLabs, no Sync.so.
+      let videoId: string
+      let aRollProvider: 'heygen' | 'sora-2'
 
-      // Generate ElevenLabs audio for tiers that want it (Premium / Hero)
-      let audioUrl: string | undefined
-      if (tierCfg.useElevenLabs && process.env.ELEVENLABS_API_KEY) {
-        try {
-          const audioBuffer = await generateSpeech(spokenScript, voiceId)
-          const audioFilename = `audio-gen/${userId}-${Date.now()}.mp3`
-          const { error: audioErr } = await supabase.storage
-            .from('ugc-assets')
-            .upload(audioFilename, audioBuffer, { contentType: 'audio/mpeg', upsert: false })
-          if (!audioErr) {
-            const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
-            audioUrl = publicUrl
-          }
-        } catch (err) {
-          // ElevenLabs failed — log and fall back to gender-matched HeyGen TTS (never wrong gender)
-          console.warn('ElevenLabs failed, using gender-matched HeyGen TTS fallback:', err instanceof Error ? err.message : err)
+      if (tierCfg.aRollProvider === 'sora-2') {
+        aRollProvider = 'sora-2'
+        if (!process.env.OPENAI_API_KEY) {
+          return NextResponse.json({ error: 'Sora A-roll is not configured (OPENAI_API_KEY missing)' }, { status: 500 })
         }
+        if (!productImageBase64 || !productImageMimeType) {
+          return NextResponse.json({ error: 'Premium / Hero tier requires a product photo (used to anchor the AI character and product)' }, { status: 400 })
+        }
+        if (!process.env.GEMINI_API_KEY) {
+          return NextResponse.json({ error: 'Sora A-roll requires Nano Banana (GEMINI_API_KEY missing)' }, { status: 500 })
+        }
+
+        // 1. Nano Banana — character holding the real product, hyper-realistic phone-camera frame
+        const characterPrompt = avatarGender === 'Male'
+          ? 'late 20s man, candid expression, real skin texture with pores and slight imperfections, natural hair with flyaways, casual outfit appropriate to the scene'
+          : 'late 20s woman, candid expression, real skin texture with pores and slight imperfections, natural hair with flyaways, casual outfit appropriate to the scene'
+
+        const heroFrame = await generateCharacterWithProduct(
+          productImageBase64,
+          productImageMimeType,
+          productName,
+          characterPrompt,
+          backgroundContext,
+        )
+        const heroFilename = `sora-source/${userId}-${Date.now()}.${heroFrame.mimeType.split('/')[1] ?? 'png'}`
+        const { error: heroErr } = await supabase.storage
+          .from('ugc-assets')
+          .upload(heroFilename, Buffer.from(heroFrame.imageBase64, 'base64'), { contentType: heroFrame.mimeType, upsert: false })
+        if (heroErr) throw new Error(`Failed to upload Sora source frame: ${heroErr.message}`)
+        const { data: { publicUrl: heroUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(heroFilename)
+
+        // 2. Claude builds the Sora 2 prompt following the Camera→...→Audio structure
+        const soraPrompt = await buildSoraPrompt({
+          productName,
+          productDescription,
+          scene: backgroundContext,
+          script: spokenScript,
+        })
+
+        // 3. Submit Sora 2 job — returns immediately with a video id, client polls for completion
+        const sora = await submitSoraJob({
+          prompt: soraPrompt,
+          referenceImageUrl: heroUrl,
+          durationSeconds: tierCfg.durationSeconds,
+          aspectRatio: '9:16',
+        })
+        videoId = sora.videoId
+      } else {
+        // HeyGen stock path (Lean tier)
+        aRollProvider = 'heygen'
+        const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
+        const gender = avatarGender || inferAvatarGender(effectiveAvatarId)
+
+        // Generate ElevenLabs audio if the tier asks for it
+        let audioUrl: string | undefined
+        if (tierCfg.useElevenLabs && process.env.ELEVENLABS_API_KEY) {
+          try {
+            const audioBuffer = await generateSpeech(spokenScript, voiceId)
+            const audioFilename = `audio-gen/${userId}-${Date.now()}.mp3`
+            const { error: audioErr } = await supabase.storage
+              .from('ugc-assets')
+              .upload(audioFilename, audioBuffer, { contentType: 'audio/mpeg', upsert: false })
+            if (!audioErr) {
+              const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
+              audioUrl = publicUrl
+            }
+          } catch (err) {
+            console.warn('ElevenLabs failed, using gender-matched HeyGen TTS fallback:', err instanceof Error ? err.message : err)
+          }
+        }
+
+        const fallbackVoiceId = fallbackVoiceForGender(gender)
+        const hey = await submitVideoJob(spokenScript, effectiveAvatarId, fallbackVoiceId, undefined, audioUrl)
+        videoId = hey.videoId
       }
 
-      const fallbackVoiceId = fallbackVoiceForGender(gender)
-      const { videoId } = await submitVideoJob(
-        spokenScript,
-        effectiveAvatarId,
-        fallbackVoiceId, // only used if audioUrl is undefined
-        undefined,
-        audioUrl,
-      )
-
       // ---- shared post-submit: save early, submit B-rolls, return ----
-      components.video = { videoId, status: 'processing', estimatedDuration: estimateDuration(script) }
+      components.video = { videoId, status: 'processing', provider: aRollProvider, estimatedDuration: estimateDuration(script) }
 
       // Save to DB immediately after HeyGen submits — never lose a video ID to a timeout
       const { data: ugcRow } = await supabase.from('ugc_content').insert({
