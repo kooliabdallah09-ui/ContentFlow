@@ -3,7 +3,7 @@ import { submitVideoJob, estimateDuration, fallbackVoiceForGender, inferAvatarGe
 import { generateActionFrame, generateCharacterWithProduct } from '@/lib/nanobanana'
 import { submitSoraJob } from '@/lib/sora'
 import { buildSoraPrompt } from '@/lib/sora-prompt'
-import { generateSpeech } from '@/lib/elevenlabs'
+import { generateSpeech } from '@/lib/tts'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
@@ -301,17 +301,14 @@ export async function POST(request: NextRequest) {
         if (heroErr) throw new Error(`Failed to upload Sora source frame: ${heroErr.message}`)
         const { data: { publicUrl: heroUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(heroFilename)
 
-        // 3. Hero tier only: generate ElevenLabs audio to overlay on the muted Sora video later.
+        // 3. Hero tier only: generate voice audio to overlay on the muted Sora video later.
+        // lib/tts dispatches to OpenAI TTS for 'openai:*' voice IDs or ElevenLabs otherwise,
+        // with an automatic fallback to OpenAI 'nova' if ElevenLabs rejects the request
+        // (e.g. free-plan library-voice block). So if TTS throws here, both providers are
+        // broken — fail BEFORE charging credits.
         // Premium uses Sora's native audio (no extra cost, no voice control).
-        //
-        // On Hero, ElevenLabs is what the user paid 150 cr for — if it fails, fail the whole
-        // request BEFORE submitting Sora (no charge yet). Better than silently downgrading
-        // the user to Premium quality at Hero pricing.
         let elevenLabsAudioUrl: string | undefined
         if (tierCfg.useElevenLabs) {
-          if (!process.env.ELEVENLABS_API_KEY) {
-            return NextResponse.json({ error: 'Hero tier requires ElevenLabs but ELEVENLABS_API_KEY is missing on the server.' }, { status: 500 })
-          }
           try {
             const audioBuf = await generateSpeech(spokenScript, voiceId)
             const audioFilename = `audio-gen/${userId}-${Date.now()}.mp3`
@@ -325,7 +322,7 @@ export async function POST(request: NextRequest) {
             elevenLabsAudioUrl = publicUrl
           } catch (err) {
             return NextResponse.json({
-              error: `Hero tier ElevenLabs voice generation failed: ${err instanceof Error ? err.message : 'unknown'}. No credits charged.`,
+              error: `Hero tier voice generation failed (both ElevenLabs and OpenAI TTS): ${err instanceof Error ? err.message : 'unknown'}. No credits charged.`,
             }, { status: 502 })
           }
         }

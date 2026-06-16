@@ -43,14 +43,15 @@ const UGC_TYPES = [
   { id: 'all', name: 'Full Package', description: 'Image + Avatar Video' },
 ]
 
-// ElevenLabs default voices — these ship with every account and work on the free
-// tier via API. Public-library voices (the previous IDs here) require a paid plan.
-// Swap individual entries for cloned voices later when the user upgrades.
+// Voice options — uses OpenAI TTS by default since it works on free OpenAI accounts
+// (and you already pay for OPENAI_API_KEY for Sora/Nano Banana). ElevenLabs requires
+// a paid plan ($5+/mo) for API access — once upgraded, swap individual IDs for the
+// ElevenLabs voice_id and lib/tts will route them automatically.
 const VOICES = [
-  { id: 'EXAVITQu4vr4xnSDxMAL', label: 'Bella — Soft & friendly (F)' },
-  { id: 'MF3mGyEYCl7XYWbV9V6O', label: 'Elli — Youthful & emotional (F)' },
-  { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam — Deep & authoritative (M)' },
-  { id: 'ErXwobaYiN019PkySvjV', label: 'Antoni — Well-rounded narrator (M)' },
+  { id: 'openai:nova',    label: 'Nova — Bright & energetic (F)' },
+  { id: 'openai:shimmer', label: 'Shimmer — Warm & friendly (F)' },
+  { id: 'openai:onyx',    label: 'Onyx — Deep & authoritative (M)' },
+  { id: 'openai:echo',    label: 'Echo — Smooth conversational (M)' },
 ]
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
