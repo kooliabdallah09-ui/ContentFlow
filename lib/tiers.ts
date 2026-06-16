@@ -7,10 +7,10 @@ export interface TierConfig {
   description: string
   aRollProvider: ARollProvider
   useAvatarIV: boolean       // legacy field — kept for compatibility, only meaningful when aRollProvider='heygen-stock'
-  useElevenLabs: boolean     // legacy field — Sora tiers use native audio; HeyGen tiers can opt in
+  useElevenLabs: boolean     // HeyGen tiers: ElevenLabs vs HeyGen TTS. Sora tiers: ElevenLabs overlay vs Sora native audio.
   brollCount: 0 | 1 | 2
   videoCredits: number
-  durationSeconds: 5 | 10 | 15 | 20
+  durationSeconds: 4 | 8 | 12   // Sora 2 only supports 4 / 8 / 12 per clip; HeyGen ignores this field
   available: boolean
   estimatedTime: string
 }
@@ -25,33 +25,33 @@ export const TIERS: Record<UGCTier, TierConfig> = {
     useElevenLabs: false,
     brollCount: 1,
     videoCredits: 25,
-    durationSeconds: 15,
+    durationSeconds: 12,
     available: true,
     estimatedTime: '~90s',
   },
   premium: {
     label: 'Premium',
     tagline: 'Recommended',
-    description: 'Sora 2 cinematic AI character with your real product, native audio, 2 action B-rolls.',
+    description: 'Sora 2 cinematic AI character with your real product, Sora native audio, 2 action B-rolls.',
     aRollProvider: 'sora-2',
     useAvatarIV: false,
-    useElevenLabs: false,
+    useElevenLabs: false, // Sora native audio
     brollCount: 2,
     videoCredits: 40,
-    durationSeconds: 15,
+    durationSeconds: 8,
     available: true,
     estimatedTime: '~4 min',
   },
   hero: {
     label: 'Hero',
     tagline: 'Best quality',
-    description: 'Sora 2 long-form cinematic, your real product, 2 action B-rolls, longer script. Best for launches.',
+    description: 'Sora 2 cinematic with your real product, your branded ElevenLabs voice, 2 action B-rolls.',
     aRollProvider: 'sora-2',
     useAvatarIV: false,
-    useElevenLabs: false,
+    useElevenLabs: true,  // ElevenLabs overlay on top of muted Sora video
     brollCount: 2,
     videoCredits: 150,
-    durationSeconds: 20,
+    durationSeconds: 12,
     available: true,
     estimatedTime: '~5 min',
   },

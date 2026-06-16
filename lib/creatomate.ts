@@ -4,10 +4,12 @@ export async function submitStitchJob({
   talkingHeadUrl,
   broll1Url,
   broll2Url,
+  audioOverlayUrl,
 }: {
   talkingHeadUrl: string
   broll1Url?: string
   broll2Url?: string
+  audioOverlayUrl?: string  // Hero tier: ElevenLabs voice overlay — mutes Sora's audio
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.CREATOMATE_API_KEY
   if (!apiKey) throw new Error('Creatomate API key not configured')
@@ -16,6 +18,11 @@ export async function submitStitchJob({
   const TALKING_HEAD_ID = 'talking_head'
 
   // 0–4s: B-roll 1 (product close-up) with quick fade-out, audio muted so talking-head VO leads
+  // When ElevenLabs audio overlay is provided (Hero tier), mute the Sora talking-head's
+  // native audio. The overlay track plays instead. Captions are still transcribed from the
+  // talking head since the lip movements are animated to the script text.
+  const talkingHeadVolume = audioOverlayUrl ? 0 : 100
+
   if (broll1Url) {
     elements.push({
       type: 'video', source: broll1Url, track: 1,
@@ -24,12 +31,23 @@ export async function submitStitchJob({
     })
     elements.push({
       type: 'video', source: talkingHeadUrl, id: TALKING_HEAD_ID, track: 1,
-      time: '3.7 s', fit: 'cover',
+      time: '3.7 s', fit: 'cover', volume: talkingHeadVolume,
     })
   } else {
     elements.push({
       type: 'video', source: talkingHeadUrl, id: TALKING_HEAD_ID, track: 1,
-      time: '0 s', fit: 'cover',
+      time: '0 s', fit: 'cover', volume: talkingHeadVolume,
+    })
+  }
+
+  // Hero tier: overlay ElevenLabs voice track aligned to the talking head start
+  if (audioOverlayUrl) {
+    elements.push({
+      type: 'audio',
+      source: audioOverlayUrl,
+      track: 3,
+      time: broll1Url ? '3.7 s' : '0 s',
+      volume: 100,
     })
   }
 

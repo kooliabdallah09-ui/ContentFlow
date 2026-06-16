@@ -24,6 +24,7 @@ interface UGCComponent {
   video?: VideoComponent
   broll?: BrollClip[]
   script?: string
+  audioOverlayUrl?: string  // Hero tier: ElevenLabs voice to overlay on the muted Sora video
 }
 
 interface UGCPackagePreviewProps {
@@ -42,6 +43,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [stitchRenderId, setStitchRenderId] = useState<string | null>(null)
   const [stitchStatus, setStitchStatus] = useState<'idle' | 'stitching' | 'completed' | 'failed'>('idle')
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
+  const [audioOverlayUrl, setAudioOverlayUrl] = useState<string | undefined>(undefined)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const stitchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const stitchStartedRef = useRef(false)
@@ -49,6 +51,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   useEffect(() => {
     if (components?.video) setVideo(components.video)
     if (components?.broll) setBrolls(components.broll)
+    if (components?.audioOverlayUrl) setAudioOverlayUrl(components.audioOverlayUrl)
   }, [components])
 
   // Main video + B-roll polling
@@ -111,7 +114,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     fetch('/api/ugc/stitch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ talkingHeadUrl: video.videoUrl, broll1Url: broll1, broll2Url: broll2 }),
+      body: JSON.stringify({ talkingHeadUrl: video.videoUrl, broll1Url: broll1, broll2Url: broll2, audioOverlayUrl }),
     })
       .then(r => r.json())
       .then(data => {

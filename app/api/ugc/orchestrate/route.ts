@@ -3,6 +3,13 @@ import { submitVideoJob, estimateDuration, fallbackVoiceForGender, inferAvatarGe
 import { generateActionFrame, generateCharacterWithProduct } from '@/lib/nanobanana'
 import { submitSoraJob } from '@/lib/sora'
 import { buildSoraPrompt } from '@/lib/sora-prompt'
+import sharp from 'sharp'
+
+// Sora 2 requires the reference image dimensions to EXACTLY match the requested size
+// (the model treats it as an inpaint base). Nano Banana outputs vary — usually 1024×1024 —
+// so we always resize + center-crop before submitting.
+const SORA_SIZE = '720x1280' // 9:16 portrait, Sora 2's supported vertical size
+const [SORA_W, SORA_H] = SORA_SIZE.split('x').map(Number)
 import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -271,14 +278,40 @@ export async function POST(request: NextRequest) {
           characterPrompt,
           backgroundContext,
         )
-        const heroFilename = `sora-source/${userId}-${Date.now()}.${heroFrame.mimeType.split('/')[1] ?? 'png'}`
+
+        // 2. Resize to Sora's exact dimensions (cover + center-crop, no distortion)
+        const resizedHero = await sharp(Buffer.from(heroFrame.imageBase64, 'base64'))
+          .resize(SORA_W, SORA_H, { fit: 'cover', position: 'center' })
+          .png()
+          .toBuffer()
+
+        const heroFilename = `sora-source/${userId}-${Date.now()}.png`
         const { error: heroErr } = await supabase.storage
           .from('ugc-assets')
-          .upload(heroFilename, Buffer.from(heroFrame.imageBase64, 'base64'), { contentType: heroFrame.mimeType, upsert: false })
+          .upload(heroFilename, resizedHero, { contentType: 'image/png', upsert: false })
         if (heroErr) throw new Error(`Failed to upload Sora source frame: ${heroErr.message}`)
         const { data: { publicUrl: heroUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(heroFilename)
 
-        // 2. Claude builds the Sora 2 prompt following the Camera→...→Audio structure
+        // 3. Hero tier only: generate ElevenLabs audio to overlay on the muted Sora video later.
+        // Premium uses Sora's native audio (no extra cost, no voice control).
+        let elevenLabsAudioUrl: string | undefined
+        if (tierCfg.useElevenLabs && process.env.ELEVENLABS_API_KEY) {
+          try {
+            const audioBuf = await generateSpeech(spokenScript, voiceId)
+            const audioFilename = `audio-gen/${userId}-${Date.now()}.mp3`
+            const { error: audioErr } = await supabase.storage
+              .from('ugc-assets')
+              .upload(audioFilename, audioBuf, { contentType: 'audio/mpeg', upsert: false })
+            if (!audioErr) {
+              const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
+              elevenLabsAudioUrl = publicUrl
+            }
+          } catch (err) {
+            console.warn('ElevenLabs failed on Hero tier — falling back to Sora native audio:', err instanceof Error ? err.message : err)
+          }
+        }
+
+        // 4. Claude builds the Sora 2 prompt (Camera→Subject→Action→...→Audio)
         const soraPrompt = await buildSoraPrompt({
           productName,
           productDescription,
@@ -286,14 +319,15 @@ export async function POST(request: NextRequest) {
           script: spokenScript,
         })
 
-        // 3. Submit Sora 2 job — returns immediately with a video id, client polls for completion
+        // 5. Submit Sora 2 — returns immediately with a video id, client polls for completion
         const sora = await submitSoraJob({
           prompt: soraPrompt,
           referenceImageUrl: heroUrl,
-          durationSeconds: tierCfg.durationSeconds,
-          aspectRatio: '9:16',
+          durationSeconds: tierCfg.durationSeconds as 4 | 8 | 12,
+          size: SORA_SIZE,
         })
         videoId = sora.videoId
+        if (elevenLabsAudioUrl) components.audioOverlayUrl = elevenLabsAudioUrl
       } else {
         // HeyGen stock path (Lean tier)
         aRollProvider = 'heygen'
