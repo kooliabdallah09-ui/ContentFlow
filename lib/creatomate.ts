@@ -7,6 +7,7 @@ export async function submitStitchJob({
   audioOverlayUrl,
 }: {
   talkingHeadUrl: string
+  talkingHeadDuration?: number  // ignored — Creatomate uses relative timing via TALKING_HEAD_ID.end
   broll1Url?: string
   broll2Url?: string
   audioOverlayUrl?: string  // Hero tier: ElevenLabs voice overlay — mutes Sora's audio

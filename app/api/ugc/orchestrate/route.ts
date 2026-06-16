@@ -303,20 +303,30 @@ export async function POST(request: NextRequest) {
 
         // 3. Hero tier only: generate ElevenLabs audio to overlay on the muted Sora video later.
         // Premium uses Sora's native audio (no extra cost, no voice control).
+        //
+        // On Hero, ElevenLabs is what the user paid 150 cr for — if it fails, fail the whole
+        // request BEFORE submitting Sora (no charge yet). Better than silently downgrading
+        // the user to Premium quality at Hero pricing.
         let elevenLabsAudioUrl: string | undefined
-        if (tierCfg.useElevenLabs && process.env.ELEVENLABS_API_KEY) {
+        if (tierCfg.useElevenLabs) {
+          if (!process.env.ELEVENLABS_API_KEY) {
+            return NextResponse.json({ error: 'Hero tier requires ElevenLabs but ELEVENLABS_API_KEY is missing on the server.' }, { status: 500 })
+          }
           try {
             const audioBuf = await generateSpeech(spokenScript, voiceId)
             const audioFilename = `audio-gen/${userId}-${Date.now()}.mp3`
             const { error: audioErr } = await supabase.storage
               .from('ugc-assets')
               .upload(audioFilename, audioBuf, { contentType: 'audio/mpeg', upsert: false })
-            if (!audioErr) {
-              const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
-              elevenLabsAudioUrl = publicUrl
+            if (audioErr) {
+              return NextResponse.json({ error: `Hero tier voice upload failed: ${audioErr.message}` }, { status: 500 })
             }
+            const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
+            elevenLabsAudioUrl = publicUrl
           } catch (err) {
-            console.warn('ElevenLabs failed on Hero tier — falling back to Sora native audio:', err instanceof Error ? err.message : err)
+            return NextResponse.json({
+              error: `Hero tier ElevenLabs voice generation failed: ${err instanceof Error ? err.message : 'unknown'}. No credits charged.`,
+            }, { status: 502 })
           }
         }
 

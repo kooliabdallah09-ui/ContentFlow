@@ -28,12 +28,18 @@ async function getStitchStatus(renderId: string) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { talkingHeadUrl, broll1Url, broll2Url, audioOverlayUrl } = await request.json()
+    const { talkingHeadUrl, talkingHeadDuration, broll1Url, broll2Url, audioOverlayUrl } = await request.json()
     if (!talkingHeadUrl) {
       return NextResponse.json({ error: 'Missing talkingHeadUrl' }, { status: 400 })
     }
 
-    const { renderId } = await submitStitchJob({ talkingHeadUrl, broll1Url, broll2Url, audioOverlayUrl })
+    const { renderId } = await submitStitchJob({
+      talkingHeadUrl,
+      talkingHeadDuration: typeof talkingHeadDuration === 'number' ? talkingHeadDuration : undefined,
+      broll1Url,
+      broll2Url,
+      audioOverlayUrl,
+    })
     return NextResponse.json({ renderId })
   } catch (error) {
     return NextResponse.json(

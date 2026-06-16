@@ -112,10 +112,21 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     stitchStartedRef.current = true
     setStitchStatus('stitching')
 
+    // Pass the talking-head duration so the stitcher can compute B-roll2's absolute
+    // start time. video.duration comes from the poller (HeyGen returns it; for Sora
+    // we fall back to estimatedDuration which is set from the tier config).
+    const talkingHeadDuration = video.duration ?? video.estimatedDuration ?? 12
+
     fetch('/api/ugc/stitch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ talkingHeadUrl: video.videoUrl, broll1Url: broll1, broll2Url: broll2, audioOverlayUrl }),
+      body: JSON.stringify({
+        talkingHeadUrl: video.videoUrl,
+        talkingHeadDuration,
+        broll1Url: broll1,
+        broll2Url: broll2,
+        audioOverlayUrl,
+      }),
     })
       .then(async r => ({ ok: r.ok, body: await r.json().catch(() => ({})) }))
       .then(({ ok, body }) => {

@@ -13,11 +13,13 @@ const TALKING_HEAD_ALIAS = 'talking_head'
 
 export async function submitStitchJob({
   talkingHeadUrl,
+  talkingHeadDuration,
   broll1Url,
   broll2Url,
   audioOverlayUrl,
 }: {
   talkingHeadUrl: string
+  talkingHeadDuration?: number  // seconds; used to position B-roll2 absolutely
   broll1Url?: string
   broll2Url?: string
   audioOverlayUrl?: string  // Hero tier: ElevenLabs voice — mutes talking-head audio
@@ -30,6 +32,10 @@ export async function submitStitchJob({
   //   3.7s: talking head starts (0.3s crossover)
   //   talking-head.end: B-roll2 appended (muted, fades in)
   const talkingHeadStart = broll1Url ? 3.7 : 0
+  // Set the talking-head clip length explicitly so we can compute B-roll2's absolute
+  // start. If duration is unknown, default to 12s (max Sora) — slightly long is harmless.
+  const talkingHeadLength = talkingHeadDuration && talkingHeadDuration > 0 ? talkingHeadDuration : 12
+  const talkingHeadEnd = talkingHeadStart + talkingHeadLength
 
   // Track 1 (bottom): main visual track
   const visualClips: Record<string, unknown>[] = []
@@ -53,18 +59,14 @@ export async function submitStitchJob({
     },
     alias: TALKING_HEAD_ALIAS,
     start: talkingHeadStart,
-    length: 'auto',
+    length: talkingHeadLength,
     fit: 'cover',
   })
 
   if (broll2Url) {
     visualClips.push({
       asset: { type: 'video', src: broll2Url, volume: 0 },
-      // Append after talking head — Shotstack supports relative timing via merge fields,
-      // but the simplest portable approach is to use 'auto' length on the head and then
-      // start the next clip with a small placeholder. Since we don't know the exact head
-      // length client-side, we let Shotstack chain via the 'after' alias reference.
-      start: `{{ ${TALKING_HEAD_ALIAS}.end }}`,
+      start: talkingHeadEnd,
       length: 4,
       fit: 'cover',
       transition: { in: 'fade' },
@@ -73,24 +75,29 @@ export async function submitStitchJob({
 
   const tracks: Record<string, unknown>[] = [{ clips: visualClips }]
 
-  // Optional: ElevenLabs audio overlay (Hero tier) — its own track so it plays full volume
+  // Optional: ElevenLabs audio overlay (Hero tier) — its own track so it plays full volume.
+  // Bound the length to the talking head so audio doesn't bleed over B-roll2.
   if (audioOverlayUrl) {
     tracks.push({
       clips: [{
         asset: { type: 'audio', src: audioOverlayUrl, volume: 1 },
         start: talkingHeadStart,
-        length: 'auto',
+        length: talkingHeadLength,
       }],
     })
   }
 
   // TikTok-style auto-captions transcribed from the talking-head audio.
   // Track placed above visuals so the captions render on top.
+  //
+  // Caption source: when an ElevenLabs overlay is provided (Hero), transcribe that audio
+  // since the talking head's native audio is muted; otherwise transcribe the talking head.
+  const captionSrc = audioOverlayUrl ?? `alias://${TALKING_HEAD_ALIAS}`
   tracks.unshift({
     clips: [{
       asset: {
         type: 'caption',
-        src: `alias://${TALKING_HEAD_ALIAS}`,
+        src: captionSrc,
         font: {
           family: 'Inter',
           weight: 900,
@@ -104,7 +111,7 @@ export async function submitStitchJob({
         highlight: { color: '#FFD400' },
       },
       start: talkingHeadStart,
-      length: 'auto',
+      length: talkingHeadLength,
       position: 'bottom',
       offset: { y: -0.22 },  // push up to roughly 78% from the top of frame
     }],
