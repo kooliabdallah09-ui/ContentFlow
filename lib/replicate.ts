@@ -1,22 +1,29 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
 const KLING_MODEL = 'kwaivgi/kling-v1.6-standard'
 
-export async function submitReplicateKlingJob(prompt: string): Promise<{ predictionId: string }> {
+// Submit a Kling job. If startImageUrl is provided, runs image-to-video (motion seeded from
+// the first frame) — used for B-roll 1 (product close-up from Nano Banana). Otherwise runs
+// text-to-video — used for B-roll 2 (usage motion).
+export async function submitReplicateKlingJob(
+  prompt: string,
+  startImageUrl?: string,
+): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const input: Record<string, unknown> = {
+    prompt,
+    duration: 5,
+    aspect_ratio: '9:16',
+    cfg_scale: 0.5,
+    negative_prompt: 'text, watermark, blurry, low quality, ugly, distorted face',
+  }
+  if (startImageUrl) input.start_image = startImageUrl
 
   const res = await fetch(`${REPLICATE_BASE}/models/${KLING_MODEL}/predictions`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', Prefer: 'respond-async' },
-    body: JSON.stringify({
-      input: {
-        prompt,
-        duration: 5,
-        aspect_ratio: '9:16',
-        cfg_scale: 0.5,
-        negative_prompt: 'text, watermark, blurry, low quality, ugly, distorted face',
-      },
-    }),
+    body: JSON.stringify({ input }),
   })
 
   if (!res.ok) {

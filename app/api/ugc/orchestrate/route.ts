@@ -1,5 +1,6 @@
 import { generateImage } from '@/lib/gemini-image'
 import { submitVideoJob, estimateDuration, fallbackVoiceForGender, inferAvatarGender } from '@/lib/heygen'
+import { generateProductHeroShot } from '@/lib/nanobanana'
 import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -266,7 +267,10 @@ export async function POST(request: NextRequest) {
         content_type: 'ugc_package', description: `UGC package: ${productName} (${tier})`,
       })
 
-      // Submit Kling B-rolls after DB is saved — tier controls how many (lean=1, premium/hero=2)
+      // Submit Kling B-rolls after DB is saved — tier controls how many (lean=1, premium/hero=2).
+      // When a product image is uploaded, B-roll 1 is generated via Nano Banana → Kling image-to-video
+      // (slow cinematic motion on the REAL product). Without a product image, both B-rolls fall back
+      // to Kling text-to-video.
       const brollProviderReady = !!(process.env.REPLICATE_API_TOKEN || process.env.FAL_KEY || process.env.PIAPI_API_KEY)
       const brollPrompts = brollProviderReady && tierCfg.brollCount > 0
         ? await generateBrollPrompts(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType).catch(() => null)
@@ -274,8 +278,31 @@ export async function POST(request: NextRequest) {
 
       if (brollPrompts) {
         const promptsToRender = brollPrompts.slice(0, tierCfg.brollCount)
+
+        // If a product image + Nano Banana are available, swap B-roll 1's text-to-video prompt
+        // for an image-to-video motion prompt seeded on a Nano Banana hero shot of the real product.
+        let broll1StartImageUrl: string | undefined
+        if (productImageBase64 && productImageMimeType && process.env.GEMINI_API_KEY && promptsToRender.length > 0) {
+          try {
+            const hero = await generateProductHeroShot(productImageBase64, productImageMimeType, productName, backgroundContext)
+            const heroFilename = `nano-banana/${userId}-${Date.now()}.${hero.mimeType.split('/')[1] ?? 'png'}`
+            const heroBuf = Buffer.from(hero.imageBase64, 'base64')
+            const { error: heroErr } = await supabase.storage
+              .from('ugc-assets')
+              .upload(heroFilename, heroBuf, { contentType: hero.mimeType, upsert: false })
+            if (!heroErr) {
+              const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(heroFilename)
+              broll1StartImageUrl = publicUrl
+              // Swap the text-to-video prompt for a motion-only prompt — the appearance comes from the image
+              promptsToRender[0] = `Slow cinematic camera push-in toward the product, slight rotation revealing the label clearly, gentle parallax, soft natural lighting, 9:16 vertical, no people, no extra objects, preserve the product exactly as shown in the starting frame`
+            }
+          } catch (err) {
+            console.warn('Nano Banana hero shot failed, falling back to Kling text-to-video for B-roll 1:', err instanceof Error ? err.message : err)
+          }
+        }
+
         const submissions = await Promise.all(
-          promptsToRender.map(p => submitBrollJob(p).catch(() => null))
+          promptsToRender.map((p, i) => submitBrollJob(p, i === 0 ? broll1StartImageUrl : undefined).catch(() => null))
         )
         const labels = ['Product close-up', 'Lifestyle shot']
         components.broll = submissions

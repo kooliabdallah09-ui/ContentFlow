@@ -5,9 +5,16 @@ const PIAPI_BASE = 'https://api.piapi.ai'
 const FAL_PREFIX = 'fal:'
 const REPLICATE_PREFIX = 'replicate:'
 
-export async function submitBrollJob(prompt: string): Promise<{ taskId: string }> {
+// Submit a B-roll job. If startImageUrl is provided, runs Kling in image-to-video mode
+// (motion seeded from the first frame) — used for the product close-up B-roll where we want
+// the REAL product from a Nano-Banana-generated frame, not Kling's text-to-video imagination.
+// Currently only Replicate supports start_image; fal.ai / PiAPI fall back to text-to-video.
+export async function submitBrollJob(
+  prompt: string,
+  startImageUrl?: string,
+): Promise<{ taskId: string }> {
   if (process.env.REPLICATE_API_TOKEN) {
-    const { predictionId } = await submitReplicateKlingJob(prompt)
+    const { predictionId } = await submitReplicateKlingJob(prompt, startImageUrl)
     return { taskId: `${REPLICATE_PREFIX}${predictionId}` }
   }
 
