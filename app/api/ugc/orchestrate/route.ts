@@ -7,6 +7,7 @@ import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
+import { buildCharacterPrompt, type CharacterProfile } from '@/components/CharacterBuilder'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
@@ -202,7 +203,8 @@ export async function POST(request: NextRequest) {
 
     const userId = userData.user.id
     const body = await request.json()
-    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender } = body
+    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender, character: characterFromForm } = body
+    const character: CharacterProfile | undefined = characterFromForm
     const rawTier = (body.tier as UGCTier | undefined) ?? DEFAULT_TIER
     const tier: UGCTier = TIERS[rawTier]?.available ? rawTier : DEFAULT_TIER
     const tierCfg = TIERS[tier]
@@ -266,17 +268,24 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ error: 'Sora A-roll requires Nano Banana via Replicate (REPLICATE_API_TOKEN missing)' }, { status: 500 })
         }
 
-        // 1. Nano Banana — character holding the real product, hyper-realistic phone-camera frame
-        const characterPrompt = avatarGender === 'Male'
-          ? 'late 20s man, candid expression, real skin texture with pores and slight imperfections, natural hair with flyaways, casual outfit appropriate to the scene'
-          : 'late 20s woman, candid expression, real skin texture with pores and slight imperfections, natural hair with flyaways, casual outfit appropriate to the scene'
+        // 1. Nano Banana — character holding the real product, hyper-realistic phone-camera frame.
+        // Build the character prompt from the user's CharacterBuilder answers when present (Premium/Hero).
+        // Falls back to a generic prompt when the form character is missing or incomplete.
+        const characterPrompt = character && character.gender
+          ? buildCharacterPrompt(character)
+          : avatarGender === 'Male'
+            ? 'late 20s man, candid expression, real skin texture with pores and slight imperfections, natural hair with flyaways, casual outfit appropriate to the scene'
+            : 'late 20s woman, candid expression, real skin texture with pores and slight imperfections, natural hair with flyaways, casual outfit appropriate to the scene'
+
+        // User's chosen scene from the questionnaire overrides Claude's auto-extracted [BACKGROUND]
+        const heroScene = character?.scene?.trim() ? character.scene.toLowerCase() : backgroundContext
 
         const heroFrame = await generateCharacterWithProduct(
           productImageBase64,
           productImageMimeType,
           productName,
           characterPrompt,
-          backgroundContext,
+          heroScene,
         )
 
         // 2. Resize to Sora's exact dimensions (cover + center-crop, no distortion)

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import AvatarPicker from '@/components/AvatarPicker'
+import CharacterBuilder, { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
 import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
 import { getSupabase } from '@/lib/auth'
 
@@ -28,6 +29,7 @@ interface UGCPackageBuilderProps {
     productImageMimeType?: string
     selectedHook?: string
     avatarGender?: string
+    character?: CharacterProfile
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -58,6 +60,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [style, setStyle] = useState('realistic')
   const [avatarId, setAvatarId] = useState('')
   const [avatarGender, setAvatarGender] = useState<string | undefined>(undefined)
+  const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
@@ -99,7 +102,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       productImageBase64: productImage?.base64,
       productImageMimeType: productImage?.mimeType,
       selectedHook,
-      avatarGender,
+      avatarGender: tier === 'lean' ? avatarGender : character.gender,
+      character: tier !== 'lean' ? character : undefined,
     })
     resetForm()
   }
@@ -295,21 +299,40 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          <div>
-            <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
-            <AvatarPicker
-              selectedId={avatarId}
-              onChange={(id, gender) => { setAvatarId(id); setAvatarGender(gender) }}
-              disabled={isLoading}
-            />
-          </div>
+          {tier === 'lean' ? (
+            <div>
+              <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
+              <AvatarPicker
+                selectedId={avatarId}
+                onChange={(id, gender) => { setAvatarId(id); setAvatarGender(gender) }}
+                disabled={isLoading}
+              />
+            </div>
+          ) : (
+            <div>
+              <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Build Your AI Creator</span>
+              <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '0 0 12px' }}>
+                {tier === 'hero' ? 'Hero' : 'Premium'} tier generates a hyper-realistic AI character holding your real product. Answer below or pick a saved persona.
+              </p>
+              <CharacterBuilder value={character} onChange={setCharacter} disabled={isLoading} />
+            </div>
+          )}
 
-          <div className="form-row">
-            <label className="form-label">Voice</label>
-            <select className="input" value={voiceId} onChange={e => setVoiceId(e.target.value)} disabled={isLoading}>
-              {VOICES.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
-            </select>
-          </div>
+          {/* Voice picker only matters for Hero (ElevenLabs overlay). Lean uses gender-matched
+              HeyGen TTS; Premium uses Sora's native audio (no user voice control). */}
+          {tier === 'hero' && (
+            <div className="form-row">
+              <label className="form-label">Voice (ElevenLabs)</label>
+              <select className="input" value={voiceId} onChange={e => setVoiceId(e.target.value)} disabled={isLoading}>
+                {VOICES.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
+              </select>
+            </div>
+          )}
+          {tier === 'premium' && (
+            <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '4px 0 0' }}>
+              ✦ Voice: Sora native audio (no voice choice — upgrade to Hero for ElevenLabs voice control)
+            </p>
+          )}
         </div>
       )}
 

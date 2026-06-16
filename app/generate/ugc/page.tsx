@@ -120,6 +120,7 @@ export default function UGCGeneratorPage() {
     productImageMimeType?: string
     selectedHook?: string
     avatarGender?: string
+    character?: import('@/components/CharacterBuilder').CharacterProfile
   }) => {
     setLoading(true)
     setError('')
