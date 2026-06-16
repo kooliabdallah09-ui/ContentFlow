@@ -305,7 +305,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)' }}>
               <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
               <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Stitching your final video…</p>
-              <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>B-roll intro + talking head being combined. Usually ~30–60s.</p>
+              <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>Combining application B-roll → talking head → reaction B-roll, with captions overlaid. Usually ~30–60s.</p>
             </div>
           )}
 
@@ -341,8 +341,12 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
           {video.status === 'processing' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)', marginBottom: '12px' }}>
               <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
-              <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>HeyGen is rendering your video…</p>
-              <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>Usually takes 2–5 minutes. This page auto-updates.</p>
+              <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>
+                {video.provider === 'sora-2' ? 'Sora 2 is rendering your talking head…' : 'HeyGen is rendering your video…'}
+              </p>
+              <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>
+                {video.provider === 'sora-2' ? 'Usually 2–4 minutes. This page auto-updates.' : 'Usually 2–5 minutes. This page auto-updates.'}
+              </p>
             </div>
           )}
 

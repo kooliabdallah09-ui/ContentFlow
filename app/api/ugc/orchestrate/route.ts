@@ -3,13 +3,6 @@ import { submitVideoJob, estimateDuration, fallbackVoiceForGender, inferAvatarGe
 import { generateActionFrame, generateCharacterWithProduct } from '@/lib/nanobanana'
 import { submitSoraJob } from '@/lib/sora'
 import { buildSoraPrompt } from '@/lib/sora-prompt'
-import sharp from 'sharp'
-
-// Sora 2 requires the reference image dimensions to EXACTLY match the requested size
-// (the model treats it as an inpaint base). Nano Banana outputs vary — usually 1024×1024 —
-// so we always resize + center-crop before submitting.
-const SORA_SIZE = '720x1280' // 9:16 portrait, Sora 2's supported vertical size
-const [SORA_W, SORA_H] = SORA_SIZE.split('x').map(Number)
 import { generateSpeech } from '@/lib/elevenlabs'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -17,6 +10,13 @@ import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
+import sharp from 'sharp'
+
+// Sora 2 requires the reference image dimensions to EXACTLY match the requested size
+// (the model treats it as an inpaint base). Nano Banana outputs vary — usually 1024×1024 —
+// so we always resize + center-crop before submitting.
+const SORA_SIZE = '720x1280' // 9:16 portrait, Sora 2's supported vertical size
+const [SORA_W, SORA_H] = SORA_SIZE.split('x').map(Number)
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
