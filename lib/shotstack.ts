@@ -87,12 +87,12 @@ export async function submitStitchJob({
     })
   }
 
-  // TikTok-style auto-captions transcribed from the talking-head audio.
-  // Track placed above visuals so the captions render on top.
-  //
-  // Caption source: when an ElevenLabs overlay is provided (Hero), transcribe that audio
-  // since the talking head's native audio is muted; otherwise transcribe the talking head.
-  const captionSrc = audioOverlayUrl ?? `alias://${TALKING_HEAD_ALIAS}`
+  // TikTok-style auto-captions transcribed from the talking-head video.
+  // Shotstack's caption asset src must be a video alias (or video URL) — it can't take
+  // a raw audio URL. Even on Hero (where the talking-head audio is muted in playback),
+  // Shotstack still transcribes from the underlying audio track of the clip, which
+  // contains the same spoken script as the ElevenLabs overlay. So always alias.
+  const captionSrc = `alias://${TALKING_HEAD_ALIAS}`
   tracks.unshift({
     clips: [{
       asset: {
@@ -139,8 +139,18 @@ export async function submitStitchJob({
   })
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.message || err.response?.message || `Shotstack error ${res.status}: ${JSON.stringify(err)}`)
+    const rawText = await res.text().catch(() => '')
+    let parsed: { message?: string; response?: { message?: string; error?: unknown }; error?: unknown } = {}
+    try { parsed = JSON.parse(rawText) } catch {}
+    const detail =
+      parsed.response?.message
+      || parsed.message
+      || (parsed.response?.error ? JSON.stringify(parsed.response.error) : '')
+      || (parsed.error ? JSON.stringify(parsed.error) : '')
+      || rawText.slice(0, 400)
+      || res.statusText
+    console.error('[shotstack] render rejected', { status: res.status, detail, payload: body })
+    throw new Error(`Shotstack ${res.status}: ${detail}`)
   }
 
   const data = await res.json()

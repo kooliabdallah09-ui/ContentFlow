@@ -28,8 +28,25 @@ async function generateUGCScript(
   callToAction: string,
   productImageBase64?: string,
   productImageMimeType?: string,
+  // NEW: total target duration in seconds. Sora caps clips at 12s — without this,
+  // Claude wrote 30s scripts that got cut off mid-sentence on Hero (12s) and Premium (8s).
+  targetDurationSeconds: number = 30,
+  // NEW: when the user picks a scene in the character questionnaire, force it here
+  // so [BACKGROUND:] matches what Sora renders. Otherwise Claude invents one and the
+  // questionnaire choice is ignored downstream.
+  forcedScene?: string,
 ): Promise<string> {
-  const textPrompt = `Write a 30-second UGC video script for a social media ad. Format it exactly as shown below — no title, no intro text, just the script.
+  // Spoken pace ≈ 150 words/min ≈ 2.5 words/sec. Reserve ~1s padding so audio
+  // never runs past the video.
+  const targetWords = Math.max(8, Math.round((targetDurationSeconds - 1) * 2.5))
+  const hookEnd = Math.min(5, Math.round(targetDurationSeconds * 0.2))
+  const bodyEnd = Math.round(targetDurationSeconds * 0.85)
+
+  const backgroundLine = forcedScene
+    ? `[BACKGROUND: ${forcedScene}]   ← USE THIS EXACT SCENE, do not change it`
+    : `[BACKGROUND: one of: bedroom, bathroom, kitchen, living room, office, gym, outdoor, car interior, cafe]`
+
+  const textPrompt = `Write a ${targetDurationSeconds}-SECOND UGC video script for a social media ad. The TOTAL spoken word count across HOOK + BODY + CTA must be ${targetWords} words or fewer — this is a hard limit because the video will be cut at ${targetDurationSeconds}s. Count carefully.
 
 Product: ${productName}
 Description: ${productDescription}
@@ -38,25 +55,26 @@ CTA: ${callToAction}
 
 Use this exact format:
 
-[BACKGROUND: one of: bedroom, bathroom, kitchen, living room, office, gym, outdoor]
+${backgroundLine}
 
-[HOOK — 0:00 to 0:05]
+[HOOK — 0:00 to 0:0${hookEnd}]
 (brief expression/tone note)
 "spoken hook line — grabs attention immediately"
 
-[BODY — 0:05 to 0:25]
+[BODY — 0:0${hookEnd} to 0:${bodyEnd < 10 ? '0' + bodyEnd : bodyEnd}]
 (tone note)
-"spoken body — authentic, conversational, like talking to a friend. 2-4 sentences."
+"spoken body — authentic, conversational. Keep it tight — total script ≤ ${targetWords} words."
 
-[CTA — 0:25 to 0:35]
+[CTA — 0:${bodyEnd < 10 ? '0' + bodyEnd : bodyEnd} to 0:${targetDurationSeconds}]
 (tone note)
-"spoken CTA — natural, confident"
+"spoken CTA — natural, confident, very short"
 
 Rules:
+- TOTAL spoken word count ≤ ${targetWords} — count every word in every quoted line. This is the most important rule.
 - Spoken text always in double quotes
 - Stage directions always in (parentheses)
 - Section headers always in [brackets]
-- [BACKGROUND: ...] must be the very first line — choose what fits the product naturally
+- ${forcedScene ? `[BACKGROUND: ${forcedScene}] must be the very first line, use it exactly` : '[BACKGROUND: ...] must be the very first line — choose what fits the product naturally'}
 - No markdown, no title, no hashtags
 - Authentic UGC tone — real person, not corporate`
 
@@ -223,8 +241,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Insufficient credits. Need ${totalCost}, have ${userCredits?.balance ?? 0}` }, { status: 400 })
     }
 
-    // Generate Claude script first
-    const baseScript = await generateUGCScript(productName, productDescription, benefits, callToAction || 'Try it today', productImageBase64, productImageMimeType)
+    // Generate Claude script first.
+    // - Target duration: Sora tiers must fit inside the clip cap (12s Hero, 8s Premium).
+    //   Lean uses HeyGen with no hard cap so 30s is fine.
+    // - Forced scene: when the user picked one in the character questionnaire, lock it in
+    //   so [BACKGROUND:] downstream uses the same scene Sora will render.
+    const scriptTargetDuration = tierCfg.aRollProvider === 'sora-2' ? tierCfg.durationSeconds : 30
+    const forcedScene = character?.scene?.trim() ? character.scene.toLowerCase() : undefined
+    const baseScript = await generateUGCScript(
+      productName,
+      productDescription,
+      benefits,
+      callToAction || 'Try it today',
+      productImageBase64,
+      productImageMimeType,
+      scriptTargetDuration,
+      forcedScene,
+    )
     const script = selectedHook && typeof selectedHook === 'string' && selectedHook.trim()
       ? replaceHook(baseScript, selectedHook.trim())
       : baseScript

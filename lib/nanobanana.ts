@@ -140,15 +140,26 @@ export async function generateCharacterWithProduct(
   characterPrompt: string,
   scene: string,
 ): Promise<NanoBananaResult> {
-  const prompt = `Using the attached reference image as the exact product (preserve packaging, label text, colours, shape, and proportions exactly as shown — do not redesign or restyle), generate a hyper-realistic phone-selfie photograph for a UGC ad first frame.
+  // Adaptive product placement — the reference image can be either a physical product
+  // (skincare bottle, perfume) OR a screenshot of a software UI / app. Telling Nano
+  // Banana to "wrap fingers around the bottle" caused it to literally render the UI
+  // as a water bottle. The new prompt makes the model decide:
+  //   - physical product → hold in hand
+  //   - UI / screenshot → show on a phone or laptop screen in frame
+  //   - logo / packaging artwork → on a visible product in the scene
+  // No hardcoded shape words ('bottle', 'jar') so it stops hallucinating containers.
+  const prompt = `Using the attached reference image as the exact subject (preserve every detail — packaging, label text, UI layout, colours, shape, proportions — do not redesign or restyle), generate a hyper-realistic phone-selfie photograph for a UGC ad first frame.
 
 CHARACTER: ${characterPrompt}
 
 SCENE: ${scene}
 
-PRODUCT PLACEMENT: held in the character's hand mid-lift toward the face, fingers wrapped naturally around the bottle, label angled slightly toward camera but not perfectly square. The product is the exact one from the reference image.
+REFERENCE IMAGE INTERPRETATION — read the reference image carefully first, then pick ONE placement that fits what it actually shows:
+- If the reference is a PHYSICAL PRODUCT (bottle, jar, box, food, device, makeup, etc.): the character holds the product in one hand at mid-chest height, mid-lift toward the camera, fingers wrapped naturally around it, label angled slightly toward camera but not perfectly square.
+- If the reference is a SCREENSHOT OF A SOFTWARE APP, WEBSITE, OR PHONE/LAPTOP UI: the character is holding a smartphone in one hand, screen tilted toward the camera, and the phone's screen shows the EXACT UI from the reference image (preserve every UI element, colour, text). Do not render the UI as a physical object — it lives on a phone screen.
+- If the reference is a LOGO ONLY: place the character with a laptop or phone visible in scene, with the logo subtly present in the environment (laptop sticker, t-shirt, mug, screen) — do not make the logo into a held physical object.
 
-CAMERA: handheld selfie, slight tilt (2°), iPhone front camera framing — face to mid-chest visible, product visible in hand at mid-chest height. Slightly off-centre composition, weight toward one side.
+CAMERA: handheld selfie, slight tilt (2°), iPhone front camera framing — face to mid-chest visible, hand/product/device visible at mid-chest height. Slightly off-centre composition, weight toward one side.
 
 EXPRESSION: caught mid-moment — not a finished pose. Mid-smile starting, eyes alive and focused on the camera, mouth just parting to speak. Specific micro-expression, never a polished portrait smile.
 
@@ -157,7 +168,7 @@ REALISM ANCHORS — these must all be present:
 - Eyes: asymmetric catchlight, warm iris detail, lid weight natural, slight asymmetry between left and right
 - Hair: flyaways, slight frizz, irregular part, baby hairs visible
 - Lighting: single soft natural source (window or overhead), not studio
-- Background: identifiable scene, lived-in, not generic blur — soft but readable
+- Background: identifiable ${scene}, lived-in, not generic blur — soft but readable, must clearly read as ${scene}
 
 Phone-camera-natural rendering: slight sensor grain in shadow areas, mild highlight clipping on the bright side of the face, no beauty filter, no over-sharpening, no glass-skin look, no commercial polish. The frame should read as a frozen second from a video that hasn't been recorded yet — a real person caught mid-moment on a real phone.
 
