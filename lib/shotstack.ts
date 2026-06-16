@@ -1,7 +1,4 @@
 // Shotstack stitch provider — drop-in replacement for lib/creatomate.ts.
-// Same public interface (submitStitchJob, getStitchStatus) so the route doesn't care
-// which provider it's talking to.
-//
 // Set SHOTSTACK_ENV=production to use the paid endpoint. Default is 'stage', which
 // is Shotstack's free sandbox (20 min/month, no card required, watermark-free).
 
@@ -9,35 +6,32 @@ const SHOTSTACK_BASE = process.env.SHOTSTACK_ENV === 'production'
   ? 'https://api.shotstack.io/edge'
   : 'https://api.shotstack.io/stage'
 
-const TALKING_HEAD_ALIAS = 'talking_head'
-
 export async function submitStitchJob({
   talkingHeadUrl,
   talkingHeadDuration,
   broll1Url,
   broll2Url,
   audioOverlayUrl,
+  spokenScript,
 }: {
   talkingHeadUrl: string
-  talkingHeadDuration?: number  // seconds; used to position B-roll2 absolutely
+  talkingHeadDuration?: number  // seconds; used to position B-roll2 and chunk captions
   broll1Url?: string
   broll2Url?: string
-  audioOverlayUrl?: string  // Hero tier: ElevenLabs voice — mutes talking-head audio
+  audioOverlayUrl?: string      // Hero tier: ElevenLabs/OpenAI voice — mutes talking-head audio
+  spokenScript?: string         // The exact spoken text — chunked into captions clip-by-clip
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.SHOTSTACK_API_KEY
   if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
 
-  // Mirror the Creatomate timing exactly so the output feels identical:
   //   0–4s: B-roll1 (muted, fades out)
   //   3.7s: talking head starts (0.3s crossover)
-  //   talking-head.end: B-roll2 appended (muted, fades in)
+  //   talkingHeadEnd: B-roll2 appended (muted, fades in)
   const talkingHeadStart = broll1Url ? 3.7 : 0
-  // Set the talking-head clip length explicitly so we can compute B-roll2's absolute
-  // start. If duration is unknown, default to 12s (max Sora) — slightly long is harmless.
   const talkingHeadLength = talkingHeadDuration && talkingHeadDuration > 0 ? talkingHeadDuration : 12
   const talkingHeadEnd = talkingHeadStart + talkingHeadLength
 
-  // Track 1 (bottom): main visual track
+  // === Track 1 (bottom): visuals ===
   const visualClips: Record<string, unknown>[] = []
 
   if (broll1Url) {
@@ -54,10 +48,8 @@ export async function submitStitchJob({
     asset: {
       type: 'video',
       src: talkingHeadUrl,
-      // Mute the talking head when overlay audio is provided (Hero tier)
       volume: audioOverlayUrl ? 0 : 1,
     },
-    alias: TALKING_HEAD_ALIAS,
     start: talkingHeadStart,
     length: talkingHeadLength,
     fit: 'cover',
@@ -75,8 +67,8 @@ export async function submitStitchJob({
 
   const tracks: Record<string, unknown>[] = [{ clips: visualClips }]
 
-  // Optional: ElevenLabs audio overlay (Hero tier) — its own track so it plays full volume.
-  // Bound the length to the talking head so audio doesn't bleed over B-roll2.
+  // === Track 2: audio overlay (Hero) ===
+  // Bound to talking-head length so it doesn't bleed over B-roll2.
   if (audioOverlayUrl) {
     tracks.push({
       clips: [{
@@ -87,35 +79,17 @@ export async function submitStitchJob({
     })
   }
 
-  // TikTok-style auto-captions transcribed from the talking-head video.
-  // Shotstack's caption asset src must be a video alias (or video URL) — it can't take
-  // a raw audio URL. Even on Hero (where the talking-head audio is muted in playback),
-  // Shotstack still transcribes from the underlying audio track of the clip, which
-  // contains the same spoken script as the ElevenLabs overlay. So always alias.
-  const captionSrc = `alias://${TALKING_HEAD_ALIAS}`
-  tracks.unshift({
-    clips: [{
-      asset: {
-        type: 'caption',
-        src: captionSrc,
-        font: {
-          family: 'Inter',
-          weight: 900,
-          size: 64,
-          color: '#FFFFFF',
-          lineHeight: 1.1,
-        },
-        stroke: { color: '#000000', width: 4 },
-        background: { color: 'transparent' },
-        // Highlight active word in yellow — closest analog to Creatomate's transcript_effect
-        highlight: { color: '#FFD400' },
-      },
-      start: talkingHeadStart,
-      length: talkingHeadLength,
-      position: 'bottom',
-      offset: { y: -0.22 },  // push up to roughly 78% from the top of frame
-    }],
-  })
+  // === Track 3 (top): TikTok-style word-by-word captions ===
+  // Build captions from the spoken script directly — no transcription needed because we
+  // already have the exact words. Split into ~3-word chunks, distribute evenly across
+  // the talking-head duration. Each chunk is its own text clip stacked into a single track.
+  // Sync isn't frame-perfect since speech pace varies, but for 8–12s clips it's tight enough.
+  if (spokenScript && spokenScript.trim()) {
+    const captionClips = buildCaptionClips(spokenScript.trim(), talkingHeadStart, talkingHeadLength)
+    if (captionClips.length) {
+      tracks.unshift({ clips: captionClips })
+    }
+  }
 
   const body = {
     timeline: {
@@ -140,15 +114,25 @@ export async function submitStitchJob({
 
   if (!res.ok) {
     const rawText = await res.text().catch(() => '')
-    let parsed: { message?: string; response?: { message?: string; error?: unknown }; error?: unknown } = {}
+    let parsed: {
+      message?: string
+      response?: { message?: string; error?: unknown; errors?: unknown }
+      error?: unknown
+      errors?: unknown
+    } = {}
     try { parsed = JSON.parse(rawText) } catch {}
-    const detail =
-      parsed.response?.message
-      || parsed.message
-      || (parsed.response?.error ? JSON.stringify(parsed.response.error) : '')
-      || (parsed.error ? JSON.stringify(parsed.error) : '')
-      || rawText.slice(0, 400)
-      || res.statusText
+
+    // Shotstack returns validation errors in different shapes depending on which endpoint
+    // and version. Try every known path so we don't blackbox the developer.
+    const errorsArray =
+      parsed.response?.errors
+      || parsed.errors
+      || parsed.response?.error
+      || parsed.error
+    const errorsDetail = errorsArray ? JSON.stringify(errorsArray) : ''
+    const msg = parsed.response?.message || parsed.message || ''
+    const detail = [msg, errorsDetail].filter(Boolean).join(' — ') || rawText.slice(0, 500) || res.statusText
+
     console.error('[shotstack] render rejected', { status: res.status, detail, payload: body })
     throw new Error(`Shotstack ${res.status}: ${detail}`)
   }
@@ -158,6 +142,47 @@ export async function submitStitchJob({
   if (!renderId) throw new Error(`Shotstack did not return a render ID. Response: ${JSON.stringify(data)}`)
 
   return { renderId }
+}
+
+// Split the spoken script into ~3-word chunks and time them evenly across the talking-head
+// duration. Returns an array of Shotstack text-asset clips ready to stack into a track.
+function buildCaptionClips(script: string, startAt: number, totalLength: number): Record<string, unknown>[] {
+  // Strip everything that wouldn't be spoken — section headers, stage directions, quotes.
+  const cleaned = script
+    .replace(/\[[^\]]*\]/g, '')          // [BACKGROUND:], [HOOK ...] etc
+    .replace(/\([^)]*\)/g, '')           // (energetic, slightly amazed)
+    .replace(/["“”]/g, '')               // surrounding quotes
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  if (!cleaned) return []
+
+  const words = cleaned.split(' ').filter(Boolean)
+  if (!words.length) return []
+
+  const WORDS_PER_CHUNK = 3
+  const chunks: string[] = []
+  for (let i = 0; i < words.length; i += WORDS_PER_CHUNK) {
+    chunks.push(words.slice(i, i + WORDS_PER_CHUNK).join(' '))
+  }
+
+  const perChunk = totalLength / chunks.length
+
+  return chunks.map((text, i) => ({
+    asset: {
+      type: 'title',
+      text,
+      style: 'minimal',
+      color: '#FFFFFF',
+      background: 'transparent',
+      size: 'large',
+    },
+    start: startAt + i * perChunk,
+    length: perChunk,
+    position: 'bottom',
+    offset: { y: 0.18 },  // raise off the very bottom edge
+    transition: { in: 'fade', out: 'fade' },
+  }))
 }
 
 // Status normalised to match the Creatomate interface used by the route + UI.

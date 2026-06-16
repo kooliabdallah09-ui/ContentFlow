@@ -126,6 +126,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         broll1Url: broll1,
         broll2Url: broll2,
         audioOverlayUrl,
+        spokenScript: components?.script,
       }),
     })
       .then(async r => ({ ok: r.ok, body: await r.json().catch(() => ({})) }))
