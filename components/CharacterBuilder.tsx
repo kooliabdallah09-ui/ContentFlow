@@ -35,17 +35,63 @@ export const EMPTY_CHARACTER: CharacterProfile = {
   accessories: '',
 }
 
-// Option sets per question (matches the AI Influencer .md skill verbatim)
+// Option sets per question. Each field also supports an "Other (specify)" free-text input
+// for cases the dropdown doesn't cover. Gender intentionally has no "Other" select option —
+// it's just 3 choices; non-binary / custom users pick "Other" → text input.
 const OPTIONS = {
-  gender: ['Man', 'Woman', 'Other'],
-  age: ['Early 20s', 'Late 20s', 'Early 30s', 'Late 30s', '40s+'],
-  ethnicity: ['South Asian', 'East Asian', 'West African', 'Middle Eastern', 'Southern European', 'Latin American', 'Northern European', 'Mixed'],
-  hair: ['Black straight', 'Dark brown wavy', 'Dark brown curly', 'Light brown', 'Blonde', 'Red'],
-  uniqueFeatures: ['None', 'Freckles', 'Acne', 'A scar', 'Birthmark', 'Gap teeth'],
-  scene: ['Bathroom', 'Bedroom', 'Gym', 'City street', 'Café', 'Kitchen'],
-  mood: ['Relaxed', 'Candid', 'Confident', 'Laughing', 'Serious', 'Playful'],
-  outfit: ['White tank top', 'Oversized hoodie', 'Gym wear', 'Casual t-shirt', 'Smart casual'],
-  accessories: ['None', 'Sunglasses', 'Earrings', 'Necklace', 'Watch', 'Hat', 'Rings'],
+  gender: ['Man', 'Woman'],
+  age: ['Teen (16–19)', 'Early 20s', 'Late 20s', 'Early 30s', 'Late 30s', '40s', '50s', '60+'],
+  ethnicity: [
+    'South Asian', 'East Asian', 'Southeast Asian', 'Central Asian',
+    'West African', 'East African', 'North African',
+    'Black / African American', 'Afro-Caribbean',
+    'Middle Eastern', 'Persian / Iranian',
+    'Southern European', 'Northern European', 'Eastern European / Slavic',
+    'Latin American', 'Indigenous / Native American', 'Pacific Islander',
+    'Mixed',
+  ],
+  hair: [
+    'Black straight', 'Black wavy', 'Black curly', 'Black coily / afro',
+    'Dark brown straight', 'Dark brown wavy', 'Dark brown curly',
+    'Light brown straight', 'Light brown wavy',
+    'Blonde straight', 'Blonde wavy', 'Platinum blonde', 'Strawberry blonde',
+    'Red / auburn',
+    'Gray', 'Salt and pepper', 'White',
+    'Bald / shaved',
+    'Dyed (vibrant colour)',
+    'Long braids', 'Dreadlocks',
+  ],
+  uniqueFeatures: [
+    'None', 'Freckles', 'Acne / blemishes', 'A scar', 'Birthmark',
+    'Gap teeth', 'Mole on face', 'Beard', 'Mustache', 'Tattoo visible',
+    'Glasses', 'Piercing', 'Dimples',
+  ],
+  scene: [
+    'Bathroom', 'Bedroom', 'Living room', 'Kitchen',
+    'Home office', 'Closet / dressing room',
+    'Gym', 'Yoga studio',
+    'Café', 'Restaurant',
+    'Outdoor park', 'Beach', 'City street', 'Rooftop',
+    'Car interior',
+  ],
+  mood: [
+    'Relaxed', 'Candid', 'Confident', 'Excited',
+    'Laughing', 'Surprised', 'Skeptical', 'Curious',
+    'Serious', 'Playful', 'Chill', 'Energetic',
+  ],
+  outfit: [
+    'White tank top', 'Casual t-shirt', 'Oversized hoodie', 'Sweater',
+    'Athletic wear', 'Gym wear', 'Yoga set', 'Sports bra',
+    'Smart casual', 'Suit / blazer', 'Dress', 'Skirt + top',
+    'Pajamas / loungewear', 'Robe', 'Towel',
+    'Streetwear', 'Cropped top', 'Button-up shirt',
+  ],
+  accessories: [
+    'None', 'Sunglasses', 'Glasses', 'Earrings', 'Necklace',
+    'Watch', 'Bracelet', 'Rings',
+    'Hat', 'Cap', 'Beanie', 'Headband',
+    'Scarf', 'Headphones',
+  ],
 }
 
 const PERSONA_STORAGE_KEY = 'contentflow_personas_v1'
@@ -56,10 +102,21 @@ interface CharacterBuilderProps {
   disabled?: boolean
 }
 
+const OTHER_SENTINEL = '__OTHER__'
+
 export default function CharacterBuilder({ value, onChange, disabled }: CharacterBuilderProps) {
   const [personas, setPersonas] = useState<SavedPersona[]>([])
   const [saveAs, setSaveAs] = useState('')
   const [selectedPersonaId, setSelectedPersonaId] = useState('')
+  // Tracks which fields the user explicitly switched into "Other" mode this session.
+  // We also detect "Other" implicitly if the saved value isn't in the predefined options.
+  const [otherMode, setOtherMode] = useState<Record<string, boolean>>({})
+
+  const isOtherActive = (field: keyof typeof OPTIONS): boolean => {
+    if (otherMode[field]) return true
+    const v = value[field as keyof CharacterProfile]
+    return !!v && !OPTIONS[field].includes(v)
+  }
 
   // Load saved personas from localStorage on mount
   useEffect(() => {
@@ -192,12 +249,33 @@ export default function CharacterBuilder({ value, onChange, disabled }: Characte
             outfit: 'Wearing',
             accessories: 'Accessories',
           }
+          const placeholders: Record<string, string> = {
+            gender: 'e.g. Non-binary',
+            age: 'e.g. 70s',
+            ethnicity: 'e.g. Filipino',
+            hair: 'e.g. Mid-length blonde with bangs',
+            uniqueFeatures: 'e.g. Heterochromia',
+            scene: 'e.g. Garage workshop',
+            mood: 'e.g. Sarcastic',
+            outfit: 'e.g. Vintage band tee + jeans',
+            accessories: 'e.g. Vintage camera around neck',
+          }
+          const useOther = isOtherActive(field)
+          const selectValue = useOther ? OTHER_SENTINEL : value[field as keyof CharacterProfile]
           return (
             <div key={field}>
               <label style={labelStyle}>{labels[field]}</label>
               <select
-                value={value[field]}
-                onChange={e => setField(field, e.target.value)}
+                value={selectValue}
+                onChange={e => {
+                  if (e.target.value === OTHER_SENTINEL) {
+                    setOtherMode(prev => ({ ...prev, [field]: true }))
+                    setField(field as keyof CharacterProfile, '')
+                  } else {
+                    setOtherMode(prev => ({ ...prev, [field]: false }))
+                    setField(field as keyof CharacterProfile, e.target.value)
+                  }
+                }}
                 disabled={disabled}
                 style={fieldStyle}
                 required={['gender', 'age', 'ethnicity', 'hair'].includes(field)}
@@ -206,7 +284,23 @@ export default function CharacterBuilder({ value, onChange, disabled }: Characte
                 {OPTIONS[field].map(opt => (
                   <option key={opt} value={opt}>{opt}</option>
                 ))}
+                <option value={OTHER_SENTINEL}>Other (specify)…</option>
               </select>
+              {useOther && (
+                <input
+                  type="text"
+                  value={value[field as keyof CharacterProfile]}
+                  onChange={e => setField(field as keyof CharacterProfile, e.target.value)}
+                  disabled={disabled}
+                  placeholder={placeholders[field]}
+                  style={{
+                    ...fieldStyle,
+                    marginTop: '6px',
+                    cursor: 'text',
+                  }}
+                  autoFocus
+                />
+              )}
             </div>
           )
         })}
