@@ -43,11 +43,14 @@ const UGC_TYPES = [
   { id: 'all', name: 'Full Package', description: 'Image + Avatar Video' },
 ]
 
+// ElevenLabs default voices — these ship with every account and work on the free
+// tier via API. Public-library voices (the previous IDs here) require a paid plan.
+// Swap individual entries for cloned voices later when the user upgrades.
 const VOICES = [
-  { id: 's3TPKV1kjDlVtZbl4Ksh', label: 'Adam — Engaging & Friendly' },
-  { id: 'UaYTS0wayjmO9KD1LR4R', label: 'Asher — Confident & Charismatic' },
-  { id: 'uYXf8XasLslADfZ2MB4u', label: 'Hope — Bubbly & Girly' },
-  { id: 'cVd39cx0VtXNC13y5Y7z', label: 'Hope 2 — Vibrant & Warm' },
+  { id: 'EXAVITQu4vr4xnSDxMAL', label: 'Bella — Soft & friendly (F)' },
+  { id: 'MF3mGyEYCl7XYWbV9V6O', label: 'Elli — Youthful & emotional (F)' },
+  { id: 'pNInz6obpgDQGcFmaJgB', label: 'Adam — Deep & authoritative (M)' },
+  { id: 'ErXwobaYiN019PkySvjV', label: 'Antoni — Well-rounded narrator (M)' },
 ]
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
