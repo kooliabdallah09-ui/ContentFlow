@@ -262,8 +262,8 @@ export async function POST(request: NextRequest) {
         if (!productImageBase64 || !productImageMimeType) {
           return NextResponse.json({ error: 'Premium / Hero tier requires a product photo (used to anchor the AI character and product)' }, { status: 400 })
         }
-        if (!process.env.GEMINI_API_KEY) {
-          return NextResponse.json({ error: 'Sora A-roll requires Nano Banana (GEMINI_API_KEY missing)' }, { status: 500 })
+        if (!process.env.REPLICATE_API_TOKEN) {
+          return NextResponse.json({ error: 'Sora A-roll requires Nano Banana via Replicate (REPLICATE_API_TOKEN missing)' }, { status: 500 })
         }
 
         // 1. Nano Banana — character holding the real product, hyper-realistic phone-camera frame
@@ -390,7 +390,7 @@ export async function POST(request: NextRequest) {
 
       if (brollActions) {
         const actionsToRender = brollActions.slice(0, tierCfg.brollCount)
-        const canUseNanoBanana = !!(productImageBase64 && productImageMimeType && process.env.GEMINI_API_KEY)
+        const canUseNanoBanana = !!(productImageBase64 && productImageMimeType && process.env.REPLICATE_API_TOKEN)
 
         // For each action: generate a Nano Banana action frame, upload, then submit Kling i2v.
         // Done in parallel — Nano Banana takes ~5s, can't block on it sequentially.

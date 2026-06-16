@@ -1,47 +1,82 @@
-// Gemini 2.5 Flash Image — "Nano Banana"
-// Multi-image-fusion native: takes a product reference image + a scene prompt and returns
-// a generated image that preserves the product's exact packaging/text while compositing it
-// into a new scene. Used as the source frame for B-roll image-to-video (Kling) and, in the
-// Hero tier, as the source frame for the A-roll talking head (Sora 2).
+// Nano Banana = Gemini 2.5 Flash Image, called via Replicate (consolidates all third-party
+// generation under one provider). Multi-image-fusion native: takes a product reference image
+// + a scene prompt and returns a generated image preserving the product's exact packaging
+// while compositing it into a new scene.
 
-const GEMINI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-const MODEL = 'gemini-2.5-flash-image'
+const REPLICATE_BASE = 'https://api.replicate.com/v1'
+const NANO_BANANA_MODEL = 'google/nano-banana'
 
 interface NanoBananaResult {
   imageBase64: string
   mimeType: string
 }
 
+// Submit Nano Banana sync (Prefer: wait) — image gen is fast (~5–8s), no need to poll.
+// Returns the generated image as base64 (fetched from Replicate's CDN URL).
 async function callNanoBanana(prompt: string, referenceImageBase64: string, referenceMimeType: string): Promise<NanoBananaResult> {
-  const apiKey = process.env.GEMINI_API_KEY
-  if (!apiKey) throw new Error('GEMINI_API_KEY not configured')
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
-  const res = await fetch(`${GEMINI_BASE}/models/${MODEL}:generateContent?key=${apiKey}`, {
+  const dataUrl = `data:${referenceMimeType};base64,${referenceImageBase64}`
+
+  const res = await fetch(`${REPLICATE_BASE}/models/${NANO_BANANA_MODEL}/predictions`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'wait', // sync mode — block until completion (typically 5-8s)
+    },
     body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: prompt },
-          { inline_data: { mime_type: referenceMimeType, data: referenceImageBase64 } },
-        ],
-      }],
-      generation_config: { response_modalities: ['IMAGE'] },
+      input: {
+        prompt,
+        image_input: [dataUrl],
+        output_format: 'png',
+      },
     }),
   })
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({}))
-    throw new Error(err.error?.message || `Nano Banana error ${res.status}: ${JSON.stringify(err)}`)
+    const err = await res.text()
+    throw new Error(`Replicate Nano Banana error ${res.status}: ${err.slice(0, 400)}`)
   }
 
   const data = await res.json()
-  const parts = data?.candidates?.[0]?.content?.parts ?? []
-  const imagePart = parts.find((p: { inline_data?: unknown }) => (p as { inline_data?: { data: string } }).inline_data)
-  const inline = (imagePart as { inline_data?: { data: string; mime_type: string } } | undefined)?.inline_data
-  if (!inline?.data) throw new Error(`Nano Banana returned no image. Response: ${JSON.stringify(data).slice(0, 500)}`)
 
-  return { imageBase64: inline.data, mimeType: inline.mime_type || 'image/png' }
+  // Replicate may return either a completed prediction (Prefer: wait succeeded) or a still-
+  // processing one (Prefer: wait timed out). Handle both.
+  if (data.status === 'failed' || data.error) {
+    throw new Error(`Replicate Nano Banana failed: ${data.error || JSON.stringify(data).slice(0, 300)}`)
+  }
+
+  let output = data.output
+  if (data.status !== 'succeeded') {
+    // Fallback: poll until done if Prefer: wait didn't get there
+    const id = data.id
+    for (let i = 0; i < 30; i++) {
+      await new Promise(r => setTimeout(r, 2000))
+      const poll = await fetch(`${REPLICATE_BASE}/predictions/${id}`, { headers: { Authorization: `Bearer ${apiKey}` } })
+      const pollData = await poll.json()
+      if (pollData.status === 'succeeded') { output = pollData.output; break }
+      if (pollData.status === 'failed' || pollData.status === 'canceled') {
+        throw new Error(`Replicate Nano Banana failed during poll: ${JSON.stringify(pollData).slice(0, 300)}`)
+      }
+    }
+    if (!output) throw new Error('Replicate Nano Banana did not complete within 60s')
+  }
+
+  // Output is either a single URL string or an array — normalize to the first URL
+  const imageUrl = Array.isArray(output) ? output[0] : output
+  if (typeof imageUrl !== 'string') {
+    throw new Error(`Replicate Nano Banana returned unexpected output: ${JSON.stringify(output).slice(0, 300)}`)
+  }
+
+  // Fetch the generated image and convert to base64 so the existing orchestrate code
+  // (which uploads base64 to Supabase) keeps working without changes.
+  const imgRes = await fetch(imageUrl)
+  if (!imgRes.ok) throw new Error(`Failed to fetch Nano Banana output: ${imgRes.statusText}`)
+  const buf = Buffer.from(await imgRes.arrayBuffer())
+  const mimeType = imgRes.headers.get('content-type') || 'image/png'
+  return { imageBase64: buf.toString('base64'), mimeType }
 }
 
 // Generate a B-roll action frame showing a SPECIFIC application action mid-motion.
@@ -79,8 +114,8 @@ Vertical 9:16 format. The product is visible and the action with it is unmistaka
   return callNanoBanana(prompt, productImageBase64, productMimeType)
 }
 
-// Backwards-compat wrapper for the older static-product-shot call (still used as a fallback
-// when an action description can't be generated). Prefer generateActionFrame for new code.
+// Backwards-compat wrapper — keeps generateProductHeroShot importable even though the new
+// pipeline calls generateActionFrame directly with explicit action descriptions.
 export async function generateProductHeroShot(
   productImageBase64: string,
   productMimeType: string,
@@ -96,7 +131,7 @@ export async function generateProductHeroShot(
   )
 }
 
-// Generate a character + product hero frame for the A-roll talking head (used in Hero tier).
+// Generate a character + product hero frame for the A-roll talking head (Premium / Hero tiers).
 // Same product-fidelity rules; the prompt describes the character and scene from scratch.
 export async function generateCharacterWithProduct(
   productImageBase64: string,
