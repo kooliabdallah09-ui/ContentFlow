@@ -1,9 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import AvatarPicker from '@/components/AvatarPicker'
 import CharacterBuilder, { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
-import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
+import {
+  TIERS,
+  DEFAULT_TIER,
+  DEFAULT_DURATION,
+  DURATION_OPTIONS,
+  calculateVideoCredits,
+  estimateRenderSeconds,
+  type UGCTier,
+  type UGCDuration,
+} from '@/lib/tiers'
 import { getSupabase } from '@/lib/auth'
 
 interface HookVariant {
@@ -17,18 +25,17 @@ interface UGCPackageBuilderProps {
   onGenerate: (settings: {
     ugcType: string
     tier: UGCTier
+    duration: UGCDuration
     productName: string
     productDescription: string
     benefits: string
     callToAction: string
     style: string
     imageSize: string
-    avatarId: string
     voiceId: string
     productImageBase64?: string
     productImageMimeType?: string
     selectedHook?: string
-    avatarGender?: string
     character?: CharacterProfile
   }) => Promise<void>
   isLoading: boolean
@@ -57,13 +64,12 @@ const VOICES = [
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
   const [ugcType, setUgcType] = useState('video-with-voiceover')
   const [tier, setTier] = useState<UGCTier>(DEFAULT_TIER)
+  const [duration, setDuration] = useState<UGCDuration>(DEFAULT_DURATION)
   const [productName, setProductName] = useState('')
   const [productDescription, setProductDescription] = useState('')
   const [benefits, setBenefits] = useState('')
   const [callToAction, setCallToAction] = useState('Try it today')
   const [style, setStyle] = useState('realistic')
-  const [avatarId, setAvatarId] = useState('')
-  const [avatarGender, setAvatarGender] = useState<string | undefined>(undefined)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
@@ -73,11 +79,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [hooksLoading, setHooksLoading] = useState(false)
   const [hooksError, setHooksError] = useState<string | null>(null)
 
-  const selectedType = UGC_TYPES.find(t => t.id === ugcType)!
   const tierCfg = TIERS[tier]
   const includesVideo = ugcType === 'video-with-voiceover' || ugcType === 'all'
   const includesImage = ugcType === 'image-with-voiceover' || ugcType === 'all'
-  const totalCredits = (includesImage ? IMAGE_CREDITS : 0) + (includesVideo ? tierCfg.videoCredits : 0)
+  const videoCredits = calculateVideoCredits(tier, duration)
+  const totalCredits = (includesImage ? IMAGE_CREDITS : 0) + (includesVideo ? videoCredits : 0)
   const canGenerate = creditBalance >= totalCredits && productName.trim() && productDescription.trim() && benefits.trim()
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,13 +107,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
   const runGenerate = async (selectedHook?: string) => {
     await onGenerate({
-      ugcType, tier, productName, productDescription, benefits, callToAction,
-      style, imageSize: '1024x1024', avatarId, voiceId,
+      ugcType, tier, duration, productName, productDescription, benefits, callToAction,
+      style, imageSize: '1024x1024', voiceId,
       productImageBase64: productImage?.base64,
       productImageMimeType: productImage?.mimeType,
       selectedHook,
-      avatarGender: tier === 'lean' ? avatarGender : character.gender,
-      character: tier !== 'lean' ? character : undefined,
+      character,
     })
     resetForm()
   }
@@ -170,7 +175,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {UGC_TYPES.map(type => {
             const typeCredits = (type.id === 'image-with-voiceover' ? IMAGE_CREDITS : 0)
-              + ((type.id === 'video-with-voiceover' || type.id === 'all') ? tierCfg.videoCredits : 0)
+              + ((type.id === 'video-with-voiceover' || type.id === 'all') ? videoCredits : 0)
             return (
               <label key={type.id} style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
@@ -193,42 +198,77 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
       </div>
 
-      {/* Quality tier — only relevant when video is included */}
+      {/* Quality tier + duration — only relevant when video is included */}
       {includesVideo && (
-        <div>
-          <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Quality Tier</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-            {(Object.keys(TIERS) as UGCTier[]).map(key => {
-              const t = TIERS[key]
-              const active = tier === key && t.available
-              const disabled = !t.available || isLoading
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => t.available && setTier(key)}
-                  disabled={disabled}
-                  style={{
-                    textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer',
-                    padding: '14px', borderRadius: 'var(--r-md)',
-                    border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                    background: active ? 'var(--accent-soft)' : 'var(--surface)',
-                    opacity: t.available ? 1 : 0.5,
-                    transition: 'all 0.15s',
-                    display: 'flex', flexDirection: 'column', gap: '6px',
-                  }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>{t.label}</span>
-                    <span style={{ fontSize: '11px', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>{t.estimatedTime}</span>
-                  </div>
-                  <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: active ? 'var(--accent)' : 'var(--ink-dim)', margin: 0, fontWeight: 600 }}>{t.tagline}</p>
-                  <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: 0, lineHeight: 1.4 }}>{t.description}</p>
-                  <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)', marginTop: '4px' }}>{t.videoCredits} cr</span>
-                </button>
-              )
-            })}
+        <>
+          <div>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Voice Quality</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+              {(Object.keys(TIERS) as UGCTier[]).map(key => {
+                const t = TIERS[key]
+                const active = tier === key && t.available
+                const disabled = !t.available || isLoading
+                const tierCost = calculateVideoCredits(key, duration)
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => t.available && setTier(key)}
+                    disabled={disabled}
+                    style={{
+                      textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer',
+                      padding: '14px', borderRadius: 'var(--r-md)',
+                      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'var(--accent-soft)' : 'var(--surface)',
+                      opacity: t.available ? 1 : 0.5,
+                      transition: 'all 0.15s',
+                      display: 'flex', flexDirection: 'column', gap: '6px',
+                    }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>{t.label}</span>
+                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)' }}>{tierCost} cr</span>
+                    </div>
+                    <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: active ? 'var(--accent)' : 'var(--ink-dim)', margin: 0, fontWeight: 600 }}>{t.tagline}</p>
+                    <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: 0, lineHeight: 1.4 }}>{t.description}</p>
+                  </button>
+                )
+              })}
+            </div>
           </div>
-        </div>
+
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
+              <span className="eyebrow">Duration</span>
+              <span style={{ fontSize: '11px', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>
+                ~{Math.round(estimateRenderSeconds(duration) / 60)}m render time
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${DURATION_OPTIONS.length}, 1fr)`, gap: '8px' }}>
+              {DURATION_OPTIONS.map(sec => {
+                const active = duration === sec
+                const cost = calculateVideoCredits(tier, sec)
+                return (
+                  <button
+                    key={sec}
+                    type="button"
+                    onClick={() => setDuration(sec)}
+                    disabled={isLoading}
+                    style={{
+                      textAlign: 'center', cursor: isLoading ? 'not-allowed' : 'pointer',
+                      padding: '12px', borderRadius: 'var(--r-md)',
+                      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                      background: active ? 'var(--accent-soft)' : 'var(--surface)',
+                      transition: 'all 0.15s',
+                      display: 'flex', flexDirection: 'column', gap: '4px',
+                    }}>
+                    <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink)' }}>{sec}s</span>
+                    <span style={{ fontSize: '11px', color: active ? 'var(--accent)' : 'var(--ink-dim)', fontWeight: 600 }}>{cost} cr</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </>
       )}
 
       {/* Product fields */}
@@ -262,16 +302,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         <div className="form-row">
           <label className="form-label">
             Product Photo{' '}
-            <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>
-              {tier === 'lean' ? '(optional)' : '(required)'}
-            </span>
+            <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>(required)</span>
           </label>
           <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '0 0 8px', lineHeight: 1.5 }}>
-            {tier === 'lean'
-              ? 'Optional — used to anchor your real product in B-rolls (Nano Banana + Kling) and write a more accurate script. Skip it for fastest hook testing.'
-              : tier === 'premium'
-              ? 'Required — Nano Banana generates a realistic AI character holding your real product. Without it, Premium can’t run.'
-              : 'Required — Nano Banana composites your real product into the AI character’s hand for the Sora 2 first frame. Without it, Hero can’t run.'}
+            Required — Nano Banana composites your real product (or app screen) into the AI character’s hand for the Sora 2 first frame.
           </p>
           <label style={{
             display: 'flex', alignItems: 'center', gap: '12px',
@@ -315,38 +349,27 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-          {tier === 'lean' ? (
-            <div>
-              <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Choose Avatar</span>
-              <AvatarPicker
-                selectedId={avatarId}
-                onChange={(id, gender) => { setAvatarId(id); setAvatarGender(gender) }}
-                disabled={isLoading}
-              />
-            </div>
-          ) : (
-            <div>
-              <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Build Your AI Creator</span>
-              <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '0 0 12px' }}>
-                {tier === 'hero' ? 'Hero' : 'Premium'} tier generates a hyper-realistic AI character holding your real product. Answer below or pick a saved persona.
-              </p>
-              <CharacterBuilder value={character} onChange={setCharacter} disabled={isLoading} />
-            </div>
-          )}
+          <div>
+            <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Build Your AI Creator</span>
+            <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '0 0 12px' }}>
+              Sora 2 generates a hyper-realistic AI character holding your real product. Answer below or pick a saved persona.
+            </p>
+            <CharacterBuilder value={character} onChange={setCharacter} disabled={isLoading} />
+          </div>
 
-          {/* Voice picker only matters for Hero (ElevenLabs overlay). Lean uses gender-matched
-              HeyGen TTS; Premium uses Sora's native audio (no user voice control). */}
-          {tier === 'hero' && (
+          {tier === 'hero' ? (
             <div className="form-row">
-              <label className="form-label">Voice (ElevenLabs)</label>
+              <label className="form-label">Voice</label>
               <select className="input" value={voiceId} onChange={e => setVoiceId(e.target.value)} disabled={isLoading}>
                 {VOICES.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
               </select>
+              <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '4px 0 0' }}>
+                Overlaid on the video. Defaults to OpenAI TTS (works free). Add an ElevenLabs voice ID in <code>lib/tts.ts</code> once you upgrade for higher quality.
+              </p>
             </div>
-          )}
-          {tier === 'premium' && (
+          ) : (
             <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '4px 0 0' }}>
-              ✦ Voice: Sora native audio (no voice choice — upgrade to Hero for ElevenLabs voice control)
+              ✦ Standard uses Sora&apos;s native AI voice. Switch to Hero above for branded voice control.
             </p>
           )}
         </div>

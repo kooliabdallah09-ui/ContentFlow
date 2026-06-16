@@ -107,19 +107,18 @@ export default function UGCGeneratorPage() {
 
   const handleGenerate = async (settings: {
     ugcType: string
-    tier: 'lean' | 'premium' | 'hero'
+    tier: 'standard' | 'hero'
+    duration: 4 | 8 | 12
     productName: string
     productDescription: string
     benefits: string
     callToAction: string
     style: string
     imageSize: string
-    avatarId: string
     voiceId: string
     productImageBase64?: string
     productImageMimeType?: string
     selectedHook?: string
-    avatarGender?: string
     character?: import('@/components/CharacterBuilder').CharacterProfile
   }) => {
     setLoading(true)

@@ -1,12 +1,20 @@
 import { generateImage } from '@/lib/gemini-image'
-import { submitVideoJob, estimateDuration, fallbackVoiceForGender, inferAvatarGender } from '@/lib/heygen'
+import { estimateDuration } from '@/lib/heygen'
 import { generateActionFrame, generateCharacterWithProduct } from '@/lib/nanobanana'
 import { submitSoraJob } from '@/lib/sora'
 import { buildSoraPrompt } from '@/lib/sora-prompt'
 import { generateSpeech } from '@/lib/tts'
 import { submitBrollJob } from '@/lib/kling'
 import { CREDIT_COSTS } from '@/lib/credits'
-import { TIERS, DEFAULT_TIER, type UGCTier } from '@/lib/tiers'
+import {
+  TIERS,
+  DEFAULT_TIER,
+  DEFAULT_DURATION,
+  DURATION_OPTIONS,
+  calculateVideoCredits,
+  type UGCTier,
+  type UGCDuration,
+} from '@/lib/tiers'
 import { buildCharacterPrompt, type CharacterProfile } from '@/lib/character'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -227,6 +235,13 @@ export async function POST(request: NextRequest) {
     const tier: UGCTier = TIERS[rawTier]?.available ? rawTier : DEFAULT_TIER
     const tierCfg = TIERS[tier]
 
+    // Duration: user-chosen 4 / 8 / 12 seconds. Validates against the allowed set so
+    // a bad request can't trick us into requesting an unsupported Sora duration.
+    const rawDuration = Number(body.duration ?? DEFAULT_DURATION)
+    const duration: UGCDuration = (DURATION_OPTIONS as number[]).includes(rawDuration)
+      ? (rawDuration as UGCDuration)
+      : DEFAULT_DURATION
+
     if (!ugcType || !productName || !productDescription || !benefits) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
@@ -234,7 +249,7 @@ export async function POST(request: NextRequest) {
     // Calculate credit cost (video cost is tier-dependent)
     let totalCost = 0
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
-    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += tierCfg.videoCredits
+    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += calculateVideoCredits(tier, duration)
 
     const { data: userCredits } = await supabase.from('user_credits').select('balance').eq('user_id', userId).single()
     if (!userCredits || userCredits.balance < totalCost) {
@@ -246,7 +261,7 @@ export async function POST(request: NextRequest) {
     //   Lean uses HeyGen with no hard cap so 30s is fine.
     // - Forced scene: when the user picked one in the character questionnaire, lock it in
     //   so [BACKGROUND:] downstream uses the same scene Sora will render.
-    const scriptTargetDuration = tierCfg.aRollProvider === 'sora-2' ? tierCfg.durationSeconds : 30
+    const scriptTargetDuration = duration  // both tiers are Sora-only now; script must fit
     const forcedScene = character?.scene?.trim() ? character.scene.toLowerCase() : undefined
     const baseScript = await generateUGCScript(
       productName,
@@ -282,15 +297,13 @@ export async function POST(request: NextRequest) {
       const bgMatch = script.match(/\[BACKGROUND:\s*([^\]]+)\]/i)
       const backgroundContext = bgMatch?.[1]?.trim() ?? 'casual indoor setting'
 
-      // A-roll provider branches by tier:
-      //   - 'heygen-stock' (Lean): pre-recorded HeyGen stock avatar + HeyGen TTS / ElevenLabs
-      //   - 'sora-2'      (Premium, Hero): Nano Banana character+product hero frame → Sora 2
-      //     image-to-video with native audio. No HeyGen, no ElevenLabs, no Sync.so.
+      // All tiers now use Sora 2 for the A-roll. The tier just controls voice:
+      //   Standard → Sora native audio (no extra TTS step)
+      //   Hero     → muted Sora + ElevenLabs/OpenAI voice overlay during stitch
       let videoId: string
-      let aRollProvider: 'heygen' | 'sora-2'
+      const aRollProvider: 'sora-2' = 'sora-2'
 
-      if (tierCfg.aRollProvider === 'sora-2') {
-        aRollProvider = 'sora-2'
+      {
         if (!process.env.OPENAI_API_KEY) {
           return NextResponse.json({ error: 'Sora A-roll is not configured (OPENAI_API_KEY missing)' }, { status: 500 })
         }
@@ -372,52 +385,11 @@ export async function POST(request: NextRequest) {
         const sora = await submitSoraJob({
           prompt: soraPrompt,
           referenceImageUrl: heroUrl,
-          durationSeconds: tierCfg.durationSeconds as 4 | 8 | 12,
+          durationSeconds: duration,
           size: SORA_SIZE,
         })
         videoId = sora.videoId
         if (elevenLabsAudioUrl) components.audioOverlayUrl = elevenLabsAudioUrl
-      } else {
-        // HeyGen stock path (Lean tier)
-        aRollProvider = 'heygen'
-        const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
-        // HeyGen's avatar list often returns 'Unknown' / '' for gender. Treat anything
-        // that isn't unambiguously male/female as "unset" so the name-based inference
-        // (Bryan/Wayne/Marco/etc.) gets a chance to fire.
-        const normalizedPickerGender =
-          avatarGender && /^(m|man|male|masculine|f|female|woman|w)/i.test(avatarGender.trim())
-            ? avatarGender
-            : undefined
-        const gender = normalizedPickerGender || inferAvatarGender(effectiveAvatarId)
-
-        // Generate ElevenLabs audio if the tier asks for it
-        let audioUrl: string | undefined
-        if (tierCfg.useElevenLabs && process.env.ELEVENLABS_API_KEY) {
-          try {
-            const audioBuffer = await generateSpeech(spokenScript, voiceId)
-            const audioFilename = `audio-gen/${userId}-${Date.now()}.mp3`
-            const { error: audioErr } = await supabase.storage
-              .from('ugc-assets')
-              .upload(audioFilename, audioBuffer, { contentType: 'audio/mpeg', upsert: false })
-            if (!audioErr) {
-              const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
-              audioUrl = publicUrl
-            }
-          } catch (err) {
-            console.warn('ElevenLabs failed, using gender-matched HeyGen TTS fallback:', err instanceof Error ? err.message : err)
-          }
-        }
-
-        const fallbackVoiceId = fallbackVoiceForGender(gender)
-        console.log('[orchestrate] Lean voice pick:', {
-          avatarId: effectiveAvatarId,
-          avatarGenderFromClient: avatarGender,
-          inferredGender: gender,
-          usingElevenLabsAudio: !!audioUrl,
-          fallbackVoiceId,
-        })
-        const hey = await submitVideoJob(spokenScript, effectiveAvatarId, fallbackVoiceId, undefined, audioUrl)
-        videoId = hey.videoId
       }
 
       // ---- shared post-submit: save early, submit B-rolls, return ----
