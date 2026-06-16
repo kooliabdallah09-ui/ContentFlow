@@ -42,6 +42,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [brolls, setBrolls] = useState<BrollClip[]>([])
   const [stitchRenderId, setStitchRenderId] = useState<string | null>(null)
   const [stitchStatus, setStitchStatus] = useState<'idle' | 'stitching' | 'completed' | 'failed'>('idle')
+  const [stitchError, setStitchError] = useState<string | null>(null)
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
   const [audioOverlayUrl, setAudioOverlayUrl] = useState<string | undefined>(undefined)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
@@ -116,12 +117,19 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ talkingHeadUrl: video.videoUrl, broll1Url: broll1, broll2Url: broll2, audioOverlayUrl }),
     })
-      .then(r => r.json())
-      .then(data => {
-        if (data.renderId) setStitchRenderId(data.renderId)
-        else setStitchStatus('failed')
+      .then(async r => ({ ok: r.ok, body: await r.json().catch(() => ({})) }))
+      .then(({ ok, body }) => {
+        if (ok && body.renderId) {
+          setStitchRenderId(body.renderId)
+        } else {
+          setStitchError(body.error || 'Unknown stitch error')
+          setStitchStatus('failed')
+        }
       })
-      .catch(() => setStitchStatus('failed'))
+      .catch(err => {
+        setStitchError(err instanceof Error ? err.message : String(err))
+        setStitchStatus('failed')
+      })
   }, [video?.status, video?.videoUrl, brolls])
 
   // Poll Creatomate stitch status
@@ -138,6 +146,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
           setStitchStatus('completed')
           clearInterval(stitchPollRef.current!)
         } else if (data.status === 'failed') {
+          setStitchError(data.error_message || data.error || 'Creatomate reported render failure')
           setStitchStatus('failed')
           clearInterval(stitchPollRef.current!)
         }
@@ -310,7 +319,14 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
           )}
 
           {stitchStatus === 'failed' && (
-            <p style={{ fontSize: '13px', color: 'var(--bad)' }}>Stitching failed — download the clips above separately.</p>
+            <div>
+              <p style={{ fontSize: '13px', color: 'var(--bad)', marginBottom: '8px' }}>Stitching failed — download the clips below separately.</p>
+              {stitchError && (
+                <p style={{ fontSize: '11px', color: 'var(--ink-fade)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>
+                  {stitchError}
+                </p>
+              )}
+            </div>
           )}
 
           {stitchStatus === 'completed' && finalVideoUrl && (
@@ -331,8 +347,9 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         </div>
       )}
 
-      {/* Video */}
-      {video && (
+      {/* Video — raw HeyGen/Sora output. Hidden once Final Video is ready so users
+          can't accidentally download the un-captioned, un-stitched version. */}
+      {video && stitchStatus !== 'completed' && (
         <div className="card" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
             Avatar Video
