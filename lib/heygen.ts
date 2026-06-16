@@ -43,16 +43,29 @@ const KNOWN_AVATAR_GENDERS: Record<string, 'Male' | 'Female'> = {
 // Common English first names by gender — last-resort inference when the avatar ID
 // looks like 'Bryan_FitnessCoach_public' or 'Anna_public_3_…' and HeyGen says nothing.
 const MALE_NAMES = new Set([
-  'eric','tyler','shawn','noah','wayne','marco','bryan','liam','noah','ethan','mason',
+  'eric','tyler','shawn','noah','wayne','marco','bryan','liam','ethan','mason',
   'james','john','michael','william','david','richard','joseph','thomas','charles',
   'aditya','rahul','arjun','wei','jin','kenji','hiroshi','diego','carlos','luis',
   'ahmed','mohammed','omar','ali','samuel','daniel','matthew','andrew','joshua','ryan',
+  'kevin','brian','jason','jeff','jeffrey','christopher','chris','steven','steve','paul',
+  'mark','donald','george','kenneth','edward','brandon','justin','scott','frank','greg',
+  'gregory','ben','benjamin','jack','tom','tony','antonio','roberto','alex','alexander',
+  'leo','leonardo','max','adrian','xavier','isaac','elijah','henry','sebastian','jackson',
+  'aiden','owen','dylan','gabriel','julian','wyatt','asher','christian','jonathan','aaron',
+  'jose','adam','nathan','austin','peter','zachary','zach','kyle','tristan','cole',
+  'caleb','connor','luke','luca','lucas','hudson','grayson','silas','levi','theo',
 ])
 const FEMALE_NAMES = new Set([
   'daisy','susan','anna','grace','monica','olivia','emma','ava','sophia','isabella',
   'mia','charlotte','amelia','harper','evelyn','abigail','emily','elizabeth','sofia',
   'avery','ella','scarlett','priya','aisha','fatima','yuki','sakura','maria','lucia',
-  'aaliyah','zara','hope','susan','rachel','sarah','jessica','jennifer','laura',
+  'aaliyah','zara','hope','rachel','sarah','jessica','jennifer','laura','melissa',
+  'rebecca','stephanie','nicole','angela','michelle','kimberly','amy','donna','carol',
+  'sandra','ashley','dorothy','helen','samantha','katherine','katie','kate','christine',
+  'megan','hannah','victoria','julia','natalie','grace','chloe','zoe','penny','penelope',
+  'lily','aurora','luna','nora','riley','layla','aria','willow','violet','ruby',
+  'maya','aaliyah','eliana','iris','hazel','stella','elena','clara','ivy','rose',
+  'audrey','bella','brooke','camila','daniela','diana','dora','elsa','emma','eva',
 ])
 
 function nameFromAvatarId(avatarId: string): string {

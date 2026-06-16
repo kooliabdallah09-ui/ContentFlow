@@ -160,7 +160,9 @@ function buildCaptionClips(script: string, startAt: number, totalLength: number)
   const words = cleaned.split(' ').filter(Boolean)
   if (!words.length) return []
 
-  const WORDS_PER_CHUNK = 3
+  // 5-6 word chunks read as a thought, not stuttered single words. With ~30 words at
+  // 12s, that's ~5 chunks ≈ 2.4s each — long enough to actually read.
+  const WORDS_PER_CHUNK = 5
   const chunks: string[] = []
   for (let i = 0; i < words.length; i += WORDS_PER_CHUNK) {
     chunks.push(words.slice(i, i + WORDS_PER_CHUNK).join(' '))
@@ -172,15 +174,18 @@ function buildCaptionClips(script: string, startAt: number, totalLength: number)
     asset: {
       type: 'title',
       text,
-      style: 'minimal',
+      // 'subtitle' preset is Shotstack's caption-tuned style — smaller bold sans with
+      // dark backing for readability over any footage. 'small' size keeps it from
+      // dominating the frame the way 'large' did.
+      style: 'subtitle',
       color: '#FFFFFF',
-      background: 'transparent',
-      size: 'large',
+      background: 'rgba(0,0,0,0.55)',
+      size: 'small',
     },
     start: startAt + i * perChunk,
     length: perChunk,
     position: 'bottom',
-    offset: { y: 0.18 },  // raise off the very bottom edge
+    offset: { y: 0.12 },
     transition: { in: 'fade', out: 'fade' },
   }))
 }

@@ -381,7 +381,14 @@ export async function POST(request: NextRequest) {
         // HeyGen stock path (Lean tier)
         aRollProvider = 'heygen'
         const effectiveAvatarId = avatarId || 'Daisy-inskirt-20220818'
-        const gender = avatarGender || inferAvatarGender(effectiveAvatarId)
+        // HeyGen's avatar list often returns 'Unknown' / '' for gender. Treat anything
+        // that isn't unambiguously male/female as "unset" so the name-based inference
+        // (Bryan/Wayne/Marco/etc.) gets a chance to fire.
+        const normalizedPickerGender =
+          avatarGender && /^(m|man|male|masculine|f|female|woman|w)/i.test(avatarGender.trim())
+            ? avatarGender
+            : undefined
+        const gender = normalizedPickerGender || inferAvatarGender(effectiveAvatarId)
 
         // Generate ElevenLabs audio if the tier asks for it
         let audioUrl: string | undefined
@@ -456,11 +463,17 @@ export async function POST(request: NextRequest) {
           if (canUseNanoBanana) {
             try {
               const frame = await generateActionFrame(productImageBase64!, productImageMimeType!, productName, action, backgroundContext)
-              const filename = `nano-banana/${userId}-${Date.now()}-${i}.${frame.mimeType.split('/')[1] ?? 'png'}`
-              const buf = Buffer.from(frame.imageBase64, 'base64')
+              // Force 9:16 (720x1280) so Kling i2v inherits portrait aspect from the start frame.
+              // Without this Nano Banana sometimes returned ~1:1 and Kling locked to that ratio,
+              // which then got side-cropped by Shotstack's fit:cover into a too-tight portrait.
+              const resized = await sharp(Buffer.from(frame.imageBase64, 'base64'))
+                .resize(720, 1280, { fit: 'cover', position: 'center' })
+                .png()
+                .toBuffer()
+              const filename = `nano-banana/${userId}-${Date.now()}-${i}.png`
               const { error: upErr } = await supabase.storage
                 .from('ugc-assets')
-                .upload(filename, buf, { contentType: frame.mimeType, upsert: false })
+                .upload(filename, resized, { contentType: 'image/png', upsert: false })
               if (!upErr) {
                 const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
                 return await submitBrollJob(KLING_I2V_MOTION_PROMPT, publicUrl).catch(() => null)
