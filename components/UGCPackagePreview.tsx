@@ -10,6 +10,7 @@ interface VideoComponent {
   estimatedDuration?: number
   duration?: number
   provider?: 'heygen' | 'sora-2'
+  error?: string  // Surfaced when the A-roll generation fails — content policy, billing, etc.
 }
 
 interface BrollClip {
@@ -77,7 +78,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         if (data.video) {
           const v = data.video
           if (v.status === 'completed' || v.status === 'failed') {
-            setVideo(prev => prev ? { ...prev, status: v.status, videoUrl: v.videoUrl, duration: v.duration } : prev)
+            setVideo(prev => prev ? { ...prev, status: v.status, videoUrl: v.videoUrl, duration: v.duration, error: v.error } : prev)
           }
         }
 
@@ -382,7 +383,20 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
           )}
 
           {video.status === 'failed' && (
-            <p style={{ fontSize: '13px', color: 'var(--bad)', marginBottom: '12px' }}>Video generation failed. Try again.</p>
+            <div style={{ marginBottom: '12px' }}>
+              <p style={{ fontSize: '13px', color: 'var(--bad)', fontWeight: 600, marginBottom: '6px' }}>
+                Video generation failed
+              </p>
+              {video.error ? (
+                <p style={{ fontSize: '11px', color: 'var(--ink-fade)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', lineHeight: 1.5 }}>
+                  {video.error}
+                </p>
+              ) : (
+                <p style={{ fontSize: '12px', color: 'var(--ink-fade)' }}>
+                  No detail returned. Common causes: OpenAI account out of credits, content-policy rejection, or transient API outage.
+                </p>
+              )}
+            </div>
           )}
 
           {video.status === 'completed' && video.videoUrl && (

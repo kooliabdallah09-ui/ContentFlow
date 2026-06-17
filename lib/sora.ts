@@ -54,6 +54,7 @@ export async function submitSoraJob(input: SoraSubmitInput): Promise<{ videoId: 
 
 export async function getSoraStatus(videoId: string): Promise<{
   status: 'pending' | 'processing' | 'completed' | 'failed'
+  error?: string  // Surfaced when status === 'failed' — moderation, credit, quota, etc.
 }> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
@@ -67,7 +68,21 @@ export async function getSoraStatus(videoId: string): Promise<{
   const status = data?.status as string | undefined
 
   if (status === 'completed' || status === 'succeeded') return { status: 'completed' }
-  if (status === 'failed' || status === 'error') return { status: 'failed' }
+  if (status === 'failed' || status === 'error') {
+    // OpenAI returns the actual failure reason in various shapes depending on cause:
+    //   data.error.message            — content policy, payload validation
+    //   data.failure_reason            — quota / billing / model-side
+    //   data.last_error                — older path, still seen sometimes
+    // We log the full payload server-side and surface a human-readable reason to the client.
+    const errObj = data?.error ?? data?.last_error
+    const reason =
+      (typeof errObj === 'string' ? errObj : errObj?.message)
+      ?? data?.failure_reason
+      ?? data?.error_message
+      ?? 'Sora rejected the generation. Common causes: content policy, OpenAI account credit exhausted, or quota limit.'
+    console.error('[sora] generation failed', { videoId, raw: data })
+    return { status: 'failed', error: typeof reason === 'string' ? reason.slice(0, 400) : 'Unknown Sora failure' }
+  }
   if (status === 'in_progress' || status === 'processing') return { status: 'processing' }
   return { status: 'pending' }
 }
