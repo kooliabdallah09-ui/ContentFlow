@@ -1,9 +1,12 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
-const KLING_MODEL = 'kwaivgi/kling-v1.6-standard'
+// Kling 2.1 Master: sharper detail, better hand-product interaction, accurate label text.
+// ~$0.42 per 5s clip vs ~$0.25 for v1.6 standard. Worth it for product UGC where label
+// fidelity and natural motion sell the ad.
+const KLING_MODEL = 'kwaivgi/kling-v2.1-master'
 
 // Submit a Kling job. If startImageUrl is provided, runs image-to-video (motion seeded from
-// the first frame) — used for B-roll 1 (product close-up from Nano Banana). Otherwise runs
-// text-to-video — used for B-roll 2 (usage motion).
+// the first frame) — used for character shots (Nano Banana action frame). Otherwise runs
+// text-to-video — used for product / lifestyle shots.
 export async function submitReplicateKlingJob(
   prompt: string,
   startImageUrl?: string,
@@ -11,12 +14,13 @@ export async function submitReplicateKlingJob(
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
+  // Kling 2.1 Master input schema. cfg_scale was a v1.6 knob — 2.1 master uses
+  // a different sampling pipeline and the field is ignored / rejected. Dropping it.
   const input: Record<string, unknown> = {
     prompt,
     duration: 5,
     aspect_ratio: '9:16',
-    cfg_scale: 0.5,
-    negative_prompt: 'text, watermark, blurry, low quality, ugly, distorted face',
+    negative_prompt: 'text, watermark, blurry, low quality, ugly, distorted face, deformed hands',
   }
   if (startImageUrl) input.start_image = startImageUrl
 
