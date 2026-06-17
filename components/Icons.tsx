@@ -90,6 +90,13 @@ export const Icon = {
       <path d="M5 12h14M13 6l6 6-6 6"/>
     </svg>
   ),
+  Ask: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21 12a8 8 0 0 1-11.3 7.3L4 21l1.7-5.7A8 8 0 1 1 21 12z"/>
+      <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7"/>
+      <circle cx="12" cy="16.5" r="0.5" fill="currentColor"/>
+    </svg>
+  ),
   Bell: (props: React.SVGProps<SVGSVGElement>) => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
       <path d="M6 8a6 6 0 1 1 12 0c0 5 2 7 2 7H4s2-2 2-7z"/>

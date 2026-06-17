@@ -39,6 +39,7 @@ export default function RootLayout({
       '/generate/image': 'Image — ContentFlow',
       '/generate/voice': 'Voiceover — ContentFlow',
       '/generate/video': 'Video — ContentFlow',
+      '/ask': 'Ask AI — ContentFlow',
       '/generate/ugc': 'UGC Package — ContentFlow',
       '/generate/from-calendar': 'Create Content — ContentFlow',
       '/settings': 'Settings — ContentFlow',

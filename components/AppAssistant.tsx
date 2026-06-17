@@ -52,13 +52,14 @@ export default function AppAssistant() {
     if (open) setTimeout(() => inputRef.current?.focus(), 100)
   }, [open])
 
-  // Hide on auth + landing + onboarding pages — the assistant is for in-app use.
+  // Hide on auth + landing + onboarding + /ask (full-page chat already there).
   const hidden =
     pathname?.startsWith('/auth') ||
     pathname === '/landing' ||
     pathname === '/' && false ||  // adjust if home should hide too
     pathname?.startsWith('/onboarding') ||
-    pathname === '/presentation'
+    pathname === '/presentation' ||
+    pathname?.startsWith('/ask')
   if (hidden) return null
 
   async function send(text: string) {

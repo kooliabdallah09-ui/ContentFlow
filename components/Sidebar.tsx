@@ -141,6 +141,11 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span>Brand</span>
           <span className="kbd">B</span>
         </Link>
+        <Link href="/ask" className={`nav-item ${isActive('/ask') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Ask />
+          <span>Ask AI</span>
+          <span className="kbd">A</span>
+        </Link>
       </div>
 
       <div className="rail-section">
