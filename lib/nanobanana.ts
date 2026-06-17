@@ -15,11 +15,19 @@ interface NanoBananaResult {
 
 // Submit Nano Banana sync (Prefer: wait) — image gen is fast (~5–8s), no need to poll.
 // Returns the generated image as base64 (fetched from Replicate's CDN URL).
-async function callNanoBanana(prompt: string, referenceImageBase64: string, referenceMimeType: string): Promise<NanoBananaResult> {
+// If referenceImageBase64 is omitted, runs pure text-to-image (no reference fusion).
+async function callNanoBanana(
+  prompt: string,
+  referenceImageBase64?: string,
+  referenceMimeType?: string,
+): Promise<NanoBananaResult> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
-  const dataUrl = `data:${referenceMimeType};base64,${referenceImageBase64}`
+  const input: Record<string, unknown> = { prompt, output_format: 'png' }
+  if (referenceImageBase64 && referenceMimeType) {
+    input.image_input = [`data:${referenceMimeType};base64,${referenceImageBase64}`]
+  }
 
   const res = await fetch(`${REPLICATE_BASE}/models/${NANO_BANANA_MODEL}/predictions`, {
     method: 'POST',
@@ -28,13 +36,7 @@ async function callNanoBanana(prompt: string, referenceImageBase64: string, refe
       'Content-Type': 'application/json',
       Prefer: 'wait', // sync mode — block until completion (typically 5-8s)
     },
-    body: JSON.stringify({
-      input: {
-        prompt,
-        image_input: [dataUrl],
-        output_format: 'png',
-      },
-    }),
+    body: JSON.stringify({ input }),
   })
 
   if (!res.ok) {
@@ -79,6 +81,14 @@ async function callNanoBanana(prompt: string, referenceImageBase64: string, refe
   const buf = Buffer.from(await imgRes.arrayBuffer())
   const mimeType = imgRes.headers.get('content-type') || 'image/png'
   return { imageBase64: buf.toString('base64'), mimeType }
+}
+
+// Generate a first frame for Sora 2 from a plain text prompt — no reference image.
+// Used by the standalone /generate/video page when the user doesn't upload a ref.
+// Output is a 9:16-friendly hyper-realistic still that Sora will animate forward.
+export async function generateTextToImage(prompt: string): Promise<NanoBananaResult> {
+  const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting, real skin texture and imperfections, no beauty filter, no studio polish, no commercial gloss. Should read as a candid moment captured on a real phone.`
+  return callNanoBanana(wrapped)
 }
 
 // Generate a B-roll action frame showing a SPECIFIC application action mid-motion.

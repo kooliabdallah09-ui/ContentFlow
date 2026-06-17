@@ -126,11 +126,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span>Dashboard</span>
           <span className="kbd">D</span>
         </Link>
-        <Link href="/calendar" className={`nav-item ${isActive('/calendar') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Calendar />
-          <span>Calendar</span>
-          <span className="kbd">C</span>
-        </Link>
         <Link href="/library" className={`nav-item ${isActive('/library') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Library />
           <span>Library</span>
@@ -146,37 +141,46 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span>Ask AI</span>
           <span className="kbd">A</span>
         </Link>
+        <Link href="/calendar" className={`nav-item ${isActive('/calendar') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Calendar />
+          <span>Calendar</span>
+          <span className="soon-badge">Soon</span>
+        </Link>
       </div>
 
       <div className="rail-section">
         <div className="rail-label">Create</div>
-        <Link href="/generate/blog" className={`nav-item ${isActive('/generate/blog') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Blog />
-          <span>Blog post</span>
-        </Link>
-        <Link href="/generate/social" className={`nav-item ${isActive('/generate/social') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Social />
-          <span>Social</span>
-        </Link>
-        <Link href="/generate/email" className={`nav-item ${isActive('/generate/email') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Email />
-          <span>Email</span>
+        <Link href="/generate/ugc" className={`nav-item ${isActive('/generate/ugc') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Video />
+          <span>UGC Package</span>
         </Link>
         <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Image />
           <span>Image</span>
         </Link>
-        <Link href="/generate/voice" className={`nav-item ${isActive('/generate/voice') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Voice />
-          <span>Voiceover</span>
-        </Link>
         <Link href="/generate/video" className={`nav-item ${isActive('/generate/video') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Video />
           <span>Video</span>
         </Link>
-        <Link href="/generate/ugc" className={`nav-item ${isActive('/generate/ugc') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Video />
-          <span>UGC Package</span>
+        <Link href="/generate/blog" className={`nav-item ${isActive('/generate/blog') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Blog />
+          <span>Blog post</span>
+          <span className="soon-badge">Soon</span>
+        </Link>
+        <Link href="/generate/social" className={`nav-item ${isActive('/generate/social') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Social />
+          <span>Social</span>
+          <span className="soon-badge">Soon</span>
+        </Link>
+        <Link href="/generate/email" className={`nav-item ${isActive('/generate/email') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Email />
+          <span>Email</span>
+          <span className="soon-badge">Soon</span>
+        </Link>
+        <Link href="/generate/voice" className={`nav-item ${isActive('/generate/voice') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Voice />
+          <span>Voiceover</span>
+          <span className="soon-badge">Soon</span>
         </Link>
       </div>
 
@@ -185,10 +189,12 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
         <Link href="/scheduler" className={`nav-item ${isActive('/scheduler') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Calendar />
           <span>Scheduler</span>
+          <span className="soon-badge">Soon</span>
         </Link>
         <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.TrendUp />
           <span>Analytics</span>
+          <span className="soon-badge">Soon</span>
         </Link>
       </div>
 

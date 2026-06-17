@@ -146,3 +146,20 @@ export const CREDIT_USD_VALUE = 0.025
 export function creditsToUSD(credits: number): number {
   return Math.round(credits * CREDIT_USD_VALUE * 100) / 100
 }
+
+// === Standalone /generate/video pricing ===
+// Plain Sora 2 prompt-to-video — no Nano Banana hero, no B-rolls, no Whisper, no stitch.
+// Just Sora + optional reference image. Cheaper than UGC because we skip all the
+// surrounding pipeline.
+//   BASE_STANDALONE: covers reference-image handling + Sora API overhead
+//   PER_SECOND_STANDALONE: each Sora second
+const BASE_STANDALONE_VIDEO = 10
+const PER_SECOND_STANDALONE_VIDEO = 5
+
+export function calculateStandaloneVideoCredits(duration: UGCDuration): number {
+  const dCfg = DURATION_CONFIGS[duration]
+  if (!dCfg) return BASE_STANDALONE_VIDEO + PER_SECOND_STANDALONE_VIDEO * 8
+  // Sora-only cost = base + sora seconds * per-sec. Chained durations still pay
+  // per Sora second since each chained clip is a real generation.
+  return BASE_STANDALONE_VIDEO + PER_SECOND_STANDALONE_VIDEO * dCfg.soraSeconds * dCfg.soraClips
+}
