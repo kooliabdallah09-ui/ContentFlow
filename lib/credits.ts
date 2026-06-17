@@ -1,22 +1,36 @@
 import { getSupabase } from './auth'
 import { CREDIT_COSTS as PLAN_CREDIT_COSTS } from './planConfig'
 
-// Single source of truth — delegate to planConfig
+// Single source of truth — delegate to planConfig.
+// Note: UGC video pricing is dynamic (tier + duration); see lib/tiers.ts.
+// The 'video' entry below is a legacy fallback for the standalone HeyGen
+// video generator (pre-UGC). Kept at 40cr so the legacy form doesn't break.
 export const CREDIT_COSTS = {
   blog: PLAN_CREDIT_COSTS.blog,
   social: PLAN_CREDIT_COSTS.social,
   email: PLAN_CREDIT_COSTS.email,
   image: PLAN_CREDIT_COSTS.image,
-  video: PLAN_CREDIT_COSTS.video_standard,
+  video: 40,
   voice: PLAN_CREDIT_COSTS.voice,
 } as const
 
+// Free tier intentionally has NO monthly refill — 60cr signup is one-shot.
+// Sized to cover ~1 Standard 4s video (52cr) + a few product images (3cr each).
+// Prevents free users from indefinitely consuming Sora calls.
 export const PLAN_CREDITS = {
-  free: { monthly: 50, signup_bonus: 150 },
-  starter: { monthly: 1000 },
-  pro: { monthly: 4000 },
-  agency: { monthly: 15000 },
+  free: { monthly: 0, signup_bonus: 60 },
+  starter: { monthly: 800 },
+  pro: { monthly: 2000 },
+  agency: { monthly: 6500 },
 } as const
+
+// Pay-as-you-go credit packs. Sold on the billing page, no subscription.
+// Per-credit price intentionally above subscription rate to push commit.
+export const CREDIT_PACKS = [
+  { id: 'small',  credits: 500,  priceUSD: 15,  perCredit: 0.030 },
+  { id: 'medium', credits: 1500, priceUSD: 40,  perCredit: 0.027, bonus: 11 },
+  { id: 'large',  credits: 5000, priceUSD: 120, perCredit: 0.024, bonus: 20 },
+] as const
 
 export async function getUserCredits(userId: string) {
   const supabase = getSupabase()

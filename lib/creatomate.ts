@@ -12,6 +12,7 @@ export async function submitStitchJob({
   broll2Url?: string
   audioOverlayUrl?: string  // Hero tier: ElevenLabs voice overlay — mutes Sora's audio
   spokenScript?: string     // ignored — Creatomate auto-transcribes via transcript_source
+  watermark?: boolean       // ignored — Creatomate path doesn't render the free-tier watermark
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.CREATOMATE_API_KEY
   if (!apiKey) throw new Error('Creatomate API key not configured')

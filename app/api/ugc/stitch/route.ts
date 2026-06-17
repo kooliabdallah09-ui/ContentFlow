@@ -1,5 +1,7 @@
 import * as creatomate from '@/lib/creatomate'
 import * as shotstack from '@/lib/shotstack'
+import { PLAN_CONFIG, type PlanTier } from '@/lib/planConfig'
+import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 // Dispatch: Shotstack is preferred when its key is present (cheaper + free tier).
@@ -26,12 +28,41 @@ async function getStitchStatus(renderId: string) {
   return creatomate.getStitchStatus(renderId)
 }
 
+// Look up the user's plan from Supabase so the watermark decision is server-trust.
+// Returns 'free' as a safe default if anything goes wrong — better to watermark
+// a paid user (annoying but recoverable) than to leak unwatermarked videos.
+async function getPlanWatermark(request: NextRequest): Promise<boolean> {
+  const authHeader = request.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) return true
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !supabaseKey) return true
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseKey)
+    const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
+    if (!userData?.user) return true
+    const { data: credits } = await supabase
+      .from('user_credits')
+      .select('plan')
+      .eq('user_id', userData.user.id)
+      .single()
+    const plan = (credits?.plan ?? 'free') as PlanTier
+    return PLAN_CONFIG[plan]?.watermark ?? true
+  } catch {
+    return true
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const { talkingHeadUrl, talkingHeadDuration, broll1Url, broll2Url, audioOverlayUrl, spokenScript } = await request.json()
     if (!talkingHeadUrl) {
       return NextResponse.json({ error: 'Missing talkingHeadUrl' }, { status: 400 })
     }
+
+    const watermark = await getPlanWatermark(request)
 
     const { renderId } = await submitStitchJob({
       talkingHeadUrl,
@@ -40,6 +71,7 @@ export async function POST(request: NextRequest) {
       broll2Url,
       audioOverlayUrl,
       spokenScript: typeof spokenScript === 'string' ? spokenScript : undefined,
+      watermark,
     })
     return NextResponse.json({ renderId })
   } catch (error) {

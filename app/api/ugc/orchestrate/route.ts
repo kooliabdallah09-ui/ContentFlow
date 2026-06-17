@@ -11,6 +11,7 @@ import {
   DEFAULT_TIER,
   DEFAULT_DURATION,
   DURATION_OPTIONS,
+  DURATION_CONFIGS,
   calculateVideoCredits,
   type UGCTier,
   type UGCDuration,
@@ -235,10 +236,13 @@ export async function POST(request: NextRequest) {
     const tier: UGCTier = TIERS[rawTier]?.available ? rawTier : DEFAULT_TIER
     const tierCfg = TIERS[tier]
 
-    // Duration: user-chosen 4 / 8 / 12 seconds. Validates against the allowed set so
-    // a bad request can't trick us into requesting an unsupported Sora duration.
+    // Duration: user-chosen total video length. Validates against the allowed set
+    // AND against the per-duration `available` flag — extended/chained durations
+    // are reserved for Push 2 and fall back to DEFAULT_DURATION here.
     const rawDuration = Number(body.duration ?? DEFAULT_DURATION)
-    const duration: UGCDuration = (DURATION_OPTIONS as number[]).includes(rawDuration)
+    const allowedDurations: readonly number[] = DURATION_OPTIONS
+    const dCfg = allowedDurations.includes(rawDuration) ? DURATION_CONFIGS[rawDuration] : null
+    const duration: UGCDuration = dCfg?.available
       ? (rawDuration as UGCDuration)
       : DEFAULT_DURATION
 
@@ -381,11 +385,15 @@ export async function POST(request: NextRequest) {
           script: spokenScript,
         })
 
-        // 5. Submit Sora 2 — returns immediately with a video id, client polls for completion
+        // 5. Submit Sora 2 — returns immediately with a video id, client polls for completion.
+        // Sora caps each generation at 12s, so we use the per-clip duration from the config.
+        // (For extended/chained durations, this just means the first Sora clip — Push 2
+        // adds the additional clips + extended B-roll fill.)
+        const soraSeconds = DURATION_CONFIGS[duration].soraSeconds
         const sora = await submitSoraJob({
           prompt: soraPrompt,
           referenceImageUrl: heroUrl,
-          durationSeconds: duration,
+          durationSeconds: soraSeconds,
           size: SORA_SIZE,
         })
         videoId = sora.videoId

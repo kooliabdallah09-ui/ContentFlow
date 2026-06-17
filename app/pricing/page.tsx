@@ -8,16 +8,15 @@ export default function PricingPage() {
     {
       name: 'Free',
       price: 0,
-      credits: 50,
-      currency: '€',
-      description: 'For individuals testing the platform',
+      credits: 60,
+      currency: '$',
+      description: 'One-time signup credit — try it before committing',
       features: [
-        '50 credits/month',
-        '150 bonus credits at signup',
-        'All content generators',
-        'Basic analytics',
+        '60 credits at signup (no monthly refill)',
+        '~1 Standard 4s UGC video + 3 product images',
+        '"Made with ContentFlow" watermark',
+        'All generators unlocked',
         'Community support',
-        'Single account'
       ],
       cta: 'Get Started',
       highlighted: false
@@ -25,16 +24,16 @@ export default function PricingPage() {
     {
       name: 'Starter',
       price: 19,
-      credits: 1000,
-      currency: '€',
-      description: 'For creators & small teams',
+      credits: 800,
+      currency: '$',
+      description: 'For creators posting weekly',
       features: [
-        '1,000 credits/month',
-        'Unlimited text generations',
-        '~50 UGC videos included',
-        '1 social media account',
+        '800 credits/month',
+        '~9 Standard 8s OR 7 Hero 8s UGC videos',
+        'No watermark',
+        'Unlimited text & image generations (within caps)',
         '30-day history',
-        'Email support'
+        'Email support',
       ],
       cta: 'Start Free Trial',
       highlighted: false
@@ -42,16 +41,16 @@ export default function PricingPage() {
     {
       name: 'Pro',
       price: 49,
-      credits: 4000,
-      currency: '€',
-      description: 'For serious creators & teams',
+      credits: 2000,
+      currency: '$',
+      description: 'For brands posting daily',
       features: [
-        '4,000 credits/month',
-        'Premium Avatar IV videos',
-        'Unlimited high-quality generations',
-        '3 social media accounts',
+        '2,000 credits/month',
+        '~23 Standard 8s OR 19 Hero 8s UGC videos',
+        'Long-form durations (20s, 30s, chained)',
         'Content calendar & scheduling',
-        'Priority support'
+        'Priority generation queue',
+        'Priority support',
       ],
       cta: 'Start Free Trial',
       highlighted: true
@@ -59,20 +58,26 @@ export default function PricingPage() {
     {
       name: 'Agency',
       price: 149,
-      credits: 15000,
-      currency: '€',
-      description: 'For agencies & enterprises',
+      credits: 6500,
+      currency: '$',
+      description: 'For agencies running multi-client UGC',
       features: [
-        '15,000 credits/month',
-        '10 client accounts included',
-        'Multi-client dashboard',
-        'All AI models & features',
+        '6,500 credits/month',
+        '~77 Standard 8s OR 62 Hero 8s UGC videos',
+        'Multi-client workspaces',
+        'Bulk variant generation',
+        'Dedicated account manager',
         'Priority & phone support',
-        'Dedicated account manager'
       ],
       cta: 'Contact Sales',
       highlighted: false
     }
+  ]
+
+  const creditPacks = [
+    { id: 'small',  credits: 500,   price: 15,  perCredit: 0.030, bonus: null },
+    { id: 'medium', credits: 1500,  price: 40,  perCredit: 0.027, bonus: '+11%' },
+    { id: 'large',  credits: 5000,  price: 120, perCredit: 0.024, bonus: '+20%' },
   ]
 
   return (
@@ -212,6 +217,31 @@ export default function PricingPage() {
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Pay-as-you-go credit packs */}
+        <div className="mt-20 max-w-5xl mx-auto">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-black mb-3">Need extra credits?</h2>
+            <p className="text-white/60">One-time credit packs — no subscription. Top up any plan anytime.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {creditPacks.map((pack) => (
+              <div key={pack.id} className="glass-card rounded-2xl p-8 flex flex-col">
+                <div className="flex items-baseline justify-between mb-2">
+                  <h3 className="text-2xl font-black">{pack.credits.toLocaleString()} cr</h3>
+                  {pack.bonus && (
+                    <span className="bg-cyan-400/20 text-cyan-300 px-2 py-1 rounded text-xs font-black">
+                      {pack.bonus} value
+                    </span>
+                  )}
+                </div>
+                <div className="text-4xl font-black mb-1">${pack.price}</div>
+                <p className="text-white/60 text-sm mb-6">${pack.perCredit.toFixed(3)} per credit</p>
+                <button className="btn-secondary mt-auto">Buy credits</button>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* FAQ Section */}

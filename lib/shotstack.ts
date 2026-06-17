@@ -13,6 +13,7 @@ export async function submitStitchJob({
   broll2Url,
   audioOverlayUrl,
   spokenScript,
+  watermark,
 }: {
   talkingHeadUrl: string
   talkingHeadDuration?: number  // seconds; used to position B-roll2 and chunk captions
@@ -20,6 +21,7 @@ export async function submitStitchJob({
   broll2Url?: string
   audioOverlayUrl?: string      // Hero tier: ElevenLabs/OpenAI voice — mutes talking-head audio
   spokenScript?: string         // The exact spoken text — chunked into captions clip-by-clip
+  watermark?: boolean           // Free-tier flag — overlays "Made with ContentFlow" bottom-right
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.SHOTSTACK_API_KEY
   if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
@@ -89,6 +91,29 @@ export async function submitStitchJob({
     if (captionClips.length) {
       tracks.unshift({ clips: captionClips })
     }
+  }
+
+  // === Watermark for free-tier output ===
+  // Top track so it sits above captions. Span the full timeline.
+  // Subtle but always visible: bottom-right, semi-transparent white on dark backing.
+  if (watermark) {
+    const totalLength = (broll2Url ? talkingHeadEnd + 4 : talkingHeadEnd)
+    tracks.unshift({
+      clips: [{
+        asset: {
+          type: 'title',
+          text: 'Made with ContentFlow',
+          style: 'subtitle',
+          color: '#FFFFFF',
+          background: 'rgba(0,0,0,0.45)',
+          size: 'x-small',
+        },
+        start: 0,
+        length: totalLength,
+        position: 'bottomRight',
+        offset: { x: -0.02, y: 0.02 },
+      }],
+    })
   }
 
   const body = {

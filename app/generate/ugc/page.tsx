@@ -108,7 +108,7 @@ export default function UGCGeneratorPage() {
   const handleGenerate = async (settings: {
     ugcType: string
     tier: 'standard' | 'hero'
-    duration: 4 | 8 | 12
+    duration: 4 | 8 | 12 | 20 | 30 | 24 | 36
     productName: string
     productDescription: string
     benefits: string

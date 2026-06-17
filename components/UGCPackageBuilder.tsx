@@ -7,8 +7,10 @@ import {
   DEFAULT_TIER,
   DEFAULT_DURATION,
   DURATION_OPTIONS,
+  DURATION_CONFIGS,
   calculateVideoCredits,
   estimateRenderSeconds,
+  creditsToUSD,
   type UGCTier,
   type UGCDuration,
 } from '@/lib/tiers'
@@ -243,30 +245,62 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 ~{Math.round(estimateRenderSeconds(duration) / 60)}m render time
               </span>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: `repeat(${DURATION_OPTIONS.length}, 1fr)`, gap: '8px' }}>
-              {DURATION_OPTIONS.map(sec => {
-                const active = duration === sec
-                const cost = calculateVideoCredits(tier, sec)
-                return (
-                  <button
-                    key={sec}
-                    type="button"
-                    onClick={() => setDuration(sec)}
-                    disabled={isLoading}
-                    style={{
-                      textAlign: 'center', cursor: isLoading ? 'not-allowed' : 'pointer',
-                      padding: '12px', borderRadius: 'var(--r-md)',
-                      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                      background: active ? 'var(--accent-soft)' : 'var(--surface)',
-                      transition: 'all 0.15s',
-                      display: 'flex', flexDirection: 'column', gap: '4px',
-                    }}>
-                    <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink)' }}>{sec}s</span>
-                    <span style={{ fontSize: '11px', color: active ? 'var(--accent)' : 'var(--ink-dim)', fontWeight: 600 }}>{cost} cr</span>
-                  </button>
-                )
-              })}
-            </div>
+
+            {(['native', 'extended', 'chained'] as const).map(group => {
+              const groupDurations = DURATION_OPTIONS.filter(d => DURATION_CONFIGS[d].strategy === group)
+              if (!groupDurations.length) return null
+              const groupLabel =
+                group === 'native'   ? 'Short — single Sora generation'
+              : group === 'extended' ? 'Extended — Sora + B-roll fill (cheaper)'
+                                     : 'Cinematic — chained Sora clips (premium)'
+              return (
+                <div key={group} style={{ marginBottom: '12px' }}>
+                  <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-dim)', margin: '0 0 6px', fontWeight: 600 }}>
+                    {groupLabel}
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${groupDurations.length}, 1fr)`, gap: '8px' }}>
+                    {groupDurations.map(sec => {
+                      const dCfg = DURATION_CONFIGS[sec]
+                      const active = duration === sec
+                      const cost = calculateVideoCredits(tier, sec)
+                      const usd = creditsToUSD(cost)
+                      const locked = !dCfg.available
+                      return (
+                        <button
+                          key={sec}
+                          type="button"
+                          onClick={() => !locked && setDuration(sec)}
+                          disabled={isLoading || locked}
+                          title={locked ? 'Coming soon — extended/chained durations are in active development' : undefined}
+                          style={{
+                            textAlign: 'center',
+                            cursor: locked ? 'not-allowed' : (isLoading ? 'not-allowed' : 'pointer'),
+                            padding: '12px 8px', borderRadius: 'var(--r-md)',
+                            border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+                            background: active ? 'var(--accent-soft)' : 'var(--surface)',
+                            opacity: locked ? 0.5 : 1,
+                            transition: 'all 0.15s',
+                            display: 'flex', flexDirection: 'column', gap: '3px',
+                            position: 'relative',
+                          }}>
+                          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink)' }}>{sec}s</span>
+                          <span style={{ fontSize: '11px', color: active ? 'var(--accent)' : 'var(--ink-dim)', fontWeight: 600 }}>{cost} cr</span>
+                          <span style={{ fontSize: '10px', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>≈${usd.toFixed(2)}</span>
+                          {locked && (
+                            <span style={{
+                              position: 'absolute', top: '4px', right: '4px',
+                              fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+                              padding: '2px 5px', borderRadius: '4px',
+                              background: 'var(--ink-dim)', color: 'var(--surface)',
+                            }}>Soon</span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </>
       )}
