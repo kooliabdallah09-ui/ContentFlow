@@ -6,6 +6,7 @@ import { getSupabase } from '@/lib/auth'
 import { Sidebar } from '@/components/Sidebar'
 import { TopBar } from '@/components/TopBar'
 import ToastContainer from '@/components/ToastContainer'
+import AppAssistant from '@/components/AppAssistant'
 import "./globals.css";
 
 export default function RootLayout({
@@ -148,6 +149,7 @@ export default function RootLayout({
           children
         )}
         <ToastContainer />
+        <AppAssistant />
       </body>
     </html>
   )
