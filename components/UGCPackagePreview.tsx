@@ -112,10 +112,12 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     stitchStartedRef.current = true
     setStitchStatus('stitching')
 
-    // Pass the talking-head duration so the stitcher can compute B-roll2's absolute
-    // start time. video.duration comes from the poller (HeyGen returns it; for Sora
-    // we fall back to estimatedDuration which is set from the tier config).
-    const talkingHeadDuration = video.duration ?? video.estimatedDuration ?? 12
+    // Pass the talking-head duration so the stitcher knows exactly how long to play
+    // each clip and where to chunk captions. Sora returns clips at the requested
+    // length (4/8/12s native), so orchestrate writes the user-chosen duration into
+    // video.duration. Never fall back to the word-count estimate — it was 7-12s off
+    // and caused frozen-frame tails after the Sora clip ended.
+    const talkingHeadDuration = video.duration ?? video.estimatedDuration ?? 8
 
     fetch('/api/ugc/stitch', {
       method: 'POST',

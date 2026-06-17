@@ -440,7 +440,17 @@ export async function POST(request: NextRequest) {
       }
 
       // ---- shared post-submit: save early, submit B-rolls, return ----
-      components.video = { videoId, status: 'processing', provider: aRollProvider, estimatedDuration: estimateDuration(script) }
+      // duration: the EXACT length the final A-roll will be. Sora returns clips at the
+      // requested length (4/8/12s native), so we know precisely. This drives the stitch
+      // timeline + caption chunking — never use estimateDuration() here, the word-count
+      // estimate was 7-12s off and caused frozen-frame tails on short videos.
+      components.video = {
+        videoId,
+        status: 'processing',
+        provider: aRollProvider,
+        duration,
+        estimatedDuration: duration,
+      }
 
       // Save to DB immediately after HeyGen submits — never lose a video ID to a timeout
       const { data: ugcRow } = await supabase.from('ugc_content').insert({

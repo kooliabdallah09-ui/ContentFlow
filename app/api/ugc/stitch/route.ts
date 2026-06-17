@@ -1,5 +1,6 @@
 import * as creatomate from '@/lib/creatomate'
 import * as shotstack from '@/lib/shotstack'
+import { transcribeWithTimestamps, buildSyncedCaptionChunks } from '@/lib/whisper'
 import { PLAN_CONFIG, type PlanTier } from '@/lib/planConfig'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -64,6 +65,24 @@ export async function POST(request: NextRequest) {
 
     const watermark = await getPlanWatermark(request)
 
+    // Transcribe with Whisper for true word-level caption sync. Cheap (~$0.0001/video).
+    // Audio source priority:
+    //   1. ElevenLabs/OpenAI TTS overlay (Hero tier) — that's the audio that'll play.
+    //   2. Otherwise the talking-head video — Whisper accepts mp4 directly.
+    // Falls back to the existing client-script chunking if Whisper throws.
+    let syncedCaptions: Array<{ text: string; start: number; end: number }> | undefined
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        const transcribeUrl = audioOverlayUrl ?? talkingHeadUrl
+        const { words } = await transcribeWithTimestamps(transcribeUrl)
+        // Offset by the talking-head start (3.7s when a B-roll1 plays first, else 0).
+        const offsetSeconds = broll1Url ? 3.7 : 0
+        syncedCaptions = buildSyncedCaptionChunks(words, { maxWords: 4, offsetSeconds })
+      } catch (err) {
+        console.warn('[stitch] Whisper transcription failed, falling back to script-based captions:', err instanceof Error ? err.message : err)
+      }
+    }
+
     const { renderId } = await submitStitchJob({
       talkingHeadUrl,
       talkingHeadDuration: typeof talkingHeadDuration === 'number' ? talkingHeadDuration : undefined,
@@ -71,6 +90,7 @@ export async function POST(request: NextRequest) {
       broll2Url,
       audioOverlayUrl,
       spokenScript: typeof spokenScript === 'string' ? spokenScript : undefined,
+      syncedCaptions,
       watermark,
     })
     return NextResponse.json({ renderId })

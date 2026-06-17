@@ -13,6 +13,7 @@ export async function submitStitchJob({
   broll2Url,
   audioOverlayUrl,
   spokenScript,
+  syncedCaptions,
   watermark,
 }: {
   talkingHeadUrl: string
@@ -20,7 +21,8 @@ export async function submitStitchJob({
   broll1Url?: string
   broll2Url?: string
   audioOverlayUrl?: string      // Hero tier: ElevenLabs/OpenAI voice — mutes talking-head audio
-  spokenScript?: string         // The exact spoken text — chunked into captions clip-by-clip
+  spokenScript?: string         // Fallback caption source if Whisper sync unavailable
+  syncedCaptions?: Array<{ text: string; start: number; end: number }>  // Whisper word-timed chunks
   watermark?: boolean           // Free-tier flag — overlays "Made with ContentFlow" bottom-right
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.SHOTSTACK_API_KEY
@@ -86,7 +88,14 @@ export async function submitStitchJob({
   // already have the exact words. Split into ~3-word chunks, distribute evenly across
   // the talking-head duration. Each chunk is its own text clip stacked into a single track.
   // Sync isn't frame-perfect since speech pace varies, but for 8–12s clips it's tight enough.
-  if (spokenScript && spokenScript.trim()) {
+  // Whisper-synced captions take priority. Each chunk has real start/end times
+  // from word-level transcription — true TikTok-style sync, not time-divided guesses.
+  if (syncedCaptions && syncedCaptions.length) {
+    const clips = syncedCaptions.map(chunk => makeCaptionClip(chunk.text, chunk.start, Math.max(0.3, chunk.end - chunk.start)))
+    tracks.unshift({ clips })
+  } else if (spokenScript && spokenScript.trim()) {
+    // Fallback: even-time-division chunks from the raw script. Less accurate but
+    // doesn't require Whisper. Used if OPENAI_API_KEY is missing or transcription fails.
     const captionClips = buildCaptionClips(spokenScript.trim(), talkingHeadStart, talkingHeadLength)
     if (captionClips.length) {
       tracks.unshift({ clips: captionClips })
@@ -94,19 +103,21 @@ export async function submitStitchJob({
   }
 
   // === Watermark for free-tier output ===
-  // Top track so it sits above captions. Span the full timeline.
-  // Subtle but always visible: bottom-right, semi-transparent white on dark backing.
+  // Shotstack 'title' asset style presets (subtitle, minimal, etc.) center-anchor
+  // their text regardless of the clip's `position` field. We need a true corner
+  // placement, so we use an HTML asset that we style ourselves with text-align
+  // and box geometry — gives us pixel control without fighting the presets.
   if (watermark) {
     const totalLength = (broll2Url ? talkingHeadEnd + 4 : talkingHeadEnd)
     tracks.unshift({
       clips: [{
         asset: {
-          type: 'title',
-          text: 'Made with ContentFlow',
-          style: 'subtitle',
-          color: '#FFFFFF',
-          background: 'rgba(0,0,0,0.45)',
-          size: 'x-small',
+          type: 'html',
+          html: '<p>Made with ContentFlow</p>',
+          css: 'p { font-family: "Inter", sans-serif; font-size: 26px; font-weight: 700; color: #FFFFFF; text-shadow: 0 1px 3px rgba(0,0,0,0.7); margin: 0; padding: 6px 12px; background: rgba(0,0,0,0.45); border-radius: 6px; display: inline-block; white-space: nowrap; }',
+          width: 380,
+          height: 60,
+          background: 'transparent',
         },
         start: 0,
         length: totalLength,
@@ -169,10 +180,29 @@ export async function submitStitchJob({
   return { renderId }
 }
 
-// Split the spoken script into ~3-word chunks and time them evenly across the talking-head
-// duration. Returns an array of Shotstack text-asset clips ready to stack into a track.
+// Single caption clip with TikTok-style centering. Shared between Whisper-synced
+// chunks and the script-fallback chunker so both paths render identically.
+function makeCaptionClip(text: string, start: number, length: number): Record<string, unknown> {
+  return {
+    asset: {
+      type: 'title',
+      text,
+      style: 'subtitle',
+      color: '#FFFFFF',
+      background: 'rgba(0,0,0,0.55)',
+      size: 'small',
+    },
+    start,
+    length,
+    position: 'bottom',
+    offset: { y: 0.12 },
+    transition: { in: 'fade', out: 'fade' },
+  }
+}
+
+// Fallback: split the spoken script into 5-word chunks and time them evenly.
+// Used only when Whisper transcription is unavailable.
 function buildCaptionClips(script: string, startAt: number, totalLength: number): Record<string, unknown>[] {
-  // Strip everything that wouldn't be spoken — section headers, stage directions, quotes.
   const cleaned = script
     .replace(/\[[^\]]*\]/g, '')          // [BACKGROUND:], [HOOK ...] etc
     .replace(/\([^)]*\)/g, '')           // (energetic, slightly amazed)
@@ -181,12 +211,9 @@ function buildCaptionClips(script: string, startAt: number, totalLength: number)
     .trim()
 
   if (!cleaned) return []
-
   const words = cleaned.split(' ').filter(Boolean)
   if (!words.length) return []
 
-  // 5-6 word chunks read as a thought, not stuttered single words. With ~30 words at
-  // 12s, that's ~5 chunks ≈ 2.4s each — long enough to actually read.
   const WORDS_PER_CHUNK = 5
   const chunks: string[] = []
   for (let i = 0; i < words.length; i += WORDS_PER_CHUNK) {
@@ -194,25 +221,7 @@ function buildCaptionClips(script: string, startAt: number, totalLength: number)
   }
 
   const perChunk = totalLength / chunks.length
-
-  return chunks.map((text, i) => ({
-    asset: {
-      type: 'title',
-      text,
-      // 'subtitle' preset is Shotstack's caption-tuned style — smaller bold sans with
-      // dark backing for readability over any footage. 'small' size keeps it from
-      // dominating the frame the way 'large' did.
-      style: 'subtitle',
-      color: '#FFFFFF',
-      background: 'rgba(0,0,0,0.55)',
-      size: 'small',
-    },
-    start: startAt + i * perChunk,
-    length: perChunk,
-    position: 'bottom',
-    offset: { y: 0.12 },
-    transition: { in: 'fade', out: 'fade' },
-  }))
+  return chunks.map((text, i) => makeCaptionClip(text, startAt + i * perChunk, perChunk))
 }
 
 // Status normalised to match the Creatomate interface used by the route + UI.
