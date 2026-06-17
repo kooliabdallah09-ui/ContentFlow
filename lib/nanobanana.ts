@@ -89,6 +89,7 @@ export async function generateActionFrame(
   productName: string,
   actionDescription: string,
   scene: string,
+  customInstructions?: string,
 ): Promise<NanoBananaResult> {
   const prompt = `Using the attached reference image as the exact product (preserve packaging, label text, colours, shape, and proportions exactly as shown — do not redesign or restyle), generate a hyper-realistic phone-camera photograph for a UGC ad B-roll frame.
 
@@ -109,7 +110,7 @@ REALISM ANCHORS:
 
 Phone-camera-natural rendering: slight sensor grain, mild highlight clipping where appropriate, no beauty filter, no commercial polish, no over-sharpening. Should look like a real person paused a UGC video at the action peak, NOT like a marketing campaign still.
 
-Vertical 9:16 format. The product is visible and the action with it is unmistakable.`
+Vertical 9:16 format. The product is visible and the action with it is unmistakable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/expression/scene where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
   return callNanoBanana(prompt, productImageBase64, productMimeType)
 }
@@ -139,6 +140,7 @@ export async function generateCharacterWithProduct(
   productName: string,
   characterPrompt: string,
   scene: string,
+  customInstructions?: string,
 ): Promise<NanoBananaResult> {
   // Adaptive product placement — the reference image can be either a physical product
   // (skincare bottle, perfume) OR a screenshot of a software UI / app. Telling Nano
@@ -172,7 +174,7 @@ REALISM ANCHORS — these must all be present:
 
 Phone-camera-natural rendering: slight sensor grain in shadow areas, mild highlight clipping on the bright side of the face, no beauty filter, no over-sharpening, no glass-skin look, no commercial polish. The frame should read as a frozen second from a video that hasn't been recorded yet — a real person caught mid-moment on a real phone.
 
-Vertical 9:16 format.`
+Vertical 9:16 format.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to the character's expression, pose, or scene; override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
   return callNanoBanana(prompt, productImageBase64, productMimeType)
 }

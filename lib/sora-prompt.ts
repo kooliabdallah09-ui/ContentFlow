@@ -14,6 +14,7 @@ export interface BuildSoraPromptInput {
   script: string             // The spoken line(s) — already extracted, in plain text
   hookMoment?: string        // Optional: first-half-second physical action (from hook variants)
   voiceStyle?: string        // Optional: free-text voice description; we add a sensible default if missing
+  customInstructions?: string // Optional: user-supplied tone/action/audience notes that bias the prompt
 }
 
 const SYSTEM_PROMPT = `You write video prompts for Sora 2 — OpenAI's image-to-video model with native audio generation. You will be given a UGC ad script and scene context, and you must produce a single Sora 2 prompt following this exact discipline:
@@ -38,12 +39,19 @@ Camera → Subject → Action → Environment → Lighting → Texture → Audio
 Output ONLY the Sora prompt text — no preamble, no commentary, no labels, no JSON. 2-3 paragraphs, under 5,000 characters total. Plain text only.`
 
 export async function buildSoraPrompt(input: BuildSoraPromptInput): Promise<string> {
+  // Custom instructions get injected as a high-priority block. Claude treats it as
+  // override-the-defaults context — useful for "make her look surprised", "she's
+  // running in the rain", "warmer tone, slower pace", etc. Sanity-clamped upstream.
+  const customBlock = input.customInstructions?.trim()
+    ? `\nUSER INSTRUCTIONS (HIGH PRIORITY — bake these into the action/expression/tone, override defaults where they conflict):\n${input.customInstructions.trim()}\n`
+    : ''
+
   const userMessage = `Build a Sora 2 prompt for this UGC ad:
 
 Product: ${input.productName}
 Product description: ${input.productDescription}
 Scene context: ${input.scene}
-${input.hookMoment ? `Hook moment (first 0.5s): ${input.hookMoment}\n` : ''}${input.voiceStyle ? `Voice style: ${input.voiceStyle}\n` : 'Voice style: warm conversational, medium pitch, light energy, no background music\n'}
+${input.hookMoment ? `Hook moment (first 0.5s): ${input.hookMoment}\n` : ''}${input.voiceStyle ? `Voice style: ${input.voiceStyle}\n` : 'Voice style: warm conversational, medium pitch, light energy, no background music\n'}${customBlock}
 Spoken script (must appear in double quotes inside the action paragraph):
 "${input.script}"
 

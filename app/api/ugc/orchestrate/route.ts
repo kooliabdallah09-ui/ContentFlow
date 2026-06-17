@@ -137,8 +137,13 @@ async function generateBrollActions(
   count: number,
   imageBase64?: string,
   imageMimeType?: string,
+  customInstructions?: string,
 ): Promise<BrollShot[]> {
   if (count <= 0) return []
+
+  const customBlock = customInstructions?.trim()
+    ? `\nUSER INSTRUCTIONS (HIGH PRIORITY — pick shots that match these, override defaults where they conflict):\n${customInstructions.trim()}\n`
+    : ''
 
   // Tell Claude to MIX shot types. Common winning combos depending on product:
   //   - perfume/skincare: 1 character (application) + 1 product hero
@@ -146,7 +151,7 @@ async function generateBrollActions(
   //   - tech/app: 1 character (using device) + 1 product hero or 1 lifestyle context
   // Claude picks. Output is N lines, each: KIND | LABEL | description
   const textPrompt = `Write ${count} B-roll shot${count > 1 ? 's' : ''} for a UGC ad about "${productName}" (${productDescription}). Setting: ${background}.
-${imageBase64 ? 'The image above is the ACTUAL product — use what it looks like to decide the shots.\n' : ''}
+${imageBase64 ? 'The image above is the ACTUAL product — use what it looks like to decide the shots.\n' : ''}${customBlock}
 Each shot must be ONE of these three kinds:
 
 CHARACTER — the person using/holding/reacting to the product, body visible.
@@ -391,6 +396,7 @@ export async function POST(request: NextRequest) {
           productName,
           characterPrompt,
           heroScene,
+          safeCustomInstructions,
         )
 
         // 2. Resize to Sora's exact dimensions (cover + center-crop, no distortion)
@@ -438,6 +444,7 @@ export async function POST(request: NextRequest) {
           productDescription,
           scene: backgroundContext,
           script: spokenScript,
+          customInstructions: safeCustomInstructions,
         })
 
         // 5. Submit Sora 2 — returns immediately with a video id, client polls for completion.
@@ -497,7 +504,7 @@ export async function POST(request: NextRequest) {
       const effectiveBrollCount = brollCountForDuration(duration, tierCfg.maxBrolls)
       const brollProviderReady = !!(process.env.REPLICATE_API_TOKEN || process.env.FAL_KEY || process.env.PIAPI_API_KEY)
       const brollShots = brollProviderReady && effectiveBrollCount > 0
-        ? await generateBrollActions(productName, productDescription, backgroundContext, effectiveBrollCount, productImageBase64, productImageMimeType).catch(() => null)
+        ? await generateBrollActions(productName, productDescription, backgroundContext, effectiveBrollCount, productImageBase64, productImageMimeType, safeCustomInstructions).catch(() => null)
         : null
 
       if (brollShots && brollShots.length) {
@@ -518,7 +525,7 @@ export async function POST(request: NextRequest) {
           // Character shots: try Nano Banana action frame → Kling i2v.
           if (canUseNanoBanana) {
             try {
-              const frame = await generateActionFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext)
+              const frame = await generateActionFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext, safeCustomInstructions)
               // Force 9:16 (720x1280) so Kling i2v inherits portrait aspect from the start frame.
               const resized = await sharp(Buffer.from(frame.imageBase64, 'base64'))
                 .resize(720, 1280, { fit: 'cover', position: 'center' })
