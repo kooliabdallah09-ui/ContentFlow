@@ -1,8 +1,13 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
-// Kling 2.1 Master: sharper detail, better hand-product interaction, accurate label text.
-// ~$0.42 per 5s clip vs ~$0.25 for v1.6 standard. Worth it for product UGC where label
-// fidelity and natural motion sell the ad.
-const KLING_MODEL = 'kwaivgi/kling-v2.1-master'
+// Kling 1.6 Standard: $0.25 per 5s clip. We tried 2.1 Master ($1.40/clip) thinking it
+// was $0.42, but the real cost killed margin on the Standard tier ($4 cost vs $2 sell).
+//
+// Label fidelity isn't a concern with Kling anymore — Nano Banana 2 produces the high-
+// fidelity start frame, and Kling i2v just animates it. The label is locked in the
+// reference frame, Kling can't redesign it. So we save ~$2.30/video on B-rolls without
+// hurting product accuracy. If motion quality is visibly weak later we can revisit
+// 2.1 Standard (around $0.35/clip) as the middle ground.
+const KLING_MODEL = 'kwaivgi/kling-v1.6-standard'
 
 // Submit a Kling job. If startImageUrl is provided, runs image-to-video (motion seeded from
 // the first frame) — used for character shots (Nano Banana action frame). Otherwise runs
@@ -14,12 +19,13 @@ export async function submitReplicateKlingJob(
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
-  // Kling 2.1 Master input schema. cfg_scale was a v1.6 knob — 2.1 master uses
-  // a different sampling pipeline and the field is ignored / rejected. Dropping it.
+  // Kling 1.6 Standard input schema. cfg_scale controls prompt adherence — 0.5 is
+  // the sweet spot for product UGC: respects the prompt but lets the motion feel natural.
   const input: Record<string, unknown> = {
     prompt,
     duration: 5,
     aspect_ratio: '9:16',
+    cfg_scale: 0.5,
     negative_prompt: 'text, watermark, blurry, low quality, ugly, distorted face, deformed hands',
   }
   if (startImageUrl) input.start_image = startImageUrl
