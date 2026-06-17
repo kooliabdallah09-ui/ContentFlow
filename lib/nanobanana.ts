@@ -1,10 +1,12 @@
-// Nano Banana = Gemini 2.5 Flash Image, called via Replicate (consolidates all third-party
-// generation under one provider). Multi-image-fusion native: takes a product reference image
-// + a scene prompt and returns a generated image preserving the product's exact packaging
-// while compositing it into a new scene.
-
+// Nano Banana 2 / Nano Banana Pro / Gemini 3 Pro Image — same model, different names.
+// Successor to the original Nano Banana (Gemini 2.5 Flash Image). Substantially better at
+// preserving label text, handwritten logos, and small print on product packaging — exactly
+// the fidelity weakness that caused brand bottles to render as generic shapes.
+//
+// Cost: ~$0.12 per image (vs ~$0.04 on the original). Speed: ~10-12s (vs ~5-8s).
+// Same input schema (prompt + image_input array + output_format), drop-in swap.
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
-const NANO_BANANA_MODEL = 'google/nano-banana'
+const NANO_BANANA_MODEL = 'google/nano-banana-pro'
 
 interface NanoBananaResult {
   imageBase64: string
