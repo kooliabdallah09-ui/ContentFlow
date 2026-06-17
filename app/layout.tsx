@@ -17,12 +17,14 @@ export default function RootLayout({
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const [isDark, setIsDark] = useState(true)
+  // Theme: pastel (light) is the default. The TopBar toggle flips between pastel
+  // and cocoa (the legacy warm-dark theme) for users who want a dark mode.
+  const [isDark, setIsDark] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
   useEffect(() => {
-    document.documentElement.setAttribute('data-tone', 'cocoa')
+    document.documentElement.setAttribute('data-tone', 'pastel')
   }, [])
 
   useEffect(() => {
@@ -60,7 +62,7 @@ export default function RootLayout({
   }, [pathname])
 
   const toggleTheme = () => {
-    const next = isDark ? 'paper' : 'cocoa'
+    const next = isDark ? 'pastel' : 'cocoa'
     document.documentElement.setAttribute('data-tone', next)
     setIsDark(!isDark)
   }
@@ -120,7 +122,7 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-        <meta name="theme-color" content="#0f0c0a" />
+        <meta name="theme-color" content="#FBF7DD" />
       </head>
       <body>
         {showLayout ? (

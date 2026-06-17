@@ -232,7 +232,7 @@ export default function AppAssistant() {
                     maxWidth: '85%',
                     padding: '10px 14px',
                     borderRadius: 'var(--r-md)',
-                    background: m.role === 'user' ? 'var(--accent)' : 'var(--bg)',
+                    background: m.role === 'user' ? 'var(--accent)' : 'var(--surface)',
                     color: m.role === 'user' ? '#fff' : 'var(--ink)',
                     fontSize: '13px',
                     lineHeight: 1.5,
