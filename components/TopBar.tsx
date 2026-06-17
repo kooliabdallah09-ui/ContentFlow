@@ -1,6 +1,9 @@
 'use client'
 
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Icon } from '@/components/Icons'
+import { getSupabase } from '@/lib/auth'
 
 interface TopBarProps {
   currentPath: string
@@ -13,24 +16,39 @@ const TITLES: Record<string, string> = {
   '/dashboard': 'Dashboard',
   '/calendar': 'Calendar',
   '/library': 'Library',
-  '/settings/brand': 'Brand Profile',
-  '/generate/blog': 'Create / Blog',
-  '/generate/social': 'Create / Social',
-  '/generate/email': 'Create / Email',
-  '/generate/image': 'Create / Image',
-  '/generate/voice': 'Create / Voiceover',
-  '/generate/video': 'Create / Video',
-  '/generate/ugc': 'Create / UGC Package',
-  '/scheduler': 'Insights / Scheduler',
-  '/analytics': 'Insights / Analytics',
+  '/settings': 'Settings',
+  '/settings/brand': 'Brand',
+  '/settings/billing': 'Billing',
+  '/settings/account': 'Account',
+  '/generate/blog': 'Blog',
+  '/generate/social': 'Social',
+  '/generate/email': 'Email',
+  '/generate/image': 'Image',
+  '/generate/voice': 'Voiceover',
+  '/generate/video': 'Video',
+  '/generate/ugc': 'UGC Package',
+  '/scheduler': 'Scheduler',
+  '/analytics': 'Analytics',
+  '/ask': 'Ask AI',
+  '/pricing': 'Pricing',
 }
 
 export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: TopBarProps) {
+  const router = useRouter()
+  const [menuOpen, setMenuOpen] = useState(false)
   const title = TITLES[currentPath] || 'Dashboard'
+
+  const signOut = async () => {
+    const supabase = getSupabase()
+    if (supabase) {
+      await supabase.auth.signOut()
+      router.push('/auth/login')
+    }
+  }
 
   return (
     <header className="topbar">
-      <button className="hamburger" onClick={onMenuToggle} aria-label="Menu">
+      <button className="hamburger" onClick={onMenuToggle} aria-label="Menu" style={{ display: 'none' }}>
         <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
           <rect y="3" width="18" height="2" rx="1" fill="currentColor" />
           <rect y="8" width="18" height="2" rx="1" fill="currentColor" />
@@ -42,17 +60,50 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
         <span className="sep">/</span>
         <span className="cur">{title}</span>
       </div>
+      <div style={{ flex: 1 }} />
       <div className="search">
-        <Icon.Search style={{ width: 14, height: 14 }} />
-        <input placeholder="Search posts, calendar, library…" />
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+        <input placeholder="Search…" />
         <span className="kbd">⌘K</span>
       </div>
-      <button className="icon-btn" title={isDark ? 'Light mode' : 'Dark mode'} onClick={onToggleTheme}>
-        {isDark ? <Icon.Sun /> : <Icon.Moon />}
+      <button className="icon-btn" title={isDark ? 'Light' : 'Dark'} onClick={onToggleTheme}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A8 8 0 1 1 11.2 3a6 6 0 0 0 9.8 9.8z"/></svg>
       </button>
-      <button className="icon-btn" title="Notifications">
-        <Icon.Bell />
+      <button className="icon-btn" title="Notifications" style={{ position: 'relative' }}>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+        <span style={{ position: 'absolute', top: 9, right: 10, width: 6, height: 6, borderRadius: '50%', background: 'var(--ink)', border: '1.5px solid var(--bg)' }} />
       </button>
+      <div style={{ position: 'relative' }}>
+        <button
+          aria-label="Account"
+          onClick={() => setMenuOpen(o => !o)}
+          style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: 'var(--ink)', color: '#fff',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 13, fontWeight: 600, border: 0, cursor: 'pointer',
+          }}
+        >A</button>
+        {menuOpen && (
+          <div style={{
+            position: 'absolute', top: '100%', right: 0, marginTop: 8,
+            minWidth: 180, background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 13, boxShadow: 'var(--shadow-md)', overflow: 'hidden',
+            zIndex: 100,
+          }}>
+            <button onClick={() => { setMenuOpen(false); router.push('/settings/account') }} style={menuItem}>Account</button>
+            <button onClick={() => { setMenuOpen(false); router.push('/settings/billing') }} style={menuItem}>Billing</button>
+            <div style={{ height: 1, background: 'var(--border-soft)' }} />
+            <button onClick={signOut} style={{ ...menuItem, color: 'var(--danger)' }}>Sign out</button>
+          </div>
+        )}
+      </div>
     </header>
   )
+}
+
+const menuItem: React.CSSProperties = {
+  display: 'block', width: '100%', padding: '10px 14px',
+  border: 0, background: 'transparent', cursor: 'pointer',
+  fontSize: 13, color: 'var(--ink)', textAlign: 'left',
 }
