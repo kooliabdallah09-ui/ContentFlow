@@ -33,18 +33,26 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { productName, productDescription, benefits, productImageBase64, productImageMimeType } = body
+    const { productName, productDescription, benefits, productImageBase64, productImageMimeType, customInstructions } = body
 
     if (!productName || !productDescription || !benefits) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+
+    // Length-cap to prevent prompt-injection via giant payloads.
+    const safeCustom = typeof customInstructions === 'string'
+      ? customInstructions.slice(0, 1500).trim()
+      : ''
+    const customBlock = safeCustom
+      ? `\nUSER INSTRUCTIONS (priority — match these in tone and content):\n${safeCustom}\n`
+      : ''
 
     const textPrompt = `Write 3 distinct UGC hook openings for a 30-second social ad about "${productName}".
 
 Product: ${productName}
 Description: ${productDescription}
 Key benefits: ${benefits}
-
+${customBlock}
 Each hook is the FIRST 5 SECONDS of the video — the spoken line that grabs attention. Use THREE different angles, one per hook:
 
 1. PROBLEM angle — call out the pain point or frustration the viewer already feels
@@ -64,7 +72,7 @@ Rules:
 - text must sound like a real person speaking, not an ad
 - under 15 words each
 - no emojis, no hashtags, no "you guys", no "POV:"
-- avoid the literal product name in the hook — tease the benefit instead`
+- avoid the literal product name in the hook — tease the benefit instead${safeCustom ? `\n- USER INSTRUCTIONS above override tone defaults — match them` : ''}`
 
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',

@@ -39,6 +39,7 @@ interface UGCPackageBuilderProps {
     productImageMimeType?: string
     selectedHook?: string
     character?: CharacterProfile
+    customInstructions?: string
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -71,6 +72,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [productDescription, setProductDescription] = useState('')
   const [benefits, setBenefits] = useState('')
   const [callToAction, setCallToAction] = useState('Try it today')
+  const [customInstructions, setCustomInstructions] = useState('')
   const [style, setStyle] = useState('realistic')
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
@@ -115,6 +117,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       productImageMimeType: productImage?.mimeType,
       selectedHook,
       character,
+      customInstructions: customInstructions.trim() || undefined,
     })
     resetForm()
   }
@@ -145,6 +148,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           productName, productDescription, benefits,
           productImageBase64: productImage?.base64,
           productImageMimeType: productImage?.mimeType,
+          customInstructions: customInstructions.trim() || undefined,
         }),
       })
       const data = await res.json()
@@ -331,6 +335,28 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <label className="form-label">Call to Action</label>
           <input className="input" value={callToAction} onChange={e => setCallToAction(e.target.value)}
             placeholder="e.g. Try it free today" disabled={isLoading} />
+        </div>
+
+        <div className="form-row">
+          <label className="form-label">
+            Custom Instructions{' '}
+            <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>(optional)</span>
+          </label>
+          <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '0 0 8px', lineHeight: 1.5 }}>
+            Anything specific you want the AI to do — paste your own script, set a tone, mention an offer, target an audience. The AI will respect this over its defaults.
+          </p>
+          <textarea
+            className="input"
+            value={customInstructions}
+            onChange={e => setCustomInstructions(e.target.value.slice(0, 1500))}
+            disabled={isLoading}
+            rows={4}
+            placeholder={'Examples:\n• Use this script: "Three drops, every morning. That\'s it."\n• Make it sound like a college student\n• Mention the 30% launch discount\n• Target busy moms in their 30s'}
+            style={{ resize: 'vertical', fontFamily: 'inherit', minHeight: '80px' }}
+          />
+          <p style={{ fontSize: '10px', color: 'var(--ink-dim)', textAlign: 'right', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
+            {customInstructions.length} / 1500
+          </p>
         </div>
 
         <div className="form-row">

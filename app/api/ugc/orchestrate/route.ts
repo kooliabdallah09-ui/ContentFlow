@@ -45,6 +45,10 @@ async function generateUGCScript(
   // so [BACKGROUND:] matches what Sora renders. Otherwise Claude invents one and the
   // questionnaire choice is ignored downstream.
   forcedScene?: string,
+  // NEW: free-text user instructions injected into the prompt. Used for tone overrides
+  // ("make it funny", "target Gen-Z"), constraints ("mention 30% off"), or for users
+  // who paste their own full script and want Claude to format it into our template.
+  customInstructions?: string,
 ): Promise<string> {
   // Spoken pace ≈ 150 words/min ≈ 2.5 words/sec. Reserve ~1s padding so audio
   // never runs past the video.
@@ -56,13 +60,20 @@ async function generateUGCScript(
     ? `[BACKGROUND: ${forcedScene}]   ← USE THIS EXACT SCENE, do not change it`
     : `[BACKGROUND: one of: bedroom, bathroom, kitchen, living room, office, gym, outdoor, car interior, cafe]`
 
+  // Custom instructions block — added at the top of the prompt so Claude treats it
+  // as priority context. If the user pasted a full script, Claude reformats into the
+  // template; if it's a tone/constraint note, Claude obeys it while still writing.
+  const customBlock = customInstructions?.trim()
+    ? `\nUSER INSTRUCTIONS (HIGH PRIORITY — follow these exactly, override your defaults to match):\n${customInstructions.trim()}\n`
+    : ''
+
   const textPrompt = `Write a ${targetDurationSeconds}-SECOND UGC video script for a social media ad. The TOTAL spoken word count across HOOK + BODY + CTA must be ${targetWords} words or fewer — this is a hard limit because the video will be cut at ${targetDurationSeconds}s. Count carefully.
 
 Product: ${productName}
 Description: ${productDescription}
 Benefits: ${benefits}
 CTA: ${callToAction}
-
+${customBlock}
 Use this exact format:
 
 ${backgroundLine}
@@ -86,7 +97,7 @@ Rules:
 - Section headers always in [brackets]
 - ${forcedScene ? `[BACKGROUND: ${forcedScene}] must be the very first line, use it exactly` : '[BACKGROUND: ...] must be the very first line — choose what fits the product naturally'}
 - No markdown, no title, no hashtags
-- Authentic UGC tone — real person, not corporate`
+- Authentic UGC tone — real person, not corporate${customInstructions?.trim() ? `\n- The USER INSTRUCTIONS block above overrides default tone/style choices wherever they conflict.` : ''}`
 
   const content: Anthropic.MessageParam['content'] = productImageBase64
     ? [
@@ -269,7 +280,11 @@ export async function POST(request: NextRequest) {
 
     const userId = userData.user.id
     const body = await request.json()
-    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender, character: characterFromForm } = body
+    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender, character: characterFromForm, customInstructions } = body
+    // Sanity-cap custom instructions to prevent prompt-injection abuse via giant payloads.
+    const safeCustomInstructions = typeof customInstructions === 'string'
+      ? customInstructions.slice(0, 1500).trim() || undefined
+      : undefined
     const character: CharacterProfile | undefined = characterFromForm
     const rawTier = (body.tier as UGCTier | undefined) ?? DEFAULT_TIER
     const tier: UGCTier = TIERS[rawTier]?.available ? rawTier : DEFAULT_TIER
@@ -315,6 +330,7 @@ export async function POST(request: NextRequest) {
       productImageMimeType,
       scriptTargetDuration,
       forcedScene,
+      safeCustomInstructions,
     )
     const script = selectedHook && typeof selectedHook === 'string' && selectedHook.trim()
       ? replaceHook(baseScript, selectedHook.trim())
