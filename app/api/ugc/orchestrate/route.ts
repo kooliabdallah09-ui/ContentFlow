@@ -13,6 +13,7 @@ import {
   DURATION_OPTIONS,
   DURATION_CONFIGS,
   calculateVideoCredits,
+  brollCountForDuration,
   type UGCTier,
   type UGCDuration,
 } from '@/lib/tiers'
@@ -107,43 +108,62 @@ Rules:
 // the action peak (mid-spray, mid-apply, mid-bite). They feed Nano Banana to produce a
 // frozen-mid-action frame, which Kling then animates forward via image-to-video.
 // Action 1 = application (the moment of use). Action 2 = result/sensory (reaction, after-effect).
+// One B-roll shot. Claude picks which kind fits each slot.
+//   'character'  — the person using/holding/reacting to the product (hands/body in frame)
+//   'product'    — product alone, hero-shot styled, no character
+//   'lifestyle'  — the product in its native context (on a vanity, in a bag, on a desk)
+export type BrollKind = 'character' | 'product' | 'lifestyle'
+export interface BrollShot {
+  kind: BrollKind
+  label: string         // 2-3 word UI label, e.g. "Application moment"
+  description: string   // full Kling prompt
+}
+
 async function generateBrollActions(
   productName: string,
   productDescription: string,
   background: string,
+  count: number,
   imageBase64?: string,
   imageMimeType?: string,
-): Promise<[string, string]> {
-  const textPrompt = `Decide the most natural way a real person would USE "${productName}" (${productDescription}), then write 2 action descriptions for UGC ad B-roll frames. Setting: ${background}.
-${imageBase64 ? 'The image above shows the actual product — base your action choices on what type of product this is.\n' : ''}
-ACTION 1 — Application moment: the actual physical motion of using the product, mid-action. Examples by product type:
-- Skincare/serum: fingers mid-application on cheek with product trail visible, partial side profile
-- Perfume: wrist mid-spray with mist droplets in the air, fingertip on nozzle
-- Food/drink: glass mid-tilt to lips with liquid in motion, or fork mid-lift with food
-- Supplement/pill: hand mid-tip of bottle into palm, capsule mid-fall
-- Hair: hands mid-massage of product into scalp/hair, strands mid-motion
-- Tech/device: thumb mid-tap on the device, finger pressing a button mid-press
+): Promise<BrollShot[]> {
+  if (count <= 0) return []
 
-ACTION 2 — Reaction / sensory moment: the result of having just used it, mid-feeling. Examples:
-- Skincare: side profile, fingers gently pressing in the just-applied product, eyes lowered or closed
-- Perfume: wrist raised to nose, neck tilted, eyes half-closed, mid-inhale
-- Food/drink: mid-chew or mid-savor expression, eyes closed or focused
-- Supplement: hand bringing a glass of water to lips after pill, mid-swallow throat motion
-- Hair: head tilted, hand running through hair to feel the result, mid-motion
-- Tech: hand holding/interacting with the device, satisfied expression
+  // Tell Claude to MIX shot types. Common winning combos depending on product:
+  //   - perfume/skincare: 1 character (application) + 1 product hero
+  //   - food/drink: 1 character (sip/bite) + 1 product hero
+  //   - tech/app: 1 character (using device) + 1 product hero or 1 lifestyle context
+  // Claude picks. Output is N lines, each: KIND | LABEL | description
+  const textPrompt = `Write ${count} B-roll shot${count > 1 ? 's' : ''} for a UGC ad about "${productName}" (${productDescription}). Setting: ${background}.
+${imageBase64 ? 'The image above is the ACTUAL product — use what it looks like to decide the shots.\n' : ''}
+Each shot must be ONE of these three kinds:
 
-Each description should be a single concrete sentence: WHO (hands/wrist/side profile/etc.), DOING WHAT, mid-MOMENT.
+CHARACTER — the person using/holding/reacting to the product, body visible.
+  Examples: hand mid-spray of perfume wrist with mist droplets; fingers mid-application of serum on cheek with product trail; mid-chew expression with food; thumb mid-tap on the phone screen; head tilted with hand running through just-conditioned hair.
 
-Rules:
-- Each description on its own line, ONLY the description, no labels or numbering
-- Mid-action / mid-moment language — frozen at the action peak
-- Body parts only (hands, wrist, neck, jawline, lips, eyes, partial face) — never full face
-- Be specific to THIS product type, not generic
-- Output ONLY the 2 lines, nothing else`
+PRODUCT — the product ALONE, no character, hero-shot styled.
+  Examples: perfume bottle on marble surface with sunlight glint and shadow; serum bottle on bathroom vanity backlit by morning light; tech device on a wooden desk at a slight angle, screen on; food plated beautifully top-down; pill bottle and water glass side by side on linen.
+
+LIFESTYLE — the product in its NATURAL context (no character or hands actively using it).
+  Examples: perfume bottle on a dresser next to jewelry and a silk scarf; serum tucked into a tote bag with sunglasses; supplement bottle on a kitchen counter next to a smoothie; phone showing the app screen propped against a coffee cup.
+
+${count >= 2 ? `STRATEGY for ${count} shots — pick a mix that fits this product type. Winning combinations:
+- Character (application/use moment) + Product (clean hero shot)
+- Character (reaction/satisfaction) + Lifestyle (product in environment)
+- Character (application) + Character (reaction) — only if the product really shines through action
+Don't pick all the same kind — variety is what makes UGC feel real.\n` : ''}
+Output format — exactly ${count} line${count > 1 ? 's' : ''}, no headers, no numbering, no markdown. Each line:
+KIND | LABEL | description
+
+KIND must be exactly: CHARACTER, PRODUCT, or LIFESTYLE.
+LABEL is 2-3 words for the UI ("Application moment", "Product hero", "Reaction shot", "On the vanity").
+Description is a single concrete sentence with mid-action / mid-moment language. Body parts only when character is shown (hands, wrist, lips, side profile — never full face).
+
+Output ONLY the ${count} line${count > 1 ? 's' : ''}, nothing else.`
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 300,
+    max_tokens: 400,
     messages: [{
       role: 'user',
       content: imageBase64
@@ -155,11 +175,30 @@ Rules:
     }],
   })
 
-  const lines = (msg.content[0] as { text: string }).text.trim().split('\n').filter(Boolean)
-  return [
-    lines[0] ?? `Hand mid-lift bringing ${productName} toward the camera, fingers wrapped around it, label angled toward camera`,
-    lines[1] ?? `Side profile with fingers gently pressing the just-applied ${productName} into the skin, eyes lowered, mid-motion`,
-  ]
+  const raw = (msg.content[0] as { text: string }).text.trim()
+  const lines = raw.split('\n').map(l => l.trim()).filter(Boolean).slice(0, count)
+
+  const parsed: BrollShot[] = lines.map((line, i): BrollShot => {
+    // Try the labeled "KIND | LABEL | description" format first.
+    const parts = line.split('|').map(p => p.trim())
+    if (parts.length >= 3) {
+      const kindRaw = parts[0].toUpperCase()
+      const kind: BrollKind = kindRaw === 'PRODUCT' ? 'product' : kindRaw === 'LIFESTYLE' ? 'lifestyle' : 'character'
+      return { kind, label: parts[1] || `Shot ${i + 1}`, description: parts[2] }
+    }
+    // Unstructured fallback — assume character and use a generic label.
+    return { kind: 'character', label: i === 0 ? 'Application moment' : 'Reaction moment', description: line }
+  })
+
+  // Sensible defaults if Claude returned fewer lines than requested.
+  while (parsed.length < count) {
+    parsed.push(
+      parsed.length === 0
+        ? { kind: 'character', label: 'Application moment', description: `Hand mid-lift bringing ${productName} toward the camera, fingers wrapped around it, label angled toward camera` }
+        : { kind: 'product', label: 'Product hero', description: `${productName} on a clean surface with soft natural lighting, slight angle, sunlight glint on the label` },
+    )
+  }
+  return parsed
 }
 
 // Replace the spoken line in the [HOOK ...] section with a user-picked hook.
@@ -426,26 +465,35 @@ export async function POST(request: NextRequest) {
       // Falls back gracefully: if Nano Banana fails for a frame, that slot uses Kling text-to-video
       // with the action description as the prompt. If everything is missing (no product image, no
       // Gemini key), both B-rolls use Kling text-to-video as before.
+      //
+      // B-roll count is duration-dependent: 4s = 0, 8s = 1, 12s+ = 2. A 4s video has no room
+      // for a B-roll cut, so we skip the call entirely.
+      const effectiveBrollCount = brollCountForDuration(duration, tierCfg.maxBrolls)
       const brollProviderReady = !!(process.env.REPLICATE_API_TOKEN || process.env.FAL_KEY || process.env.PIAPI_API_KEY)
-      const brollActions = brollProviderReady && tierCfg.brollCount > 0
-        ? await generateBrollActions(productName, productDescription, backgroundContext, productImageBase64, productImageMimeType).catch(() => null)
+      const brollShots = brollProviderReady && effectiveBrollCount > 0
+        ? await generateBrollActions(productName, productDescription, backgroundContext, effectiveBrollCount, productImageBase64, productImageMimeType).catch(() => null)
         : null
 
-      if (brollActions) {
-        const actionsToRender = brollActions.slice(0, tierCfg.brollCount)
+      if (brollShots && brollShots.length) {
         const canUseNanoBanana = !!(productImageBase64 && productImageMimeType && process.env.REPLICATE_API_TOKEN)
 
-        // For each action: generate a Nano Banana action frame, upload, then submit Kling i2v.
-        // Done in parallel — Nano Banana takes ~5s, can't block on it sequentially.
+        // For each shot: route by kind.
+        //   character — Nano Banana action frame → Kling i2v (character with product)
+        //   product / lifestyle — Kling text-to-video directly (no character, no Nano Banana)
+        // Done in parallel since each takes ~5s and they're independent.
         const KLING_I2V_MOTION_PROMPT = 'Continue the action naturally from the starting frame — smooth realistic motion of the hands/body/product, 5 seconds, phone-camera handheld feel, soft natural lighting preserved, 9:16 vertical, no scene cuts, no new objects appearing'
 
-        const submissions = await Promise.all(actionsToRender.map(async (action, i) => {
+        const submissions = await Promise.all(brollShots.map(async (shot, i) => {
+          // Product / lifestyle shots skip Nano Banana — we want no character in them.
+          if (shot.kind !== 'character') {
+            return await submitBrollJob(shot.description).catch(() => null)
+          }
+
+          // Character shots: try Nano Banana action frame → Kling i2v.
           if (canUseNanoBanana) {
             try {
-              const frame = await generateActionFrame(productImageBase64!, productImageMimeType!, productName, action, backgroundContext)
+              const frame = await generateActionFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext)
               // Force 9:16 (720x1280) so Kling i2v inherits portrait aspect from the start frame.
-              // Without this Nano Banana sometimes returned ~1:1 and Kling locked to that ratio,
-              // which then got side-cropped by Shotstack's fit:cover into a too-tight portrait.
               const resized = await sharp(Buffer.from(frame.imageBase64, 'base64'))
                 .resize(720, 1280, { fit: 'cover', position: 'center' })
                 .png()
@@ -463,12 +511,16 @@ export async function POST(request: NextRequest) {
             }
           }
           // Fallback: Kling text-to-video with the raw action description
-          return await submitBrollJob(action).catch(() => null)
+          return await submitBrollJob(shot.description).catch(() => null)
         }))
 
-        const labels = ['Application moment', 'Reaction moment']
         components.broll = submissions
-          .map((sub, i) => sub ? { taskId: sub.taskId, status: 'processing', label: labels[i] ?? `B-roll ${i + 1}` } : null)
+          .map((sub, i) => sub ? {
+            taskId: sub.taskId,
+            status: 'processing',
+            label: brollShots[i]?.label ?? `B-roll ${i + 1}`,
+            kind: brollShots[i]?.kind,
+          } : null)
           .filter(Boolean)
 
         if (ugcRow?.id) {

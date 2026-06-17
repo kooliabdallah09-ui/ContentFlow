@@ -37,8 +37,22 @@ export interface TierConfig {
   description: string
   aRollProvider: ARollProvider
   useElevenLabs: boolean      // Standard uses Sora native audio; Hero overlays a chosen voice
-  brollCount: 0 | 1 | 2 | 3   // B-roll count grows for extended durations during stitch
+  maxBrolls: 0 | 1 | 2 | 3    // Upper limit. Actual count is duration-dependent (see brollCountForDuration).
   available: boolean
+}
+
+// How many B-rolls actually make sense at each duration. Hard rule: B-rolls are
+// useless on very short videos because there's no time to cut between them and
+// the talking head. 4s = 0 (just show the Sora clip), 8s = 1, 12s+ = 2.
+// Extended/chained durations may bump to 3 in Push 2.
+export function brollCountForDuration(duration: UGCDuration, tierMax: number): number {
+  let preferred: number
+  if (duration <= 4) preferred = 0
+  else if (duration <= 8) preferred = 1
+  else if (duration <= 12) preferred = 2
+  else if (duration <= 20) preferred = 2
+  else preferred = 3 // extended 30s / chained 24s+
+  return Math.min(preferred, tierMax)
 }
 
 export const TIERS: Record<UGCTier, TierConfig> = {
@@ -48,7 +62,7 @@ export const TIERS: Record<UGCTier, TierConfig> = {
     description: 'Sora 2 with your real product, native AI voice, action B-rolls + captions.',
     aRollProvider: 'sora-2',
     useElevenLabs: false,
-    brollCount: 2,
+    maxBrolls: 2,
     available: true,
   },
   hero: {
@@ -57,7 +71,7 @@ export const TIERS: Record<UGCTier, TierConfig> = {
     description: 'Sora 2 with your real product, your branded voice overlay (OpenAI TTS or ElevenLabs), action B-rolls + captions.',
     aRollProvider: 'sora-2',
     useElevenLabs: true,
-    brollCount: 2,
+    maxBrolls: 2,
     available: true,
   },
 }
@@ -67,34 +81,44 @@ export const DEFAULT_DURATION: UGCDuration = 8
 
 // === Credit math ===
 // Tuned for ~3-4x markup on real API cost at 1cr = $0.025 USD.
-//   base: covers Nano Banana hero frame, Kling B-rolls, Claude prompts, stitch.
+//   BASE_FIXED: Nano Banana hero frame + Claude prompts + Shotstack stitch.
+//   HERO_PREMIUM: Extra cost for Hero — ElevenLabs/OpenAI TTS overlay.
 //   PER_SECOND_SORA: each second of Sora generation.
-//   PER_SECOND_FILL: each second of extended B-roll fill — much cheaper.
+//   PER_BROLL: each rendered B-roll (Kling + optional Nano Banana action frame).
+//              Actual B-roll count is duration-dependent (see brollCountForDuration).
+//   PER_SECOND_FILL: each second of extended B-roll fill on extended durations.
 //   CHAINED_OVERHEAD_PER_CLIP: per additional Sora call when chaining.
-const BASE_COST: Record<UGCTier, number> = { standard: 20, hero: 40 }
+const BASE_FIXED = 12
+const HERO_PREMIUM = 20
 const PER_SECOND_SORA = 8
+const PER_BROLL = 4
 const PER_SECOND_FILL = 2
 const CHAINED_OVERHEAD_PER_CLIP = 10
 
 export function calculateVideoCredits(tier: UGCTier, duration: UGCDuration): number {
   const dCfg = DURATION_CONFIGS[duration]
-  const base = BASE_COST[tier]
-  if (!dCfg) return base + PER_SECOND_SORA * 8
+  const tierBase = BASE_FIXED + (tier === 'hero' ? HERO_PREMIUM : 0)
+  if (!dCfg) return tierBase + PER_SECOND_SORA * 8
+
+  // Charge only for the B-rolls this duration actually renders. Tier sets the ceiling.
+  const tierMaxBrolls = TIERS[tier].maxBrolls
+  const brollsRendered = brollCountForDuration(duration, tierMaxBrolls)
+  const brollCost = PER_BROLL * brollsRendered
 
   if (dCfg.strategy === 'native') {
-    return base + PER_SECOND_SORA * dCfg.soraSeconds
+    return tierBase + PER_SECOND_SORA * dCfg.soraSeconds + brollCost
   }
 
   if (dCfg.strategy === 'extended') {
-    // 12s Sora + remainder as cheaper B-roll fill
     const fillSeconds = dCfg.totalSeconds - 12
-    return base + PER_SECOND_SORA * 12 + PER_SECOND_FILL * fillSeconds
+    return tierBase + PER_SECOND_SORA * 12 + PER_SECOND_FILL * fillSeconds + brollCost
   }
 
-  // chained: N Sora clips of soraSeconds each, plus overhead per extra clip
-  return base
+  // chained: N Sora clips, plus overhead per extra clip
+  return tierBase
     + PER_SECOND_SORA * dCfg.soraSeconds * dCfg.soraClips
     + CHAINED_OVERHEAD_PER_CLIP * (dCfg.soraClips - 1)
+    + brollCost
 }
 
 // Pre-computed for UI render perf.
