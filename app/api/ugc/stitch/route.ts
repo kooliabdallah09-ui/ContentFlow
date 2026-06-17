@@ -75,9 +75,9 @@ export async function POST(request: NextRequest) {
       try {
         const transcribeUrl = audioOverlayUrl ?? talkingHeadUrl
         const { words } = await transcribeWithTimestamps(transcribeUrl)
-        // Offset by the talking-head start (3.7s when a B-roll1 plays first, else 0).
-        const offsetSeconds = broll1Url ? 3.7 : 0
-        syncedCaptions = buildSyncedCaptionChunks(words, { maxWords: 4, offsetSeconds })
+        // Talking head now starts at 0 (cutaway layout — B-rolls overlay mid-video,
+        // they don't push the talking head back), so caption offset is always 0.
+        syncedCaptions = buildSyncedCaptionChunks(words, { maxWords: 4, offsetSeconds: 0 })
       } catch (err) {
         console.warn('[stitch] Whisper transcription failed, falling back to script-based captions:', err instanceof Error ? err.message : err)
       }

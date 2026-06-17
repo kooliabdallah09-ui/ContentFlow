@@ -28,27 +28,42 @@ export async function submitStitchJob({
   const apiKey = process.env.SHOTSTACK_API_KEY
   if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
 
-  //   0–4s: B-roll1 (muted, fades out)
-  //   3.7s: talking head starts (0.3s crossover)
-  //   talkingHeadEnd: B-roll2 appended (muted, fades in)
-  const talkingHeadStart = broll1Url ? 3.7 : 0
+  // === Layout: B-roll CUTAWAY pattern ===
+  // Talking head plays continuously on the bottom track with full audio. B-rolls
+  // overlay on a higher track at chosen moments — visuals cut away briefly, audio
+  // never stops. This is the classic UGC pattern: "she keeps talking, you see the
+  // product spray/use/result over her voice".
+  //
+  // Track stack (low → high):
+  //   1. talking head (full duration, audio plays)
+  //   2. B-roll cutaways (muted, overlay specific seconds)
+  //   3. audio overlay if Hero tier
+  //   4. captions
+  //   5. watermark (if free)
+  const talkingHeadStart = 0
   const talkingHeadLength = talkingHeadDuration && talkingHeadDuration > 0 ? talkingHeadDuration : 12
   const talkingHeadEnd = talkingHeadStart + talkingHeadLength
 
-  // === Track 1 (bottom): visuals ===
-  const visualClips: Record<string, unknown>[] = []
-
-  if (broll1Url) {
-    visualClips.push({
-      asset: { type: 'video', src: broll1Url, volume: 0 },
-      start: 0,
-      length: 4,
-      fit: 'cover',
-      transition: { out: 'fade' },
-    })
+  // Pick when each B-roll cuts in. Avoid the first second (let the hook land) and
+  // the last second (let the CTA land on the character's face).
+  // 1 B-roll: 35% through, ~2.5s long
+  // 2 B-rolls: 25% and 65% through, ~2.0s each
+  // Lengths clamp so a 4s video could technically take a B-roll, though current
+  // policy is 0 B-rolls at 4s.
+  const brollCount = (broll1Url ? 1 : 0) + (broll2Url ? 1 : 0)
+  const brollSlots: Array<{ url: string; start: number; length: number }> = []
+  if (brollCount === 1 && broll1Url) {
+    const length = Math.min(2.5, Math.max(1.5, talkingHeadLength * 0.35))
+    const start = talkingHeadLength * 0.35
+    brollSlots.push({ url: broll1Url, start, length })
+  } else if (brollCount === 2 && broll1Url && broll2Url) {
+    const length = Math.min(2.0, Math.max(1.2, talkingHeadLength * 0.18))
+    brollSlots.push({ url: broll1Url, start: talkingHeadLength * 0.25, length })
+    brollSlots.push({ url: broll2Url, start: talkingHeadLength * 0.65, length })
   }
 
-  visualClips.push({
+  // === Track 1 (bottom): talking head — plays uninterrupted with audio ===
+  const talkingHeadClip = {
     asset: {
       type: 'video',
       src: talkingHeadUrl,
@@ -57,19 +72,23 @@ export async function submitStitchJob({
     start: talkingHeadStart,
     length: talkingHeadLength,
     fit: 'cover',
-  })
-
-  if (broll2Url) {
-    visualClips.push({
-      asset: { type: 'video', src: broll2Url, volume: 0 },
-      start: talkingHeadEnd,
-      length: 4,
-      fit: 'cover',
-      transition: { in: 'fade' },
-    })
   }
 
-  const tracks: Record<string, unknown>[] = [{ clips: visualClips }]
+  const tracks: Record<string, unknown>[] = [{ clips: [talkingHeadClip] }]
+
+  // === Track 2: B-roll cutaways (visual-only overlay) ===
+  // Muted so the talking-head audio (or overlay) carries through unchanged.
+  if (brollSlots.length) {
+    tracks.unshift({
+      clips: brollSlots.map(slot => ({
+        asset: { type: 'video', src: slot.url, volume: 0 },
+        start: slot.start,
+        length: slot.length,
+        fit: 'cover',
+        transition: { in: 'fade', out: 'fade' },
+      })),
+    })
+  }
 
   // === Track 2: audio overlay (Hero) ===
   // Bound to talking-head length so it doesn't bleed over B-roll2.
@@ -108,7 +127,9 @@ export async function submitStitchJob({
   // placement, so we use an HTML asset that we style ourselves with text-align
   // and box geometry — gives us pixel control without fighting the presets.
   if (watermark) {
-    const totalLength = (broll2Url ? talkingHeadEnd + 4 : talkingHeadEnd)
+    // With the new cutaway layout, total length = talkingHeadEnd. B-rolls overlay
+    // INSIDE the talking head, so they don't extend the timeline.
+    const totalLength = talkingHeadEnd
     tracks.unshift({
       clips: [{
         asset: {
