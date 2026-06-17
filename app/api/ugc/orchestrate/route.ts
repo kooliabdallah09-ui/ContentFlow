@@ -1,6 +1,6 @@
 import { generateImage } from '@/lib/gemini-image'
 import { estimateDuration } from '@/lib/heygen'
-import { generateActionFrame, generateCharacterWithProduct } from '@/lib/nanobanana'
+import { generateActionFrame, generateCharacterWithProduct, generateProductOnlyFrame } from '@/lib/nanobanana'
 import { submitSoraJob } from '@/lib/sora'
 import { buildSoraPrompt } from '@/lib/sora-prompt'
 import { generateSpeech } from '@/lib/tts'
@@ -511,21 +511,22 @@ export async function POST(request: NextRequest) {
         const canUseNanoBanana = !!(productImageBase64 && productImageMimeType && process.env.REPLICATE_API_TOKEN)
 
         // For each shot: route by kind.
-        //   character — Nano Banana action frame → Kling i2v (character with product)
-        //   product / lifestyle — Kling text-to-video directly (no character, no Nano Banana)
-        // Done in parallel since each takes ~5s and they're independent.
-        const KLING_I2V_MOTION_PROMPT = 'Continue the action naturally from the starting frame — smooth realistic motion of the hands/body/product, 5 seconds, phone-camera handheld feel, soft natural lighting preserved, 9:16 vertical, no scene cuts, no new objects appearing'
+        //   character — Nano Banana action frame (character holding product) → Kling i2v
+        //   product / lifestyle — Nano Banana product-only frame → Kling i2v (subtle camera motion)
+        // Both kinds anchor on the real product image so the label/shape/color survives.
+        // Without this, product/lifestyle shots used to go to Kling text-to-video with just a
+        // word description — Kling hallucinated a generic bottle and the brand was lost.
+        const KLING_I2V_CHARACTER_MOTION = 'Continue the action naturally from the starting frame — smooth realistic motion of the hands/body/product, 5 seconds, phone-camera handheld feel, soft natural lighting preserved, 9:16 vertical, no scene cuts, no new objects appearing'
+        const KLING_I2V_PRODUCT_MOTION = 'Subtle cinematic motion from the starting frame — slow camera push-in toward the product, gentle light shift across the label, very slight rotation, 5 seconds, phone-camera handheld feel, soft natural lighting preserved, 9:16 vertical, no scene cuts, no new objects appearing, the product stays exactly as shown in the starting frame'
 
         const submissions = await Promise.all(brollShots.map(async (shot, i) => {
-          // Product / lifestyle shots skip Nano Banana — we want no character in them.
-          if (shot.kind !== 'character') {
-            return await submitBrollJob(shot.description).catch(() => null)
-          }
-
-          // Character shots: try Nano Banana action frame → Kling i2v.
           if (canUseNanoBanana) {
             try {
-              const frame = await generateActionFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext, safeCustomInstructions)
+              const isCharacter = shot.kind === 'character'
+              const frame = isCharacter
+                ? await generateActionFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext, safeCustomInstructions)
+                : await generateProductOnlyFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext, shot.kind as 'product' | 'lifestyle', safeCustomInstructions)
+
               // Force 9:16 (720x1280) so Kling i2v inherits portrait aspect from the start frame.
               const resized = await sharp(Buffer.from(frame.imageBase64, 'base64'))
                 .resize(720, 1280, { fit: 'cover', position: 'center' })
@@ -537,13 +538,15 @@ export async function POST(request: NextRequest) {
                 .upload(filename, resized, { contentType: 'image/png', upsert: false })
               if (!upErr) {
                 const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-                return await submitBrollJob(KLING_I2V_MOTION_PROMPT, publicUrl).catch(() => null)
+                const motion = isCharacter ? KLING_I2V_CHARACTER_MOTION : KLING_I2V_PRODUCT_MOTION
+                return await submitBrollJob(motion, publicUrl).catch(() => null)
               }
             } catch (err) {
-              console.warn(`Nano Banana action frame ${i} failed, falling back to Kling text-to-video:`, err instanceof Error ? err.message : err)
+              console.warn(`Nano Banana frame ${i} (${shot.kind}) failed, falling back to Kling text-to-video:`, err instanceof Error ? err.message : err)
             }
           }
-          // Fallback: Kling text-to-video with the raw action description
+          // Fallback: Kling text-to-video with the raw shot description (only if Nano Banana
+          // path is unavailable — no OpenAI key or no product image uploaded).
           return await submitBrollJob(shot.description).catch(() => null)
         }))
 

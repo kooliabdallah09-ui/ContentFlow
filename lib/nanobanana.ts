@@ -115,6 +115,61 @@ Vertical 9:16 format. The product is visible and the action with it is unmistaka
   return callNanoBanana(prompt, productImageBase64, productMimeType)
 }
 
+// Product-only hero frame for B-rolls — NO character, NO hands, just the product on a
+// surface, lit and composed for an ad-style still. The reference image bytes are the
+// product, and Nano Banana is told to preserve every label/shape/color detail. Result
+// goes to Kling image-to-video for subtle motion (camera push, light shift, slow rotation).
+//
+// Used for B-roll shots Claude tagged as kind:'product' or kind:'lifestyle' — those used
+// to skip Nano Banana entirely and hand a text description to Kling text-to-video, which
+// hallucinated a generic bottle.
+export async function generateProductOnlyFrame(
+  productImageBase64: string,
+  productMimeType: string,
+  productName: string,
+  shotDescription: string,
+  scene: string,
+  kind: 'product' | 'lifestyle',
+  customInstructions?: string,
+): Promise<NanoBananaResult> {
+  const placementBlock = kind === 'product'
+    ? `Hero shot composition — the product is the SOLE subject, dominant in frame at slight angle, on a clean surface (marble / wood / linen / counter top) appropriate for the product type. No character, no hands, no other objects competing for attention.`
+    : `Lifestyle context — the product sits naturally in its environment (next to props that suggest the use case: jewelry, a coffee mug, a tote bag, a vanity tray). The product is still the visual anchor but the scene tells a small story. No character, no hands.`
+
+  const prompt = `Using the attached reference image as the EXACT product, generate a hyper-realistic phone-camera photograph for a UGC ad B-roll frame.
+
+PRODUCT FIDELITY — these are the only things that matter, never change them:
+- Bottle / container shape, size, and silhouette: match the reference exactly
+- Label text, font, layout, illustration: every letter and mark visible in the reference must appear in the output, readable and unstyled
+- Colors: liquid color, packaging color, cap color — match the reference exactly
+- Material finish: glass vs plastic vs metal — match the reference
+
+DO NOT redesign, restyle, or substitute a generic product. If the reference shows an UpCircle Face Toner with a handwritten "UpCircle" script logo, peachy/cream liquid, and the words "FACE TONER" in a black box at the bottom, the output must show that exact bottle with all those exact details legible.
+
+SHOT INTENT: ${shotDescription}
+
+${placementBlock}
+
+SCENE: ${scene}, soft and lived-in, but not the focus — the product is.
+
+CAMERA: phone-camera close-up, slight handheld tilt 2°, mid-distance framing (the product fills roughly the central third of the frame). Slightly off-centre composition. NEVER a perfectly centered catalog shot.
+
+LIGHTING: single soft natural source (window or overhead). Real shadow under the product. Catchlight on glass/plastic. No studio softbox, no ring light, no rim light.
+
+REALISM ANCHORS:
+- Visible label text and any printed details, readable
+- Slight surface texture on the support (grain in wood, crystals in marble, weave in linen)
+- Subtle dust / fingerprints on glossy surfaces — proves it's a real shot, not a render
+- No motion blur (product is at rest)
+- No floating composition — the product physically sits on the surface with a real shadow
+
+Phone-camera-natural rendering: subtle sensor grain, no beauty filter, no over-sharpening, no commercial polish. Should read as a frozen second from a real iPhone video, NOT a marketing campaign still.
+
+Vertical 9:16 format. The product label is readable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/scene/composition where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
+
+  return callNanoBanana(prompt, productImageBase64, productMimeType)
+}
+
 // Backwards-compat wrapper — keeps generateProductHeroShot importable even though the new
 // pipeline calls generateActionFrame directly with explicit action descriptions.
 export async function generateProductHeroShot(
