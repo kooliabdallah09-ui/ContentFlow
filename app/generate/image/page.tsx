@@ -2,214 +2,300 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import ImageSettings from '@/components/ImageSettings'
-import ImagePreview from '@/components/ImagePreview'
-import { Icon } from '@/components/Icons'
-import { showSuccess, showError } from '@/lib/notifications'
-import { useAutoSave } from '@/lib/useAutoSave'
+import { Loader2, Download } from 'lucide-react'
+import { showError, showSuccess } from '@/lib/notifications'
+
+// Editorial image generator matching the Claude Design export.
+// Single composer card with prompt textarea + style chips + ratio + count
+// + Generate, followed by a grid of 4 result placeholders that fill in
+// as images render. Hits the existing /api/content/generate/image route.
+
+const STYLES = [
+  { id: 'realistic',    label: 'Product photo' },
+  { id: 'artistic',     label: 'Lifestyle' },
+  { id: 'professional', label: 'Studio' },
+  { id: 'minimalist',   label: 'Flat lay' },
+]
+
+const RATIOS = [
+  { id: '1:1',  label: '1:1',  size: '1024x1024' },
+  { id: '4:5',  label: '4:5',  size: '1024x1280' },
+  { id: '9:16', label: '9:16', size: '720x1280' },
+  { id: '16:9', label: '16:9', size: '1280x720' },
+]
+
+const COUNTS = [1, 2, 4]
+
+const CREDIT_PER_IMAGE = 3
 
 export default function ImageGeneratorPage() {
+  const [prompt, setPrompt] = useState('')
+  const [style, setStyle] = useState(STYLES[0].id)
+  const [ratio, setRatio] = useState(RATIOS[1].id) // default 4:5 to match the design
+  const [count, setCount] = useState<number>(4)
   const [images, setImages] = useState<string[]>([])
-  const [creditBalance, setCreditBalance] = useState(200)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [creditsLoading, setCreditsLoading] = useState(true)
-  const [formData, setFormData] = useState({
-    prompt: '',
-    style: 'realistic',
-    size: '1024x1024',
-    quantity: 1,
-  })
-
-  useAutoSave(formData, {
-    key: 'imageGeneratorFormState',
-    onRestore: (data) => setFormData(data),
-  })
+  const [creditBalance, setCreditBalance] = useState(0)
 
   useEffect(() => {
-    const fetchCredits = async () => {
-      try {
-        const supabase = getSupabase()
-        if (!supabase) {
-          setCreditsLoading(false)
-          return
-        }
-
-        const { data: sessionData } = await supabase.auth.getSession()
-        if (!sessionData?.session?.access_token) {
-          setCreditsLoading(false)
-          return
-        }
-
-        const response = await fetch('/api/credits/balance', {
-          headers: {
-            Authorization: `Bearer ${sessionData.session.access_token}`,
-          },
-        }).catch(() => null)
-
-        if (!response) {
-          setCreditsLoading(false)
-          return
-        }
-
-        if (response.ok) {
-          const data = await response.json()
-          setCreditBalance(data.balance)
-        } else if (response.status === 404) {
-          const initResponse = await fetch('/api/credits/init', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${sessionData.session.access_token}`,
-            },
-            body: JSON.stringify({ plan: 'free' }),
-          }).catch(() => null)
-
-          if (initResponse?.ok) {
-            const data = await initResponse.json()
-            setCreditBalance(data.data.balance)
-          }
-        }
-      } catch (err) {
-        console.error('Failed to fetch credits:', err)
-      } finally {
-        setCreditsLoading(false)
-      }
-    }
-
-    const timer = setTimeout(() => {
-      fetchCredits()
-    }, 500)
-
-    return () => clearTimeout(timer)
+    let cancelled = false
+    ;(async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const res = await fetch('/api/credits/balance', { headers: { Authorization: `Bearer ${token}` } })
+      const data = await res.json().catch(() => ({}))
+      if (!cancelled && typeof data?.balance === 'number') setCreditBalance(data.balance)
+    })()
+    return () => { cancelled = true }
   }, [])
 
-  const handleGenerate = async (settings: {
-    prompt: string
-    style: string
-    size: string
-    quantity: number
-  }) => {
+  const totalCost = count * CREDIT_PER_IMAGE
+  const canGenerate = prompt.trim().length >= 5 && creditBalance >= totalCost
+
+  async function generate() {
+    if (!canGenerate || loading) return
     setLoading(true)
     setError('')
     setImages([])
-
     try {
       const supabase = getSupabase()
-      if (!supabase) {
-        throw new Error('Authentication failed')
-      }
+      if (!supabase) throw new Error('Auth not ready')
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
 
-      const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData.session?.access_token) {
-        throw new Error('Not authenticated')
-      }
+      const size = RATIOS.find(r => r.id === ratio)?.size ?? '1024x1024'
 
-      const response = await fetch('/api/content/generate/image', {
+      const res = await fetch('/api/content/generate/image', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
-        body: JSON.stringify(settings),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt: prompt.trim(), style, size, quantity: count }),
       })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Generation failed')
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || 'Failed to generate image')
-      }
-
-      const data = await response.json()
-      setImages(data.images)
-      setCreditBalance(data.newBalance)
-      showSuccess('Images generated successfully', `${settings.quantity} image(s) created`)
+      setImages(Array.isArray(data.images) ? data.images : [])
+      if (typeof data.newBalance === 'number') setCreditBalance(data.newBalance)
+      showSuccess('Images ready', `${count} image${count > 1 ? 's' : ''} generated`)
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to generate image'
-      setError(errorMessage)
-      showError('Generation failed', errorMessage)
+      const msg = err instanceof Error ? err.message : 'Generation failed'
+      setError(msg)
+      showError('Generation failed', msg)
     } finally {
       setLoading(false)
     }
   }
 
-  return (
-    <div className="content">
-      <div className="page-head">
-        <div className="page-meta">
-          <span className="dot" />
-          <span className="eyebrow">AI Image Generation</span>
-        </div>
-        <h1 className="page-title">Create Stunning <em>Images</em></h1>
-        <p className="page-sub">Generate beautiful, high-quality images with advanced AI. Choose your style and let the AI create.</p>
-      </div>
+  // Placeholder cells visualize the upcoming render slots so the page never
+  // feels empty before generation. They share the same diagonal-stripe pattern
+  // used on the dashboard recent thumbnails.
+  const slots = Math.max(count, images.length, 4)
 
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '24px' }}>
-        {/* Form */}
-        <div>
-          <div className="section-head">
-            <h2 className="section-title">Generate Image</h2>
+  return (
+    <main style={{ maxWidth: 1080, margin: '0 auto', padding: '42px 40px 90px' }} className="img-page">
+      <header style={{ marginBottom: 28 }}>
+        <h1 style={{
+          fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 54,
+          lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0,
+        }}>
+          Image
+        </h1>
+        <p style={{ fontSize: 15.5, color: 'var(--ink-dim)', margin: '14px 0 0', maxWidth: 520, lineHeight: 1.55 }}>
+          AI product photos and creative imagery. Describe the shot you want.
+        </p>
+      </header>
+
+      {/* Composer */}
+      <div style={{
+        background: 'var(--surface)', border: '1px solid var(--border)',
+        borderRadius: 18, padding: 20,
+        display: 'flex', flexDirection: 'column', gap: 16,
+      }}>
+        <textarea
+          value={prompt}
+          onChange={e => setPrompt(e.target.value)}
+          placeholder="A matte amber serum bottle on wet stone, soft morning light, shallow depth of field…"
+          disabled={loading}
+          rows={3}
+          style={{
+            width: '100%', resize: 'vertical', minHeight: 76,
+            border: 'none', outline: 'none', background: 'transparent',
+            fontFamily: 'inherit', fontSize: 15, lineHeight: 1.55,
+            color: 'var(--ink)', padding: '4px 2px',
+          }}
+        />
+
+        {/* Style chips */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {STYLES.map(s => {
+            const active = style === s.id
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => setStyle(s.id)}
+                disabled={loading}
+                style={{
+                  padding: '9px 18px', borderRadius: 999,
+                  background: active ? 'var(--ink)' : 'var(--surface)',
+                  border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                  color: active ? '#fff' : 'var(--ink-2)',
+                  fontSize: 13, fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                }}>
+                {s.label}
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Ratio + count + Generate */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, color: 'var(--ink-mute)', fontWeight: 500 }}>Ratio</span>
+            {RATIOS.map(r => {
+              const active = ratio === r.id
+              return (
+                <button
+                  key={r.id}
+                  type="button"
+                  onClick={() => setRatio(r.id)}
+                  disabled={loading}
+                  style={{
+                    width: 48, height: 36, borderRadius: 999,
+                    background: active ? 'var(--ink)' : 'var(--surface)',
+                    border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                    color: active ? '#fff' : 'var(--ink-2)',
+                    fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 500,
+                    cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                  }}>
+                  {r.label}
+                </button>
+              )
+            })}
           </div>
 
-          <ImageSettings
-            onGenerate={handleGenerate}
-            isLoading={loading}
-            creditBalance={creditBalance}
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 13, color: 'var(--ink-mute)', fontWeight: 500 }}>Count</span>
+            {COUNTS.map(n => {
+              const active = count === n
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setCount(n)}
+                  disabled={loading}
+                  style={{
+                    width: 36, height: 36, borderRadius: '50%',
+                    background: active ? 'var(--ink)' : 'var(--surface)',
+                    border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                    color: active ? '#fff' : 'var(--ink-2)',
+                    fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 500,
+                    cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                  }}>
+                  {n}
+                </button>
+              )
+            })}
+          </div>
 
-          {/* Credit Balance */}
-          {!creditsLoading && (
-            <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <div>
-                  <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>Your Credits</span>
-                  <p style={{ fontSize: '20px', fontWeight: 600, color: creditBalance >= 5 ? 'var(--good)' : 'var(--danger)' }}>
-                    {creditBalance}
-                  </p>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>Per Image</span>
-                  <p style={{ fontSize: '16px', fontWeight: 600, color: 'var(--accent)' }}>5 credits</p>
-                </div>
-              </div>
-              {creditBalance < 5 && (
-                <div style={{ background: 'var(--danger)', color: 'white', padding: '8px 12px', borderRadius: 'var(--r-sm)', fontSize: '12px' }}>
-                  Not enough credits. You need 5, have {creditBalance}.
-                </div>
-              )}
-            </div>
-          )}
+          <button
+            onClick={generate}
+            disabled={!canGenerate || loading}
+            style={{
+              marginLeft: 'auto',
+              padding: '11px 26px', borderRadius: 999,
+              background: !canGenerate || loading ? 'var(--ink-faint)' : 'var(--ink)',
+              color: '#fff', border: 'none',
+              fontSize: 14, fontWeight: 600,
+              cursor: !canGenerate || loading ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+            {loading ? <><Loader2 size={14} className="animate-spin" /> Generating…</> : 'Generate'}
+          </button>
         </div>
 
-        {/* Preview */}
-        <div>
-          {images.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div className="section-head">
-                <h2 className="section-title">Generated Images</h2>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
-                {images.map((image, idx) => (
-                  <div key={idx} style={{ borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                    <img src={image} alt={`Generated image ${idx + 1}`} style={{ width: '100%', height: 'auto', display: 'block' }} />
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : loading ? (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 20px', textAlign: 'center' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '4px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-              <p style={{ color: 'var(--ink)', fontSize: '14px', fontWeight: 600 }}>Creating your images...</p>
-              <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
-          ) : (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 20px', textAlign: 'center' }}>
-              <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'center', color: 'var(--ink-mute)' }}><Icon.Image style={{ width: 36, height: 36 }} /></div>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', marginBottom: '6px' }}>Ready to create?</h3>
-              <p className="eyebrow">Describe your image and generate</p>
-            </div>
-          )}
+        {/* Cost line */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink-mute)', paddingTop: 4, borderTop: '1px solid var(--border-soft)' }}>
+          <span>{totalCost} credits · {count} × {CREDIT_PER_IMAGE} cr</span>
+          <span>Balance: <strong style={{ color: creditBalance >= totalCost ? 'var(--good)' : 'var(--danger)' }}>{creditBalance}</strong></span>
         </div>
       </div>
-    </div>
+
+      {/* Error */}
+      {error && (
+        <div style={{
+          marginTop: 14, padding: '10px 14px', borderRadius: 11,
+          background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)',
+          color: 'var(--danger)', fontSize: 13,
+        }}>{error}</div>
+      )}
+
+      {/* Result grid */}
+      <div style={{
+        marginTop: 24,
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18,
+      }} className="img-grid">
+        {Array.from({ length: slots }).map((_, i) => {
+          const url = images[i]
+          if (url) {
+            return (
+              <div key={i} style={{
+                aspectRatio: '1', borderRadius: 13, overflow: 'hidden',
+                border: '1px solid var(--border)', background: 'var(--surface)',
+                position: 'relative',
+              }}>
+                <img src={url} alt={`generation ${i + 1}`}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                <a href={url} download={`image-${Date.now()}-${i}.png`} target="_blank" rel="noopener noreferrer"
+                  style={{
+                    position: 'absolute', top: 8, right: 8,
+                    width: 32, height: 32, borderRadius: 8,
+                    background: 'rgba(20,18,12,0.75)', color: '#fff',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    backdropFilter: 'blur(4px)',
+                  }}>
+                  <Download size={14} />
+                </a>
+              </div>
+            )
+          }
+          return (
+            <div key={i} style={{
+              aspectRatio: '1', borderRadius: 13,
+              background: loading
+                ? 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)'
+                : 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
+              border: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative',
+            }}>
+              {loading && i < count ? (
+                <Loader2 size={20} className="animate-spin" color="var(--ink-mute)" />
+              ) : (
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 11,
+                  letterSpacing: '0.14em', textTransform: 'uppercase',
+                  color: 'var(--ink-faint)',
+                }}>
+                  Product photo
+                </span>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .img-page { padding: 24px 16px 90px !important; }
+          .img-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
+    </main>
   )
 }

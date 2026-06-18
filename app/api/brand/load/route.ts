@@ -29,11 +29,31 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data, error } = await supabase
-      .from('brand_profiles')
-      .select('company_name, description, unique_value_prop, brand_mission, target_audience, tone_of_voice, logo_url')
-      .eq('user_id', userData.user.id)
-      .maybeSingle()
+    // Try to read products too. If the column doesn't exist (migration not
+    // run yet), fall back to a query without it so loading the brand still works.
+    let data: Record<string, unknown> | null = null
+    let error: { message?: string; code?: string } | null = null
+    {
+      const fullCols = 'company_name, description, unique_value_prop, brand_mission, target_audience, tone_of_voice, logo_url, products'
+      const result = await supabase
+        .from('brand_profiles')
+        .select(fullCols)
+        .eq('user_id', userData.user.id)
+        .maybeSingle()
+      if (result.error && (result.error.code === '42703' || /column.*products/i.test(result.error.message))) {
+        // Fallback without `products` column.
+        const fallback = await supabase
+          .from('brand_profiles')
+          .select('company_name, description, unique_value_prop, brand_mission, target_audience, tone_of_voice, logo_url')
+          .eq('user_id', userData.user.id)
+          .maybeSingle()
+        data = fallback.data as Record<string, unknown> | null
+        error = fallback.error
+      } else {
+        data = result.data as Record<string, unknown> | null
+        error = result.error
+      }
+    }
     // logo_url is repurposed: in this app it stores the product image URL
     // that the UGC builder uses as the first-frame seed.
 

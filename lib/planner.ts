@@ -145,12 +145,19 @@ ${formatInstruction ? `- ${formatInstruction}` : '- Vary content types — avoid
 - Every title and description must be SPECIFIC to ${brand?.name || 'this brand'} — never generic placeholders
 - If suggesting video/ugc that shows the app: only do so when hasScreenshots = ${hasScreenshots}
 
+TITLE RULES — this is critical:
+- Every title MUST reference ${brand?.name || 'the brand'} OR a specific benefit / pain point / feature you were told about above
+- NEVER use generic labels like "Product Demo", "Audio Tip", "Quick Tip", "Educational Post" — those are placeholders, not titles
+- Good examples (specific): "How ${brand?.name || '[brand]'} cuts your ${brand?.customerPainPoints?.split(',')[0]?.trim() || 'busywork'} in half", "Three reasons ${brand?.name || '[brand]'} feels different on day one"
+- Bad examples (generic): "Product showcase", "Customer story", "Quick tip"
+- The title should make someone scrolling stop and want to read the description
+
 For each content day return JSON:
 {
   "date": "2026-06-01",
   "day": "Monday",
   "contentType": "ugc",
-  "title": "Specific, actionable title",
+  "title": "Specific title that mentions ${brand?.name || 'the brand'} or a concrete benefit/pain point",
   "description": "Exactly what to create — specific visuals, script direction, key message (2-3 sentences)",
   "icon": "short label",
   "platforms": ["Instagram", "TikTok"],
@@ -177,8 +184,19 @@ Return ONLY a valid JSON array. No markdown. No extra text.`;
       throw new Error("Unexpected response type");
     }
 
-    // Parse the JSON response
-    const jsonStr = content.text.trim();
+    // Strip markdown code fences if Claude added them despite the instruction,
+    // then locate the first '[' and last ']' as a robust JSON-array boundary.
+    let jsonStr = content.text.trim()
+      .replace(/^```(?:json)?\s*/i, '')
+      .replace(/```\s*$/, '')
+      .trim()
+    const start = jsonStr.indexOf('[')
+    const end = jsonStr.lastIndexOf(']')
+    if (start === -1 || end === -1 || end <= start) {
+      console.error('[planner] Claude returned non-JSON output. First 300 chars:', jsonStr.slice(0, 300))
+      throw new Error('Planner response did not contain a JSON array')
+    }
+    jsonStr = jsonStr.slice(start, end + 1)
     const plan = JSON.parse(jsonStr) as Array<Omit<DailySuggestion, "completed">>;
 
     // Add completed flag
@@ -187,7 +205,10 @@ Return ONLY a valid JSON array. No markdown. No extra text.`;
       completed: false,
     }));
   } catch (error) {
-    console.error("Failed to generate monthly plan:", error);
+    // Log the FULL error so we can see what actually went wrong instead of
+    // silently degrading to generic "Product Demo / Audio Tip" placeholders.
+    console.error("[planner] Failed to generate monthly plan — falling back to generic plan:",
+      error instanceof Error ? `${error.name}: ${error.message}` : error)
     // Return default plan if generation fails
     return generateDefaultPlan(platforms, frequency);
   }

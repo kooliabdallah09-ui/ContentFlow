@@ -79,6 +79,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // Brand profile — loaded once on mount. When the user toggles `useBrand` on,
   // we pre-fill the 4 product fields + product image from this profile (and lock
   // them with a visual cue). Toggling off restores manual entry.
+  //
+  // For brands with multiple products (t-shirt brand etc.), the brand profile
+  // also exposes a `products` catalog. When useBrand is on and there are 2+
+  // products, the picker below lets the user choose which one to advertise.
+  // The picked product's image becomes the Nano Banana / Sora reference.
   interface BrandProfile {
     productName: string
     description: string
@@ -86,7 +91,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     defaultCta: string
     productImageUrl?: string
   }
+  interface BrandProduct { id: string; name: string; image_url: string | null }
   const [brand, setBrand] = useState<BrandProfile | null>(null)
+  const [products, setProducts] = useState<BrandProduct[]>([])
+  const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [useBrand, setUseBrand] = useState(false)
 
   // Hook-preview stage
@@ -118,8 +126,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     }
   }
 
-  // Load the user's brand profile once. If they have a meaningful one
-  // (product name present), default the toggle to ON so the form pre-fills.
+  // Load the user's brand profile + product catalog once. If they have a
+  // meaningful brand (name present), default useBrand to ON. If multiple
+  // products exist, default to the first one.
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -129,28 +138,51 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         const { data: sess } = await supabase.auth.getSession()
         const token = sess?.session?.access_token
         if (!token) return
-        const res = await fetch('/api/brand/load', {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        const data = await res.json()
+
+        const [brandRes, productsRes] = await Promise.all([
+          fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } }),
+        ])
+        const brandData = await brandRes.json()
+        const productsData = await productsRes.json()
         if (cancelled) return
-        const p = data?.profile
-        if (p && p.company_name) {
-          const profile: BrandProfile = {
-            productName: p.company_name ?? '',
-            description: p.description ?? '',
-            keyBenefits: p.unique_value_prop ?? '',
-            defaultCta: p.brand_mission ?? 'Try it today',
-            productImageUrl: p.logo_url ?? undefined,
+
+        const list: BrandProduct[] = Array.isArray(productsData?.products) ? productsData.products : []
+        setProducts(list)
+
+        const p = brandData?.profile
+        if (!p?.company_name) return
+
+        const profile: BrandProfile = {
+          productName: p.company_name ?? '',
+          description: p.description ?? '',
+          keyBenefits: p.unique_value_prop ?? '',
+          defaultCta: p.brand_mission ?? 'Try it today',
+          productImageUrl: p.logo_url ?? undefined,
+        }
+        setBrand(profile)
+        setUseBrand(true)
+        // Brand text fields. Note: productName here is actually the BRAND name
+        // (we share the same column). When a specific product is picked below
+        // we override productName with that product's name.
+        setProductDescription(profile.description)
+        setBenefits(profile.keyBenefits)
+        setCallToAction(profile.defaultCta)
+
+        // Pick the first catalog product as the default. Its image becomes the
+        // first-frame seed; its name overrides the brand name in the form.
+        const first = list[0]
+        if (first) {
+          setSelectedProductId(first.id)
+          setProductName(first.name)
+          if (first.image_url) {
+            loadBrandImage(first.image_url).then(img => {
+              if (!cancelled && img) setProductImage(img)
+            })
           }
-          setBrand(profile)
-          // Auto-fill on first load — user can opt out.
-          setUseBrand(true)
+        } else {
+          // No catalog yet — fall back to the legacy single image + brand name.
           setProductName(profile.productName)
-          setProductDescription(profile.description)
-          setBenefits(profile.keyBenefits)
-          setCallToAction(profile.defaultCta)
-          // Pull the image too — best-effort, don't block on it.
           if (profile.productImageUrl) {
             loadBrandImage(profile.productImageUrl).then(img => {
               if (!cancelled && img) setProductImage(img)
@@ -163,6 +195,18 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     })()
     return () => { cancelled = true }
   }, [])
+
+  // Pick a product from the catalog — swaps the product name + first-frame image.
+  async function pickProduct(id: string) {
+    const p = products.find(x => x.id === id)
+    if (!p) return
+    setSelectedProductId(id)
+    setProductName(p.name)
+    if (p.image_url) {
+      const img = await loadBrandImage(p.image_url)
+      if (img) setProductImage(img)
+    }
+  }
 
   // When the user flips the toggle, sync the form fields accordingly.
   async function toggleUseBrand(next: boolean) {
@@ -421,6 +465,49 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               </div>
             </div>
           </label>
+        )}
+
+        {/* Product picker — shown when the catalog has 2+ products. Lets a
+            t-shirt brand (etc.) pick which SKU this UGC is for. */}
+        {useBrand && products.length > 1 && (
+          <div>
+            <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 8 }}>
+              Which product?
+            </span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+              {products.map(p => {
+                const active = selectedProductId === p.id
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => pickProduct(p.id)}
+                    disabled={isLoading}
+                    style={{
+                      display: 'flex', flexDirection: 'column', gap: 6,
+                      padding: 8, borderRadius: 11,
+                      background: active ? 'var(--hover)' : 'var(--surface)',
+                      border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s', textAlign: 'left',
+                    }}>
+                    <div style={{ aspectRatio: '1', borderRadius: 7, overflow: 'hidden', background: 'var(--bg-elev)' }}>
+                      {p.image_url && (
+                        <img src={p.image_url} alt={p.name}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      )}
+                    </div>
+                    <span style={{
+                      fontSize: 12, fontWeight: 600, color: 'var(--ink)',
+                      letterSpacing: '-0.01em', lineHeight: 1.3,
+                      overflow: 'hidden', textOverflow: 'ellipsis',
+                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+                    }}>{p.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         )}
 
         <div className="form-row">
