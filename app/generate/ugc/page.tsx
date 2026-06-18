@@ -121,6 +121,7 @@ export default function UGCGeneratorPage() {
     selectedHook?: string
     character?: import('@/components/CharacterBuilder').CharacterProfile
     customInstructions?: string
+    language?: string
   }) => {
     setLoading(true)
     setError('')

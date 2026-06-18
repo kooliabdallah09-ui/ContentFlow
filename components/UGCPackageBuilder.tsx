@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import CharacterBuilder, { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
+import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
 import {
   TIERS,
   DEFAULT_TIER,
@@ -40,6 +41,7 @@ interface UGCPackageBuilderProps {
     selectedHook?: string
     character?: CharacterProfile
     customInstructions?: string
+    language?: string
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -69,6 +71,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [benefits, setBenefits] = useState('')
   const [callToAction, setCallToAction] = useState('Try it today')
   const [customInstructions, setCustomInstructions] = useState('')
+  const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
@@ -217,6 +220,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       selectedHook,
       character,
       customInstructions: customInstructions.trim() || undefined,
+      language,
     })
     resetForm()
   }
@@ -242,6 +246,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           productImageBase64: productImage?.base64,
           productImageMimeType: productImage?.mimeType,
           customInstructions: customInstructions.trim() || undefined,
+          language,
         }),
       })
       const data = await res.json()
@@ -522,6 +527,18 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         <div className="section-step-head" style={{ marginBottom: 0 }}>
           <span className="step-circle">4</span>
           <h3>Customize</h3>
+        </div>
+
+        <div className="form-row">
+          <label className="form-label">Language</label>
+          <p className="help">Script, hooks, voice and captions render in this language. Sora&apos;s lip-sync follows the spoken language.</p>
+          <select className="select" value={language} onChange={e => setLanguage(e.target.value)} disabled={isLoading}>
+            {LANGUAGES.map(lang => (
+              <option key={lang.code} value={lang.code}>
+                {lang.nativeLabel} {lang.code !== 'en' ? `— ${lang.name}` : ''}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="form-row">

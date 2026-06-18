@@ -49,6 +49,10 @@ async function generateUGCScript(
   // ("make it funny", "target Gen-Z"), constraints ("mention 30% off"), or for users
   // who paste their own full script and want Claude to format it into our template.
   customInstructions?: string,
+  // NEW: language for the SPOKEN content. Section headers + stage directions stay in
+  // English so our parser downstream can find [HOOK], [BODY], [CTA], [BACKGROUND].
+  // The quoted spoken lines are written in this language.
+  language?: { name: string; code: string },
 ): Promise<string> {
   // Spoken pace ≈ 150 words/min ≈ 2.5 words/sec. Reserve ~1s padding so audio
   // never runs past the video.
@@ -67,13 +71,19 @@ async function generateUGCScript(
     ? `\nUSER INSTRUCTIONS (HIGH PRIORITY — follow these exactly, override your defaults to match):\n${customInstructions.trim()}\n`
     : ''
 
+  // Language block — applies to spoken content only. Stage directions and section
+  // headers stay in English so the rest of the pipeline keeps parsing them.
+  const languageBlock = language && language.code !== 'en'
+    ? `\nLANGUAGE — All SPOKEN content (everything inside double quotes) MUST be written in ${language.name}. Stage directions in (parentheses) and section headers in [brackets] stay in English so the parser can read them. The CTA "${callToAction}" should also be translated to natural ${language.name}.\n`
+    : ''
+
   const textPrompt = `Write a ${targetDurationSeconds}-SECOND UGC video script for a social media ad. The TOTAL spoken word count across HOOK + BODY + CTA must be ${targetWords} words or fewer — this is a hard limit because the video will be cut at ${targetDurationSeconds}s. Count carefully.
 
 Product: ${productName}
 Description: ${productDescription}
 Benefits: ${benefits}
 CTA: ${callToAction}
-${customBlock}
+${languageBlock}${customBlock}
 Use this exact format:
 
 ${backgroundLine}
@@ -285,7 +295,11 @@ export async function POST(request: NextRequest) {
 
     const userId = userData.user.id
     const body = await request.json()
-    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender, character: characterFromForm, customInstructions } = body
+    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender, character: characterFromForm, customInstructions, language: languageRaw } = body
+    // Resolve language; default to English. We accept whatever code the client sends
+    // and pass the human-readable name into prompts so Claude doesn't have to remember ISO codes.
+    const { getLanguage } = await import('@/lib/languages')
+    const language = getLanguage(typeof languageRaw === 'string' ? languageRaw : undefined)
     // Sanity-cap custom instructions to prevent prompt-injection abuse via giant payloads.
     let safeCustomInstructions = typeof customInstructions === 'string'
       ? customInstructions.slice(0, 1500).trim() || undefined
@@ -368,12 +382,13 @@ export async function POST(request: NextRequest) {
       scriptTargetDuration,
       forcedScene,
       safeCustomInstructions,
+      { name: language.name, code: language.code },
     )
     const script = selectedHook && typeof selectedHook === 'string' && selectedHook.trim()
       ? replaceHook(baseScript, selectedHook.trim())
       : baseScript
 
-    const components: Record<string, any> = { script }
+    const components: Record<string, any> = { script, language: language.code }
 
     // Generate image if needed
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') {

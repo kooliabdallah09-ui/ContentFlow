@@ -26,6 +26,7 @@ interface UGCComponent {
   broll?: BrollClip[]
   script?: string
   audioOverlayUrl?: string  // Hero tier: ElevenLabs voice to overlay on the muted Sora video
+  language?: string         // ISO-639-1 code — drives Whisper transcription hint
 }
 
 interface UGCPackagePreviewProps {
@@ -130,6 +131,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         broll2Url: broll2,
         audioOverlayUrl,
         spokenScript: components?.script,
+        language: components?.language,
       }),
     })
       .then(async r => ({ ok: r.ok, body: await r.json().catch(() => ({})) }))

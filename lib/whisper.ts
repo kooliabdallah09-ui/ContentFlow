@@ -17,7 +17,7 @@ export interface WhisperResult {
 
 const OPENAI_BASE = 'https://api.openai.com/v1'
 
-export async function transcribeWithTimestamps(audioUrl: string): Promise<WhisperResult> {
+export async function transcribeWithTimestamps(audioUrl: string, languageCode?: string): Promise<WhisperResult> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
 
@@ -36,6 +36,9 @@ export async function transcribeWithTimestamps(audioUrl: string): Promise<Whispe
   form.append('file', new Blob([buf], { type: mime }), `clip.${ext}`)
   form.append('model', 'whisper-1')
   form.append('response_format', 'verbose_json')
+  // Language hint dramatically improves transcription quality for non-English
+  // audio. Whisper accepts ISO-639-1 codes (en, es, fr, de, ja, etc.).
+  if (languageCode) form.append('language', languageCode)
   // 'word' granularity gives per-word start/end times — crucial for TikTok-style captions.
   form.append('timestamp_granularities[]', 'word')
 

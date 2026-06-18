@@ -33,11 +33,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { productName, productDescription, benefits, productImageBase64, productImageMimeType, customInstructions } = body
+    const { productName, productDescription, benefits, productImageBase64, productImageMimeType, customInstructions, language: languageRaw } = body
 
     if (!productName || !productDescription || !benefits) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
+
+    // Resolve language from the same source the orchestrate route uses.
+    const { getLanguage } = await import('@/lib/languages')
+    const language = getLanguage(typeof languageRaw === 'string' ? languageRaw : undefined)
 
     // Length-cap to prevent prompt-injection via giant payloads.
     const safeCustom = typeof customInstructions === 'string'
@@ -47,12 +51,19 @@ export async function POST(request: NextRequest) {
       ? `\nUSER INSTRUCTIONS (priority — match these in tone and content):\n${safeCustom}\n`
       : ''
 
+    // For non-English, the hook quote ("text") must be written in the target
+    // language. The label ("angle") and tone note stay in English so they're
+    // parseable in the UI labels.
+    const languageBlock = language.code !== 'en'
+      ? `\nLANGUAGE — Write the hook "text" field in ${language.name}. Keep "angle" (Problem/Result/Curiosity) and "tone" notes in English so the UI labels work.\n`
+      : ''
+
     const textPrompt = `Write 3 distinct UGC hook openings for a 30-second social ad about "${productName}".
 
 Product: ${productName}
 Description: ${productDescription}
 Key benefits: ${benefits}
-${customBlock}
+${languageBlock}${customBlock}
 Each hook is the FIRST 5 SECONDS of the video — the spoken line that grabs attention. Use THREE different angles, one per hook:
 
 1. PROBLEM angle — call out the pain point or frustration the viewer already feels

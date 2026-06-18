@@ -58,7 +58,7 @@ async function getPlanWatermark(request: NextRequest): Promise<boolean> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { talkingHeadUrl, talkingHeadDuration, broll1Url, broll2Url, audioOverlayUrl, spokenScript } = await request.json()
+    const { talkingHeadUrl, talkingHeadDuration, broll1Url, broll2Url, audioOverlayUrl, spokenScript, language } = await request.json()
     if (!talkingHeadUrl) {
       return NextResponse.json({ error: 'Missing talkingHeadUrl' }, { status: 400 })
     }
@@ -74,7 +74,8 @@ export async function POST(request: NextRequest) {
     if (process.env.OPENAI_API_KEY) {
       try {
         const transcribeUrl = audioOverlayUrl ?? talkingHeadUrl
-        const { words } = await transcribeWithTimestamps(transcribeUrl)
+        const langCode = typeof language === 'string' && language.length >= 2 ? language.slice(0, 2) : undefined
+        const { words } = await transcribeWithTimestamps(transcribeUrl, langCode)
         // Talking head now starts at 0 (cutaway layout — B-rolls overlay mid-video,
         // they don't push the talking head back), so caption offset is always 0.
         syncedCaptions = buildSyncedCaptionChunks(words, { maxWords: 4, offsetSeconds: 0 })
