@@ -22,7 +22,7 @@ export default function LandingPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="brand-mark" style={{ width: 28, height: 28, fontSize: 18 }}>C</span>
+            <span className="brand-mark" style={{ width: 28, height: 28 }}><img src="/logo-icon.png" alt="ContentFlow" /></span>
             <div className="brand-name" style={{ fontSize: 15 }}>Content<em>flow</em></div>
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="ls-nav">
@@ -122,7 +122,7 @@ export default function LandingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 40, marginBottom: 48 }} className="ls-foot-grid">
             <div>
               <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <span className="brand-mark" style={{ width: 28, height: 28, fontSize: 18 }}>C</span>
+                <span className="brand-mark" style={{ width: 28, height: 28 }}><img src="/logo-icon.png" alt="ContentFlow" /></span>
                 <div className="brand-name" style={{ fontSize: 15 }}>Content<em>flow</em></div>
               </Link>
               <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0, lineHeight: 1.6 }}>Premium UGC ads for indie founders.</p>

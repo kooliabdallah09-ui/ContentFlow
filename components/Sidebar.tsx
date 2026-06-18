@@ -98,7 +98,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
   return (
     <aside className={`rail${mobileOpen ? ' mobile-open' : ''}`}>
       <Link href="/" className="brand">
-        <span className="brand-mark">C</span>
+        <span className="brand-mark"><img src="/logo-icon.png" alt="ContentFlow" /></span>
         <div className="brand-name">Content<em>flow</em></div>
       </Link>
 
