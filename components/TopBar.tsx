@@ -58,17 +58,20 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
 
   return (
     <header className="topbar">
-      <button className="hamburger" onClick={onMenuToggle} aria-label="Menu" style={{ display: 'none' }}>
-        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-          <rect y="3" width="18" height="2" rx="1" fill="currentColor" />
-          <rect y="8" width="18" height="2" rx="1" fill="currentColor" />
-          <rect y="13" width="18" height="2" rx="1" fill="currentColor" />
+      <button className="hamburger" onClick={onMenuToggle} aria-label="Open menu">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
         </svg>
       </button>
-      <div className="crumb">
+      <div className="crumb crumb-desktop">
         <span>Studio</span>
         <span className="sep">/</span>
         <span className="cur">{title}</span>
+      </div>
+      <div className="crumb crumb-mobile" style={{ display: 'none' }}>
+        <span className="cur" style={{ fontSize: 12.5 }}>{title}</span>
       </div>
       <div style={{ flex: 1 }} />
       <div className="search">

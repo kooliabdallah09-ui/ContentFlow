@@ -71,6 +71,13 @@ export default function RootLayout({
     setMobileMenuOpen(false)
   }, [pathname])
 
+  // Lock body scroll while the mobile sidebar drawer is open.
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [mobileMenuOpen])
+
   useEffect(() => {
     const supabase = getSupabase()
     if (!supabase) { setLoading(false); return }

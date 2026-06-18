@@ -217,6 +217,7 @@ export default function UGCGeneratorPage() {
 
       <style>{`
         @media (max-width: 900px) {
+          .ugc-page { padding: 20px 16px 90px !important; }
           .ugc-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
           .ugc-aside { position: static !important; }
         }

@@ -1057,58 +1057,65 @@ a { color: inherit; text-decoration: none; }
    MOBILE RESPONSIVE — global breakpoints
    ===================================================== */
 
-/* Hamburger button — hidden on desktop */
+/* Hamburger button — hidden on desktop. Rounded-square pill matching the
+   editorial design: white surface, border, slight radius, ink lines inside. */
 .hamburger {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  background: none;
-  cursor: pointer;
-  color: var(--ink);
-  padding: 0;
+  width: 38px;
+  height: 38px;
   flex-shrink: 0;
-  border-radius: var(--r-sm);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-3);
+  cursor: pointer;
+  padding: 0;
   transition: background 0.15s;
 }
-.hamburger:hover { background: var(--surface); }
+.hamburger:hover { background: var(--hover); color: var(--ink); }
+.hamburger:active { transform: scale(0.96); }
 
 /* Sidebar backdrop */
 .rail-overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(20, 18, 12, 0.42);
   z-index: 99;
   backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  animation: cffade 0.18s ease-out;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
 
   /* --- Layout --- */
-  .app { grid-template-columns: 1fr; }
+  .app { display: block; }
+  .main { width: 100%; }
 
   .hamburger { display: flex; }
 
   .rail {
     position: fixed;
-    left: -240px;
+    left: -280px;
     top: 0;
     height: 100vh;
-    width: 232px;
+    width: 262px;
     z-index: 100;
     transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 8px 0 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 0 32px rgba(20, 18, 12, 0.18);
   }
   .rail.mobile-open { left: 0; }
   .rail-overlay.active { display: block; }
 
   /* --- Content & TopBar --- */
-  .content { padding: 16px 16px 100px; }
-  .topbar { padding: 10px 16px; gap: 8px; }
-  .search { display: none; }
+  .content { padding: 24px 16px 100px; }
+  .topbar { padding: 0 16px; gap: 10px; }
+  .search { display: none !important; }
+  .crumb-desktop { display: none !important; }
+  .crumb-mobile { display: flex !important; }
 
   /* --- Typography --- */
   .page-title { font-size: 26px !important; line-height: 1.15; }
