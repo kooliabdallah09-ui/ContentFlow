@@ -20,11 +20,13 @@ async function callNanoBanana(
   prompt: string,
   referenceImageBase64?: string,
   referenceMimeType?: string,
+  aspectRatio?: '1:1' | '4:3' | '3:4' | '16:9' | '9:16',
 ): Promise<NanoBananaResult> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
   const input: Record<string, unknown> = { prompt, output_format: 'png' }
+  if (aspectRatio) input.aspect_ratio = aspectRatio
   if (referenceImageBase64 && referenceMimeType) {
     input.image_input = [`data:${referenceMimeType};base64,${referenceImageBase64}`]
   }
@@ -88,7 +90,7 @@ async function callNanoBanana(
 // Output is a 9:16-friendly hyper-realistic still that Sora will animate forward.
 export async function generateTextToImage(prompt: string): Promise<NanoBananaResult> {
   const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting, real skin texture and imperfections, no beauty filter, no studio polish, no commercial gloss. Should read as a candid moment captured on a real phone.`
-  return callNanoBanana(wrapped)
+  return callNanoBanana(wrapped, undefined, undefined, '9:16')
 }
 
 // Generic image generator for /generate/image. Accepts an optional reference
@@ -121,8 +123,13 @@ export async function generateNanoBananaImage(
     ? '\n\nUse the attached reference image as the EXACT subject — preserve packaging, label text, colours, shape and proportions exactly. Apply the prompt as the scene + styling around the subject; do NOT redesign the subject itself.'
     : ''
 
+  // Nano Banana Pro accepts 1:1, 4:3, 3:4, 16:9, 9:16. Our UI offers 4:5 too
+  // (Instagram portrait) — map it to 3:4 which is the closest supported ratio.
+  const nbRatio: '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | undefined =
+    options.ratio === '4:5' ? '3:4' : options.ratio
+
   const composed = `${prompt}\n\n${styleHint} ${ratioHint}${refHint}`
-  return callNanoBanana(composed, options.referenceImageBase64, options.referenceImageMimeType)
+  return callNanoBanana(composed, options.referenceImageBase64, options.referenceImageMimeType, nbRatio)
 }
 
 // Generate a B-roll action frame showing a SPECIFIC application action mid-motion.
@@ -158,7 +165,7 @@ Phone-camera-natural rendering: slight sensor grain, mild highlight clipping whe
 
 Vertical 9:16 format. The product is visible and the action with it is unmistakable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/expression/scene where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType)
+  return callNanoBanana(prompt, productImageBase64, productMimeType, '9:16')
 }
 
 // Product-only hero frame for B-rolls — NO character, NO hands, just the product on a
@@ -223,7 +230,7 @@ Phone-camera-natural rendering: subtle sensor grain, no beauty filter, no over-s
 
 Vertical 9:16 format. The product label is readable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/scene/composition where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType)
+  return callNanoBanana(prompt, productImageBase64, productMimeType, '9:16')
 }
 
 // Backwards-compat wrapper — keeps generateProductHeroShot importable even though the new
@@ -301,5 +308,5 @@ Phone-camera-natural rendering: slight sensor grain in shadow areas, mild highli
 
 Vertical 9:16 format.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to the character's expression, pose, or scene; override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType)
+  return callNanoBanana(prompt, productImageBase64, productMimeType, '9:16')
 }
