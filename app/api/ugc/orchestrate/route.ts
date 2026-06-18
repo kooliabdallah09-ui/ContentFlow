@@ -26,8 +26,8 @@ import sharp from 'sharp'
 // Sora 2 requires the reference image dimensions to EXACTLY match the requested size
 // (the model treats it as an inpaint base). Nano Banana outputs vary — usually 1024×1024 —
 // so we always resize + center-crop before submitting.
-const SORA_SIZE = '720x1280' // 9:16 portrait, Sora 2's supported vertical size
-const [SORA_W, SORA_H] = SORA_SIZE.split('x').map(Number)
+// Default Sora frame size — overridden per request by the aspect picker.
+// Sora 2 supports 720x1280 (9:16), 1024x1024 (1:1), and 1280x720 (16:9).
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -298,11 +298,16 @@ export async function POST(request: NextRequest) {
 
     const userId = userData.user.id
     const body = await request.json()
-    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender, character: characterFromForm, customInstructions, language: languageRaw } = body
+    const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender, character: characterFromForm, customInstructions, language: languageRaw, aspect: aspectRaw } = body
     // Resolve language; default to English. We accept whatever code the client sends
     // and pass the human-readable name into prompts so Claude doesn't have to remember ISO codes.
     const { getLanguage } = await import('@/lib/languages')
     const language = getLanguage(typeof languageRaw === 'string' ? languageRaw : undefined)
+
+    // Resolve aspect; default to portrait 9:16. Drives Nano Banana frame, Sora
+    // size, Kling B-roll dimensions, and (downstream) Shotstack output size.
+    const { getAspect } = await import('@/lib/aspects')
+    const aspect = getAspect(typeof aspectRaw === 'string' ? aspectRaw : undefined)
     // Sanity-cap custom instructions to prevent prompt-injection abuse via giant payloads.
     let safeCustomInstructions = typeof customInstructions === 'string'
       ? customInstructions.slice(0, 1500).trim() || undefined
@@ -391,7 +396,7 @@ export async function POST(request: NextRequest) {
       ? replaceHook(baseScript, selectedHook.trim())
       : baseScript
 
-    const components: Record<string, any> = { script, language: language.code }
+    const components: Record<string, any> = { script, language: language.code, aspect: aspect.id }
 
     // Generate image if needed
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') {
@@ -447,11 +452,12 @@ export async function POST(request: NextRequest) {
           characterPrompt,
           heroScene,
           safeCustomInstructions,
+          aspect.nanoBananaRatio,
         )
 
         // 2. Resize to Sora's exact dimensions (cover + center-crop, no distortion)
         const resizedHero = await sharp(Buffer.from(heroFrame.imageBase64, 'base64'))
-          .resize(SORA_W, SORA_H, { fit: 'cover', position: 'center' })
+          .resize(aspect.width, aspect.height, { fit: 'cover', position: 'center' })
           .png()
           .toBuffer()
 
@@ -506,7 +512,7 @@ export async function POST(request: NextRequest) {
           prompt: soraPrompt,
           referenceImageUrl: heroUrl,
           durationSeconds: soraSeconds,
-          size: SORA_SIZE,
+          size: aspect.soraSize,
         })
         videoId = sora.videoId
         if (elevenLabsAudioUrl) components.audioOverlayUrl = elevenLabsAudioUrl
@@ -574,12 +580,12 @@ export async function POST(request: NextRequest) {
             try {
               const isCharacter = shot.kind === 'character'
               const frame = isCharacter
-                ? await generateActionFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext, safeCustomInstructions)
-                : await generateProductOnlyFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext, shot.kind as 'product' | 'lifestyle', safeCustomInstructions)
+                ? await generateActionFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext, safeCustomInstructions, aspect.nanoBananaRatio)
+                : await generateProductOnlyFrame(productImageBase64!, productImageMimeType!, productName, shot.description, backgroundContext, shot.kind as 'product' | 'lifestyle', safeCustomInstructions, aspect.nanoBananaRatio)
 
-              // Force 9:16 (720x1280) so Kling i2v inherits portrait aspect from the start frame.
+              // Force the chosen aspect so Kling i2v inherits it from the start frame.
               const resized = await sharp(Buffer.from(frame.imageBase64, 'base64'))
-                .resize(720, 1280, { fit: 'cover', position: 'center' })
+                .resize(aspect.width, aspect.height, { fit: 'cover', position: 'center' })
                 .png()
                 .toBuffer()
               const filename = `nano-banana/${userId}-${Date.now()}-${i}.png`

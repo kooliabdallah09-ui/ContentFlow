@@ -122,6 +122,7 @@ export default function UGCGeneratorPage() {
     character?: import('@/components/CharacterBuilder').CharacterProfile
     customInstructions?: string
     language?: string
+    aspect?: 'portrait' | 'square' | 'landscape'
   }) => {
     setLoading(true)
     setError('')

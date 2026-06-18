@@ -58,7 +58,7 @@ async function getPlanWatermark(request: NextRequest): Promise<boolean> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { talkingHeadUrl, talkingHeadDuration, broll1Url, broll2Url, audioOverlayUrl, spokenScript, language } = await request.json()
+    const { talkingHeadUrl, talkingHeadDuration, broll1Url, broll2Url, audioOverlayUrl, spokenScript, language, aspect } = await request.json()
     if (!talkingHeadUrl) {
       return NextResponse.json({ error: 'Missing talkingHeadUrl' }, { status: 400 })
     }
@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
       spokenScript: typeof spokenScript === 'string' ? spokenScript : undefined,
       syncedCaptions,
       watermark,
+      aspect: typeof aspect === 'string' ? aspect as 'portrait' | 'square' | 'landscape' : undefined,
     })
     return NextResponse.json({ renderId })
   } catch (error) {

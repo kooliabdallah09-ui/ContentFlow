@@ -15,6 +15,7 @@ export async function submitStitchJob({
   spokenScript,
   syncedCaptions,
   watermark,
+  aspect,
 }: {
   talkingHeadUrl: string
   talkingHeadDuration?: number  // seconds; used to position B-roll2 and chunk captions
@@ -24,6 +25,7 @@ export async function submitStitchJob({
   spokenScript?: string         // Fallback caption source if Whisper sync unavailable
   syncedCaptions?: Array<{ text: string; start: number; end: number }>  // Whisper word-timed chunks
   watermark?: boolean           // Free-tier flag — overlays "Made with ContentFlow" bottom-right
+  aspect?: 'portrait' | 'square' | 'landscape'  // Drives the render output size
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.SHOTSTACK_API_KEY
   if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
@@ -148,6 +150,12 @@ export async function submitStitchJob({
     })
   }
 
+  // Render output size — matches the upstream Nano Banana / Sora frame aspect.
+  const outputSize =
+    aspect === 'square'    ? { width: 1080, height: 1080 } :
+    aspect === 'landscape' ? { width: 1920, height: 1080 } :
+                             { width: 1080, height: 1920 }
+
   const body = {
     timeline: {
       background: '#000000',
@@ -155,7 +163,7 @@ export async function submitStitchJob({
     },
     output: {
       format: 'mp4',
-      size: { width: 1080, height: 1920 },
+      size: outputSize,
       fps: 30,
     },
   }

@@ -14,6 +14,7 @@ export async function submitStitchJob({
   spokenScript?: string     // ignored — Creatomate auto-transcribes via transcript_source
   syncedCaptions?: Array<{ text: string; start: number; end: number }>  // ignored — Creatomate has its own transcription
   watermark?: boolean       // ignored — Creatomate path doesn't render the free-tier watermark
+  aspect?: 'portrait' | 'square' | 'landscape'  // ignored — Creatomate uses its template aspect
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.CREATOMATE_API_KEY
   if (!apiKey) throw new Error('Creatomate API key not configured')

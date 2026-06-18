@@ -143,6 +143,7 @@ export async function generateActionFrame(
   actionDescription: string,
   scene: string,
   customInstructions?: string,
+  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
 ): Promise<NanoBananaResult> {
   const prompt = `Using the attached reference image as the exact product (preserve packaging, label text, colours, shape, and proportions exactly as shown — do not redesign or restyle), generate a hyper-realistic phone-camera photograph for a UGC ad B-roll frame.
 
@@ -163,9 +164,9 @@ REALISM ANCHORS:
 
 Phone-camera-natural rendering: slight sensor grain, mild highlight clipping where appropriate, no beauty filter, no commercial polish, no over-sharpening. Should look like a real person paused a UGC video at the action peak, NOT like a marketing campaign still.
 
-Vertical 9:16 format. The product is visible and the action with it is unmistakable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/expression/scene where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
+Render in ${aspectRatio} aspect ratio. The product is visible and the action with it is unmistakable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/expression/scene where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType, '9:16')
+  return callNanoBanana(prompt, productImageBase64, productMimeType, aspectRatio)
 }
 
 // Product-only hero frame for B-rolls — NO character, NO hands, just the product on a
@@ -184,6 +185,7 @@ export async function generateProductOnlyFrame(
   scene: string,
   kind: 'product' | 'lifestyle',
   customInstructions?: string,
+  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
 ): Promise<NanoBananaResult> {
   const placementBlock = kind === 'product'
     ? `Hero shot composition — the subject is dominant in frame at a slight angle, on a clean surface (marble / wood / linen / counter top) appropriate for the subject type. No character, no hands, no other objects competing for attention.`
@@ -228,9 +230,9 @@ REALISM ANCHORS:
 
 Phone-camera-natural rendering: subtle sensor grain, no beauty filter, no over-sharpening, no commercial polish. Should read as a frozen second from a real iPhone video, NOT a marketing campaign still.
 
-Vertical 9:16 format. The product label is readable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/scene/composition where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
+Render in ${aspectRatio} aspect ratio. The product label is readable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/scene/composition where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType, '9:16')
+  return callNanoBanana(prompt, productImageBase64, productMimeType, aspectRatio)
 }
 
 // Backwards-compat wrapper — keeps generateProductHeroShot importable even though the new
@@ -259,6 +261,7 @@ export async function generateCharacterWithProduct(
   characterPrompt: string,
   scene: string,
   customInstructions?: string,
+  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
 ): Promise<NanoBananaResult> {
   // Adaptive product placement — the reference image can be either a physical product
   // (skincare bottle, perfume) OR a screenshot of a software UI / app. Telling Nano
@@ -306,7 +309,7 @@ REALISM ANCHORS — these must all be present:
 
 Phone-camera-natural rendering: slight sensor grain in shadow areas, mild highlight clipping on the bright side of the face, no beauty filter, no over-sharpening, no glass-skin look, no commercial polish. The frame should read as a frozen second from a video that hasn't been recorded yet — a real person caught mid-moment on a real phone.
 
-Vertical 9:16 format.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to the character's expression, pose, or scene; override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
+Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to the character's expression, pose, or scene; override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType, '9:16')
+  return callNanoBanana(prompt, productImageBase64, productMimeType, aspectRatio)
 }

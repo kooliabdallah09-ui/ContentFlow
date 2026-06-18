@@ -27,6 +27,7 @@ interface UGCComponent {
   script?: string
   audioOverlayUrl?: string  // Hero tier: ElevenLabs voice to overlay on the muted Sora video
   language?: string         // ISO-639-1 code — drives Whisper transcription hint
+  aspect?: 'portrait' | 'square' | 'landscape'  // Drives the stitch output size + preview aspect
 }
 
 interface UGCPackagePreviewProps {
@@ -132,6 +133,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         audioOverlayUrl,
         spokenScript: components?.script,
         language: components?.language,
+        aspect: components?.aspect,
       }),
     })
       .then(async r => ({ ok: r.ok, body: await r.json().catch(() => ({})) }))
@@ -192,6 +194,13 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     setCopied(key)
     setTimeout(() => setCopied(null), 2000)
   }
+
+  // Pick the CSS aspect for the preview <video> elements based on what the
+  // user generated. Square → 1/1, landscape → 16/9, default portrait → 9/16.
+  const previewAspectRatio =
+    components?.aspect === 'square'    ? '1 / 1' :
+    components?.aspect === 'landscape' ? '16 / 9' :
+                                         '9 / 16'
 
   if (isLoading) return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '16px' }}>
@@ -313,7 +322,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
                 )}
                 {clip.status === 'completed' && clip.videoUrl && (
                   <>
-                    <video controls src={clip.videoUrl} style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 'var(--r-md)', marginBottom: '8px', background: '#000', display: 'block', objectFit: 'contain' }} />
+                    <video controls src={clip.videoUrl} style={{ width: '100%', aspectRatio: previewAspectRatio, borderRadius: 'var(--r-md)', marginBottom: '8px', background: '#000', display: 'block', objectFit: 'contain' }} />
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => handleDownload(clip.videoUrl!, `broll-${i + 1}-${Date.now()}.mp4`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '12px' }}>
                         <Download style={{ width: 12, height: 12 }} /> Download
@@ -358,7 +367,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
 
           {stitchStatus === 'completed' && finalVideoUrl && (
             <>
-              <video controls src={finalVideoUrl} style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 'var(--r-md)', marginBottom: '12px', background: '#000', display: 'block', objectFit: 'contain' }} />
+              <video controls src={finalVideoUrl} style={{ width: '100%', aspectRatio: previewAspectRatio, borderRadius: 'var(--r-md)', marginBottom: '12px', background: '#000', display: 'block', objectFit: 'contain' }} />
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => handleDownload(finalVideoUrl, `final-ugc-${Date.now()}.mp4`)} className="btn btn-primary" style={{ flex: 1, fontSize: '13px' }}>
                   <Download style={{ width: 14, height: 14 }} />
@@ -413,7 +422,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
 
           {video.status === 'completed' && video.videoUrl && (
             <>
-              <video controls src={video.videoUrl} style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 'var(--r-md)', marginBottom: '12px', background: '#000', display: 'block', objectFit: 'contain' }} />
+              <video controls src={video.videoUrl} style={{ width: '100%', aspectRatio: previewAspectRatio, borderRadius: 'var(--r-md)', marginBottom: '12px', background: '#000', display: 'block', objectFit: 'contain' }} />
               {video.duration && (
                 <p style={{ fontSize: '12px', color: 'var(--ink-fade)', marginBottom: '12px' }}>Duration: {video.duration}s</p>
               )}

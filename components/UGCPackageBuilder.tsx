@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import CharacterBuilder, { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
 import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
+import { ASPECTS, DEFAULT_ASPECT, type UGCAspect } from '@/lib/aspects'
 import {
   TIERS,
   DEFAULT_TIER,
@@ -42,6 +43,7 @@ interface UGCPackageBuilderProps {
     character?: CharacterProfile
     customInstructions?: string
     language?: string
+    aspect?: UGCAspect
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -72,6 +74,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [callToAction, setCallToAction] = useState('Try it today')
   const [customInstructions, setCustomInstructions] = useState('')
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
+  const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
@@ -265,6 +268,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       character,
       customInstructions: customInstructions.trim() || undefined,
       language,
+      aspect,
     })
     resetForm()
   }
@@ -417,6 +421,50 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               </div>
             )
           })}
+
+          <div style={{ marginTop: 18 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 9 }}>
+              <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>Aspect</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-fade)' }}>
+                {ASPECTS[aspect].soraSize}
+              </span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+              {(Object.keys(ASPECTS) as UGCAspect[]).map(a => {
+                const cfg = ASPECTS[a]
+                const active = aspect === a
+                // Visual cue: a small box mirroring the aspect inside each button.
+                const boxW = a === 'portrait' ? 14 : a === 'square' ? 18 : 22
+                const boxH = a === 'portrait' ? 22 : a === 'square' ? 18 : 12
+                return (
+                  <button
+                    key={a}
+                    type="button"
+                    onClick={() => setAspect(a)}
+                    disabled={isLoading}
+                    style={{
+                      textAlign: 'left',
+                      padding: '10px 12px', borderRadius: 11,
+                      border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                      background: active ? 'var(--hover)' : 'var(--surface)',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s',
+                      display: 'flex', alignItems: 'center', gap: 10,
+                    }}>
+                    <span style={{
+                      width: boxW, height: boxH, flexShrink: 0,
+                      borderRadius: 3,
+                      background: active ? 'var(--ink)' : 'var(--ink-faint)',
+                    }} />
+                    <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{cfg.label}</span>
+                      <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)' }}>{cfg.hint}</span>
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
       </section>
 
       {/* 2 — Your product */}
