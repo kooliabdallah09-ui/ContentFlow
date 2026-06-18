@@ -111,17 +111,19 @@ export default function AppAssistant() {
           onClick={() => setOpen(true)}
           aria-label="Ask the assistant"
           style={{
-            position: 'fixed', bottom: '20px', right: '20px', zIndex: 90,
-            width: '56px', height: '56px', borderRadius: '50%',
-            background: 'var(--accent)', color: '#fff', border: 'none',
+            position: 'fixed', bottom: 20, right: 20, zIndex: 90,
+            width: 52, height: 52, borderRadius: '50%',
+            background: 'var(--ink)', color: '#fff', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 6px 16px rgba(0,0,0,0.35)',
-            cursor: 'pointer', transition: 'transform 0.15s',
+            boxShadow: 'var(--shadow-md)',
+            cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s',
           }}
           onMouseDown={e => (e.currentTarget.style.transform = 'scale(0.95)')}
           onMouseUp={e => (e.currentTarget.style.transform = 'scale(1)')}
+          onMouseEnter={e => (e.currentTarget.style.opacity = '0.88')}
+          onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
         >
-          <MessageCircle size={26} />
+          <MessageCircle size={22} />
         </button>
       )}
 
@@ -131,12 +133,12 @@ export default function AppAssistant() {
           role="dialog"
           aria-label="Assistant"
           style={{
-            position: 'fixed', bottom: '20px', right: '20px', zIndex: 90,
+            position: 'fixed', bottom: 20, right: 20, zIndex: 90,
             width: 'min(380px, calc(100vw - 40px))',
             maxHeight: 'min(640px, calc(100vh - 40px))',
             background: 'var(--surface)', border: '1px solid var(--border)',
-            borderRadius: 'var(--r-lg)',
-            boxShadow: '0 12px 32px rgba(0,0,0,0.4)',
+            borderRadius: 18,
+            boxShadow: 'var(--shadow-lg)',
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden',
           }}
@@ -144,19 +146,19 @@ export default function AppAssistant() {
           {/* Header */}
           <div style={{
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 16px', borderBottom: '1px solid var(--border)',
+            padding: '14px 16px', borderBottom: '1px solid var(--border)',
           }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: '28px', height: '28px', borderRadius: '50%',
-                background: 'var(--accent-soft)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', color: 'var(--accent)',
+                width: 28, height: 28, borderRadius: 8,
+                background: 'var(--ink)', display: 'flex',
+                alignItems: 'center', justifyContent: 'center', color: '#fff',
               }}>
-                <MessageCircle size={16} />
+                <MessageCircle size={15} />
               </div>
               <div>
-                <p style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--ink)' }}>Ask ContentFlow</p>
-                <p style={{ margin: 0, fontSize: '10px', color: 'var(--ink-dim)' }}>Powered by Claude</p>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em' }}>Ask ContentFlow</p>
+                <p style={{ margin: 0, fontSize: 10.5, color: 'var(--ink-mute)' }}>Powered by Claude</p>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '4px' }}>
@@ -197,20 +199,20 @@ export default function AppAssistant() {
                 <p style={{ fontSize: '13px', color: 'var(--ink)', lineHeight: 1.5, margin: '0 0 12px' }}>
                   Hey! Ask me anything about ContentFlow — how to make a video, plans, tier differences, why a generation failed, anything.
                 </p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {SUGGESTIONS.map(s => (
                     <button
                       key={s}
                       onClick={() => send(s)}
                       style={{
-                        textAlign: 'left', padding: '8px 12px',
-                        background: 'var(--bg)', border: '1px solid var(--border)',
-                        borderRadius: 'var(--r-sm)', cursor: 'pointer',
-                        fontSize: '12px', color: 'var(--ink)',
+                        textAlign: 'left', padding: '10px 12px',
+                        background: 'var(--surface)', border: '1px solid var(--border)',
+                        borderRadius: 11, cursor: 'pointer',
+                        fontSize: 12.5, color: 'var(--ink-2)',
                         transition: 'background 0.15s',
                       }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--accent-soft)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg)')}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover)')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'var(--surface)')}
                     >
                       {s}
                     </button>
@@ -231,10 +233,10 @@ export default function AppAssistant() {
                   style={{
                     maxWidth: '85%',
                     padding: '10px 14px',
-                    borderRadius: 'var(--r-md)',
-                    background: m.role === 'user' ? 'var(--accent)' : 'var(--surface)',
+                    borderRadius: 12,
+                    background: m.role === 'user' ? 'var(--ink)' : 'var(--surface)',
                     color: m.role === 'user' ? '#fff' : 'var(--ink)',
-                    fontSize: '13px',
+                    fontSize: 13,
                     lineHeight: 1.5,
                     whiteSpace: 'pre-wrap',
                     border: m.role === 'assistant' ? '1px solid var(--border)' : 'none',
@@ -245,12 +247,12 @@ export default function AppAssistant() {
                     <button
                       onClick={() => handleAction(m.action!.href)}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        marginTop: '10px',
-                        padding: '8px 12px',
-                        background: 'var(--accent)', color: '#fff',
-                        border: 'none', borderRadius: 'var(--r-sm)',
-                        fontSize: '12px', fontWeight: 600,
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        marginTop: 10,
+                        padding: '7px 12px',
+                        background: 'var(--ink)', color: '#fff',
+                        border: 'none', borderRadius: 9,
+                        fontSize: 12, fontWeight: 600,
                         cursor: 'pointer',
                       }}
                     >
@@ -311,10 +313,10 @@ export default function AppAssistant() {
               rows={1}
               style={{
                 flex: 1, resize: 'none',
-                padding: '8px 12px', borderRadius: 'var(--r-sm)',
-                background: 'var(--bg)', border: '1px solid var(--border)',
-                color: 'var(--ink)', fontSize: '13px', fontFamily: 'inherit',
-                outline: 'none', minHeight: '36px', maxHeight: '120px',
+                padding: '9px 12px', borderRadius: 10,
+                background: 'var(--bg-elev)', border: '1px solid var(--border)',
+                color: 'var(--ink)', fontSize: 13, fontFamily: 'inherit',
+                outline: 'none', minHeight: 36, maxHeight: 120,
               }}
             />
             <button
@@ -322,14 +324,15 @@ export default function AppAssistant() {
               disabled={!input.trim() || sending}
               aria-label="Send"
               style={{
-                padding: '0 12px',
-                background: input.trim() && !sending ? 'var(--accent)' : 'var(--border)',
-                color: '#fff', border: 'none', borderRadius: 'var(--r-sm)',
+                width: 36, height: 36, padding: 0,
+                background: input.trim() && !sending ? 'var(--ink)' : 'var(--border)',
+                color: '#fff', border: 'none', borderRadius: 10,
                 cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
               }}
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </form>
         </div>

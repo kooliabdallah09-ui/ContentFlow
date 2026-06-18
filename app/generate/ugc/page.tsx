@@ -168,49 +168,43 @@ export default function UGCGeneratorPage() {
   }
 
   return (
-    <div className="content">
-      <div className="page-head">
-        <div className="page-meta">
-          <span className="dot" />
-          <span className="eyebrow">Complete Product Marketing Kit</span>
+    <main style={{ maxWidth: 1140, margin: '0 auto', padding: '36px 40px 90px' }} className="ugc-page">
+      <div style={{ marginBottom: 28 }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 9,
+          fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em',
+          textTransform: 'uppercase', color: 'var(--ink-fade)',
+        }}>
+          <span style={{
+            background: 'var(--ink)', color: '#fff', borderRadius: 5,
+            padding: '2px 7px', letterSpacing: '0.04em',
+          }}>Flagship</span>
+          UGC Package
         </div>
-        <h1 className="page-title">Create UGC <em>Packages</em></h1>
-        <p className="page-sub">Generate complete UGC packages with images, voiceovers, and videos all at once. Professional product marketing made simple.</p>
+        <h1 style={{
+          fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 42,
+          lineHeight: 1.05, letterSpacing: '-0.01em', margin: '13px 0 0',
+        }}>
+          Build a <span style={{ fontStyle: 'italic' }}>UGC ad</span>.
+        </h1>
+        <p style={{
+          fontSize: 14.5, color: 'var(--ink-dim)', margin: '10px 0 0',
+          maxWidth: 520, lineHeight: 1.55,
+        }}>
+          One real product photo in, a finished talking-head ad out — script, character, voice, captions and B-roll, stitched automatically.
+        </p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '380px 1fr', gap: '24px' }}>
-        {/* Form */}
-        <div>
-          <div className="section-head">
-            <h2 className="section-title">Create Package</h2>
-          </div>
-
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           <UGCPackageBuilder
             onGenerate={handleGenerate}
             isLoading={loading}
             creditBalance={creditBalance}
           />
-
-          {/* Credit Balance */}
-          {!creditsLoading && (
-            <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span className="eyebrow" style={{ display: 'block', marginBottom: '6px' }}>Total Credits</span>
-                  <p style={{ fontSize: '20px', fontWeight: 600, color: 'var(--accent)' }}>
-                    {creditBalance}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Preview */}
-        <div>
-          <div className="section-head">
-            <h2 className="section-title">Your Package</h2>
-          </div>
+        <aside style={{ position: 'sticky', top: 20, display: 'flex', flexDirection: 'column', gap: 14 }} className="ugc-aside">
           <UGCPackagePreview
             components={components}
             ugcType={ugcType}
@@ -218,8 +212,15 @@ export default function UGCGeneratorPage() {
             error={error}
             creditDeducted={creditDeducted}
           />
-        </div>
+        </aside>
       </div>
-    </div>
+
+      <style>{`
+        @media (max-width: 900px) {
+          .ugc-grid { grid-template-columns: 1fr !important; gap: 20px !important; }
+          .ugc-aside { position: static !important; }
+        }
+      `}</style>
+    </main>
   )
 }

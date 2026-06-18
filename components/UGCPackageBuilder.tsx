@@ -173,166 +173,174 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   }
 
   return (
-    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* Package type */}
-      <div>
-        <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Package Type</span>
+      {/* 1 — Package type */}
+      <section className="card">
+        <div className="section-step-head">
+          <span className="step-circle">1</span>
+          <h3>Package</h3>
+        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {UGC_TYPES.map(type => {
             const typeCredits = (type.id === 'image-with-voiceover' ? IMAGE_CREDITS : 0)
               + ((type.id === 'video-with-voiceover' || type.id === 'all') ? videoCredits : 0)
+            const active = ugcType === type.id
             return (
               <label key={type.id} style={{
                 display: 'flex', alignItems: 'center', gap: '12px',
-                padding: '14px 16px', borderRadius: 'var(--r-md)', cursor: 'pointer',
-                border: `1px solid ${ugcType === type.id ? 'var(--accent)' : 'var(--border)'}`,
-                background: ugcType === type.id ? 'var(--accent-soft)' : 'var(--surface)',
+                padding: '12px 14px', borderRadius: 11, cursor: 'pointer',
+                border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                background: active ? 'var(--hover)' : 'var(--surface)',
                 transition: 'all 0.15s',
               }}>
-                <input type="radio" name="ugcType" value={type.id} checked={ugcType === type.id}
+                <input type="radio" name="ugcType" value={type.id} checked={active}
                   onChange={e => setUgcType(e.target.value)} disabled={isLoading}
-                  style={{ accentColor: 'var(--accent)', width: 16, height: 16, flexShrink: 0 }} />
+                  style={{ accentColor: 'var(--ink)', width: 16, height: 16, flexShrink: 0 }} />
                 <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{type.name}</p>
-                  <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '2px 0 0' }}>{type.description}</p>
+                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>{type.name}</p>
+                  <p style={{ fontSize: '12.5px', color: 'var(--ink-dim)', margin: '3px 0 0', lineHeight: 1.45 }}>{type.description}</p>
                 </div>
-                <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--accent)', flexShrink: 0 }}>{typeCredits} cr</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--ink-mute)', flexShrink: 0 }}>{typeCredits} cr</span>
               </label>
             )
           })}
         </div>
-      </div>
+      </section>
 
-      {/* Quality tier + duration — only relevant when video is included */}
+      {/* 2 — Format (tier + duration) */}
       {includesVideo && (
-        <>
-          <div>
-            <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Voice Quality</span>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-              {(Object.keys(TIERS) as UGCTier[]).map(key => {
-                const t = TIERS[key]
-                const active = tier === key && t.available
-                const disabled = !t.available || isLoading
-                const tierCost = calculateVideoCredits(key, duration)
-                return (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => t.available && setTier(key)}
-                    disabled={disabled}
-                    style={{
-                      textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer',
-                      padding: '14px', borderRadius: 'var(--r-md)',
-                      border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                      background: active ? 'var(--accent-soft)' : 'var(--surface)',
-                      opacity: t.available ? 1 : 0.5,
-                      transition: 'all 0.15s',
-                      display: 'flex', flexDirection: 'column', gap: '6px',
-                    }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                      <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--ink)' }}>{t.label}</span>
-                      <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--accent)' }}>{tierCost} cr</span>
-                    </div>
-                    <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: active ? 'var(--accent)' : 'var(--ink-dim)', margin: 0, fontWeight: 600 }}>{t.tagline}</p>
-                    <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: 0, lineHeight: 1.4 }}>{t.description}</p>
-                  </button>
-                )
-              })}
-            </div>
+        <section className="card">
+          <div className="section-step-head">
+            <span className="step-circle">2</span>
+            <h3>Format</h3>
           </div>
 
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: '12px' }}>
-              <span className="eyebrow">Duration</span>
-              <span style={{ fontSize: '11px', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>
-                ~{Math.round(estimateRenderSeconds(duration) / 60)}m render time
-              </span>
-            </div>
-
-            {(['native', 'extended', 'chained'] as const).map(group => {
-              const groupDurations = DURATION_OPTIONS.filter(d => DURATION_CONFIGS[d].strategy === group)
-              if (!groupDurations.length) return null
-              const groupLabel =
-                group === 'native'   ? 'Short — single Sora generation'
-              : group === 'extended' ? 'Extended — Sora + B-roll fill (cheaper)'
-                                     : 'Cinematic — chained Sora clips (premium)'
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+            {(Object.keys(TIERS) as UGCTier[]).map(key => {
+              const t = TIERS[key]
+              const active = tier === key && t.available
+              const disabled = !t.available || isLoading
+              const tierCost = calculateVideoCredits(key, duration)
               return (
-                <div key={group} style={{ marginBottom: '12px' }}>
-                  <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-dim)', margin: '0 0 6px', fontWeight: 600 }}>
-                    {groupLabel}
-                  </p>
-                  <div style={{ display: 'grid', gridTemplateColumns: `repeat(${groupDurations.length}, 1fr)`, gap: '8px' }}>
-                    {groupDurations.map(sec => {
-                      const dCfg = DURATION_CONFIGS[sec]
-                      const active = duration === sec
-                      const cost = calculateVideoCredits(tier, sec)
-                      const usd = creditsToUSD(cost)
-                      const locked = !dCfg.available
-                      return (
-                        <button
-                          key={sec}
-                          type="button"
-                          onClick={() => !locked && setDuration(sec)}
-                          disabled={isLoading || locked}
-                          title={locked ? 'Coming soon — extended/chained durations are in active development' : undefined}
-                          style={{
-                            textAlign: 'center',
-                            cursor: locked ? 'not-allowed' : (isLoading ? 'not-allowed' : 'pointer'),
-                            padding: '12px 8px', borderRadius: 'var(--r-md)',
-                            border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                            background: active ? 'var(--accent-soft)' : 'var(--surface)',
-                            opacity: locked ? 0.5 : 1,
-                            transition: 'all 0.15s',
-                            display: 'flex', flexDirection: 'column', gap: '3px',
-                            position: 'relative',
-                          }}>
-                          <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink)' }}>{sec}s</span>
-                          <span style={{ fontSize: '11px', color: active ? 'var(--accent)' : 'var(--ink-dim)', fontWeight: 600 }}>{cost} cr</span>
-                          <span style={{ fontSize: '10px', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>≈${usd.toFixed(2)}</span>
-                          {locked && (
-                            <span style={{
-                              position: 'absolute', top: '4px', right: '4px',
-                              fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                              padding: '2px 5px', borderRadius: '4px',
-                              background: 'var(--ink-dim)', color: 'var(--surface)',
-                            }}>Soon</span>
-                          )}
-                        </button>
-                      )
-                    })}
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => t.available && setTier(key)}
+                  disabled={disabled}
+                  style={{
+                    textAlign: 'left', cursor: disabled ? 'not-allowed' : 'pointer',
+                    padding: '14px', borderRadius: 12,
+                    border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                    background: active ? 'var(--hover)' : 'var(--surface)',
+                    opacity: t.available ? 1 : 0.5,
+                    transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', gap: '7px',
+                  }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{t.label}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--ink-mute)' }}>from {tierCost} cr</span>
                   </div>
-                </div>
+                  <p style={{ fontSize: '12.5px', color: 'var(--ink-dim)', margin: 0, lineHeight: 1.45 }}>{t.description}</p>
+                </button>
               )
             })}
           </div>
-        </>
+
+          <div style={{ marginTop: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 9 }}>
+            <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>Duration</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-fade)' }}>
+              ~{Math.round(estimateRenderSeconds(duration) / 60)}m render
+            </span>
+          </div>
+
+          {(['native', 'extended', 'chained'] as const).map(group => {
+            const groupDurations = DURATION_OPTIONS.filter(d => DURATION_CONFIGS[d].strategy === group)
+            if (!groupDurations.length) return null
+            const groupLabel =
+              group === 'native'   ? 'Short'
+            : group === 'extended' ? 'Extended (cheaper)'
+                                   : 'Cinematic (premium)'
+            return (
+              <div key={group} style={{ marginBottom: 10 }}>
+                <p style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--ink-fade)', margin: '0 0 6px', fontWeight: 600 }}>
+                  {groupLabel}
+                </p>
+                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${groupDurations.length}, 1fr)`, gap: 8 }}>
+                  {groupDurations.map(sec => {
+                    const dCfg = DURATION_CONFIGS[sec]
+                    const active = duration === sec
+                    const cost = calculateVideoCredits(tier, sec)
+                    const usd = creditsToUSD(cost)
+                    const locked = !dCfg.available
+                    return (
+                      <button
+                        key={sec}
+                        type="button"
+                        onClick={() => !locked && setDuration(sec)}
+                        disabled={isLoading || locked}
+                        title={locked ? 'Coming soon' : undefined}
+                        style={{
+                          textAlign: 'center',
+                          cursor: locked ? 'not-allowed' : (isLoading ? 'not-allowed' : 'pointer'),
+                          padding: '10px 6px', borderRadius: 10,
+                          border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                          background: active ? 'var(--ink)' : 'var(--surface)',
+                          color: active ? '#fff' : 'var(--ink)',
+                          opacity: locked ? 0.45 : 1,
+                          transition: 'all 0.15s',
+                          display: 'flex', flexDirection: 'column', gap: 2,
+                          position: 'relative',
+                        }}>
+                        <span style={{ fontSize: 14.5, fontWeight: 600 }}>{sec}s</span>
+                        <span style={{ fontSize: 10.5, opacity: 0.75, fontFamily: 'var(--font-mono)' }}>{cost} cr · ${usd.toFixed(2)}</span>
+                        {locked && (
+                          <span style={{
+                            position: 'absolute', top: 3, right: 3,
+                            fontSize: 8, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase',
+                            padding: '1px 4px', borderRadius: 3,
+                            background: 'var(--ink-faint)', color: 'var(--surface)',
+                          }}>Soon</span>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )
+          })}
+        </section>
       )}
 
       {/* Product fields */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {/* 3 — Your product */}
+      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div className="section-step-head" style={{ marginBottom: 0 }}>
+          <span className="step-circle">3</span>
+          <h3>Your product</h3>
+        </div>
         <div className="form-row">
-          <label className="form-label">Product Name *</label>
+          <label className="form-label">Product name</label>
           <input className="input" value={productName} onChange={e => setProductName(e.target.value)}
             placeholder="e.g. ContentFlow" disabled={isLoading} />
         </div>
 
         <div className="form-row">
-          <label className="form-label">Product Description *</label>
+          <label className="form-label">One-line description</label>
           <textarea className="textarea" rows={3} value={productDescription}
             onChange={e => setProductDescription(e.target.value)}
-            placeholder="What does it do? What makes it special?" disabled={isLoading} />
+            placeholder="What it is and who it's for, in a sentence." disabled={isLoading} />
         </div>
 
         <div className="form-row">
-          <label className="form-label">Key Benefits *</label>
+          <label className="form-label">Key benefits</label>
           <textarea className="textarea" rows={3} value={benefits}
             onChange={e => setBenefits(e.target.value)}
-            placeholder="e.g. Save time, post to all platforms, AI-powered" disabled={isLoading} />
+            placeholder="Save time · ships to all platforms · AI-powered" disabled={isLoading} />
         </div>
 
         <div className="form-row">
-          <label className="form-label">Call to Action</label>
+          <label className="form-label">Call to action</label>
           <input className="input" value={callToAction} onChange={e => setCallToAction(e.target.value)}
             placeholder="e.g. Try it free today" disabled={isLoading} />
         </div>
@@ -360,18 +368,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
 
         <div className="form-row">
-          <label className="form-label">
-            Product Photo{' '}
-            <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>(required)</span>
-          </label>
-          <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '0 0 8px', lineHeight: 1.5 }}>
-            Required — Nano Banana composites your real product (or app screen) into the AI character’s hand for the Sora 2 first frame.
-          </p>
+          <label className="form-label">Product photo <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(required)</span></label>
+          <p className="help">Nano Banana composites your real product into the Sora 2 first frame.</p>
           <label style={{
-            display: 'flex', alignItems: 'center', gap: '12px',
-            padding: '12px 14px', borderRadius: 'var(--r-md)',
-            border: '1px dashed var(--border)', cursor: isLoading ? 'default' : 'pointer',
-            background: 'var(--surface)', transition: 'border-color 0.15s',
+            display: 'flex', alignItems: 'center', gap: '14px',
+            padding: '12px 14px', borderRadius: 12,
+            border: '1.5px dashed var(--border-strong)', cursor: isLoading ? 'default' : 'pointer',
+            background: 'var(--bg-elev)',
+            transition: 'border-color 0.15s',
           }}>
             <input type="file" accept="image/jpeg,image/png,image/webp"
               onChange={handleImageChange} disabled={isLoading}
@@ -379,43 +383,45 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             {productImage ? (
               <>
                 <img src={productImage.preview} alt="Product"
-                  style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: '6px', flexShrink: 0 }} />
+                  style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Photo added</p>
-                  <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '2px 0 0' }}>Click to change</p>
+                  <p style={{ fontSize: '12px', color: 'var(--ink-mute)', margin: '2px 0 0' }}>Click to change</p>
                 </div>
                 <button type="button" onClick={e => { e.preventDefault(); setProductImage(null) }}
                   disabled={isLoading}
-                  style={{ fontSize: '18px', lineHeight: 1, background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: '0 4px' }}>
+                  style={{ fontSize: '18px', lineHeight: 1, background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: '0 4px' }}>
                   ×
                 </button>
               </>
             ) : (
               <>
-                <div style={{ width: 48, height: 48, borderRadius: '6px', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>
-                  📷
+                <div style={{ width: 48, height: 48, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
                 </div>
                 <div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Upload product photo</p>
-                  <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '2px 0 0' }}>JPG, PNG or WebP — helps AI generate better visuals</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Drop product photo</p>
+                  <p style={{ fontSize: '11px', color: 'var(--ink-mute)', margin: '2px 0 0', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>PNG · JPG · WEBP</p>
                 </div>
               </>
             )}
           </label>
         </div>
-      </div>
+      </section>
 
-      {/* Avatar + voice (only for video types) */}
+      {/* 4 — Character + voice */}
       {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-          <div>
-            <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Build Your AI Creator</span>
-            <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '0 0 12px' }}>
-              Sora 2 generates a hyper-realistic AI character holding your real product. Answer below or pick a saved persona.
-            </p>
-            <CharacterBuilder value={character} onChange={setCharacter} disabled={isLoading} />
+        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div className="section-step-head" style={{ marginBottom: 0 }}>
+            <span className="step-circle">4</span>
+            <h3>Character &amp; setting</h3>
           </div>
+
+          <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.5 }}>
+            Sora generates a hyper-realistic AI character holding your real product.
+          </p>
+
+          <CharacterBuilder value={character} onChange={setCharacter} disabled={isLoading} />
 
           {tier === 'hero' ? (
             <div className="form-row">
@@ -432,52 +438,81 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               ✦ Standard uses Sora&apos;s native AI voice. Switch to Hero above for branded voice control.
             </p>
           )}
-        </div>
+        </section>
       )}
 
-      {/* Image style (only for image types) */}
-      {(ugcType === 'image-with-voiceover' || ugcType === 'all') && (
+      {/* 5 — Customize (image style + custom instructions) */}
+      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="section-step-head" style={{ marginBottom: 0 }}>
+          <span className="step-circle">5</span>
+          <h3>Customize</h3>
+        </div>
+
+        {(ugcType === 'image-with-voiceover' || ugcType === 'all') && (
+          <div className="form-row">
+            <label className="form-label">Image style</label>
+            <select className="select" value={style} onChange={e => setStyle(e.target.value)} disabled={isLoading}>
+              <option value="realistic">Realistic</option>
+              <option value="artistic">Artistic</option>
+              <option value="professional">Professional</option>
+              <option value="minimalist">Minimalist</option>
+            </select>
+          </div>
+        )}
+
         <div className="form-row">
-          <label className="form-label">Image Style</label>
-          <select className="input" value={style} onChange={e => setStyle(e.target.value)} disabled={isLoading}>
-            <option value="realistic">Realistic</option>
-            <option value="artistic">Artistic</option>
-            <option value="professional">Professional</option>
-            <option value="minimalist">Minimalist</option>
-          </select>
+          <label className="form-label">Custom instructions <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional)</span></label>
+          <p className="help">Paste your own script, set a tone, mention an offer, target an audience. The AI obeys.</p>
+          <textarea
+            className="textarea"
+            value={customInstructions}
+            onChange={e => setCustomInstructions(e.target.value.slice(0, 1500))}
+            disabled={isLoading}
+            rows={4}
+            placeholder={'• Use this script: "Three drops, every morning."\n• Make it sound like a college student\n• Mention the 30% launch discount'}
+            style={{ minHeight: 84 }}
+          />
+          <p style={{ fontSize: 10.5, color: 'var(--ink-fade)', textAlign: 'right', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
+            {customInstructions.length} / 1500
+          </p>
         </div>
-      )}
+      </section>
 
-      {/* Footer */}
-      <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-          <span style={{ color: 'var(--ink-dim)' }}>Cost{includesVideo ? ` (${tierCfg.label} tier)` : ''}</span>
-          <span style={{ fontWeight: 600, color: 'var(--accent)' }}>{totalCredits} credits</span>
+      {/* 6 — Cost summary + generate */}
+      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+        <div className="section-step-head" style={{ marginBottom: 0 }}>
+          <span className="step-circle">6</span>
+          <h3>Ready when you are</h3>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-          <span style={{ color: 'var(--ink-dim)' }}>Your balance</span>
-          <span style={{ fontWeight: 600, color: creditBalance >= totalCredits ? 'var(--good)' : 'var(--bad)' }}>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', borderBottom: '1px solid var(--border-soft)' }}>
+          <span style={{ fontSize: 13, color: 'var(--ink-dim)' }}>Cost{includesVideo ? ` · ${tierCfg.label}` : ''}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em' }}>{totalCredits} <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>cr</span></span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink-mute)' }}>
+          <span>Your balance</span>
+          <span style={{ color: creditBalance >= totalCredits ? 'var(--good)' : 'var(--danger)', fontWeight: 600 }}>
             {creditBalance} credits
           </span>
         </div>
 
         <button type="submit" disabled={!canGenerate || isLoading || hooksLoading} className="btn btn-primary"
-          style={{ padding: '12px', fontSize: '14px', marginTop: '4px' }}>
+          style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11 }}>
           {isLoading ? 'Generating…' : hooksLoading ? 'Writing hooks…' : includesVideo ? 'Preview hooks → generate' : 'Generate UGC Package'}
         </button>
 
         {hooksError && (
-          <p style={{ fontSize: '12px', color: 'var(--bad)', textAlign: 'center' }}>{hooksError}</p>
+          <p style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center', margin: 0 }}>{hooksError}</p>
         )}
 
         {!canGenerate && productName && (
-          <p style={{ fontSize: '12px', color: 'var(--bad)', textAlign: 'center' }}>
+          <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', textAlign: 'center', margin: 0 }}>
             {creditBalance < totalCredits
-              ? `Not enough credits. Need ${totalCredits}, have ${creditBalance}`
+              ? `Not enough credits — need ${totalCredits}, have ${creditBalance}`
               : 'Fill in all required fields'}
           </p>
         )}
-      </div>
+      </section>
 
       {hooks && (
         <div

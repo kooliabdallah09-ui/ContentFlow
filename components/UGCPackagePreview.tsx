@@ -209,25 +209,35 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   )
 
   if (!components) return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', gap: '12px', opacity: 0.5 }}>
-      <Film style={{ width: 36, height: 36, color: 'var(--ink-dim)' }} />
-      <p style={{ fontSize: '14px', color: 'var(--ink-dim)' }}>Your UGC package will appear here</p>
+    <div className="card" style={{ padding: '14px' }}>
+      <div style={{
+        aspectRatio: '0.62', borderRadius: 11,
+        background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 9px, var(--surface-3) 9px 18px)',
+        border: '1px solid var(--border)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 12, textAlign: 'center', padding: 20,
+      }}>
+        <Film style={{ width: 28, height: 28, color: 'var(--ink-faint)' }} />
+        <span style={{ fontSize: 12.5, color: 'var(--ink-mute)', lineHeight: 1.5 }}>
+          Your preview appears<br/>here as it renders.
+        </span>
+      </div>
     </div>
   )
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
 
       {/* Cost badge */}
       {creditDeducted !== undefined && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 14px', borderRadius: 'var(--r-md)',
-          background: 'var(--accent-soft)', border: '1px solid var(--accent)',
+          padding: '10px 14px', borderRadius: 11,
+          background: 'var(--hover)', border: '1px solid var(--border)',
         }}>
           <span style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Generation cost</span>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: 'var(--accent)' }}>
-            {creditDeducted} credit{creditDeducted !== 1 ? 's' : ''}
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--ink)', fontWeight: 600 }}>
+            {creditDeducted} cr
           </span>
         </div>
       )}

@@ -16,62 +16,64 @@ interface ComingSoonProps {
 export default function ComingSoon({ feature, description, eta, alternative }: ComingSoonProps) {
   return (
     <main style={{
-      minHeight: 'calc(100vh - 56px)',
+      minHeight: 'calc(100vh - 60px)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '32px',
+      padding: '40px',
     }}>
       <div style={{
-        maxWidth: '520px', width: '100%',
+        maxWidth: 560, width: '100%',
         background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 'var(--r-lg)', padding: '40px',
+        borderRadius: 18, padding: 44,
         textAlign: 'center',
         boxShadow: 'var(--shadow-md)',
       }}>
         <div style={{
-          width: '56px', height: '56px',
-          margin: '0 auto 20px',
-          borderRadius: '16px',
-          background: 'var(--accent-soft)', color: 'var(--accent)',
+          width: 50, height: 50,
+          margin: '0 auto 18px',
+          borderRadius: 14,
+          background: 'var(--ink)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          <Sparkles size={28} />
+          <Sparkles size={24} color="#fff" />
         </div>
 
         <p style={{
-          margin: '0 0 8px', fontSize: '11px',
-          textTransform: 'uppercase', letterSpacing: '0.1em',
-          color: 'var(--accent)', fontWeight: 700,
+          margin: '0 0 10px',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11, letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: 'var(--ink-fade)',
         }}>
           Coming Soon{eta ? ` · ${eta}` : ''}
         </p>
 
         <h1 style={{
-          margin: '0 0 12px', fontSize: '26px',
-          fontWeight: 700, color: 'var(--ink)',
-          fontFamily: 'var(--font-serif)',
+          margin: '0 0 14px',
+          fontFamily: 'var(--font-serif)', fontWeight: 400,
+          fontSize: 38, lineHeight: 1.1, letterSpacing: '-0.01em',
         }}>
           {feature}
         </h1>
 
         {description && (
           <p style={{
-            margin: '0 0 28px', fontSize: '14px',
+            margin: '0 0 30px', fontSize: 14.5,
             color: 'var(--ink-dim)', lineHeight: 1.6,
           }}>
             {description}
           </p>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
           {alternative && (
             <Link
               href={alternative.href}
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                gap: '8px', padding: '12px 20px',
-                background: 'var(--accent)', color: 'var(--accent-ink)',
-                borderRadius: 'var(--r-sm)', textDecoration: 'none',
-                fontSize: '13px', fontWeight: 600,
+                gap: 8, padding: '13px 28px',
+                background: 'var(--ink)', color: '#fff',
+                borderRadius: 11, textDecoration: 'none',
+                fontSize: 14, fontWeight: 600,
               }}
             >
               {alternative.label}
@@ -84,8 +86,8 @@ export default function ComingSoon({ feature, description, eta, alternative }: C
             style={{
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
               padding: '10px 20px',
-              color: 'var(--ink-dim)', textDecoration: 'none',
-              fontSize: '13px',
+              color: 'var(--ink-mute)', textDecoration: 'none',
+              fontSize: 13,
             }}
           >
             Back to dashboard

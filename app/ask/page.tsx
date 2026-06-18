@@ -121,45 +121,26 @@ export default function AskPage() {
   return (
     <main style={{
       display: 'flex', flexDirection: 'column',
-      height: 'calc(100vh - 56px)',  // minus TopBar
-      padding: '24px 32px 0',
-      maxWidth: '900px', margin: '0 auto', width: '100%',
+      height: 'calc(100vh - 60px)',  // minus TopBar
+      padding: '0 24px',
+      maxWidth: '760px', margin: '0 auto', width: '100%',
     }}>
-      {/* Header */}
-      <header style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: '20px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '38px', height: '38px', borderRadius: '10px',
-            background: 'var(--accent-soft)', color: 'var(--accent)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-          }}>
-            <Sparkles size={20} />
-          </div>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--ink)' }}>Ask AI</h1>
-            <p style={{ margin: 0, fontSize: '12px', color: 'var(--ink-dim)' }}>
-              Anything about ContentFlow — features, pricing, troubleshooting, best practices.
-            </p>
-          </div>
-        </div>
-        {messages.length > 0 && (
+      {messages.length > 0 && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 0' }}>
           <button
             onClick={resetThread}
             style={{
-              display: 'flex', alignItems: 'center', gap: '6px',
-              padding: '8px 12px', borderRadius: 'var(--r-sm)',
-              background: 'transparent', border: '1px solid var(--border)',
-              color: 'var(--ink-dim)', fontSize: '12px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              padding: '7px 12px', borderRadius: 9,
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              color: 'var(--ink-2)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
             }}
           >
             <RefreshCcw size={13} />
             New chat
           </button>
-        )}
-      </header>
+        </div>
+      )}
 
       {/* Thread area */}
       <div
@@ -170,54 +151,43 @@ export default function AskPage() {
         }}
       >
         {empty && (
-          <div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 10, padding: '40px 0' }}>
             <div style={{
-              padding: '24px',
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 'var(--r-lg)', marginBottom: '24px',
+              width: 50, height: 50, borderRadius: 14,
+              background: 'var(--ink)', display: 'flex',
+              alignItems: 'center', justifyContent: 'center',
+              marginBottom: 6,
             }}>
-              <p style={{ margin: 0, fontSize: '14px', color: 'var(--ink)', lineHeight: 1.6 }}>
-                Hey! I&apos;m the in-app assistant. I know every feature, pricing detail, and common gotcha. Ask me anything — I&apos;ll often include a button that takes you straight to the right page.
-              </p>
+              <Sparkles size={24} color="#fff" />
             </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-              {SUGGESTION_GROUPS.map(group => (
-                <div key={group.title}>
-                  <p style={{
-                    margin: '0 0 10px',
-                    fontSize: '11px', textTransform: 'uppercase',
-                    letterSpacing: '0.08em', fontWeight: 700,
-                    color: 'var(--ink-dim)',
-                  }}>{group.title}</p>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {group.prompts.map(p => (
-                      <button
-                        key={p}
-                        onClick={() => send(p)}
-                        style={{
-                          textAlign: 'left',
-                          padding: '10px 14px',
-                          background: 'var(--surface)', border: '1px solid var(--border)',
-                          borderRadius: 'var(--r-sm)',
-                          color: 'var(--ink)', fontSize: '13px',
-                          cursor: 'pointer',
-                          transition: 'all 0.15s',
-                        }}
-                        onMouseEnter={e => {
-                          e.currentTarget.style.background = 'var(--accent-soft)'
-                          e.currentTarget.style.borderColor = 'var(--accent)'
-                        }}
-                        onMouseLeave={e => {
-                          e.currentTarget.style.background = 'var(--surface)'
-                          e.currentTarget.style.borderColor = 'var(--border)'
-                        }}
-                      >
-                        {p}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 40, margin: 0, letterSpacing: '-0.01em' }}>
+              How can I help you <span style={{ fontStyle: 'italic' }}>create?</span>
+            </h1>
+            <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: '2px 0 18px', maxWidth: 420, lineHeight: 1.55 }}>
+              Ask about scripts, hooks, tiers, credits, the UGC pipeline — anything ContentFlow.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, width: '100%', maxWidth: 540 }}>
+              {SUGGESTION_GROUPS.flatMap(g => g.prompts).slice(0, 4).map(p => (
+                <button
+                  key={p}
+                  onClick={() => send(p)}
+                  style={{
+                    textAlign: 'left',
+                    padding: '14px 16px',
+                    border: '1px solid var(--border)',
+                    borderRadius: 13,
+                    background: 'var(--surface)',
+                    fontSize: 13.5,
+                    color: 'var(--ink-2)',
+                    cursor: 'pointer',
+                    lineHeight: 1.45,
+                    transition: 'background 0.12s',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface-2)' }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'var(--surface)' }}
+                >
+                  {p}
+                </button>
               ))}
             </div>
           </div>
@@ -237,11 +207,11 @@ export default function AskPage() {
                   style={{
                     maxWidth: '78%',
                     padding: '12px 16px',
-                    borderRadius: 'var(--r-md)',
-                    background: m.role === 'user' ? 'var(--accent)' : 'var(--surface)',
+                    borderRadius: 14,
+                    background: m.role === 'user' ? 'var(--ink)' : 'var(--surface)',
                     color: m.role === 'user' ? '#fff' : 'var(--ink)',
-                    fontSize: '14px',
-                    lineHeight: 1.6,
+                    fontSize: 14,
+                    lineHeight: 1.55,
                     whiteSpace: 'pre-wrap',
                     border: m.role === 'assistant' ? '1px solid var(--border)' : 'none',
                   }}
@@ -251,12 +221,12 @@ export default function AskPage() {
                     <button
                       onClick={() => handleAction(m.action!.href)}
                       style={{
-                        display: 'flex', alignItems: 'center', gap: '6px',
-                        marginTop: '12px',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        marginTop: 12,
                         padding: '8px 14px',
-                        background: 'var(--accent)', color: '#fff',
-                        border: 'none', borderRadius: 'var(--r-sm)',
-                        fontSize: '13px', fontWeight: 600,
+                        background: 'var(--ink)', color: '#fff',
+                        border: 'none', borderRadius: 9,
+                        fontSize: 13, fontWeight: 600,
                         cursor: 'pointer',
                       }}
                     >
@@ -305,11 +275,12 @@ export default function AskPage() {
         }}
       >
         <div style={{
-          display: 'flex', gap: '10px', alignItems: 'flex-end',
-          padding: '10px 12px',
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 'var(--r-md)',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+          display: 'flex', alignItems: 'flex-end', gap: 10,
+          border: '1px solid var(--border)',
+          borderRadius: 16,
+          background: 'var(--surface)',
+          padding: '9px 9px 9px 16px',
+          boxShadow: '0 2px 12px rgba(20,18,12,0.04)',
         }}>
           <textarea
             ref={inputRef}
@@ -321,15 +292,15 @@ export default function AskPage() {
                 send(input)
               }
             }}
-            placeholder="Ask anything about ContentFlow…"
+            placeholder="Ask anything…"
             disabled={sending}
             rows={1}
             style={{
               flex: 1, resize: 'none',
-              padding: '8px 4px', background: 'transparent',
+              padding: '6px 0', background: 'transparent',
               border: 'none', outline: 'none',
-              color: 'var(--ink)', fontSize: '14px', fontFamily: 'inherit',
-              lineHeight: 1.5, minHeight: '24px', maxHeight: '180px',
+              color: 'var(--ink)', fontSize: 15, fontFamily: 'inherit',
+              lineHeight: 1.55, maxHeight: 150,
             }}
           />
           <button
@@ -337,22 +308,18 @@ export default function AskPage() {
             disabled={!input.trim() || sending}
             aria-label="Send"
             style={{
-              padding: '10px 14px',
-              background: input.trim() && !sending ? 'var(--accent)' : 'var(--border)',
-              color: '#fff', border: 'none', borderRadius: 'var(--r-sm)',
-              cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
+              width: 38, height: 38, flexShrink: 0,
+              borderRadius: 11,
+              background: input.trim() && !sending ? 'var(--ink)' : 'var(--border)',
+              border: 'none', cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
             }}
           >
-            <Send size={16} />
+            <Send size={17} color="#fff" />
           </button>
         </div>
-        <p style={{
-          margin: '8px 0 0', textAlign: 'center',
-          fontSize: '11px', color: 'var(--ink-dim)',
-        }}>
-          Press Enter to send · Shift+Enter for newline · {input.length}/2000
+        <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 11.5, color: 'var(--ink-faint)' }}>
+          ContentFlow AI can make mistakes. Double-check important details.
         </p>
       </form>
     </main>
