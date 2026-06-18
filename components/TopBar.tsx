@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Icon } from '@/components/Icons'
 import { getSupabase } from '@/lib/auth'
@@ -36,7 +36,17 @@ const TITLES: Record<string, string> = {
 export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: TopBarProps) {
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [initial, setInitial] = useState('A')
   const title = TITLES[currentPath] || 'Dashboard'
+
+  useEffect(() => {
+    const supabase = getSupabase()
+    if (!supabase) return
+    supabase.auth.getUser().then(({ data }: { data: { user: { user_metadata?: { full_name?: string }; email?: string } | null } }) => {
+      const name = data.user?.user_metadata?.full_name || data.user?.email
+      if (name) setInitial(name.charAt(0).toUpperCase())
+    })
+  }, [])
 
   const signOut = async () => {
     const supabase = getSupabase()
@@ -83,7 +93,7 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 13, fontWeight: 600, border: 0, cursor: 'pointer',
           }}
-        >A</button>
+        >{initial}</button>
         {menuOpen && (
           <div style={{
             position: 'absolute', top: '100%', right: 0, marginTop: 8,

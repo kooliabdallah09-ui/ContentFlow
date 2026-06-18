@@ -559,12 +559,16 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   }}
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--accent)', fontWeight: 700 }}>
+                    <span style={{
+                      fontSize: 10.5, fontWeight: 600, letterSpacing: '0.03em', textTransform: 'uppercase',
+                      color: 'var(--ink-2)', background: 'var(--hover)',
+                      borderRadius: 5, padding: '2px 8px',
+                    }}>
                       {h.angle}
                     </span>
-                    <span style={{ fontSize: '11px', color: 'var(--ink-dim)', fontStyle: 'italic' }}>{h.tone}</span>
+                    <span style={{ fontSize: 11, color: 'var(--ink-mute)', fontStyle: 'italic' }}>{h.tone}</span>
                   </div>
-                  <p style={{ margin: 0, fontSize: '14px', color: 'var(--ink)', lineHeight: 1.4 }}>
+                  <p style={{ margin: 0, fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.5, fontFamily: 'var(--font-serif)', fontStyle: 'italic' }}>
                     “{h.text}”
                   </p>
                 </button>

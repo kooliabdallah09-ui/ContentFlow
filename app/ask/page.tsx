@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { Send, ArrowUpRight, Loader2, Sparkles, RefreshCcw } from 'lucide-react'
+import { Send, ArrowUpRight, Loader2, RefreshCcw } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -153,12 +153,13 @@ export default function AskPage() {
         {empty && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 10, padding: '40px 0' }}>
             <div style={{
-              width: 50, height: 50, borderRadius: 14,
+              width: 56, height: 56, borderRadius: 16,
               background: 'var(--ink)', display: 'flex',
               alignItems: 'center', justifyContent: 'center',
               marginBottom: 6,
+              padding: 10,
             }}>
-              <Sparkles size={24} color="#fff" />
+              <img src="/logo-icon.png" alt="ContentFlow" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 40, margin: 0, letterSpacing: '-0.01em' }}>
               How can I help you <span style={{ fontStyle: 'italic' }}>create?</span>

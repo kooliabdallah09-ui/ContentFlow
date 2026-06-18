@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Sparkles, ArrowRight } from 'lucide-react'
+import { ArrowRight } from 'lucide-react'
 
 interface ComingSoonProps {
   feature: string                 // "Content Calendar", "Blog Post Writer", etc.
@@ -28,13 +28,14 @@ export default function ComingSoon({ feature, description, eta, alternative }: C
         boxShadow: 'var(--shadow-md)',
       }}>
         <div style={{
-          width: 50, height: 50,
+          width: 56, height: 56,
           margin: '0 auto 18px',
-          borderRadius: 14,
+          borderRadius: 16,
           background: 'var(--ink)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
+          padding: 10,
         }}>
-          <Sparkles size={24} color="#fff" />
+          <img src="/logo-icon.png" alt="ContentFlow" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
 
         <p style={{
