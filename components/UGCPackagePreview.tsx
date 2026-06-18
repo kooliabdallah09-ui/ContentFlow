@@ -313,7 +313,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
                 )}
                 {clip.status === 'completed' && clip.videoUrl && (
                   <>
-                    <video controls src={clip.videoUrl} style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: '8px', maxHeight: '300px', background: '#000' }} />
+                    <video controls src={clip.videoUrl} style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 'var(--r-md)', marginBottom: '8px', background: '#000', display: 'block', objectFit: 'contain' }} />
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <button onClick={() => handleDownload(clip.videoUrl!, `broll-${i + 1}-${Date.now()}.mp4`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '12px' }}>
                         <Download style={{ width: 12, height: 12 }} /> Download
@@ -358,7 +358,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
 
           {stitchStatus === 'completed' && finalVideoUrl && (
             <>
-              <video controls src={finalVideoUrl} style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px', maxHeight: '400px', background: '#000' }} />
+              <video controls src={finalVideoUrl} style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 'var(--r-md)', marginBottom: '12px', background: '#000', display: 'block', objectFit: 'contain' }} />
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button onClick={() => handleDownload(finalVideoUrl, `final-ugc-${Date.now()}.mp4`)} className="btn btn-primary" style={{ flex: 1, fontSize: '13px' }}>
                   <Download style={{ width: 14, height: 14 }} />
@@ -413,7 +413,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
 
           {video.status === 'completed' && video.videoUrl && (
             <>
-              <video controls src={video.videoUrl} style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px', maxHeight: '400px', background: '#000' }} />
+              <video controls src={video.videoUrl} style={{ width: '100%', aspectRatio: '9 / 16', borderRadius: 'var(--r-md)', marginBottom: '12px', background: '#000', display: 'block', objectFit: 'contain' }} />
               {video.duration && (
                 <p style={{ fontSize: '12px', color: 'var(--ink-fade)', marginBottom: '12px' }}>Duration: {video.duration}s</p>
               )}

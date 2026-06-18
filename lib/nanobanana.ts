@@ -179,18 +179,28 @@ export async function generateProductOnlyFrame(
   customInstructions?: string,
 ): Promise<NanoBananaResult> {
   const placementBlock = kind === 'product'
-    ? `Hero shot composition — the product is the SOLE subject, dominant in frame at slight angle, on a clean surface (marble / wood / linen / counter top) appropriate for the product type. No character, no hands, no other objects competing for attention.`
-    : `Lifestyle context — the product sits naturally in its environment (next to props that suggest the use case: jewelry, a coffee mug, a tote bag, a vanity tray). The product is still the visual anchor but the scene tells a small story. No character, no hands.`
+    ? `Hero shot composition — the subject is dominant in frame at a slight angle, on a clean surface (marble / wood / linen / counter top) appropriate for the subject type. No character, no hands, no other objects competing for attention.`
+    : `Lifestyle context — the subject sits naturally in its environment (next to props that suggest the use case: jewelry, a coffee mug, a tote bag, a vanity tray, a notebook + pen). The subject is still the visual anchor but the scene tells a small story. No character, no hands.`
 
-  const prompt = `Using the attached reference image as the EXACT product, generate a hyper-realistic phone-camera photograph for a UGC ad B-roll frame.
+  const prompt = `Using the attached reference image as the EXACT subject, generate a hyper-realistic phone-camera photograph for a UGC ad B-roll frame.
 
-PRODUCT FIDELITY — these are the only things that matter, never change them:
-- Bottle / container shape, size, and silhouette: match the reference exactly
-- Label text, font, layout, illustration: every letter and mark visible in the reference must appear in the output, readable and unstyled
-- Colors: liquid color, packaging color, cap color — match the reference exactly
-- Material finish: glass vs plastic vs metal — match the reference
+STEP 1 — CLASSIFY THE REFERENCE:
 
-DO NOT redesign, restyle, or substitute a generic product. If the reference shows an UpCircle Face Toner with a handwritten "UpCircle" script logo, peachy/cream liquid, and the words "FACE TONER" in a black box at the bottom, the output must show that exact bottle with all those exact details legible.
+Is the reference an app/website/UI screenshot? Look for: rectangular composition with software interface elements (buttons, menus, icons, panels, status bars), flat colours, crisp UI typography, recognisable app layout.
+
+If YES (UI screenshot):
+  Render a modern smartphone on the surface, lying flat or propped on a small stand at a 15-25° angle. The phone's screen shows the EXACT UI from the reference image — every menu, button, colour, text label, icon pixel-faithful. Use a current iPhone form factor with thin bezels. The phone is the physical subject; the screenshot IS the on-screen content. NEVER substitute it for a bottle, jar, box, or any 3D consumer product shape.
+
+If NO (real 3D product):
+  Treat the reference as a physical product.
+
+STEP 2 — PRODUCT FIDELITY (for both cases) — these are the only things that matter, never change them:
+- Shape, silhouette, proportions: match the reference exactly
+- All visible text, font, layout, illustrations, icons: every letter and mark must appear in the output, readable and unstyled
+- Colors: every colour from the reference — match exactly
+- Material finish: glass / plastic / metal / glass-fronted-phone — match the reference
+
+DO NOT redesign, restyle, or substitute a generic product. If the reference shows an UpCircle Face Toner with a handwritten "UpCircle" script logo, render that exact bottle. If the reference shows a SaaS dashboard with a green sidebar and "Analytics" header, render a phone screen with that exact dashboard.
 
 SHOT INTENT: ${shotDescription}
 
@@ -257,10 +267,24 @@ CHARACTER: ${characterPrompt}
 
 SCENE: ${scene}
 
-REFERENCE IMAGE INTERPRETATION — read the reference image carefully first, then pick ONE placement that fits what it actually shows:
-- If the reference is a PHYSICAL PRODUCT (bottle, jar, box, food, device, makeup, etc.): the character holds the product in one hand at mid-chest height, mid-lift toward the camera, fingers wrapped naturally around it, label angled slightly toward camera but not perfectly square.
-- If the reference is a SCREENSHOT OF A SOFTWARE APP, WEBSITE, OR PHONE/LAPTOP UI: the character is holding a smartphone in one hand, screen tilted toward the camera, and the phone's screen shows the EXACT UI from the reference image (preserve every UI element, colour, text). Do not render the UI as a physical object — it lives on a phone screen.
-- If the reference is a LOGO ONLY: place the character with a laptop or phone visible in scene, with the logo subtly present in the environment (laptop sticker, t-shirt, mug, screen) — do not make the logo into a held physical object.
+REFERENCE IMAGE INTERPRETATION — STEP 1: classify the reference image before generating. Use these visual cues:
+
+Is the reference an app/website/UI screenshot? Look for:
+- Rectangular composition with software interface elements (buttons, menus, icons, sidebars, status bars, text content arranged in panels)
+- Flat colours and crisp UI typography rather than photographic depth
+- Browser chrome, mobile OS bars, or recognisable app layout
+- Screenshots are almost always taken on a 16:9 or 9:16 RECTANGLE — not a freeform 3D product
+
+If YES (UI screenshot) — RENDER A PHONE:
+  The character holds a modern smartphone in one hand, screen tilted ~10° toward the camera. The phone's screen shows the EXACT UI from the reference image — every menu, button, colour, text label, icon must appear pixel-faithful. The phone is the physical object; the screenshot IS the screen content, not a held printout. Use a current iPhone form factor with thin bezels. The character's body partially blurs at the edges (selfie depth-of-field) but the phone screen stays in sharp focus so the UI is readable. NEVER substitute the UI for a generic product like a bottle, jar, or box.
+
+If NO (it's a real 3D product like a bottle, jar, box, food, device, makeup, etc.):
+  The character holds the product in one hand at mid-chest height, mid-lift toward the camera, fingers wrapped naturally around it, label angled slightly toward camera but not perfectly square.
+
+If the reference is only a LOGO with transparent background:
+  Place the character with a laptop or phone visible in scene, with the logo subtly present in the environment (laptop sticker, t-shirt, mug, screen) — do not make the logo into a held physical object.
+
+CRITICAL: if you've classified the reference as a UI screenshot, the output MUST show a phone with that screen. Do NOT under any circumstances render it as a bottle, dropper, or any other 3D product shape.
 
 CAMERA: handheld selfie, slight tilt (2°), iPhone front camera framing — face to mid-chest visible, hand/product/device visible at mid-chest height. Slightly off-centre composition, weight toward one side.
 

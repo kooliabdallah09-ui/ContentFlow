@@ -204,19 +204,28 @@ export async function submitStitchJob({
 // Single caption clip with TikTok-style centering. Shared between Whisper-synced
 // chunks and the script-fallback chunker so both paths render identically.
 function makeCaptionClip(text: string, start: number, length: number): Record<string, unknown> {
+  // Custom HTML title so we control wrap-width, font size and bottom-safe
+  // padding precisely. Shotstack's 'subtitle' preset rendered too large and
+  // sometimes overflowed the 9:16 frame on longer chunks. We cap text-block
+  // width at 70vw and use a smaller font, plus a 5vh bottom offset so captions
+  // sit clearly above the bottom edge but never spill outside it.
+  const safeText = String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
   return {
     asset: {
-      type: 'title',
-      text,
-      style: 'subtitle',
-      color: '#FFFFFF',
-      background: 'rgba(0,0,0,0.55)',
-      size: 'small',
+      type: 'html',
+      html: `<p>${safeText}</p>`,
+      css: 'p{font-family:"Inter",sans-serif;font-size:3.4vh;font-weight:700;line-height:1.2;color:#fff;text-align:center;margin:0;padding:8px 14px;background:rgba(0,0,0,0.55);border-radius:8px;display:inline-block;max-width:88%;white-space:normal;word-break:break-word;}',
+      width: 900,
+      height: 240,
+      background: 'transparent',
     },
     start,
     length,
     position: 'bottom',
-    offset: { y: 0.12 },
+    offset: { y: 0.06 },
     transition: { in: 'fade', out: 'fade' },
   }
 }

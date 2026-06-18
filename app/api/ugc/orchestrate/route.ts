@@ -54,9 +54,12 @@ async function generateUGCScript(
   // The quoted spoken lines are written in this language.
   language?: { name: string; code: string },
 ): Promise<string> {
-  // Spoken pace ≈ 150 words/min ≈ 2.5 words/sec. Reserve ~1s padding so audio
-  // never runs past the video.
-  const targetWords = Math.max(8, Math.round((targetDurationSeconds - 1) * 2.5))
+  // Spoken pace for AI voice (Sora native / OpenAI TTS / ElevenLabs) sits
+  // around 120 wpm = 2.0 words/sec — slower than typical human reading speed
+  // since AI voices add pause/emphasis. We were using 2.5 wps which caused
+  // scripts to overrun and Sora cut off mid-sentence. Drop to 1.9 words/sec
+  // and reserve 1.5s padding so the last word always lands before the clip ends.
+  const targetWords = Math.max(6, Math.round((targetDurationSeconds - 1.5) * 1.9))
   const hookEnd = Math.min(5, Math.round(targetDurationSeconds * 0.2))
   const bodyEnd = Math.round(targetDurationSeconds * 0.85)
 
