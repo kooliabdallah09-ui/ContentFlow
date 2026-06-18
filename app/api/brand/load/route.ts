@@ -34,6 +34,8 @@ export async function GET(req: NextRequest) {
       .select('company_name, description, unique_value_prop, brand_mission, target_audience, tone_of_voice, logo_url')
       .eq('user_id', userData.user.id)
       .maybeSingle()
+    // logo_url is repurposed: in this app it stores the product image URL
+    // that the UGC builder uses as the first-frame seed.
 
     if (error) {
       console.error('brand_profiles load error:', error.message)

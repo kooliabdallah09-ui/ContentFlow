@@ -45,13 +45,10 @@ interface UGCPackageBuilderProps {
   creditBalance: number
 }
 
-const IMAGE_CREDITS = 3
-
-const UGC_TYPES = [
-  { id: 'video-with-voiceover', name: 'Avatar Video', description: 'AI avatar speaks your script' },
-  { id: 'image-with-voiceover', name: 'Product Image', description: 'AI-generated product photo' },
-  { id: 'all', name: 'Full Package', description: 'Image + Avatar Video' },
-]
+// The UGC builder always produces the full pipeline (script + Sora video +
+// captions + B-rolls). For standalone images, users go to /generate/image
+// from the sidebar — we don't conflate the two on this page anymore.
+const UGC_TYPE = 'video-with-voiceover'
 
 // Voice options — uses OpenAI TTS by default since it works on free OpenAI accounts
 // (and you already pay for OPENAI_API_KEY for Sora/Nano Banana). ElevenLabs requires
@@ -65,7 +62,6 @@ const VOICES = [
 ]
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
-  const [ugcType, setUgcType] = useState('video-with-voiceover')
   const [tier, setTier] = useState<UGCTier>(DEFAULT_TIER)
   const [duration, setDuration] = useState<UGCDuration>(DEFAULT_DURATION)
   const [productName, setProductName] = useState('')
@@ -73,19 +69,19 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [benefits, setBenefits] = useState('')
   const [callToAction, setCallToAction] = useState('Try it today')
   const [customInstructions, setCustomInstructions] = useState('')
-  const [style, setStyle] = useState('realistic')
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
   // Brand profile — loaded once on mount. When the user toggles `useBrand` on,
-  // we pre-fill the 4 product fields from this profile (and lock them with a
-  // visual cue). Toggling off restores manual entry.
+  // we pre-fill the 4 product fields + product image from this profile (and lock
+  // them with a visual cue). Toggling off restores manual entry.
   interface BrandProfile {
     productName: string
     description: string
     keyBenefits: string
     defaultCta: string
+    productImageUrl?: string
   }
   const [brand, setBrand] = useState<BrandProfile | null>(null)
   const [useBrand, setUseBrand] = useState(false)
@@ -94,6 +90,30 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [hooks, setHooks] = useState<HookVariant[] | null>(null)
   const [hooksLoading, setHooksLoading] = useState(false)
   const [hooksError, setHooksError] = useState<string | null>(null)
+
+  // Fetch a saved brand image URL, convert to base64, and shove it into the
+  // productImage state so the existing orchestrate pipeline reads it like a
+  // freshly-uploaded file. Used when the brand toggle flips ON.
+  async function loadBrandImage(url: string) {
+    try {
+      const res = await fetch(url)
+      if (!res.ok) return null
+      const blob = await res.blob()
+      const buf = await blob.arrayBuffer()
+      const bytes = new Uint8Array(buf)
+      let bin = ''
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+      const base64 = btoa(bin)
+      const mimeType = blob.type || 'image/png'
+      return {
+        base64,
+        mimeType,
+        preview: `data:${mimeType};base64,${base64}`,
+      }
+    } catch {
+      return null
+    }
+  }
 
   // Load the user's brand profile once. If they have a meaningful one
   // (product name present), default the toggle to ON so the form pre-fills.
@@ -118,6 +138,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             description: p.description ?? '',
             keyBenefits: p.unique_value_prop ?? '',
             defaultCta: p.brand_mission ?? 'Try it today',
+            productImageUrl: p.logo_url ?? undefined,
           }
           setBrand(profile)
           // Auto-fill on first load — user can opt out.
@@ -126,6 +147,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           setProductDescription(profile.description)
           setBenefits(profile.keyBenefits)
           setCallToAction(profile.defaultCta)
+          // Pull the image too — best-effort, don't block on it.
+          if (profile.productImageUrl) {
+            loadBrandImage(profile.productImageUrl).then(img => {
+              if (!cancelled && img) setProductImage(img)
+            })
+          }
         }
       } catch {
         // brand load is non-critical — silent failure is fine
@@ -135,26 +162,31 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   }, [])
 
   // When the user flips the toggle, sync the form fields accordingly.
-  function toggleUseBrand(next: boolean) {
+  async function toggleUseBrand(next: boolean) {
     setUseBrand(next)
     if (next && brand) {
       setProductName(brand.productName)
       setProductDescription(brand.description)
       setBenefits(brand.keyBenefits)
       setCallToAction(brand.defaultCta)
+      if (brand.productImageUrl) {
+        const img = await loadBrandImage(brand.productImageUrl)
+        if (img) setProductImage(img)
+      }
     } else if (!next) {
       setProductName('')
       setProductDescription('')
       setBenefits('')
       setCallToAction('Try it today')
+      setProductImage(null)
     }
   }
 
   const tierCfg = TIERS[tier]
-  const includesVideo = ugcType === 'video-with-voiceover' || ugcType === 'all'
-  const includesImage = ugcType === 'image-with-voiceover' || ugcType === 'all'
+  // UGC always renders the full pipeline (tier+duration drives the cost).
+  const includesVideo = true
   const videoCredits = calculateVideoCredits(tier, duration)
-  const totalCredits = (includesImage ? IMAGE_CREDITS : 0) + (includesVideo ? videoCredits : 0)
+  const totalCredits = videoCredits
   const canGenerate = creditBalance >= totalCredits && productName.trim() && productDescription.trim() && benefits.trim()
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -178,8 +210,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
   const runGenerate = async (selectedHook?: string) => {
     await onGenerate({
-      ugcType, tier, duration, productName, productDescription, benefits, callToAction,
-      style, imageSize: '1024x1024', voiceId,
+      ugcType: UGC_TYPE, tier, duration, productName, productDescription, benefits, callToAction,
+      style: 'realistic', imageSize: '1024x1024', voiceId,
       productImageBase64: productImage?.base64,
       productImageMimeType: productImage?.mimeType,
       selectedHook,
@@ -192,12 +224,6 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canGenerate || isLoading || hooksLoading) return
-
-    // Image-only packages don't need a hook
-    if (!includesVideo) {
-      await runGenerate()
-      return
-    }
 
     setHooksError(null)
     setHooksLoading(true)
@@ -242,46 +268,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
-      {/* 1 — Package type */}
+      {/* 1 — Format (tier + duration) */}
       <section className="card">
         <div className="section-step-head">
           <span className="step-circle">1</span>
-          <h3>Package</h3>
+          <h3>Format</h3>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {UGC_TYPES.map(type => {
-            const typeCredits = (type.id === 'image-with-voiceover' ? IMAGE_CREDITS : 0)
-              + ((type.id === 'video-with-voiceover' || type.id === 'all') ? videoCredits : 0)
-            const active = ugcType === type.id
-            return (
-              <label key={type.id} style={{
-                display: 'flex', alignItems: 'center', gap: '12px',
-                padding: '12px 14px', borderRadius: 11, cursor: 'pointer',
-                border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                background: active ? 'var(--hover)' : 'var(--surface)',
-                transition: 'all 0.15s',
-              }}>
-                <input type="radio" name="ugcType" value={type.id} checked={active}
-                  onChange={e => setUgcType(e.target.value)} disabled={isLoading}
-                  style={{ accentColor: 'var(--ink)', width: 16, height: 16, flexShrink: 0 }} />
-                <div style={{ flex: 1 }}>
-                  <p style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)', margin: 0, letterSpacing: '-0.01em' }}>{type.name}</p>
-                  <p style={{ fontSize: '12.5px', color: 'var(--ink-dim)', margin: '3px 0 0', lineHeight: 1.45 }}>{type.description}</p>
-                </div>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: '11.5px', color: 'var(--ink-mute)', flexShrink: 0 }}>{typeCredits} cr</span>
-              </label>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* 2 — Format (tier + duration) */}
-      {includesVideo && (
-        <section className="card">
-          <div className="section-step-head">
-            <span className="step-circle">2</span>
-            <h3>Format</h3>
-          </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
             {(Object.keys(TIERS) as UGCTier[]).map(key => {
@@ -376,14 +368,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               </div>
             )
           })}
-        </section>
-      )}
+      </section>
 
-      {/* Product fields */}
-      {/* 3 — Your product */}
+      {/* 2 — Your product */}
       <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div className="section-step-head" style={{ marginBottom: 0 }}>
-          <span className="step-circle">3</span>
+          <span className="step-circle">2</span>
           <h3>Your product</h3>
         </div>
 
@@ -518,13 +508,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
       </section>
 
-      {/* 4 — Character + voice */}
-      {(ugcType === 'video-with-voiceover' || ugcType === 'all') && (
-        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div className="section-step-head" style={{ marginBottom: 0 }}>
-            <span className="step-circle">4</span>
-            <h3>Character &amp; setting</h3>
-          </div>
+      {/* 3 — Character + voice */}
+      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div className="section-step-head" style={{ marginBottom: 0 }}>
+          <span className="step-circle">3</span>
+          <h3>Character &amp; setting</h3>
+        </div>
 
           <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.5 }}>
             Sora generates a hyper-realistic AI character holding your real product.
@@ -546,28 +535,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             <p style={{ fontSize: '12px', color: 'var(--ink-dim)', margin: '4px 0 0' }}>
               ✦ Standard uses Sora&apos;s native AI voice. Switch to Hero above for branded voice control.
             </p>
-          )}
-        </section>
-      )}
+        )}
+      </section>
 
-      {/* 5 — Customize (image style + custom instructions) */}
+      {/* 4 — Customize */}
       <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="section-step-head" style={{ marginBottom: 0 }}>
-          <span className="step-circle">5</span>
+          <span className="step-circle">4</span>
           <h3>Customize</h3>
         </div>
-
-        {(ugcType === 'image-with-voiceover' || ugcType === 'all') && (
-          <div className="form-row">
-            <label className="form-label">Image style</label>
-            <select className="select" value={style} onChange={e => setStyle(e.target.value)} disabled={isLoading}>
-              <option value="realistic">Realistic</option>
-              <option value="artistic">Artistic</option>
-              <option value="professional">Professional</option>
-              <option value="minimalist">Minimalist</option>
-            </select>
-          </div>
-        )}
 
         <div className="form-row">
           <label className="form-label">Custom instructions <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional)</span></label>
@@ -590,12 +566,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {/* 6 — Cost summary + generate */}
       <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
         <div className="section-step-head" style={{ marginBottom: 0 }}>
-          <span className="step-circle">6</span>
+          <span className="step-circle">5</span>
           <h3>Ready when you are</h3>
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', borderBottom: '1px solid var(--border-soft)' }}>
-          <span style={{ fontSize: 13, color: 'var(--ink-dim)' }}>Cost{includesVideo ? ` · ${tierCfg.label}` : ''}</span>
+          <span style={{ fontSize: 13, color: 'var(--ink-dim)' }}>Cost · {tierCfg.label}</span>
           <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em' }}>{totalCredits} <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>cr</span></span>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink-mute)' }}>
@@ -607,7 +583,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
         <button type="submit" disabled={!canGenerate || isLoading || hooksLoading} className="btn btn-primary"
           style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11 }}>
-          {isLoading ? 'Generating…' : hooksLoading ? 'Writing hooks…' : includesVideo ? 'Preview hooks → generate' : 'Generate UGC Package'}
+          {isLoading ? 'Generating…' : hooksLoading ? 'Writing hooks…' : 'Preview hooks → generate'}
         </button>
 
         {hooksError && (

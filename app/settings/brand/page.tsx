@@ -13,10 +13,12 @@ import { getSupabase } from '@/lib/auth'
 //   brand_mission     → Default call to action
 //   target_audience   → Audience (used as context by Claude)
 //   tone_of_voice     → Voice (used as context by Claude)
+//   logo_url          → Product image (Supabase public URL — repurposed)
 
 export default function BrandSettingsPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [success, setSuccess] = useState('')
   const [error, setError] = useState('')
   const [exists, setExists] = useState(false)
@@ -28,6 +30,7 @@ export default function BrandSettingsPage() {
     defaultCta: 'Try it today',
     targetAudience: '',
     toneOfVoice: '',
+    productImageUrl: '',
   })
 
   useEffect(() => {
@@ -40,7 +43,7 @@ export default function BrandSettingsPage() {
         if (!userData.user) return
         const { data } = await supabase
           .from('brand_profiles')
-          .select('company_name, description, unique_value_prop, brand_mission, target_audience, tone_of_voice')
+          .select('company_name, description, unique_value_prop, brand_mission, target_audience, tone_of_voice, logo_url')
           .eq('user_id', userData.user.id)
           .maybeSingle()
         if (cancelled) return
@@ -53,6 +56,7 @@ export default function BrandSettingsPage() {
             defaultCta: data.brand_mission ?? 'Try it today',
             targetAudience: data.target_audience ?? '',
             toneOfVoice: data.tone_of_voice ?? '',
+            productImageUrl: data.logo_url ?? '',
           })
         }
       } finally {
@@ -61,6 +65,36 @@ export default function BrandSettingsPage() {
     })()
     return () => { cancelled = true }
   }, [])
+
+  // Upload product image to Supabase storage and store the public URL in
+  // brand_profiles.logo_url. Same bucket the UGC pipeline uses, separate prefix.
+  async function uploadProductImage(file: File) {
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be under 5MB')
+      return
+    }
+    setUploading(true)
+    setError('')
+    try {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error('Supabase not available')
+      const { data: userData } = await supabase.auth.getUser()
+      if (!userData.user) throw new Error('Not authenticated')
+
+      const ext = file.name.split('.').pop() || 'png'
+      const filename = `brand/${userData.user.id}-${Date.now()}.${ext}`
+      const { error: upErr } = await supabase.storage
+        .from('ugc-assets')
+        .upload(filename, file, { contentType: file.type, upsert: true })
+      if (upErr) throw new Error(upErr.message)
+      const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+      setForm(prev => ({ ...prev, productImageUrl: publicUrl }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload failed')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   function update<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -89,6 +123,7 @@ export default function BrandSettingsPage() {
         brand_mission: form.defaultCta.trim() || 'Try it today',
         target_audience: form.targetAudience.trim(),
         tone_of_voice: form.toneOfVoice.trim(),
+        logo_url: form.productImageUrl || null,
       }
 
       const res = await fetch('/api/brand/save', {
@@ -152,6 +187,64 @@ export default function BrandSettingsPage() {
           <div className="section-step-head" style={{ marginBottom: 0 }}>
             <span className="step-circle">1</span>
             <h3>Your product</h3>
+          </div>
+
+          {/* Product image uploader */}
+          <div className="form-row">
+            <label className="form-label">Product photo</label>
+            <p className="help">The UGC builder uses this image as the first frame seed. Set it once here.</p>
+            {form.productImageUrl ? (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                padding: '10px 14px', borderRadius: 12,
+                background: 'var(--bg-elev)', border: '1px solid var(--border)',
+              }}>
+                <img src={form.productImageUrl} alt="Product"
+                  style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Image saved</p>
+                  <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '2px 0 0' }}>Click below to replace.</p>
+                </div>
+                <label style={{
+                  padding: '8px 14px', borderRadius: 9,
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  Replace
+                  <input type="file" accept="image/jpeg,image/png,image/webp"
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadProductImage(f) }}
+                    disabled={uploading || saving}
+                    style={{ display: 'none' }} />
+                </label>
+                <button type="button" onClick={() => update('productImageUrl', '')}
+                  disabled={saving}
+                  style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', fontSize: 22, lineHeight: 1, cursor: 'pointer', padding: '0 4px' }}>
+                  ×
+                </button>
+              </div>
+            ) : (
+              <label style={{
+                display: 'flex', alignItems: 'center', gap: 14,
+                padding: '14px 16px', borderRadius: 12,
+                border: '1.5px dashed var(--border-strong)',
+                background: 'var(--bg-elev)',
+                cursor: uploading ? 'wait' : 'pointer',
+              }}>
+                <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>
+                    {uploading ? 'Uploading…' : 'Drop your product photo'}
+                  </p>
+                  <p style={{ fontSize: 11, color: 'var(--ink-mute)', margin: '2px 0 0', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>PNG · JPG · WEBP · ≤ 5MB</p>
+                </div>
+                <input type="file" accept="image/jpeg,image/png,image/webp"
+                  onChange={e => { const f = e.target.files?.[0]; if (f) uploadProductImage(f) }}
+                  disabled={uploading || saving}
+                  style={{ display: 'none' }} />
+              </label>
+            )}
           </div>
 
           <div className="form-row">
