@@ -66,8 +66,11 @@ export default function BrandSettingsPage() {
     return () => { cancelled = true }
   }, [])
 
-  // Upload product image to Supabase storage and store the public URL in
-  // brand_profiles.logo_url. Same bucket the UGC pipeline uses, separate prefix.
+  // Upload product image via the server route so we bypass the bucket RLS
+  // policy (storage.objects rejects writes from the client's session token —
+  // only the service-role key on the server can insert). The route returns
+  // the public URL, which we save into form.productImageUrl and persist to
+  // brand_profiles.logo_url on the next "Save".
   async function uploadProductImage(file: File) {
     if (file.size > 5 * 1024 * 1024) {
       setError('Image must be under 5MB')
@@ -78,17 +81,23 @@ export default function BrandSettingsPage() {
     try {
       const supabase = getSupabase()
       if (!supabase) throw new Error('Supabase not available')
-      const { data: userData } = await supabase.auth.getUser()
-      if (!userData.user) throw new Error('Not authenticated')
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
 
-      const ext = file.name.split('.').pop() || 'png'
-      const filename = `brand/${userData.user.id}-${Date.now()}.${ext}`
-      const { error: upErr } = await supabase.storage
-        .from('ugc-assets')
-        .upload(filename, file, { contentType: file.type, upsert: true })
-      if (upErr) throw new Error(upErr.message)
-      const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-      setForm(prev => ({ ...prev, productImageUrl: publicUrl }))
+      const fd = new FormData()
+      fd.append('file', file)
+
+      const res = await fetch('/api/brand/upload-image', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      if (!data.url) throw new Error('No URL returned')
+
+      setForm(prev => ({ ...prev, productImageUrl: data.url }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Upload failed')
     } finally {
