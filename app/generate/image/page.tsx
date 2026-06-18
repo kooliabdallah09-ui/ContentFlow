@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { Loader2, Download } from 'lucide-react'
+import { Loader2, Download, Image as ImageIcon, X } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
 
 // Editorial image generator matching the Claude Design export.
@@ -37,6 +37,21 @@ export default function ImageGeneratorPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [creditBalance, setCreditBalance] = useState(0)
+  // Reference image — optional. When set, the API runs Nano Banana 2 image-to-image
+  // so the user's photo (e.g. their actual product) carries through to the output.
+  const [reference, setReference] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
+
+  function pickReference(file: File | null) {
+    if (!file) { setReference(null); return }
+    if (file.size > 5 * 1024 * 1024) { setError('Reference image must be under 5MB'); return }
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const result = ev.target?.result as string
+      const base64 = result.split(',')[1] ?? ''
+      setReference({ base64, mimeType: file.type, preview: result })
+    }
+    reader.readAsDataURL(file)
+  }
 
   useEffect(() => {
     let cancelled = false
@@ -73,7 +88,15 @@ export default function ImageGeneratorPage() {
       const res = await fetch('/api/content/generate/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ prompt: prompt.trim(), style, size, quantity: count }),
+        body: JSON.stringify({
+          prompt: prompt.trim(),
+          style,
+          ratio,
+          size,
+          quantity: count,
+          referenceImageBase64: reference?.base64,
+          referenceImageMimeType: reference?.mimeType,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Generation failed')
@@ -128,6 +151,47 @@ export default function ImageGeneratorPage() {
             color: 'var(--ink)', padding: '4px 2px',
           }}
         />
+
+        {/* Reference image — optional */}
+        {reference ? (
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '8px 12px', borderRadius: 12,
+            background: 'var(--bg-elev)', border: '1px solid var(--border)',
+          }}>
+            <img src={reference.preview} alt="reference"
+              style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Reference image attached</p>
+              <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '2px 0 0' }}>Nano Banana will preserve this subject in the output.</p>
+            </div>
+            <button type="button" onClick={() => setReference(null)} disabled={loading}
+              aria-label="Remove reference"
+              style={{
+                background: 'transparent', border: 'none',
+                color: 'var(--ink-mute)', cursor: 'pointer',
+                padding: 4, display: 'flex',
+              }}>
+              <X size={16} />
+            </button>
+          </div>
+        ) : (
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '10px 14px', borderRadius: 12,
+            border: '1.5px dashed var(--border-strong)', background: 'var(--bg-elev)',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            color: 'var(--ink-mute)', fontSize: 13,
+            alignSelf: 'flex-start',
+          }}>
+            <ImageIcon size={16} />
+            <span>Add a reference image <span style={{ color: 'var(--ink-faint)', fontSize: 11.5, marginLeft: 4 }}>(optional)</span></span>
+            <input type="file" accept="image/jpeg,image/png,image/webp"
+              onChange={e => pickReference(e.target.files?.[0] ?? null)}
+              disabled={loading}
+              style={{ display: 'none' }} />
+          </label>
+        )}
 
         {/* Style chips */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

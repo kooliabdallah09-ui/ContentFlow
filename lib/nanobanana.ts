@@ -91,6 +91,40 @@ export async function generateTextToImage(prompt: string): Promise<NanoBananaRes
   return callNanoBanana(wrapped)
 }
 
+// Generic image generator for /generate/image. Accepts an optional reference
+// image — when present, Nano Banana 2 runs image-to-image (preserves product,
+// composition, etc. from the reference). When absent, it's pure text-to-image.
+// Style + ratio hints get baked into the prompt so the user's chip selection
+// actually influences the output.
+export async function generateNanoBananaImage(
+  prompt: string,
+  options: {
+    style?: 'realistic' | 'artistic' | 'professional' | 'minimalist'
+    ratio?: '1:1' | '4:5' | '9:16' | '16:9'
+    referenceImageBase64?: string
+    referenceImageMimeType?: string
+  } = {},
+): Promise<NanoBananaResult> {
+  const styleHint =
+    options.style === 'artistic'     ? 'Lifestyle shot — natural, candid, environment visible, soft daylight, hand-held feel.' :
+    options.style === 'professional' ? 'Studio product photograph — clean seamless background, controlled directional lighting, sharp focus on the subject, slight reflection or shadow on the surface.' :
+    options.style === 'minimalist'   ? 'Flat-lay overhead composition — neutral surface, subject centered, balanced negative space, soft even lighting, top-down angle.' :
+                                       'Hyper-realistic product photograph — soft natural lighting, real surface texture, slight depth-of-field, no commercial gloss or AI gloss.'
+
+  const ratioHint =
+    options.ratio === '4:5'  ? 'Portrait 4:5 framing.' :
+    options.ratio === '9:16' ? 'Vertical 9:16 framing.' :
+    options.ratio === '16:9' ? 'Wide 16:9 framing.' :
+                               'Square 1:1 framing.'
+
+  const refHint = options.referenceImageBase64
+    ? '\n\nUse the attached reference image as the EXACT subject — preserve packaging, label text, colours, shape and proportions exactly. Apply the prompt as the scene + styling around the subject; do NOT redesign the subject itself.'
+    : ''
+
+  const composed = `${prompt}\n\n${styleHint} ${ratioHint}${refHint}`
+  return callNanoBanana(composed, options.referenceImageBase64, options.referenceImageMimeType)
+}
+
 // Generate a B-roll action frame showing a SPECIFIC application action mid-motion.
 // Used as the start_image for Kling image-to-video — Kling extends the action forward.
 // Two beats per video: actionBeat='application' (the using moment), actionBeat='reaction'
