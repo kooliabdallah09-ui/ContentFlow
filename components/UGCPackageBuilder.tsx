@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import CharacterBuilder, { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
 import {
   TIERS,
@@ -78,10 +78,77 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
+  // Brand profile — loaded once on mount. When the user toggles `useBrand` on,
+  // we pre-fill the 4 product fields from this profile (and lock them with a
+  // visual cue). Toggling off restores manual entry.
+  interface BrandProfile {
+    productName: string
+    description: string
+    keyBenefits: string
+    defaultCta: string
+  }
+  const [brand, setBrand] = useState<BrandProfile | null>(null)
+  const [useBrand, setUseBrand] = useState(false)
+
   // Hook-preview stage
   const [hooks, setHooks] = useState<HookVariant[] | null>(null)
   const [hooksLoading, setHooksLoading] = useState(false)
   const [hooksError, setHooksError] = useState<string | null>(null)
+
+  // Load the user's brand profile once. If they have a meaningful one
+  // (product name present), default the toggle to ON so the form pre-fills.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const supabase = getSupabase()
+        if (!supabase) return
+        const { data: sess } = await supabase.auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const res = await fetch('/api/brand/load', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        const data = await res.json()
+        if (cancelled) return
+        const p = data?.profile
+        if (p && p.company_name) {
+          const profile: BrandProfile = {
+            productName: p.company_name ?? '',
+            description: p.description ?? '',
+            keyBenefits: p.unique_value_prop ?? '',
+            defaultCta: p.brand_mission ?? 'Try it today',
+          }
+          setBrand(profile)
+          // Auto-fill on first load — user can opt out.
+          setUseBrand(true)
+          setProductName(profile.productName)
+          setProductDescription(profile.description)
+          setBenefits(profile.keyBenefits)
+          setCallToAction(profile.defaultCta)
+        }
+      } catch {
+        // brand load is non-critical — silent failure is fine
+      }
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  // When the user flips the toggle, sync the form fields accordingly.
+  function toggleUseBrand(next: boolean) {
+    setUseBrand(next)
+    if (next && brand) {
+      setProductName(brand.productName)
+      setProductDescription(brand.description)
+      setBenefits(brand.keyBenefits)
+      setCallToAction(brand.defaultCta)
+    } else if (!next) {
+      setProductName('')
+      setProductDescription('')
+      setBenefits('')
+      setCallToAction('Try it today')
+    }
+  }
 
   const tierCfg = TIERS[tier]
   const includesVideo = ugcType === 'video-with-voiceover' || ugcType === 'all'
@@ -319,29 +386,71 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <span className="step-circle">3</span>
           <h3>Your product</h3>
         </div>
+
+        {/* Brand profile toggle — only render when a brand profile actually exists.
+            On = pre-fills the 4 fields from /settings/brand. Off = manual entry. */}
+        {brand && (
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: 12,
+            padding: '12px 14px', borderRadius: 11,
+            background: useBrand ? 'var(--ink)' : 'var(--surface-2)',
+            border: `1px solid ${useBrand ? 'var(--ink)' : 'var(--border)'}`,
+            color: useBrand ? '#fff' : 'var(--ink)',
+            cursor: 'pointer', transition: 'all 0.15s',
+          }}>
+            <span style={{
+              position: 'relative', flexShrink: 0,
+              width: 32, height: 18, borderRadius: 99,
+              background: useBrand ? 'rgba(255,255,255,0.25)' : 'var(--border-strong)',
+              transition: 'background 0.15s',
+            }}>
+              <span style={{
+                position: 'absolute', top: 2, left: useBrand ? 16 : 2,
+                width: 14, height: 14, borderRadius: '50%',
+                background: '#fff', transition: 'left 0.15s',
+              }} />
+            </span>
+            <input type="checkbox" checked={useBrand} onChange={e => toggleUseBrand(e.target.checked)}
+              disabled={isLoading}
+              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em' }}>
+                Use my brand profile
+              </div>
+              <div style={{
+                fontSize: 11.5,
+                color: useBrand ? 'rgba(255,255,255,0.7)' : 'var(--ink-mute)',
+                marginTop: 2,
+              }}>
+                {useBrand ? `Pre-filled with “${brand.productName}”` : 'Or fill the fields manually below'}
+              </div>
+            </div>
+          </label>
+        )}
+
         <div className="form-row">
           <label className="form-label">Product name</label>
-          <input className="input" value={productName} onChange={e => setProductName(e.target.value)}
+          <input className="input" value={productName} onChange={e => { setProductName(e.target.value); if (useBrand) setUseBrand(false) }}
             placeholder="e.g. ContentFlow" disabled={isLoading} />
         </div>
 
         <div className="form-row">
           <label className="form-label">One-line description</label>
           <textarea className="textarea" rows={3} value={productDescription}
-            onChange={e => setProductDescription(e.target.value)}
+            onChange={e => { setProductDescription(e.target.value); if (useBrand) setUseBrand(false) }}
             placeholder="What it is and who it's for, in a sentence." disabled={isLoading} />
         </div>
 
         <div className="form-row">
           <label className="form-label">Key benefits</label>
           <textarea className="textarea" rows={3} value={benefits}
-            onChange={e => setBenefits(e.target.value)}
+            onChange={e => { setBenefits(e.target.value); if (useBrand) setUseBrand(false) }}
             placeholder="Save time · ships to all platforms · AI-powered" disabled={isLoading} />
         </div>
 
         <div className="form-row">
           <label className="form-label">Call to action</label>
-          <input className="input" value={callToAction} onChange={e => setCallToAction(e.target.value)}
+          <input className="input" value={callToAction} onChange={e => { setCallToAction(e.target.value); if (useBrand) setUseBrand(false) }}
             placeholder="e.g. Try it free today" disabled={isLoading} />
         </div>
 

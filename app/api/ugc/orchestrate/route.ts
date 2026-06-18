@@ -287,9 +287,41 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { ugcType, productName, productDescription, benefits, callToAction, style = 'realistic', imageSize = '1024x1024', avatarId, voiceId, productImageBase64, productImageMimeType, selectedHook, avatarGender, character: characterFromForm, customInstructions } = body
     // Sanity-cap custom instructions to prevent prompt-injection abuse via giant payloads.
-    const safeCustomInstructions = typeof customInstructions === 'string'
+    let safeCustomInstructions = typeof customInstructions === 'string'
       ? customInstructions.slice(0, 1500).trim() || undefined
       : undefined
+
+    // Pull the user's brand profile so audience + tone get baked into the script.
+    // Product name / description / benefits / CTA come from the form payload directly
+    // (the UGC builder pre-fills them when "Use my brand profile" is on). This block
+    // adds the bonus brand context that the form doesn't ask for.
+    try {
+      const { data: brand } = await supabase
+        .from('brand_profiles')
+        .select('target_audience, tone_of_voice')
+        .eq('user_id', userId)
+        .maybeSingle()
+      const audience = brand?.target_audience?.trim()
+      const tone = brand?.tone_of_voice?.trim()
+      if (audience || tone) {
+        const brandLines = [
+          audience ? `Target audience: ${audience}` : '',
+          tone ? `Tone of voice: ${tone}` : '',
+        ].filter(Boolean).join('\n')
+        // Prepend brand context to customInstructions so Claude treats it as priority
+        // but the user's explicit instructions (if any) still override on conflict.
+        safeCustomInstructions = safeCustomInstructions
+          ? `${brandLines}\n\n${safeCustomInstructions}`
+          : brandLines
+        // Re-cap to 1500 chars after merging.
+        if (safeCustomInstructions.length > 1500) {
+          safeCustomInstructions = safeCustomInstructions.slice(0, 1500)
+        }
+      }
+    } catch {
+      // Brand profile load failures are non-fatal — generation still proceeds.
+    }
+
     const character: CharacterProfile | undefined = characterFromForm
     const rawTier = (body.tier as UGCTier | undefined) ?? DEFAULT_TIER
     const tier: UGCTier = TIERS[rawTier]?.available ? rawTier : DEFAULT_TIER
