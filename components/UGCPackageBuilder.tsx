@@ -444,27 +444,6 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             placeholder="e.g. Try it free today" disabled={isLoading} />
         </div>
 
-        <div className="form-row">
-          <label className="form-label">
-            Custom Instructions{' '}
-            <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>(optional)</span>
-          </label>
-          <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '0 0 8px', lineHeight: 1.5 }}>
-            Anything specific you want the AI to do — paste your own script, set a tone, mention an offer, target an audience. The AI will respect this over its defaults.
-          </p>
-          <textarea
-            className="input"
-            value={customInstructions}
-            onChange={e => setCustomInstructions(e.target.value.slice(0, 1500))}
-            disabled={isLoading}
-            rows={4}
-            placeholder={'Examples:\n• Use this script: "Three drops, every morning. That\'s it."\n• Make it sound like a college student\n• Mention the 30% launch discount\n• Target busy moms in their 30s'}
-            style={{ resize: 'vertical', fontFamily: 'inherit', minHeight: '80px' }}
-          />
-          <p style={{ fontSize: '10px', color: 'var(--ink-dim)', textAlign: 'right', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
-            {customInstructions.length} / 1500
-          </p>
-        </div>
 
         <div className="form-row">
           <label className="form-label">Product photo <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(required)</span></label>
