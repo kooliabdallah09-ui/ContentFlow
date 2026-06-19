@@ -22,11 +22,16 @@ function calcElevenLabsCredits(charCount: number): number {
   return Math.max(EL_MIN_CREDITS, Math.ceil(charCount / EL_CHAR_BLOCK) * EL_CREDITS_PER_BLOCK)
 }
 
+// ElevenLabs PUBLIC library voices — available on any ElevenLabs account,
+// including the one Replicate uses internally. Don't use private voice IDs
+// from a personal ElevenLabs account here — those will 404 via Replicate.
 const VOICES = [
-  { id: 's3TPKV1kjDlVtZbl4Ksh', label: 'Adam',   sub: 'Engaging & friendly',    gender: 'M', provider: 'elevenlabs' as const },
-  { id: 'UaYTS0wayjmO9KD1LR4R', label: 'Asher',  sub: 'Confident & charismatic', gender: 'M', provider: 'elevenlabs' as const },
-  { id: 'uYXf8XasLslADfZ2MB4u', label: 'Hope',   sub: 'Bubbly & vibrant',        gender: 'F', provider: 'elevenlabs' as const },
-  { id: 'cVd39cx0VtXNC13y5Y7z', label: 'Hope 2', sub: 'Warm & innocent',         gender: 'F', provider: 'elevenlabs' as const },
+  { id: 'Adam',    label: 'Adam',    sub: 'Deep, narrative',         gender: 'M', provider: 'elevenlabs' as const },
+  { id: 'Antoni',  label: 'Antoni',  sub: 'Warm, well-rounded',      gender: 'M', provider: 'elevenlabs' as const },
+  { id: 'Josh',    label: 'Josh',    sub: 'Young, energetic',        gender: 'M', provider: 'elevenlabs' as const },
+  { id: 'Rachel',  label: 'Rachel',  sub: 'Calm, conversational',    gender: 'F', provider: 'elevenlabs' as const },
+  { id: 'Bella',   label: 'Bella',   sub: 'Soft, friendly',          gender: 'F', provider: 'elevenlabs' as const },
+  { id: 'Elli',    label: 'Elli',    sub: 'Bright, expressive',      gender: 'F', provider: 'elevenlabs' as const },
   { id: 'openai:nova',    label: 'Nova',    sub: 'Bright & energetic',    gender: 'F', provider: 'openai' as const },
   { id: 'openai:shimmer', label: 'Shimmer', sub: 'Warm & friendly',       gender: 'F', provider: 'openai' as const },
   { id: 'openai:onyx',    label: 'Onyx',    sub: 'Deep & authoritative',  gender: 'M', provider: 'openai' as const },

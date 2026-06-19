@@ -53,24 +53,16 @@ export async function generateSpeech(text: string, voiceId: string): Promise<Buf
   }
 
   // ElevenLabs voice — prefer Replicate (no separate key needed), fall back to
-  // direct ElevenLabs API, then finally OpenAI nova so generation never hard-fails.
+  // direct ElevenLabs API if configured. Do NOT silently fall back to OpenAI
+  // here: if the user picked Adam and we'd return Nova, the audio would be
+  // wrong but the UI would still say "Adam". Surfacing the error is better.
   if (process.env.REPLICATE_API_TOKEN) {
-    try {
-      return await generateElevenLabsViaReplicate(text, voiceId)
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown'
-      console.warn(`[tts] Replicate ElevenLabs failed (${reason}) — trying direct ElevenLabs API`)
-    }
+    return await generateElevenLabsViaReplicate(text, voiceId)
   }
 
   if (process.env.ELEVENLABS_API_KEY) {
-    try {
-      return await generateElevenLabsSpeech(text, voiceId)
-    } catch (err) {
-      const reason = err instanceof Error ? err.message : 'unknown'
-      console.warn(`[tts] ElevenLabs direct API failed (${reason}) — falling back to OpenAI TTS '${DEFAULT_OPENAI_VOICE}'`)
-    }
+    return await generateElevenLabsSpeech(text, voiceId)
   }
 
-  return generateOpenAISpeech(text, DEFAULT_OPENAI_VOICE)
+  throw new Error('ElevenLabs unavailable: set REPLICATE_API_TOKEN or ELEVENLABS_API_KEY')
 }
