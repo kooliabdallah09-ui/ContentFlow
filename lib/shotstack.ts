@@ -9,6 +9,7 @@ const SHOTSTACK_BASE = process.env.SHOTSTACK_ENV === 'production'
 export async function submitStitchJob({
   talkingHeadUrl,
   talkingHeadDuration,
+  additionalTalkingHeadUrls,
   broll1Url,
   broll2Url,
   audioOverlayUrl,
@@ -18,7 +19,8 @@ export async function submitStitchJob({
   aspect,
 }: {
   talkingHeadUrl: string
-  talkingHeadDuration?: number  // seconds; used to position B-roll2 and chunk captions
+  talkingHeadDuration?: number  // seconds of EACH talking-head clip (used to position and concat)
+  additionalTalkingHeadUrls?: string[]  // Chained Kling clips — concatenated after primary on same track
   broll1Url?: string
   broll2Url?: string
   audioOverlayUrl?: string      // Hero tier: ElevenLabs/OpenAI voice — mutes talking-head audio
@@ -42,8 +44,12 @@ export async function submitStitchJob({
   //   3. audio overlay if Hero tier
   //   4. captions
   //   5. watermark (if free)
+  // Per-clip length (talkingHeadDuration is the length of each individual Kling clip).
+  // Total length = clipCount * perClip, used for caption distribution + overlays.
   const talkingHeadStart = 0
-  const talkingHeadLength = talkingHeadDuration && talkingHeadDuration > 0 ? talkingHeadDuration : 12
+  const perClipLength = talkingHeadDuration && talkingHeadDuration > 0 ? talkingHeadDuration : 12
+  const allTalkingHeadUrls = [talkingHeadUrl, ...(additionalTalkingHeadUrls ?? [])]
+  const talkingHeadLength = perClipLength * allTalkingHeadUrls.length
   const talkingHeadEnd = talkingHeadStart + talkingHeadLength
 
   // Pick when each B-roll cuts in. Avoid the first second (let the hook land) and
@@ -64,19 +70,20 @@ export async function submitStitchJob({
     brollSlots.push({ url: broll2Url, start: talkingHeadLength * 0.65, length })
   }
 
-  // === Track 1 (bottom): talking head — plays uninterrupted with audio ===
-  const talkingHeadClip = {
+  // === Track 1 (bottom): talking head clip(s) — concatenated sequentially with audio ===
+  // For chained Kling clips, each clip gets its own slot on the same track.
+  const talkingHeadClips = allTalkingHeadUrls.map((src, i) => ({
     asset: {
       type: 'video',
-      src: talkingHeadUrl,
+      src,
       volume: audioOverlayUrl ? 0 : 1,
     },
-    start: talkingHeadStart,
-    length: talkingHeadLength,
+    start: talkingHeadStart + perClipLength * i,
+    length: perClipLength,
     fit: 'cover',
-  }
+  }))
 
-  const tracks: Record<string, unknown>[] = [{ clips: [talkingHeadClip] }]
+  const tracks: Record<string, unknown>[] = [{ clips: talkingHeadClips }]
 
   // === Track 2: B-roll cutaways (visual-only overlay) ===
   // Muted so the talking-head audio (or overlay) carries through unchanged.

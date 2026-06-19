@@ -109,8 +109,10 @@ export async function POST(request: NextRequest) {
     }
     const { data: { publicUrl: referenceImageUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
 
-    // Submit to Sora — caps each clip at soraSeconds (4/8/12).
-    const soraSeconds = dCfg.soraSeconds
+    // Standalone video page is still on Sora 2 (only the UGC pipeline migrated to Kling).
+    // Map the new Kling duration buckets to Sora's native 4/8/12s slots.
+    const klingSec = dCfg.klingSeconds
+    const soraSeconds: 4 | 8 | 12 = klingSec <= 5 ? 4 : klingSec <= 10 ? 8 : 12
     const { videoId } = await submitSoraJob({
       prompt,
       referenceImageUrl,

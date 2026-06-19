@@ -6,10 +6,12 @@ import { useState, useEffect, useRef } from 'react'
 interface VideoComponent {
   videoId?: string
   videoUrl?: string
+  videoUrls?: string[]                       // Chained Kling clips, in order. Length 1 normally, 2 for 20s.
   status: 'processing' | 'completed' | 'failed'
   estimatedDuration?: number
-  duration?: number
-  provider?: 'heygen' | 'sora-2'
+  duration?: number                           // TOTAL video duration (sum of all clips)
+  provider?: 'heygen' | 'sora-2' | 'kling-v3-omni'
+  chainedIds?: string[]                       // Additional Kling prediction ids to poll alongside videoId
   error?: string  // Surfaced when the A-roll generation fails — content policy, billing, etc.
 }
 
@@ -70,6 +72,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         if (video?.videoId && video.status === 'processing') {
           params.set('videoId', video.videoId)
           if (video.provider) params.set('provider', video.provider)
+          if (video.chainedIds?.length) params.set('chainedIds', video.chainedIds.join(','))
         }
         const processingBrolls = brolls.filter(b => b.status === 'processing')
         if (processingBrolls.length) params.set('brollTaskIds', processingBrolls.map(b => b.taskId).join(','))
@@ -80,7 +83,14 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         if (data.video) {
           const v = data.video
           if (v.status === 'completed' || v.status === 'failed') {
-            setVideo(prev => prev ? { ...prev, status: v.status, videoUrl: v.videoUrl, duration: v.duration, error: v.error } : prev)
+            setVideo(prev => prev ? {
+              ...prev,
+              status: v.status,
+              videoUrl: v.videoUrl,
+              videoUrls: v.videoUrls,
+              duration: v.duration ?? prev.duration,
+              error: v.error,
+            } : prev)
           }
         }
 
@@ -115,19 +125,21 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     stitchStartedRef.current = true
     setStitchStatus('stitching')
 
-    // Pass the talking-head duration so the stitcher knows exactly how long to play
-    // each clip and where to chunk captions. Sora returns clips at the requested
-    // length (4/8/12s native), so orchestrate writes the user-chosen duration into
-    // video.duration. Never fall back to the word-count estimate — it was 7-12s off
-    // and caused frozen-frame tails after the Sora clip ended.
-    const talkingHeadDuration = video.duration ?? video.estimatedDuration ?? 8
+    // For Kling v3 omni: videoUrls holds all chained clips in order; videoUrl is primary.
+    // Per-clip length = total / clipCount. Falls back to legacy single-clip behavior for Sora/Heygen.
+    const allUrls = video.videoUrls?.length ? video.videoUrls : [video.videoUrl]
+    const totalDuration = video.duration ?? video.estimatedDuration ?? 10
+    const clipCount = allUrls.length
+    const perClipDuration = clipCount > 0 ? Math.round(totalDuration / clipCount) : totalDuration
+    const additionalTalkingHeadUrls = allUrls.slice(1).filter((u): u is string => !!u)
 
     fetch('/api/ugc/stitch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         talkingHeadUrl: video.videoUrl,
-        talkingHeadDuration,
+        talkingHeadDuration: perClipDuration,
+        additionalTalkingHeadUrls: additionalTalkingHeadUrls.length ? additionalTalkingHeadUrls : undefined,
         broll1Url: broll1,
         broll2Url: broll2,
         audioOverlayUrl,

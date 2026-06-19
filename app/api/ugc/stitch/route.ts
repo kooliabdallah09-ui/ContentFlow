@@ -1,30 +1,37 @@
 import * as creatomate from '@/lib/creatomate'
 import * as shotstack from '@/lib/shotstack'
 import { transcribeWithTimestamps, buildSyncedCaptionChunks } from '@/lib/whisper'
-import { runLipsync } from '@/lib/replicate'
 import { PLAN_CONFIG, type PlanTier } from '@/lib/planConfig'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Lipsync (sync/lipsync-2 on Replicate) can take 60-150s on 12s clips.
-// Total stitch route can stretch to ~3min, so allow the full Vercel max.
-export const maxDuration = 300
+// Stitch route now only handles captions + watermark + (for chained 20s)
+// concatenation of multiple Kling clips. Kling v3 omni generates the talking
+// head WITH native audio so there's no lipsync pass, no separate voice track,
+// no B-roll overlays.
+export const maxDuration = 120
 
-// Dispatch: Shotstack is preferred when its key is present (cheaper + free tier).
-// Falls back to Creatomate. Render IDs are prefixed so polling routes to the right
-// provider regardless of which one created the render.
 const SHOTSTACK_PREFIX = 'shotstack:'
 
 function provider() {
   return process.env.SHOTSTACK_API_KEY ? 'shotstack' : 'creatomate'
 }
 
-async function submitStitchJob(input: Parameters<typeof creatomate.submitStitchJob>[0]) {
+async function submitStitchJob(input: Parameters<typeof shotstack.submitStitchJob>[0]) {
   if (provider() === 'shotstack') {
     const { renderId } = await shotstack.submitStitchJob(input)
     return { renderId: `${SHOTSTACK_PREFIX}${renderId}` }
   }
-  return creatomate.submitStitchJob(input)
+  // Creatomate doesn't support chained clips through this path — fall back to primary only.
+  return creatomate.submitStitchJob({
+    talkingHeadUrl: input.talkingHeadUrl,
+    talkingHeadDuration: input.talkingHeadDuration,
+    audioOverlayUrl: input.audioOverlayUrl,
+    spokenScript: input.spokenScript,
+    syncedCaptions: input.syncedCaptions,
+    watermark: input.watermark,
+    aspect: input.aspect,
+  })
 }
 
 async function getStitchStatus(renderId: string) {
@@ -34,9 +41,6 @@ async function getStitchStatus(renderId: string) {
   return creatomate.getStitchStatus(renderId)
 }
 
-// Look up the user's plan from Supabase so the watermark decision is server-trust.
-// Returns 'free' as a safe default if anything goes wrong — better to watermark
-// a paid user (annoying but recoverable) than to leak unwatermarked videos.
 async function getPlanWatermark(request: NextRequest): Promise<boolean> {
   const authHeader = request.headers.get('Authorization')
   if (!authHeader?.startsWith('Bearer ')) return true
@@ -63,39 +67,29 @@ async function getPlanWatermark(request: NextRequest): Promise<boolean> {
 
 export async function POST(request: NextRequest) {
   try {
-    const { talkingHeadUrl, talkingHeadDuration, broll1Url, broll2Url, audioOverlayUrl, spokenScript, language, aspect } = await request.json()
+    const {
+      talkingHeadUrl,
+      talkingHeadDuration,           // per-clip length (e.g. 15s for chained 20s pair)
+      additionalTalkingHeadUrls,     // extra chained Kling clips (length 1 for 20s, 0 otherwise)
+      spokenScript,
+      language,
+      aspect,
+    } = await request.json()
+
     if (!talkingHeadUrl) {
       return NextResponse.json({ error: 'Missing talkingHeadUrl' }, { status: 400 })
     }
 
     const watermark = await getPlanWatermark(request)
 
-    // Hero tier lipsync — remap Sora's mouth to the ElevenLabs voice so the
-    // branded voiceover actually matches the character's lips. If lipsync fails,
-    // fall back to the original Sora video (user gets the unsynced version
-    // rather than a hard failure).
-    let finalTalkingHeadUrl: string = talkingHeadUrl
-    if (audioOverlayUrl && process.env.REPLICATE_API_TOKEN) {
-      try {
-        finalTalkingHeadUrl = await runLipsync(talkingHeadUrl, audioOverlayUrl)
-      } catch (err) {
-        console.warn('[stitch] Lipsync failed, using unsynced Sora video:', err instanceof Error ? err.message : err)
-      }
-    }
-
-    // Transcribe with Whisper for true word-level caption sync. Cheap (~$0.0001/video).
-    // Audio source priority:
-    //   1. ElevenLabs/OpenAI TTS overlay (Hero tier) — that's the audio that'll play.
-    //   2. Otherwise the talking-head video — Whisper accepts mp4 directly.
-    // Falls back to the existing client-script chunking if Whisper throws.
+    // Whisper transcription for word-timed captions. Source is the first clip's
+    // audio (chained clips share the same script style; aligning across the full
+    // concat would need stitching the audio first — overkill for v1).
     let syncedCaptions: Array<{ text: string; start: number; end: number }> | undefined
     if (process.env.OPENAI_API_KEY) {
       try {
-        const transcribeUrl = audioOverlayUrl ?? talkingHeadUrl
         const langCode = typeof language === 'string' && language.length >= 2 ? language.slice(0, 2) : undefined
-        const { words } = await transcribeWithTimestamps(transcribeUrl, langCode)
-        // Talking head now starts at 0 (cutaway layout — B-rolls overlay mid-video,
-        // they don't push the talking head back), so caption offset is always 0.
+        const { words } = await transcribeWithTimestamps(talkingHeadUrl, langCode)
         syncedCaptions = buildSyncedCaptionChunks(words, { maxWords: 4, offsetSeconds: 0 })
       } catch (err) {
         console.warn('[stitch] Whisper transcription failed, falling back to script-based captions:', err instanceof Error ? err.message : err)
@@ -103,11 +97,9 @@ export async function POST(request: NextRequest) {
     }
 
     const { renderId } = await submitStitchJob({
-      talkingHeadUrl: finalTalkingHeadUrl,
+      talkingHeadUrl,
       talkingHeadDuration: typeof talkingHeadDuration === 'number' ? talkingHeadDuration : undefined,
-      broll1Url,
-      broll2Url,
-      audioOverlayUrl,
+      additionalTalkingHeadUrls: Array.isArray(additionalTalkingHeadUrls) ? additionalTalkingHeadUrls : undefined,
       spokenScript: typeof spokenScript === 'string' ? spokenScript : undefined,
       syncedCaptions,
       watermark,
