@@ -68,7 +68,8 @@ export async function generateElevenLabsViaReplicate(
     },
     body: JSON.stringify({
       input: {
-        text,
+        // Replicate's elevenlabs/turbo-v2.5 schema uses `prompt`, not `text`.
+        prompt: text,
         voice: voiceId,
         stability: 0.45,
         similarity_boost: 0.75,
