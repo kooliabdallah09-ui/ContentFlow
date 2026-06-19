@@ -68,7 +68,7 @@ export const TIERS: Record<UGCTier, TierConfig> = {
   hero: {
     label: 'Hero',
     tagline: 'Branded voice',
-    description: 'Sora 2 with your real product, your branded voice overlay (OpenAI TTS or ElevenLabs), action B-rolls + captions.',
+    description: 'Sora 2 with your real product, your branded ElevenLabs voice lip-synced to the character, action B-rolls + captions.',
     aRollProvider: 'sora-2',
     useElevenLabs: true,
     maxBrolls: 2,
@@ -89,7 +89,9 @@ export const DEFAULT_DURATION: UGCDuration = 8
 //   PER_SECOND_FILL: each second of extended B-roll fill on extended durations.
 //   CHAINED_OVERHEAD_PER_CLIP: per additional Sora call when chaining.
 const BASE_FIXED = 12
-const HERO_PREMIUM = 20
+// Hero premium covers ElevenLabs voice via Replicate (~$0.05) + sync/lipsync-2
+// post-pass to match the character's mouth to the voice (~$0.15-0.20 per clip).
+const HERO_PREMIUM = 28
 const PER_SECOND_SORA = 8
 const PER_BROLL = 4
 const PER_SECOND_FILL = 2

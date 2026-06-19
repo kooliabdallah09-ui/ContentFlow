@@ -1,9 +1,14 @@
 import * as creatomate from '@/lib/creatomate'
 import * as shotstack from '@/lib/shotstack'
 import { transcribeWithTimestamps, buildSyncedCaptionChunks } from '@/lib/whisper'
+import { runLipsync } from '@/lib/replicate'
 import { PLAN_CONFIG, type PlanTier } from '@/lib/planConfig'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+
+// Lipsync (sync/lipsync-2 on Replicate) can take 60-150s on 12s clips.
+// Total stitch route can stretch to ~3min, so allow the full Vercel max.
+export const maxDuration = 300
 
 // Dispatch: Shotstack is preferred when its key is present (cheaper + free tier).
 // Falls back to Creatomate. Render IDs are prefixed so polling routes to the right
@@ -65,6 +70,19 @@ export async function POST(request: NextRequest) {
 
     const watermark = await getPlanWatermark(request)
 
+    // Hero tier lipsync — remap Sora's mouth to the ElevenLabs voice so the
+    // branded voiceover actually matches the character's lips. If lipsync fails,
+    // fall back to the original Sora video (user gets the unsynced version
+    // rather than a hard failure).
+    let finalTalkingHeadUrl: string = talkingHeadUrl
+    if (audioOverlayUrl && process.env.REPLICATE_API_TOKEN) {
+      try {
+        finalTalkingHeadUrl = await runLipsync(talkingHeadUrl, audioOverlayUrl)
+      } catch (err) {
+        console.warn('[stitch] Lipsync failed, using unsynced Sora video:', err instanceof Error ? err.message : err)
+      }
+    }
+
     // Transcribe with Whisper for true word-level caption sync. Cheap (~$0.0001/video).
     // Audio source priority:
     //   1. ElevenLabs/OpenAI TTS overlay (Hero tier) — that's the audio that'll play.
@@ -85,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { renderId } = await submitStitchJob({
-      talkingHeadUrl,
+      talkingHeadUrl: finalTalkingHeadUrl,
       talkingHeadDuration: typeof talkingHeadDuration === 'number' ? talkingHeadDuration : undefined,
       broll1Url,
       broll2Url,

@@ -115,6 +115,60 @@ export async function generateElevenLabsViaReplicate(
   throw new Error('Replicate ElevenLabs TTS timed out after 90s')
 }
 
+// Sync Labs lipsync-2 — remaps lips on `videoUrl` to match `audioUrl`.
+// Used to lip-sync Sora's talking head to the ElevenLabs voice overlay on Hero.
+// Returns the URL of the new (synced) video. Polls inline up to ~3 minutes.
+const LIPSYNC_MODEL = 'sync/lipsync-2'
+
+export async function runLipsync(videoUrl: string, audioUrl: string): Promise<string> {
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const res = await fetch(`${REPLICATE_BASE}/models/${LIPSYNC_MODEL}/predictions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'respond-async',
+    },
+    body: JSON.stringify({
+      input: { video: videoUrl, audio: audioUrl },
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Replicate lipsync error ${res.status}: ${JSON.stringify(err)}`)
+  }
+
+  const prediction = await res.json()
+  const predictionId: string | undefined = prediction?.id
+  if (!predictionId) throw new Error('Replicate lipsync: no prediction id returned')
+
+  const TIMEOUT_MS = 180_000
+  const POLL_MS = 3_000
+  const deadline = Date.now() + TIMEOUT_MS
+
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, POLL_MS))
+    const poll = await fetch(`${REPLICATE_BASE}/predictions/${predictionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    })
+    if (!poll.ok) throw new Error(`Replicate lipsync poll error: ${poll.statusText}`)
+    const data = await poll.json()
+
+    if (data.status === 'succeeded') {
+      const url: string | undefined = Array.isArray(data.output) ? data.output[0] : data.output
+      if (!url) throw new Error('Replicate lipsync returned no video URL')
+      return url
+    }
+    if (data.status === 'failed' || data.status === 'canceled') {
+      throw new Error(`Replicate lipsync ${data.status}: ${data.error ?? 'unknown'}`)
+    }
+  }
+  throw new Error('Replicate lipsync timed out after 180s')
+}
+
 export async function getReplicateKlingStatus(predictionId: string): Promise<{
   status: 'pending' | 'processing' | 'completed' | 'failed'
   videoUrl?: string
