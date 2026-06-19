@@ -1,44 +1,20 @@
-import * as creatomate from '@/lib/creatomate'
 import * as shotstack from '@/lib/shotstack'
 import { transcribeWithTimestamps, buildSyncedCaptionChunks } from '@/lib/whisper'
 import { PLAN_CONFIG, type PlanTier } from '@/lib/planConfig'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Stitch route now only handles captions + watermark + (for chained 20s)
-// concatenation of multiple Kling clips. Kling v3 omni generates the talking
-// head WITH native audio so there's no lipsync pass, no separate voice track,
-// no B-roll overlays.
+// Stitch only handles captions + watermark + (for chained 20s) concatenation
+// of multiple Kling clips. Kling v3 omni-video generates the talking head WITH
+// native audio so there's no lipsync pass, no voice track, no B-roll overlay.
 export const maxDuration = 120
 
-const SHOTSTACK_PREFIX = 'shotstack:'
-
-function provider() {
-  return process.env.SHOTSTACK_API_KEY ? 'shotstack' : 'creatomate'
-}
-
 async function submitStitchJob(input: Parameters<typeof shotstack.submitStitchJob>[0]) {
-  if (provider() === 'shotstack') {
-    const { renderId } = await shotstack.submitStitchJob(input)
-    return { renderId: `${SHOTSTACK_PREFIX}${renderId}` }
-  }
-  // Creatomate doesn't support chained clips through this path — fall back to primary only.
-  return creatomate.submitStitchJob({
-    talkingHeadUrl: input.talkingHeadUrl,
-    talkingHeadDuration: input.talkingHeadDuration,
-    audioOverlayUrl: input.audioOverlayUrl,
-    spokenScript: input.spokenScript,
-    syncedCaptions: input.syncedCaptions,
-    watermark: input.watermark,
-    aspect: input.aspect,
-  })
+  return shotstack.submitStitchJob(input)
 }
 
 async function getStitchStatus(renderId: string) {
-  if (renderId.startsWith(SHOTSTACK_PREFIX)) {
-    return shotstack.getStitchStatus(renderId.slice(SHOTSTACK_PREFIX.length))
-  }
-  return creatomate.getStitchStatus(renderId)
+  return shotstack.getStitchStatus(renderId)
 }
 
 async function getPlanWatermark(request: NextRequest): Promise<boolean> {
@@ -69,8 +45,8 @@ export async function POST(request: NextRequest) {
   try {
     const {
       talkingHeadUrl,
-      talkingHeadDuration,           // per-clip length (e.g. 15s for chained 20s pair)
-      additionalTalkingHeadUrls,     // extra chained Kling clips (length 1 for 20s, 0 otherwise)
+      talkingHeadDuration,
+      additionalTalkingHeadUrls,
       spokenScript,
       language,
       aspect,
@@ -82,9 +58,7 @@ export async function POST(request: NextRequest) {
 
     const watermark = await getPlanWatermark(request)
 
-    // Whisper transcription for word-timed captions. Source is the first clip's
-    // audio (chained clips share the same script style; aligning across the full
-    // concat would need stitching the audio first — overkill for v1).
+    // Whisper transcription for word-timed captions. Cheap (~$0.0001/video).
     let syncedCaptions: Array<{ text: string; start: number; end: number }> | undefined
     if (process.env.OPENAI_API_KEY) {
       try {

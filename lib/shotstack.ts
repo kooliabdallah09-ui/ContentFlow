@@ -1,4 +1,4 @@
-// Shotstack stitch provider — drop-in replacement for lib/creatomate.ts.
+// Shotstack stitch provider — the only stitcher (Creatomate was removed).
 // Set SHOTSTACK_ENV=production to use the paid endpoint. Default is 'stage', which
 // is Shotstack's free sandbox (20 min/month, no card required, watermark-free).
 
