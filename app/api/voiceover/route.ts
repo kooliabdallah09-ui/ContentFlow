@@ -5,8 +5,21 @@ import { generateSpeech } from '@/lib/tts'
 // POST { text, voiceId } → { audioUrl, creditDeducted, newBalance }
 // Routes ElevenLabs voices through Replicate (REPLICATE_API_TOKEN) and
 // OpenAI voices (openai:*) through OpenAI TTS.
+//
+// Pricing (1 cr = $0.025 USD):
+//   ElevenLabs via Replicate (~$0.25-0.40/1000 chars): ceil(chars/100)*2 cr, min 8
+//   OpenAI TTS-1-HD ($0.030/1000 chars): flat 5 cr — cheap enough at any length
+const OPENAI_CREDITS = 5
+const EL_CHAR_BLOCK = 100
+const EL_CREDITS_PER_BLOCK = 2
+const EL_MIN_CREDITS = 8
+const EL_MAX_CHARS = 2000
+const OPENAI_MAX_CHARS = 5000
 
-const CREDIT_COST = 5
+function calcCreditCost(text: string, voiceId: string): number {
+  if (voiceId.startsWith('openai:')) return OPENAI_CREDITS
+  return Math.max(EL_MIN_CREDITS, Math.ceil(text.length / EL_CHAR_BLOCK) * EL_CREDITS_PER_BLOCK)
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,9 +48,12 @@ export async function POST(req: NextRequest) {
     if (!text || text.length < 3) {
       return NextResponse.json({ error: 'Text is required (min 3 characters)' }, { status: 400 })
     }
-    if (text.length > 5000) {
-      return NextResponse.json({ error: 'Text must be under 5000 characters' }, { status: 400 })
+    const maxChars = voiceId.startsWith('openai:') ? OPENAI_MAX_CHARS : EL_MAX_CHARS
+    if (text.length > maxChars) {
+      return NextResponse.json({ error: `Text must be under ${maxChars} characters for this voice` }, { status: 400 })
     }
+
+    const CREDIT_COST = calcCreditCost(text, voiceId)
 
     const { data: credits } = await supabase
       .from('user_credits')

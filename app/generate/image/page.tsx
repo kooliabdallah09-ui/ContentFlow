@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { getSupabase } from '@/lib/auth'
+import { useCredits } from '@/lib/useCredits'
 import { Loader2, Download, Image as ImageIcon, X } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
 
@@ -36,7 +37,7 @@ export default function ImageGeneratorPage() {
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [creditBalance, setCreditBalance] = useState(0)
+  const { balance: creditBalance, refresh: refreshCredits } = useCredits()
   // Reference image — optional. When set, the API runs Nano Banana 2 image-to-image
   // so the user's photo (e.g. their actual product) carries through to the output.
   const [reference, setReference] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
@@ -52,21 +53,6 @@ export default function ImageGeneratorPage() {
     }
     reader.readAsDataURL(file)
   }
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const supabase = getSupabase()
-      if (!supabase) return
-      const { data: sess } = await supabase.auth.getSession()
-      const token = sess?.session?.access_token
-      if (!token) return
-      const res = await fetch('/api/credits/balance', { headers: { Authorization: `Bearer ${token}` } })
-      const data = await res.json().catch(() => ({}))
-      if (!cancelled && typeof data?.balance === 'number') setCreditBalance(data.balance)
-    })()
-    return () => { cancelled = true }
-  }, [])
 
   const totalCost = count * CREDIT_PER_IMAGE
   const canGenerate = prompt.trim().length >= 5 && creditBalance >= totalCost
@@ -102,7 +88,7 @@ export default function ImageGeneratorPage() {
       if (!res.ok) throw new Error(data.error || 'Generation failed')
 
       setImages(Array.isArray(data.images) ? data.images : [])
-      if (typeof data.newBalance === 'number') setCreditBalance(data.newBalance)
+      refreshCredits()
       showSuccess('Images ready', `${count} image${count > 1 ? 's' : ''} generated`)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Generation failed'
