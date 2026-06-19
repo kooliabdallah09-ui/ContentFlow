@@ -16,10 +16,11 @@ interface ActorPickerProps {
 // drops its full CharacterProfile into the parent — the downstream
 // orchestrate route doesn't care whether the profile came from a card or a form.
 export default function ActorPicker({ value, onChange, disabled }: ActorPickerProps) {
-  // If the current value matches one of the library actors, default to Library.
-  // Otherwise Custom.
+  // Always default to the Actor library on first mount — most users will pick
+  // a pre-built actor; Custom is for the rare case they want to fully define
+  // their own character. The library tab opens with the matching actor pre-selected.
   const matchingActor = ACTORS.find(a => actorMatches(a, value))
-  const [tab, setTab] = useState<'library' | 'custom'>(matchingActor ? 'library' : 'custom')
+  const [tab, setTab] = useState<'library' | 'custom'>('library')
   const [selectedId, setSelectedId] = useState<string | null>(matchingActor?.id ?? null)
 
   function pickActor(actor: Actor) {
