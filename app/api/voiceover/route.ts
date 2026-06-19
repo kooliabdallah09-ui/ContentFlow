@@ -2,23 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateSpeech } from '@/lib/tts'
 
-// POST { text, voiceId } → { audioUrl, creditDeducted, newBalance }
-// Routes ElevenLabs voices through Replicate (REPLICATE_API_TOKEN) and
-// OpenAI voices (openai:*) through OpenAI TTS.
-//
-// Pricing (1 cr = $0.025 USD):
-//   ElevenLabs via Replicate (~$0.25-0.40/1000 chars): ceil(chars/100)*2 cr, min 8
-//   OpenAI TTS-1-HD ($0.030/1000 chars): flat 5 cr — cheap enough at any length
-const OPENAI_CREDITS = 5
-const EL_CHAR_BLOCK = 100
-const EL_CREDITS_PER_BLOCK = 2
-const EL_MIN_CREDITS = 8
-const EL_MAX_CHARS = 2000
-const OPENAI_MAX_CHARS = 5000
+// POST { text, voiceId, language? } → { audioUrl, creditDeducted, newBalance }
+// ElevenLabs only, via Replicate (elevenlabs/turbo-v2.5).
+// Pricing: $0.05 / 1000 chars Replicate cost. We charge ceil(chars/250) credits
+// min 3, giving ~2x markup at long inputs (1 cr = $0.025).
+const CHAR_BLOCK = 250
+const MIN_CREDITS = 3
+const MAX_CHARS = 2000
 
-function calcCreditCost(text: string, voiceId: string): number {
-  if (voiceId.startsWith('openai:')) return OPENAI_CREDITS
-  return Math.max(EL_MIN_CREDITS, Math.ceil(text.length / EL_CHAR_BLOCK) * EL_CREDITS_PER_BLOCK)
+function calcCreditCost(text: string): number {
+  return Math.max(MIN_CREDITS, Math.ceil(text.length / CHAR_BLOCK))
 }
 
 export async function POST(req: NextRequest) {
@@ -43,17 +36,16 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const text = typeof body.text === 'string' ? body.text.trim() : ''
-    const voiceId = typeof body.voiceId === 'string' ? body.voiceId.trim() : 'openai:nova'
+    const voiceId = typeof body.voiceId === 'string' ? body.voiceId.trim() : 'Rachel'
 
     if (!text || text.length < 3) {
       return NextResponse.json({ error: 'Text is required (min 3 characters)' }, { status: 400 })
     }
-    const maxChars = voiceId.startsWith('openai:') ? OPENAI_MAX_CHARS : EL_MAX_CHARS
-    if (text.length > maxChars) {
-      return NextResponse.json({ error: `Text must be under ${maxChars} characters for this voice` }, { status: 400 })
+    if (text.length > MAX_CHARS) {
+      return NextResponse.json({ error: `Text must be under ${MAX_CHARS} characters` }, { status: 400 })
     }
 
-    const CREDIT_COST = calcCreditCost(text, voiceId)
+    const CREDIT_COST = calcCreditCost(text)
 
     const { data: credits } = await supabase
       .from('user_credits')

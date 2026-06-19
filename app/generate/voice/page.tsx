@@ -3,51 +3,42 @@
 import { useRef, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
+import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
 import { Loader2, Download, Play, Pause, Mic } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
 
-// Pricing:
-// ElevenLabs via Replicate (elevenlabs/turbo-v2.5): ~$0.25–0.40 per 1000 chars.
-// We charge ceil(charCount / 100) * 2 credits, min 8 — gives consistent ~2x markup.
-// OpenAI TTS-1-HD: $0.030 per 1000 chars — flat 5 credits covers any length safely.
+// Pricing: Replicate elevenlabs/turbo-v2.5 = $0.05 per 1000 chars ($0.00005/char).
+// At 1 credit = $0.025, we charge ceil(chars/250) credits, min 3 — gives a
+// ~2x markup at long inputs and stays cheap on short scripts.
+const CHAR_BLOCK = 250
+const MIN_CREDITS = 3
+const MAX_CHARS = 2000
 
-const OPENAI_CREDITS = 5
-const EL_CHAR_BLOCK = 100   // chars per credit block
-const EL_CREDITS_PER_BLOCK = 2
-const EL_MIN_CREDITS = 8
-const EL_MAX_CHARS = 2000
-const OPENAI_MAX_CHARS = 5000
-
-function calcElevenLabsCredits(charCount: number): number {
-  return Math.max(EL_MIN_CREDITS, Math.ceil(charCount / EL_CHAR_BLOCK) * EL_CREDITS_PER_BLOCK)
+function calcCredits(charCount: number): number {
+  return Math.max(MIN_CREDITS, Math.ceil(charCount / CHAR_BLOCK))
 }
 
-// Names from Replicate's elevenlabs/turbo-v2.5 voice dropdown — these are
-// guaranteed to resolve. Private ElevenLabs account IDs won't work via Replicate.
+// Names from Replicate's elevenlabs/turbo-v2.5 voice dropdown — guaranteed to resolve.
 const VOICES = [
-  { id: 'Drew',     label: 'Drew',     sub: 'Confident, warm',        gender: 'M', provider: 'elevenlabs' as const },
-  { id: 'Paul',     label: 'Paul',     sub: 'Authoritative, grounded', gender: 'M', provider: 'elevenlabs' as const },
-  { id: 'James',    label: 'James',    sub: 'Smooth, conversational', gender: 'M', provider: 'elevenlabs' as const },
-  { id: 'Rachel',   label: 'Rachel',   sub: 'Calm, conversational',   gender: 'F', provider: 'elevenlabs' as const },
-  { id: 'Hope',     label: 'Hope',     sub: 'Bubbly, vibrant',        gender: 'F', provider: 'elevenlabs' as const },
-  { id: 'Sarah',    label: 'Sarah',    sub: 'Bright, friendly',       gender: 'F', provider: 'elevenlabs' as const },
-  { id: 'Aria',     label: 'Aria',     sub: 'Energetic, expressive',  gender: 'F', provider: 'elevenlabs' as const },
-  { id: 'openai:nova',    label: 'Nova',    sub: 'Bright & energetic',    gender: 'F', provider: 'openai' as const },
-  { id: 'openai:shimmer', label: 'Shimmer', sub: 'Warm & friendly',       gender: 'F', provider: 'openai' as const },
-  { id: 'openai:onyx',    label: 'Onyx',    sub: 'Deep & authoritative',  gender: 'M', provider: 'openai' as const },
-  { id: 'openai:echo',    label: 'Echo',    sub: 'Smooth conversational', gender: 'M', provider: 'openai' as const },
+  { id: 'Drew',   label: 'Drew',   sub: 'Confident, warm',        gender: 'M' },
+  { id: 'Paul',   label: 'Paul',   sub: 'Authoritative, grounded', gender: 'M' },
+  { id: 'James',  label: 'James',  sub: 'Smooth, conversational', gender: 'M' },
+  { id: 'Rachel', label: 'Rachel', sub: 'Calm, conversational',   gender: 'F' },
+  { id: 'Hope',   label: 'Hope',   sub: 'Bubbly, vibrant',        gender: 'F' },
+  { id: 'Sarah',  label: 'Sarah',  sub: 'Bright, friendly',       gender: 'F' },
+  { id: 'Aria',   label: 'Aria',   sub: 'Energetic, expressive',  gender: 'F' },
 ]
 
 interface AudioResult {
   url: string
   voiceLabel: string
-  voiceProvider: string
   text: string
 }
 
 export default function VoicePage() {
   const [text, setText] = useState('')
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
+  const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState<AudioResult[]>([])
@@ -58,12 +49,8 @@ export default function VoicePage() {
 
   const selectedVoice = VOICES.find(v => v.id === voiceId) ?? VOICES[0]
   const charCount = text.length
-  const maxChars = selectedVoice.provider === 'elevenlabs' ? EL_MAX_CHARS : OPENAI_MAX_CHARS
-  const creditCost = selectedVoice.provider === 'elevenlabs'
-    ? calcElevenLabsCredits(charCount)
-    : OPENAI_CREDITS
-
-  const canGenerate = charCount >= 3 && charCount <= maxChars && creditBalance >= creditCost
+  const creditCost = calcCredits(charCount)
+  const canGenerate = charCount >= 3 && charCount <= MAX_CHARS && creditBalance >= creditCost
 
   async function generate() {
     if (!canGenerate || loading) return
@@ -79,7 +66,7 @@ export default function VoicePage() {
       const res = await fetch('/api/voiceover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ text: text.trim(), voiceId }),
+        body: JSON.stringify({ text: text.trim(), voiceId, language }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Generation failed')
@@ -87,7 +74,6 @@ export default function VoicePage() {
       setResults(prev => [{
         url: data.audioUrl,
         voiceLabel: selectedVoice.label,
-        voiceProvider: selectedVoice.provider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI',
         text: text.trim(),
       }, ...prev])
       refreshCredits()
@@ -138,7 +124,7 @@ export default function VoicePage() {
         <div style={{ position: 'relative' }}>
           <textarea
             value={text}
-            onChange={e => setText(e.target.value.slice(0, maxChars))}
+            onChange={e => setText(e.target.value.slice(0, MAX_CHARS))}
             placeholder="Paste your script here — product descriptions, reel captions, podcast intros, narration…"
             disabled={loading}
             rows={5}
@@ -152,51 +138,68 @@ export default function VoicePage() {
           <span style={{
             position: 'absolute', bottom: 6, right: 4,
             fontSize: 11, fontFamily: 'var(--font-mono)',
-            color: charCount > maxChars * 0.9 ? 'var(--danger)' : 'var(--ink-faint)',
+            color: charCount > MAX_CHARS * 0.9 ? 'var(--danger)' : 'var(--ink-faint)',
           }}>
-            {charCount}/{maxChars}
+            {charCount}/{MAX_CHARS}
           </span>
         </div>
 
-        {/* Voice groups */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {(['elevenlabs', 'openai'] as const).map(provider => (
-            <div key={provider} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-              <span style={{
-                fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em',
-                textTransform: 'uppercase', color: 'var(--ink-mute)', marginRight: 2, minWidth: 66,
-              }}>
-                {provider === 'elevenlabs' ? 'ElevenLabs' : 'OpenAI'}
-              </span>
-              {VOICES.filter(v => v.provider === provider).map(v => {
-                const active = voiceId === v.id
-                return (
-                  <button
-                    key={v.id}
-                    type="button"
-                    onClick={() => setVoiceId(v.id)}
-                    disabled={loading}
-                    title={v.sub}
-                    style={{
-                      padding: '9px 18px', borderRadius: 999,
-                      background: active ? 'var(--ink)' : 'var(--surface)',
-                      border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                      color: active ? '#fff' : 'var(--ink-2)',
-                      fontSize: 13, fontWeight: 600,
-                      cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
-                      display: 'flex', alignItems: 'center', gap: 5,
-                    }}>
-                    {v.label}
-                    <span style={{ fontSize: 10, opacity: 0.55, fontWeight: 400 }}>{v.gender}</span>
-                  </button>
-                )
-              })}
-            </div>
-          ))}
+        {/* Voice pills */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+          <span style={{
+            fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em',
+            textTransform: 'uppercase', color: 'var(--ink-mute)', marginRight: 2,
+          }}>
+            Voice
+          </span>
+          {VOICES.map(v => {
+            const active = voiceId === v.id
+            return (
+              <button
+                key={v.id}
+                type="button"
+                onClick={() => setVoiceId(v.id)}
+                disabled={loading}
+                title={v.sub}
+                style={{
+                  padding: '9px 18px', borderRadius: 999,
+                  background: active ? 'var(--ink)' : 'var(--surface)',
+                  border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                  color: active ? '#fff' : 'var(--ink-2)',
+                  fontSize: 13, fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                  display: 'flex', alignItems: 'center', gap: 5,
+                }}>
+                {v.label}
+                <span style={{ fontSize: 10, opacity: 0.55, fontWeight: 400 }}>{v.gender}</span>
+              </button>
+            )
+          })}
         </div>
 
-        {/* Generate row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        {/* Language + Generate row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em',
+            textTransform: 'uppercase', color: 'var(--ink-mute)',
+          }}>
+            Language
+          </span>
+          <select
+            value={language}
+            onChange={e => setLanguage(e.target.value)}
+            disabled={loading}
+            style={{
+              padding: '8px 14px', borderRadius: 999,
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              color: 'var(--ink-2)', fontSize: 13, fontWeight: 500,
+              cursor: loading ? 'not-allowed' : 'pointer',
+            }}>
+            {LANGUAGES.map(l => (
+              <option key={l.code} value={l.code}>{l.nativeLabel}</option>
+            ))}
+          </select>
+
           <button
             onClick={generate}
             disabled={!canGenerate || loading}
@@ -221,14 +224,9 @@ export default function VoicePage() {
         }}>
           <span>
             {creditCost} credits
-            {selectedVoice.provider === 'elevenlabs' && charCount > 0 && (
+            {charCount > 0 && (
               <span style={{ color: 'var(--ink-faint)', marginLeft: 6 }}>
-                · {charCount} chars · {selectedVoice.label} (ElevenLabs)
-              </span>
-            )}
-            {selectedVoice.provider === 'openai' && (
-              <span style={{ color: 'var(--ink-faint)', marginLeft: 6 }}>
-                · {selectedVoice.label} (OpenAI)
+                · {charCount} chars · {selectedVoice.label}
               </span>
             )}
           </span>
@@ -296,7 +294,7 @@ export default function VoicePage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{r.voiceLabel}</span>
-                  <span style={{ fontSize: 11, color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)' }}>{r.voiceProvider}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)' }}>ElevenLabs</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 28 }}>
                   {Array.from({ length: 48 }).map((_, i) => {
