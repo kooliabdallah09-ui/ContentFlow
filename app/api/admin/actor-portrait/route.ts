@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { generateTextToImage } from '@/lib/nanobanana'
+import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { buildCharacterPrompt, type CharacterProfile } from '@/lib/character'
 
 // Admin-only — generates a single actor portrait via Nano Banana Pro for the
@@ -34,12 +34,24 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing profile' }, { status: 400 })
     }
 
-    // Same portrait template as scripts/generate-actor-portraits.mjs.
     const characterPrompt = buildCharacterPrompt(profile)
-    const scene = profile.scene ? `in a ${profile.scene.toLowerCase()}` : ''
-    const prompt = `Hyper-realistic phone-camera portrait of ${characterPrompt} ${scene}, looking slightly off-camera, head and upper shoulders visible, soft natural lighting. Vertical 9:16 portrait framing. Should read as a real candid moment captured on a phone — no beauty filter, no studio polish.`
+    const sceneClause = profile.scene
+      ? `Setting: a lived-in ${profile.scene.toLowerCase()} with visible depth and personality — plants, framed art, soft textiles, decor items, a glimpse of furniture, warm color accents. The background must NOT be a blank wall — it should feel like a real person's home, full of character and softly blurred (shallow depth of field).`
+      : `Setting: a warm, lived-in indoor space with visible decor, plants, and personality in soft background blur.`
+    const prompt = `Hyper-realistic UGC selfie portrait of ${characterPrompt}.
 
-    const result = await generateTextToImage(prompt)
+${sceneClause}
+
+Framing: vertical 9:16 phone portrait, shot from arm's length like a creator filming themselves. Head and upper torso fully visible from the top of the hair down to the collarbone/chest — DO NOT crop the top of the head or the shoulders. Subject fills roughly the middle 60% of the frame with breathing room above the head.
+
+Lighting: soft natural window light from the side, warm golden tone, gently flattering on the face. Avoid harsh shadows.
+
+Quality: photorealistic phone camera output, real skin texture with pores preserved, natural micro-imperfections, no beauty filter, no studio polish, no plastic skin. Should look like a real Instagram creator's selfie — confident, warm, magnetic, looking the viewer in the eye.`
+
+    // Use the generic image generator so we can lock the aspect ratio to 9:16 —
+    // generateTextToImage hardcoded this, but going through the generic path
+    // makes the ratio explicit alongside the other portrait params.
+    const result = await generateNanoBananaImage(prompt, { ratio: '9:16', style: 'realistic' })
 
     return NextResponse.json({
       imageBase64: result.imageBase64,

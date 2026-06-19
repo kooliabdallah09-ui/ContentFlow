@@ -90,7 +90,7 @@ export default function ActorPicker({ value, onChange, disabled }: ActorPickerPr
                   }}>
                   <div style={{
                     width: '100%',
-                    aspectRatio: '9 / 12',
+                    aspectRatio: '9 / 16',
                     background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
                     overflow: 'hidden',
                   }}>

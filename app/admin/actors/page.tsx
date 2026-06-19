@@ -145,9 +145,9 @@ export default function ActorAdminPage() {
                 <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{actor.tagline}</span>
               </div>
 
-              {/* Portrait preview */}
+              {/* Portrait preview — 9:16 matches the source so nothing gets cropped */}
               <div style={{
-                width: '100%', aspectRatio: '9 / 12', borderRadius: 12,
+                width: '100%', aspectRatio: '9 / 16', borderRadius: 12,
                 background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
                 position: 'relative', overflow: 'hidden',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
