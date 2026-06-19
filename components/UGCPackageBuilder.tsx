@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import CharacterBuilder, { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
+import ActorPicker from '@/components/ActorPicker'
+import { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
 import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
 import { ASPECTS, DEFAULT_ASPECT, type UGCAspect } from '@/lib/aspects'
 import {
@@ -637,10 +638,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
 
           <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.5 }}>
-            Sora generates a hyper-realistic AI character holding your real product.
+            Pick a pre-built actor from the library or build a custom character — Sora will generate them holding your real product.
           </p>
 
-          <CharacterBuilder value={character} onChange={setCharacter} disabled={isLoading} />
+          <ActorPicker value={character} onChange={setCharacter} disabled={isLoading} />
 
           {tier === 'hero' ? (
             <div className="form-row">
