@@ -1,5 +1,8 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
-const ELEVENLABS_TTS_MODEL = 'elevenlabs/turbo-v2.5'
+// v3 is ElevenLabs' most expressive model — supports a `speed` parameter (0.7-1.2),
+// 70+ languages, and inline audio tags like [excited] / [whispers]. Costs more
+// than turbo-v2.5 but gives full speech-rate control.
+const ELEVENLABS_TTS_MODEL = 'elevenlabs/v3'
 // Kling 1.6 Standard: $0.25 per 5s clip. We tried 2.1 Master ($1.40/clip) thinking it
 // was $0.42, but the real cost killed margin on the Standard tier ($4 cost vs $2 sell).
 //
@@ -55,9 +58,14 @@ export async function submitReplicateKlingJob(
 export async function generateElevenLabsViaReplicate(
   text: string,
   voiceId: string,
+  options: { speed?: number } = {},
 ): Promise<Buffer> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  // v3 input. `speed` is clamped to ElevenLabs' allowed range (0.7-1.2);
+  // 1.0 is natural pace.
+  const speed = Math.min(1.2, Math.max(0.7, options.speed ?? 1.0))
 
   const res = await fetch(`${REPLICATE_BASE}/models/${ELEVENLABS_TTS_MODEL}/predictions`, {
     method: 'POST',
@@ -68,10 +76,10 @@ export async function generateElevenLabsViaReplicate(
     },
     body: JSON.stringify({
       input: {
-        // Replicate's elevenlabs/turbo-v2.5 schema uses `prompt`, not `text`.
         prompt: text,
         voice: voiceId,
-        stability: 0.45,
+        speed,
+        stability: 0.5,
         similarity_boost: 0.75,
         style: 0.35,
         use_speaker_boost: true,

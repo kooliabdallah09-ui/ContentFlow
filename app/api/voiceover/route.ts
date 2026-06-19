@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { generateSpeech } from '@/lib/tts'
 
-// POST { text, voiceId, language? } → { audioUrl, creditDeducted, newBalance }
-// ElevenLabs only, via Replicate (elevenlabs/turbo-v2.5).
-// Pricing: $0.05 / 1000 chars Replicate cost. We charge ceil(chars/250) credits
-// min 3, giving ~2x markup at long inputs (1 cr = $0.025).
-const CHAR_BLOCK = 250
-const MIN_CREDITS = 3
+// POST { text, voiceId, language?, speed? } → { audioUrl, creditDeducted, newBalance }
+// ElevenLabs v3 via Replicate. v3 is ~2-3× the price of turbo-v2.5 but supports
+// speed control + the most expressive voice quality.
+// Pricing target ~2x markup: ceil(chars/80) credits min 5.
+const CHAR_BLOCK = 80
+const MIN_CREDITS = 5
 const MAX_CHARS = 2000
 
 function calcCreditCost(text: string): number {
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const text = typeof body.text === 'string' ? body.text.trim() : ''
     const voiceId = typeof body.voiceId === 'string' ? body.voiceId.trim() : 'Rachel'
+    const speed = typeof body.speed === 'number' ? body.speed : 1.0
 
     if (!text || text.length < 3) {
       return NextResponse.json({ error: 'Text is required (min 3 characters)' }, { status: 400 })
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const audioBuf = await generateSpeech(text, voiceId)
+    const audioBuf = await generateSpeech(text, voiceId, { speed })
 
     const filename = `voiceover/${userId}-${Date.now()}.mp3`
     const { error: uploadErr } = await supabase.storage

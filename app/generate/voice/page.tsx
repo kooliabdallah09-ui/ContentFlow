@@ -7,11 +7,10 @@ import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
 import { Loader2, Download, Play, Pause, Mic } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
 
-// Pricing: Replicate elevenlabs/turbo-v2.5 = $0.05 per 1000 chars ($0.00005/char).
-// At 1 credit = $0.025, we charge ceil(chars/250) credits, min 3 — gives a
-// ~2x markup at long inputs and stays cheap on short scripts.
-const CHAR_BLOCK = 250
-const MIN_CREDITS = 3
+// Pricing: Replicate elevenlabs/v3 (~$0.10-0.15 per 1000 chars, ~3x turbo).
+// ceil(chars/80) credits, min 5 — ~2x markup at long inputs.
+const CHAR_BLOCK = 80
+const MIN_CREDITS = 5
 const MAX_CHARS = 2000
 
 function calcCredits(charCount: number): number {
@@ -39,6 +38,7 @@ export default function VoicePage() {
   const [text, setText] = useState('')
   const [voiceId, setVoiceId] = useState(VOICES[0].id)
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
+  const [speed, setSpeed] = useState<number>(1.0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [results, setResults] = useState<AudioResult[]>([])
@@ -66,7 +66,7 @@ export default function VoicePage() {
       const res = await fetch('/api/voiceover', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ text: text.trim(), voiceId, language }),
+        body: JSON.stringify({ text: text.trim(), voiceId, language, speed }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Generation failed')
@@ -199,6 +199,27 @@ export default function VoicePage() {
               <option key={l.code} value={l.code}>{l.nativeLabel}</option>
             ))}
           </select>
+
+          {/* Speed slider — ElevenLabs v3 accepts 0.7 to 1.2 */}
+          <span style={{
+            fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em',
+            textTransform: 'uppercase', color: 'var(--ink-mute)', marginLeft: 6,
+          }}>
+            Speed
+          </span>
+          <input
+            type="range"
+            min={0.7}
+            max={1.2}
+            step={0.05}
+            value={speed}
+            onChange={e => setSpeed(parseFloat(e.target.value))}
+            disabled={loading}
+            style={{ width: 110, accentColor: 'var(--ink)' }}
+          />
+          <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', minWidth: 36 }}>
+            {speed.toFixed(2)}×
+          </span>
 
           <button
             onClick={generate}

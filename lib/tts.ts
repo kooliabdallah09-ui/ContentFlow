@@ -45,9 +45,14 @@ async function generateOpenAISpeech(text: string, voice: string): Promise<Buffer
   return Buffer.from(await res.arrayBuffer())
 }
 
-// Primary entry point. Picks the right provider from the voiceId prefix and
-// transparently falls back to OpenAI TTS if ElevenLabs is unavailable.
-export async function generateSpeech(text: string, voiceId: string): Promise<Buffer> {
+// Primary entry point. Picks the right provider from the voiceId prefix.
+// `speed` (0.7-1.2) is honored by ElevenLabs v3 via Replicate; OpenAI TTS
+// accepts a similar range via its own `speed` field.
+export async function generateSpeech(
+  text: string,
+  voiceId: string,
+  options: { speed?: number } = {},
+): Promise<Buffer> {
   if (voiceId.startsWith(OPENAI_PREFIX)) {
     return generateOpenAISpeech(text, voiceId.slice(OPENAI_PREFIX.length))
   }
@@ -57,7 +62,7 @@ export async function generateSpeech(text: string, voiceId: string): Promise<Buf
   // here: if the user picked Adam and we'd return Nova, the audio would be
   // wrong but the UI would still say "Adam". Surfacing the error is better.
   if (process.env.REPLICATE_API_TOKEN) {
-    return await generateElevenLabsViaReplicate(text, voiceId)
+    return await generateElevenLabsViaReplicate(text, voiceId, options)
   }
 
   if (process.env.ELEVENLABS_API_KEY) {
