@@ -22,16 +22,16 @@ function calcElevenLabsCredits(charCount: number): number {
   return Math.max(EL_MIN_CREDITS, Math.ceil(charCount / EL_CHAR_BLOCK) * EL_CREDITS_PER_BLOCK)
 }
 
-// ElevenLabs PUBLIC library voices — available on any ElevenLabs account,
-// including the one Replicate uses internally. Don't use private voice IDs
-// from a personal ElevenLabs account here — those will 404 via Replicate.
+// Names from Replicate's elevenlabs/turbo-v2.5 voice dropdown — these are
+// guaranteed to resolve. Private ElevenLabs account IDs won't work via Replicate.
 const VOICES = [
-  { id: 'Adam',    label: 'Adam',    sub: 'Deep, narrative',         gender: 'M', provider: 'elevenlabs' as const },
-  { id: 'Antoni',  label: 'Antoni',  sub: 'Warm, well-rounded',      gender: 'M', provider: 'elevenlabs' as const },
-  { id: 'Josh',    label: 'Josh',    sub: 'Young, energetic',        gender: 'M', provider: 'elevenlabs' as const },
-  { id: 'Rachel',  label: 'Rachel',  sub: 'Calm, conversational',    gender: 'F', provider: 'elevenlabs' as const },
-  { id: 'Bella',   label: 'Bella',   sub: 'Soft, friendly',          gender: 'F', provider: 'elevenlabs' as const },
-  { id: 'Elli',    label: 'Elli',    sub: 'Bright, expressive',      gender: 'F', provider: 'elevenlabs' as const },
+  { id: 'Drew',     label: 'Drew',     sub: 'Confident, warm',        gender: 'M', provider: 'elevenlabs' as const },
+  { id: 'Paul',     label: 'Paul',     sub: 'Authoritative, grounded', gender: 'M', provider: 'elevenlabs' as const },
+  { id: 'James',    label: 'James',    sub: 'Smooth, conversational', gender: 'M', provider: 'elevenlabs' as const },
+  { id: 'Rachel',   label: 'Rachel',   sub: 'Calm, conversational',   gender: 'F', provider: 'elevenlabs' as const },
+  { id: 'Hope',     label: 'Hope',     sub: 'Bubbly, vibrant',        gender: 'F', provider: 'elevenlabs' as const },
+  { id: 'Sarah',    label: 'Sarah',    sub: 'Bright, friendly',       gender: 'F', provider: 'elevenlabs' as const },
+  { id: 'Aria',     label: 'Aria',     sub: 'Energetic, expressive',  gender: 'F', provider: 'elevenlabs' as const },
   { id: 'openai:nova',    label: 'Nova',    sub: 'Bright & energetic',    gender: 'F', provider: 'openai' as const },
   { id: 'openai:shimmer', label: 'Shimmer', sub: 'Warm & friendly',       gender: 'F', provider: 'openai' as const },
   { id: 'openai:onyx',    label: 'Onyx',    sub: 'Deep & authoritative',  gender: 'M', provider: 'openai' as const },
