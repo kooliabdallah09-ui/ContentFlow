@@ -31,27 +31,45 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       const res = await fetch('/api/credits/balance', {
         headers: { Authorization: `Bearer ${token}` },
       })
+
+      // 404 = credits not initialized — init them and refetch
+      if (res.status === 404) {
+        const initRes = await fetch('/api/credits/init', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ plan: 'free' }),
+        })
+        if (initRes.ok) {
+          const initData = await initRes.json().catch(() => ({}))
+          if (typeof initData?.data?.balance === 'number') setBalance(initData.data.balance)
+          else setBalance(200)
+        } else {
+          setBalance(200)
+        }
+        return
+      }
+
       if (!res.ok) return
       const data = await res.json().catch(() => ({}))
       if (typeof data?.balance === 'number') setBalance(data.balance)
-    } catch {
-      // non-fatal
+    } catch (err) {
+      console.error('[credits] fetch failed:', err)
     } finally {
       fetchingRef.current = false
     }
   }, [])
 
   useEffect(() => {
+    // 1. Immediate fetch on mount — by the time this provider runs, the layout
+    //    has already confirmed auth (CreditsProvider is rendered inside showLayout).
+    fetchBalance()
+
+    // 2. Re-fetch on auth changes (signin/signout/refresh) as a safety net.
     const supabase = getSupabase()
     if (!supabase) return
-
-    // Fetch on auth-confirmed session. onAuthStateChange fires INITIAL_SESSION
-    // immediately after subscribing — the layout's own listener already ran, so
-    // by the time this provider mounts the session is always ready.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: unknown, session: { user?: unknown } | null) => {
       if (session?.user) fetchBalance()
     })
-
     return () => subscription.unsubscribe()
   }, [fetchBalance])
 
