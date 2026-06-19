@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react'
 import { getSupabase } from './auth'
 
-// Reliably loads the user's credit balance. The pattern used in individual pages
-// (getSession → fetch) silently returns 0 when Supabase auth hasn't finished
-// restoring from storage yet. This hook uses onAuthStateChange so the fetch
-// always runs on a confirmed session, never on a stale null session.
+// Reliably loads credit balance. The sidebar pattern that works:
+//   1. getUser() — server roundtrip that refreshes a stale token (critical step)
+//   2. getSession() — now returns a valid, fresh token
+//   3. fetch /api/credits/balance with the token
+// Skipping getUser() causes getSession() to return a null/stale session on
+// fresh page loads, which is why plain getSession() → fetch showed Balance: 0.
 export function useCredits(): { balance: number; refresh: () => void } {
-  const [balance, setBalance] = useState(0)
+  const [balance, setBalance] = useState<number | null>(null)
   const [tick, setTick] = useState(0)
 
   const refresh = () => setTick(t => t + 1)
@@ -16,36 +18,36 @@ export function useCredits(): { balance: number; refresh: () => void } {
   useEffect(() => {
     let cancelled = false
 
-    async function fetchBalance(token: string) {
-      const res = await fetch('/api/credits/balance', {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      if (!res.ok) return
-      const data = await res.json().catch(() => ({}))
-      if (!cancelled && typeof data?.balance === 'number') setBalance(data.balance)
-    }
+    ;(async () => {
+      try {
+        const supabase = getSupabase()
+        if (!supabase) return
 
-    const supabase = getSupabase()
-    if (!supabase) return
+        // Step 1: getUser() makes a server call that refreshes the token if stale.
+        const { data: userData } = await supabase.auth.getUser()
+        if (!userData?.user || cancelled) return
 
-    // Try the current session immediately — covers the case where auth is
-    // already restored when the component mounts (e.g. navigating between pages).
-    supabase.auth.getSession().then((result: { data: { session: { access_token?: string } | null } }) => {
-      const token = result.data.session?.access_token
-      if (token && !cancelled) fetchBalance(token)
-    })
+        // Step 2: now getSession() has a valid, refreshed token.
+        const { data: sessData } = await supabase.auth.getSession()
+        const token = sessData?.session?.access_token
+        if (!token || cancelled) return
 
-    // Subscribe to auth state changes as a fallback — fires when the session is
-    // restored from storage after a fresh page load (avoids the silent 0 bug).
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: unknown, session: { access_token?: string } | null) => {
-      if (session?.access_token && !cancelled) fetchBalance(session.access_token)
-    })
+        // Step 3: fetch balance.
+        const res = await fetch('/api/credits/balance', {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok || cancelled) return
+        const data = await res.json().catch(() => ({}))
+        if (!cancelled && typeof data?.balance === 'number') setBalance(data.balance)
+      } catch {
+        // Non-fatal — balance stays null (no stale 0 shown)
+      }
+    })()
 
-    return () => {
-      cancelled = true
-      subscription.unsubscribe()
-    }
+    return () => { cancelled = true }
   }, [tick])
 
-  return { balance, refresh }
+  // Return null as 0 only after first successful load.
+  // Before that, show null so the UI can distinguish "loading" from "0 credits".
+  return { balance: balance ?? 0, refresh }
 }
