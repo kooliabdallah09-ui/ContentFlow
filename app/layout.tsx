@@ -44,6 +44,7 @@ export default function RootLayout({
       '/generate/video': 'Video — ContentFlow',
       '/ask': 'Ask AI — ContentFlow',
       '/generate/ugc': 'UGC Package — ContentFlow',
+      '/generate/business-card': 'Business Card — ContentFlow',
       '/generate/from-calendar': 'Create Content — ContentFlow',
       '/settings': 'Settings — ContentFlow',
       '/settings/brand': 'Brand Settings — ContentFlow',
