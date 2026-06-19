@@ -57,21 +57,14 @@ const UGC_TYPE = 'video-with-voiceover'
 // Voice options — uses OpenAI TTS by default since it works on free OpenAI accounts
 // ElevenLabs voices via Replicate (elevenlabs/turbo-v2.5). Names match
 // Replicate's voice dropdown — private account voice IDs would 404.
-// OpenAI voices (openai:*) kept as a free fallback for the Hero tier.
 const VOICES = [
-  // ── ElevenLabs via Replicate ──────────────────────────────────────────────
-  { id: 'Drew',   label: 'Drew — Confident & warm (M) · ElevenLabs' },
-  { id: 'Paul',   label: 'Paul — Authoritative (M) · ElevenLabs' },
-  { id: 'James',  label: 'James — Smooth conversational (M) · ElevenLabs' },
-  { id: 'Rachel', label: 'Rachel — Calm conversational (F) · ElevenLabs' },
-  { id: 'Hope',   label: 'Hope — Bubbly & vibrant (F) · ElevenLabs' },
-  { id: 'Sarah',  label: 'Sarah — Bright & friendly (F) · ElevenLabs' },
-  { id: 'Aria',   label: 'Aria — Energetic & expressive (F) · ElevenLabs' },
-  // ── OpenAI TTS (free fallback) ───────────────────────────────────────────
-  { id: 'openai:nova',    label: 'Nova — Bright & energetic (F) · OpenAI' },
-  { id: 'openai:shimmer', label: 'Shimmer — Warm & friendly (F) · OpenAI' },
-  { id: 'openai:onyx',    label: 'Onyx — Deep & authoritative (M) · OpenAI' },
-  { id: 'openai:echo',    label: 'Echo — Smooth conversational (M) · OpenAI' },
+  { id: 'Drew',   label: 'Drew — Confident & warm (M)' },
+  { id: 'Paul',   label: 'Paul — Authoritative (M)' },
+  { id: 'James',  label: 'James — Smooth conversational (M)' },
+  { id: 'Rachel', label: 'Rachel — Calm conversational (F)' },
+  { id: 'Hope',   label: 'Hope — Bubbly & vibrant (F)' },
+  { id: 'Sarah',  label: 'Sarah — Bright & friendly (F)' },
+  { id: 'Aria',   label: 'Aria — Energetic & expressive (F)' },
 ]
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
