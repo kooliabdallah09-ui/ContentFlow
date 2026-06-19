@@ -146,15 +146,14 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <Icon.Video />
           <span style={{ flex: 1 }}>Video</span>
         </Link>
+        <Link href="/generate/voice" className={`nav-item ${isActive('/generate/voice') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Voice />
+          <span style={{ flex: 1 }}>Voiceover</span>
+        </Link>
       </div>
 
       <div className="rail-section">
         <div className="rail-label">Coming soon</div>
-        <div className="nav-item nav-soon">
-          <Icon.Voice />
-          <span style={{ flex: 1 }}>Voiceover</span>
-          <span className="soon-badge">Soon</span>
-        </div>
         <div className="nav-item nav-soon">
           <Icon.Blog />
           <span style={{ flex: 1 }}>Blog · Social · Email</span>
