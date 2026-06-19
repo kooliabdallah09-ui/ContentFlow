@@ -55,16 +55,19 @@ interface UGCPackageBuilderProps {
 const UGC_TYPE = 'video-with-voiceover'
 
 // Voice options — uses OpenAI TTS by default since it works on free OpenAI accounts
-// ElevenLabs voices are routed through Replicate (elevenlabs/turbo-v2.5) when
-// REPLICATE_API_TOKEN is set — no separate ElevenLabs key needed.
-// OpenAI voices are prefixed 'openai:' and go through OpenAI TTS directly.
+// ElevenLabs voices via Replicate (elevenlabs/turbo-v2.5). Names match
+// Replicate's voice dropdown — private account voice IDs would 404.
+// OpenAI voices (openai:*) kept as a free fallback for the Hero tier.
 const VOICES = [
   // ── ElevenLabs via Replicate ──────────────────────────────────────────────
-  { id: 's3TPKV1kjDlVtZbl4Ksh', label: 'Adam — Engaging & friendly (M) · ElevenLabs' },
-  { id: 'UaYTS0wayjmO9KD1LR4R', label: 'Asher — Confident & charismatic (M) · ElevenLabs' },
-  { id: 'uYXf8XasLslADfZ2MB4u', label: 'Hope — Bubbly & vibrant (F) · ElevenLabs' },
-  { id: 'cVd39cx0VtXNC13y5Y7z', label: 'Hope 2 — Warm & innocent (F) · ElevenLabs' },
-  // ── OpenAI TTS (fallback / free) ─────────────────────────────────────────
+  { id: 'Drew',   label: 'Drew — Confident & warm (M) · ElevenLabs' },
+  { id: 'Paul',   label: 'Paul — Authoritative (M) · ElevenLabs' },
+  { id: 'James',  label: 'James — Smooth conversational (M) · ElevenLabs' },
+  { id: 'Rachel', label: 'Rachel — Calm conversational (F) · ElevenLabs' },
+  { id: 'Hope',   label: 'Hope — Bubbly & vibrant (F) · ElevenLabs' },
+  { id: 'Sarah',  label: 'Sarah — Bright & friendly (F) · ElevenLabs' },
+  { id: 'Aria',   label: 'Aria — Energetic & expressive (F) · ElevenLabs' },
+  // ── OpenAI TTS (free fallback) ───────────────────────────────────────────
   { id: 'openai:nova',    label: 'Nova — Bright & energetic (F) · OpenAI' },
   { id: 'openai:shimmer', label: 'Shimmer — Warm & friendly (F) · OpenAI' },
   { id: 'openai:onyx',    label: 'Onyx — Deep & authoritative (M) · OpenAI' },
