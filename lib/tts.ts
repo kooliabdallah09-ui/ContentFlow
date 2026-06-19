@@ -1,12 +1,12 @@
 // Unified TTS dispatcher.
 // Voice IDs prefixed 'openai:' route to OpenAI TTS (works on free OpenAI tier, ~$0.001/video).
-// Anything else is treated as an ElevenLabs voice_id (requires a paid ElevenLabs plan).
-//
-// On Hero, if the user picked an ElevenLabs voice and ElevenLabs rejects it (free-plan
-// library voice block, voice-not-found, quota exceeded), we automatically retry with
-// OpenAI's 'nova' voice as a safety net so the generation doesn't fail.
+// Anything else is treated as an ElevenLabs voice_id. ElevenLabs is called via Replicate
+// (elevenlabs/turbo-v2.5) when REPLICATE_API_TOKEN is set — same voice IDs, no separate
+// ElevenLabs API key needed. Falls back to the direct ElevenLabs API if ELEVENLABS_API_KEY
+// is set instead. If both fail, falls back to OpenAI 'nova' so the generation never hard-fails.
 
 import { generateSpeech as generateElevenLabsSpeech } from './elevenlabs'
+import { generateElevenLabsViaReplicate } from './replicate'
 
 const OPENAI_PREFIX = 'openai:'
 
@@ -52,12 +52,25 @@ export async function generateSpeech(text: string, voiceId: string): Promise<Buf
     return generateOpenAISpeech(text, voiceId.slice(OPENAI_PREFIX.length))
   }
 
-  // ElevenLabs voice — try it, fall back to OpenAI on any failure
-  try {
-    return await generateElevenLabsSpeech(text, voiceId)
-  } catch (err) {
-    const reason = err instanceof Error ? err.message : 'unknown'
-    console.warn(`[tts] ElevenLabs failed (${reason}) — falling back to OpenAI TTS '${DEFAULT_OPENAI_VOICE}'`)
-    return generateOpenAISpeech(text, DEFAULT_OPENAI_VOICE)
+  // ElevenLabs voice — prefer Replicate (no separate key needed), fall back to
+  // direct ElevenLabs API, then finally OpenAI nova so generation never hard-fails.
+  if (process.env.REPLICATE_API_TOKEN) {
+    try {
+      return await generateElevenLabsViaReplicate(text, voiceId)
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'unknown'
+      console.warn(`[tts] Replicate ElevenLabs failed (${reason}) — trying direct ElevenLabs API`)
+    }
   }
+
+  if (process.env.ELEVENLABS_API_KEY) {
+    try {
+      return await generateElevenLabsSpeech(text, voiceId)
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : 'unknown'
+      console.warn(`[tts] ElevenLabs direct API failed (${reason}) — falling back to OpenAI TTS '${DEFAULT_OPENAI_VOICE}'`)
+    }
+  }
+
+  return generateOpenAISpeech(text, DEFAULT_OPENAI_VOICE)
 }

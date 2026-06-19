@@ -55,14 +55,20 @@ interface UGCPackageBuilderProps {
 const UGC_TYPE = 'video-with-voiceover'
 
 // Voice options — uses OpenAI TTS by default since it works on free OpenAI accounts
-// (and you already pay for OPENAI_API_KEY for Sora/Nano Banana). ElevenLabs requires
-// a paid plan ($5+/mo) for API access — once upgraded, swap individual IDs for the
-// ElevenLabs voice_id and lib/tts will route them automatically.
+// ElevenLabs voices are routed through Replicate (elevenlabs/turbo-v2.5) when
+// REPLICATE_API_TOKEN is set — no separate ElevenLabs key needed.
+// OpenAI voices are prefixed 'openai:' and go through OpenAI TTS directly.
 const VOICES = [
-  { id: 'openai:nova',    label: 'Nova — Bright & energetic (F)' },
-  { id: 'openai:shimmer', label: 'Shimmer — Warm & friendly (F)' },
-  { id: 'openai:onyx',    label: 'Onyx — Deep & authoritative (M)' },
-  { id: 'openai:echo',    label: 'Echo — Smooth conversational (M)' },
+  // ── ElevenLabs via Replicate ──────────────────────────────────────────────
+  { id: 's3TPKV1kjDlVtZbl4Ksh', label: 'Adam — Engaging & friendly (M) · ElevenLabs' },
+  { id: 'UaYTS0wayjmO9KD1LR4R', label: 'Asher — Confident & charismatic (M) · ElevenLabs' },
+  { id: 'uYXf8XasLslADfZ2MB4u', label: 'Hope — Bubbly & vibrant (F) · ElevenLabs' },
+  { id: 'cVd39cx0VtXNC13y5Y7z', label: 'Hope 2 — Warm & innocent (F) · ElevenLabs' },
+  // ── OpenAI TTS (fallback / free) ─────────────────────────────────────────
+  { id: 'openai:nova',    label: 'Nova — Bright & energetic (F) · OpenAI' },
+  { id: 'openai:shimmer', label: 'Shimmer — Warm & friendly (F) · OpenAI' },
+  { id: 'openai:onyx',    label: 'Onyx — Deep & authoritative (M) · OpenAI' },
+  { id: 'openai:echo',    label: 'Echo — Smooth conversational (M) · OpenAI' },
 ]
 
 export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance }: UGCPackageBuilderProps) {
@@ -647,7 +653,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 {VOICES.map(v => <option key={v.id} value={v.id}>{v.label}</option>)}
               </select>
               <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '4px 0 0' }}>
-                Overlaid on the video. Defaults to OpenAI TTS (works free). Add an ElevenLabs voice ID in <code>lib/tts.ts</code> once you upgrade for higher quality.
+                ElevenLabs voices run via Replicate (no separate ElevenLabs key needed). OpenAI voices are free and always available as a fallback.
               </p>
             </div>
           ) : (

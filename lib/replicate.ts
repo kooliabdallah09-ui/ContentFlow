@@ -1,4 +1,5 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
+const ELEVENLABS_TTS_MODEL = 'elevenlabs/turbo-v2.5'
 // Kling 1.6 Standard: $0.25 per 5s clip. We tried 2.1 Master ($1.40/clip) thinking it
 // was $0.42, but the real cost killed margin on the Standard tier ($4 cost vs $2 sell).
 //
@@ -46,6 +47,71 @@ export async function submitReplicateKlingJob(
   if (!predictionId) throw new Error(`Replicate did not return a prediction id. Response: ${JSON.stringify(data)}`)
 
   return { predictionId }
+}
+
+// Submit an ElevenLabs TTS job via Replicate, poll to completion, and return
+// the audio as a Buffer. Uses elevenlabs/turbo-v2.5 — high quality, 32 languages,
+// low latency. Voice IDs are the same ElevenLabs IDs used by the direct API.
+export async function generateElevenLabsViaReplicate(
+  text: string,
+  voiceId: string,
+): Promise<Buffer> {
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const res = await fetch(`${REPLICATE_BASE}/models/${ELEVENLABS_TTS_MODEL}/predictions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'respond-async',
+    },
+    body: JSON.stringify({
+      input: {
+        text,
+        voice: voiceId,
+        stability: 0.45,
+        similarity_boost: 0.75,
+        style: 0.35,
+        use_speaker_boost: true,
+        output_format: 'mp3_44100_128',
+      },
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Replicate ElevenLabs TTS error ${res.status}: ${JSON.stringify(err)}`)
+  }
+
+  const prediction = await res.json()
+  const predictionId: string | undefined = prediction?.id
+  if (!predictionId) throw new Error('Replicate ElevenLabs TTS: no prediction id returned')
+
+  const TIMEOUT_MS = 90_000
+  const POLL_MS = 2_000
+  const deadline = Date.now() + TIMEOUT_MS
+
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, POLL_MS))
+    const poll = await fetch(`${REPLICATE_BASE}/predictions/${predictionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    })
+    if (!poll.ok) throw new Error(`Replicate TTS poll error: ${poll.statusText}`)
+    const data = await poll.json()
+
+    if (data.status === 'succeeded') {
+      const audioUrl: string | undefined = Array.isArray(data.output) ? data.output[0] : data.output
+      if (!audioUrl) throw new Error('Replicate ElevenLabs TTS returned no audio URL')
+      const audioRes = await fetch(audioUrl)
+      if (!audioRes.ok) throw new Error(`Failed to fetch TTS audio from Replicate: ${audioRes.status}`)
+      return Buffer.from(await audioRes.arrayBuffer())
+    }
+    if (data.status === 'failed' || data.status === 'canceled') {
+      throw new Error(`Replicate ElevenLabs TTS prediction ${data.status}: ${data.error ?? 'unknown'}`)
+    }
+  }
+  throw new Error('Replicate ElevenLabs TTS timed out after 90s')
 }
 
 export async function getReplicateKlingStatus(predictionId: string): Promise<{
