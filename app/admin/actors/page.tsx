@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { ACTORS, type Actor } from '@/lib/actors'
-import { type CharacterProfile } from '@/lib/character'
-import { Loader2, Download, RefreshCw, Copy } from 'lucide-react'
+import { type CharacterProfile, randomCharacterProfile } from '@/lib/character'
+import { Loader2, Download, RefreshCw, Copy, Shuffle } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
 
 // Internal studio for previewing + regenerating the actor library portraits.
@@ -39,6 +39,10 @@ export default function ActorAdminPage() {
 
   function setProfile(id: string, key: keyof CharacterProfile, value: string) {
     setProfiles(prev => ({ ...prev, [id]: { ...prev[id], [key]: value } }))
+  }
+
+  function randomize(id: string) {
+    setProfiles(prev => ({ ...prev, [id]: randomCharacterProfile() }))
   }
 
   async function generate(actor: Actor) {
@@ -189,7 +193,14 @@ export default function ActorAdminPage() {
               </div>
 
               {/* Actions */}
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => randomize(actor.id)}
+                  disabled={state.loading}
+                  style={btnSecondary(state.loading)}
+                  title="Randomize all traits from the option lists">
+                  <Shuffle size={13} /> Random
+                </button>
                 <button
                   onClick={() => generate(actor)}
                   disabled={state.loading}

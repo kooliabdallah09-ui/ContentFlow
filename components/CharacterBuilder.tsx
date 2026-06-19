@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
-import { type CharacterProfile, EMPTY_CHARACTER, buildCharacterPrompt } from '@/lib/character'
+import { type CharacterProfile, EMPTY_CHARACTER, buildCharacterPrompt, CHARACTER_OPTIONS } from '@/lib/character'
 
 export { type CharacterProfile, EMPTY_CHARACTER, buildCharacterPrompt }
 
@@ -15,61 +15,7 @@ export interface SavedPersona extends CharacterProfile {
 // Option sets per question. Each field also supports an "Other (specify)" free-text input
 // for cases the dropdown doesn't cover. Gender intentionally has no "Other" select option —
 // it's just 3 choices; non-binary / custom users pick "Other" → text input.
-const OPTIONS = {
-  gender: ['Man', 'Woman'],
-  age: ['Teen (16–19)', 'Early 20s', 'Late 20s', 'Early 30s', 'Late 30s', '40s', '50s', '60+'],
-  ethnicity: [
-    'South Asian', 'East Asian', 'Southeast Asian', 'Central Asian',
-    'West African', 'East African', 'North African',
-    'Black / African American', 'Afro-Caribbean',
-    'Middle Eastern', 'Persian / Iranian',
-    'Southern European', 'Northern European', 'Eastern European / Slavic',
-    'Latin American', 'Indigenous / Native American', 'Pacific Islander',
-    'Mixed',
-  ],
-  hair: [
-    'Black straight', 'Black wavy', 'Black curly', 'Black coily / afro',
-    'Dark brown straight', 'Dark brown wavy', 'Dark brown curly',
-    'Light brown straight', 'Light brown wavy',
-    'Blonde straight', 'Blonde wavy', 'Platinum blonde', 'Strawberry blonde',
-    'Red / auburn',
-    'Gray', 'Salt and pepper', 'White',
-    'Bald / shaved',
-    'Dyed (vibrant colour)',
-    'Long braids', 'Dreadlocks',
-  ],
-  uniqueFeatures: [
-    'None', 'Freckles', 'Acne / blemishes', 'A scar', 'Birthmark',
-    'Gap teeth', 'Mole on face', 'Beard', 'Mustache', 'Tattoo visible',
-    'Glasses', 'Piercing', 'Dimples',
-  ],
-  scene: [
-    'Bathroom', 'Bedroom', 'Living room', 'Kitchen',
-    'Home office', 'Closet / dressing room',
-    'Gym', 'Yoga studio',
-    'Café', 'Restaurant',
-    'Outdoor park', 'Beach', 'City street', 'Rooftop',
-    'Car interior',
-  ],
-  mood: [
-    'Relaxed', 'Candid', 'Confident', 'Excited',
-    'Laughing', 'Surprised', 'Skeptical', 'Curious',
-    'Serious', 'Playful', 'Chill', 'Energetic',
-  ],
-  outfit: [
-    'White tank top', 'Casual t-shirt', 'Oversized hoodie', 'Sweater',
-    'Athletic wear', 'Gym wear', 'Yoga set', 'Sports bra',
-    'Smart casual', 'Suit / blazer', 'Dress', 'Skirt + top',
-    'Pajamas / loungewear', 'Robe', 'Towel',
-    'Streetwear', 'Cropped top', 'Button-up shirt',
-  ],
-  accessories: [
-    'None', 'Sunglasses', 'Glasses', 'Earrings', 'Necklace',
-    'Watch', 'Bracelet', 'Rings',
-    'Hat', 'Cap', 'Beanie', 'Headband',
-    'Scarf', 'Headphones',
-  ],
-}
+const OPTIONS = CHARACTER_OPTIONS
 
 const PERSONA_STORAGE_KEY = 'contentflow_personas_v1'
 
@@ -92,7 +38,7 @@ export default function CharacterBuilder({ value, onChange, disabled }: Characte
   const isOtherActive = (field: keyof typeof OPTIONS): boolean => {
     if (otherMode[field]) return true
     const v = value[field as keyof CharacterProfile]
-    return !!v && !OPTIONS[field].includes(v)
+    return !!v && !(OPTIONS[field] as readonly string[]).includes(v)
   }
 
   // Load saved personas from localStorage on mount
