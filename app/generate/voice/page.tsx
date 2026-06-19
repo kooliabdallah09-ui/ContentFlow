@@ -48,7 +48,8 @@ export default function VoicePage() {
   const [results, setResults] = useState<AudioResult[]>([])
   const [playingIdx, setPlayingIdx] = useState<number | null>(null)
   const audioRefs = useRef<(HTMLAudioElement | null)[]>([])
-  const { balance: creditBalance, refresh: refreshCredits } = useCredits()
+  const { balance: rawBalance, refresh: refreshCredits } = useCredits()
+  const creditBalance = rawBalance ?? 0
 
   const selectedVoice = VOICES.find(v => v.id === voiceId) ?? VOICES[0]
   const charCount = text.length

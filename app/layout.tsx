@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { TopBar } from '@/components/TopBar'
 import ToastContainer from '@/components/ToastContainer'
 import AppAssistant from '@/components/AppAssistant'
+import { CreditsProvider } from '@/lib/CreditsContext'
 import "./globals.css";
 
 export default function RootLayout({
@@ -132,6 +133,7 @@ export default function RootLayout({
         <meta name="theme-color" content="#FAFAF8" />
       </head>
       <body>
+        <CreditsProvider>
         {showLayout ? (
           <div className="app">
             {mobileMenuOpen && (
@@ -158,6 +160,7 @@ export default function RootLayout({
         ) : (
           children
         )}
+        </CreditsProvider>
         <ToastContainer />
         <AppAssistant />
       </body>

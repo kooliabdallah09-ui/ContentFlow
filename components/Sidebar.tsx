@@ -1,9 +1,9 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Icon } from '@/components/Icons'
 import Link from 'next/link'
-import { getSupabase } from '@/lib/auth'
+import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 
 interface SidebarProps {
@@ -15,85 +15,11 @@ interface SidebarProps {
 export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps) {
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/')
   const handleNavClick = () => onMobileClose?.()
-  const [creditBalance, setCreditBalance] = useState(0)
   const router = useRouter()
+  const { balance: creditBalance } = useCredits()
+  const displayBalance = creditBalance ?? 0
 
-  useEffect(() => {
-    loadUserData()
-  }, [])
-
-  const loadUserData = async () => {
-    try {
-      const supabase = getSupabase()
-      if (!supabase) {
-        console.log('Supabase not available')
-        return
-      }
-
-      const { data: userData } = await supabase.auth.getUser()
-      if (userData.user) {
-        // Fetch credit balance
-        const { data: sessionData } = await supabase.auth.getSession()
-        if (sessionData?.session?.access_token) {
-          try {
-            let response = await fetch('/api/credits/balance', {
-              headers: {
-                Authorization: `Bearer ${sessionData.session.access_token}`,
-              },
-            })
-
-            // If credits not initialized (404), initialize them
-            if (response.status === 404) {
-              console.log('Credits not initialized, initializing...')
-              const initResponse = await fetch('/api/credits/init', {
-                method: 'POST',
-                headers: {
-                  Authorization: `Bearer ${sessionData.session.access_token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ plan: 'free' }),
-              })
-
-              console.log('Init response status:', initResponse.status)
-
-              if (!initResponse.ok) {
-                const initErrorText = await initResponse.text()
-                console.error('Init failed:', initResponse.status, initErrorText)
-                // Set default credits if init failed
-                setCreditBalance(200)
-              } else {
-                const initData = await initResponse.json()
-                console.log('Credits initialized successfully:', initData)
-                setCreditBalance(initData.data?.balance || 200)
-              }
-            } else if (response.ok) {
-              const data = await response.json()
-              console.log('Credits fetched:', data.balance)
-              setCreditBalance(data.balance || 0)
-            } else {
-              console.error('Failed to fetch credits:', response.status)
-              // Set default balance on error
-              setCreditBalance(200)
-            }
-          } catch (fetchError) {
-            console.error('Error fetching credits:', fetchError)
-            // Set default balance on error
-            setCreditBalance(200)
-          }
-        } else {
-          console.log('No access token available')
-          setCreditBalance(200)
-        }
-      } else {
-        console.log('No user found')
-      }
-    } catch (error) {
-      console.error('Failed to load user data:', error)
-    }
-  }
-
-
-  const creditPercentage = Math.min((creditBalance / 500) * 100, 100)
+  const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
 
   return (
     <aside className={`rail${mobileOpen ? ' mobile-open' : ''}`}>
@@ -174,7 +100,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       <div className="rail-footer">
         <div className="credits-card">
           <div className="credits-row">
-            <div className="credits-num">{creditBalance}</div>
+            <div className="credits-num">{displayBalance}</div>
             <div className="credits-label">Credits</div>
           </div>
           <div className="credits-bar"><div style={{ width: `${creditPercentage}%` }} /></div>

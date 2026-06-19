@@ -37,7 +37,8 @@ export default function ImageGeneratorPage() {
   const [images, setImages] = useState<string[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const { balance: creditBalance, refresh: refreshCredits } = useCredits()
+  const { balance: rawBalance, refresh: refreshCredits } = useCredits()
+  const creditBalance = rawBalance ?? 0
   // Reference image — optional. When set, the API runs Nano Banana 2 image-to-image
   // so the user's photo (e.g. their actual product) carries through to the output.
   const [reference, setReference] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
