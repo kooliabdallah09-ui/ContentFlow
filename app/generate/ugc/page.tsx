@@ -123,6 +123,7 @@ export default function UGCGeneratorPage() {
     customInstructions?: string
     language?: string
     aspect?: 'portrait' | 'square' | 'landscape'
+    prewrittenScript?: string
   }) => {
     setLoading(true)
     setError('')

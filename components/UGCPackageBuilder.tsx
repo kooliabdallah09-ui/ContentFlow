@@ -48,6 +48,7 @@ interface UGCPackageBuilderProps {
     customPhotoBase64?: string
     customPhotoMimeType?: string
     productType?: 'physical' | 'software'
+    prewrittenScript?: string
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -100,6 +101,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [products, setProducts] = useState<BrandProduct[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [useBrand, setUseBrand] = useState(false)
+
+  // Two-step flow: form → script review → video
+  const [step, setStep] = useState<'form' | 'script'>('form')
+  const [generatedScript, setGeneratedScript] = useState<string>('')
+  const [scriptLoading, setScriptLoading] = useState(false)
+  const [editedScript, setEditedScript] = useState<string>('')
+  const [scriptError, setScriptError] = useState<string | null>(null)
 
   // Hook-preview stage
   const [hooks, setHooks] = useState<HookVariant[] | null>(null)
@@ -237,7 +245,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const includesVideo = true
   const videoCredits = calculateVideoCredits(tier, duration)
   const totalCredits = videoCredits
-  const canGenerate = creditBalance >= totalCredits && productName.trim() && productDescription.trim() && benefits.trim()
+  const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && benefits.trim()
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -258,7 +266,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     setBenefits('')
   }
 
-  const runGenerate = async (selectedHook?: string) => {
+  const runGenerate = async (selectedHook?: string, prewrittenScript?: string) => {
     await onGenerate({
       ugcType: UGC_TYPE, tier, duration, productName, productDescription, benefits, callToAction,
       style: 'realistic', imageSize: '1024x1024', voiceId: '',
@@ -273,16 +281,21 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       customPhotoBase64: customPhoto?.base64,
       customPhotoMimeType: customPhoto?.mimeType,
       productType,
+      prewrittenScript,
     })
+    // Reset to form step after successful generation
+    setStep('form')
+    setGeneratedScript('')
+    setEditedScript('')
     resetForm()
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!canGenerate || isLoading || hooksLoading) return
+    if (!canGenerate || isLoading || scriptLoading) return
 
-    setHooksError(null)
-    setHooksLoading(true)
+    setScriptError(null)
+    setScriptLoading(true)
     try {
       const supabase = getSupabase()
       if (!supabase) throw new Error('Auth not ready')
@@ -290,25 +303,31 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       const token = sessionData?.session?.access_token
       if (!token) throw new Error('Not signed in')
 
-      const res = await fetch('/api/ugc/hooks', {
+      const res = await fetch('/api/ugc/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           productName, productDescription, benefits,
+          callToAction: callToAction || 'Try it today',
           productImageBase64: productImage?.base64,
           productImageMimeType: productImage?.mimeType,
+          duration,
+          character,
           customInstructions: customInstructions.trim() || undefined,
           language,
+          productType,
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to load hooks')
-      if (!Array.isArray(data.hooks) || data.hooks.length === 0) throw new Error('No hooks returned')
-      setHooks(data.hooks)
+      if (!res.ok) throw new Error(data.error || 'Failed to generate script')
+      if (!data.script) throw new Error('No script returned')
+      setGeneratedScript(data.script)
+      setEditedScript(data.script)
+      setStep('script')
     } catch (err) {
-      setHooksError(err instanceof Error ? err.message : 'Failed to load hooks')
+      setScriptError(err instanceof Error ? err.message : 'Failed to generate script')
     } finally {
-      setHooksLoading(false)
+      setScriptLoading(false)
     }
   }
 
@@ -320,6 +339,91 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const handleSkipHook = async () => {
     setHooks(null)
     await runGenerate()
+  }
+
+  // Script review step — shown after "Generate Script" succeeds
+  if (step === 'script') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              onClick={() => setStep('form')}
+              disabled={isLoading}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 8,
+                border: '1px solid var(--border)', background: 'var(--surface)',
+                color: 'var(--ink-dim)', fontSize: 13, cursor: isLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              ← Edit form
+            </button>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
+              Review your script
+            </h3>
+          </div>
+
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>
+            You can edit the script before generating. Changes here affect what the character says.
+          </p>
+
+          <textarea
+            value={editedScript}
+            onChange={e => setEditedScript(e.target.value)}
+            disabled={isLoading}
+            rows={16}
+            style={{
+              width: '100%',
+              fontFamily: 'var(--font-mono)',
+              fontSize: 12.5,
+              lineHeight: 1.65,
+              padding: '14px',
+              borderRadius: 10,
+              border: '1.5px solid var(--border-strong)',
+              background: 'var(--bg-elev)',
+              color: 'var(--ink)',
+              resize: 'vertical',
+              boxSizing: 'border-box',
+              outline: 'none',
+            }}
+          />
+        </section>
+
+        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '6px 0', borderBottom: '1px solid var(--border-soft)' }}>
+            <span style={{ fontSize: 13, color: 'var(--ink-dim)' }}>Cost</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em' }}>
+              {totalCredits} <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>cr</span>
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink-mute)' }}>
+            <span>Your balance</span>
+            <span style={{ color: creditBalance >= totalCredits ? 'var(--good)' : 'var(--danger)', fontWeight: 600 }}>
+              {creditBalance} credits
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={isLoading || !editedScript.trim() || creditBalance < totalCredits}
+            onClick={() => runGenerate(undefined, editedScript)}
+            className="btn btn-primary"
+            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11 }}
+          >
+            {isLoading ? 'Generating…' : 'Generate Video →'}
+          </button>
+
+          {creditBalance < totalCredits && (
+            <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', textAlign: 'center', margin: 0 }}>
+              Not enough credits — need {totalCredits}, have {creditBalance}
+            </p>
+          )}
+        </section>
+      </div>
+    )
   }
 
   return (
@@ -688,16 +792,16 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </span>
         </div>
 
-        <button type="submit" disabled={!canGenerate || isLoading || hooksLoading} className="btn btn-primary"
+        <button type="submit" disabled={!canGenerate || isLoading || scriptLoading} className="btn btn-primary"
           style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11 }}>
-          {isLoading ? 'Generating…' : hooksLoading ? 'Writing hooks…' : 'Preview hooks → generate'}
+          {scriptLoading ? 'Writing script…' : 'Generate Script →'}
         </button>
 
-        {hooksError && (
-          <p style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center', margin: 0 }}>{hooksError}</p>
+        {scriptError && (
+          <p style={{ fontSize: 12, color: 'var(--danger)', textAlign: 'center', margin: 0 }}>{scriptError}</p>
         )}
 
-        {!canGenerate && productName && (
+        {(!canGenerate || creditBalance < totalCredits) && productName && (
           <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', textAlign: 'center', margin: 0 }}>
             {creditBalance < totalCredits
               ? `Not enough credits — need ${totalCredits}, have ${creditBalance}`
