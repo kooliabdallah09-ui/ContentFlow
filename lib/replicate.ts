@@ -1,4 +1,72 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
+const SORA_2_MODEL = 'openai/sora-2'
+
+export async function submitSora2ViaReplicate(params: {
+  prompt: string
+  durationSeconds: 5 | 10 | 15 | 20
+  aspectRatio?: '9:16' | '16:9' | '1:1'
+  resolution?: '720p' | '1080p'
+  referenceImageUrl?: string
+}): Promise<{ predictionId: string }> {
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const input: Record<string, unknown> = {
+    prompt: params.prompt,
+    duration: params.durationSeconds,
+    aspect_ratio: params.aspectRatio ?? '9:16',
+    resolution: params.resolution ?? '720p',
+  }
+  if (params.referenceImageUrl) input.image = params.referenceImageUrl
+
+  const res = await fetch(`${REPLICATE_BASE}/models/${SORA_2_MODEL}/predictions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'respond-async',
+    },
+    body: JSON.stringify({ input }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Sora 2 (Replicate) error ${res.status}: ${JSON.stringify(err)}`)
+  }
+
+  const data = await res.json()
+  const predictionId = data?.id
+  if (!predictionId) throw new Error(`Sora 2 (Replicate): no prediction id. Response: ${JSON.stringify(data)}`)
+  return { predictionId }
+}
+
+export async function getSora2ReplicateStatus(predictionId: string): Promise<{
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  videoUrl?: string
+  error?: string
+}> {
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const res = await fetch(`${REPLICATE_BASE}/predictions/${predictionId}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  })
+  if (!res.ok) throw new Error(`Sora 2 poll error: ${res.statusText}`)
+
+  const data = await res.json()
+  const status = data?.status as string | undefined
+
+  if (status === 'succeeded') {
+    const output = data?.output
+    const videoUrl = Array.isArray(output) ? output[0] : typeof output === 'string' ? output : undefined
+    return { status: 'completed', videoUrl }
+  }
+  if (status === 'failed' || status === 'canceled') {
+    return { status: 'failed', error: data?.error ?? 'unknown' }
+  }
+  if (status === 'processing') return { status: 'processing' }
+  return { status: 'pending' }
+}
 // v3 is ElevenLabs' most expressive model — supports a `speed` parameter (0.7-1.2),
 // 70+ languages, and inline audio tags like [excited] / [whispers]. Costs more
 // than turbo-v2.5 but gives full speech-rate control.

@@ -1,23 +1,24 @@
-import { submitSoraJob } from '@/lib/sora'
+import { submitSora2ViaReplicate } from '@/lib/replicate'
+import { submitKlingV3OmniJob } from '@/lib/replicate'
 import { generateTextToImage } from '@/lib/nanobanana'
-import {
-  DURATION_OPTIONS,
-  DURATION_CONFIGS,
-  DEFAULT_DURATION,
-  calculateStandaloneVideoCredits,
-  type UGCDuration,
-} from '@/lib/tiers'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import sharp from 'sharp'
 
-export const maxDuration = 60
+export const maxDuration = 120
 
-// Sora 2 expects 720x1280 portrait for our 9:16 output. Reference images that
-// come in any aspect ratio get cover-cropped to this exact size before upload.
-const SORA_W = 720
-const SORA_H = 1280
-const SORA_SIZE = `${SORA_W}x${SORA_H}`
+// Credit costs per model + duration
+const COSTS: Record<string, Record<number, number>> = {
+  'sora-2':   { 5: 35, 10: 60, 15: 85, 20: 110 },
+  'kling-v3': { 5: 25, 10: 50, 15: 75, 20: 100 },
+}
+
+function getCost(model: string, duration: number): number {
+  return COSTS[model]?.[duration] ?? 60
+}
+
+// Sora reference image: must match exact output size
+const SORA_W = 720, SORA_H = 1280
 
 export async function POST(request: NextRequest) {
   try {
@@ -41,32 +42,25 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 4000).trim() : ''
-    if (!prompt) {
-      return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
+    if (!prompt) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
+
+    const model = body.model === 'kling-v3' ? 'kling-v3' : 'sora-2'
+    const duration = Number(body.duration ?? 10)
+    const allowedDurations = Object.keys(COSTS[model]).map(Number)
+    if (!allowedDurations.includes(duration)) {
+      return NextResponse.json({ error: `Invalid duration for ${model}` }, { status: 400 })
     }
 
-    // Validate duration against available native ones (4/8/12). Extended/chained
-    // share the same Sora call shape but only the soraSeconds value matters here.
-    const rawDuration = Number(body.duration ?? DEFAULT_DURATION)
-    const allowedDurations: readonly number[] = DURATION_OPTIONS
-    const dCfg = allowedDurations.includes(rawDuration) ? DURATION_CONFIGS[rawDuration] : null
-    if (!dCfg?.available) {
-      return NextResponse.json({ error: 'Selected duration is not available yet' }, { status: 400 })
-    }
-    const duration: UGCDuration = rawDuration as UGCDuration
-
-    // Optional reference image as base64. If provided, we resize to Sora's exact
-    // dimensions, upload to Supabase, and pass the public URL to Sora as input_reference.
     const refImageBase64 = typeof body.referenceImageBase64 === 'string' ? body.referenceImageBase64 : undefined
     const refImageMimeType = typeof body.referenceImageMimeType === 'string' ? body.referenceImageMimeType : undefined
 
-    // Credit check before any paid call.
-    const totalCost = calculateStandaloneVideoCredits(duration)
+    const totalCost = getCost(model, duration)
     const { data: userCredits } = await supabase
       .from('user_credits')
       .select('balance')
       .eq('user_id', userId)
       .single()
+
     if (!userCredits || userCredits.balance < totalCost) {
       return NextResponse.json(
         { error: `Insufficient credits. Need ${totalCost}, have ${userCredits?.balance ?? 0}` },
@@ -74,88 +68,92 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Sora 2 base model REQUIRES input_reference. We either use the user's uploaded
-    // reference (resized to Sora's exact dimensions) OR generate one from the prompt
-    // via Nano Banana 2 text-to-image. Either way, end up with a public Supabase URL.
-    let referenceImageBuf: Buffer
-    try {
+    let predictionId: string
+    let provider: string
+
+    if (model === 'sora-2') {
+      // Sora needs a reference image — generate one from the prompt if not provided
+      let refImageBuf: Buffer
       if (refImageBase64 && refImageMimeType) {
-        referenceImageBuf = await sharp(Buffer.from(refImageBase64, 'base64'))
+        refImageBuf = await sharp(Buffer.from(refImageBase64, 'base64'))
           .resize(SORA_W, SORA_H, { fit: 'cover', position: 'center' })
           .png()
           .toBuffer()
       } else {
-        // Auto-generate a first frame from the prompt — adds ~$0.12 to cost
-        // but the credit math already covers it via BASE_STANDALONE_VIDEO.
         const generated = await generateTextToImage(prompt)
-        referenceImageBuf = await sharp(Buffer.from(generated.imageBase64, 'base64'))
+        refImageBuf = await sharp(Buffer.from(generated.imageBase64, 'base64'))
           .resize(SORA_W, SORA_H, { fit: 'cover', position: 'center' })
           .png()
           .toBuffer()
       }
-    } catch (err) {
-      return NextResponse.json(
-        { error: `Failed to prepare first frame: ${err instanceof Error ? err.message : 'unknown'}` },
-        { status: 500 },
-      )
+
+      const filename = `video-ref/${userId}-${Date.now()}.png`
+      const { error: upErr } = await supabase.storage
+        .from('ugc-assets')
+        .upload(filename, refImageBuf, { contentType: 'image/png', upsert: false })
+      if (upErr) return NextResponse.json({ error: `Storage upload failed: ${upErr.message}` }, { status: 500 })
+
+      const { data: { publicUrl: referenceImageUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+
+      const soraJob = await submitSora2ViaReplicate({
+        prompt,
+        durationSeconds: duration as 5 | 10 | 15 | 20,
+        aspectRatio: '9:16',
+        resolution: '720p',
+        referenceImageUrl,
+      })
+      predictionId = soraJob.predictionId
+      provider = 'sora-2'
+    } else {
+      // Kling v3 — also needs a start image
+      let startImageUrl: string
+      if (refImageBase64 && refImageMimeType) {
+        const buf = await sharp(Buffer.from(refImageBase64, 'base64'))
+          .resize(720, 1280, { fit: 'cover', position: 'center' })
+          .png()
+          .toBuffer()
+        const filename = `video-ref/${userId}-${Date.now()}.png`
+        await supabase.storage.from('ugc-assets').upload(filename, buf, { contentType: 'image/png', upsert: false })
+        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+        startImageUrl = publicUrl
+      } else {
+        const generated = await generateTextToImage(prompt)
+        const buf = await sharp(Buffer.from(generated.imageBase64, 'base64'))
+          .resize(720, 1280, { fit: 'cover', position: 'center' })
+          .png()
+          .toBuffer()
+        const filename = `video-ref/${userId}-${Date.now()}.png`
+        await supabase.storage.from('ugc-assets').upload(filename, buf, { contentType: 'image/png', upsert: false })
+        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+        startImageUrl = publicUrl
+      }
+
+      const klingJob = await submitKlingV3OmniJob({
+        prompt,
+        startImageUrl,
+        durationSeconds: Math.min(duration, 15) as 5 | 10 | 15,
+        aspectRatio: '9:16',
+        mode: 'standard',
+      })
+      predictionId = klingJob.predictionId
+      provider = 'kling-v3'
     }
 
-    const filename = `video-ref/${userId}-${Date.now()}.png`
-    const { error: upErr } = await supabase.storage
-      .from('ugc-assets')
-      .upload(filename, referenceImageBuf, { contentType: 'image/png', upsert: false })
-    if (upErr) {
-      return NextResponse.json({ error: `Storage upload failed: ${upErr.message}` }, { status: 500 })
-    }
-    const { data: { publicUrl: referenceImageUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-
-    // Standalone video page is still on Sora 2 (only the UGC pipeline migrated to Kling).
-    // Map the new Kling duration buckets to Sora's native 4/8/12s slots.
-    const klingSec = dCfg.klingSeconds
-    const soraSeconds: 4 | 8 | 12 = klingSec <= 5 ? 4 : klingSec <= 10 ? 8 : 12
-    const { videoId } = await submitSoraJob({
-      prompt,
-      referenceImageUrl,
-      durationSeconds: soraSeconds,
-      size: SORA_SIZE,
-    })
-
-    // Save DB row + deduct credits BEFORE returning so the videoId is never lost
-    // even if Vercel's 300s edge timeout fires after this returns.
-    const components = {
-      video: {
-        videoId,
-        status: 'processing',
-        provider: 'sora-2',
-        duration,
-        estimatedDuration: duration,
-      },
-      prompt,
-    }
-    const externalId = `video-${Date.now()}`
-    const { data: row } = await supabase.from('ugc_content').insert({
-      user_id: userId,
-      content_type: 'video',
-      external_id: externalId,
-      storage_url: JSON.stringify(components),
-      metadata: { prompt, duration, generatedAt: new Date().toISOString() },
-      credit_cost: totalCost,
-      status: 'generating',
-    }).select('id').single()
-
+    // Save DB row + deduct credits
     await supabase.from('user_credits').update({ balance: userCredits.balance - totalCost }).eq('user_id', userId)
     await supabase.from('credit_transactions').insert({
       user_id: userId,
       amount: totalCost,
       transaction_type: 'generation',
       content_type: 'video',
-      description: `Video: ${prompt.slice(0, 60)}`,
+      description: `Video (${provider}) · ${duration}s · ${prompt.slice(0, 60)}`,
     })
 
     return NextResponse.json({
       success: true,
-      id: row?.id,
-      components,
+      predictionId,
+      provider,
+      duration,
       creditDeducted: totalCost,
       newBalance: userCredits.balance - totalCost,
     }, { status: 201 })

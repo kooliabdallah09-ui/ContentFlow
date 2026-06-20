@@ -2,92 +2,111 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import {
-  DURATION_OPTIONS,
-  DURATION_CONFIGS,
-  DEFAULT_DURATION,
-  calculateStandaloneVideoCredits,
-  creditsToUSD,
-  type UGCDuration,
-} from '@/lib/tiers'
-import { Loader2, Upload, X, Download, Play } from 'lucide-react'
+import { useCredits } from '@/lib/useCredits'
+import { showError, showSuccess } from '@/lib/notifications'
+import { Download, Play, Upload, X } from 'lucide-react'
+
+type Model = 'sora-2' | 'kling-v3'
+
+const MODELS: {
+  id: Model
+  name: string
+  badge: string
+  tagline: string
+  excels: string[]
+  caveat: string
+  durations: number[]
+  credits: Record<number, number>
+}[] = [
+  {
+    id: 'sora-2',
+    name: 'Sora 2',
+    badge: 'OpenAI',
+    tagline: 'Cinematic storytelling & physics',
+    excels: [
+      'Fluid camera moves — dolly, crane, tracking shots',
+      'Real-world physics: water, cloth, fire, smoke',
+      'Diverse scene composition & depth of field',
+      'Consistent characters across a single scene',
+    ],
+    caveat: 'No native audio · 2–4 min generation time',
+    durations: [5, 10, 15, 20],
+    credits: { 5: 35, 10: 60, 15: 85, 20: 110 },
+  },
+  {
+    id: 'kling-v3',
+    name: 'Kling v3',
+    badge: 'Replicate',
+    tagline: 'Talking heads & native audio',
+    excels: [
+      'Lip-sync & expressive faces out of the box',
+      'Native audio — voice, ambient sound, music',
+      'Fast generation: ~60–90 seconds',
+      'UGC-style realism: handheld feel, skin texture',
+    ],
+    caveat: 'Max 15s per clip · less cinematic than Sora',
+    durations: [5, 10, 15],
+    credits: { 5: 25, 10: 50, 15: 75 },
+  },
+]
 
 interface VideoState {
-  videoId?: string
-  videoUrl?: string
+  predictionId: string
+  provider: 'sora-2-replicate' | 'kling-v3'
   status: 'processing' | 'completed' | 'failed'
-  duration?: number
+  videoUrl?: string
   error?: string
 }
 
-// Standalone Sora 2 video generator. Plain prompt + duration + optional reference
-// image. No avatar selection, no character builder, no B-rolls, no stitch. Just
-// "type what you want, get a Sora video back".
 export default function VideoGeneratorPage() {
+  const [model, setModel] = useState<Model>('sora-2')
   const [prompt, setPrompt] = useState('')
-  const [duration, setDuration] = useState<UGCDuration>(DEFAULT_DURATION)
+  const [duration, setDuration] = useState(10)
   const [refImage, setRefImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
-  const [creditBalance, setCreditBalance] = useState(0)
-  const [creditsLoading, setCreditsLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [video, setVideo] = useState<VideoState | null>(null)
   const [error, setError] = useState('')
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const { balance: rawBalance, refresh: refreshCredits } = useCredits()
+  const creditBalance = rawBalance ?? 0
 
-  const cost = calculateStandaloneVideoCredits(duration)
+  const cfg = MODELS.find(m => m.id === model)!
+  const cost = cfg.credits[duration] ?? 60
   const canGenerate = prompt.trim().length >= 5 && creditBalance >= cost
 
-  // Load credits on mount.
+  // Reset duration when switching models if current duration isn't valid
   useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      const supabase = getSupabase()
-      if (!supabase) return
-      const { data: sess } = await supabase.auth.getSession()
-      const userId = sess?.session?.user?.id
-      if (!userId) return
-      const { data } = await supabase.from('user_credits').select('balance').eq('user_id', userId).single()
-      if (!cancelled) {
-        setCreditBalance(data?.balance ?? 0)
-        setCreditsLoading(false)
-      }
-    })()
-    return () => { cancelled = true }
-  }, [])
+    if (!cfg.durations.includes(duration)) {
+      setDuration(cfg.durations[1] ?? cfg.durations[0])
+    }
+  }, [model])
 
-  // Poll Sora status when a generation is in flight.
+  // Poll status while processing
   useEffect(() => {
-    if (!video?.videoId || video.status !== 'processing') return
-
+    if (!video?.predictionId || video.status !== 'processing') return
     pollRef.current = setInterval(async () => {
       try {
-        const res = await fetch(`/api/ugc/video-status?videoId=${video.videoId}&provider=sora-2`)
+        const res = await fetch(`/api/ugc/video-status?videoId=${video.predictionId}&provider=${video.provider}`)
         const data = await res.json()
-        if (data.video) {
-          const v = data.video
-          if (v.status === 'completed' || v.status === 'failed') {
-            setVideo(prev => prev ? { ...prev, status: v.status, videoUrl: v.videoUrl, error: v.error } : prev)
-            clearInterval(pollRef.current!)
-          }
+        const v = data.video
+        if (v?.status === 'completed' || v?.status === 'failed') {
+          setVideo(prev => prev ? { ...prev, status: v.status, videoUrl: v.videoUrl, error: v.error } : prev)
+          if (v.status === 'completed') showSuccess('Video ready', 'Your video has been generated')
+          clearInterval(pollRef.current!)
         }
       } catch {}
     }, 5000)
-
     return () => clearInterval(pollRef.current!)
-  }, [video?.videoId, video?.status])
+  }, [video?.predictionId, video?.status])
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Reference image must be under 5MB')
-      return
-    }
+    if (file.size > 5 * 1024 * 1024) { setError('Reference image must be under 5MB'); return }
     const reader = new FileReader()
     reader.onload = ev => {
       const result = ev.target?.result as string
-      const base64 = result.split(',')[1]
-      setRefImage({ base64, mimeType: file.type, preview: result })
+      setRefImage({ base64: result.split(',')[1], mimeType: file.type, preview: result })
     }
     reader.readAsDataURL(file)
   }
@@ -97,7 +116,6 @@ export default function VideoGeneratorPage() {
     setError('')
     setGenerating(true)
     setVideo(null)
-
     try {
       const supabase = getSupabase()
       if (!supabase) throw new Error('Auth not ready')
@@ -110,6 +128,7 @@ export default function VideoGeneratorPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           prompt: prompt.trim(),
+          model,
           duration,
           referenceImageBase64: refImage?.base64,
           referenceImageMimeType: refImage?.mimeType,
@@ -118,261 +137,248 @@ export default function VideoGeneratorPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Generation failed')
 
-      setVideo(data.components?.video ?? null)
-      setCreditBalance(data.newBalance ?? creditBalance - cost)
+      setVideo({
+        predictionId: data.predictionId,
+        provider: model === 'sora-2' ? 'sora-2-replicate' : 'kling-v3',
+        status: 'processing',
+      })
+      refreshCredits()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Generation failed')
+      const msg = err instanceof Error ? err.message : 'Generation failed'
+      setError(msg)
+      showError('Generation failed', msg)
     } finally {
       setGenerating(false)
     }
   }
 
   return (
-    <main style={{ padding: '24px 32px 80px', maxWidth: '900px', margin: '0 auto' }}>
-      {/* Header */}
-      <header style={{ marginBottom: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>
-          <span>Studio</span><span>/</span><span>Create</span><span>/</span><span style={{ color: 'var(--ink)' }}>Video</span>
+    <main style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }} className="vid-page">
+      <header style={{ marginBottom: 36 }}>
+        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>
+          Create
         </div>
-        <h1 style={{ margin: '12px 0 4px', fontFamily: 'var(--font-serif)', fontSize: '32px', color: 'var(--ink)', fontWeight: 400 }}>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 48, lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0 }}>
           Video
         </h1>
-        <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.6 }}>
-          Plain prompt to Sora 2. Describe what you want — a character, an action, a scene, a product shot — and get a cinematic 9:16 video back. Optionally upload a reference image for image-to-video.
+        <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: '10px 0 0', lineHeight: 1.55 }}>
+          Two AI models, two strengths. Pick the one that fits your shot.
         </p>
       </header>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '20px' }}>
-        {/* Cost banner */}
-        <div style={{
-          padding: '12px 16px',
-          background: 'var(--accent-soft)', border: '1px solid var(--accent)',
-          borderRadius: 'var(--r-md)',
-          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        }}>
-          <span style={{ fontSize: '13px', color: 'var(--ink)' }}>
-            Generation cost
-          </span>
-          <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--accent)' }}>
-            {cost} cr <span style={{ fontSize: '11px', color: 'var(--ink-dim)', fontWeight: 400, marginLeft: 6 }}>≈ ${creditsToUSD(cost).toFixed(2)}</span>
-          </span>
+      {/* Model picker */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
+        {MODELS.map(m => {
+          const active = model === m.id
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setModel(m.id)}
+              style={{
+                textAlign: 'left',
+                padding: '20px 22px',
+                borderRadius: 14,
+                border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                background: active ? 'var(--surface)' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{m.name}</span>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                  padding: '2px 7px', borderRadius: 999,
+                  background: active ? 'var(--ink)' : 'var(--border)',
+                  color: active ? '#fff' : 'var(--ink-dim)',
+                }}>{m.badge}</span>
+                {active && (
+                  <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-dim)', fontWeight: 600 }}>✓ Selected</span>
+                )}
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ink-dim)', fontWeight: 500, marginBottom: 12 }}>{m.tagline}</div>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                {m.excels.map((e, i) => (
+                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 12.5, color: 'var(--ink)' }}>
+                    <span style={{ color: 'var(--good, #10b981)', flexShrink: 0, marginTop: 1 }}>✓</span>
+                    {e}
+                  </li>
+                ))}
+              </ul>
+              <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--ink-dim)', fontStyle: 'italic' }}>{m.caveat}</div>
+            </button>
+          )
+        })}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {/* Duration */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 14 }}>Duration</div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {cfg.durations.map(sec => {
+              const cr = cfg.credits[sec]
+              const active = duration === sec
+              return (
+                <button
+                  key={sec}
+                  type="button"
+                  onClick={() => setDuration(sec)}
+                  disabled={generating}
+                  style={{
+                    flex: 1, padding: '14px 8px', borderRadius: 10, textAlign: 'center',
+                    border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                    background: active ? 'var(--ink)' : 'transparent',
+                    color: active ? '#fff' : 'var(--ink)',
+                    cursor: generating ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: 18, fontWeight: 700 }}>{sec}s</span>
+                  <span style={{ fontSize: 11, opacity: active ? 0.75 : 1, color: active ? '#fff' : 'var(--ink-dim)', fontWeight: 600 }}>{cr} cr</span>
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {/* Prompt */}
-        <div className="form-row">
-          <label className="form-label">
-            Prompt <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>(required)</span>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+          <label style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', display: 'block', marginBottom: 10 }}>
+            Prompt <span style={{ color: 'var(--danger, #e84a4a)' }}>*</span>
           </label>
-          <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '0 0 8px', lineHeight: 1.5 }}>
-            Describe the shot you want. Be specific about camera, subject, action, scene, mood. Sora handles cinematic detail well.
+          <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: '0 0 10px', lineHeight: 1.55 }}>
+            {model === 'sora-2'
+              ? 'Describe the camera move, scene, lighting and mood. Sora handles cinematic framing best — be specific about the shot type.'
+              : 'Describe the character, expression, action and setting. Kling handles faces and audio well — mention tone of voice or emotion if you want it in the audio.'}
           </p>
           <textarea
-            className="input"
             value={prompt}
             onChange={e => setPrompt(e.target.value.slice(0, 4000))}
             disabled={generating}
             rows={6}
-            placeholder={'Example:\nHandheld phone-camera selfie, 25-year-old woman in a parked car with sunlight streaming through the windshield, mid-laugh, holding up a coffee cup and saying "this is exactly what I needed." Real skin texture, no beauty filter, soft natural lighting, ambient car-interior sound.'}
-            style={{ resize: 'vertical', fontFamily: 'inherit', minHeight: '140px' }}
+            placeholder={model === 'sora-2'
+              ? 'Example: Slow cinematic crane shot rising above a misty forest at dawn, golden hour light breaking through the canopy, a lone figure walking a path below, film grain, 35mm anamorphic lens.'
+              : 'Example: A confident woman in her 30s looking directly at camera, saying "This changed everything for me" with a warm smile. Lived-in home office background, soft window light, handheld camera feel.'}
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              padding: '10px 12px', borderRadius: 9,
+              border: '1px solid var(--border)',
+              background: 'transparent',
+              color: 'var(--ink)', fontSize: 13.5,
+              fontFamily: 'inherit', outline: 'none',
+              resize: 'vertical', minHeight: 140,
+              lineHeight: 1.55,
+            }}
           />
-          <p style={{ fontSize: '10px', color: 'var(--ink-dim)', textAlign: 'right', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
+          <p style={{ fontSize: 10.5, color: 'var(--ink-dim)', textAlign: 'right', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
             {prompt.length} / 4000
           </p>
         </div>
 
-        {/* Duration */}
-        <div>
-          <span className="eyebrow" style={{ display: 'block', marginBottom: '12px' }}>Duration</span>
-          {(['native', 'extended', 'chained'] as const).map(group => {
-            const groupDurations = DURATION_OPTIONS.filter(d => DURATION_CONFIGS[d].strategy === group)
-            if (!groupDurations.length) return null
-            const groupLabel =
-              group === 'native'   ? 'Short — single Sora generation'
-            : group === 'extended' ? 'Extended (Sora + B-roll fill)'
-                                   : 'Cinematic (chained Sora clips)'
-            return (
-              <div key={group} style={{ marginBottom: '12px' }}>
-                <p style={{ fontSize: '10px', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-dim)', margin: '0 0 6px', fontWeight: 600 }}>
-                  {groupLabel}
-                </p>
-                <div style={{ display: 'grid', gridTemplateColumns: `repeat(${groupDurations.length}, 1fr)`, gap: '8px' }}>
-                  {groupDurations.map(sec => {
-                    const dCfg = DURATION_CONFIGS[sec]
-                    const active = duration === sec
-                    const c = calculateStandaloneVideoCredits(sec)
-                    const usd = creditsToUSD(c)
-                    const locked = !dCfg.available
-                    return (
-                      <button
-                        key={sec}
-                        type="button"
-                        onClick={() => !locked && setDuration(sec)}
-                        disabled={generating || locked}
-                        title={locked ? 'Coming soon' : undefined}
-                        style={{
-                          textAlign: 'center',
-                          cursor: locked ? 'not-allowed' : (generating ? 'not-allowed' : 'pointer'),
-                          padding: '12px 8px', borderRadius: 'var(--r-md)',
-                          border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
-                          background: active ? 'var(--accent-soft)' : 'var(--surface)',
-                          opacity: locked ? 0.5 : 1,
-                          transition: 'all 0.15s',
-                          display: 'flex', flexDirection: 'column', gap: '3px',
-                          position: 'relative',
-                        }}>
-                        <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--ink)' }}>{sec}s</span>
-                        <span style={{ fontSize: '11px', color: active ? 'var(--accent)' : 'var(--ink-dim)', fontWeight: 600 }}>{c} cr</span>
-                        <span style={{ fontSize: '10px', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>≈${usd.toFixed(2)}</span>
-                        {locked && (
-                          <span style={{
-                            position: 'absolute', top: '4px', right: '4px',
-                            fontSize: '8px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
-                            padding: '2px 5px', borderRadius: '4px',
-                            background: 'var(--ink-dim)', color: 'var(--surface)',
-                          }}>Soon</span>
-                        )}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        {/* Reference image (optional) */}
-        <div className="form-row">
-          <label className="form-label">
-            Reference Image <span style={{ color: 'var(--ink-dim)', fontWeight: 400 }}>(optional)</span>
-          </label>
-          <p style={{ fontSize: '11px', color: 'var(--ink-dim)', margin: '0 0 8px', lineHeight: 1.5 }}>
-            Upload an image to seed the first frame. Sora will animate from it. Resized to 720×1280 (portrait 9:16).
+        {/* Reference image */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 6 }}>
+            Reference Image <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+          </div>
+          <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: '0 0 12px', lineHeight: 1.55 }}>
+            Seeds the first frame. {model === 'sora-2' ? 'Sora animates from it — great for product shots or character references.' : 'Kling uses it as the starting face/scene.'}
           </p>
           {refImage ? (
-            <div style={{
-              display: 'flex', gap: '12px', alignItems: 'center',
-              padding: '10px', borderRadius: 'var(--r-md)',
-              background: 'var(--surface)', border: '1px solid var(--border)',
-            }}>
-              <img src={refImage.preview} alt="reference" style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: 'var(--r-sm)' }} />
+            <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 10, background: 'var(--bg-elev, rgba(0,0,0,0.03))', borderRadius: 9, border: '1px solid var(--border)' }}>
+              <img src={refImage.preview} alt="ref" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 7 }} />
               <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: '13px', color: 'var(--ink)', fontWeight: 600 }}>Reference uploaded</p>
-                <p style={{ margin: '2px 0 0', fontSize: '11px', color: 'var(--ink-dim)' }}>{refImage.mimeType}</p>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Reference uploaded</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-dim)' }}>{refImage.mimeType}</div>
               </div>
-              <button
-                onClick={() => setRefImage(null)}
-                disabled={generating}
-                style={{ background: 'transparent', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: '4px', display: 'flex' }}
-                aria-label="Remove"
-              >
+              <button onClick={() => setRefImage(null)} disabled={generating} style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: 4, display: 'flex' }}>
                 <X size={16} />
               </button>
             </div>
           ) : (
-            <label style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '14px 16px', borderRadius: 'var(--r-md)',
-              border: '1px dashed var(--border-strong)',
-              cursor: generating ? 'not-allowed' : 'pointer',
-              color: 'var(--ink-dim)', fontSize: '13px',
-            }}>
-              <Upload size={16} />
-              <span>Click to upload reference image (max 5MB)</span>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 9, border: '1.5px dashed var(--border)', color: 'var(--ink-dim)', fontSize: 13, cursor: generating ? 'not-allowed' : 'pointer' }}>
+              <Upload size={14} />
+              <span>Upload reference (max 5MB)</span>
               <input type="file" accept="image/*" onChange={handleImageChange} disabled={generating} style={{ display: 'none' }} />
             </label>
           )}
         </div>
 
-        {/* Errors */}
+        {/* Error */}
         {error && (
-          <div style={{
-            padding: '10px 14px',
-            background: 'rgba(255,80,80,0.10)', border: '1px solid var(--danger)',
-            borderRadius: 'var(--r-sm)',
-            color: 'var(--danger)', fontSize: '13px',
-          }}>
+          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger, #e84a4a)', color: 'var(--danger, #e84a4a)', fontSize: 13 }}>
             {error}
           </div>
         )}
 
-        {/* Generate button + balance */}
-        <div style={{ borderTop: '1px solid var(--border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
-            <span style={{ color: 'var(--ink-dim)' }}>Your balance</span>
-            <span style={{ fontWeight: 600, color: creditBalance >= cost ? 'var(--good)' : 'var(--danger)' }}>
-              {creditsLoading ? '…' : `${creditBalance} credits`}
-            </span>
+        {/* Generate */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: 'var(--ink-dim)' }}>
+            <span>Cost: <strong style={{ color: 'var(--ink)' }}>{cost} credits</strong></span>
+            <span>Balance: <strong style={{ color: creditBalance >= cost ? 'var(--good, #10b981)' : 'var(--danger, #e84a4a)' }}>{creditBalance}</strong></span>
           </div>
-
           <button
             onClick={generate}
-            disabled={!canGenerate || generating || creditsLoading}
-            className="btn btn-primary"
-            style={{ padding: '12px', fontSize: '14px' }}
+            disabled={!canGenerate || generating}
+            style={{
+              width: '100%', padding: '14px 0', borderRadius: 12,
+              background: !canGenerate || generating ? 'var(--border)' : 'var(--ink)',
+              color: !canGenerate || generating ? 'var(--ink-dim)' : '#fff',
+              border: 'none', fontSize: 15, fontWeight: 700,
+              cursor: !canGenerate || generating ? 'not-allowed' : 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              transition: 'background 0.15s',
+            }}
           >
-            {generating ? <><Loader2 size={14} className="animate-spin" /> Submitting…</> : 'Generate video'}
+            {generating ? (
+              <>
+                <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'vid-spin 0.8s linear infinite' }} />
+                Submitting…
+              </>
+            ) : `Generate with ${cfg.name} · ${cost} credits`}
           </button>
-
-          {!canGenerate && prompt.trim().length >= 5 && (
-            <p style={{ fontSize: '12px', color: 'var(--danger)', textAlign: 'center', margin: 0 }}>
-              Not enough credits. Need {cost}, have {creditBalance}.
-            </p>
+          {prompt.trim().length < 5 && (
+            <p style={{ fontSize: 12, color: 'var(--ink-dim)', textAlign: 'center', margin: 0 }}>Enter a prompt to generate</p>
           )}
         </div>
 
         {/* Output */}
         {video && (
-          <div className="card" style={{ padding: '20px', marginTop: '12px' }}>
-            <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
+            <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 16 }}>
               Generated Video
-            </h3>
+            </div>
 
             {video.status === 'processing' && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--ink-dim)', marginBottom: '8px' }}>
-                <Loader2 size={14} className="animate-spin" />
-                Sora is generating — usually 2–4 minutes. This page polls automatically.
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '20px 0' }}>
+                <div style={{ width: 36, height: 36, border: '3px solid var(--border)', borderTopColor: 'var(--ink)', borderRadius: '50%', animation: 'vid-spin 0.8s linear infinite' }} />
+                <p style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600, margin: 0 }}>
+                  {model === 'sora-2' ? 'Sora is generating — usually 2–4 min' : 'Kling is generating — usually 60–90 sec'}
+                </p>
+                <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: 0 }}>Polling every 5 seconds…</p>
               </div>
             )}
 
             {video.status === 'failed' && (
-              <div style={{ marginBottom: '12px' }}>
-                <p style={{ fontSize: '13px', color: 'var(--danger)', fontWeight: 600, marginBottom: '6px' }}>
-                  Generation failed
+              <div>
+                <p style={{ fontSize: 13, color: 'var(--danger, #e84a4a)', fontWeight: 600, marginBottom: 8 }}>Generation failed</p>
+                <p style={{ fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.5, wordBreak: 'break-word', margin: 0 }}>
+                  {video.error ?? 'Unknown error. Check your API key balance and try again.'}
                 </p>
-                {video.error ? (
-                  <p style={{ fontSize: '11px', color: 'var(--ink-fade)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', lineHeight: 1.5 }}>
-                    {video.error}
-                  </p>
-                ) : (
-                  <p style={{ fontSize: '12px', color: 'var(--ink-fade)' }}>
-                    No detail returned. Common causes: OpenAI credit exhausted, content-policy rejection, or transient outage.
-                  </p>
-                )}
               </div>
             )}
 
             {video.status === 'completed' && video.videoUrl && (
               <>
-                <video controls src={video.videoUrl} style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: '12px', maxHeight: '500px', background: '#000' }} />
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <a
-                    href={video.videoUrl}
-                    download={`video-${Date.now()}.mp4`}
-                    className="btn btn-ghost"
-                    style={{ flex: 1, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <Download size={14} />
-                    Download
+                <video controls src={video.videoUrl} style={{ width: '100%', borderRadius: 10, marginBottom: 14, maxHeight: 500, background: '#000' }} />
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <a href={video.videoUrl} download={`video-${Date.now()}.mp4`} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, background: 'var(--ink)', color: '#fff', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
+                    <Download size={14} /> Download
                   </a>
-                  <a
-                    href={video.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-ghost"
-                    style={{ flex: 1, fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                  >
-                    <Play size={14} />
-                    Open in tab
+                  <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
+                    <Play size={14} /> Open in tab
                   </a>
                 </div>
               </>
@@ -380,6 +386,13 @@ export default function VideoGeneratorPage() {
           </div>
         )}
       </div>
+
+      <style>{`
+        @keyframes vid-spin { to { transform: rotate(360deg); } }
+        @media (max-width: 680px) {
+          .vid-page { padding: 24px 16px 80px !important; }
+        }
+      `}</style>
     </main>
   )
 }
