@@ -1,5 +1,5 @@
 import { generateImage } from '@/lib/gemini-image'
-import { generateCharacterWithProduct, ugcifyPortrait } from '@/lib/nanobanana'
+import { generateCharacterWithProduct, ugcifyPortrait, generateCharacterGreenScreen } from '@/lib/nanobanana'
 import { submitKlingV3OmniJob } from '@/lib/replicate'
 import { buildKlingPrompt } from '@/lib/kling-prompt'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -43,6 +43,7 @@ async function generateUGCScript(
   forcedScene?: string,
   customInstructions?: string,
   language?: { name: string; code: string },
+  productType?: 'physical' | 'software',
 ): Promise<string> {
   // 1.9 words/sec spoken pace with 1.5s padding so the last word lands before cutoff.
   const targetWords = Math.max(6, Math.round((targetDurationSeconds - 1.5) * 1.9))
@@ -57,6 +58,10 @@ async function generateUGCScript(
     ? `\nUSER INSTRUCTIONS (HIGH PRIORITY — follow these exactly, override your defaults to match):\n${customInstructions.trim()}\n`
     : ''
 
+  const productTypeBlock = productType === 'software'
+    ? `\nPRODUCT TYPE: This is a software/app/digital product — NOT a physical item.\n- Never say "grab yours", "pick it up", "apply", "use on your skin" or any physical product language\n- CTAs must be digital: "start free", "try it free", "download now", "sign up today", "get started"\n- Refer to it as "this app", "this tool", "this platform" not "this product" or "it"\n- Benefits should be outcomes: "saves me 3 hours", "I finally have X", "it just works"\n`
+    : ''
+
   const languageBlock = language && language.code !== 'en'
     ? `\nLANGUAGE — All SPOKEN content (everything inside double quotes) MUST be written in ${language.name}. Stage directions in (parentheses) and section headers in [brackets] stay in English so the parser can read them. The CTA "${callToAction}" should also be translated to natural ${language.name}.\n`
     : ''
@@ -67,7 +72,7 @@ Product: ${productName}
 Description: ${productDescription}
 Benefits: ${benefits}
 CTA: ${callToAction}
-${languageBlock}${customBlock}
+${languageBlock}${productTypeBlock}${customBlock}
 Use this exact format:
 
 ${backgroundLine}
@@ -191,6 +196,7 @@ export async function POST(request: NextRequest) {
       actorId,
       customPhotoBase64,
       customPhotoMimeType,
+      productType, // 'physical' | 'software'
     } = body
 
     const { getLanguage } = await import('@/lib/languages')
@@ -267,6 +273,7 @@ export async function POST(request: NextRequest) {
       forcedScene,
       safeCustomInstructions,
       { name: language.name, code: language.code },
+      (productType === 'software' || productType === 'physical') ? productType : undefined,
     )
     const script = selectedHook && typeof selectedHook === 'string' && selectedHook.trim()
       ? replaceHook(baseScript, selectedHook.trim())
@@ -334,7 +341,26 @@ export async function POST(request: NextRequest) {
       let heroBase64: string
       let heroMimeType: string
 
-      if (hasProduct) {
+      if (hasProduct && productType === 'software') {
+        // Software path: upload UI screenshot as background, generate green-screen character.
+        const uiFilename = `kling-source/ui-${userId}-${Date.now()}.png`
+        const uiBuf = await sharp(Buffer.from(productImageBase64!, 'base64'))
+          .resize(aspect.width, aspect.height, { fit: 'cover', position: 'center' })
+          .png()
+          .toBuffer()
+        const { error: uiErr } = await supabase.storage
+          .from('ugc-assets')
+          .upload(uiFilename, uiBuf, { contentType: 'image/png', upsert: false })
+        if (uiErr) throw new Error(`Failed to upload UI screenshot: ${uiErr.message}`)
+        const { data: { publicUrl: uiScreenshotUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(uiFilename)
+
+        const greenFrame = await generateCharacterGreenScreen(characterPrompt, aspect.nanoBananaRatio)
+        heroBase64 = greenFrame.imageBase64
+        heroMimeType = greenFrame.mimeType
+
+        components.uiScreenshotUrl = uiScreenshotUrl
+        components.softwareMode = true
+      } else if (hasProduct) {
         const heroFrame = await generateCharacterWithProduct(
           productImageBase64!,
           productImageMimeType!,

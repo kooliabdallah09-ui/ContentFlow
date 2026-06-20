@@ -17,6 +17,7 @@ export async function submitStitchJob({
   syncedCaptions,
   watermark,
   aspect,
+  uiScreenshotUrl,
 }: {
   talkingHeadUrl: string
   talkingHeadDuration?: number  // seconds of EACH talking-head clip (used to position and concat)
@@ -28,6 +29,7 @@ export async function submitStitchJob({
   syncedCaptions?: Array<{ text: string; start: number; end: number }>  // Whisper word-timed chunks
   watermark?: boolean           // Free-tier flag — overlays "Made with ContentFlow" bottom-right
   aspect?: 'portrait' | 'square' | 'landscape'  // Drives the render output size
+  uiScreenshotUrl?: string      // Software mode: UI screenshot composited as background behind chroma-keyed character
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.SHOTSTACK_API_KEY
   if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
@@ -84,6 +86,44 @@ export async function submitStitchJob({
   }))
 
   const tracks: Record<string, unknown>[] = [{ clips: talkingHeadClips }]
+
+  // === Software mode: UI screenshot as bottom background layer ===
+  // When uiScreenshotUrl is provided, the talking-head video uses chroma key to
+  // remove the green screen (#00B140), revealing the UI screenshot behind it.
+  // The UI background track must be inserted AFTER so it ends up below the talking-head.
+  if (uiScreenshotUrl) {
+    // Modify the talking-head clips to use chroma key
+    const chromaTalkingHeadClips = allTalkingHeadUrls.map((src, i) => ({
+      asset: {
+        type: 'video',
+        src,
+        volume: audioOverlayUrl ? 0 : 1,
+        chromaKey: {
+          color: '#00B140',
+          threshold: 0.35,
+          feathering: 0.05,
+        },
+      },
+      start: talkingHeadStart + perClipLength * i,
+      length: perClipLength,
+      fit: 'cover',
+    }))
+    // Replace the existing talking-head track with the chroma-keyed version
+    tracks[0] = { clips: chromaTalkingHeadClips }
+
+    // Insert UI screenshot as background (bottom track — push to the end, it renders below)
+    tracks.push({
+      clips: [{
+        asset: {
+          type: 'image',
+          src: uiScreenshotUrl,
+        },
+        start: 0,
+        length: talkingHeadLength,
+        fit: 'cover',
+      }],
+    })
+  }
 
   // === Track 2: B-roll cutaways (visual-only overlay) ===
   // Muted so the talking-head audio (or overlay) carries through unchanged.

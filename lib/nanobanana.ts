@@ -327,6 +327,30 @@ Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER I
   return callNanoBanana(prompt, refs, aspectRatio)
 }
 
+// Generate a character against a pure green (#00B140) background for software/app products.
+// The character has no product in hand — Shotstack will composite the UI screenshot as the
+// background layer with chroma key removing the green.
+export async function generateCharacterGreenScreen(
+  characterPrompt: string,
+  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+): Promise<NanoBananaResult> {
+  const prompt = `Hyper-realistic UGC selfie portrait of ${characterPrompt}.
+
+BACKGROUND: Pure solid broadcast green (#00B140). The entire background must be a single flat uniform green — no gradients, no shadows on the background, no objects, no environment details. Only the person exists in the frame; everything behind them is solid green.
+
+FRAMING: vertical phone selfie, face to mid-chest visible, slightly off-centre, arm-length distance.
+
+EXPRESSION: caught mid-moment — mid-smile starting, eyes alive and focused on camera, mouth just parting to speak.
+
+REALISM: real skin texture with pores, natural hair with flyaways, no beauty filter, no studio polish. Should read as a real person in a real selfie — the ONLY unrealistic element is the solid green background.
+
+The green background must be clean, flat, and consistent — no noise, no vignette, no shadow bleed from the subject onto the background.
+
+Render in ${aspectRatio} aspect ratio.`
+
+  return callNanoBanana(prompt, undefined, aspectRatio)
+}
+
 // Convert a user's portrait photo into a UGC-format selfie frame (no product).
 // Used when a custom photo is uploaded but no product is provided — Nano Banana
 // preserves the person's face while applying the UGC scene and selfie framing.
