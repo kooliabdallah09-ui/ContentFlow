@@ -45,7 +45,7 @@ export const ACTORS: Actor[] = [
       ethnicity: 'Northern European',
       hair: 'Dark brown wavy',
       uniqueFeatures: 'Beard',
-      scene: 'Home office',
+      scene: 'Living room',
       mood: 'Confident',
       outfit: 'Casual t-shirt',
       accessories: 'Glasses',
