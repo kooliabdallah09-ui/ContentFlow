@@ -204,6 +204,23 @@ export const ACTORS: Actor[] = [
       accessories: 'Earrings',
     },
   },
+  {
+    id: 'jin',
+    name: 'Jin',
+    tagline: 'Minimal & polished',
+    portrait: '/actors/jin.jpg',
+    profile: {
+      gender: 'Man',
+      age: 'Early 30s',
+      ethnicity: 'East Asian',
+      hair: 'Black straight',
+      uniqueFeatures: 'None',
+      scene: 'Kitchen',
+      mood: 'Candid',
+      outfit: 'Button-up shirt',
+      accessories: 'Watch',
+    },
+  },
 ]
 
 export function getActor(id: string): Actor | undefined {
