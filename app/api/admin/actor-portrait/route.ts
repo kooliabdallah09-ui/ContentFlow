@@ -35,9 +35,28 @@ export async function POST(req: NextRequest) {
     }
 
     const characterPrompt = buildCharacterPrompt(profile)
-    const sceneClause = profile.scene
-      ? `Setting: a lived-in ${profile.scene.toLowerCase()} with visible depth and personality — plants, framed art, soft textiles, decor items, a glimpse of furniture, warm color accents. The background must NOT be a blank wall — it should feel like a real person's home, full of character and softly blurred (shallow depth of field).`
-      : `Setting: a warm, lived-in indoor space with visible decor, plants, and personality in soft background blur.`
+
+    const SCENE_BACKGROUNDS: Record<string, string> = {
+      'Bathroom': 'Setting: a bright modern bathroom — white subway tiles, a fogged mirror edge, a marble or stone countertop with skincare products visible, soft cool morning light from a frosted window. Muted whites and greys. No plants, no warm tones.',
+      'Bedroom': 'Setting: a minimal Scandinavian bedroom — unmade linen duvet in off-white, a low oak bed frame, a single bedside lamp glowing amber in daylight, a large window with light curtains blowing slightly. Soft grey and cream palette, no clutter.',
+      'Living room': 'Setting: a contemporary urban living room — dark sofa, a low concrete coffee table, abstract geometric wall art in bold colors, a floor lamp with a black shade, city light filtering in from a tall window. Deep blues, charcoal, warm amber highlights. No plants.',
+      'Home office': 'Setting: a clean modern home office — a white floating desk with a glowing ultrawide monitor, a ring light off to one side, pegboard with cables and tech accessories on the wall, a mesh ergonomic chair. Cool blue-white LED light. Minimal, tech aesthetic.',
+      'Kitchen': 'Setting: a sleek dark kitchen — matte black cabinets, quartz countertop, a pot of simmering water on an induction hob, pendant lights casting warm focused pools. Moody and cinematic. No plants, no open shelves.',
+      'Café': 'Setting: a busy specialty coffee shop — exposed brick wall, an espresso machine gleaming in the background, chalkboard menu, wooden tables, late afternoon sunlight slanting through large industrial windows. Warm amber and brick tones.',
+      'Gym': 'Setting: a modern gym — black rubber flooring, mirrored wall with weight racks reflected, strip lighting overhead casting sharp shadows, a power cage visible in the mid-ground. High contrast, industrial, no soft textures.',
+      'Yoga studio': 'Setting: a serene yoga studio — polished bamboo floor, floor-to-ceiling frosted glass letting in diffuse white light, a rolled mat on the floor, a small singing bowl, simple white walls. Clean, airy, zen. Absolutely no clutter.',
+      'Outdoor park': 'Setting: a sunlit city park — a blurred green tree canopy overhead, dappled afternoon light, a gravel path curving away, benches visible in bokeh. Vibrant summer greens and warm golden light.',
+      'Beach': 'Setting: a beach at golden hour — blurred ocean horizon, wet sand, orange and pink sky, sea spray mist in the air. Saturated sunset palette, backlit haze.',
+      'City street': 'Setting: an urban street at night — neon signs in the background (red, blue, green), rain-slicked asphalt reflecting lights, a blurred taxi, concrete walls. Gritty, high-contrast, cyberpunk-adjacent color palette.',
+      'Rooftop': 'Setting: a rooftop at dusk — city skyline silhouetted in the background, blurred high-rise windows lit with warm light, a railing in the foreground, purple and orange gradient sky.',
+      'Restaurant': 'Setting: a dimly lit upscale restaurant — white tablecloths, glowing candles, wine glasses, dark wood paneling, a waiter blurred in the background. Rich dark tones, amber candlelight.',
+      'Car interior': 'Setting: inside a car at night — dashboard glow, streetlights streaking past the side window in bokeh, steering wheel visible at bottom edge, a dark headliner above. Cinematic noir with blue and amber light.',
+      'Closet / dressing room': 'Setting: a walk-in closet / dressing room — neatly hung clothes in a neutral palette, a full-length mirror reflecting the back wall, warm LED strip lighting below the clothes rail, a velvet ottoman. Cream, beige, fashion-editorial.',
+    }
+
+    const sceneClause = profile.scene && SCENE_BACKGROUNDS[profile.scene]
+      ? SCENE_BACKGROUNDS[profile.scene]
+      : `Setting: a distinctive indoor environment with strong character — bold colors, clear depth, visible architectural or design details. Background must NOT be warm beige/cream with plants. Choose an unexpected, specific aesthetic.`
     const prompt = `Hyper-realistic UGC selfie portrait of ${characterPrompt}.
 
 ${sceneClause}
