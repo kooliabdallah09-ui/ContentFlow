@@ -1,5 +1,5 @@
 import { generateImage } from '@/lib/gemini-image'
-import { generateCharacterWithProduct } from '@/lib/nanobanana'
+import { generateCharacterWithProduct, ugcifyPortrait } from '@/lib/nanobanana'
 import { submitKlingV3OmniJob } from '@/lib/replicate'
 import { buildKlingPrompt } from '@/lib/kling-prompt'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -188,6 +188,9 @@ export async function POST(request: NextRequest) {
       customInstructions,
       language: languageRaw,
       aspect: aspectRaw,
+      actorId,
+      customPhotoBase64,
+      customPhotoMimeType,
     } = body
 
     const { getLanguage } = await import('@/lib/languages')
@@ -291,11 +294,35 @@ export async function POST(request: NextRequest) {
       if (!process.env.REPLICATE_API_TOKEN) {
         return NextResponse.json({ error: 'UGC pipeline requires REPLICATE_API_TOKEN (Nano Banana + Kling)' }, { status: 500 })
       }
-      if (!productImageBase64 || !productImageMimeType) {
-        return NextResponse.json({ error: 'UGC requires a product photo (used to anchor the AI character and product)' }, { status: 400 })
+
+      // Resolve actor portrait: library actor → load from disk; custom photo → use directly.
+      let actorPortraitBase64: string | undefined
+      let actorPortraitMimeType: string | undefined
+
+      if (actorId && typeof actorId === 'string') {
+        try {
+          const { default: fs } = await import('fs/promises')
+          const { default: path } = await import('path')
+          const portraitPath = path.join(process.cwd(), 'public', 'actors', `${actorId}.jpg`)
+          const buf = await fs.readFile(portraitPath)
+          actorPortraitBase64 = buf.toString('base64')
+          actorPortraitMimeType = 'image/jpeg'
+        } catch {
+          // portrait not found — fall back to text-only character description
+        }
+      } else if (typeof customPhotoBase64 === 'string' && typeof customPhotoMimeType === 'string') {
+        actorPortraitBase64 = customPhotoBase64
+        actorPortraitMimeType = customPhotoMimeType
       }
 
-      // 1. Nano Banana — character holding the real product, hyper-realistic phone-camera frame.
+      const hasProduct = !!(productImageBase64 && productImageMimeType)
+      const hasActorPhoto = !!(actorPortraitBase64 && actorPortraitMimeType)
+
+      if (!hasProduct && !hasActorPhoto) {
+        return NextResponse.json({ error: 'Please provide a product photo or select an actor / upload your photo.' }, { status: 400 })
+      }
+
+      // 1. Build the hero frame via Nano Banana (or use portrait directly for library actor + no product).
       const characterPrompt = character && character.gender
         ? buildCharacterPrompt(character)
         : avatarGender === 'Male'
@@ -304,18 +331,42 @@ export async function POST(request: NextRequest) {
 
       const heroScene = character?.scene?.trim() ? character.scene.toLowerCase() : backgroundContext
 
-      const heroFrame = await generateCharacterWithProduct(
-        productImageBase64,
-        productImageMimeType,
-        productName,
-        characterPrompt,
-        heroScene,
-        safeCustomInstructions,
-        aspect.nanoBananaRatio,
-      )
+      let heroBase64: string
+      let heroMimeType: string
+
+      if (hasProduct) {
+        const heroFrame = await generateCharacterWithProduct(
+          productImageBase64!,
+          productImageMimeType!,
+          productName,
+          characterPrompt,
+          heroScene,
+          safeCustomInstructions,
+          aspect.nanoBananaRatio,
+          actorPortraitBase64,
+          actorPortraitMimeType,
+        )
+        heroBase64 = heroFrame.imageBase64
+        heroMimeType = heroFrame.mimeType
+      } else if (actorId && actorPortraitBase64) {
+        // Library actor, no product — use portrait directly as start frame
+        heroBase64 = actorPortraitBase64
+        heroMimeType = actorPortraitMimeType!
+      } else {
+        // Custom photo, no product — ugcify it
+        const ugcFrame = await ugcifyPortrait(
+          actorPortraitBase64!,
+          actorPortraitMimeType!,
+          heroScene,
+          characterPrompt,
+          aspect.nanoBananaRatio,
+        )
+        heroBase64 = ugcFrame.imageBase64
+        heroMimeType = ugcFrame.mimeType
+      }
 
       // 2. Resize to the chosen aspect's exact dimensions (cover + center-crop).
-      const resizedHero = await sharp(Buffer.from(heroFrame.imageBase64, 'base64'))
+      const resizedHero = await sharp(Buffer.from(heroBase64, 'base64'))
         .resize(aspect.width, aspect.height, { fit: 'cover', position: 'center' })
         .png()
         .toBuffer()

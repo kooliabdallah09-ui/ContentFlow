@@ -44,6 +44,9 @@ interface UGCPackageBuilderProps {
     customInstructions?: string
     language?: string
     aspect?: UGCAspect
+    actorId?: string
+    customPhotoBase64?: string
+    customPhotoMimeType?: string
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -71,6 +74,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
+  const [actorId, setActorId] = useState<string | undefined>()
+  const [customPhoto, setCustomPhoto] = useState<{ base64: string; mimeType: string } | undefined>()
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
 
   // Brand profile — loaded once on mount. When the user toggles `useBrand` on,
@@ -262,6 +267,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       customInstructions: customInstructions.trim() || undefined,
       language,
       aspect,
+      actorId,
+      customPhotoBase64: customPhoto?.base64,
+      customPhotoMimeType: customPhoto?.mimeType,
     })
     resetForm()
   }
@@ -577,7 +585,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             Pick a pre-built actor from the library or build a custom character — Kling v3 will generate them holding your real product and speaking your script with a synced native voice.
           </p>
 
-          <ActorPicker value={character} onChange={setCharacter} disabled={isLoading} />
+          <ActorPicker
+            value={character}
+            onChange={(profile, id, photo) => {
+              setCharacter(profile)
+              setActorId(id)
+              setCustomPhoto(photo)
+            }}
+            disabled={isLoading}
+          />
       </section>
 
       {/* 4 — Customize */}

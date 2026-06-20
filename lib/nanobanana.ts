@@ -8,11 +8,10 @@ interface NanoBananaResult {
 
 // Submit Nano Banana sync (Prefer: wait) — image gen is fast (~5–8s), no need to poll.
 // Returns the generated image as base64 (fetched from Replicate's CDN URL).
-// If referenceImageBase64 is omitted, runs pure text-to-image (no reference fusion).
+// If referenceImages is omitted or empty, runs pure text-to-image (no reference fusion).
 async function callNanoBanana(
   prompt: string,
-  referenceImageBase64?: string,
-  referenceMimeType?: string,
+  referenceImages?: Array<{ base64: string; mimeType: string }>,
   aspectRatio?: '1:1' | '4:3' | '3:4' | '16:9' | '9:16',
 ): Promise<NanoBananaResult> {
   const apiKey = process.env.REPLICATE_API_TOKEN
@@ -20,8 +19,8 @@ async function callNanoBanana(
 
   const input: Record<string, unknown> = { prompt, output_format: 'png' }
   if (aspectRatio) input.aspect_ratio = aspectRatio
-  if (referenceImageBase64 && referenceMimeType) {
-    input.image_input = [`data:${referenceMimeType};base64,${referenceImageBase64}`]
+  if (referenceImages?.length) {
+    input.image_input = referenceImages.map(r => `data:${r.mimeType};base64,${r.base64}`)
   }
 
   const res = await fetch(`${REPLICATE_BASE}/models/${NANO_BANANA_MODEL}/predictions`, {
@@ -83,7 +82,7 @@ async function callNanoBanana(
 // Output is a 9:16-friendly hyper-realistic still that Sora will animate forward.
 export async function generateTextToImage(prompt: string): Promise<NanoBananaResult> {
   const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting, real skin texture and imperfections, no beauty filter, no studio polish, no commercial gloss. Should read as a candid moment captured on a real phone.`
-  return callNanoBanana(wrapped, undefined, undefined, '9:16')
+  return callNanoBanana(wrapped, undefined, '9:16')
 }
 
 // Generic image generator for /generate/image. Accepts an optional reference
@@ -122,7 +121,10 @@ export async function generateNanoBananaImage(
     options.ratio === '4:5' ? '3:4' : options.ratio
 
   const composed = `${prompt}\n\n${styleHint} ${ratioHint}${refHint}`
-  return callNanoBanana(composed, options.referenceImageBase64, options.referenceImageMimeType, nbRatio)
+  const refs = options.referenceImageBase64 && options.referenceImageMimeType
+    ? [{ base64: options.referenceImageBase64, mimeType: options.referenceImageMimeType }]
+    : undefined
+  return callNanoBanana(composed, refs, nbRatio)
 }
 
 // Generate a B-roll action frame showing a SPECIFIC application action mid-motion.
@@ -159,7 +161,7 @@ Phone-camera-natural rendering: slight sensor grain, mild highlight clipping whe
 
 Render in ${aspectRatio} aspect ratio. The product is visible and the action with it is unmistakable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/expression/scene where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType, aspectRatio)
+  return callNanoBanana(prompt, [{ base64: productImageBase64, mimeType: productMimeType }], aspectRatio)
 }
 
 // Product-only hero frame for B-rolls — NO character, NO hands, just the product on a
@@ -225,7 +227,7 @@ Phone-camera-natural rendering: subtle sensor grain, no beauty filter, no over-s
 
 Render in ${aspectRatio} aspect ratio. The product label is readable.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to mood/scene/composition where applicable, override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType, aspectRatio)
+  return callNanoBanana(prompt, [{ base64: productImageBase64, mimeType: productMimeType }], aspectRatio)
 }
 
 // Backwards-compat wrapper — keeps generateProductHeroShot importable even though the new
@@ -247,6 +249,8 @@ export async function generateProductHeroShot(
 
 // Generate a character + product hero frame for the A-roll talking head (Premium / Hero tiers).
 // Same product-fidelity rules; the prompt describes the character and scene from scratch.
+// When actorPortraitBase64 is provided, it is passed as the first reference image so Nano
+// Banana uses it as the face/character reference; the product image follows as the second.
 export async function generateCharacterWithProduct(
   productImageBase64: string,
   productMimeType: string,
@@ -255,6 +259,8 @@ export async function generateCharacterWithProduct(
   scene: string,
   customInstructions?: string,
   aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  actorPortraitBase64?: string,
+  actorPortraitMimeType?: string,
 ): Promise<NanoBananaResult> {
   // Adaptive product placement — the reference image can be either a physical product
   // (skincare bottle, perfume) OR a screenshot of a software UI / app. Telling Nano
@@ -264,7 +270,15 @@ export async function generateCharacterWithProduct(
   //   - UI / screenshot → show on a phone or laptop screen in frame
   //   - logo / packaging artwork → on a visible product in the scene
   // No hardcoded shape words ('bottle', 'jar') so it stops hallucinating containers.
-  const prompt = `Using the attached reference image as the exact subject (preserve every detail — packaging, label text, UI layout, colours, shape, proportions — do not redesign or restyle), generate a hyper-realistic phone-selfie photograph for a UGC ad first frame.
+  const actorImageBlock = actorPortraitBase64 && actorPortraitMimeType
+    ? `IMAGE REFERENCES:
+- Image 1 (character): use this person's exact face, hair, skin, and body proportions. Match their appearance precisely — do NOT redesign or alter their look.
+- Image 2 (product): use this as the product the character holds or displays.
+
+`
+    : ''
+
+  const prompt = `${actorImageBlock}Using the attached ${actorPortraitBase64 ? 'second reference image' : 'reference image'} as the exact subject (preserve every detail — packaging, label text, UI layout, colours, shape, proportions — do not redesign or restyle), generate a hyper-realistic phone-selfie photograph for a UGC ad first frame.
 
 CHARACTER: ${characterPrompt}
 
@@ -304,5 +318,45 @@ Phone-camera-natural rendering: slight sensor grain in shadow areas, mild highli
 
 Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to the character's expression, pose, or scene; override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  return callNanoBanana(prompt, productImageBase64, productMimeType, aspectRatio)
+  const refs: Array<{ base64: string; mimeType: string }> = actorPortraitBase64 && actorPortraitMimeType
+    ? [
+        { base64: actorPortraitBase64, mimeType: actorPortraitMimeType },
+        { base64: productImageBase64, mimeType: productMimeType },
+      ]
+    : [{ base64: productImageBase64, mimeType: productMimeType }]
+  return callNanoBanana(prompt, refs, aspectRatio)
+}
+
+// Convert a user's portrait photo into a UGC-format selfie frame (no product).
+// Used when a custom photo is uploaded but no product is provided — Nano Banana
+// preserves the person's face while applying the UGC scene and selfie framing.
+export async function ugcifyPortrait(
+  portraitBase64: string,
+  portraitMimeType: string,
+  scene: string,
+  characterPrompt: string,
+  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+): Promise<NanoBananaResult> {
+  const prompt = `Using the attached photo as a character reference, generate a hyper-realistic UGC selfie portrait.
+
+CHARACTER: Match the person in the reference photo exactly — same face, hair, skin tone, and features. Do NOT redesign or alter their appearance.
+
+SCENE: ${scene}
+
+CAMERA: handheld selfie, slight tilt (2°), iPhone front camera framing — face to mid-chest visible, slightly off-centre composition.
+
+EXPRESSION: caught mid-moment — not a finished pose. Mid-smile starting, eyes alive and focused on the camera.
+
+REALISM ANCHORS:
+- Skin texture: pores, slight unevenness, natural micro-imperfections, no beauty filter
+- Eyes: asymmetric catchlight, warm iris detail, natural asymmetry
+- Hair: flyaways, slight frizz, irregular part
+- Lighting: single soft natural source (window or overhead)
+- Background: identifiable ${scene}, lived-in, soft but readable
+
+Phone-camera-natural rendering: slight sensor grain, no over-sharpening, no glass-skin look. Should read as a real person caught mid-moment on a real phone.
+
+Render in ${aspectRatio} aspect ratio.`
+
+  return callNanoBanana(prompt, [{ base64: portraitBase64, mimeType: portraitMimeType }], aspectRatio)
 }
