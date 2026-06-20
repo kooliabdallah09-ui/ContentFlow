@@ -66,14 +66,14 @@ export default function BillingPage() {
     {
       name: 'Free',
       price: '€0',
-      credits: '50/month',
-      bonus: '+ 150 signup',
+      credits: '0/month',
+      bonus: '+ 60 signup',
       features: [
-        '50 monthly credits',
-        '150 signup bonus',
+        '60 one-time signup credits',
         'Text generation',
         'Social content',
         'Email sequences',
+        'Business card generator',
       ],
       current: creditsInfo?.plan === 'free',
       cta: 'Current Plan',
@@ -82,53 +82,51 @@ export default function BillingPage() {
     {
       name: 'Starter',
       price: '€19',
-      credits: '1,000/month',
+      credits: '800/month',
       features: [
-        '1,000 monthly credits',
+        '800 monthly credits',
         'All Free features',
-        'AI images (Flux Pro)',
+        'AI images (Nano Banana 2)',
+        'UGC video ads (Kling v3)',
         'AI voiceovers (ElevenLabs)',
+        'Actor library',
         'Priority support',
-        '1 social account',
       ],
       current: creditsInfo?.plan === 'starter',
       cta: creditsInfo?.plan === 'starter' ? 'Current Plan' : 'Upgrade',
       ctaDisabled: creditsInfo?.plan === 'starter',
-      pricePerCredit: '€0.019/cr',
+      pricePerCredit: '€0.024/cr',
     },
     {
       name: 'Pro',
       price: '€49',
-      credits: '4,000/month',
+      credits: '2,000/month',
       features: [
-        '4,000 monthly credits',
+        '2,000 monthly credits',
         'All Starter features',
-        'AI videos (HeyGen)',
-        'Batch generation',
-        '3 social accounts',
-        'Content scheduler',
+        'Software / app product mode',
+        'Custom actor photo upload',
+        'Script preview & editing',
+        'Priority support',
       ],
       current: creditsInfo?.plan === 'pro',
       cta: creditsInfo?.plan === 'pro' ? 'Current Plan' : 'Upgrade',
       ctaDisabled: creditsInfo?.plan === 'pro',
-      pricePerCredit: '€0.01225/cr',
+      pricePerCredit: '€0.025/cr',
     },
     {
       name: 'Agency',
       price: '€149',
-      credits: '15,000/month',
+      credits: '6,500/month',
       features: [
-        '15,000 monthly credits',
+        '6,500 monthly credits',
         'All Pro features',
-        'Team collaboration',
-        '10+ social accounts',
-        'Dashboard multi-client',
         'Dedicated support',
       ],
       current: creditsInfo?.plan === 'agency',
       cta: creditsInfo?.plan === 'agency' ? 'Current Plan' : 'Contact Sales',
       ctaDisabled: creditsInfo?.plan === 'agency',
-      pricePerCredit: '€0.00993/cr',
+      pricePerCredit: '€0.023/cr',
     },
   ]
 
@@ -205,7 +203,7 @@ export default function BillingPage() {
       <div style={{ marginBottom: '48px' }}>
         <div className="section-head" style={{ marginBottom: '24px' }}>
           <h2 className="section-title">Monthly <em>Plans</em></h2>
-          <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginTop: '8px' }}>Renewable monthly credits + 150 bonus at signup</p>
+          <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginTop: '8px' }}>Renewable monthly credits + 60 one-time bonus at signup</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
           {plans.map((plan) => (
