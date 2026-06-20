@@ -221,6 +221,23 @@ export const ACTORS: Actor[] = [
       accessories: 'Watch',
     },
   },
+  {
+    id: 'isabela',
+    name: 'Isabela',
+    tagline: 'Mom-life & home',
+    portrait: '/actors/isabela.jpg',
+    profile: {
+      gender: 'Woman',
+      age: 'Late 20s',
+      ethnicity: 'Northern European',
+      hair: 'Blonde wavy',
+      uniqueFeatures: 'Freckles',
+      scene: 'Home office',
+      mood: 'Confident',
+      outfit: 'Oversized hoodie',
+      accessories: 'Necklace',
+    },
+  },
 ]
 
 export function getActor(id: string): Actor | undefined {
