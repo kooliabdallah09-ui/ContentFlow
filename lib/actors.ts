@@ -173,7 +173,7 @@ export const ACTORS: Actor[] = [
   {
     id: 'isabela',
     name: 'Isabela',
-    tagline: 'Mom-life & home',
+    tagline: 'Tech & creator life',
     portrait: '/actors/isabela.jpg',
     profile: {
       gender: 'Woman',
@@ -182,7 +182,7 @@ export const ACTORS: Actor[] = [
       hair: 'Blonde wavy',
       uniqueFeatures: 'Freckles',
       scene: 'Home office',
-      mood: 'Confident',
+      mood: 'Excited',
       outfit: 'Oversized hoodie',
       accessories: 'Necklace',
     },
