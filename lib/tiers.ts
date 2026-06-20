@@ -22,7 +22,7 @@ export const DURATION_CONFIGS: Record<number, DurationConfig> = {
   5:  { totalSeconds: 5,  klingSeconds: 5,  klingClips: 1, strategy: 'native',  label: '5s',  available: true },
   10: { totalSeconds: 10, klingSeconds: 10, klingClips: 1, strategy: 'native',  label: '10s', available: true },
   15: { totalSeconds: 15, klingSeconds: 15, klingClips: 1, strategy: 'native',  label: '15s', available: true },
-  20: { totalSeconds: 20, klingSeconds: 15, klingClips: 2, strategy: 'chained', label: '20s', available: true },
+  20: { totalSeconds: 20, klingSeconds: 10, klingClips: 2, strategy: 'chained', label: '20s', available: true },
 }
 
 export const DURATION_OPTIONS = [5, 10, 15, 20] as const
