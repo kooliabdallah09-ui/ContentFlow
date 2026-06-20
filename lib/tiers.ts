@@ -50,14 +50,13 @@ export const DEFAULT_TIER: UGCTier = 'standard'
 export const DEFAULT_DURATION: UGCDuration = 10
 
 // === Credit math ===
-// 1 cr = $0.025. Tuned for ~2x markup on real Replicate cost.
-//   BASE_FIXED: Nano Banana hero frame (~$0.04) + Claude prompts + Shotstack stitch.
-//   PER_SECOND_KLING: each second of Kling v3 omni-video standard mode.
-//                     Approx $0.05/sec on Replicate at standard mode.
-//   CHAINED_OVERHEAD_PER_CLIP: extra orchestration cost per chained clip.
-const BASE_FIXED = 15
-const PER_SECOND_KLING = 5
-const CHAINED_OVERHEAD_PER_CLIP = 8
+// 1 cr = $0.025 USD.
+//   BASE_FIXED: Nano Banana 2 hero frame ($0.067 → 3cr) + Claude prompts (~3cr) + overhead (~4cr).
+//   PER_SECOND_KLING: Kling v3 omni standard-audio = $0.224/s → $0.224/$0.025 = 8.96 → 9 cr/s.
+//   CHAINED_OVERHEAD_PER_CLIP: extra orchestration cost per chained clip (20s = 2×15s).
+const BASE_FIXED = 10
+const PER_SECOND_KLING = 9
+const CHAINED_OVERHEAD_PER_CLIP = 5
 
 export function calculateVideoCredits(_tier: UGCTier, duration: UGCDuration): number {
   const dCfg = DURATION_CONFIGS[duration]
