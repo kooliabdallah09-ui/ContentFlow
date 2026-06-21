@@ -2,6 +2,7 @@
 
 import { Download, Copy, Loader, Film } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
+import Link from 'next/link'
 
 interface VideoComponent {
   videoId?: string
@@ -380,7 +381,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
           {stitchStatus === 'completed' && finalVideoUrl && (
             <>
               <video controls src={finalVideoUrl} style={{ width: '100%', aspectRatio: previewAspectRatio, borderRadius: 'var(--r-md)', marginBottom: '12px', background: '#000', display: 'block', objectFit: 'contain' }} />
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                 <button onClick={() => handleDownload(finalVideoUrl, `final-ugc-${Date.now()}.mp4`)} className="btn btn-primary" style={{ flex: 1, fontSize: '13px' }}>
                   <Download style={{ width: 14, height: 14 }} />
                   Download Final Video
@@ -390,6 +391,14 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
                   {copied === 'final' ? 'Copied!' : 'Copy URL'}
                 </button>
               </div>
+              <Link
+                href={`/editor?videoUrl=${encodeURIComponent(finalVideoUrl)}&aspect=${components?.aspect === 'square' ? '1:1' : components?.aspect === 'landscape' ? '16:9' : '9:16'}`}
+                className="btn btn-ghost"
+                style={{ width: '100%', textAlign: 'center', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                <Film style={{ width: 14, height: 14 }} />
+                Edit in Editor
+              </Link>
             </>
           )}
         </div>
@@ -438,7 +447,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
               {video.duration && (
                 <p style={{ fontSize: '12px', color: 'var(--ink-fade)', marginBottom: '12px' }}>Duration: {video.duration}s</p>
               )}
-              <div style={{ display: 'flex', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
                 <button onClick={() => handleDownload(video.videoUrl!, `ugc-video-${Date.now()}.mp4`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '13px' }}>
                   <Download style={{ width: 14, height: 14 }} />
                   Download
@@ -448,6 +457,14 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
                   {copied === 'video' ? 'Copied!' : 'Copy URL'}
                 </button>
               </div>
+              <Link
+                href={`/editor?videoUrl=${encodeURIComponent(video.videoUrl!)}&duration=${video.duration ?? 10}&aspect=${components?.aspect === 'square' ? '1:1' : components?.aspect === 'landscape' ? '16:9' : '9:16'}`}
+                className="btn btn-ghost"
+                style={{ width: '100%', textAlign: 'center', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              >
+                <Film style={{ width: 14, height: 14 }} />
+                Edit in Editor
+              </Link>
             </>
           )}
         </div>

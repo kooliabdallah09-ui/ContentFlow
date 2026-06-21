@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { Icon } from '@/components/Icons'
 import { showError, showSuccess } from '@/lib/notifications'
+import Link from 'next/link'
 
 interface LibraryItem {
   id: string
@@ -459,7 +460,7 @@ export default function LibraryPage() {
               )}
 
               {/* Actions */}
-              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
                 <a
                   href={previewItem.storage_url}
                   download
@@ -470,6 +471,16 @@ export default function LibraryPage() {
                   <Icon.Arrow style={{ width: 14, height: 14 }} />
                   Download
                 </a>
+                {(previewItem.content_type === 'video' || previewItem.content_type === 'ugc_package') && previewItem.storage_url && (
+                  <Link
+                    href={`/editor?videoUrl=${encodeURIComponent(previewItem.storage_url)}`}
+                    className="btn btn-ghost"
+                    style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Edit in Editor
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     handleDelete(previewItem.id)
