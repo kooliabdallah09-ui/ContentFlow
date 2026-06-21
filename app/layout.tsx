@@ -45,6 +45,7 @@ export default function RootLayout({
       '/ask': 'Ask AI — ContentFlow',
       '/generate/ugc': 'UGC Package — ContentFlow',
       '/generate/business-card': 'Business Card — ContentFlow',
+      '/editor': 'Video Editor — ContentFlow',
       '/generate/from-calendar': 'Create Content — ContentFlow',
       '/settings': 'Settings — ContentFlow',
       '/settings/brand': 'Brand Settings — ContentFlow',

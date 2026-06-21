@@ -80,6 +80,10 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <Icon.Card />
           <span style={{ flex: 1 }}>Business Card</span>
         </Link>
+        <Link href="/editor" className={`nav-item ${isActive('/editor') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Scissors />
+          <span style={{ flex: 1 }}>Video Editor</span>
+        </Link>
       </div>
 
       <div className="rail-section">
