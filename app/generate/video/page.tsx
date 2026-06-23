@@ -70,6 +70,7 @@ export default function VideoGeneratorPage() {
   const [model, setModel] = useState<Model>('sora-2')
   const [prompt, setPrompt] = useState('')
   const [duration, setDuration] = useState(10)
+  const [aspect, setAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait')
   const [refImage, setRefImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [generating, setGenerating] = useState(false)
   const [video, setVideo] = useState<VideoState | null>(null)
@@ -207,6 +208,7 @@ export default function VideoGeneratorPage() {
           prompt: prompt.trim(),
           model,
           duration,
+          aspect,
           referenceImageBase64: refImage?.base64,
           referenceImageMimeType: refImage?.mimeType,
         }),
@@ -317,6 +319,41 @@ export default function VideoGeneratorPage() {
                 >
                   <span style={{ fontSize: 18, fontWeight: 700 }}>{sec}s</span>
                   <span style={{ fontSize: 11, opacity: active ? 0.75 : 1, color: active ? '#fff' : 'var(--ink-dim)', fontWeight: 600 }}>{cr} cr</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Format */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 14 }}>Format</div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {([
+              { id: 'portrait',  label: 'Portrait',  sub: '9:16',  icon: '▯' },
+              { id: 'square',    label: 'Square',    sub: '1:1',   icon: '□' },
+              { id: 'landscape', label: 'Landscape', sub: '16:9',  icon: '▭' },
+            ] as const).map(f => {
+              const active = aspect === f.id
+              return (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setAspect(f.id)}
+                  disabled={generating}
+                  style={{
+                    flex: 1, padding: '14px 8px', borderRadius: 10, textAlign: 'center',
+                    border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                    background: active ? 'var(--ink)' : 'transparent',
+                    color: active ? '#fff' : 'var(--ink)',
+                    cursor: generating ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.15s',
+                    display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: 20 }}>{f.icon}</span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{f.label}</span>
+                  <span style={{ fontSize: 10.5, opacity: active ? 0.7 : 1, color: active ? '#fff' : 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>{f.sub}</span>
                 </button>
               )
             })}

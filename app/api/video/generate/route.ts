@@ -51,6 +51,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Invalid duration for ${model}` }, { status: 400 })
     }
 
+    // aspect: portrait=9:16, square=1:1, landscape=16:9
+    const aspectRaw = body.aspect as string | undefined
+    const aspectRatio: '9:16' | '1:1' | '16:9' =
+      aspectRaw === 'landscape' ? '16:9' : aspectRaw === 'square' ? '1:1' : '9:16'
+
     const refImageBase64 = typeof body.referenceImageBase64 === 'string' ? body.referenceImageBase64 : undefined
     const refImageMimeType = typeof body.referenceImageMimeType === 'string' ? body.referenceImageMimeType : undefined
 
@@ -98,7 +103,7 @@ export async function POST(request: NextRequest) {
       const soraJob = await submitSora2ViaReplicate({
         prompt,
         durationSeconds: duration as 5 | 10 | 15 | 20,
-        aspectRatio: '9:16',
+        aspectRatio,
         resolution: '720p',
         referenceImageUrl,
       })
@@ -132,7 +137,7 @@ export async function POST(request: NextRequest) {
         prompt,
         startImageUrl,
         durationSeconds: Math.min(duration, 15) as 5 | 10 | 15,
-        aspectRatio: '9:16',
+        aspectRatio,
         mode: 'standard',
       })
       predictionId = klingJob.predictionId

@@ -17,6 +17,7 @@ import {
   type UGCDuration,
 } from '@/lib/tiers'
 import { getSupabase } from '@/lib/auth'
+import { showError } from '@/lib/notifications'
 
 interface HookVariant {
   id: string
@@ -125,6 +126,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [scriptLoading, setScriptLoading] = useState(false)
   const [editedScript, setEditedScript] = useState<string>('')
   const [scriptError, setScriptError] = useState<string | null>(null)
+  const [reviseInput, setReviseInput] = useState('')
+  const [revising, setRevising] = useState(false)
 
   // Hook-preview stage
   const [hooks, setHooks] = useState<HookVariant[] | null>(null)
@@ -440,6 +443,37 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     await runGenerate()
   }
 
+  async function handleRevise() {
+    if (!reviseInput.trim() || revising) return
+    setRevising(true)
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = await supabase!.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch('/api/ugc/revise-script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          currentScript: editedScript,
+          instruction: reviseInput.trim(),
+          productName,
+          productDescription,
+          benefits,
+          callToAction,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.script) throw new Error(data.error || 'Revision failed')
+      setEditedScript(data.script)
+      setReviseInput('')
+    } catch (err) {
+      showError('Revision failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setRevising(false)
+    }
+  }
+
   // Script review step — shown after "Generate Script" succeeds
   if (step === 'script') {
     return (
@@ -472,7 +506,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <textarea
             value={editedScript}
             onChange={e => setEditedScript(e.target.value)}
-            disabled={isLoading}
+            disabled={isLoading || revising}
             rows={16}
             style={{
               width: '100%',
@@ -489,6 +523,43 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               outline: 'none',
             }}
           />
+
+          {/* Ask Claude to revise */}
+          <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
+            <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-mute)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+              Ask Claude to change something
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={reviseInput}
+                onChange={e => setReviseInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleRevise()}
+                disabled={isLoading || revising}
+                placeholder='e.g. "Make the hook more aggressive" · "Shorten to 3 sentences" · "Add more urgency to the CTA"'
+                style={{
+                  flex: 1, padding: '9px 12px', borderRadius: 8,
+                  border: '1px solid var(--border)', background: 'var(--bg)',
+                  color: 'var(--ink)', fontSize: 13, fontFamily: 'inherit', outline: 'none',
+                }}
+              />
+              <button
+                type="button"
+                onClick={handleRevise}
+                disabled={!reviseInput.trim() || revising || isLoading}
+                style={{
+                  padding: '9px 16px', borderRadius: 8, border: 'none',
+                  background: 'var(--ink)', color: '#fff',
+                  fontSize: 13, fontWeight: 600, cursor: !reviseInput.trim() || revising ? 'not-allowed' : 'pointer',
+                  opacity: !reviseInput.trim() || revising ? 0.5 : 1,
+                  whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                {revising ? (
+                  <><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Revising…</>
+                ) : 'Revise ↵'}
+              </button>
+            </div>
+          </div>
         </section>
 
         <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
