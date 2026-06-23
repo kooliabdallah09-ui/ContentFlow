@@ -409,17 +409,17 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
       {video && stitchStatus !== 'completed' && (
         <div className="card" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
-            Avatar Video
+            Raw Video
           </h3>
 
           {video.status === 'processing' && (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)', marginBottom: '12px' }}>
               <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
               <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>
-                {video.provider === 'sora-2' ? 'Sora 2 is rendering your talking head…' : 'HeyGen is rendering your video…'}
+                Rendering your talking head…
               </p>
               <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>
-                {video.provider === 'sora-2' ? 'Usually 2–4 minutes. This page auto-updates.' : 'Usually 2–5 minutes. This page auto-updates.'}
+                Usually 2–4 minutes. This page auto-updates.
               </p>
             </div>
           )}
