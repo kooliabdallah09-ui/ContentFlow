@@ -29,7 +29,15 @@ export async function generateUGCScript(
     : ''
 
   const productTypeBlock = productType === 'software'
-    ? `\nPRODUCT TYPE: This is a software/app/digital product — NOT a physical item.\n- Never say "grab yours", "pick it up", "apply", "use on your skin" or any physical product language\n- CTAs must be digital: "start free", "try it free", "download now", "sign up today", "get started"\n- Refer to it as "this app", "this tool", "this platform" not "this product" or "it"\n- Benefits should be outcomes: "saves me 3 hours", "I finally have X", "it just works"\n`
+    ? `\nPRODUCT TYPE: This is a software/app/digital product — NOT a physical item.
+- The character speaks directly to camera — they do NOT hold a phone, tablet, or laptop, and do NOT show or reference any screen/device physically
+- The app UI will appear as a large background screen behind them — no need to describe it, just talk about the benefit
+- Never say "grab yours", "pick it up", "apply", "use on your skin", "holding my phone", "showing you my screen" or ANY physical/device interaction language
+- CTAs must be digital: "start free", "try it free", "download now", "sign up today", "get started", "get early access"
+- Refer to it as "this app", "this tool", "this platform" — not "this product"
+- Benefits should be outcome-first: "saves me 3 hours", "I finally have X", "it just works", "no more [old problem]"
+- HOOK must be a provocative question or relatable problem — never a device action
+\n`
     : ''
 
   const languageBlock = language && language.code !== 'en'

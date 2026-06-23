@@ -68,13 +68,14 @@ export default function DashboardPage() {
       {/* THREE-UP CARDS */}
       <div className="dash-grid">
         <Link href="/generate/ugc" className="dash-card">
-          <div className="dash-art dash-art-ugc">
+          <div className="dash-art dash-art-video">
             <span className="dash-flag">FLAGSHIP</span>
-            <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-              <div className="dash-strip dash-strip-short" />
-              <div className="dash-strip dash-strip-tall" />
-              <div className="dash-strip dash-strip-short" />
-            </div>
+            <video
+              src="https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-shopify.mp4"
+              autoPlay muted loop playsInline
+              className="dash-art-vid"
+            />
+            <div className="dash-art-overlay" />
           </div>
           <div className="dash-card-body">
             <div className="dash-card-head">
@@ -99,10 +100,13 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/generate/video" className="dash-card">
-          <div className="dash-art dash-art-stripe">
-            <div className="dash-play">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--ink)"><path d="M8 5v14l11-7z"/></svg>
-            </div>
+          <div className="dash-art dash-art-video">
+            <video
+              src="https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/video-pepsi.mp4"
+              autoPlay muted loop playsInline
+              className="dash-art-vid"
+            />
+            <div className="dash-art-overlay" />
           </div>
           <div className="dash-card-body">
             <div className="dash-card-head">
@@ -206,6 +210,17 @@ export default function DashboardPage() {
         }
         .dash-art-ugc { background: var(--surface-2); }
         .dash-art-stripe { background: repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px); }
+        .dash-art-video { background: #111; }
+        .dash-art-vid {
+          position: absolute; inset: 0;
+          width: 100%; height: 100%;
+          object-fit: cover;
+        }
+        .dash-art-overlay {
+          position: absolute; inset: 0;
+          background: linear-gradient(to bottom, transparent 50%, rgba(0,0,0,0.28) 100%);
+          pointer-events: none;
+        }
         .dash-flag {
           position: absolute;
           top: 12px; left: 12px;

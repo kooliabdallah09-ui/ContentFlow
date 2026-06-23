@@ -1,5 +1,5 @@
 import { generateImage } from '@/lib/gemini-image'
-import { generateCharacterWithProduct, ugcifyPortrait, generateCharacterGreenScreen } from '@/lib/nanobanana'
+import { generateCharacterWithProduct, ugcifyPortrait, generateCharacterInFrontOfUI } from '@/lib/nanobanana'
 import { submitKlingV3OmniJob } from '@/lib/replicate'
 import { buildKlingPrompt } from '@/lib/kling-prompt'
 import { CREDIT_COSTS } from '@/lib/credits'
@@ -227,24 +227,18 @@ export async function POST(request: NextRequest) {
       let heroMimeType: string
 
       if (hasProduct && productType === 'software') {
-        // Software path: upload UI screenshot as background, generate green-screen character.
-        const uiFilename = `kling-source/ui-${userId}-${Date.now()}.png`
-        const uiBuf = await sharp(Buffer.from(productImageBase64!, 'base64'))
-          .resize(aspect.width, aspect.height, { fit: 'cover', position: 'center' })
-          .png()
-          .toBuffer()
-        const { error: uiErr } = await supabase.storage
-          .from('ugc-assets')
-          .upload(uiFilename, uiBuf, { contentType: 'image/png', upsert: false })
-        if (uiErr) throw new Error(`Failed to upload UI screenshot: ${uiErr.message}`)
-        const { data: { publicUrl: uiScreenshotUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(uiFilename)
-
-        const greenFrame = await generateCharacterGreenScreen(characterPrompt, aspect.nanoBananaRatio)
-        heroBase64 = greenFrame.imageBase64
-        heroMimeType = greenFrame.mimeType
-
-        components.uiScreenshotUrl = uiScreenshotUrl
-        components.softwareMode = true
+        // Software path: Nano Banana composites the character in front of a large screen
+        // showing the UI screenshot — no green screen, no chroma key needed.
+        const uiFrame = await generateCharacterInFrontOfUI(
+          productImageBase64!,
+          productImageMimeType!,
+          characterPrompt,
+          aspect.nanoBananaRatio,
+          actorPortraitBase64,
+          actorPortraitMimeType,
+        )
+        heroBase64 = uiFrame.imageBase64
+        heroMimeType = uiFrame.mimeType
       } else if (hasProduct) {
         const heroFrame = await generateCharacterWithProduct(
           productImageBase64!,
@@ -297,6 +291,7 @@ export async function POST(request: NextRequest) {
         script: spokenScript,
         language: language.name,
         customInstructions: safeCustomInstructions,
+        gender: (avatarGender === 'Male' || character?.gender === 'Male') ? 'Male' : 'Female',
       })
 
       // 4. Submit the Kling v3 omni clip(s).

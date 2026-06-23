@@ -17,8 +17,11 @@ function getCost(model: string, duration: number): number {
   return COSTS[model]?.[duration] ?? 60
 }
 
-// Sora reference image: must match exact output size
-const SORA_W = 720, SORA_H = 1280
+// Sora reference image dimensions must match the selected aspect ratio
+function soraImageSize(aspectRatio: '9:16' | '1:1' | '16:9'): [number, number] {
+  if (aspectRatio === '16:9') return [1280, 720]
+  return [720, 1280] // portrait and square both 720x1280
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,34 +80,27 @@ export async function POST(request: NextRequest) {
     let provider: string
 
     if (model === 'sora-2') {
-      // Sora needs a reference image — generate one from the prompt if not provided
-      let refImageBuf: Buffer
+      // input_reference is optional — only upload if the user provided one
+      let referenceImageUrl: string | undefined
       if (refImageBase64 && refImageMimeType) {
-        refImageBuf = await sharp(Buffer.from(refImageBase64, 'base64'))
-          .resize(SORA_W, SORA_H, { fit: 'cover', position: 'center' })
+        const [soraW, soraH] = soraImageSize(aspectRatio)
+        const refImageBuf = await sharp(Buffer.from(refImageBase64, 'base64'))
+          .resize(soraW, soraH, { fit: 'cover', position: 'center' })
           .png()
           .toBuffer()
-      } else {
-        const generated = await generateTextToImage(prompt)
-        refImageBuf = await sharp(Buffer.from(generated.imageBase64, 'base64'))
-          .resize(SORA_W, SORA_H, { fit: 'cover', position: 'center' })
-          .png()
-          .toBuffer()
+        const filename = `video-ref/${userId}-${Date.now()}.png`
+        const { error: upErr } = await supabase.storage
+          .from('ugc-assets')
+          .upload(filename, refImageBuf, { contentType: 'image/png', upsert: false })
+        if (upErr) return NextResponse.json({ error: `Storage upload failed: ${upErr.message}` }, { status: 500 })
+        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+        referenceImageUrl = publicUrl
       }
-
-      const filename = `video-ref/${userId}-${Date.now()}.png`
-      const { error: upErr } = await supabase.storage
-        .from('ugc-assets')
-        .upload(filename, refImageBuf, { contentType: 'image/png', upsert: false })
-      if (upErr) return NextResponse.json({ error: `Storage upload failed: ${upErr.message}` }, { status: 500 })
-
-      const { data: { publicUrl: referenceImageUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
 
       const soraJob = await submitSora2ViaReplicate({
         prompt,
         durationSeconds: duration as 5 | 10 | 15 | 20,
         aspectRatio,
-        resolution: '720p',
         referenceImageUrl,
       })
       predictionId = soraJob.predictionId

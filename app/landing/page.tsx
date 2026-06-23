@@ -51,9 +51,12 @@ export default function LandingPage() {
           </div>
         </div>
         <div style={heroPreview}>
-          <div style={heroPreviewPlay}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--ink)"><path d="M8 5v14l11-7z"/></svg>
-          </div>
+          <video
+            src="https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-talking-head.mp4"
+            autoPlay muted loop playsInline
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 17 }}
+          />
+          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.22) 100%)', borderRadius: 17 }} />
         </div>
       </section>
 
@@ -64,17 +67,29 @@ export default function LandingPage() {
           <p style={sectionP}>Stop hiring creators. Stop waiting 3 weeks for clips. Start selling today.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }} className="ls-features">
-          {FEATURES.map(f => (
-            <div key={f.title} style={featureCard}>
-              <div style={featureIcon}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{f.svg}</svg>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="ls-features">
+          {FEATURES.map((f, i) => (
+            <div key={f.title} style={featureCard} className="ls-feat-card">
+              <div style={featureCardInner}>
+                <div style={featureTopRow}>
+                  <div style={featureIcon}>
+                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{f.svg}</svg>
+                  </div>
+                  <span style={featureNum}>0{i + 1}</span>
+                </div>
+                <h3 style={featureH3}>{f.title}</h3>
+                <p style={featureP}>{f.body}</p>
               </div>
-              <h3 style={featureH3}>{f.title}</h3>
-              <p style={featureP}>{f.body}</p>
             </div>
           ))}
         </div>
+        <style>{`
+          .ls-feat-card { transition: box-shadow 200ms, transform 200ms; }
+          .ls-feat-card:hover {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.05);
+            transform: translateY(-3px);
+          }
+        `}</style>
       </section>
 
       {/* PRICING */}
@@ -204,8 +219,9 @@ const btnPrimaryXL: React.CSSProperties = { padding: '14px 32px', borderRadius: 
 const heroPreview: React.CSSProperties = {
   marginTop: 80, aspectRatio: '1.6',
   borderRadius: 18, border: '1px solid var(--border)',
-  background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  background: '#111',
+  overflow: 'hidden',
+  position: 'relative',
 }
 const heroPreviewPlay: React.CSSProperties = {
   width: 56, height: 56, borderRadius: '50%',
@@ -217,10 +233,46 @@ const heroPreviewPlay: React.CSSProperties = {
 const sectionH2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 44, lineHeight: 1.1, letterSpacing: '-0.01em', margin: '0 0 12px' }
 const sectionP: React.CSSProperties = { fontSize: 16, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }
 
-const featureCard: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 15, padding: 32 }
-const featureIcon: React.CSSProperties = { width: 44, height: 44, borderRadius: 11, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }
-const featureH3: React.CSSProperties = { fontSize: 16, fontWeight: 600, margin: '0 0 8px', letterSpacing: '-0.01em' }
-const featureP: React.CSSProperties = { fontSize: 14, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.5 }
+const featureCard: React.CSSProperties = {
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 18,
+  overflow: 'hidden',
+  boxShadow: '0 2px 10px rgba(0,0,0,0.04)',
+}
+const featureCardInner: React.CSSProperties = {
+  padding: '28px 28px 30px',
+  background: 'linear-gradient(160deg, var(--surface) 0%, var(--surface-2) 100%)',
+  height: '100%',
+}
+const featureTopRow: React.CSSProperties = {
+  display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20,
+}
+const featureIcon: React.CSSProperties = {
+  width: 48, height: 48, borderRadius: 14,
+  background: 'var(--ink)',
+  color: '#fff',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+  flexShrink: 0,
+}
+const featureNum: React.CSSProperties = {
+  fontFamily: 'var(--font-serif)',
+  fontSize: 26,
+  fontWeight: 400,
+  color: 'var(--border-strong)',
+  lineHeight: 1,
+  userSelect: 'none' as const,
+}
+const featureH3: React.CSSProperties = {
+  fontFamily: 'var(--font-serif)',
+  fontSize: 18,
+  fontWeight: 400,
+  margin: '0 0 10px',
+  letterSpacing: '-0.02em',
+  lineHeight: 1.2,
+}
+const featureP: React.CSSProperties = { fontSize: 13.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }
 
 const priceCard: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 15, padding: 32 }
 const popularBadge: React.CSSProperties = { position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', background: 'var(--ink)', color: '#fff', borderRadius: 999, padding: '4px 12px' }

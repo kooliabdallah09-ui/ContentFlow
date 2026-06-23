@@ -327,28 +327,55 @@ Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER I
   return callNanoBanana(prompt, refs, aspectRatio)
 }
 
-// Generate a character against a pure green (#00B140) background for software/app products.
-// The character has no product in hand — Shotstack will composite the UI screenshot as the
-// background layer with chroma key removing the green.
-export async function generateCharacterGreenScreen(
+// Generate a character in front of a large screen displaying the app/software UI.
+// The UI screenshot is passed as a reference image — Nano Banana renders the person
+// sitting or standing in front of a monitor/TV that faithfully shows the uploaded UI.
+// No green screen, no chroma key — the composite is baked into the generated image.
+export async function generateCharacterInFrontOfUI(
+  uiScreenshotBase64: string,
+  uiScreenshotMimeType: string,
   characterPrompt: string,
   aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  actorPortraitBase64?: string,
+  actorPortraitMimeType?: string,
 ): Promise<NanoBananaResult> {
-  const prompt = `Hyper-realistic UGC selfie portrait of ${characterPrompt}.
+  const actorBlock = actorPortraitBase64
+    ? `IMAGE REFERENCES:
+- Image 1 (person): use this person's exact face, hair, skin tone, and features. Match their appearance precisely — do NOT redesign or alter their look.
+- Image 2 (UI screenshot): this is the app interface that must appear on the large screen in the background.
 
-BACKGROUND: Pure solid broadcast green (#00B140). The entire background must be a single flat uniform green — no gradients, no shadows on the background, no objects, no environment details. Only the person exists in the frame; everything behind them is solid green.
+`
+    : `IMAGE REFERENCE: This is the app/software UI — it must appear faithfully on a large screen behind the character.\n\n`
 
-FRAMING: vertical phone selfie, face to mid-chest visible, slightly off-centre, arm-length distance.
+  const prompt = `${actorBlock}Generate a hyper-realistic UGC-style portrait for a software ad first frame.
 
-EXPRESSION: caught mid-moment — mid-smile starting, eyes alive and focused on camera, mouth just parting to speak.
+CHARACTER: ${characterPrompt}. The character is NOT holding any phone or device. Both hands are relaxed at their sides or one hand gestures naturally toward camera.
 
-REALISM: real skin texture with pores, natural hair with flyaways, no beauty filter, no studio polish. Should read as a real person in a real selfie — the ONLY unrealistic element is the solid green background.
+SCENE: The character stands or sits slightly off-centre in front of a large wall-mounted monitor or TV screen that fills much of the background. The screen displays the EXACT app interface from the reference image — every panel, button, colour, text, and layout element must be faithfully reproduced on the screen. The screen is bright and crisp, clearly readable even with slight depth-of-field.
 
-The green background must be clean, flat, and consistent — no noise, no vignette, no shadow bleed from the subject onto the background.
+FRAMING: handheld selfie framing, face to mid-chest visible, slightly off-centre composition. The large screen behind them is partially visible above/around the character — gives context that this is a software demo environment (desk area, office corner, or casual home-office setup).
+
+EXPRESSION: caught mid-sentence — eyebrow slightly raised, eyes alive and looking directly at camera, mouth just opening to speak. Confident, knowing expression like sharing a shortcut.
+
+REALISM:
+- Skin texture: pores, natural micro-imperfections, no beauty filter
+- Hair: flyaways, slight frizz
+- Lighting: the screen's glow adds a soft blue/white fill light on the character from behind/above — this is realistic for someone standing in front of a lit screen
+- Background: the large screen behind them, soft depth-of-field so edges blur naturally
+
+CRITICAL: The character does NOT hold, touch, or interact with any device. The UI appears only on the background screen. The character is the focal point; the screen provides context.
+
+Phone-camera-natural rendering: slight sensor grain, no studio polish. Should read as a real person filming themselves in front of their workspace.
 
 Render in ${aspectRatio} aspect ratio.`
 
-  return callNanoBanana(prompt, undefined, aspectRatio)
+  const refs: Array<{ base64: string; mimeType: string }> = []
+  if (actorPortraitBase64 && actorPortraitMimeType) {
+    refs.push({ base64: actorPortraitBase64, mimeType: actorPortraitMimeType })
+  }
+  refs.push({ base64: uiScreenshotBase64, mimeType: uiScreenshotMimeType })
+
+  return callNanoBanana(prompt, refs, aspectRatio)
 }
 
 // Convert a user's portrait photo into a UGC-format selfie frame (no product).

@@ -5,7 +5,6 @@ export async function submitSora2ViaReplicate(params: {
   prompt: string
   durationSeconds: 5 | 10 | 15 | 20
   aspectRatio?: '9:16' | '16:9' | '1:1'
-  resolution?: '720p' | '1080p'
   referenceImageUrl?: string
 }): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN
@@ -17,11 +16,11 @@ export async function submitSora2ViaReplicate(params: {
 
   const input: Record<string, unknown> = {
     prompt: params.prompt,
-    duration: params.durationSeconds,
+    seconds: params.durationSeconds,
     aspect_ratio: soraAspect,
-    resolution: params.resolution ?? '720p',
   }
-  if (params.referenceImageUrl) input.image = params.referenceImageUrl
+  // input_reference must match the selected aspect ratio dimensions
+  if (params.referenceImageUrl) input.input_reference = params.referenceImageUrl
 
   const res = await fetch(`${REPLICATE_BASE}/models/${SORA_2_MODEL}/predictions`, {
     method: 'POST',
