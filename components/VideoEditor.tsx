@@ -538,7 +538,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 const visible = currentTime >= o.start && currentTime < o.start + o.duration
                 const isSelected = selectedOverlayId === o.id
                 const xPct = (o.x ?? 0.5) * 100
-                const yPct = (o.y ?? (o.position === 'top' ? 12 : o.position === 'center' ? 50 : 82))
+                const yPct = (o.y ?? (o.position === 'top' ? 0.12 : o.position === 'center' ? 0.5 : 0.82)) * 100
                 return (
                   <div
                     key={o.id}
