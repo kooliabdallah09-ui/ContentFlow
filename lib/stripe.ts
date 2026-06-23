@@ -11,19 +11,34 @@
 
 import Stripe from 'stripe'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  apiVersion: '2025-04-30.basil' as any,
+// Lazy singleton — only instantiated when first called, not at module load time.
+// This prevents build failures when STRIPE_SECRET_KEY is not set.
+let _stripe: Stripe | null = null
+export function getStripe(): Stripe {
+  if (!_stripe) {
+    if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY is not set')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-04-30.basil' as any })
+  }
+  return _stripe
+}
+
+// Keep named export for backwards compat — also lazy
+export const stripe = new Proxy({} as Stripe, {
+  get(_target, prop) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (getStripe() as any)[prop]
+  },
 })
 
 export const PLAN_PRICE_MAP: Record<string, { plan: string; monthly_credits: number }> = {
-  [process.env.STRIPE_PRICE_STARTER ?? 'price_starter']: { plan: 'starter', monthly_credits: 800 },
-  [process.env.STRIPE_PRICE_PRO ?? 'price_pro']: { plan: 'pro', monthly_credits: 2000 },
-  [process.env.STRIPE_PRICE_AGENCY ?? 'price_agency']: { plan: 'agency', monthly_credits: 6500 },
+  [process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? 'price_starter']: { plan: 'starter', monthly_credits: 800 },
+  [process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? 'price_pro']: { plan: 'pro', monthly_credits: 2000 },
+  [process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? 'price_agency']: { plan: 'agency', monthly_credits: 6500 },
 }
 
 export const PACK_CREDIT_MAP: Record<string, number> = {
-  [process.env.STRIPE_PRICE_PACK_500 ?? 'price_pack500']: 500,
-  [process.env.STRIPE_PRICE_PACK_1500 ?? 'price_pack1500']: 1500,
-  [process.env.STRIPE_PRICE_PACK_5000 ?? 'price_pack5000']: 5000,
+  [process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? 'price_pack500']: 500,
+  [process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? 'price_pack1500']: 1500,
+  [process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? 'price_pack5000']: 5000,
 }
