@@ -125,57 +125,50 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* RECENT */}
+      {/* MADE WITH CONTENTFLOW */}
       <div className="section-head">
-        <h2 className="section-title">Recent <em>generations</em></h2>
+        <h2 className="section-title">Made with <em>ContentFlow</em></h2>
         <div className="section-actions">
           <Link href="/library">View library →</Link>
         </div>
       </div>
 
       <div className="dash-recent">
-        {recentLoading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="dash-recent-item">
-              <div className="dash-recent-thumb" style={{ opacity: 0.4 }} />
-              <div className="dash-recent-meta">
-                <div style={{ height: 12, width: '70%', background: 'var(--border)', borderRadius: 4, marginBottom: 6 }} />
-                <div style={{ height: 10, width: '50%', background: 'var(--border)', borderRadius: 4 }} />
+        {DASH_DEMOS.map(d => (
+          <div key={d.label} className="dash-recent-item">
+            <div className="dash-recent-thumb" style={{ background: '#111' }}>
+              <video src={d.src} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 55%, rgba(0,0,0,0.4) 100%)' }} />
+              <span className="dash-recent-tag">{d.tag}</span>
+            </div>
+            <div className="dash-recent-meta">
+              <div className="dash-recent-title">{d.label}</div>
+              <div className="dash-recent-status">
+                <span className="dash-recent-dot" style={{ background: '#2F7A4E' }} />
+                Example output
               </div>
             </div>
-          ))
-        ) : recentItems.length === 0 ? (
-          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: 'var(--ink-mute)', fontSize: 13 }}>
-            No content yet — <Link href="/generate/ugc" style={{ color: 'var(--accent)' }}>generate your first UGC video</Link>
           </div>
-        ) : (
-          recentItems.map(item => {
-            const done = item.status === 'completed' || item.status === 'ready'
-            const title = item.metadata?.productName || item.content_type || 'Untitled'
-            const tag = item.content_type === 'ugc' ? 'UGC' : item.content_type?.toUpperCase() ?? '—'
-            const dot = done ? '#2F7A4E' : item.status === 'failed' ? 'var(--bad)' : 'var(--ink-mute)'
-            const statusLabel = done ? `Ready · ${timeAgo(item.created_at)}` : item.status === 'failed' ? 'Failed' : `Processing…`
-            return (
-              <div key={item.id} className="dash-recent-item">
-                <div className="dash-recent-thumb" style={item.metadata?.video ? { backgroundImage: `url(${item.metadata.video})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
-                  <div className="dash-recent-play">
-                    <div>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--ink)"><path d="M8 5v14l11-7z"/></svg>
-                    </div>
-                  </div>
-                  <span className="dash-recent-tag">{tag}</span>
-                </div>
-                <div className="dash-recent-meta">
-                  <div className="dash-recent-title">{title}</div>
-                  <div className="dash-recent-status">
-                    <span className="dash-recent-dot" style={{ background: dot }} />
-                    {statusLabel}
-                  </div>
+        ))}
+        {!recentLoading && recentItems.filter(i => i.status === 'completed' || i.status === 'ready').map(item => {
+          const title = item.metadata?.productName || item.content_type || 'Untitled'
+          const tag = item.content_type === 'ugc' ? 'UGC' : item.content_type?.toUpperCase() ?? '—'
+          return (
+            <div key={item.id} className="dash-recent-item">
+              <div className="dash-recent-thumb" style={item.metadata?.video ? { backgroundImage: `url(${item.metadata.video})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                <div className="dash-recent-play"><div><svg width="14" height="14" viewBox="0 0 24 24" fill="var(--ink)"><path d="M8 5v14l11-7z"/></svg></div></div>
+                <span className="dash-recent-tag">{tag}</span>
+              </div>
+              <div className="dash-recent-meta">
+                <div className="dash-recent-title">{title}</div>
+                <div className="dash-recent-status">
+                  <span className="dash-recent-dot" style={{ background: '#2F7A4E' }} />
+                  Ready · {timeAgo(item.created_at)}
                 </div>
               </div>
-            )
-          })
-        )}
+            </div>
+          )
+        })}
       </div>
 
       <style>{`
@@ -349,6 +342,12 @@ export default function DashboardPage() {
     </main>
   )
 }
+
+const DASH_DEMOS = [
+  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-shopify.mp4', label: 'Shopify product ad', tag: 'UGC' },
+  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-talking-head.mp4', label: 'Talking-head UGC', tag: 'UGC' },
+  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/video-pepsi.mp4', label: 'Sora 2 video ad', tag: 'VIDEO' },
+]
 
 const QUICK = [
   { label: 'UGC Package', href: '/generate/ugc' },

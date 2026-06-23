@@ -50,14 +50,33 @@ export default function LandingPage() {
             <a href="#features" style={btnSecondaryLg}>See how it works</a>
           </div>
         </div>
-        <div style={heroPreview}>
-          <video
-            src="https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-talking-head.mp4"
-            autoPlay muted loop playsInline
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 17 }}
-          />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.22) 100%)', borderRadius: 17 }} />
+        <div style={heroPreview} />
+      </section>
+
+      {/* MADE WITH CONTENTFLOW — video showcase */}
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px 100px' }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
+          <h2 style={{ ...sectionH2, fontSize: 28, margin: 0 }}>Made with <em>ContentFlow</em></h2>
+          <Link href="/auth/signup" style={{ fontSize: 13, color: 'var(--ink-mute)', fontWeight: 500 }}>Try it free →</Link>
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="ls-demo-grid">
+          {DEMO_VIDEOS.map(v => (
+            <div key={v.label} style={demoCard} className="ls-demo-card">
+              <video src={v.src} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              <div style={demoOverlay} />
+              <div style={demoMeta}>
+                <span style={demoTag}>{v.tag}</span>
+                <span style={demoLabel}>{v.label}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        <style>{`
+          .ls-demo-grid { }
+          .ls-demo-card { transition: transform 200ms, box-shadow 200ms; }
+          .ls-demo-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.14); }
+          @media (max-width: 640px) { .ls-demo-grid { grid-template-columns: 1fr !important; } }
+        `}</style>
       </section>
 
       {/* FEATURES */}
@@ -73,7 +92,7 @@ export default function LandingPage() {
               <div style={featureCardInner}>
                 <div style={featureTopRow}>
                   <div style={featureIcon}>
-                    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{f.svg}</svg>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{f.svg}</svg>
                   </div>
                   <span style={featureNum}>0{i + 1}</span>
                 </div>
@@ -99,25 +118,31 @@ export default function LandingPage() {
           <p style={sectionP}>No hidden fees. No long contracts. Credits roll month to month.</p>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="ls-pricing">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }} className="ls-pricing">
           <div style={priceCard}>
             <div style={priceName}>Free</div>
             <div style={priceRow}><span style={priceAmt}>$0</span><span style={priceUnit}>forever</span></div>
-            <div style={priceMeta}>60 credits at signup · Standard tier only</div>
+            <div style={priceMeta}>60 credits at signup · Explore the platform</div>
             <Link href="/auth/signup" style={btnSecondaryFull}>Get started</Link>
+          </div>
+          <div style={priceCard}>
+            <div style={priceName}>Starter</div>
+            <div style={priceRow}><span style={priceAmt}>$19</span><span style={priceUnit}>/month</span></div>
+            <div style={priceMeta}>800 credits/month · ~9 UGC videos</div>
+            <Link href="/auth/signup?plan=starter" style={btnSecondaryFull}>Get Starter</Link>
           </div>
           <div style={{ ...priceCard, border: '2px solid var(--ink)', position: 'relative' }}>
             <span style={popularBadge}>Most popular</span>
             <div style={priceName}>Pro</div>
             <div style={priceRow}><span style={priceAmt}>$49</span><span style={priceUnit}>/month</span></div>
-            <div style={priceMeta}>2,000 credits/month · Everything + priority support</div>
-            <Link href="/auth/signup" style={btnPrimaryFull}>Upgrade to Pro</Link>
+            <div style={priceMeta}>2,000 credits/month · ~23 UGC videos</div>
+            <Link href="/auth/signup?plan=pro" style={btnPrimaryFull}>Get Pro</Link>
           </div>
           <div style={priceCard}>
             <div style={priceName}>Agency</div>
             <div style={priceRow}><span style={priceAmt}>$149</span><span style={priceUnit}>/month</span></div>
-            <div style={priceMeta}>6,500 credits · Team seats · API access</div>
-            <Link href="/auth/signup" style={btnSecondaryFull}>Contact us</Link>
+            <div style={priceMeta}>6,500 credits/month · ~77 UGC videos</div>
+            <Link href="/auth/signup?plan=agency" style={btnSecondaryFull}>Get Agency</Link>
           </div>
         </div>
       </section>
@@ -182,7 +207,7 @@ export default function LandingPage() {
         @media (max-width: 768px) {
           .ls-nav { display: none !important; }
           .ls-features { grid-template-columns: 1fr !important; gap: 20px !important; }
-          .ls-pricing { grid-template-columns: 1fr !important; gap: 16px !important; }
+          .ls-pricing { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
           .ls-foot-grid { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
         }
         @media (max-width: 640px) {
@@ -196,12 +221,62 @@ export default function LandingPage() {
 
 // ---- Static content ----
 const FEATURES = [
-  { title: 'AI-powered scripts', body: 'Claude drafts 3 compelling hooks tailored to your product.', svg: <path d="M12 3l1.8 4.4L18 9l-4.2 1.6L12 15l-1.8-4.4L6 9l4.2-1.6z"/> },
-  { title: 'Sora video', body: 'Your talking head brought to life with photorealistic motion.', svg: <><circle cx="12" cy="12" r="10"/><path d="M10 17l5-5-5-5"/></> },
-  { title: 'Premium voices', body: 'Custom narration with ElevenLabs — no AI robot sound.', svg: <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/> },
-  { title: 'Auto captions', body: 'Word-synced by Whisper. Burned in, scroll-stopping design.', svg: <><rect x="3" y="6" width="18" height="14" rx="2"/><path d="M9 12h6M9 16h6M5 12h.01M5 16h.01"/></> },
-  { title: 'B-roll cutaways', body: 'Anchored on your product, overlaid mid-video.', svg: <><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 15l4-4 5 5 4-6"/></> },
-  { title: 'Brand kit', body: 'Set once. Every generation inherits your voice.', svg: <><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6v6H9z"/></> },
+  {
+    title: 'AI-powered scripts',
+    body: 'Claude writes 3 scroll-stopping hooks per product — pick your angle, ship in seconds.',
+    svg: <>
+      <path d="M20 4c-4 0-10 4-12 16l3-1.5 1.5-3.5C15 12 18 8 20 4z"/>
+      <path d="M8 20l2-6.5"/>
+      <path d="M8 20c-1 .5-1.5.5-2 1 .5-1 1-2 2-1z" fill="currentColor" strokeWidth="0"/>
+      <path d="M18 2l.6 1.4L20 4l-1.4.6L18 6l-.6-1.4L16 4l1.4-.6L18 2z" fill="currentColor" strokeWidth="0"/>
+    </>,
+  },
+  {
+    title: 'Talking-head video',
+    body: 'Kling v3 omni renders your character with lifelike motion and native voice — one generation, done.',
+    svg: <>
+      <rect x="2" y="8" width="20" height="13" rx="2"/>
+      <path d="M2 8l3-6h14l3 6"/>
+      <path d="M8 2L6 8M13 2l-1 6M18 2l-2 6"/>
+    </>,
+  },
+  {
+    title: 'Premium voices',
+    body: 'ElevenLabs narration that sounds like a real creator — warm, natural, and on-brand.',
+    svg: <>
+      <path d="M2 12h2M6 7v10M10 4v16M14 7v10M18 9v6M22 12h-2"/>
+    </>,
+  },
+  {
+    title: 'Auto captions',
+    body: 'Whisper word-syncs every syllable. Captions burn directly into the video — no editor needed.',
+    svg: <>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
+      <path d="M8 10h8M8 14h5"/>
+    </>,
+  },
+  {
+    title: 'B-roll cutaways',
+    body: 'Product-anchored b-roll drops in mid-video — keeps eyes on screen and backs every claim.',
+    svg: <>
+      <rect x="2" y="4" width="20" height="16" rx="2"/>
+      <path d="M2 9h4M18 9h4M2 15h4M18 15h4M7 4v16M17 4v16"/>
+    </>,
+  },
+  {
+    title: 'Brand kit',
+    body: 'Save your tone, product details, and actor once. Every generation inherits your brand automatically.',
+    svg: <>
+      <path d="M12 2L2 9l10 13 10-13L12 2z"/>
+      <path d="M2 9h20M7 9L12 2M17 9L12 2M7 9l5 13M17 9l-5 13"/>
+    </>,
+  },
+]
+
+const DEMO_VIDEOS = [
+  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-shopify.mp4', label: 'Shopify product ad', tag: 'UGC' },
+  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-talking-head.mp4', label: 'Talking-head UGC', tag: 'UGC' },
+  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/video-pepsi.mp4', label: 'Sora 2 video', tag: 'VIDEO' },
 ]
 
 // ---- Inline styles ----
@@ -249,11 +324,11 @@ const featureTopRow: React.CSSProperties = {
   display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20,
 }
 const featureIcon: React.CSSProperties = {
-  width: 48, height: 48, borderRadius: 14,
-  background: 'var(--ink)',
-  color: '#fff',
+  width: 52, height: 52, borderRadius: 15,
+  background: 'linear-gradient(145deg, #2E2C22 0%, #161610 100%)',
+  color: '#E8E2D0',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  boxShadow: '0 4px 14px rgba(0,0,0,0.18)',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.08)',
   flexShrink: 0,
 }
 const featureNum: React.CSSProperties = {
@@ -287,3 +362,27 @@ const btnSecondaryFull: React.CSSProperties = { display: 'block', textAlign: 'ce
 const footH: React.CSSProperties = { fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 12 }
 const footList: React.CSSProperties = { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }
 const footLink: React.CSSProperties = { fontSize: 13, color: 'var(--ink-mute)' }
+
+const demoCard: React.CSSProperties = {
+  position: 'relative', aspectRatio: '9/16', borderRadius: 16,
+  overflow: 'hidden', background: '#111', border: '1px solid var(--border)',
+  boxShadow: '0 4px 16px rgba(0,0,0,0.08)',
+}
+const demoOverlay: React.CSSProperties = {
+  position: 'absolute', inset: 0,
+  background: 'linear-gradient(to bottom, transparent 55%, rgba(0,0,0,0.55) 100%)',
+  pointerEvents: 'none',
+}
+const demoMeta: React.CSSProperties = {
+  position: 'absolute', bottom: 16, left: 14, right: 14,
+  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+}
+const demoTag: React.CSSProperties = {
+  fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
+  background: 'rgba(255,255,255,0.15)', backdropFilter: 'blur(4px)',
+  color: '#fff', borderRadius: 5, padding: '3px 7px', letterSpacing: '0.04em',
+}
+const demoLabel: React.CSSProperties = {
+  fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.85)',
+  letterSpacing: '-0.01em',
+}
