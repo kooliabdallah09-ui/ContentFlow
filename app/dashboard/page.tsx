@@ -68,14 +68,13 @@ export default function DashboardPage() {
       {/* THREE-UP CARDS */}
       <div className="dash-grid">
         <Link href="/generate/ugc" className="dash-card">
-          <div className="dash-art dash-art-video">
+          <div className="dash-art dash-art-ugc">
             <span className="dash-flag">FLAGSHIP</span>
-            <video
-              src="https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-shopify.mp4"
-              autoPlay muted loop playsInline
-              className="dash-art-vid"
-            />
-            <div className="dash-art-overlay" />
+            <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
+              <div className="dash-strip dash-strip-short" />
+              <div className="dash-strip dash-strip-tall" />
+              <div className="dash-strip dash-strip-short" />
+            </div>
           </div>
           <div className="dash-card-body">
             <div className="dash-card-head">
@@ -100,13 +99,10 @@ export default function DashboardPage() {
         </Link>
 
         <Link href="/generate/video" className="dash-card">
-          <div className="dash-art dash-art-video">
-            <video
-              src="https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/video-pepsi.mp4"
-              autoPlay muted loop playsInline
-              className="dash-art-vid"
-            />
-            <div className="dash-art-overlay" />
+          <div className="dash-art dash-art-stripe">
+            <div className="dash-play">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--ink)"><path d="M8 5v14l11-7z"/></svg>
+            </div>
           </div>
           <div className="dash-card-body">
             <div className="dash-card-head">
