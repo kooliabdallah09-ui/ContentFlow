@@ -39,7 +39,8 @@ const MODELS: {
     ],
     caveat: 'No native audio · 2–4 min generation time',
     durations: [5, 10, 15, 20],
-    credits: { 5: 35, 10: 60, 15: 85, 20: 110 },
+    // Sora 2: $0.10/s → 4cr/s at cost → 7.2cr/s at 1.8× → round to nearest integer per duration
+    credits: { 5: 36, 10: 72, 15: 108, 20: 144 },
   },
   {
     id: 'kling-v3',
@@ -54,8 +55,8 @@ const MODELS: {
     ],
     caveat: 'Max 15s per clip · best for faces & audio',
     durations: [5, 10, 15],
-    // Kling v3 omni standard-audio: $0.224/s → 8.96 cr/s at cost → 14 cr/s at ~1.6×
-    credits: { 5: 70, 10: 140, 15: 210 },
+    // Kling v3 omni standard-audio: $0.224/s → 8.96 cr/s at cost → 16 cr/s at 1.8×
+    credits: { 5: 80, 10: 160, 15: 240 },
   },
 ]
 

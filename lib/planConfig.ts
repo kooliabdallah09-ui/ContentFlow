@@ -14,7 +14,7 @@ export const CREDIT_COSTS: Record<string, number> = {
   social: 5,
   email: 10,
   blog: 20,
-  image: 3,
+  image: 5,  // NB2 $0.075/image → 3cr at cost → 5cr at 1.8×
   voice: 5, // min charge; actual = max(5, ceil(chars/80)) — see generate/voice/page
 }
 

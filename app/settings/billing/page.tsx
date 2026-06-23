@@ -159,7 +159,7 @@ export default function BillingPage() {
       annualPriceId: PRICE_IDS.starter_annual,
       features: [
         '800 monthly credits / month',
-        '~7 UGC videos/month (at 5s)',
+        '~8 UGC videos/month (at 5s)',
         'UGC video ads — no watermark',
         'AI image generator',
         'AI voiceover',
@@ -182,7 +182,7 @@ export default function BillingPage() {
       annualPriceId: PRICE_IDS.pro_annual,
       features: [
         '2,000 monthly credits / month',
-        '~19 UGC videos/month (at 5s)',
+        '~22 UGC videos/month (at 5s)',
         'Everything in Starter',
         'Software / app product mode',
         'Custom actor photo upload',
@@ -205,7 +205,7 @@ export default function BillingPage() {
       annualPriceId: PRICE_IDS.agency_annual,
       features: [
         '6,500 monthly credits / month',
-        '~63 UGC videos/month (at 5s)',
+        '~71 UGC videos/month (at 5s)',
         'Everything in Pro',
         'Multiple brand profiles',
         'Dedicated support',

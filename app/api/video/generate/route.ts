@@ -9,9 +9,10 @@ export const maxDuration = 120
 
 // Credit costs per model + duration
 const COSTS: Record<string, Record<number, number>> = {
-  'sora-2':   { 5: 35, 10: 60, 15: 85, 20: 110 },
-  // Kling v3 omni standard-audio: $0.224/s → 8.96 cr/s at cost → 14 cr/s at ~1.6×
-  'kling-v3': { 5: 70, 10: 140, 15: 210 },
+  // Sora 2: $0.10/s → 7.2 cr/s at 1.8×
+  'sora-2':   { 5: 36, 10: 72, 15: 108, 20: 144 },
+  // Kling v3 omni standard-audio: $0.224/s → 16 cr/s at 1.8×
+  'kling-v3': { 5: 80, 10: 160, 15: 240 },
 }
 
 function getCost(model: string, duration: number): number {
