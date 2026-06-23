@@ -133,11 +133,10 @@ export default function BillingPage() {
       priceId: '',
       features: [
         '60 one-time signup credits',
-        'UGC video ads (watermarked)',
         'AI image generator',
         'AI voiceover',
         'Business card generator',
-        'Video editor',
+        'Video editor (Beta)',
       ],
       current: creditsInfo?.plan === 'free',
       cta: 'Current Plan',
@@ -213,8 +212,16 @@ export default function BillingPage() {
       price: '$40',
       priceId: PRICE_IDS.pack_1500,
       pricePerCredit: '$0.027/cr',
-      discount: '-10%',
+      discount: '+11%',
       popular: false,
+    },
+    {
+      credits: 5000,
+      price: '$120',
+      priceId: PRICE_IDS.pack_5000,
+      pricePerCredit: '$0.024/cr',
+      discount: '+20%',
+      popular: true,
     },
   ]
 

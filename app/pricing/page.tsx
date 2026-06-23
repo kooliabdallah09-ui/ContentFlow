@@ -12,7 +12,7 @@ const PLANS = [
     unit: 'forever',
     credits: '60 credits at signup',
     priceId: '',
-    features: ['UGC video ads (watermarked)', 'AI image generator', 'AI voiceover', 'Business card generator', 'Video editor'],
+    features: ['AI image generator', 'AI voiceover', 'Business card generator', 'Video editor (Beta)', '60 credits to explore'],
     cta: 'Get started',
     href: '/auth/signup',
   },
