@@ -42,15 +42,28 @@ function buildShotstackBody(spec: EditSpec) {
           ? 'p { color: #ffffff; font-size: 32px; font-weight: 400; font-family: \'Inter\', sans-serif; text-align: center; opacity: 0.9; }'
           : 'p { color: #ffffff; font-size: 36px; font-weight: 700; font-family: \'Inter\', sans-serif; text-align: center; background: rgba(0,0,0,0.55); padding: 8px 14px; border-radius: 8px; }'
 
-      const position =
-        overlay.position === 'top' ? 'topCenter' :
-        overlay.position === 'center' ? 'center' :
-        'bottomCenter'
+      // Free-position mode: if x/y set, use center anchor + offset
+      // Shotstack offset range is roughly -0.5 to 0.5 (proportion of video size)
+      let position: string
+      let offset: { x: number; y: number }
 
-      const offsetY =
-        overlay.position === 'bottom' ? -0.1 :
-        overlay.position === 'top' ? 0.1 :
-        0
+      if (overlay.x !== undefined && overlay.y !== undefined) {
+        position = 'center'
+        offset = {
+          x: (overlay.x - 0.5) * 1.4,
+          y: -((overlay.y - 0.5) * 1.4),
+        }
+      } else {
+        position =
+          overlay.position === 'top' ? 'top' :
+          overlay.position === 'center' ? 'center' :
+          'bottom'
+        offset = {
+          x: 0,
+          y: overlay.position === 'bottom' ? 0.1 :
+             overlay.position === 'top' ? -0.1 : 0,
+        }
+      }
 
       return {
         asset: {
@@ -63,7 +76,7 @@ function buildShotstackBody(spec: EditSpec) {
         start: overlay.start,
         length: overlay.duration,
         position,
-        offset: { y: offsetY },
+        offset,
       }
     })
     tracks.push({ clips: textClips })

@@ -50,9 +50,12 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [newDuration, setNewDuration] = useState(3)
   const [newPosition, setNewPosition] = useState<TextOverlay['position']>('bottom')
   const [newStyle, setNewStyle] = useState<TextOverlay['style']>('bold-white')
+  const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const videoWrapRef = useRef<HTMLDivElement>(null)
   const isDraggingTrim = useRef<null | 'start' | 'end'>(null)
+  const draggingOverlay = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
 
   function loadVideoFile(file: File) {
     const url = URL.createObjectURL(file)
@@ -131,11 +134,48 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
   function addOverlay() {
     if (!newText.trim()) return
+    const defaultY = newPosition === 'top' ? 0.12 : newPosition === 'center' ? 0.5 : 0.82
     setSpec(s => ({
       ...s,
-      overlays: [...s.overlays, { id: genId(), text: newText.trim(), start: newStart, duration: newDuration, position: newPosition, style: newStyle }],
+      overlays: [...s.overlays, { id: genId(), text: newText.trim(), start: newStart, duration: newDuration, position: newPosition, style: newStyle, x: 0.5, y: defaultY }],
     }))
     setNewText('')
+  }
+
+  function startOverlayDrag(e: React.MouseEvent, overlayId: string) {
+    e.preventDefault()
+    e.stopPropagation()
+    const overlay = spec.overlays.find(o => o.id === overlayId)
+    if (!overlay) return
+    setSelectedOverlayId(overlayId)
+    draggingOverlay.current = {
+      id: overlayId,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: overlay.x ?? 0.5,
+      origY: overlay.y ?? 0.5,
+    }
+    const rect = videoWrapRef.current?.getBoundingClientRect()
+    if (!rect) return
+
+    function onMove(me: MouseEvent) {
+      if (!draggingOverlay.current || !rect) return
+      const dx = (me.clientX - draggingOverlay.current.startX) / rect.width
+      const dy = (me.clientY - draggingOverlay.current.startY) / rect.height
+      const newX = Math.max(0, Math.min(1, draggingOverlay.current.origX + dx))
+      const newY = Math.max(0, Math.min(1, draggingOverlay.current.origY + dy))
+      setSpec(s => ({
+        ...s,
+        overlays: s.overlays.map(o => o.id === draggingOverlay.current!.id ? { ...o, x: newX, y: newY } : o),
+      }))
+    }
+    function onUp() {
+      draggingOverlay.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
   }
 
   function skip(delta: number) {
@@ -480,7 +520,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         >
           {/* Video / empty state */}
           {spec.videoUrl ? (
-            <div style={{ ...S.videoWrap, outline: isDraggingFile ? '2px dashed #6c63ff' : 'none' }}>
+            <div ref={videoWrapRef} onClick={() => setSelectedOverlayId(null)} style={{ ...S.videoWrap, outline: isDraggingFile ? '2px dashed #6c63ff' : 'none' }}>
               <video
                 ref={videoRef}
                 src={spec.videoUrl}
@@ -493,25 +533,51 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   setSpec(s => ({ ...s, duration: d, trimEnd: s.trimEnd === 0 ? d : s.trimEnd }))
                 }}
               />
-              {/* Text overlay previews */}
-              {spec.overlays
-                .filter(o => currentTime >= o.start && currentTime < o.start + o.duration)
-                .map(o => (
-                  <div key={o.id} style={{
-                    position: 'absolute', left: 0, right: 0,
-                    top: o.position === 'top' ? '10%' : o.position === 'center' ? '45%' : '80%',
-                    textAlign: 'center',
-                    color: '#fff',
-                    fontSize: o.style === 'caption' ? 14 : 20,
-                    fontWeight: o.style === 'minimal' ? 400 : 800,
-                    textShadow: '0 2px 12px rgba(0,0,0,0.9)',
-                    padding: '0 20px',
-                    pointerEvents: 'none',
-                    background: o.style === 'caption' ? 'rgba(0,0,0,0.6)' : 'none',
-                  }}>
+              {/* Text overlay previews — draggable */}
+              {spec.overlays.map(o => {
+                const visible = currentTime >= o.start && currentTime < o.start + o.duration
+                const isSelected = selectedOverlayId === o.id
+                const xPct = (o.x ?? 0.5) * 100
+                const yPct = (o.y ?? (o.position === 'top' ? 12 : o.position === 'center' ? 50 : 82))
+                return (
+                  <div
+                    key={o.id}
+                    onMouseDown={e => startOverlayDrag(e, o.id)}
+                    onClick={e => { e.stopPropagation(); setSelectedOverlayId(o.id) }}
+                    style={{
+                      position: 'absolute',
+                      left: `${xPct}%`,
+                      top: `${yPct}%`,
+                      transform: 'translate(-50%, -50%)',
+                      textAlign: 'center',
+                      color: '#fff',
+                      fontSize: o.style === 'caption' ? 13 : 18,
+                      fontWeight: o.style === 'minimal' ? 400 : 800,
+                      textShadow: '0 2px 12px rgba(0,0,0,0.9)',
+                      padding: o.style === 'caption' ? '4px 10px' : '2px 12px',
+                      background: o.style === 'caption' ? 'rgba(0,0,0,0.6)' : 'none',
+                      borderRadius: o.style === 'caption' ? 6 : 0,
+                      cursor: 'grab',
+                      userSelect: 'none',
+                      opacity: visible ? 1 : 0.25,
+                      outline: isSelected ? '1.5px dashed rgba(108,99,255,0.8)' : 'none',
+                      outlineOffset: 4,
+                      whiteSpace: 'nowrap',
+                      maxWidth: '90%',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      zIndex: 10,
+                    }}
+                  >
                     {o.text}
+                    {isSelected && (
+                      <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#a99fff', background: 'rgba(0,0,0,0.7)', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                        drag to reposition
+                      </div>
+                    )}
                   </div>
-                ))}
+                )
+              })}
             </div>
           ) : (
             <div
