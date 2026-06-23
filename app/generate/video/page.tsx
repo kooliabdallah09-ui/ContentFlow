@@ -8,6 +8,14 @@ import { Download, Play, Upload, X } from 'lucide-react'
 
 type Model = 'sora-2' | 'kling-v3'
 
+interface ShopifyProduct {
+  id: number
+  title: string
+  body_html: string
+  price: string
+  images: string[]
+}
+
 const MODELS: {
   id: Model
   name: string
@@ -21,7 +29,7 @@ const MODELS: {
   {
     id: 'sora-2',
     name: 'Sora 2',
-    badge: 'OpenAI',
+    badge: 'Replicate',
     tagline: 'Cinematic storytelling & physics',
     excels: [
       'Fluid camera moves — dolly, crane, tracking shots',
@@ -66,9 +74,19 @@ export default function VideoGeneratorPage() {
   const [generating, setGenerating] = useState(false)
   const [video, setVideo] = useState<VideoState | null>(null)
   const [error, setError] = useState('')
+  const [contentId, setContentId] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const { balance: rawBalance, refresh: refreshCredits } = useCredits()
   const creditBalance = rawBalance ?? 0
+
+  // Shopify state
+  const [shopifyUrl, setShopifyUrl] = useState('')
+  const [shopifyProducts, setShopifyProducts] = useState<ShopifyProduct[] | null>(null)
+  const [shopifyLoading, setShopifyLoading] = useState(false)
+  const [shopifyError, setShopifyError] = useState<string | null>(null)
+  const [selectedShopifyProduct, setSelectedShopifyProduct] = useState<ShopifyProduct | null>(null)
+  const [shopifyOpen, setShopifyOpen] = useState(false)
+  const [shopifyImageLoaded, setShopifyImageLoaded] = useState(false)
 
   const cfg = MODELS.find(m => m.id === model)!
   const cost = cfg.credits[duration] ?? 60
@@ -93,11 +111,27 @@ export default function VideoGeneratorPage() {
           setVideo(prev => prev ? { ...prev, status: v.status, videoUrl: v.videoUrl, error: v.error } : prev)
           if (v.status === 'completed') showSuccess('Video ready', 'Your video has been generated')
           clearInterval(pollRef.current!)
+
+          // Call /api/video/complete
+          try {
+            const supabase = getSupabase()
+            if (supabase) {
+              const { data: sess } = await supabase.auth.getSession()
+              const token = sess?.session?.access_token
+              if (token && contentId) {
+                await fetch('/api/video/complete', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ contentId, videoUrl: v.videoUrl, status: v.status, error: v.error }),
+                })
+              }
+            }
+          } catch {}
         }
       } catch {}
     }, 5000)
     return () => clearInterval(pollRef.current!)
-  }, [video?.predictionId, video?.status])
+  }, [video?.predictionId, video?.status, contentId])
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -109,6 +143,48 @@ export default function VideoGeneratorPage() {
       setRefImage({ base64: result.split(',')[1], mimeType: file.type, preview: result })
     }
     reader.readAsDataURL(file)
+    setSelectedShopifyProduct(null)
+    setShopifyImageLoaded(false)
+  }
+
+  async function fetchShopifyProducts() {
+    if (!shopifyUrl.trim()) return
+    setShopifyLoading(true)
+    setShopifyError(null)
+    setShopifyProducts(null)
+    setSelectedShopifyProduct(null)
+    try {
+      const res = await fetch(`/api/shopify/products?store=${encodeURIComponent(shopifyUrl.trim())}`)
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setShopifyProducts(data.products)
+    } catch (e) {
+      setShopifyError(e instanceof Error ? e.message : 'Failed to fetch products')
+    } finally {
+      setShopifyLoading(false)
+    }
+  }
+
+  async function applyShopifyProduct(product: ShopifyProduct) {
+    setSelectedShopifyProduct(product)
+    setShopifyImageLoaded(false)
+
+    const imageUrl = product.images[0]
+    if (imageUrl) {
+      try {
+        const res = await fetch(imageUrl)
+        const blob = await res.blob()
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result as string
+          setRefImage({ base64: dataUrl.split(',')[1], mimeType: blob.type || 'image/jpeg', preview: imageUrl })
+          setShopifyImageLoaded(true)
+        }
+        reader.readAsDataURL(blob)
+      } catch {
+        setShopifyImageLoaded(false)
+      }
+    }
   }
 
   async function generate() {
@@ -116,6 +192,7 @@ export default function VideoGeneratorPage() {
     setError('')
     setGenerating(true)
     setVideo(null)
+    setContentId(null)
     try {
       const supabase = getSupabase()
       if (!supabase) throw new Error('Auth not ready')
@@ -136,6 +213,8 @@ export default function VideoGeneratorPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Generation failed')
+
+      if (data.contentId) setContentId(data.contentId)
 
       setVideo({
         predictionId: data.predictionId,
@@ -278,6 +357,128 @@ export default function VideoGeneratorPage() {
           </p>
         </div>
 
+        {/* Import from Shopify */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+          {/* Collapsible header */}
+          <button
+            type="button"
+            onClick={() => setShopifyOpen(o => !o)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer',
+              textAlign: 'left',
+            }}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Import from Shopify</span>
+            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: 'var(--border)', color: 'var(--ink-dim)', fontWeight: 600 }}>optional</span>
+            {selectedShopifyProduct && (
+              <span style={{ fontSize: 12, color: 'var(--good, #10b981)', fontWeight: 600, marginLeft: 4 }}>
+                ✓ {selectedShopifyProduct.title}
+              </span>
+            )}
+            <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1 }}>
+              {shopifyOpen ? '▲' : '▼'}
+            </span>
+          </button>
+
+          {shopifyOpen && (
+            <div style={{ padding: '0 20px 20px' }}>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+                <input
+                  type="text"
+                  placeholder="yourstore.myshopify.com"
+                  value={shopifyUrl}
+                  onChange={e => setShopifyUrl(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && fetchShopifyProducts()}
+                  style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+                />
+                <button
+                  type="button"
+                  onClick={fetchShopifyProducts}
+                  disabled={!shopifyUrl.trim() || shopifyLoading}
+                  style={{
+                    padding: '8px 14px', borderRadius: 8, border: 'none',
+                    background: 'var(--ink)', color: '#fff',
+                    fontSize: 13, fontWeight: 600,
+                    cursor: shopifyUrl.trim() && !shopifyLoading ? 'pointer' : 'not-allowed',
+                    opacity: shopifyUrl.trim() && !shopifyLoading ? 1 : 0.4,
+                    whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6,
+                  }}
+                >
+                  {shopifyLoading
+                    ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'vid-spin 0.7s linear infinite' }} />Loading...</>
+                    : 'Fetch Products'}
+                </button>
+              </div>
+
+              {shopifyError && (
+                <div style={{ marginBottom: 8, fontSize: 12, color: '#e84a4a', padding: '6px 10px', borderRadius: 6, background: 'rgba(232,74,74,0.08)', border: '1px solid rgba(232,74,74,0.2)' }}>
+                  {shopifyError}. Make sure the URL is correct (e.g. yourstore.myshopify.com).
+                </div>
+              )}
+
+              {shopifyProducts && shopifyProducts.length === 0 && (
+                <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>No products found in this store.</div>
+              )}
+
+              {shopifyProducts && shopifyProducts.length > 0 && !selectedShopifyProduct && (
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>
+                    {shopifyProducts.length} products — pick one
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
+                    {shopifyProducts.map(product => (
+                      <div
+                        key={product.id}
+                        onClick={() => applyShopifyProduct(product)}
+                        style={{
+                          display: 'flex', gap: 10, alignItems: 'center',
+                          padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
+                          border: '1px solid var(--border)', background: 'transparent',
+                          transition: 'all 0.15s',
+                        }}
+                      >
+                        {product.images[0]
+                          ? <img src={product.images[0]} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                          : <div style={{ width: 40, height: 40, borderRadius: 6, background: 'var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>📦</div>
+                        }
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.title}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink-dim)' }}>${product.price}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {selectedShopifyProduct && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--good, #10b981)', background: 'rgba(16,185,129,0.06)' }}>
+                  {selectedShopifyProduct.images[0] && (
+                    <img src={selectedShopifyProduct.images[0]} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                  )}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      ✓ {selectedShopifyProduct.title}
+                    </div>
+                    {shopifyImageLoaded && (
+                      <div style={{ fontSize: 11, color: 'var(--good, #10b981)', fontWeight: 600 }}>✓ Product image loaded</div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setSelectedShopifyProduct(null); setShopifyImageLoaded(false); setRefImage(null) }}
+                    style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: 4, display: 'flex' }}
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Reference image */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 6 }}>
@@ -290,10 +491,12 @@ export default function VideoGeneratorPage() {
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 10, background: 'var(--bg-elev, rgba(0,0,0,0.03))', borderRadius: 9, border: '1px solid var(--border)' }}>
               <img src={refImage.preview} alt="ref" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 7 }} />
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Reference uploaded</div>
+                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                  {selectedShopifyProduct ? selectedShopifyProduct.title : 'Reference uploaded'}
+                </div>
                 <div style={{ fontSize: 11, color: 'var(--ink-dim)' }}>{refImage.mimeType}</div>
               </div>
-              <button onClick={() => setRefImage(null)} disabled={generating} style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: 4, display: 'flex' }}>
+              <button onClick={() => { setRefImage(null); setSelectedShopifyProduct(null); setShopifyImageLoaded(false) }} disabled={generating} style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: 4, display: 'flex' }}>
                 <X size={16} />
               </button>
             </div>
@@ -379,6 +582,11 @@ export default function VideoGeneratorPage() {
                   </a>
                   <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
                     <Play size={14} /> Open in tab
+                  </a>
+                </div>
+                <div style={{ textAlign: 'center', marginTop: 12 }}>
+                  <a href="/library" style={{ fontSize: 12.5, color: 'var(--ink-dim)', textDecoration: 'none', fontWeight: 500 }}>
+                    Saved to library →
                   </a>
                 </div>
               </>

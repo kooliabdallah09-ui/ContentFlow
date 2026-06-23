@@ -139,7 +139,17 @@ export async function POST(request: NextRequest) {
       provider = 'kling-v3'
     }
 
-    // Save DB row + deduct credits
+    // Save to library as processing, deduct credits
+    const { data: contentRow } = await supabase.from('ugc_content').insert({
+      user_id: userId,
+      content_type: 'video',
+      external_id: predictionId,
+      storage_url: JSON.stringify({ video: { videoId: predictionId, status: 'processing', provider } }),
+      metadata: { prompt: prompt.slice(0, 200), provider, duration, generatedAt: new Date().toISOString() },
+      credit_cost: totalCost,
+      status: 'processing',
+    }).select('id').single()
+
     await supabase.from('user_credits').update({ balance: userCredits.balance - totalCost }).eq('user_id', userId)
     await supabase.from('credit_transactions').insert({
       user_id: userId,
@@ -154,6 +164,7 @@ export async function POST(request: NextRequest) {
       predictionId,
       provider,
       duration,
+      contentId: contentRow?.id ?? null,
       creditDeducted: totalCost,
       newBalance: userCredits.balance - totalCost,
     }, { status: 201 })
