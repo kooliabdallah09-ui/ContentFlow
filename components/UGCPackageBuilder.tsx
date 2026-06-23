@@ -527,7 +527,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           {/* Ask Claude to revise */}
           <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
             <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-mute)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
-              Ask Claude to change something
+              Ask AI to change something
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
@@ -627,7 +627,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   type="button"
                   onClick={() => !locked && setDuration(sec)}
                   disabled={isLoading || locked}
-                  title={chained ? 'Chained from 2 Kling clips' : undefined}
+                  title={chained ? 'Chained from 2 clips' : undefined}
                   style={{
                     textAlign: 'center',
                     cursor: locked ? 'not-allowed' : (isLoading ? 'not-allowed' : 'pointer'),
@@ -912,7 +912,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <p className="help">
             {productType === 'software'
               ? 'This will appear as the background behind the character.'
-              : 'Nano Banana composites your real product into the Sora 2 first frame.'}
+              : 'Our AI composites your real product into the video first frame.'}
           </p>
           <label style={{
             display: 'flex', alignItems: 'center', gap: '14px',
@@ -984,7 +984,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
         <div className="form-row">
           <label className="form-label">Language</label>
-          <p className="help">Script, hooks, voice and captions render in this language. Sora&apos;s lip-sync follows the spoken language.</p>
+          <p className="help">Script, hooks, voice and captions render in this language. Lip-sync follows the spoken language.</p>
           <select className="select" value={language} onChange={e => setLanguage(e.target.value)} disabled={isLoading}>
             {LANGUAGES.map(lang => (
               <option key={lang.code} value={lang.code}>

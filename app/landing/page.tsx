@@ -223,7 +223,7 @@ export default function LandingPage() {
 const FEATURES = [
   {
     title: 'AI-powered scripts',
-    body: 'Claude writes 3 scroll-stopping hooks per product — pick your angle, ship in seconds.',
+    body: 'AI writes 3 scroll-stopping hooks per product — pick your angle, ship in seconds.',
     svg: <>
       <path d="M20 4c-4 0-10 4-12 16l3-1.5 1.5-3.5C15 12 18 8 20 4z"/>
       <path d="M8 20l2-6.5"/>
@@ -233,7 +233,7 @@ const FEATURES = [
   },
   {
     title: 'Talking-head video',
-    body: 'Kling v3 omni renders your character with lifelike motion and native voice — one generation, done.',
+    body: 'Our video engine renders your character with lifelike motion and native voice — one generation, done.',
     svg: <>
       <rect x="2" y="8" width="20" height="13" rx="2"/>
       <path d="M2 8l3-6h14l3 6"/>
@@ -242,14 +242,14 @@ const FEATURES = [
   },
   {
     title: 'Premium voices',
-    body: 'ElevenLabs narration that sounds like a real creator — warm, natural, and on-brand.',
+    body: 'Premium AI narration that sounds like a real creator — warm, natural, and on-brand.',
     svg: <>
       <path d="M2 12h2M6 7v10M10 4v16M14 7v10M18 9v6M22 12h-2"/>
     </>,
   },
   {
     title: 'Auto captions',
-    body: 'Whisper word-syncs every syllable. Captions burn directly into the video — no editor needed.',
+    body: 'AI word-syncs every syllable. Captions burn directly into the video — no editor needed.',
     svg: <>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
       <path d="M8 10h8M8 14h5"/>

@@ -109,7 +109,7 @@ export default function DashboardPage() {
               <h3>Video</h3>
               <ArrowUpRight />
             </div>
-            <p>Open-ended Sora 2 motion from any prompt.</p>
+            <p>Open-ended AI video motion from any prompt.</p>
           </div>
         </Link>
       </div>

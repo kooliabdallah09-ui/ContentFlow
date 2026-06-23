@@ -150,7 +150,7 @@ export default function ImageGeneratorPage() {
               style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Reference image attached</p>
-              <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '2px 0 0' }}>Nano Banana will preserve this subject in the output.</p>
+              <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '2px 0 0' }}>Our AI will preserve this subject in the output.</p>
             </div>
             <button type="button" onClick={() => setReference(null)} disabled={loading}
               aria-label="Remove reference"

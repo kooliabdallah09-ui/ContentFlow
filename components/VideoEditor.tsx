@@ -1255,7 +1255,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       </div>
                     )}
                     <div style={{ fontSize: 11, color: 'var(--ink-mute)', lineHeight: 1.5 }}>
-                      Uses Whisper AI to transcribe speech and add synced captions automatically.
+                      Uses AI to transcribe speech and add synced captions automatically.
                     </div>
                   </div>
                 </div>

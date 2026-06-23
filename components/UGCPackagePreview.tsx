@@ -153,7 +153,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         <Loader style={{ width: 28, height: 28, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
       </div>
       <p style={{ fontSize: '14px', color: 'var(--ink-dim)', textAlign: 'center' }}>Generating your UGC package…</p>
-      <p style={{ fontSize: '12px', color: 'var(--ink-fade)', textAlign: 'center' }}>Claude is writing the script, generating your avatar image…</p>
+      <p style={{ fontSize: '12px', color: 'var(--ink-fade)', textAlign: 'center' }}>Writing the script, generating your avatar image…</p>
     </div>
   )
 

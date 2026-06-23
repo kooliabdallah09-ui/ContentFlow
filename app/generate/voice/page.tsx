@@ -315,7 +315,7 @@ export default function VoicePage() {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{r.voiceLabel}</span>
-                  <span style={{ fontSize: 11, color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)' }}>ElevenLabs</span>
+                  <span style={{ fontSize: 11, color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)' }}>AI voice</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 2, height: 28 }}>
                   {Array.from({ length: 48 }).map((_, i) => {

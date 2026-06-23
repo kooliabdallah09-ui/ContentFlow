@@ -158,7 +158,7 @@ export default function AppAssistant() {
               </div>
               <div>
                 <p style={{ margin: 0, fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em' }}>Ask ContentFlow</p>
-                <p style={{ margin: 0, fontSize: 10.5, color: 'var(--ink-mute)' }}>Powered by Claude</p>
+                <p style={{ margin: 0, fontSize: 10.5, color: 'var(--ink-mute)' }}>Powered by AI</p>
               </div>
             </div>
             <div style={{ display: 'flex', gap: '4px' }}>

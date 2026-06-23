@@ -34,7 +34,7 @@ const SUGGESTION_GROUPS: { title: string; prompts: string[] }[] = [
     prompts: [
       'Why does my product look wrong in the B-roll?',
       'Why is the video shorter than the script?',
-      'My Sora generation failed — what now?',
+      'My video generation failed — what now?',
     ],
   },
   {

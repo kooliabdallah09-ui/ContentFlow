@@ -161,7 +161,7 @@ export default function BillingPage() {
         '800 monthly credits / month',
         'UGC video ads — no watermark',
         'AI image generator',
-        'AI voiceover (ElevenLabs)',
+        'AI voiceover',
         'Actor library',
         'Video editor',
         'Priority support',

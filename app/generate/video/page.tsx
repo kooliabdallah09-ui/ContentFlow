@@ -28,8 +28,8 @@ const MODELS: {
 }[] = [
   {
     id: 'sora-2',
-    name: 'Sora 2',
-    badge: 'Replicate',
+    name: 'Cinematic',
+    badge: '',
     tagline: 'Cinematic storytelling & physics',
     excels: [
       'Fluid camera moves — dolly, crane, tracking shots',
@@ -43,8 +43,8 @@ const MODELS: {
   },
   {
     id: 'kling-v3',
-    name: 'Kling v3',
-    badge: 'Replicate',
+    name: 'Talking Head',
+    badge: '',
     tagline: 'Talking heads & native audio',
     excels: [
       'Lip-sync & expressive faces out of the box',
@@ -52,7 +52,7 @@ const MODELS: {
       'Fast generation: ~60–90 seconds',
       'UGC-style realism: handheld feel, skin texture',
     ],
-    caveat: 'Max 15s per clip · less cinematic than Sora',
+    caveat: 'Max 15s per clip · best for faces & audio',
     durations: [5, 10, 15],
     credits: { 5: 25, 10: 50, 15: 75 },
   },
@@ -367,8 +367,8 @@ export default function VideoGeneratorPage() {
           </label>
           <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: '0 0 10px', lineHeight: 1.55 }}>
             {model === 'sora-2'
-              ? 'Describe the camera move, scene, lighting and mood. Sora handles cinematic framing best — be specific about the shot type.'
-              : 'Describe the character, expression, action and setting. Kling handles faces and audio well — mention tone of voice or emotion if you want it in the audio.'}
+              ? 'Describe the camera move, scene, lighting and mood. Be specific about the shot type for the best cinematic result.'
+              : 'Describe the character, expression, action and setting. Mention tone of voice or emotion if you want it in the audio.'}
           </p>
           <textarea
             value={prompt}
@@ -522,7 +522,7 @@ export default function VideoGeneratorPage() {
             Reference Image <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
           </div>
           <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: '0 0 12px', lineHeight: 1.55 }}>
-            Seeds the first frame. {model === 'sora-2' ? 'Sora animates from it — great for product shots or character references.' : 'Kling uses it as the starting face/scene.'}
+            Seeds the first frame. {model === 'sora-2' ? 'Great for product shots or character references.' : 'Used as the starting face or scene.'}
           </p>
           {refImage ? (
             <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 10, background: 'var(--bg-elev, rgba(0,0,0,0.03))', borderRadius: 9, border: '1px solid var(--border)' }}>
@@ -595,7 +595,7 @@ export default function VideoGeneratorPage() {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '20px 0' }}>
                 <div style={{ width: 36, height: 36, border: '3px solid var(--border)', borderTopColor: 'var(--ink)', borderRadius: '50%', animation: 'vid-spin 0.8s linear infinite' }} />
                 <p style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600, margin: 0 }}>
-                  {model === 'sora-2' ? 'Sora is generating — usually 2–4 min' : 'Kling is generating — usually 60–90 sec'}
+                  {model === 'sora-2' ? 'Generating your video — usually 2–4 min' : 'Generating your video — usually 60–90 sec'}
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: 0 }}>Polling every 5 seconds…</p>
               </div>

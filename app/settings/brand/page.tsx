@@ -385,7 +385,7 @@ export default function BrandSettingsPage() {
             <input className="input" value={form.targetAudience}
               onChange={e => update('targetAudience', e.target.value)}
               placeholder="e.g. busy moms in their 30s, indie SaaS founders" disabled={saving} />
-            <p className="help">Helps Claude write hooks that resonate.</p>
+            <p className="help">Helps our AI write hooks that resonate.</p>
           </div>
 
           <div className="form-row">
@@ -393,7 +393,7 @@ export default function BrandSettingsPage() {
             <input className="input" value={form.toneOfVoice}
               onChange={e => update('toneOfVoice', e.target.value)}
               placeholder="e.g. warm and direct, playful, expert-but-friendly" disabled={saving} />
-            <p className="help">A short phrase Claude reads as priority context when writing your script.</p>
+            <p className="help">A short phrase our AI reads as priority context when writing your script.</p>
           </div>
         </section>
 
