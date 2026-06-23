@@ -8,20 +8,26 @@ import { getSupabase } from '@/lib/auth'
 const PLANS = [
   {
     name: 'Free',
-    price: '$0',
+    monthlyPrice: '$0',
+    annualPrice: '$0',
+    annualTotal: null,
     unit: 'forever',
     credits: '60 credits at signup',
-    priceId: '',
+    monthlyPriceId: '',
+    annualPriceId: '',
     features: ['AI image generator', 'AI voiceover', 'Business card generator', 'Video editor (Beta)', '60 credits to explore'],
     cta: 'Get started',
     href: '/auth/signup',
   },
   {
     name: 'Starter',
-    price: '$19',
+    monthlyPrice: '$19',
+    annualPrice: '$16',
+    annualTotal: '$190/yr',
     unit: '/month',
     credits: '800 credits/month',
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
+    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
+    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? '',
     features: ['UGC video ads — no watermark', '~9 UGC videos/month', 'AI image generator', 'AI voiceover', 'Actor library', 'Priority support'],
     cta: 'Get Starter',
     href: '/auth/signup?plan=starter',
@@ -29,20 +35,26 @@ const PLANS = [
   {
     name: 'Pro',
     popular: true,
-    price: '$49',
+    monthlyPrice: '$49',
+    annualPrice: '$41',
+    annualTotal: '$490/yr',
     unit: '/month',
     credits: '2,000 credits/month',
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
+    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
+    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '',
     features: ['Everything in Starter', '~23 UGC videos/month', 'Software / app mode', 'Custom actor photo', 'Script editing', 'Shopify import'],
     cta: 'Get Pro',
     href: '/auth/signup?plan=pro',
   },
   {
     name: 'Agency',
-    price: '$149',
+    monthlyPrice: '$149',
+    annualPrice: '$124',
+    annualTotal: '$1,490/yr',
     unit: '/month',
     credits: '6,500 credits/month',
-    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
+    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
+    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? '',
     features: ['Everything in Pro', '~77 UGC videos/month', 'Multiple brand profiles', 'Dedicated support'],
     cta: 'Get Agency',
     href: '/auth/signup?plan=agency',
@@ -58,6 +70,7 @@ const PACKS = [
 export default function PricingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
+  const [annual, setAnnual] = useState(false)
 
   useEffect(() => {
     getSupabase()?.auth.getSession().then((result: { data: { session: unknown } }) => {
@@ -107,6 +120,49 @@ export default function PricingPage() {
         <p style={{ fontSize: 15, color: 'var(--ink-dim)', margin: '16px 0 0', lineHeight: 1.55 }}>
           Arcads quality at a fifth of the price. Every plan is credits-based — spend them on whatever you create.
         </p>
+
+        {/* Billing toggle */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 12,
+          marginTop: 32, background: 'var(--surface)',
+          border: '1px solid var(--border)', borderRadius: 999,
+          padding: '5px 6px 5px 18px',
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink-mute)' : 'var(--ink)' }}>
+            Monthly
+          </span>
+          <button
+            onClick={() => setAnnual(a => !a)}
+            aria-label="Toggle annual billing"
+            style={{
+              position: 'relative', width: 40, height: 22,
+              borderRadius: 999, border: 'none', cursor: 'pointer',
+              background: annual ? 'var(--ink)' : 'var(--border)',
+              transition: 'background 0.2s',
+              flexShrink: 0,
+            }}
+          >
+            <span style={{
+              position: 'absolute', top: 3, left: annual ? 21 : 3,
+              width: 16, height: 16, borderRadius: '50%', background: '#fff',
+              transition: 'left 0.2s',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+            }} />
+          </button>
+          <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink)' : 'var(--ink-mute)' }}>
+            Annual
+          </span>
+          <span style={{
+            fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em',
+            textTransform: 'uppercase',
+            background: annual ? 'var(--ink)' : 'var(--border-soft)',
+            color: annual ? '#fff' : 'var(--ink-mute)',
+            borderRadius: 999, padding: '4px 10px',
+            transition: 'background 0.2s, color 0.2s',
+          }}>
+            2 months free
+          </span>
+        </div>
       </div>
 
       <div className="pricing-grid" style={{
@@ -115,6 +171,10 @@ export default function PricingPage() {
       }}>
         {PLANS.map(plan => {
           const popular = !!plan.popular
+          const activePriceId = annual ? plan.annualPriceId : plan.monthlyPriceId
+          const displayPrice = annual ? plan.annualPrice : plan.monthlyPrice
+          const isLoading = upgradeLoading === activePriceId
+
           return (
             <div
               key={plan.name}
@@ -133,19 +193,34 @@ export default function PricingPage() {
                   letterSpacing: '0.04em', textTransform: 'uppercase',
                   background: 'var(--ink)', color: '#fff',
                   borderRadius: 999, padding: '4px 12px',
+                  whiteSpace: 'nowrap',
                 }}>Most popular</span>
               )}
               <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}>{plan.name}</div>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 10 }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1 }}>{plan.price}</span>
-                <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>{plan.unit}</span>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1, transition: 'opacity 0.15s' }}>
+                  {displayPrice}
+                </span>
+                {plan.unit !== 'forever' && (
+                  <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>/mo</span>
+                )}
+                {plan.unit === 'forever' && (
+                  <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>forever</span>
+                )}
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: 8 }}>{plan.credits}</div>
+              {annual && plan.annualTotal ? (
+                <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 3 }}>
+                  billed {plan.annualTotal}
+                </div>
+              ) : null}
+              <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: annual && plan.annualTotal ? 4 : 8 }}>
+                {plan.credits}
+              </div>
 
-              {isLoggedIn && plan.priceId ? (
+              {isLoggedIn && activePriceId ? (
                 <button
-                  onClick={() => handleCheckout(plan.priceId, 'subscription')}
-                  disabled={upgradeLoading === plan.priceId}
+                  onClick={() => handleCheckout(activePriceId, 'subscription')}
+                  disabled={isLoading}
                   style={{
                     display: 'block', textAlign: 'center', width: '100%',
                     marginTop: 16, padding: 11, borderRadius: 9,
@@ -153,10 +228,10 @@ export default function PricingPage() {
                     color: popular ? '#fff' : 'var(--ink)',
                     border: popular ? 'none' : '1px solid var(--border)',
                     fontWeight: 600, fontSize: 13, cursor: 'pointer',
-                    opacity: upgradeLoading === plan.priceId ? 0.6 : 1,
+                    opacity: isLoading ? 0.6 : 1,
                   }}
                 >
-                  {upgradeLoading === plan.priceId ? 'Redirecting…' : plan.cta}
+                  {isLoading ? 'Redirecting…' : plan.cta}
                 </button>
               ) : (
                 <Link href={plan.href} style={{
