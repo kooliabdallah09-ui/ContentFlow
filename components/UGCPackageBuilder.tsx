@@ -327,9 +327,24 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   function applyShopifyProduct(product: ShopifyProduct) {
     setSelectedShopifyProduct(product)
     setProductName(product.title)
-    // Strip HTML tags from body_html for description
+
+    // Strip HTML tags for description
     const desc = product.body_html.replace(/<[^>]+>/g, '').trim().slice(0, 400)
     setProductDescription(desc)
+
+    // Extract <li> items as key benefits (up to 5 bullet points)
+    const liMatches = [...product.body_html.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
+    if (liMatches.length > 0) {
+      const bullets = liMatches
+        .slice(0, 5)
+        .map(m => m[1].replace(/<[^>]+>/g, '').trim())
+        .filter(Boolean)
+      setBenefits(bullets.join(' · '))
+    }
+
+    // Smart default CTA
+    setCallToAction(`Shop ${product.title}`)
+
     // Load first image as product image
     if (product.images[0]) {
       fetch(product.images[0])
