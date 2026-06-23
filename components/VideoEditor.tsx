@@ -160,13 +160,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
     function onMove(me: MouseEvent) {
       if (!draggingOverlay.current || !rect) return
-      const dx = (me.clientX - draggingOverlay.current.startX) / rect.width
-      const dy = (me.clientY - draggingOverlay.current.startY) / rect.height
-      const newX = Math.max(0, Math.min(1, draggingOverlay.current.origX + dx))
-      const newY = Math.max(0, Math.min(1, draggingOverlay.current.origY + dy))
+      const { id, startX, startY, origX, origY } = draggingOverlay.current
+      const dx = (me.clientX - startX) / rect.width
+      const dy = (me.clientY - startY) / rect.height
+      const newX = Math.max(0, Math.min(1, origX + dx))
+      const newY = Math.max(0, Math.min(1, origY + dy))
       setSpec(s => ({
         ...s,
-        overlays: s.overlays.map(o => o.id === draggingOverlay.current!.id ? { ...o, x: newX, y: newY } : o),
+        overlays: s.overlays.map(o => o.id === id ? { ...o, x: newX, y: newY } : o),
       }))
     }
     function onUp() {
