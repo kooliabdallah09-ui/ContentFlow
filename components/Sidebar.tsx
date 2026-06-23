@@ -83,6 +83,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
         <Link href="/editor" className={`nav-item ${isActive('/editor') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Scissors />
           <span style={{ flex: 1 }}>Video Editor</span>
+          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Beta</span>
         </Link>
       </div>
 
