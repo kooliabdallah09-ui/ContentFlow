@@ -123,13 +123,15 @@ export async function POST(request: NextRequest) {
 
       // Fires on every successful renewal payment — this is how monthly credits are topped up.
       case 'invoice.paid': {
-        const invoice = event.data.object as Stripe.Invoice
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const invoice = event.data.object as any
         // Only handle subscription invoices (not one-off credit pack payments)
-        if (!invoice.subscription) break
+        const subscriptionId: string | null = invoice.subscription ?? invoice.parent?.subscription_details?.subscription ?? null
+        if (!subscriptionId) break
         // Skip the very first invoice — checkout.session.completed already handled it
         if (invoice.billing_reason === 'subscription_create') break
 
-        const sub = await stripe.subscriptions.retrieve(invoice.subscription as string)
+        const sub = await stripe.subscriptions.retrieve(subscriptionId)
         const priceId = sub.items.data[0]?.price?.id ?? ''
         const planInfo = PLAN_PRICE_MAP[priceId]
         if (!planInfo) break
