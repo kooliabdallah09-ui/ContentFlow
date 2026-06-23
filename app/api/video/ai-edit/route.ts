@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
 
     const msg = await client.messages.create({
       model: 'claude-haiku-4-5',
-      max_tokens: 1000,
+      max_tokens: 1500,
       messages: [{
         role: 'user',
         content: `You are a video editor assistant. The user has a video with this current edit spec:
@@ -43,22 +43,37 @@ ${JSON.stringify(spec, null, 2)}
 
 The user wants to make this change: "${instruction}"
 
-Return ONLY a valid JSON object that is the updated EditSpec with the changes applied. Do not explain. Do not wrap in markdown. Just the raw JSON object.
+Return ONLY a valid JSON object — the updated EditSpec. No explanation, no markdown, no code fences. Start your response with { and end with }.
+
+EditSpec shape:
+{
+  "videoUrl": string,
+  "duration": number,
+  "trimStart": number,
+  "trimEnd": number,
+  "overlays": [{ "id": string, "text": string, "start": number, "duration": number, "position": "top"|"center"|"bottom", "style": "bold-white"|"minimal"|"caption", "x": number (0-1), "y": number (0-1) }],
+  "music": null | { "url": string, "label": string, "volume": number },
+  "aspectRatio": "9:16"|"1:1"|"16:9"
+}
 
 Rules:
-- trimStart and trimEnd must be between 0 and spec.duration
-- overlay ids must be unique strings (use short random strings if adding new ones)
-- music must be null or { url, label, volume } where volume is 0-1
-- position must be 'top', 'center', or 'bottom'
-- style must be 'bold-white', 'minimal', or 'caption'`,
+- trimStart and trimEnd must be between 0 and duration
+- overlay ids must be unique short strings
+- x and y are 0–1 where 0.5 is center; y=0.1 is near top, y=0.85 is near bottom
+- For "make a caption" or "add caption/text": add an overlay with the text centered
+- For "cut the last Ns": set trimEnd = duration - N
+- Available music tracks: Chill Lo-fi (https://cdn.pixabay.com/download/audio/2022/03/10/audio_270f42fe9d.mp3), Upbeat Pop (https://cdn.pixabay.com/download/audio/2023/06/08/audio_58c1e76847.mp3), Motivational (https://cdn.pixabay.com/download/audio/2022/10/25/audio_943d4f9d08.mp3)`,
       }],
     })
 
-    const text = (msg.content[0] as { text: string }).text.trim()
+    const raw = (msg.content[0] as { text: string }).text.trim()
+    // Strip any accidental markdown code fences
+    const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim()
     let newSpec: EditSpec
     try {
       newSpec = JSON.parse(text)
     } catch {
+      console.error('[ai-edit] Invalid JSON from Claude:', raw)
       return NextResponse.json({ error: 'AI returned invalid JSON' }, { status: 500 })
     }
 
