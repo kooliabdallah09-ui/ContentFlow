@@ -4,11 +4,28 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 
-// Editorial dashboard from the Claude Design export.
-// Greeting eyebrow + serif heading. Three-up generator cards. Quick chips. Recent grid.
+interface LibraryItem {
+  id: string
+  content_type: string
+  storage_url: string
+  metadata: { productName?: string; video?: string; image?: string } | null
+  created_at: string
+  status: string
+}
+
+function timeAgo(iso: string) {
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
+  if (secs < 60) return 'just now'
+  if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
+  if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
+  if (secs < 172800) return 'yesterday'
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
 
 export default function DashboardPage() {
   const [userName, setUserName] = useState('Creator')
+  const [recentItems, setRecentItems] = useState<LibraryItem[]>([])
+  const [recentLoading, setRecentLoading] = useState(true)
 
   useEffect(() => {
     const supabase = getSupabase()
@@ -16,6 +33,15 @@ export default function DashboardPage() {
     supabase.auth.getUser().then(({ data }: { data: { user: { user_metadata?: { full_name?: string }; email?: string } | null } }) => {
       const name = data.user?.user_metadata?.full_name || data.user?.email?.split('@')[0]
       if (name) setUserName(name)
+    })
+    supabase.auth.getSession().then(({ data }: { data: { session: { access_token?: string } | null } }) => {
+      const token = data.session?.access_token
+      if (!token) { setRecentLoading(false); return }
+      fetch('/api/library', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.ok ? r.json() : { items: [] })
+        .then(({ items }) => setRecentItems((items || []).slice(0, 4)))
+        .catch(() => {})
+        .finally(() => setRecentLoading(false))
     })
   }, [])
 
@@ -104,25 +130,48 @@ export default function DashboardPage() {
       </div>
 
       <div className="dash-recent">
-        {RECENT.map(r => (
-          <div key={r.id} className="dash-recent-item">
-            <div className="dash-recent-thumb">
-              <div className="dash-recent-play">
-                <div>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--ink)"><path d="M8 5v14l11-7z"/></svg>
+        {recentLoading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="dash-recent-item">
+              <div className="dash-recent-thumb" style={{ opacity: 0.4 }} />
+              <div className="dash-recent-meta">
+                <div style={{ height: 12, width: '70%', background: 'var(--border)', borderRadius: 4, marginBottom: 6 }} />
+                <div style={{ height: 10, width: '50%', background: 'var(--border)', borderRadius: 4 }} />
+              </div>
+            </div>
+          ))
+        ) : recentItems.length === 0 ? (
+          <div style={{ gridColumn: '1/-1', textAlign: 'center', padding: '40px 0', color: 'var(--ink-mute)', fontSize: 13 }}>
+            No content yet — <Link href="/generate/ugc" style={{ color: 'var(--accent)' }}>generate your first UGC video</Link>
+          </div>
+        ) : (
+          recentItems.map(item => {
+            const done = item.status === 'completed' || item.status === 'ready'
+            const title = item.metadata?.productName || item.content_type || 'Untitled'
+            const tag = item.content_type === 'ugc' ? 'UGC' : item.content_type?.toUpperCase() ?? '—'
+            const dot = done ? '#2F7A4E' : item.status === 'failed' ? 'var(--bad)' : 'var(--ink-mute)'
+            const statusLabel = done ? `Ready · ${timeAgo(item.created_at)}` : item.status === 'failed' ? 'Failed' : `Processing…`
+            return (
+              <div key={item.id} className="dash-recent-item">
+                <div className="dash-recent-thumb" style={item.metadata?.video ? { backgroundImage: `url(${item.metadata.video})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}>
+                  <div className="dash-recent-play">
+                    <div>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="var(--ink)"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                  </div>
+                  <span className="dash-recent-tag">{tag}</span>
+                </div>
+                <div className="dash-recent-meta">
+                  <div className="dash-recent-title">{title}</div>
+                  <div className="dash-recent-status">
+                    <span className="dash-recent-dot" style={{ background: dot }} />
+                    {statusLabel}
+                  </div>
                 </div>
               </div>
-              <span className="dash-recent-tag">{r.tag}</span>
-            </div>
-            <div className="dash-recent-meta">
-              <div className="dash-recent-title">{r.title}</div>
-              <div className="dash-recent-status">
-                <span className="dash-recent-dot" style={{ background: r.dot }} />
-                {r.status}
-              </div>
-            </div>
-          </div>
-        ))}
+            )
+          })
+        )}
       </div>
 
       <style>{`
@@ -294,12 +343,6 @@ const QUICK = [
   { label: 'Library', href: '/library' },
 ]
 
-const RECENT = [
-  { id: '1', title: 'Sunset Social — tea hook', tag: '8s', dot: '#2F7A4E', status: 'Ready · 2 min ago' },
-  { id: '2', title: 'Glow serum — usage shot', tag: '12s', dot: '#2F7A4E', status: 'Ready · 14 min ago' },
-  { id: '3', title: 'Roast & Brew — pour', tag: '4s', dot: 'var(--ink-mute)', status: 'Rendering · ~40s left' },
-  { id: '4', title: 'Sleep gummies — hook 2', tag: '12s', dot: '#2F7A4E', status: 'Ready · yesterday' },
-]
 
 function ArrowUpRight() {
   return (

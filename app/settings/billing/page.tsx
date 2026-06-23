@@ -7,8 +7,11 @@ import Link from 'next/link'
 
 const PRICE_IDS = {
   starter: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
+  starter_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? '',
   pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
+  pro_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '',
   agency: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
+  agency_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? '',
   pack_500: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '',
   pack_1500: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '',
   pack_5000: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '',
@@ -26,6 +29,7 @@ export default function BillingPage() {
   const [creditsInfo, setCreditsInfo] = useState<CreditsInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
+  const [annual, setAnnual] = useState(false)
 
   useEffect(() => {
     loadCreditsInfo()
@@ -127,10 +131,13 @@ export default function BillingPage() {
   const plans = [
     {
       name: 'Free',
-      price: '$0',
+      monthlyPrice: '$0',
+      annualPrice: '$0',
+      annualTotal: null,
       credits: '0/month',
       bonus: '+ 60 signup',
-      priceId: '',
+      monthlyPriceId: '',
+      annualPriceId: '',
       features: [
         '60 one-time signup credits',
         'AI image generator',
@@ -144,9 +151,12 @@ export default function BillingPage() {
     },
     {
       name: 'Starter',
-      price: '$19',
+      monthlyPrice: '$19',
+      annualPrice: '$16',
+      annualTotal: '$190/yr',
       credits: '800/month',
-      priceId: PRICE_IDS.starter,
+      monthlyPriceId: PRICE_IDS.starter,
+      annualPriceId: PRICE_IDS.starter_annual,
       features: [
         '800 monthly credits / month',
         'UGC video ads — no watermark',
@@ -157,15 +167,18 @@ export default function BillingPage() {
         'Priority support',
       ],
       current: creditsInfo?.plan === 'starter',
-      cta: creditsInfo?.plan === 'starter' ? 'Current Plan' : 'Upgrade — $19/mo',
+      cta: creditsInfo?.plan === 'starter' ? 'Current Plan' : annual ? 'Upgrade — $16/mo' : 'Upgrade — $19/mo',
       ctaDisabled: creditsInfo?.plan === 'starter',
       pricePerCredit: '$0.024/cr',
     },
     {
       name: 'Pro',
-      price: '$49',
+      monthlyPrice: '$49',
+      annualPrice: '$41',
+      annualTotal: '$490/yr',
       credits: '2,000/month',
-      priceId: PRICE_IDS.pro,
+      monthlyPriceId: PRICE_IDS.pro,
+      annualPriceId: PRICE_IDS.pro_annual,
       features: [
         '2,000 monthly credits / month',
         'Everything in Starter',
@@ -176,15 +189,18 @@ export default function BillingPage() {
         'Priority support',
       ],
       current: creditsInfo?.plan === 'pro',
-      cta: creditsInfo?.plan === 'pro' ? 'Current Plan' : 'Upgrade — $49/mo',
+      cta: creditsInfo?.plan === 'pro' ? 'Current Plan' : annual ? 'Upgrade — $41/mo' : 'Upgrade — $49/mo',
       ctaDisabled: creditsInfo?.plan === 'pro',
       pricePerCredit: '$0.025/cr',
     },
     {
       name: 'Agency',
-      price: '$149',
+      monthlyPrice: '$149',
+      annualPrice: '$124',
+      annualTotal: '$1,490/yr',
       credits: '6,500/month',
-      priceId: PRICE_IDS.agency,
+      monthlyPriceId: PRICE_IDS.agency,
+      annualPriceId: PRICE_IDS.agency_annual,
       features: [
         '6,500 monthly credits / month',
         'Everything in Pro',
@@ -192,7 +208,7 @@ export default function BillingPage() {
         'Dedicated support',
       ],
       current: creditsInfo?.plan === 'agency',
-      cta: creditsInfo?.plan === 'agency' ? 'Current Plan' : 'Upgrade — $149/mo',
+      cta: creditsInfo?.plan === 'agency' ? 'Current Plan' : annual ? 'Upgrade — $124/mo' : 'Upgrade — $149/mo',
       ctaDisabled: creditsInfo?.plan === 'agency',
       pricePerCredit: '$0.023/cr',
     },
@@ -275,66 +291,91 @@ export default function BillingPage() {
 
       {/* Plans */}
       <div style={{ marginBottom: '48px' }}>
-        <div className="section-head" style={{ marginBottom: '24px' }}>
-          <h2 className="section-title">Monthly <em>Plans</em></h2>
+        <div className="section-head" style={{ marginBottom: '20px' }}>
+          <h2 className="section-title">{annual ? 'Annual' : 'Monthly'} <em>Plans</em></h2>
           <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginTop: '8px' }}>Renewable monthly credits + 60 one-time bonus at signup</p>
         </div>
+
+        {/* Annual toggle */}
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 24, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 999, padding: '5px 6px 5px 18px' }}>
+          <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink-mute)' : 'var(--ink)' }}>Monthly</span>
+          <button
+            onClick={() => setAnnual(a => !a)}
+            aria-label="Toggle annual billing"
+            style={{ position: 'relative', width: 40, height: 22, borderRadius: 999, border: 'none', cursor: 'pointer', background: annual ? 'var(--ink)' : 'var(--border)', transition: 'background 0.2s', flexShrink: 0 }}
+          >
+            <span style={{ position: 'absolute', top: 3, left: annual ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+          </button>
+          <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink)' : 'var(--ink-mute)' }}>Annual</span>
+          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', background: annual ? 'var(--ink)' : 'var(--border-soft)', color: annual ? '#fff' : 'var(--ink-mute)', borderRadius: 999, padding: '4px 10px', transition: 'background 0.2s, color 0.2s' }}>
+            2 months free
+          </span>
+        </div>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-          {plans.map((plan) => (
-            <div
-              key={plan.name}
-              style={{
-                background: 'var(--surface)',
-                border: plan.current ? '2px solid var(--accent)' : '1px solid var(--border)',
-                borderRadius: 'var(--r-lg)',
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-              }}
-            >
-              {plan.current && (
-                <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--accent)', color: 'var(--bg)', fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--r-sm)' }}>
-                  Current
-                </div>
-              )}
-              <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
-                {plan.name}
-              </h3>
-              <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--accent)' }}>
-                  {plan.price}
-                </div>
-                <p className="eyebrow" style={{ color: 'var(--ink-fade)' }}>{plan.credits}</p>
-                {plan.bonus && <p className="eyebrow" style={{ color: 'var(--good)' }}>{plan.bonus}</p>}
-                {plan.pricePerCredit && <p className="eyebrow" style={{ color: 'var(--ink-mute)', fontSize: '11px' }}>{plan.pricePerCredit}</p>}
-              </div>
-              <div style={{ flex: 1, marginBottom: '16px' }}>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  {plan.features.map((feature, i) => (
-                    <li key={i} style={{ fontSize: '13px', color: 'var(--ink-dim)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, color: 'var(--good)', flexShrink: 0 }}>
-                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
-                      {feature}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <button
-                disabled={plan.ctaDisabled || upgradeLoading === plan.priceId}
-                className="btn btn-primary"
+          {plans.map((plan) => {
+            const activePriceId = annual ? plan.annualPriceId : plan.monthlyPriceId
+            const displayPrice = annual ? plan.annualPrice : plan.monthlyPrice
+            return (
+              <div
+                key={plan.name}
                 style={{
-                  width: '100%',
-                  opacity: plan.ctaDisabled ? 0.5 : 1,
-                  cursor: plan.ctaDisabled ? 'default' : 'pointer',
+                  background: 'var(--surface)',
+                  border: plan.current ? '2px solid var(--accent)' : '1px solid var(--border)',
+                  borderRadius: 'var(--r-lg)',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  position: 'relative',
                 }}
-                onClick={() => !plan.ctaDisabled && plan.priceId && handleUpgrade(plan.priceId, 'subscription')}
               >
-                {upgradeLoading === plan.priceId ? 'Redirecting…' : plan.cta}
-              </button>
-            </div>
-          ))}
+                {plan.current && (
+                  <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--accent)', color: 'var(--bg)', fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--r-sm)' }}>
+                    Current
+                  </div>
+                )}
+                <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+                  {plan.name}
+                </h3>
+                <div style={{ marginBottom: '12px' }}>
+                  <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--accent)' }}>
+                    {displayPrice}
+                    {plan.name !== 'Free' && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--ink-mute)' }}>/mo</span>}
+                  </div>
+                  {annual && plan.annualTotal && (
+                    <p style={{ fontSize: '11.5px', color: 'var(--ink-mute)', margin: '2px 0 0' }}>billed {plan.annualTotal}</p>
+                  )}
+                  <p className="eyebrow" style={{ color: 'var(--ink-fade)', marginTop: 4 }}>{plan.credits}</p>
+                  {plan.bonus && <p className="eyebrow" style={{ color: 'var(--good)' }}>{plan.bonus}</p>}
+                  {plan.pricePerCredit && <p className="eyebrow" style={{ color: 'var(--ink-mute)', fontSize: '11px' }}>{plan.pricePerCredit}</p>}
+                </div>
+                <div style={{ flex: 1, marginBottom: '16px' }}>
+                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                    {plan.features.map((feature, i) => (
+                      <li key={i} style={{ fontSize: '13px', color: 'var(--ink-dim)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, color: 'var(--good)', flexShrink: 0 }}>
+                          <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <button
+                  disabled={plan.ctaDisabled || upgradeLoading === activePriceId}
+                  className="btn btn-primary"
+                  style={{
+                    width: '100%',
+                    opacity: plan.ctaDisabled ? 0.5 : 1,
+                    cursor: plan.ctaDisabled ? 'default' : 'pointer',
+                  }}
+                  onClick={() => !plan.ctaDisabled && activePriceId && handleUpgrade(activePriceId, 'subscription')}
+                >
+                  {upgradeLoading === activePriceId ? 'Redirecting…' : plan.cta}
+                </button>
+              </div>
+            )
+          })}
         </div>
       </div>
 
