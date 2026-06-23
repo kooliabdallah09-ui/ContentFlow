@@ -111,82 +111,14 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     return () => clearInterval(pollRef.current!)
   }, [video?.videoId, video?.status, brolls.length])
 
-  // Auto-trigger stitch once HeyGen is done and B-rolls have all settled (completed or failed).
-  // Don't wait forever on a failed B-roll — stitch with whatever we have.
+  // When the talking head is ready, promote it directly to Final Video — no Shotstack, no B-rolls.
   useEffect(() => {
     if (stitchStartedRef.current) return
     if (video?.status !== 'completed' || !video.videoUrl) return
-
-    const brollsPending = brolls.some(b => b.status === 'processing')
-    if (brollsPending) return
-
-    const broll1 = brolls[0]?.status === 'completed' ? brolls[0]?.videoUrl : undefined
-    const broll2 = brolls[1]?.status === 'completed' ? brolls[1]?.videoUrl : undefined
-
     stitchStartedRef.current = true
-    setStitchStatus('stitching')
-
-    // For Kling v3 omni: videoUrls holds all chained clips in order; videoUrl is primary.
-    // Per-clip length = total / clipCount. Falls back to legacy single-clip behavior for Sora/Heygen.
-    const allUrls = video.videoUrls?.length ? video.videoUrls : [video.videoUrl]
-    const totalDuration = video.duration ?? video.estimatedDuration ?? 10
-    const clipCount = allUrls.length
-    const perClipDuration = clipCount > 0 ? Math.round(totalDuration / clipCount) : totalDuration
-    const additionalTalkingHeadUrls = allUrls.slice(1).filter((u): u is string => !!u)
-
-    fetch('/api/ugc/stitch', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        talkingHeadUrl: video.videoUrl,
-        talkingHeadDuration: perClipDuration,
-        additionalTalkingHeadUrls: additionalTalkingHeadUrls.length ? additionalTalkingHeadUrls : undefined,
-        broll1Url: broll1,
-        broll2Url: broll2,
-        audioOverlayUrl,
-        spokenScript: components?.script,
-        language: components?.language,
-        aspect: components?.aspect,
-      }),
-    })
-      .then(async r => ({ ok: r.ok, body: await r.json().catch(() => ({})) }))
-      .then(({ ok, body }) => {
-        if (ok && body.renderId) {
-          setStitchRenderId(body.renderId)
-        } else {
-          setStitchError(body.error || 'Unknown stitch error')
-          setStitchStatus('failed')
-        }
-      })
-      .catch(err => {
-        setStitchError(err instanceof Error ? err.message : String(err))
-        setStitchStatus('failed')
-      })
-  }, [video?.status, video?.videoUrl, brolls])
-
-  // Poll Creatomate stitch status
-  useEffect(() => {
-    if (!stitchRenderId || stitchStatus !== 'stitching') return
-
-    stitchPollRef.current = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/ugc/stitch?renderId=${stitchRenderId}`)
-        const data = await res.json()
-
-        if (data.status === 'succeeded') {
-          setFinalVideoUrl(data.url)
-          setStitchStatus('completed')
-          clearInterval(stitchPollRef.current!)
-        } else if (data.status === 'failed') {
-          setStitchError(data.error_message || data.error || 'Creatomate reported render failure')
-          setStitchStatus('failed')
-          clearInterval(stitchPollRef.current!)
-        }
-      } catch {}
-    }, 5000)
-
-    return () => clearInterval(stitchPollRef.current!)
-  }, [stitchRenderId, stitchStatus])
+    setFinalVideoUrl(video.videoUrl)
+    setStitchStatus('completed')
+  }, [video?.status, video?.videoUrl])
 
   const handleDownload = async (url: string, filename: string) => {
     setDownloading(filename)
@@ -312,45 +244,6 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         </div>
       )}
 
-      {/* B-roll clips */}
-      {brolls.length > 0 && (
-        <div className="card" style={{ padding: '20px' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '16px' }}>
-            B-Roll Clips
-          </h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {brolls.map((clip, i) => (
-              <div key={clip.taskId}>
-                <p style={{ fontSize: '12px', color: 'var(--ink-dim)', marginBottom: '8px', fontWeight: 600 }}>
-                  {clip.label ?? `B-Roll ${i + 1}`}
-                </p>
-                {clip.status === 'processing' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '16px', background: 'var(--bg)', borderRadius: 'var(--r-md)' }}>
-                    <Loader style={{ width: 16, height: 16, color: 'var(--accent)', animation: 'spin 1s linear infinite', flexShrink: 0 }} />
-                    <p style={{ fontSize: '12px', color: 'var(--ink-dim)' }}>Kling is generating this B-roll… (~1 min)</p>
-                  </div>
-                )}
-                {clip.status === 'failed' && (
-                  <p style={{ fontSize: '12px', color: 'var(--bad)' }}>B-roll generation failed.</p>
-                )}
-                {clip.status === 'completed' && clip.videoUrl && (
-                  <>
-                    <video controls src={clip.videoUrl} style={{ width: '100%', aspectRatio: previewAspectRatio, borderRadius: 'var(--r-md)', marginBottom: '8px', background: '#000', display: 'block', objectFit: 'contain' }} />
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button onClick={() => handleDownload(clip.videoUrl!, `broll-${i + 1}-${Date.now()}.mp4`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '12px' }}>
-                        <Download style={{ width: 12, height: 12 }} /> Download
-                      </button>
-                      <button onClick={() => handleCopy(clip.videoUrl!, `broll-${i}`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '12px' }}>
-                        <Copy style={{ width: 12, height: 12 }} /> {copied === `broll-${i}` ? 'Copied!' : 'Copy URL'}
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Final stitched video */}
       {stitchStatus !== 'idle' && (
@@ -359,24 +252,6 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
             ✦ Final Video
           </h3>
 
-          {stitchStatus === 'stitching' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)' }}>
-              <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
-              <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Stitching your final video…</p>
-              <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>Combining application B-roll → talking head → reaction B-roll, with captions overlaid. Usually ~30–60s.</p>
-            </div>
-          )}
-
-          {stitchStatus === 'failed' && (
-            <div>
-              <p style={{ fontSize: '13px', color: 'var(--bad)', marginBottom: '8px' }}>Stitching failed — download the clips below separately.</p>
-              {stitchError && (
-                <p style={{ fontSize: '11px', color: 'var(--ink-fade)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)' }}>
-                  {stitchError}
-                </p>
-              )}
-            </div>
-          )}
 
           {stitchStatus === 'completed' && finalVideoUrl && (
             <>
@@ -404,68 +279,32 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         </div>
       )}
 
-      {/* Video — raw HeyGen/Sora output. Hidden once Final Video is ready so users
-          can't accidentally download the un-captioned, un-stitched version. */}
-      {video && stitchStatus !== 'completed' && (
+      {/* Render-in-progress card — shown while Kling is still working */}
+      {video && video.status === 'processing' && (
         <div className="card" style={{ padding: '20px' }}>
           <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
-            Raw Video
+            ✦ Your Video
           </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)' }}>
+            <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
+            <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Rendering your video…</p>
+            <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>Usually 2–4 minutes. This page auto-updates.</p>
+          </div>
+        </div>
+      )}
 
-          {video.status === 'processing' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)', marginBottom: '12px' }}>
-              <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
-              <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>
-                Rendering your talking head…
-              </p>
-              <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>
-                Usually 2–4 minutes. This page auto-updates.
-              </p>
-            </div>
-          )}
-
-          {video.status === 'failed' && (
-            <div style={{ marginBottom: '12px' }}>
-              <p style={{ fontSize: '13px', color: 'var(--bad)', fontWeight: 600, marginBottom: '6px' }}>
-                Video generation failed
-              </p>
-              {video.error ? (
-                <p style={{ fontSize: '11px', color: 'var(--ink-fade)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', lineHeight: 1.5 }}>
-                  {video.error}
-                </p>
-              ) : (
-                <p style={{ fontSize: '12px', color: 'var(--ink-fade)' }}>
-                  No detail returned. Common causes: OpenAI account out of credits, content-policy rejection, or transient API outage.
-                </p>
-              )}
-            </div>
-          )}
-
-          {video.status === 'completed' && video.videoUrl && (
-            <>
-              <video controls src={video.videoUrl} style={{ width: '100%', aspectRatio: previewAspectRatio, borderRadius: 'var(--r-md)', marginBottom: '12px', background: '#000', display: 'block', objectFit: 'contain' }} />
-              {video.duration && (
-                <p style={{ fontSize: '12px', color: 'var(--ink-fade)', marginBottom: '12px' }}>Duration: {video.duration}s</p>
-              )}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                <button onClick={() => handleDownload(video.videoUrl!, `ugc-video-${Date.now()}.mp4`)} className="btn btn-ghost" style={{ flex: 1, fontSize: '13px' }}>
-                  <Download style={{ width: 14, height: 14 }} />
-                  Download
-                </button>
-                <button onClick={() => handleCopy(video.videoUrl!, 'video')} className="btn btn-ghost" style={{ flex: 1, fontSize: '13px' }}>
-                  <Copy style={{ width: 14, height: 14 }} />
-                  {copied === 'video' ? 'Copied!' : 'Copy URL'}
-                </button>
-              </div>
-              <Link
-                href={`/editor?videoUrl=${encodeURIComponent(video.videoUrl!)}&duration=${video.duration ?? 10}&aspect=${components?.aspect === 'square' ? '1:1' : components?.aspect === 'landscape' ? '16:9' : '9:16'}`}
-                className="btn btn-ghost"
-                style={{ width: '100%', textAlign: 'center', fontSize: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
-              >
-                <Film style={{ width: 14, height: 14 }} />
-                Edit in Editor
-              </Link>
-            </>
+      {/* Failed state */}
+      {video && video.status === 'failed' && (
+        <div className="card" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--bad)', marginBottom: '12px' }}>
+            Generation Failed
+          </h3>
+          {video.error ? (
+            <p style={{ fontSize: '11px', color: 'var(--ink-fade)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word', padding: '8px 10px', background: 'var(--bg)', borderRadius: 'var(--r-sm)', lineHeight: 1.5 }}>
+              {video.error}
+            </p>
+          ) : (
+            <p style={{ fontSize: '12px', color: 'var(--ink-fade)' }}>No detail returned. Check your API keys or try again.</p>
           )}
         </div>
       )}
