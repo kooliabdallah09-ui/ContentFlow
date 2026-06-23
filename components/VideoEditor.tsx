@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
-import { EditSpec, TextOverlay, EMPTY_EDIT_SPEC, MUSIC_LIBRARY } from '@/lib/edit-spec'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { EditSpec, TextOverlay, EMPTY_EDIT_SPEC, MUSIC_LIBRARY, DEFAULT_FILTERS } from '@/lib/edit-spec'
 import { getSupabase } from '@/lib/auth'
 
 interface VideoEditorProps {
@@ -10,7 +10,7 @@ interface VideoEditorProps {
   initialAspect?: '9:16' | '1:1' | '16:9'
 }
 
-type Panel = 'trim' | 'text' | 'music' | 'ai' | 'export'
+type Panel = 'trim' | 'text' | 'adjust' | 'music' | 'ai' | 'export'
 
 function genId() { return Math.random().toString(36).slice(2, 9) }
 function fmt(s: number) {
@@ -23,19 +23,61 @@ function fmt(s: number) {
 const PANEL_TABS: { id: Panel; icon: string; label: string }[] = [
   { id: 'trim',   icon: '✂',  label: 'Trim'   },
   { id: 'text',   icon: 'T',  label: 'Text'   },
+  { id: 'adjust', icon: '✦',  label: 'Adjust' },
   { id: 'music',  icon: '♪',  label: 'Music'  },
-  { id: 'ai',     icon: '✦',  label: 'AI'     },
+  { id: 'ai',     icon: '✧',  label: 'AI'     },
   { id: 'export', icon: '↗',  label: 'Export' },
 ]
 
+const FILTER_PRESETS: Record<string, { brightness: number; contrast: number; saturation: number }> = {
+  none:    { brightness: 1,    contrast: 1,    saturation: 1    },
+  bw:      { brightness: 1,    contrast: 1.1,  saturation: 0    },
+  vintage: { brightness: 1.05, contrast: 0.9,  saturation: 0.8  },
+  vivid:   { brightness: 1.05, contrast: 1.2,  saturation: 1.5  },
+  cinema:  { brightness: 0.9,  contrast: 1.3,  saturation: 0.85 },
+  muted:   { brightness: 1,    contrast: 0.85, saturation: 0.6  },
+}
+
+const PRESET_LABELS: Record<string, string> = {
+  none: 'None', bw: 'B&W', vintage: 'Vintage', vivid: 'Vivid', cinema: 'Cinema', muted: 'Muted',
+}
+
+const COLOR_SWATCHES = [
+  { hex: '#ffffff', label: 'White' },
+  { hex: '#000000', label: 'Black' },
+  { hex: '#FFE14D', label: 'Yellow' },
+  { hex: '#FF4444', label: 'Red' },
+  { hex: '#4D9FFF', label: 'Blue' },
+  { hex: '#4DFF91', label: 'Green' },
+]
+
+const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.5, 2]
+
+const EMOJI_STICKERS = ['🔥', '⭐', '💯', '🎉', '❤️', '👏', '✨', '💪']
+
+const AI_EXAMPLES = [
+  'Add captions throughout',
+  'Make it slow motion',
+  'Add fade in and out',
+  'Boost the colors',
+  'Cut the last 2 seconds',
+  'Add a bold hook at the start',
+  'Add upbeat music at 30% volume',
+]
+
 export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0, initialAspect = '9:16' }: VideoEditorProps) {
-  const [spec, setSpec] = useState<EditSpec>({
+  const makeInitialSpec = (): EditSpec => ({
     ...EMPTY_EDIT_SPEC,
     videoUrl: initialVideoUrl,
     duration: initialDuration,
     aspectRatio: initialAspect,
     trimEnd: initialDuration,
+    volume: 1,
+    speed: 1,
+    filters: { ...DEFAULT_FILTERS },
   })
+
+  const [spec, setSpec] = useState<EditSpec>(makeInitialSpec)
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -50,16 +92,56 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [newDuration, setNewDuration] = useState(3)
   const [newPosition, setNewPosition] = useState<TextOverlay['position']>('bottom')
   const [newStyle, setNewStyle] = useState<TextOverlay['style']>('bold-white')
+  const [newColor, setNewColor] = useState('#ffffff')
+  const [newFontSize, setNewFontSize] = useState<TextOverlay['fontSize']>('md')
+  const [isMuted, setIsMuted] = useState(false)
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null)
+
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const videoWrapRef = useRef<HTMLDivElement>(null)
   const isDraggingTrim = useRef<null | 'start' | 'end'>(null)
   const draggingOverlay = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
 
+  // Undo/redo history
+  const history = useRef<EditSpec[]>([makeInitialSpec()])
+  const historyIndex = useRef<number>(0)
+
+  function pushHistory(newSpec: EditSpec) {
+    // Truncate forward history
+    history.current = history.current.slice(0, historyIndex.current + 1)
+    history.current.push(newSpec)
+    historyIndex.current = history.current.length - 1
+    setSpec(newSpec)
+  }
+
+  function undo() {
+    if (historyIndex.current <= 0) return
+    historyIndex.current -= 1
+    setSpec(history.current[historyIndex.current])
+  }
+
+  function redo() {
+    if (historyIndex.current >= history.current.length - 1) return
+    historyIndex.current += 1
+    setSpec(history.current[historyIndex.current])
+  }
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey
+      if (meta && e.shiftKey && e.key === 'z') { e.preventDefault(); redo(); return }
+      if (meta && e.key === 'z') { e.preventDefault(); undo(); return }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [])
+
   function loadVideoFile(file: File) {
     const url = URL.createObjectURL(file)
-    setSpec(s => ({ ...s, videoUrl: url, duration: 0, trimStart: 0, trimEnd: 0 }))
+    const newS: EditSpec = { ...makeInitialSpec(), videoUrl: url, duration: 0, trimStart: 0, trimEnd: 0 }
+    pushHistory(newS)
     setCurrentTime(0)
     setExportUrl(null)
   }
@@ -123,7 +205,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       })
       const { spec: newSpec, error } = await res.json()
       if (error) throw new Error(error)
-      setSpec(newSpec)
+      pushHistory(newSpec)
       setAiInput('')
     } catch (e) {
       alert(e instanceof Error ? e.message : 'AI edit failed')
@@ -135,11 +217,39 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   function addOverlay() {
     if (!newText.trim()) return
     const defaultY = newPosition === 'top' ? 0.12 : newPosition === 'center' ? 0.5 : 0.82
-    setSpec(s => ({
-      ...s,
-      overlays: [...s.overlays, { id: genId(), text: newText.trim(), start: newStart, duration: newDuration, position: newPosition, style: newStyle, x: 0.5, y: defaultY }],
-    }))
+    pushHistory({
+      ...spec,
+      overlays: [...spec.overlays, {
+        id: genId(),
+        text: newText.trim(),
+        start: newStart,
+        duration: newDuration,
+        position: newPosition,
+        style: newStyle,
+        x: 0.5,
+        y: defaultY,
+        color: newColor,
+        fontSize: newFontSize,
+      }],
+    })
     setNewText('')
+  }
+
+  function addEmojiSticker(emoji: string) {
+    pushHistory({
+      ...spec,
+      overlays: [...spec.overlays, {
+        id: genId(),
+        text: emoji,
+        start: currentTime,
+        duration: 2,
+        position: 'center',
+        style: 'bold-white',
+        x: 0.5,
+        y: 0.5,
+        fontSize: 'xl',
+      }],
+    })
   }
 
   function startOverlayDrag(e: React.MouseEvent, overlayId: string) {
@@ -158,6 +268,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     const rect = videoWrapRef.current?.getBoundingClientRect()
     if (!rect) return
 
+    // Snapshot spec for drag so we push one history entry on mouseup
+    const specSnapshot = { ...spec }
+
     function onMove(me: MouseEvent) {
       if (!draggingOverlay.current || !rect) return
       const { id, startX, startY, origX, origY } = draggingOverlay.current
@@ -170,7 +283,18 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         overlays: s.overlays.map(o => o.id === id ? { ...o, x: newX, y: newY } : o),
       }))
     }
-    function onUp() {
+    function onUp(me: MouseEvent) {
+      if (!draggingOverlay.current || !rect) { draggingOverlay.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); return }
+      const { id, startX, startY, origX, origY } = draggingOverlay.current
+      const dx = (me.clientX - startX) / rect.width
+      const dy = (me.clientY - startY) / rect.height
+      const newX = Math.max(0, Math.min(1, origX + dx))
+      const newY = Math.max(0, Math.min(1, origY + dy))
+      const finalSpec = {
+        ...specSnapshot,
+        overlays: specSnapshot.overlays.map(o => o.id === id ? { ...o, x: newX, y: newY } : o),
+      }
+      pushHistory(finalSpec)
       draggingOverlay.current = null
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
@@ -193,6 +317,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   } : { start: 0, end: 100, cursor: 0 }
 
   const aspectStyle = spec.aspectRatio === '9:16' ? '9/16' : spec.aspectRatio === '1:1' ? '1/1' : '16/9'
+
+  const currentFilters = spec.filters ?? DEFAULT_FILTERS
+  const videoFilterStyle = `brightness(${currentFilters.brightness}) contrast(${currentFilters.contrast}) saturate(${currentFilters.saturation})`
 
   // ── styles ────────────────────────────────────────────────────────────────
   const S = {
@@ -227,6 +354,21 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       color: active ? 'var(--surface)' : 'var(--ink-mute)',
       cursor: 'pointer',
       transition: 'all 0.15s',
+    }),
+    undoRedoBtn: (disabled: boolean) => ({
+      width: 32,
+      height: 32,
+      borderRadius: 6,
+      border: '1px solid var(--border)',
+      background: 'var(--surface)',
+      color: disabled ? 'var(--ink-mute)' : 'var(--ink)',
+      cursor: disabled ? 'default' : 'pointer',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 13,
+      opacity: disabled ? 0.4 : 1,
+      transition: 'opacity 0.15s',
     }),
     uploadBtn: {
       display: 'flex',
@@ -363,7 +505,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       flexDirection: 'column' as const,
       alignItems: 'center',
       gap: 3,
-      fontSize: 10,
+      fontSize: 9,
       fontWeight: 600,
       letterSpacing: '0.04em',
       textTransform: 'uppercase' as const,
@@ -374,7 +516,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       borderBottom: active ? '2px solid var(--ink)' : '2px solid transparent',
       transition: 'color 0.15s',
     }),
-    tabIcon: { fontSize: 16 },
+    tabIcon: { fontSize: 14 },
     panelBody: {
       flex: 1,
       overflowY: 'auto' as const,
@@ -475,6 +617,41 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       borderBottom: '1px solid var(--border)',
       color: 'var(--ink-dim)',
     },
+    chipBtn: (active: boolean) => ({
+      flex: 1,
+      padding: '6px 4px',
+      borderRadius: 6,
+      border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+      background: active ? 'var(--ink)' : 'var(--surface-2)',
+      color: active ? 'var(--surface)' : 'var(--ink-dim)',
+      fontSize: 11,
+      fontWeight: 600,
+      cursor: 'pointer',
+      textAlign: 'center' as const,
+      transition: 'all 0.15s',
+    }),
+    pillBtn: (active: boolean) => ({
+      padding: '5px 10px',
+      borderRadius: 20,
+      border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+      background: active ? 'var(--ink)' : 'transparent',
+      color: active ? 'var(--surface)' : 'var(--ink-dim)',
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: 'pointer',
+      transition: 'all 0.15s',
+    }),
+    toggleCard: (active: boolean) => ({
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      padding: '10px 14px',
+      borderRadius: 8,
+      border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+      background: active ? 'var(--accent-soft)' : 'var(--surface-2)',
+      cursor: 'pointer',
+      transition: 'all 0.15s',
+    }),
   }
 
   return (
@@ -486,10 +663,26 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
           Video Editor
         </span>
 
+        {/* Undo / Redo */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          <button
+            style={S.undoRedoBtn(historyIndex.current <= 0)}
+            onClick={undo}
+            title="Undo (Cmd+Z)"
+            disabled={historyIndex.current <= 0}
+          >←</button>
+          <button
+            style={S.undoRedoBtn(historyIndex.current >= history.current.length - 1)}
+            onClick={redo}
+            title="Redo (Cmd+Shift+Z)"
+            disabled={historyIndex.current >= history.current.length - 1}
+          >→</button>
+        </div>
+
         {/* Aspect ratio */}
         <div style={{ display: 'flex', gap: 6 }}>
           {(['9:16', '1:1', '16:9'] as const).map(ar => (
-            <button key={ar} onClick={() => setSpec(s => ({ ...s, aspectRatio: ar }))} style={S.arBtn(spec.aspectRatio === ar)}>
+            <button key={ar} onClick={() => pushHistory({ ...spec, aspectRatio: ar })} style={S.arBtn(spec.aspectRatio === ar)}>
               {ar}
             </button>
           ))}
@@ -525,7 +718,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
               <video
                 ref={videoRef}
                 src={spec.videoUrl}
-                style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block' }}
+                muted={isMuted}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'contain',
+                  display: 'block',
+                  filter: videoFilterStyle,
+                }}
                 onTimeUpdate={e => setCurrentTime(e.currentTarget.currentTime)}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
@@ -540,6 +740,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 const isSelected = selectedOverlayId === o.id
                 const xPct = (o.x ?? 0.5) * 100
                 const yPct = (o.y ?? (o.position === 'top' ? 0.12 : o.position === 'center' ? 0.5 : 0.82)) * 100
+                const overlayFontSize = o.fontSize === 'sm' ? 13 : o.fontSize === 'lg' ? 22 : o.fontSize === 'xl' ? 28 : 18
                 return (
                   <div
                     key={o.id}
@@ -551,8 +752,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       top: `${yPct}%`,
                       transform: 'translate(-50%, -50%)',
                       textAlign: 'center',
-                      color: '#fff',
-                      fontSize: o.style === 'caption' ? 13 : 18,
+                      color: o.color ?? '#fff',
+                      fontSize: overlayFontSize,
                       fontWeight: o.style === 'minimal' ? 400 : 800,
                       textShadow: '0 2px 12px rgba(0,0,0,0.9)',
                       padding: o.style === 'caption' ? '4px 10px' : '2px 12px',
@@ -796,7 +997,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       max={spec.duration || 1}
                       step={0.05}
                       value={spec.trimStart}
-                      onChange={e => setSpec(s => ({ ...s, trimStart: Math.min(parseFloat(e.target.value), s.trimEnd - 0.1) }))}
+                      onChange={e => pushHistory({ ...spec, trimStart: Math.min(parseFloat(e.target.value), spec.trimEnd - 0.1) })}
                       style={{ width: '100%', accentColor: 'var(--ink)' }}
                     />
                   </div>
@@ -813,7 +1014,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       max={spec.duration || 1}
                       step={0.05}
                       value={spec.trimEnd}
-                      onChange={e => setSpec(s => ({ ...s, trimEnd: Math.max(parseFloat(e.target.value), s.trimStart + 0.1) }))}
+                      onChange={e => pushHistory({ ...spec, trimEnd: Math.max(parseFloat(e.target.value), spec.trimStart + 0.1) })}
                       style={{ width: '100%', accentColor: 'var(--ink)' }}
                     />
                   </div>
@@ -828,7 +1029,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 </div>
                 <button
                   style={{ ...S.ghostBtn, fontSize: 12 }}
-                  onClick={() => setSpec(s => ({ ...s, trimStart: 0, trimEnd: s.duration }))}
+                  onClick={() => pushHistory({ ...spec, trimStart: 0, trimEnd: spec.duration })}
                 >
                   Reset trim
                 </button>
@@ -838,19 +1039,57 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             {/* ── Text overlays ─────────────────────────────────────────── */}
             {activePanel === 'text' && (
               <>
+                {/* Quick stickers */}
+                <div>
+                  <div style={S.sectionLabel}>Quick Stickers</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6 }}>
+                    {EMOJI_STICKERS.map(emoji => (
+                      <button
+                        key={emoji}
+                        onClick={() => addEmojiSticker(emoji)}
+                        style={{
+                          width: 36,
+                          height: 36,
+                          borderRadius: 8,
+                          border: '1px solid var(--border)',
+                          background: 'var(--surface-2)',
+                          cursor: 'pointer',
+                          fontSize: 18,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'background 0.15s',
+                        }}
+                        title={`Add ${emoji} at current time`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {spec.overlays.length > 0 && (
                   <div>
                     <div style={S.sectionLabel}>Active Overlays</div>
                     {spec.overlays.map(o => (
                       <div key={o.id} style={{ ...S.overlayCard, marginBottom: 8 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0, color: 'var(--ink-dim)' }}>
+                        {/* Color dot */}
+                        <div style={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: '50%',
+                          background: o.color ?? '#ffffff',
+                          border: '1px solid var(--border)',
+                          flexShrink: 0,
+                        }} />
+                        <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0, color: 'var(--ink-dim)' }}>
                           T
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.text}</div>
-                          <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{fmt(o.start)} – {fmt(o.start + o.duration)} · {o.position} · {o.style}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{fmt(o.start)} – {fmt(o.start + o.duration)} · {o.position}</div>
                         </div>
-                        <button onClick={() => setSpec(s => ({ ...s, overlays: s.overlays.filter(x => x.id !== o.id) }))} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
+                        <button onClick={() => pushHistory({ ...spec, overlays: spec.overlays.filter(x => x.id !== o.id) })} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
                       </div>
                     ))}
                   </div>
@@ -863,6 +1102,62 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       <label style={S.fieldLabel}>Text content</label>
                       <input type="text" placeholder="Your text here..." value={newText} onChange={e => setNewText(e.target.value)} style={S.input} />
                     </div>
+
+                    {/* Color swatches */}
+                    <div>
+                      <label style={S.fieldLabel}>Color</label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        {COLOR_SWATCHES.map(sw => (
+                          <button
+                            key={sw.hex}
+                            onClick={() => setNewColor(sw.hex)}
+                            title={sw.label}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: '50%',
+                              background: sw.hex,
+                              border: `2px solid ${newColor === sw.hex ? 'var(--ink)' : 'var(--border)'}`,
+                              cursor: 'pointer',
+                              padding: 0,
+                              flexShrink: 0,
+                              boxShadow: newColor === sw.hex ? '0 0 0 2px var(--surface), 0 0 0 4px var(--ink)' : 'none',
+                              transition: 'all 0.15s',
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Font size */}
+                    <div>
+                      <label style={S.fieldLabel}>Font size</label>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        {(['sm', 'md', 'lg', 'xl'] as const).map(size => (
+                          <button
+                            key={size}
+                            onClick={() => setNewFontSize(size)}
+                            style={{
+                              flex: 1,
+                              padding: '6px 4px',
+                              borderRadius: 6,
+                              border: `1px solid ${newFontSize === size ? 'var(--ink)' : 'var(--border)'}`,
+                              background: newFontSize === size ? 'var(--ink)' : 'var(--surface-2)',
+                              color: newFontSize === size ? 'var(--surface)' : 'var(--ink-dim)',
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: 'pointer',
+                              textAlign: 'center' as const,
+                              textTransform: 'uppercase' as const,
+                              transition: 'all 0.15s',
+                            }}
+                          >
+                            {size}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <div>
                         <label style={S.fieldLabel}>Start (s)</label>
@@ -885,7 +1180,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       <div>
                         <label style={S.fieldLabel}>Style</label>
                         <select value={newStyle} onChange={e => setNewStyle(e.target.value as TextOverlay['style'])} style={S.select}>
-                          <option value="bold-white">Bold White</option>
+                          <option value="bold-white">Bold</option>
                           <option value="minimal">Minimal</option>
                           <option value="caption">Caption</option>
                         </select>
@@ -899,13 +1194,185 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
               </>
             )}
 
+            {/* ── Adjust ────────────────────────────────────────────────── */}
+            {activePanel === 'adjust' && (
+              <>
+                {/* Color & Filters */}
+                <div>
+                  <div style={S.sectionLabel}>Color & Filters</div>
+                  {/* Preset grid 3x2 */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 14 }}>
+                    {(Object.keys(FILTER_PRESETS) as Array<keyof typeof FILTER_PRESETS>).map(preset => {
+                      const isActive = currentFilters.preset === preset
+                      return (
+                        <button
+                          key={preset}
+                          onClick={() => {
+                            const vals = FILTER_PRESETS[preset]
+                            pushHistory({
+                              ...spec,
+                              filters: { ...vals, preset: preset as EditSpec['filters'] extends undefined ? never : NonNullable<EditSpec['filters']>['preset'] },
+                            })
+                          }}
+                          style={{
+                            padding: '7px 4px',
+                            borderRadius: 6,
+                            border: `1px solid ${isActive ? 'var(--ink)' : 'var(--border)'}`,
+                            background: isActive ? 'var(--ink)' : 'var(--surface-2)',
+                            color: isActive ? 'var(--surface)' : 'var(--ink-dim)',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            cursor: 'pointer',
+                            textAlign: 'center' as const,
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          {PRESET_LABELS[preset]}
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* Brightness */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <label style={S.fieldLabel}>Brightness</label>
+                      <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{currentFilters.brightness.toFixed(2)}</span>
+                    </div>
+                    <input type="range" min={0} max={2} step={0.05} value={currentFilters.brightness}
+                      onChange={e => pushHistory({ ...spec, filters: { ...currentFilters, brightness: parseFloat(e.target.value), preset: 'none' } })}
+                      style={{ width: '100%', accentColor: 'var(--ink)' }}
+                    />
+                  </div>
+
+                  {/* Contrast */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <label style={S.fieldLabel}>Contrast</label>
+                      <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{currentFilters.contrast.toFixed(2)}</span>
+                    </div>
+                    <input type="range" min={0} max={2} step={0.05} value={currentFilters.contrast}
+                      onChange={e => pushHistory({ ...spec, filters: { ...currentFilters, contrast: parseFloat(e.target.value), preset: 'none' } })}
+                      style={{ width: '100%', accentColor: 'var(--ink)' }}
+                    />
+                  </div>
+
+                  {/* Saturation */}
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <label style={S.fieldLabel}>Saturation</label>
+                      <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{currentFilters.saturation.toFixed(2)}</span>
+                    </div>
+                    <input type="range" min={0} max={2} step={0.05} value={currentFilters.saturation}
+                      onChange={e => pushHistory({ ...spec, filters: { ...currentFilters, saturation: parseFloat(e.target.value), preset: 'none' } })}
+                      style={{ width: '100%', accentColor: 'var(--ink)' }}
+                    />
+                  </div>
+                </div>
+
+                {/* Speed & Audio */}
+                <div>
+                  <div style={S.sectionLabel}>Speed & Audio</div>
+
+                  {/* Speed pills */}
+                  <div style={{ marginBottom: 12 }}>
+                    <label style={S.fieldLabel}>Playback speed</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 5 }}>
+                      {SPEED_OPTIONS.map(s => (
+                        <button
+                          key={s}
+                          onClick={() => pushHistory({ ...spec, speed: s })}
+                          style={S.pillBtn((spec.speed ?? 1) === s)}
+                        >
+                          {s}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Video volume */}
+                  <div style={{ marginBottom: 10 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <label style={S.fieldLabel}>Video volume</label>
+                      <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{Math.round((spec.volume ?? 1) * 100)}%</span>
+                    </div>
+                    <input type="range" min={0} max={1} step={0.01} value={spec.volume ?? 1}
+                      onChange={e => pushHistory({ ...spec, volume: parseFloat(e.target.value) })}
+                      style={{ width: '100%', accentColor: 'var(--ink)' }}
+                    />
+                  </div>
+
+                  {/* Mute toggle */}
+                  <button
+                    onClick={() => {
+                      setIsMuted(m => !m)
+                      if (videoRef.current) videoRef.current.muted = !isMuted
+                    }}
+                    style={{
+                      ...S.ghostBtn,
+                      borderColor: isMuted ? 'var(--ink)' : 'var(--border)',
+                      color: isMuted ? 'var(--ink)' : 'var(--ink-dim)',
+                      fontSize: 12,
+                    }}
+                  >
+                    {isMuted ? '🔇 Muted (preview only)' : '🔊 Mute preview'}
+                  </button>
+                </div>
+
+                {/* Transitions */}
+                <div>
+                  <div style={S.sectionLabel}>Transitions</div>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+                    <div
+                      style={S.toggleCard(!!spec.fadeIn)}
+                      onClick={() => pushHistory({ ...spec, fadeIn: !spec.fadeIn })}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Fade In</span>
+                      <div style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 4,
+                        border: `2px solid ${spec.fadeIn ? 'var(--ink)' : 'var(--border)'}`,
+                        background: spec.fadeIn ? 'var(--ink)' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s',
+                      }}>
+                        {spec.fadeIn && <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--surface)" strokeWidth="2"><polyline points="1.5,5 4,7.5 8.5,2.5"/></svg>}
+                      </div>
+                    </div>
+                    <div
+                      style={S.toggleCard(!!spec.fadeOut)}
+                      onClick={() => pushHistory({ ...spec, fadeOut: !spec.fadeOut })}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Fade Out</span>
+                      <div style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 4,
+                        border: `2px solid ${spec.fadeOut ? 'var(--ink)' : 'var(--border)'}`,
+                        background: spec.fadeOut ? 'var(--ink)' : 'transparent',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s',
+                      }}>
+                        {spec.fadeOut && <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--surface)" strokeWidth="2"><polyline points="1.5,5 4,7.5 8.5,2.5"/></svg>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
             {/* ── Music ─────────────────────────────────────────────────── */}
             {activePanel === 'music' && (
               <>
                 <div style={S.sectionLabel}>Background Track</div>
                 <div
                   style={S.musicCard(!spec.music)}
-                  onClick={() => setSpec(s => ({ ...s, music: undefined }))}
+                  onClick={() => pushHistory({ ...spec, music: undefined })}
                 >
                   <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔇</div>
                   <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-dim)' }}>No music</div>
@@ -916,7 +1383,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   <div
                     key={track.url}
                     style={S.musicCard(spec.music?.url === track.url)}
-                    onClick={() => setSpec(s => ({ ...s, music: { ...track, volume: s.music?.volume ?? track.volume } }))}
+                    onClick={() => pushHistory({ ...spec, music: { ...track, volume: spec.music?.volume ?? track.volume } })}
                   >
                     <div style={{ width: 36, height: 36, borderRadius: 8, background: (['var(--surface-2)', 'var(--surface-3)', 'var(--accent-soft)'] as const)[i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
                       {['🎵', '🎶', '🎸'][i]}
@@ -941,7 +1408,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       max={1}
                       step={0.01}
                       value={spec.music.volume ?? 0.25}
-                      onChange={e => setSpec(s => s.music ? { ...s, music: { ...s.music, volume: parseFloat(e.target.value) } } : s)}
+                      onChange={e => {
+                        if (!spec.music) return
+                        pushHistory({ ...spec, music: { ...spec.music, volume: parseFloat(e.target.value) } })
+                      }}
                       style={{ width: '100%', accentColor: 'var(--ink)' }}
                     />
                   </div>
@@ -958,11 +1428,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 </div>
                 <div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {[
-                      'Cut the last 2 seconds',
-                      'Add a bold hook at the start',
-                      'Add upbeat music at 30% volume',
-                    ].map(ex => (
+                    {AI_EXAMPLES.map(ex => (
                       <button
                         key={ex}
                         onClick={() => setAiInput(ex)}
@@ -988,7 +1454,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   disabled={aiLoading || !aiInput.trim()}
                   onClick={handleAiEdit}
                 >
-                  {aiLoading ? '✦ Applying...' : '✦ Apply AI Edit'}
+                  {aiLoading ? '✧ Applying...' : '✧ Apply AI Edit'}
                 </button>
               </>
             )}
@@ -1002,6 +1468,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     ['Aspect ratio', spec.aspectRatio],
                     ['In → Out', `${fmt(spec.trimStart)} → ${fmt(spec.trimEnd)}`],
                     ['Final duration', `${(spec.trimEnd - spec.trimStart).toFixed(2)}s`],
+                    ['Speed', `${spec.speed ?? 1}x`],
+                    ['Transitions', [spec.fadeIn && 'Fade In', spec.fadeOut && 'Fade Out'].filter(Boolean).join(', ') || 'None'],
+                    ['Filters', currentFilters.preset !== 'none' ? PRESET_LABELS[currentFilters.preset] : 'None'],
                     ['Text overlays', String(spec.overlays.length)],
                     ['Music', spec.music ? `${spec.music.label} (${Math.round(spec.music.volume * 100)}%)` : 'None'],
                   ].map(([k, v], i, arr) => (

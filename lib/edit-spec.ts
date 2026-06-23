@@ -7,6 +7,8 @@ export interface TextOverlay {
   style: 'bold-white' | 'minimal' | 'caption'
   x?: number           // 0–1, 0=left edge, 1=right edge (free positioning)
   y?: number           // 0–1, 0=top edge, 1=bottom edge
+  color?: string       // hex e.g. '#ffffff'
+  fontSize?: 'sm' | 'md' | 'lg' | 'xl'
 }
 
 export interface MusicTrack {
@@ -23,7 +25,19 @@ export interface EditSpec {
   overlays: TextOverlay[]
   music?: MusicTrack
   aspectRatio: '9:16' | '1:1' | '16:9'
+  volume?: number      // 0–1, original video audio (default 1)
+  speed?: number       // 0.25–4 (default 1)
+  fadeIn?: boolean
+  fadeOut?: boolean
+  filters?: {
+    brightness: number   // 0–2, default 1
+    contrast: number     // 0–2, default 1
+    saturation: number   // 0–2, default 1
+    preset: 'none' | 'bw' | 'vintage' | 'vivid' | 'cinema' | 'muted'
+  }
 }
+
+export const DEFAULT_FILTERS = { brightness: 1, contrast: 1, saturation: 1, preset: 'none' as const }
 
 export const EMPTY_EDIT_SPEC: EditSpec = {
   videoUrl: '',

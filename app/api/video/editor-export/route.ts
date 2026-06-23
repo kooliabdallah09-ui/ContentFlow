@@ -35,12 +35,18 @@ function buildShotstackBody(spec: EditSpec) {
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
 
+      const overlayColor = overlay.color ?? '#ffffff'
+      const fontSizeMap: Record<string, string> = { sm: '28px', md: '36px', lg: '48px', xl: '64px' }
+      const boldFontSize = overlay.fontSize ? (fontSizeMap[overlay.fontSize] ?? '40px') : '40px'
+      const minimalFontSize = overlay.fontSize ? (fontSizeMap[overlay.fontSize] ?? '32px') : '32px'
+      const captionFontSize = overlay.fontSize ? (fontSizeMap[overlay.fontSize] ?? '36px') : '36px'
+
       const css =
         overlay.style === 'bold-white'
-          ? 'p { color: #ffffff; font-size: 40px; font-weight: 800; font-family: \'Montserrat\', sans-serif; text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }'
+          ? `p { color: ${overlayColor}; font-size: ${boldFontSize}; font-weight: 800; font-family: 'Montserrat', sans-serif; text-align: center; text-shadow: 0 2px 8px rgba(0,0,0,0.8); }`
           : overlay.style === 'minimal'
-          ? 'p { color: #ffffff; font-size: 32px; font-weight: 400; font-family: \'Inter\', sans-serif; text-align: center; opacity: 0.9; }'
-          : 'p { color: #ffffff; font-size: 36px; font-weight: 700; font-family: \'Inter\', sans-serif; text-align: center; background: rgba(0,0,0,0.55); padding: 8px 14px; border-radius: 8px; }'
+          ? `p { color: ${overlayColor}; font-size: ${minimalFontSize}; font-weight: 400; font-family: 'Inter', sans-serif; text-align: center; opacity: 0.9; }`
+          : `p { color: ${overlayColor}; font-size: ${captionFontSize}; font-weight: 700; font-family: 'Inter', sans-serif; text-align: center; background: rgba(0,0,0,0.55); padding: 8px 14px; border-radius: 8px; }`
 
       // Free-position mode: if x/y set, use center anchor + offset
       // Shotstack offset range is roughly -0.5 to 0.5 (proportion of video size)
@@ -83,16 +89,23 @@ function buildShotstackBody(spec: EditSpec) {
   }
 
   // Video track
+  const videoTransition: Record<string, string> = {}
+  if (spec.fadeIn) videoTransition.in = 'fade'
+  if (spec.fadeOut) videoTransition.out = 'fade'
+
   tracks.push({
     clips: [{
       asset: {
         type: 'video',
         src: spec.videoUrl,
         trim: spec.trimStart,
+        volume: spec.volume ?? 1,
       },
       start: 0,
       length: trimmedLength,
+      speed: spec.speed ?? 1,
       fit: 'cover',
+      ...(Object.keys(videoTransition).length > 0 ? { transition: videoTransition } : {}),
     }],
   })
 
