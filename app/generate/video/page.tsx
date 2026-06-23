@@ -54,7 +54,8 @@ const MODELS: {
     ],
     caveat: 'Max 15s per clip · best for faces & audio',
     durations: [5, 10, 15],
-    credits: { 5: 25, 10: 50, 15: 75 },
+    // Kling v3 omni: $0.224/s → 9 cr/s at cost → 18 cr/s at 2× markup + 5 cr base
+    credits: { 5: 95, 10: 185, 15: 275 },
   },
 ]
 
