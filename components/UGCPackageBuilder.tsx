@@ -81,6 +81,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [productDescription, setProductDescription] = useState('')
   const [benefits, setBenefits] = useState('')
   const [callToAction, setCallToAction] = useState('Try it today')
+  const [benefitsGenerating, setBenefitsGenerating] = useState(false)
   const [customInstructions, setCustomInstructions] = useState('')
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
@@ -324,7 +325,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     }
   }
 
-  function applyShopifyProduct(product: ShopifyProduct) {
+  async function applyShopifyProduct(product: ShopifyProduct) {
     setSelectedShopifyProduct(product)
     setProductName(product.title)
 
@@ -332,7 +333,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     const desc = product.body_html.replace(/<[^>]+>/g, '').trim().slice(0, 400)
     setProductDescription(desc)
 
-    // Extract <li> items as key benefits (up to 5 bullet points)
+    // Try to extract <li> items as benefits first (instant, no API call)
     const liMatches = [...product.body_html.matchAll(/<li[^>]*>([\s\S]*?)<\/li>/gi)]
     if (liMatches.length > 0) {
       const bullets = liMatches
@@ -340,10 +341,35 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         .map(m => m[1].replace(/<[^>]+>/g, '').trim())
         .filter(Boolean)
       setBenefits(bullets.join(' · '))
+      setCallToAction(`Shop ${product.title}`)
+    } else {
+      // No bullet points in HTML — generate benefits + CTA with Claude
+      setBenefits('')
+      setBenefitsGenerating(true)
+      try {
+        const supabase = getSupabase()
+        const { data } = await supabase!.auth.getSession()
+        const token = data.session?.access_token
+        if (token) {
+          const res = await fetch('/api/shopify/benefits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ productName: product.title, productDescription: desc, price: product.price }),
+          })
+          if (res.ok) {
+            const generated = await res.json()
+            setBenefits(generated.benefits ?? '')
+            setCallToAction(generated.callToAction ?? `Shop ${product.title}`)
+          } else {
+            setCallToAction(`Shop ${product.title}`)
+          }
+        }
+      } catch {
+        setCallToAction(`Shop ${product.title}`)
+      } finally {
+        setBenefitsGenerating(false)
+      }
     }
-
-    // Smart default CTA
-    setCallToAction(`Shop ${product.title}`)
 
     // Load first image as product image
     if (product.images[0]) {
@@ -785,10 +811,19 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
 
         <div className="form-row">
-          <label className="form-label">Key benefits</label>
+          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            Key benefits
+            {benefitsGenerating && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--ink-mute)', fontWeight: 400 }}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--accent)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
+                Generating…
+              </span>
+            )}
+          </label>
           <textarea className="textarea" rows={3} value={benefits}
             onChange={e => { setBenefits(e.target.value); if (useBrand) setUseBrand(false) }}
-            placeholder="Save time · ships to all platforms · AI-powered" disabled={isLoading} />
+            placeholder={benefitsGenerating ? 'Generating benefits from product…' : 'Save time · ships to all platforms · AI-powered'}
+            disabled={isLoading || benefitsGenerating} />
         </div>
 
         <div className="form-row">
