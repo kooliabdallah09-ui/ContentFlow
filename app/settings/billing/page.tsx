@@ -48,7 +48,7 @@ export default function BillingPage() {
   }
 
   async function handleUpgrade(priceId: string, mode: 'subscription' | 'payment') {
-    if (!priceId) { alert('Stripe price not configured. Add env vars.'); return }
+    if (!priceId) { alert('Annual pricing coming soon — switch to monthly to upgrade now.'); return }
     setUpgradeLoading(priceId)
     try {
       const token = await getToken()
@@ -372,7 +372,7 @@ export default function BillingPage() {
                     opacity: plan.ctaDisabled ? 0.5 : 1,
                     cursor: plan.ctaDisabled ? 'default' : 'pointer',
                   }}
-                  onClick={() => !plan.ctaDisabled && activePriceId && handleUpgrade(activePriceId, 'subscription')}
+                  onClick={() => !plan.ctaDisabled && handleUpgrade(activePriceId, 'subscription')}
                 >
                   {upgradeLoading === activePriceId ? 'Redirecting…' : plan.cta}
                 </button>
