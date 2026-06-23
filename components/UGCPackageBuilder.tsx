@@ -25,6 +25,15 @@ interface HookVariant {
   text: string
 }
 
+interface ShopifyProduct {
+  id: number
+  title: string
+  handle: string
+  body_html: string
+  price: string
+  images: string[]
+}
+
 interface UGCPackageBuilderProps {
   onGenerate: (settings: {
     ugcType: string
@@ -80,6 +89,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [customPhoto, setCustomPhoto] = useState<{ base64: string; mimeType: string } | undefined>()
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [productType, setProductType] = useState<'physical' | 'software'>('physical')
+
+  // Shopify product picker
+  const [shopifyUrl, setShopifyUrl] = useState('')
+  const [shopifyProducts, setShopifyProducts] = useState<ShopifyProduct[] | null>(null)
+  const [shopifyLoading, setShopifyLoading] = useState(false)
+  const [shopifyError, setShopifyError] = useState<string | null>(null)
+  const [selectedShopifyProduct, setSelectedShopifyProduct] = useState<ShopifyProduct | null>(null)
 
   // Brand profile — loaded once on mount. When the user toggles `useBrand` on,
   // we pre-fill the 4 product fields + product image from this profile (and lock
@@ -288,6 +304,48 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     setGeneratedScript('')
     setEditedScript('')
     resetForm()
+  }
+
+  async function fetchShopifyProducts() {
+    if (!shopifyUrl.trim()) return
+    setShopifyLoading(true)
+    setShopifyError(null)
+    setShopifyProducts(null)
+    setSelectedShopifyProduct(null)
+    try {
+      const res = await fetch(`/api/shopify/products?store=${encodeURIComponent(shopifyUrl.trim())}`)
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      setShopifyProducts(data.products)
+    } catch (e) {
+      setShopifyError(e instanceof Error ? e.message : 'Failed to fetch products')
+    } finally {
+      setShopifyLoading(false)
+    }
+  }
+
+  function applyShopifyProduct(product: ShopifyProduct) {
+    setSelectedShopifyProduct(product)
+    setProductName(product.title)
+    // Strip HTML tags from body_html for description
+    const desc = product.body_html.replace(/<[^>]+>/g, '').trim().slice(0, 400)
+    setProductDescription(desc)
+    // Load first image as product image
+    if (product.images[0]) {
+      fetch(product.images[0])
+        .then(r => r.blob())
+        .then(blob => {
+          const reader = new FileReader()
+          reader.onload = () => {
+            const dataUrl = reader.result as string
+            const [meta, base64] = dataUrl.split(',')
+            const mimeType = meta.match(/:(.*?);/)?.[1] ?? 'image/jpeg'
+            setProductImage({ base64, mimeType, preview: product.images[0] })
+          }
+          reader.readAsDataURL(blob)
+        })
+        .catch(() => {/* image load failed, skip */})
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -637,6 +695,100 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               </button>
             ))}
           </div>
+        </div>
+
+        {/* Shopify Product Picker */}
+        <div style={{ marginBottom: 20, padding: '16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            {/* Shopify bag icon */}
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Import from Shopify</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-mute)', marginLeft: 'auto' }}>optional</span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <input
+              type="text"
+              placeholder="yourstore.myshopify.com"
+              value={shopifyUrl}
+              onChange={e => setShopifyUrl(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && fetchShopifyProducts()}
+              style={{
+                flex: 1, padding: '8px 12px', borderRadius: 8,
+                border: '1px solid var(--border)', background: 'var(--surface)',
+                color: 'var(--ink)', fontSize: 13, outline: 'none',
+              }}
+            />
+            <button
+              type="button"
+              onClick={fetchShopifyProducts}
+              disabled={!shopifyUrl.trim() || shopifyLoading}
+              style={{
+                padding: '8px 14px', borderRadius: 8, border: 'none',
+                background: 'var(--ink)', color: 'var(--surface)',
+                fontSize: 13, fontWeight: 600, cursor: shopifyUrl.trim() && !shopifyLoading ? 'pointer' : 'not-allowed',
+                opacity: shopifyUrl.trim() && !shopifyLoading ? 1 : 0.4, whiteSpace: 'nowrap' as const,
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}
+            >
+              {shopifyLoading
+                ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Loading...</>
+                : 'Fetch Products'}
+            </button>
+          </div>
+
+          {shopifyError && (
+            <div style={{ marginTop: 8, fontSize: 12, color: '#e84040', padding: '6px 10px', borderRadius: 6, background: 'rgba(232,64,64,0.08)', border: '1px solid rgba(232,64,64,0.2)' }}>
+              {shopifyError}. Make sure the URL is correct (e.g. yourstore.myshopify.com).
+            </div>
+          )}
+
+          {shopifyProducts && shopifyProducts.length === 0 && (
+            <div style={{ marginTop: 8, fontSize: 12, color: 'var(--ink-mute)' }}>No products found in this store.</div>
+          )}
+
+          {shopifyProducts && shopifyProducts.length > 0 && (
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' as const, color: 'var(--ink-mute)', marginBottom: 8 }}>
+                {shopifyProducts.length} products — pick one to advertise
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6, maxHeight: 280, overflowY: 'auto' as const }}>
+                {shopifyProducts.map(product => {
+                  const isSelected = selectedShopifyProduct?.id === product.id
+                  return (
+                    <div
+                      key={product.id}
+                      onClick={() => applyShopifyProduct(product)}
+                      style={{
+                        display: 'flex', gap: 10, alignItems: 'center',
+                        padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
+                        border: `1px solid ${isSelected ? 'var(--ink)' : 'var(--border)'}`,
+                        background: isSelected ? 'var(--accent-soft)' : 'var(--surface)',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {product.images[0]
+                        ? <img src={product.images[0]} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
+                        : <div style={{ width: 40, height: 40, borderRadius: 6, background: 'var(--surface-2)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>📦</div>
+                      }
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' as const }}>{product.title}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>${product.price}</div>
+                      </div>
+                      {isSelected && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+              {selectedShopifyProduct && (
+                <div style={{ marginTop: 8, fontSize: 12, color: 'var(--ink-mute)' }}>
+                  ✓ {selectedShopifyProduct.title} selected — fields below have been pre-filled
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="form-row">

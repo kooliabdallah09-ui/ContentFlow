@@ -5,20 +5,81 @@ import { getSupabase } from '@/lib/auth'
 import { Icon } from '@/components/Icons'
 import Link from 'next/link'
 
+const PRICE_IDS = {
+  starter: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
+  pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
+  agency: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
+  pack_500: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '',
+  pack_1500: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '',
+  pack_5000: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '',
+}
+
 interface CreditsInfo {
   balance: number
   plan: string
   monthlyCredits: number
   resetDate: string
+  hasSubscription: boolean
 }
 
 export default function BillingPage() {
   const [creditsInfo, setCreditsInfo] = useState<CreditsInfo | null>(null)
   const [loading, setLoading] = useState(true)
+  const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
 
   useEffect(() => {
     loadCreditsInfo()
+    // Handle return from Stripe Checkout
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('success') === '1') {
+      setTimeout(() => loadCreditsInfo(), 2000) // Give webhook time to fire
+    }
   }, [])
+
+  async function getToken() {
+    const supabase = getSupabase()
+    if (!supabase) return null
+    const { data } = await supabase.auth.getSession()
+    return data?.session?.access_token ?? null
+  }
+
+  async function handleUpgrade(priceId: string, mode: 'subscription' | 'payment') {
+    if (!priceId) { alert('Stripe price not configured. Add env vars.'); return }
+    setUpgradeLoading(priceId)
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ priceId, mode }),
+      })
+      const { url, error } = await res.json()
+      if (error) throw new Error(error)
+      window.location.href = url
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Checkout failed')
+    } finally {
+      setUpgradeLoading(null)
+    }
+  }
+
+  async function handleManageSubscription() {
+    setUpgradeLoading('portal')
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/stripe/portal', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const { url, error } = await res.json()
+      if (error) throw new Error(error)
+      window.location.href = url
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Portal failed')
+    } finally {
+      setUpgradeLoading(null)
+    }
+  }
 
   const loadCreditsInfo = async () => {
     try {
@@ -41,6 +102,7 @@ export default function BillingPage() {
           plan: data.plan || 'free',
           monthlyCredits: data.monthlyCredits || 50,
           resetDate: data.resetDate || '',
+          hasSubscription: !!(data.plan && data.plan !== 'free'),
         })
       }
     } catch (error) {
@@ -65,9 +127,10 @@ export default function BillingPage() {
   const plans = [
     {
       name: 'Free',
-      price: '€0',
+      price: '$0',
       credits: '0/month',
       bonus: '+ 60 signup',
+      priceId: '',
       features: [
         '60 one-time signup credits',
         'Text generation',
@@ -81,8 +144,9 @@ export default function BillingPage() {
     },
     {
       name: 'Starter',
-      price: '€19',
+      price: '$19',
       credits: '800/month',
+      priceId: PRICE_IDS.starter,
       features: [
         '800 monthly credits',
         'All Free features',
@@ -93,14 +157,15 @@ export default function BillingPage() {
         'Priority support',
       ],
       current: creditsInfo?.plan === 'starter',
-      cta: creditsInfo?.plan === 'starter' ? 'Current Plan' : 'Upgrade',
+      cta: creditsInfo?.plan === 'starter' ? 'Current Plan' : 'Upgrade — $19/mo',
       ctaDisabled: creditsInfo?.plan === 'starter',
-      pricePerCredit: '€0.024/cr',
+      pricePerCredit: '$0.024/cr',
     },
     {
       name: 'Pro',
-      price: '€49',
+      price: '$49',
       credits: '2,000/month',
+      priceId: PRICE_IDS.pro,
       features: [
         '2,000 monthly credits',
         'All Starter features',
@@ -110,53 +175,42 @@ export default function BillingPage() {
         'Priority support',
       ],
       current: creditsInfo?.plan === 'pro',
-      cta: creditsInfo?.plan === 'pro' ? 'Current Plan' : 'Upgrade',
+      cta: creditsInfo?.plan === 'pro' ? 'Current Plan' : 'Upgrade — $49/mo',
       ctaDisabled: creditsInfo?.plan === 'pro',
-      pricePerCredit: '€0.025/cr',
+      pricePerCredit: '$0.025/cr',
     },
     {
       name: 'Agency',
-      price: '€149',
+      price: '$149',
       credits: '6,500/month',
+      priceId: PRICE_IDS.agency,
       features: [
         '6,500 monthly credits',
         'All Pro features',
         'Dedicated support',
       ],
       current: creditsInfo?.plan === 'agency',
-      cta: creditsInfo?.plan === 'agency' ? 'Current Plan' : 'Contact Sales',
+      cta: creditsInfo?.plan === 'agency' ? 'Current Plan' : 'Upgrade — $149/mo',
       ctaDisabled: creditsInfo?.plan === 'agency',
-      pricePerCredit: '€0.023/cr',
+      pricePerCredit: '$0.023/cr',
     },
   ]
 
   const creditPacks = [
     {
-      credits: 200,
-      price: '€5',
-      pricePerCredit: '€0.025/cr',
+      credits: 500,
+      price: '$15',
+      priceId: PRICE_IDS.pack_500,
+      pricePerCredit: '$0.030/cr',
       discount: null,
       popular: false,
     },
     {
-      credits: 600,
-      price: '€13',
-      pricePerCredit: '€0.022/cr',
-      discount: '-12%',
-      popular: false,
-    },
-    {
-      credits: 2000,
-      price: '€38',
-      pricePerCredit: '€0.019/cr',
-      discount: '-24%',
-      popular: true,
-    },
-    {
-      credits: 6000,
-      price: '€99',
-      pricePerCredit: '€0.017/cr',
-      discount: '-32%',
+      credits: 1500,
+      price: '$40',
+      priceId: PRICE_IDS.pack_1500,
+      pricePerCredit: '$0.027/cr',
+      discount: '-10%',
       popular: false,
     },
   ]
@@ -197,6 +251,16 @@ export default function BillingPage() {
             <p className="eyebrow">Reset Date</p>
           </div>
         </div>
+        {creditsInfo?.hasSubscription && (
+          <button
+            onClick={handleManageSubscription}
+            disabled={upgradeLoading === 'portal'}
+            className="btn"
+            style={{ marginTop: '16px', fontSize: '13px', padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-dim)', cursor: 'pointer' }}
+          >
+            {upgradeLoading === 'portal' ? 'Opening…' : '⚙ Manage subscription'}
+          </button>
+        )}
       </div>
 
       {/* Plans */}
@@ -248,15 +312,16 @@ export default function BillingPage() {
                 </ul>
               </div>
               <button
-                disabled={plan.ctaDisabled}
+                disabled={plan.ctaDisabled || upgradeLoading === plan.priceId}
                 className="btn btn-primary"
                 style={{
                   width: '100%',
                   opacity: plan.ctaDisabled ? 0.5 : 1,
                   cursor: plan.ctaDisabled ? 'default' : 'pointer',
                 }}
+                onClick={() => !plan.ctaDisabled && plan.priceId && handleUpgrade(plan.priceId, 'subscription')}
               >
-                {plan.cta}
+                {upgradeLoading === plan.priceId ? 'Redirecting…' : plan.cta}
               </button>
             </div>
           ))}
@@ -303,8 +368,13 @@ export default function BillingPage() {
                   </p>
                 )}
               </div>
-              <button className="btn btn-primary" style={{ width: '100%' }}>
-                Buy Pack
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', opacity: upgradeLoading === pack.priceId ? 0.6 : 1 }}
+                onClick={() => pack.priceId && handleUpgrade(pack.priceId, 'payment')}
+                disabled={upgradeLoading === pack.priceId}
+              >
+                {upgradeLoading === pack.priceId ? 'Redirecting…' : 'Buy Pack'}
               </button>
             </div>
           ))}

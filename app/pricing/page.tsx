@@ -2,9 +2,8 @@
 
 import Link from 'next/link'
 import { Check } from 'lucide-react'
-
-// In-app pricing page matching the Claude Design editorial style.
-// Standalone page (no sidebar wrapper) accessible from /pricing.
+import { useState, useEffect } from 'react'
+import { getSupabase } from '@/lib/auth'
 
 const PLANS = [
   {
@@ -12,7 +11,8 @@ const PLANS = [
     price: '$0',
     unit: 'forever',
     credits: '60 credits at signup',
-    features: ['Standard tier only', 'Watermarked output', 'Community support'],
+    priceId: '',
+    features: ['All generators', 'Watermarked UGC output', 'Community support'],
     cta: 'Get started',
     href: '/auth/signup',
   },
@@ -21,9 +21,10 @@ const PLANS = [
     price: '$19',
     unit: '/month',
     credits: '800 credits/month',
-    features: ['Standard + Hero tier', 'No watermark', '~9 UGC videos/month', '30-day history'],
-    cta: 'Start free trial',
-    href: '/auth/signup',
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
+    features: ['No watermark', '~9 UGC videos/month', 'AI image generator', 'Actor library', 'Priority support'],
+    cta: 'Get Starter',
+    href: '/auth/signup?plan=starter',
   },
   {
     name: 'Pro',
@@ -31,28 +32,61 @@ const PLANS = [
     price: '$49',
     unit: '/month',
     credits: '2,000 credits/month',
-    features: ['Everything in Starter', '~23 UGC videos/month', 'Long-form durations', 'Priority queue', 'Priority support'],
-    cta: 'Upgrade to Pro',
-    href: '/auth/signup',
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
+    features: ['Everything in Starter', '~23 UGC videos/month', 'Long-form durations', 'Custom actor photo', 'Priority queue'],
+    cta: 'Get Pro',
+    href: '/auth/signup?plan=pro',
   },
   {
     name: 'Agency',
     price: '$149',
     unit: '/month',
     credits: '6,500 credits/month',
+    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
     features: ['Everything in Pro', '~77 UGC videos/month', 'Team seats', 'Bulk variants', 'Dedicated manager'],
-    cta: 'Contact us',
-    href: '/auth/signup',
+    cta: 'Get Agency',
+    href: '/auth/signup?plan=agency',
   },
 ]
 
 const PACKS = [
-  { credits: 500, price: 15, perCredit: 0.030 },
-  { credits: 1500, price: 40, perCredit: 0.027, bonus: '+11%' },
-  { credits: 5000, price: 120, perCredit: 0.024, bonus: '+20%' },
+  { credits: 500, price: 15, perCredit: 0.030, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '' },
+  { credits: 1500, price: 40, perCredit: 0.027, bonus: '+11%', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '' },
+  { credits: 5000, price: 120, perCredit: 0.024, bonus: '+20%', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '' },
 ]
 
 export default function PricingPage() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
+
+  useEffect(() => {
+    getSupabase()?.auth.getSession().then((result: { data: { session: unknown } }) => {
+      setIsLoggedIn(!!result.data?.session)
+    })
+  }, [])
+
+  async function handleCheckout(priceId: string, mode: 'subscription' | 'payment') {
+    if (!priceId) { window.location.href = '/auth/signup'; return }
+    setUpgradeLoading(priceId)
+    try {
+      const { data } = await getSupabase()!.auth.getSession()
+      const token = data?.session?.access_token
+      if (!token) { window.location.href = '/auth/signup'; return }
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ priceId, mode }),
+      })
+      const { url, error } = await res.json()
+      if (error) throw new Error(error)
+      window.location.href = url
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Checkout failed')
+    } finally {
+      setUpgradeLoading(null)
+    }
+  }
+
   return (
     <main style={{ maxWidth: 1140, margin: '0 auto', padding: '50px 40px 90px' }}>
       <div style={{ textAlign: 'center', maxWidth: 620, margin: '0 auto' }}>
@@ -108,14 +142,32 @@ export default function PricingPage() {
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: 8 }}>{plan.credits}</div>
 
-              <Link href={plan.href} style={{
-                display: 'block', textAlign: 'center', width: '100%',
-                marginTop: 16, padding: 11, borderRadius: 9,
-                background: popular ? 'var(--ink)' : 'var(--surface)',
-                color: popular ? '#fff' : 'var(--ink)',
-                border: popular ? 'none' : '1px solid var(--border)',
-                fontWeight: 600, fontSize: 13,
-              }}>{plan.cta}</Link>
+              {isLoggedIn && plan.priceId ? (
+                <button
+                  onClick={() => handleCheckout(plan.priceId, 'subscription')}
+                  disabled={upgradeLoading === plan.priceId}
+                  style={{
+                    display: 'block', textAlign: 'center', width: '100%',
+                    marginTop: 16, padding: 11, borderRadius: 9,
+                    background: popular ? 'var(--ink)' : 'var(--surface)',
+                    color: popular ? '#fff' : 'var(--ink)',
+                    border: popular ? 'none' : '1px solid var(--border)',
+                    fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                    opacity: upgradeLoading === plan.priceId ? 0.6 : 1,
+                  }}
+                >
+                  {upgradeLoading === plan.priceId ? 'Redirecting…' : plan.cta}
+                </button>
+              ) : (
+                <Link href={plan.href} style={{
+                  display: 'block', textAlign: 'center', width: '100%',
+                  marginTop: 16, padding: 11, borderRadius: 9,
+                  background: popular ? 'var(--ink)' : 'var(--surface)',
+                  color: popular ? '#fff' : 'var(--ink)',
+                  border: popular ? 'none' : '1px solid var(--border)',
+                  fontWeight: 600, fontSize: 13,
+                }}>{plan.cta}</Link>
+              )}
 
               <div style={{ height: 1, background: 'var(--border-soft)', margin: '18px 0' }} />
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -173,12 +225,28 @@ export default function PricingPage() {
                 <span style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>${pack.price}</span>
                 <span style={{ marginLeft: 6, color: 'var(--ink-mute)' }}>· ${pack.perCredit.toFixed(3)}/cr</span>
               </div>
-              <Link href="/auth/signup" style={{
-                marginTop: 4, display: 'block', textAlign: 'center',
-                padding: '9px 14px', borderRadius: 9,
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                color: 'var(--ink)', fontWeight: 600, fontSize: 12.5,
-              }}>Buy credits</Link>
+              {isLoggedIn && pack.priceId ? (
+                <button
+                  onClick={() => handleCheckout(pack.priceId, 'payment')}
+                  disabled={upgradeLoading === pack.priceId}
+                  style={{
+                    marginTop: 4, display: 'block', textAlign: 'center', width: '100%',
+                    padding: '9px 14px', borderRadius: 9,
+                    background: 'var(--surface)', border: '1px solid var(--border)',
+                    color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer',
+                    opacity: upgradeLoading === pack.priceId ? 0.6 : 1,
+                  }}
+                >
+                  {upgradeLoading === pack.priceId ? 'Redirecting…' : 'Buy credits'}
+                </button>
+              ) : (
+                <Link href="/auth/signup" style={{
+                  marginTop: 4, display: 'block', textAlign: 'center',
+                  padding: '9px 14px', borderRadius: 9,
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  color: 'var(--ink)', fontWeight: 600, fontSize: 12.5,
+                }}>Buy credits</Link>
+              )}
             </div>
           ))}
         </div>
