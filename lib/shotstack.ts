@@ -309,6 +309,97 @@ function buildCaptionClips(script: string, startAt: number, totalLength: number)
   return chunks.map((text, i) => makeCaptionClip(text, startAt + i * perChunk, perChunk))
 }
 
+// Screen Demo: screen recording + AI voiceover mixed. Much simpler than UGC —
+// no talking head, no B-roll, just video + audio + optional captions + watermark.
+export async function submitScreenDemoJob({
+  screenRecordingUrl,
+  voiceoverUrl,
+  spokenScript,
+  watermark,
+  aspect,
+}: {
+  screenRecordingUrl: string
+  voiceoverUrl: string
+  spokenScript?: string
+  watermark?: boolean
+  aspect?: 'portrait' | 'square' | 'landscape'
+}): Promise<{ renderId: string }> {
+  const apiKey = process.env.SHOTSTACK_API_KEY
+  if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
+
+  // Estimate duration from script length (~10 chars/sec speaking rate, min 15s).
+  const estimatedDuration = Math.max(15, Math.ceil((spokenScript?.length ?? 150) / 10))
+
+  const outputSize =
+    aspect === 'square'    ? { width: 1080, height: 1080 } :
+    aspect === 'portrait'  ? { width: 1080, height: 1920 } :
+                             { width: 1920, height: 1080 }  // landscape default
+
+  const tracks: Record<string, unknown>[] = [
+    // Track 1 (bottom): screen recording, muted — voiceover carries the audio
+    {
+      clips: [{
+        asset: { type: 'video', src: screenRecordingUrl, volume: 0 },
+        start: 0,
+        length: estimatedDuration,
+        fit: 'contain',
+      }],
+    },
+    // Track 2: AI voiceover audio
+    {
+      clips: [{
+        asset: { type: 'audio', src: voiceoverUrl, volume: 1 },
+        start: 0,
+        length: estimatedDuration,
+      }],
+    },
+  ]
+
+  // Captions from script (script-based fallback, same as UGC stitch)
+  if (spokenScript?.trim()) {
+    const captionClips = buildCaptionClips(spokenScript.trim(), 0, estimatedDuration)
+    if (captionClips.length) tracks.unshift({ clips: captionClips })
+  }
+
+  if (watermark) {
+    tracks.unshift({
+      clips: [{
+        asset: {
+          type: 'html',
+          html: '<p>Made with ContentFlow</p>',
+          css: 'p { font-family: "Inter", sans-serif; font-size: 26px; font-weight: 700; color: #FFFFFF; text-shadow: 0 1px 3px rgba(0,0,0,0.7); margin: 0; padding: 6px 12px; background: rgba(0,0,0,0.45); border-radius: 6px; display: inline-block; white-space: nowrap; }',
+          width: 380, height: 60, background: 'transparent',
+        },
+        start: 0,
+        length: estimatedDuration,
+        position: 'bottomRight',
+        offset: { x: -0.02, y: 0.02 },
+      }],
+    })
+  }
+
+  const body = {
+    timeline: { background: '#000000', tracks },
+    output: { format: 'mp4', size: outputSize, fps: 30 },
+  }
+
+  const res = await fetch(`${SHOTSTACK_BASE}/render`, {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    throw new Error(`Shotstack ${res.status}: ${text.slice(0, 300)}`)
+  }
+
+  const data = await res.json()
+  const renderId = data?.response?.id ?? data?.id
+  if (!renderId) throw new Error(`Shotstack did not return a render ID: ${JSON.stringify(data)}`)
+  return { renderId }
+}
+
 // Status normalised to match the Creatomate interface used by the route + UI.
 //   Shotstack:    queued | fetching | rendering | saving | done | failed
 //   Creatomate:   planned | waiting | transcribing | rendering | succeeded | failed

@@ -57,7 +57,7 @@ interface UGCPackageBuilderProps {
     actorId?: string
     customPhotoBase64?: string
     customPhotoMimeType?: string
-    productType?: 'physical' | 'software'
+    productType?: 'physical'
     prewrittenScript?: string
   }) => Promise<void>
   isLoading: boolean
@@ -90,7 +90,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [actorId, setActorId] = useState<string | undefined>()
   const [customPhoto, setCustomPhoto] = useState<{ base64: string; mimeType: string } | undefined>()
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
-  const [productType, setProductType] = useState<'physical' | 'software'>('physical')
+  const productType = 'physical'
 
   // Shopify product picker
   const [shopifyUrl, setShopifyUrl] = useState('')
@@ -841,32 +841,6 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </div>
         )}
 
-        {/* Product type toggle */}
-        <div className="form-row">
-          <label className="form-label">Product type</label>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-            {(['physical', 'software'] as const).map(type => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setProductType(type)}
-                disabled={isLoading}
-                style={{
-                  padding: '7px 16px',
-                  borderRadius: 8,
-                  border: `1.5px solid ${productType === type ? 'var(--ink)' : 'var(--border)'}`,
-                  background: productType === type ? 'var(--ink)' : 'transparent',
-                  color: productType === type ? '#fff' : 'var(--ink-mute)',
-                  fontSize: 13,
-                  fontWeight: 600,
-                  cursor: isLoading ? 'not-allowed' : 'pointer',
-                }}
-              >
-                {type === 'physical' ? 'Physical product' : 'Software / App'}
-              </button>
-            ))}
-          </div>
-        </div>
 
         <div className="form-row">
           <label className="form-label">Product name</label>
@@ -906,14 +880,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
         <div className="form-row">
           <label className="form-label">
-            {productType === 'software' ? 'App screenshot' : 'Product photo'}{' '}
+            Product photo{' '}
             <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(required)</span>
           </label>
-          <p className="help">
-            {productType === 'software'
-              ? 'This will appear as the background behind the character.'
-              : 'Our AI composites your real product into the video first frame.'}
-          </p>
+          <p className="help">Our AI composites your real product into the video first frame.</p>
           <label style={{
             display: 'flex', alignItems: 'center', gap: '14px',
             padding: '12px 14px', borderRadius: 12,
@@ -944,7 +914,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
                 </div>
                 <div>
-                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{productType === 'software' ? 'Drop app screenshot' : 'Drop product photo'}</p>
+                  <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Drop product photo</p>
                   <p style={{ fontSize: '11px', color: 'var(--ink-mute)', margin: '2px 0 0', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>PNG · JPG · WEBP</p>
                 </div>
               </>

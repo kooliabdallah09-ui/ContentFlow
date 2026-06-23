@@ -202,4 +202,10 @@ export const Icon = {
       <path d="M20 4L8.12 15.88M14.47 14.48L20 20M8.12 8.12L12 12"/>
     </svg>
   ),
+  Monitor: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="2" y="3" width="20" height="14" rx="2"/>
+      <path d="M8 21h8M12 17v4"/>
+    </svg>
+  ),
 };

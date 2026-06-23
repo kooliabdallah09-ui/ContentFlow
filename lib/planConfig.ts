@@ -1,5 +1,5 @@
 export type PlanTier = 'free' | 'starter' | 'pro' | 'agency'
-export type ContentFormat = 'ugc' | 'video' | 'image' | 'social' | 'blog' | 'voice' | 'email'
+export type ContentFormat = 'ugc' | 'video' | 'image' | 'social' | 'blog' | 'voice' | 'email' | 'screen-demo'
 export type FormatFrequency = 0 | 1 | 2 | 3  // never / light / regular / heavy
 export type FormatPreferences = Partial<Record<ContentFormat, FormatFrequency>>
 
@@ -36,7 +36,7 @@ export const PLAN_CONFIG: Record<PlanTier, {
     signupBonus: 60,
     watermark: true,
     // 60cr ≈ 1 Standard 4s UGC + 3 product images. Capped so it can't go beyond that.
-    monthlyTypeCaps: { ugc: 1, video: 0, voice: 1, image: 3, social: 3, blog: 1, email: 1 },
+    monthlyTypeCaps: { ugc: 1, video: 0, voice: 1, image: 3, social: 3, blog: 1, email: 1, 'screen-demo': 0 },
     freeTrials: { image: 3 },
   },
   starter: {
@@ -44,7 +44,7 @@ export const PLAN_CONFIG: Record<PlanTier, {
     monthlyCredits: 800,
     signupBonus: 0,
     watermark: false,
-    monthlyTypeCaps: { ugc: 12, video: 12, voice: 20, image: 50, social: Infinity, blog: Infinity, email: Infinity },
+    monthlyTypeCaps: { ugc: 12, video: 12, voice: 20, image: 50, social: Infinity, blog: Infinity, email: Infinity, 'screen-demo': 10 },
     freeTrials: {},
   },
   pro: {
@@ -52,7 +52,7 @@ export const PLAN_CONFIG: Record<PlanTier, {
     monthlyCredits: 2000,
     signupBonus: 0,
     watermark: false,
-    monthlyTypeCaps: { ugc: 30, video: 30, voice: 60, image: Infinity, social: Infinity, blog: Infinity, email: Infinity },
+    monthlyTypeCaps: { ugc: 30, video: 30, voice: 60, image: Infinity, social: Infinity, blog: Infinity, email: Infinity, 'screen-demo': 30 },
     freeTrials: {},
   },
   agency: {
@@ -60,7 +60,7 @@ export const PLAN_CONFIG: Record<PlanTier, {
     monthlyCredits: 6500,
     signupBonus: 0,
     watermark: false,
-    monthlyTypeCaps: { ugc: Infinity, video: Infinity, voice: Infinity, image: Infinity, social: Infinity, blog: Infinity, email: Infinity },
+    monthlyTypeCaps: { ugc: Infinity, video: Infinity, voice: Infinity, image: Infinity, social: Infinity, blog: Infinity, email: Infinity, 'screen-demo': Infinity },
     freeTrials: {},
   },
 }

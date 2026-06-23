@@ -12,1311 +12,436 @@
 
 ✻ Conversation compacted (ctrl+o for history)
 
-  ⎿  Read lib/actors.ts (195 lines)
-  ⎿  Read app/api/admin/actor-portrait/route.ts (88 lines)
-  ⎿  Referenced file app/generate/video/page.tsx
-  ⎿  Read app/api/ugc/video-status/route.ts (90 lines)
-  ⎿  Read app/api/video/generate/route.ts (167 lines)
-
-⏺ Bash(cp /Users/abdallahkooli/Downloads/leila.jpg
-      /Users/abdallahkooli/contentflow/public/actors/leila.jpg && cp
-      /Users/abdallahkooli/Downloads/noah.jpg /Users/abdall…)
-  ⎿  done
-
-⏺ All 4 portraits are already in lib/actors.ts from the previous session (lines
-  54–121). The files are now copied to public/actors/. Let me verify the entries
-   match:
-
-  Listed 1 directory (ctrl+o to expand)
-
-⏺ All 10 portraits are in place. Let me commit and push.
-
-⏺ Bash(git add public/actors/leila.jpg public/actors/noah.jpg
-      public/actors/diego.jpg public/actors/amara.jpg && git status)
-  ⎿  On branch master
-     Your branch is up to date with 'origin/master'.
-     … +11 lines (ctrl+o to expand)
-
-⏺ Bash(git commit -m "$(cat <<'EOF'
-      Add Leila, Noah, Diego, Amara actor portraits…)
-  ⎿  [master 4294d6a] Add Leila, Noah, Diego, Amara actor portraits
-      4 files changed, 0 insertions(+), 0 deletions(-)
-      create mode 100644 public/actors/amara.jpg
-     … +5 lines (ctrl+o to expand)
-
-⏺ All 4 portraits pushed. The actor library is now complete with all 10 actors:
-  Maya, Liam, Amara, Diego, Noah, Leila, Marcus, Sophie, Jin, Isabela.
-
-✻ Cogitated for 1m 49s
-
-❯ Add an option were someone can add their own picture, do you its a good idea  
-  ?                                                                             
-
-⏺ Yes, great idea. Users can upload a photo of themselves and it drops in as the
-   actor portrait — same downstream path as the curated actors. It makes the
-  product feel much more personal.
-
-  Here's how I'd implement it:
-
-  - On the actor picker, add an "Upload your photo" card at the end of the grid
-  (same size as the actor cards, with a "+" / upload icon)
-  - When clicked, opens a file input (jpg/png, max ~5MB)
-  - The uploaded image is previewed in the card (same portrait style as the
-  curated ones)
-  - For the CharacterProfile, instead of pre-filling all the fields, we show a
-  mini form (just gender, age, scene — the 3 fields that most affect the video
-  prompt) since we don't know who they are
-  - The photo gets base64'd client-side and passed along just like the curated
-  actor portraits
-
-  Want me to build it?
-
-✻ Worked for 9s
-
-❯ yes, btw i've got a question, for the existing avatars, when you are gonna    
-  give the prompt to kling, you give it the actual photo right ? not the TS     
-
-⏺ Good question. Let me check the actual flow.
-
-  Searched for 4 patterns (ctrl+o to expand)
-
-⏺ There's the answer: no, the actual portrait photo is not passed to Kling. What
-   happens is:
-
-  1. The CharacterProfile (the TS data) is used to build a text prompt via
-  buildCharacterPrompt()
-  2. Nano Banana generates a new image of the character holding the product (the
-   "hero frame")
-  3. That AI-generated hero frame is what gets passed to Kling as startImageUrl
-
-  So the curated portrait photos are only used for the actor picker UI (so users
-   can see who they're choosing). The actual video generation re-creates the
-  character from scratch via text prompt every time.
-
-  This has implications for the custom photo upload feature — if the user
-  uploads their own photo, we'd need to either:
-  - Pass their photo directly to Kling as the start frame (skipping Nano
-  Banana), or
-  - Use it as a reference image for Nano Banana to generate a product-holding
-  frame first
-
-  Which approach do you want? Passing directly to Kling is simpler and preserves
-   the real person's face better.
-
-✻ Cogitated for 23s
-
-※ recap: Building a UGC video generator with a curated actor library. We just finished adding the last 4 actor portraits and discovered that uploaded photos bypass Nano Banana and go directly to Kling as the start frame. Next: build the custom photo upload card.
-
-❯   - Use it as a reference image for Nano Banana to generate a product-holding 
-   frame first                                                                  
-   And for the existing actors, make it that it gives the actual photo to nano  
-  banana to just add the product to the actor then add to the kling. I mean the 
-   the actor image must be used to generate the actor + product. if no product, 
-   and if its an already existing actor, give it directly to kling, but if its  
-  a user photo, give to nana banana first so that it turn to a UGC format       
-  then... kling...                                                              
-
-⏺ Let me read the full orchestrate route to understand the current flow before
-  touching anything.
+  ⎿  Read app/pricing/page.tsx (267 lines)
+  ⎿  Referenced file app/settings/billing/page.tsx
+  ⎿  Read lib/stripe.ts (45 lines)
+  ⎿  Referenced file components/UGCPackageBuilder.tsx
+  ⎿  Read app/api/stripe/webhook/route.ts (130 lines)
 
   Read 1 file (ctrl+o to expand)
 
-⏺ Now let me check generateCharacterWithProduct in nanobanana to see what
-  parameters it accepts.
+⏺ Fixing both issues now — adding the 5000 credit pack and removing UGC from the
+   Free plan in both files.
 
-  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+⏺ Update(app/settings/billing/page.tsx)
+  ⎿  Added 1 line, removed 2 lines
+      133        priceId: '',
+      134        features: [
+      135          '60 one-time signup credits',
+      136 -        'UGC video ads (watermarked)',                        
+      136          'AI image generator',
+      137          'AI voiceover',
+      138          'Business card generator',
+      140 -        'Video editor',                                       
+      139 +        'Video editor (Beta)',                                
+      140        ],
+      141        current: creditsInfo?.plan === 'free',
+      142        cta: 'Current Plan',
 
-⏺ Now I have the full picture. Let me check the UGC page for the actor selection
-   UI:
+⏺ Update(app/settings/billing/page.tsx)
+  ⎿  Added 9 lines, removed 1 line
+      212        price: '$40',
+      213        priceId: PRICE_IDS.pack_1500,
+      214        pricePerCredit: '$0.027/cr',
+      215 -      discount: '-10%',                                       
+      215 +      discount: '+11%',                                       
+      216        popular: false,
+      217      },
+      218 +    {                                                         
+      219 +      credits: 5000,                                          
+      220 +      price: '$120',                                          
+      221 +      priceId: PRICE_IDS.pack_5000,                           
+      222 +      pricePerCredit: '$0.024/cr',                            
+      223 +      discount: '+20%',                                       
+      224 +      popular: true,                                          
+      225 +    },                                                        
+      226    ]
+      227  
+      228    return (
 
-  Searched for 3 patterns, read 1 file (ctrl+o to expand)
+⏺ Now fix the pricing page Free plan features:
 
-⏺ Now I have everything I need. Let me look at how the UGC page sends the
-  request body:
+⏺ Update(app/pricing/page.tsx)
+  ⎿  Added 1 line, removed 1 line
+      12      unit: 'forever',
+      13      credits: '60 credits at signup',
+      14      priceId: '',
+      15 -    features: ['UGC video ads (watermarked)', 'AI image generat
+         -or', 'AI voiceover', 'Business card generator', 'Video editor']
+         -,                                                              
+      15 +    features: ['AI image generator', 'AI voiceover', 'Business 
+         +card generator', 'Video editor (Beta)', '60 credits to explore'
+         +],                                                             
+      16      cta: 'Get started',
+      17      href: '/auth/signup',
+      18    },
 
-  Searched for 1 pattern, read 1 file (ctrl+o to expand)
+⏺ Now commit and push:
 
-⏺ Good. Now I have a complete picture. Let me implement everything:
-
-⏺ Agent(Implement actor photo flow for UGC pipeline)
-  ⎿  Done (34 tool uses · 49.0k tokens · 4m 12s)
-  (ctrl+o to expand)
-
-⏺ Bash(git diff --stat HEAD)  ⎿   app/api/ugc/orchestrate/route.ts | 79 +++++++++++++++++++++++++++----
-     --
-      components/ActorPicker.tsx       | 94 +++++++++++++++++++++++++++++++
-     … +5 lines (ctrl+o to expand)
-
-⏺ Bash(npx tsc --noEmit 2>&1 | head -30)
-  ⎿  (No output)
-
-⏺ Clean. Let me commit and push:
-
-⏺ Bash(git add lib/nanobanana.ts app/api/ugc/orchestrate/route.ts
-      components/ActorPicker.tsx components/UGCPackageBuilder.tsx && git commit
+⏺ Bash(git add app/settings/billing/page.tsx app/pricing/page.tsx && git commit
       -m "$(cat <<'EOF'
-      Use actor…)
-  ⎿  [master 784d3c5] Use actor portraits as visual references in video pip
-     eline
-      4 files changed, 237 insertions(+), 30 deletions(-)
-     … +2 lines (ctrl+o to expand)
+      Fix billing page: add 5000 credit pack, remove UGC from free plan…)
+  ⎿  [master ef90bfe] Fix billing page: add 5000 credit pack, remove UGC fr
+     om free plan
+      2 files changed, 11 insertions(+), 4 deletions(-)
 
-⏺ Pushed. Here's what changed end-to-end:
+⏺ Bash(git push)
+  ⎿  To github.com:kooliabdallah09-ui/ContentFlow.git
+        02a1774..ef90bfe  master -> master
 
-  Pipeline logic:
-  - Library actor + product → portrait + product both sent to Nano Banana as
-  Image 1 / Image 2 → hero frame (NB preserves the real face) → Kling
-  - Library actor + no product → portrait loaded from disk, resized, sent
-  directly to Kling (zero NB call)
-  - Custom photo + product → same as library actor + product path
-  - Custom photo + no product → ugcifyPortrait() converts it to a UGC selfie
-  format first → Kling
+⏺ Done and pushed. Two fixes:
 
-  UI:
-  - Actor picker has a new "Upload your photo" card at the end of the grid —
-  dashed border upload state, switches to a portrait preview card once a photo
-  is loaded, with a "Selected" badge same as the library actors
+  - Free plan: removed "UGC video ads" (60 credits ≈ not enough for even one
+  video) — replaced with "60 credits to explore"
+  - Credit packs: restored the 5,000 cr / $120 pack (Best Value badge) that was
+  accidentally dropped
 
-✻ Cooked for 7m 31s
+✻ Worked for 2m 21s
 
-※ recap: Built the custom photo upload feature for the actor picker and updated the full video pipeline to use real actor portraits as visual references in Nano Banana. Everything is pushed — ready to test on the UGC page.
+※ recap: Fixed the billing page: added back the 5000 credit pack and removed UGC from the free plan. Next step is adding your remaining Stripe price IDs and webhook secret to Vercel environment variables.
 
-❯ Theres a mistake in the pricing of the UGCs, kling : [Image #24] nano banana  
-  2 : [Image #25].                                                              
-  ⎿  [Image #24]
-  ⎿  [Image #25]
+❯ now add the annual pricing toggle                                             
 
-⏺ Let me check the current credit costs and how credits map to dollars:
-
-  Searched for 2 patterns, read 1 file (ctrl+o to expand)
-
-⏺ Got it. The pipeline uses Kling v3 omni in standard mode with audio →
-  $0.224/second. Current code assumed $0.05/second — way off.
-
-  Real costs at 1 credit = $0.025:
-  - Kling standard-audio: $0.224/s ÷ $0.025 = 8.96 → 9 credits/second
-  - Nano Banana 2 (1K): $0.067 ÷ $0.025 = 2.68 → 3 credits/image
+⏺ Let me read the current pricing page to plan the toggle implementation.
 
   Read 1 file (ctrl+o to expand)
 
-⏺ Update(lib/tiers.ts)
-  ⎿  Added 7 lines, removed 8 lines
-      50  export const DEFAULT_DURATION: UGCDuration = 10
-      51  
-      52  // === Credit math ===
-      53 -// 1 cr = $0.025. Tuned for ~2x markup on real Replicate cost. 
-      54 -//   BASE_FIXED: Nano Banana hero frame (~$0.04) + Claude promp
-         -ts + Shotstack stitch.                                         
-      55 -//   PER_SECOND_KLING: each second of Kling v3 omni-video stand
-         -ard mode.                                                      
-      56 -//                     Approx $0.05/sec on Replicate at standar
-         -d mode.                                                        
-      57 -//   CHAINED_OVERHEAD_PER_CLIP: extra orchestration cost per ch
-         -ained clip.                                                    
-      58 -const BASE_FIXED = 15                                          
-      59 -const PER_SECOND_KLING = 5                                     
-      60 -const CHAINED_OVERHEAD_PER_CLIP = 8                            
-      53 +// 1 cr = $0.025 USD.                                          
-      54 +//   BASE_FIXED: Nano Banana 2 hero frame ($0.067 → 3cr) + Clau
-         +de prompts (~3cr) + overhead (~4cr).                           
-      55 +//   PER_SECOND_KLING: Kling v3 omni standard-audio = $0.224/s 
-         +→ $0.224/$0.025 = 8.96 → 9 cr/s.                               
-      56 +//   CHAINED_OVERHEAD_PER_CLIP: extra orchestration cost per ch
-         +ained clip (20s = 2×15s).                                      
-      57 +const BASE_FIXED = 10                                          
-      58 +const PER_SECOND_KLING = 9                                     
-      59 +const CHAINED_OVERHEAD_PER_CLIP = 5                            
-      60  
-      61  export function calculateVideoCredits(_tier: UGCTier, duration:
-           UGCDuration): number {
-      62    const dCfg = DURATION_CONFIGS[duration]
-
-⏺ New costs:
-  - 5s: 10 + 9×5 = 55 credits ($1.375)
-  - 10s: 10 + 9×10 = 100 credits ($2.50)
-  - 15s: 10 + 9×15 = 145 credits ($3.625)
-  - 20s (2×15s): 10 + 9×15×2 + 5 = 285 credits ($7.125)
-
-⏺ Bash(npx tsc --noEmit 2>&1 | head -10 && git add lib/tiers.ts && git commit -m
-       "$(cat <<'EOF'
-      Fix UGC credit pricing to match actual Replicate costs…)
-  ⎿  [master ec89241] Fix UGC credit pricing to match actual Replicate cost
-     s
-      1 file changed, 7 insertions(+), 8 deletions(-)
-     … +2 lines (ctrl+o to expand)
-
-⏺ Pushed. Updated prices: 5s → 55cr · 10s → 100cr · 15s → 145cr · 20s → 285cr
-  (roughly at actual Replicate cost, no markup added since the comment
-  previously said 2× but the old numbers were based on a 4× wrong assumption
-  anyway).
-
-✻ Worked for 1m 38s
-
-❯ add the markup                                                                
-
-⏺ Update(lib/tiers.ts)
-  ⎿  Added 7 lines, removed 7 lines
-      49  export const DEFAULT_TIER: UGCTier = 'standard'
-      50  export const DEFAULT_DURATION: UGCDuration = 10
-      51  
-      52 -// === Credit math ===                                         
-      52 +// === Credit math — 2× markup on Replicate cost ===           
-      53  // 1 cr = $0.025 USD.
-      54 -//   BASE_FIXED: Nano Banana 2 hero frame ($0.067 → 3cr) + Clau
-         -de prompts (~3cr) + overhead (~4cr).                           
-      55 -//   PER_SECOND_KLING: Kling v3 omni standard-audio = $0.224/s 
-         -→ $0.224/$0.025 = 8.96 → 9 cr/s.                               
-      56 -//   CHAINED_OVERHEAD_PER_CLIP: extra orchestration cost per ch
-         -ained clip (20s = 2×15s).                                      
-      57 -const BASE_FIXED = 10                                          
-      58 -const PER_SECOND_KLING = 9                                     
-      59 -const CHAINED_OVERHEAD_PER_CLIP = 5                            
-      54 +//   BASE_FIXED: NB 2 hero frame (3cr at cost → 6cr) + Claude (
-         +~3cr) + overhead (~3cr) = 12cr.                                
-      55 +//   PER_SECOND_KLING: Kling v3 omni standard-audio = $0.224/s 
-         +→ 9cr/s at cost → 18cr/s at 2×.                                
-      56 +//   CHAINED_OVERHEAD_PER_CLIP: extra orchestration per chained
-         + clip.                                                         
-      57 +const BASE_FIXED = 12                                          
-      58 +const PER_SECOND_KLING = 18                                    
-      59 +const CHAINED_OVERHEAD_PER_CLIP = 8                            
-      60  
-      61  export function calculateVideoCredits(_tier: UGCTier, duration:
-           UGCDuration): number {
-      62    const dCfg = DURATION_CONFIGS[duration]
-
-⏺ Bash(git add lib/tiers.ts && git commit -m "$(cat <<'EOF'
-      Apply 2× markup to UGC credit pricing…)
-  ⎿  [master 9d1cfda] Apply 2× markup to UGC credit pricing
-      1 file changed, 7 insertions(+), 7 deletions(-)
-     To github.com:kooliabdallah09-ui/ContentFlow.git
-        ec89241..9d1cfda  master -> master
-
-⏺ Done. New prices at 2× markup: 5s → 102cr · 10s → 192cr · 15s → 282cr · 20s → 
-  560cr.
-
-✻ Baked for 23s
-
-❯ why is the 20s so expensive ?                                                 
-
-⏺ Because 20s is chained as 2×15s clips (Kling's max per generation is 15s), so
-  you're paying for two full 15s generations:
-
-  - 2 × 15s × 18cr/s = 540cr + 12 (base) + 8 (chain overhead) = 560cr
-
-  vs a single 15s = 282cr.
-
-  It's genuinely twice the cost because it's literally two API calls. The
-  question is whether to offer 20s at all, or replace it with something more
-  honest — like capping at 15s, or relabeling 20s as "2-clip bundle" with a
-  clear price warning in the UI.
-
-  What do you want to do?
-
-✻ Crunched for 6s
-
-※ recap: Building a UGC video generator with an actor library. Last thing discussed was the 20s video option costing 560 credits because it chains two 15s Kling clips. Decide whether to keep, remove, or relabel it.
-
-❯ wtf ?? 15x2 = 30                                                              
-
-⏺ You're right, 2×15s = 30s of video, not 20s. The chaining logic is wrong — if
-  you want 20s you should chain a 15s + a 5s clip, not two 15s.
-
-  Let me fix the duration config:
-
-  Read 1 file (ctrl+o to expand)
-
-⏺ The fix: chain 2×10s = 20s, not 2×15s.
-
-⏺ Update(lib/tiers.ts)
-  ⎿  Added 1 line, removed 1 line
-      22    5:  { totalSeconds: 5,  klingSeconds: 5,  klingClips: 1, stra
-          tegy: 'native',  label: '5s',  available: true },
-      23    10: { totalSeconds: 10, klingSeconds: 10, klingClips: 1, stra
-          tegy: 'native',  label: '10s', available: true },
-      24    15: { totalSeconds: 15, klingSeconds: 15, klingClips: 1, stra
-          tegy: 'native',  label: '15s', available: true },
-      25 -  20: { totalSeconds: 20, klingSeconds: 15, klingClips: 2, stra
-         -tegy: 'chained', label: '20s', available: true },              
-      25 +  20: { totalSeconds: 20, klingSeconds: 10, klingClips: 2, stra
-         +tegy: 'chained', label: '20s', available: true },              
-      26  }
-      27  
-      28  export const DURATION_OPTIONS = [5, 10, 15, 20] as const
-⏺ Bash(git add lib/tiers.ts && git commit -m "$(cat <<'EOF'
-      Fix 20s duration: chain 2×10s not 2×15s…)
-  ⎿  [master 60b9d95] Fix 20s duration: chain 2×10s not 2×15s
-      1 file changed, 1 insertion(+), 1 deletion(-)
-     To github.com:kooliabdallah09-ui/ContentFlow.git
-        9d1cfda..60b9d95  master -> master
-
-⏺ Fixed. 20s is now 2×10s clips = 380cr ($9.50), vs 15s = 282cr ($7.05). Makes
-  sense proportionally.
-
-✻ Brewed for 35s
-
-※ recap: Building a UGC video ad generator with a curated actor library. Just fixed credit pricing for the UGC pipeline based on real Replicate costs. Next: continue adding features or testing the actor photo upload flow.
-
-❯ ok now we have to make a system for the software products, lets think about,  
-  don't do any changes just ideas                                               
-
-⏺ Ok let me think about this properly.
-
-  The core problem with software products: when a user uploads a screenshot or
-  app UI as their "product photo", Nano Banana has to render it on a
-  phone/laptop screen instead of a held physical product. We already handle the
-  classification in the prompt ("Is it a UI screenshot? → render a phone with
-  that screen"), but there are deeper issues:
-
-  What's broken / suboptimal today:
-  1. Script generation — Claude writes "I've been using this product for
-  weeks..." treating software like a skincare bottle. It should say "this app",
-  "this tool", "it saved me 3 hours"
-  2. Hero frame — the character holds a phone showing the UI, which is fine, but
-   the Kling prompt built around it might still describe physical product
-  motions ("picks up", "applies")
-  3. Scene selection — software products suit home office, café, desk scenes —
-  not bathrooms or gyms
-  4. CTA — "try it today / link in bio / grab yours" works, but software often
-  needs "start free", "download now", "free trial"
-
-  Ideas for a "software mode":
-
-  Option A — Auto-detect — Claude analyzes the uploaded image and if it
-  classifies it as a UI screenshot, switches to software script templates
-  automatically. Zero extra UI, fully transparent.
-
-  Option B — Product type toggle — Add a "Physical product / Software / Service"
-   toggle in the form before generation. Changes script prompts, Kling motion
-  prompts, and recommended scenes.
-
-  Option C — URL input — Instead of (or alongside) a screenshot, user pastes
-  their app URL. We screenshot it server-side, extract product name/description
-  from the page, pre-fill the form. More seamless onboarding for SaaS founders.
-
-  My recommendation: Option B first (simple toggle, big impact on script
-  quality), then Option A (auto-detection to make it feel magical). Option C is
-  a nice bonus but scope creep.
-
-  What direction interests you?
-
-✻ Sautéed for 16s
-
-❯ B, but what will it do with the UI                                            
-
-⏺ Good question. With a software product, the UI screenshot needs to be shown
-  realistically on a device screen in the video. Here's how I'd think through
-  it:
-
-  The hero frame (Nano Banana):
-  Instead of "character holding a bottle", we generate "character holding a
-  phone/laptop with the app visible on screen." We already attempt this in the
-  current prompt but it's unreliable. With a dedicated software mode we can
-  write a sharper, purpose-built prompt that locks this in — no classification
-  guesswork.
-
-  The Kling video:
-  The character is looking at / interacting with their phone showing the app.
-  Natural gestures: scrolling, tapping, tilting the screen toward camera. The
-  spoken script plays over this. Much more believable than a held physical
-  product.
-
-  But here's the real problem — fidelity:
-  Nano Banana rendering a UI on a tiny phone screen in the hero frame will be
-  blurry and barely readable. Nobody can see your app's features.
-
-  Solution idea — split screen / overlay:
-  - Kling generates the talking head (character reacting to the app)
-  - We separately composite the actual UI screenshot as an overlay (Shotstack
-  can do this) — crisp, full-res, positioned beside or below the character
-  - Think: left half = character talking, right half = clean app screenshot
-  animating in
-
-  This way the UI is always pixel-perfect regardless of what the AI renders.
-
-  Does that composite/overlay approach interest you, or do you want to keep it
-  simpler (just the character holding the phone)?
-
-✻ Churned for 14s
-
-❯ wait can't we make it like, the app is the background and the caracter is in  
-  front like a green screen thing                                               
-
-⏺ Yes, exactly — that's actually cleaner than a split screen. Like a news anchor
-   setup:
-
-  - Background: the app UI screenshot, full screen, crisp and readable
-  - Foreground: the character talking, cut out and composited on top
-
-  Shotstack can do this — it supports layering clips with chroma key / masking.
-  But the character would need to be filmed (or generated) against a solid color
-   background so we can cut them out cleanly.
-
-  So the question is: can we tell Kling to generate the talking head against a
-  green or solid white/black background?
-
-  Kling doesn't guarantee clean chroma key backgrounds reliably — it tends to
-  generate realistic environments. We'd either:
-
-  1. Tell Kling "plain green background" in the prompt → works sometimes,
-  inconsistent
-  2. Generate the character against a solid background via Nano Banana first
-  (the hero frame), then use that as Kling's start image with a prompt that says
-   "keep the background solid green" → more control since we control the start
-  frame
-  3. Background removal API (like Remove.bg or Replicate's background removal
-  model) on the Kling output frame-by-frame → expensive and slow for video
-
-  Option 2 is the most realistic with our current stack. We make Nano Banana
-  generate the character against pure green, pass that to Kling, then Shotstack
-  composites the UI as background behind the cutout character.
-
-  Want to go with that approach?
-
-✻ Cogitated for 11s
-
-※ recap: Building a software product mode for UGC videos where the app UI fills the background and the character appears in front like a news anchor. Next step: decide whether to use Option 2 (Nano Banana generates character on green background, Kling keeps it, Shotstack composites the UI behind).
-
-❯ yup                                                                           
-
-⏺ Ok let me plan the full implementation before building:
-
-  Files to touch:
-
-  1. components/UGCPackageBuilder.tsx — "Physical product / Software" toggle in
-  the form. When software: product photo becomes optional (the UI screenshot is
-  the "product"), pass productType: 'software' to orchestrate
-  2. lib/nanobanana.ts — New generateCharacterGreenScreen(characterPrompt, 
-  scene, aspectRatio) — generates character against pure #00B140 (broadcast
-  green) with no product in hand, prompt locks the background to solid color
-  3. app/api/ugc/orchestrate/route.ts — When productType === 'software':
-    - Skip generateCharacterWithProduct, call generateCharacterGreenScreen
-  instead
-    - Upload the UI screenshot to Supabase storage (used by Shotstack as
-  background layer)
-    - Pass softwareMode: true + uiScreenshotUrl to the response so the stitch
-  step knows
-  4. app/api/ugc/stitch/route.ts — When softwareMode:
-    - Layer 1: UI screenshot scaled to fill frame (background)
-    - Layer 2: Kling video with Shotstack's chroma key filter on #00B140
-    - Character appears floating in front of their app
-  5. app/api/ugc/orchestrate/route.ts script section — When software mode,
-  inject into the Claude prompt: "this is a software/app product, CTAs should be
-   'start free / download / try for free', avoid physical product language"
-
-  Ready to build?
-
-✻ Churned for 25s
-
-❯ wait, wdym the product photo is optonal ?                                     
-
-⏺ Good catch. The UI screenshot is the product photo — it's just used
-  differently:
-
-  - Physical mode: screenshot → Nano Banana renders character holding it
-  - Software mode: screenshot → becomes the background behind the character in
-  Shotstack
-
-  So it's still required, just routed differently. The toggle just changes what
-  we do with it downstream. Same upload field, same UX.
-
-  Ready to build?
-
-✻ Churned for 4s
-
-❯ yess                                                                          
-
-⏺ Agent(Build software product mode for UGC pipeline)
-  ⎿  Done (27 tool uses · 55.4k tokens · 3m 41s)
-  (ctrl+o to expand)
-
-⏺ Bash(git diff --stat HEAD && npx tsc --noEmit 2>&1 | head -20)
-  ⎿  (No output)
-
-⏺ Bash(git diff --stat HEAD)
-  ⎿  (No output)
-
-⏺ The changes are in the worktree branch, not merged yet. Let me merge them in:
-
-⏺ Bash(git merge worktree-agent-afb4679f63066afec --no-edit 2>&1)
-  ⎿  Already up to date.
-
-⏺ Bash(cd
-      /Users/abdallahkooli/contentflow/.claude/worktrees/agent-afb4679f63066afec
-       && git log --oneline -3)
-  ⎿  60b9d95 Fix 20s duration: chain 2×10s not 2×15s
-     9d1cfda Apply 2× markup to UGC credit pricing
-     ec89241 Fix UGC credit pricing to match actual Replicate costs
-
-⏺ The agent didn't commit. Let me copy the changes from the worktree directly:
-
-⏺ Bash(diff -r /Users/abdallahkooli/contentflow/.claude/worktrees/agent-afb4679f
-      63066afec/lib/nanobanana.ts
-      /Users/abdallahkooli/contentflow/lib/nanobanana.ts | head -…)
-  ⎿  328,351d327
-     < }
-     <
-     … +4 lines (ctrl+o to expand)
-
-⏺ Bash(WORKTREE=/Users/abdallahkooli/contentflow/.claude/worktrees/agent-afb4679
-      f63066afec
-      MAIN=/Users/abdallahkooli/contentflow…)
-  ⎿  done
-
-⏺ Bash(cd /Users/abdallahkooli/contentflow && npx tsc --noEmit 2>&1 | head -20)
-  ⎿  (No output)
-⏺ Bash(git add lib/nanobanana.ts app/api/ugc/orchestrate/route.ts
-      app/api/ugc/stitch/route.ts components/UGCPackageBuilder.tsx
-      lib/shotstack.ts && git commit -m "$(cat…)
-  ⎿  [master 87c9b17] Add software product mode to UGC pipeline
-      5 files changed, 136 insertions(+), 6 deletions(-)
-     To github.com:kooliabdallah09-ui/ContentFlow.git
-        60b9d95..87c9b17  master -> master
-
-⏺ Pushed. The full software mode is live:
-
-  - Toggle in the form: "Physical product" / "Software / App"
-  - Software flow: green screen character → Kling animates it → Shotstack puts
-  your UI screenshot as the background with the character composited on top via
-  chroma key
-  - Script automatically uses "this app", "start free", "download now" language
-  instead of physical product phrasing
-  - Upload label changes to "App screenshot" with a hint that it becomes the
-  background
-
-✻ Baked for 5m 33s
-
-❯ Make it that we valid the script before starting the ugc creation             
-
-⏺ Good idea — saves credits if the script is bad, and lets the user tweak it
-  before burning Kling costs. Here's the flow:
-
-  1. User fills the form → clicks "Generate Script"
-  2. Script appears in an editable text area (they can modify it)
-  3. They click "Generate Video" → rest of the pipeline runs with that script
-
-  This means:
-  - New /api/ugc/script route — just the Claude call, returns the script fast
-  (~2s)
-  - orchestrate accepts a prewrittenScript param and skips Claude entirely when
-  it's provided
-  - UGCPackageBuilder becomes a two-step UI: form → script review → generate
-
-⏺ Agent(Add script preview/validation step to UGC pipeline)
-  ⎿  Done (26 tool uses · 49.4k tokens · 3m 58s)
-  (ctrl+o to expand)
-
-⏺ Bash(WORKTREE=/Users/abdallahkooli/contentflow/.claude/worktrees/agent-ad572ca
-      8edf8e6094
-      MAIN=/Users/abdallahkooli/contentflow…)
-  ⎿  cp: /Users/abdallahkooli/contentflow/.claude/worktrees/agent-ad572ca8e
-     df8e6094/lib/ugc-script.ts: No such file or directory
-     cp: /Users/abdallahkooli/contentflow/.claude/worktrees/agent-ad572ca8e
-     … +7 lines (ctrl+o to expand)
-
-  Listed 1 directory (ctrl+o to expand)
-
-⏺ The worktree was cleaned up (no changes were committed). The agent reported
-  success but didn't actually write to the worktree. Let me implement it
-  directly:
-
-  Searched for 1 pattern, listed 1 directory (ctrl+o to expand)
-
-⏺ The files already exist from a previous session. Let me check what's missing —
-   just the UGCPackageBuilder two-step UI:
-
-  Searched for 1 pattern (ctrl+o to expand)
-
-⏺ Everything is already implemented. Let me verify it compiles and push:
-
-⏺ Bash(npx tsc --noEmit 2>&1 | head -10)
-  ⎿  (No output)
-
-⏺ Bash(git status --short)
-  ⎿   M app/api/ugc/orchestrate/route.ts
-      M app/generate/ugc/page.tsx
-      M components/UGCPackageBuilder.tsx
-     … +4 lines (ctrl+o to expand)
-
-⏺ Bash(git add lib/ugc-script.ts app/api/ugc/script/
-      app/api/ugc/orchestrate/route.ts components/UGCPackageBuilder.tsx
-      app/generate/ugc/page.tsx && git commit -m "$(ca…)
-  ⎿  [master c5d48e2] Add script preview step before UGC video generation
-      5 files changed, 372 insertions(+), 158 deletions(-)
-      create mode 100644 app/api/ugc/script/route.ts
-     … +3 lines (ctrl+o to expand)
-
-⏺ Pushed. The flow is now:
-
-  1. User fills the form → "Generate Script →" (fast, ~2s, no credits charged)
-  2. Script appears in an editable textarea — they can tweak any line
-  3. "Generate Video →" runs the full pipeline with the approved script (Nano
-  Banana + Kling + Shotstack)
-
-✻ Worked for 5m 34s
-
-❯ Can we build a manual video editor in our app, and then we add th eoption to  
-  do the editing with ai                                                        
-
-⏺ Big feature. Let me think through what's realistic before touching anything.
-
-  What a manual editor needs at minimum:
-  - Video timeline (scrub, trim in/out points)
-  - Layer system (video track + text/caption overlay + maybe image overlay)
-  - Playback preview
-  - Export
-
-  The problem: building a real timeline editor from scratch is months of work.
-  But there are two practical shortcuts:
-
-  Option A — Embed an open-source editor library
-  Something like Remotion (https://www.remotion.dev/) or FFmpeg.wasm
-  (https://ffmpegwasm.netlify.app/) client-side. You get a real timeline, trim,
-  cuts, overlays. Heavy bundle but works in-browser with no backend per edit.
-  Export sends to your server for final render.
-
-  Option B — Wrap Shotstack's editor
-  Shotstack has a visual timeline API + a hosted editor UI you can embed via
-  iframe. Since you're already using Shotstack for stitching, this would be
-  nearly zero extra backend work. Limitations: it's their UI, not yours.
-
-  Option C — Lightweight custom editor (realistic scope)
-  Not a full NLE — just the key UGC editing actions:
-  - Trim start/end
-  - Add/edit captions
-  - Swap background music
-  - Add a text overlay (hook text, CTA)
-  - Cut between clips
-
-  Built with a <video> tag + range sliders + canvas preview. Export sends edit
-  instructions to Shotstack. This is 2-3 weeks of work and covers 90% of what
-  UGC creators actually need.
-
-  AI editing on top of any of these:
-  User describes what they want ("make it shorter", "add a hook text at the
-  start", "cut the last 3 seconds") → Claude translates to edit operations →
-  applied automatically.
-
-  My recommendation: Option C + AI layer. Realistic, tightly scoped to your UGC
-  use case, and the AI layer becomes the differentiator.
-
-  What do you think?
-
-✻ Baked for 14s
-
-※ recap: Building a manual UGC video editor with an AI editing layer. You were deciding between a lightweight custom editor (trim, captions, overlays, export via Shotstack) versus embedding an existing library — leaning toward the custom approach. Next: confirm the direction so we can start building.
-
-❯ Explain more option A, and do some researches                                 
-
-⏺ Explore(Research video editor libraries for in-browser use)
-  ⎿  Done (15 tool uses · 23.6k tokens · 1m 15s)
-  (ctrl+o to expand)
-
-⏺ Here's the full breakdown:
-
-  ---
-  Remotion (863k downloads/week)
-  - You write React components, it renders them frame-by-frame into a video
-  - Great for programmatic generation (templates, batch) — but not for 
-  interactive editing
-  - It's not a timeline editor, it's a rendering engine. The user can't drag
-  clips or scrub
-  - License isn't MIT — companies above a certain size need a paid license
-  - Verdict: wrong tool for what you want
-
-  ---
-  FFmpeg.wasm (472k downloads/week, MIT)
-  - Full FFmpeg running in the browser via WebAssembly — trim, encode, filters,
-  everything
-  - Completely client-side, no backend cost per edit
-  - The problem: it's 32MB bundle and 10-50× slower than native. A 30s clip can
-  take 15-20 min to process on an average machine
-  - Requires special response headers (COEP, COOP) in Next.js config
-  - Verdict: good for simple trimming, unusable for anything longer than ~15s
-
-  ---
-  Twick (free, open-source, Sustainable Use License)
-  - React SDK with a canvas timeline, drag-and-drop, AI captions, serverless MP4
-   export
-  - Built for exactly this kind of UGC use case
-  - Export goes through AWS Lambda + S3 — you'd need to set that up, or swap the
-   export step for Shotstack (which you already have)
-  - Verdict: most realistic fit for your stack
-
-  ---
-  IMG.LY CreativeEditor SDK (commercial)
-  - Professional timeline editor, real-time preview, polished UX, works in
-  Next.js
-  - Handles performance well (uses WebCodecs)
-  - The problem: it's paid, closed-source, vendor lock-in
-  - Verdict: best UX but costs money
-
-  ---
-  My take for ContentFlow specifically:
-
-  The smartest path is don't build a video renderer at all client-side. Instead:
-
-  - Build a lightweight edit instructions UI (timeline with scrub bar, trim
-  handles, text overlay controls, music picker)
-  - On "Export", send the edit instructions as JSON to Shotstack (you're already
-   paying for it)
-  - Shotstack renders the final MP4 server-side — fast, GPU-accelerated, high
-  quality
-
-  This gives you a real interactive editor UI without the FFmpeg.wasm
-  performance nightmare. The AI layer then just translates natural language →
-  edit instructions JSON.
-
-  Want to go that route?
-
-✻ Worked for 1m 43s
-
-❯ [Image #26], wait, this is kinda a part, just update the credits for all the  
-  prices, and also update the features                                          
-  ⎿  [Image #26]
-
-⏺ Let me find the billing page first:
-
-⏺ Bash(find /Users/abdallahkooli/contentflow/app -name "*.tsx" | xargs grep -l
-      "Starter\|billing\|plan\|credits" 2>/dev/null | grep -i "billing\|plan")
-  ⎿  /Users/abdallahkooli/contentflow/app/settings/billing/page.tsx
-
-  Read 1 file (ctrl+o to expand)
-
-⏺ I can see all the issues. Fixing credits from lib/credits.ts (real values:
-  Free=0+60 signup, Starter=800, Pro=2000, Agency=6500) and updating features to
-   reflect what we actually built:
-⏺ Update(app/settings/billing/page.tsx)
-  ⎿  Added 20 lines, removed 22 lines
-      66      {
-      67        name: 'Free',
-      68        price: '€0',
-      69 -      credits: '50/month',                                     
-      70 -      bonus: '+ 150 signup',                                   
-      69 +      credits: '0/month',                                      
-      70 +      bonus: '+ 60 signup',                                    
-      71        features: [
-      72 -        '50 monthly credits',                                  
-      73 -        '150 signup bonus',                                    
-      72 +        '60 one-time signup credits',                          
-      73          'Text generation',
-      74          'Social content',
-      75          'Email sequences',
-      76 +        'Business card generator',                             
-      77        ],
-      78        current: creditsInfo?.plan === 'free',
-      79        cta: 'Current Plan',
+⏺ Now I'll write the updated pricing page with the annual toggle, plus update
+  lib/stripe.ts to register the annual price IDs.
+
+⏺ Write(app/pricing/page.tsx)
+  ⎿  Added 91 lines, removed 16 lines
+       8  const PLANS = [
+       9    {
+      10      name: 'Free',
+      11 -    price: '$0',                                               
+      11 +    monthlyPrice: '$0',                                        
+      12 +    annualPrice: '$0',                                         
+      13 +    annualTotal: null,                                         
+      14      unit: 'forever',
+      15      credits: '60 credits at signup',
+      14 -    priceId: '',                                               
+      16 +    monthlyPriceId: '',                                        
+      17 +    annualPriceId: '',                                         
+      18      features: ['AI image generator', 'AI voiceover', 'Business 
+          card generator', 'Video editor (Beta)', '60 credits to explore'
+          ],
+      19      cta: 'Get started',
+      20      href: '/auth/signup',
+      21    },
+      22    {
+      23      name: 'Starter',
+      21 -    price: '$19',                                              
+      24 +    monthlyPrice: '$19',                                       
+      25 +    annualPrice: '$16',                                        
+      26 +    annualTotal: '$190/yr',                                    
+      27      unit: '/month',
+      28      credits: '800 credits/month',
+      24 -    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? ''
+         -,                                                              
+      29 +    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTE
+         +R ?? '',                                                       
+      30 +    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER
+         +_ANNUAL ?? '',                                                 
+      31      features: ['UGC video ads — no watermark', '~9 UGC videos/m
+          onth', 'AI image generator', 'AI voiceover', 'Actor library', '
+          Priority support'],
+      32      cta: 'Get Starter',
+      33      href: '/auth/signup?plan=starter',
      ...
-       82      {
-       83        name: 'Starter',
-       84        price: '€19',
-       85 -      credits: '1,000/month',                                 
-       85 +      credits: '800/month',                                   
-       86        features: [
-       87 -        '1,000 monthly credits',                              
-       87 +        '800 monthly credits',                                
-       88          'All Free features',
-       89 -        'AI images (Flux Pro)',                               
-       89 +        'AI images (Nano Banana 2)',                          
-       90 +        'UGC video ads (Kling v3)',                           
-       91          'AI voiceovers (ElevenLabs)',
-       92 +        'Actor library',                                      
-       93          'Priority support',
-       92 -        '1 social account',                                   
-       94        ],
-       95        current: creditsInfo?.plan === 'starter',
-       96        cta: creditsInfo?.plan === 'starter' ? 'Current Plan' : 
-           'Upgrade',
-       97        ctaDisabled: creditsInfo?.plan === 'starter',
-       97 -      pricePerCredit: '€0.019/cr',                            
-       98 +      pricePerCredit: '€0.024/cr',                            
-       99      },
-      100      {
-      101        name: 'Pro',
-      102        price: '€49',
-      102 -      credits: '4,000/month',                                 
-      103 +      credits: '2,000/month',                                 
-      104        features: [
-      104 -        '4,000 monthly credits',                              
-      105 +        '2,000 monthly credits',                              
-      106          'All Starter features',
-      106 -        'AI videos (HeyGen)',                                 
-      107 -        'Batch generation',                                   
-      108 -        '3 social accounts',                                  
-      109 -        'Content scheduler',                                  
-      107 +        'Software / app product mode',                        
-      108 +        'Custom actor photo upload',                          
-      109 +        'Script preview & editing',                           
-      110 +        'Priority support',                                   
-      111        ],
-      112        current: creditsInfo?.plan === 'pro',
-      113        cta: creditsInfo?.plan === 'pro' ? 'Current Plan' : 'Upg
-           rade',
-      114        ctaDisabled: creditsInfo?.plan === 'pro',
-      114 -      pricePerCredit: '€0.01225/cr',                          
-      115 +      pricePerCredit: '€0.025/cr',                            
-      116      },
-      117      {
-      118        name: 'Agency',
-      119        price: '€149',
-      119 -      credits: '15,000/month',                                
-      120 +      credits: '6,500/month',                                 
-      121        features: [
-      121 -        '15,000 monthly credits',                             
-      122 +        '6,500 monthly credits',                              
-      123          'All Pro features',
-      123 -        'Team collaboration',                                 
-      124 -        '10+ social accounts',                                
-      125 -        'Dashboard multi-client',                             
-      124          'Dedicated support',
-      125        ],
-      126        current: creditsInfo?.plan === 'agency',
-      127        cta: creditsInfo?.plan === 'agency' ? 'Current Plan' : '
-           Contact Sales',
-      128        ctaDisabled: creditsInfo?.plan === 'agency',
-      131 -      pricePerCredit: '€0.00993/cr',                          
-      129 +      pricePerCredit: '€0.023/cr',                            
-      130      },
-      131    ]
-      132  
-
-⏺ Also fix the subtitle that still says "150 bonus":
-
-⏺ Update(app/settings/billing/page.tsx)
-  ⎿  Added 1 line, removed 1 line
-      203        <div style={{ marginBottom: '48px' }}>
-      204          <div className="section-head" style={{ marginBottom: '
-           24px' }}>
-      205            <h2 className="section-title">Monthly <em>Plans</em>
-           </h2>
-      206 -          <p style={{ fontSize: '13px', color: 'var(--ink-dim)
-          -', marginTop: '8px' }}>Renewable monthly credits + 150 bonus a
-          -t signup</p>                                                  
-      206 +          <p style={{ fontSize: '13px', color: 'var(--ink-dim)
-          +', marginTop: '8px' }}>Renewable monthly credits + 60 one-time
-          + bonus at signup</p>                                          
-      207          </div>
-      208          <div style={{ display: 'grid', gridTemplateColumns: 'r
-           epeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
-      209            {plans.map((plan) => (
-
-⏺ Bash(npx tsc --noEmit 2>&1 | head -5 && git add app/settings/billing/page.tsx
-      && git commit -m "$(cat <<'EOF'
-      Fix billing page: correct credit amounts and update fea…)
-  ⎿  [master e641956] Fix billing page: correct credit amounts and update f
-     eatures
-      1 file changed, 21 insertions(+), 23 deletions(-)
-     … +2 lines (ctrl+o to expand)
-
-⏺ Done. Updated:
-  - Free: 0/month + 60 signup (was 50 + 150)
-  - Starter: 800/month, €0.024/cr (was 1,000 + Flux Pro/HeyGen references)
-  - Pro: 2,000/month, €0.025/cr (was 4,000 + fake features)
-  - Agency: 6,500/month, €0.023/cr (was 15,000)
-  - Features now reflect the real stack: Nano Banana 2, Kling v3, ElevenLabs,
-  actor library, software mode, script preview
-
-✻ Brewed for 1m 9s
-
-❯ back to our video editing thing, explain this more ("                         
-    The smartest path is don't build a video renderer at all client-side.       
-  Instead:                                                                      
-                                                                                
-    - Build a lightweight edit instructions UI (timeline with scrub bar, trim   
-  handles, text overlay controls, music picker)                                 
-    - On "Export", send the edit instructions as JSON to Shotstack (you're      
-  already paying for it)                                                        
-    - Shotstack renders the final MP4 server-side — fast, GPU-accelerated, high 
-   quality                                                                      
-                                                                                
-    This gives you a real interactive editor UI without the FFmpeg.wasm         
-  performance nightmare. The AI layer then just translates natural language →   
-  edit instructions JSON.")                                                     
-
-⏺ Sure. Here's how it works in detail:
-
-  ---
-  The core idea: separate the UI from the rendering
-
-  Most video editors (Premiere, CapCut) do two things: show you a live preview
-  while you edit, and render the final video. Building both client-side is what
-  makes it hard.
-
-  We only build the UI part. Shotstack handles the render.
-
-  ---
-  What the editor UI does (client-side, zero video processing):
-
-  The user sees a timeline. Under the hood it's just a JSON object describing
-  the edit — nothing is being encoded or processed. For example:
-
-  {
-    "clips": [
-      { "src": "https://cdn/.../kling-output.mp4", "trimStart": 0, "trimEnd":
-  8.5 },
-    ],
-    "captions": [
-      { "text": "This changed my life", "start": 0, "duration": 2.5, "style":
-  "bold-white" }
-    ],
-    "music": { "src": "https://cdn/.../beat.mp3", "volume": 0.3 },
-    "overlay": { "text": "Link in bio →", "position": "bottom", "start": 7 }
-  }
-
-  Every drag, trim, or text edit just updates this JSON in React state. No
-  encoding, no ffmpeg, instant.
-
-  The scrub bar uses a plain <video> tag pointing at the original Kling URL —
-  the browser plays it natively at full speed. Trim handles are just CSS
-  overlays that update trimStart/trimEnd in the JSON. The user sees roughly what
-   the final video will look like.
-
-  ---
-  On "Export":
-
-  That JSON gets sent to our /api/video/export route → we translate it into
-  Shotstack's timeline format → Shotstack renders the final MP4 on their servers
-   in ~30-60s → user gets a download link.
-
-  We already use Shotstack for caption stitching in the UGC pipeline. This is
-  the same thing, just with more edit instructions.
-
-  ---
-  The AI layer on top:
-
-  User types: "cut the last 2 seconds and add a text hook at the start that says
-   'POV you just found this'"
-
-  Claude reads the current JSON, applies the changes, returns updated JSON. The
-  timeline re-renders instantly. No video processing involved — Claude is just
-  editing a data structure.
-
-  ---
-  What you can't do with this approach:
-
-  - Real-time color grading preview (would need WebGL shaders)
-  - Frame-accurate scrubbing between trims (the <video> tag scrubs the full
-  original, not the trimmed version)
-  - Transitions between clips (Shotstack supports them, but previewing them
-  client-side is hard)
-
-  For UGC ads none of those matter much. Trim, captions, music, text overlays —
-  that's 95% of what creators actually need.
-
-  ---
-  Want to build it?
-
-✻ Worked for 18s
-
-※ recap: Building a video editor for ContentFlow where the UI is just JSON state and Shotstack handles rendering server-side. Next action is building the editor UI and export route.
-
-❯ yes                                                                           
-  ⎿  Please run /login · API Error: 401 Invalid authentication credentials
-
-✻ Worked for 3s
-
-❯ /login                                                                        
-  ⎿  Login interrupted
-
-❯ yes                                                                           
-
-  Searched for 2 patterns, read 1 file (ctrl+o to expand)
-
-⏺ Good — I have a clear picture of the Shotstack structure. Now let me build the
-   full editor:
-
-⏺ Agent(Build video editor UI + export API)
-  ⎿  Done (23 tool uses · 46.9k tokens · 3m 22s)
-  (ctrl+o to expand)
-
-⏺ Bash(WORKTREE=/Users/abdallahkooli/contentflow/.claude/worktrees/agent-abd63fd
-      4e43fb7f72
-      MAIN=/Users/abdallahkooli/contentflow…)
-  ⎿  worktree empty
-
-  Listed 1 directory (ctrl+o to expand)
-
-⏺ Worktree was cleaned up again. Let me implement it directly:
-
-  Searched for 1 pattern, read 1 file (ctrl+o to expand)
-
-⏺ Good. Now I'll write all the files directly:
-
-⏺ Write(lib/edit-spec.ts)
-  ⎿  Error writing file
-
-  Read 1 file, listed 1 directory (ctrl+o to expand)
-
-⏺ Files already exist from the previous session. Let me check all of them:
-
-  Listed 1 directory (ctrl+o to expand)
-
-⏺ All files exist. Let me verify TS and push:
-
-⏺ Bash(npx tsc --noEmit 2>&1 | head -20)
-  ⎿  (No output)
-
-⏺ Bash(git status --short)
-  ⎿   M app/layout.tsx
-      M components/Icons.tsx
-      M components/Sidebar.tsx
-     … +7 lines (ctrl+o to expand)
-⏺ Bash(git add lib/edit-spec.ts app/editor/ components/VideoEditor.tsx
-      app/api/video/editor-export/ app/api/video/ai-edit/ components/Icons.tsx
-      components/Sidebar.tsx…)
-  ⎿  [master 50d44f3] Add video editor with AI editing and Shotstack export
-      8 files changed, 924 insertions(+)
-      create mode 100644 app/api/video/ai-edit/route.ts
-     … +6 lines (ctrl+o to expand)
-
-⏺ Pushed. Here's what's live:
-
-  /editor — Video editor with:
-  - Left: native video preview with live text overlay rendering, play/pause,
-  timeline scrubber, trim zone bar
-  - Right tabs:
-    - Trim — in/out sliders, shows final duration
-    - Text — add/remove overlays (text, timing, position: top/center/bottom,
-  style)
-    - Music — 3 royalty-free tracks (Chill Lo-fi, Upbeat Pop, Motivational) +
-  volume control
-    - AI — type anything like "cut the last 2 seconds" or "add a bold hook at 
-  the start: POV you just found this" → Claude updates the spec instantly
-    - Export — sends to Shotstack, polls for completion, gives download link
-
-  You can open it directly at /editor?videoUrl=<url>&duration=10&aspect=9:16,
-  and later we can add an "Edit in editor" button on the UGC results page.
-
-✻ Sautéed for 6m 13s
-
-※ recap: Building a UGC video ad platform. Today: fixed actor portrait pipeline, added software/green-screen mode, script preview step, video editor with AI editing, and corrected pricing. Next: test the editor end-to-end and add an "Edit in editor" button to the UGC results page.
-
-❯ continue building                                                             
-
-⏺ Let me see what's most useful to build next — checking the UGC results UI and
-  the editor component quality:
-
-  Searched for 2 patterns, read 1 file (ctrl+o to expand)
-
-⏺ Now let me check UGCPackagePreview to see where the final video URL appears:
-
-  Searched for 3 patterns (ctrl+o to expand)
-
-⏺ Now I have everything I need. I'll add an "Edit in Editor" button next to the
-  Download button when the final video is ready, and also check what else makes
-  sense to build. Let me also look at what's currently lacking in the
-  VideoEditor:
-
-  Searched for 1 pattern, read 1 file (ctrl+o to expand)
-
-⏺ Now I'll add the "Edit in Editor" button and also check the VideoEditor for
-  improvements:
-
-  Read 1 file (ctrl+o to expand)
-
-⏺ The editor looks solid. Now let me add the "Edit in Editor" button on the UGC
-  preview, add it to the library page too, and wrap the editor in the main
-  layout:
-
-  Searched for 3 patterns, read 1 file (ctrl+o to expand)
-
-⏺ Good — /editor automatically gets the sidebar since it uses the root layout.
-  Now let me do the three things:
-
-  1. Add "Edit in Editor" button to UGCPackagePreview when the final video is
-  ready
-  2. Add it also for the raw Kling video (before stitch)
-  3. Add editor link from the library page
-
-  Searched for 1 pattern, read 1 file (ctrl+o to expand)
-
-⏺ Update(components/UGCPackagePreview.tsx)
-  ⎿  Added 1 line
-      2  
-      3  import { Download, Copy, Loader, Film } from 'lucide-react'
-      4  import { useState, useEffect, useRef } from 'react'
-      5 +import Link from 'next/link'                                    
-      6  
-      7  interface VideoComponent {
-      8    videoId?: string
-
-⏺ Now add the "Edit in Editor" button after the final video download buttons:
-
-⏺ Update(components/UGCPackagePreview.tsx)
-  ⎿  Added 9 lines, removed 1 line
-      381            {stitchStatus === 'completed' && finalVideoUrl && (
-      382              <>
-      383                <video controls src={finalVideoUrl} style={{ wid
-           th: '100%', aspectRatio: previewAspectRatio, borderRadius: 'va
-           r(--r-md)', marginBottom: '12px', background: '#000', display:
-            'block', objectFit: 'contain' }} />
-      384 -              <div style={{ display: 'flex', gap: '8px' }}>   
-      384 +              <div style={{ display: 'flex', gap: '8px', margi
-          +nBottom: '8px' }}>                                            
-      385                  <button onClick={() => handleDownload(finalVid
-           eoUrl, `final-ugc-${Date.now()}.mp4`)} className="btn btn-prim
-           ary" style={{ flex: 1, fontSize: '13px' }}>
-      386                    <Download style={{ width: 14, height: 14 }} 
-           />
-      387                    Download Final Video
+      35    {
+      36      name: 'Pro',
+      37      popular: true,
+      32 -    price: '$49',                                              
+      38 +    monthlyPrice: '$49',                                       
+      39 +    annualPrice: '$41',                                        
+      40 +    annualTotal: '$490/yr',                                    
+      41      unit: '/month',
+      42      credits: '2,000 credits/month',
+      35 -    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',   
+      43 +    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ??
+         + '',                                                           
+      44 +    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANN
+         +UAL ?? '',                                                     
+      45      features: ['Everything in Starter', '~23 UGC videos/month',
+           'Software / app mode', 'Custom actor photo', 'Script editing',
+           'Shopify import'],
+      46      cta: 'Get Pro',
+      47      href: '/auth/signup?plan=pro',
+      48    },
+      49    {
+      50      name: 'Agency',
+      42 -    price: '$149',                                             
+      51 +    monthlyPrice: '$149',                                      
+      52 +    annualPrice: '$124',                                       
+      53 +    annualTotal: '$1,490/yr',                                  
+      54      unit: '/month',
+      55      credits: '6,500 credits/month',
+      45 -    priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
+      56 +    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY
+         + ?? '',                                                        
+      57 +    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_
+         +ANNUAL ?? '',                                                  
+      58      features: ['Everything in Pro', '~77 UGC videos/month', 'Mu
+          ltiple brand profiles', 'Dedicated support'],
+      59      cta: 'Get Agency',
+      60      href: '/auth/signup?plan=agency',
      ...
-      391                    {copied === 'final' ? 'Copied!' : 'Copy URL'
-           }
-      392                  </button>
-      393                </div>
-      394 +              <Link                                           
-      395 +                href={`/editor?videoUrl=${encodeURIComponent(f
-          +inalVideoUrl)}&aspect=${components?.aspect === 'square' ? '1:1
-          +' : components?.aspect === 'landscape' ? '16:9' : '9:16'}`}   
-      396 +                className="btn btn-ghost"                     
-      397 +                style={{ width: '100%', textAlign: 'center', f
-          +ontSize: '13px', display: 'flex', alignItems: 'center', justif
-          +yContent: 'center', gap: 6 }}                                 
-      398 +              >                                               
-      399 +                <Film style={{ width: 14, height: 14 }} />    
-      400 +                Edit in Editor                                
-      401 +              </Link>                                         
-      402              </>
-      403            )}
-      404          </div>
-
-⏺ Also add "Edit in Editor" on the raw Kling video (before stitch completes):
-
-⏺ Update(components/UGCPackagePreview.tsx)
-  ⎿  Added 9 lines, removed 1 line
-      447                {video.duration && (
-      448                  <p style={{ fontSize: '12px', color: 'var(--in
-           k-fade)', marginBottom: '12px' }}>Duration: {video.duration}s<
-           /p>
-      449                )}
-      450 -              <div style={{ display: 'flex', gap: '8px' }}>   
-      450 +              <div style={{ display: 'flex', gap: '8px', margi
-          +nBottom: '8px' }}>                                            
-      451                  <button onClick={() => handleDownload(video.vi
-           deoUrl!, `ugc-video-${Date.now()}.mp4`)} className="btn btn-gh
-           ost" style={{ flex: 1, fontSize: '13px' }}>
-      452                    <Download style={{ width: 14, height: 14 }} 
-           />
-      453                    Download
+      70  export default function PricingPage() {
+      71    const [isLoggedIn, setIsLoggedIn] = useState(false)
+      72    const [upgradeLoading, setUpgradeLoading] = useState<string |
+           null>(null)
+      73 +  const [annual, setAnnual] = useState(false)                  
+      74  
+      75    useEffect(() => {
+      76      getSupabase()?.auth.getSession().then((result: { data: { se
+          ssion: unknown } }) => {
      ...
-      457                    {copied === 'video' ? 'Copied!' : 'Copy URL'
-           }
-      458                  </button>
-      459                </div>
-      460 +              <Link                                           
-      461 +                href={`/editor?videoUrl=${encodeURIComponent(v
-          +ideo.videoUrl!)}&duration=${video.duration ?? 10}&aspect=${com
-          +ponents?.aspect === 'square' ? '1:1' : components?.aspect === 
-          +'landscape' ? '16:9' : '9:16'}`}                              
-      462 +                className="btn btn-ghost"                     
-      463 +                style={{ width: '100%', textAlign: 'center', f
-          +ontSize: '13px', display: 'flex', alignItems: 'center', justif
-          +yContent: 'center', gap: 6 }}                                 
-      464 +              >                                               
-      465 +                <Film style={{ width: 14, height: 14 }} />    
-      466 +                Edit in Editor                                
-      467 +              </div>                                          
-      468              </>
-      469            )}
-      470          </div>
-
-⏺ Now I need to close the opening <div style={{ display: 'flex', gap: '8px' }}>
-  that I changed. Let me check what comes after:
-
-  Read 1 file (ctrl+o to expand)
-
-⏺ The closing tag is wrong — I need </Link> not </div>:
-
-⏺ Update(components/UGCPackagePreview.tsx)
-  ⎿  Added 1 line, removed 1 line
-      464                >
-      465                  <Film style={{ width: 14, height: 14 }} />
-      466                  Edit in Editor
-      467 -              </div>                                          
-      467 +              </Link>                                         
-      468              </>
-      469            )}
-      470          </div>
-
-⏺ Bash(npx tsc --noEmit 2>&1 | head -20)
-  ⎿  (No output)
-
-⏺ Now let me also add an "Edit in Editor" button from the Library page for any
-  saved videos:
-
-  Searched for 2 patterns, read 1 file (ctrl+o to expand)
-
-⏺ Update(app/library/page.tsx)
-  ⎿  Added 1 line
-       4  import { getSupabase } from '@/lib/auth'
-       5  import { Icon } from '@/components/Icons'
-       6  import { showError, showSuccess } from '@/lib/notifications'
-       7 +import Link from 'next/link'                                   
-       8  
-       9  interface LibraryItem {
-      10    id: string
-
-⏺ Update(app/library/page.tsx)
-  ⎿  Added 11 lines, removed 1 line
-      460                )}
-      461  
-      462                {/* Actions */}
-      463 -              <div style={{ display: 'flex', gap: '12px', marg
-          -inTop: '20px' }}>                                             
-      463 +              <div style={{ display: 'flex', gap: '12px', marg
-          +inTop: '20px', flexWrap: 'wrap' }}>                           
-      464                  <a
-      465                    href={previewItem.storage_url}
-      466                    download
+      120          <p style={{ fontSize: 15, color: 'var(--ink-dim)', mar
+           gin: '16px 0 0', lineHeight: 1.55 }}>
+      121            Arcads quality at a fifth of the price. Every plan i
+           s credits-based — spend them on whatever you create.
+      122          </p>
+      123 +                                                              
+      124 +        {/* Billing toggle */}                                
+      125 +        <div style={{                                         
+      126 +          display: 'inline-flex', alignItems: 'center', gap: 1
+          +2,                                                            
+      127 +          marginTop: 32, background: 'var(--surface)',        
+      128 +          border: '1px solid var(--border)', borderRadius: 999
+          +,                                                             
+      129 +          padding: '5px 6px 5px 18px',                        
+      130 +        }}>                                                   
+      131 +          <span style={{ fontSize: 13, fontWeight: 500, color:
+          + annual ? 'var(--ink-mute)' : 'var(--ink)' }}>                
+      132 +            Monthly                                           
+      133 +          </span>                                             
+      134 +          <button                                             
+      135 +            onClick={() => setAnnual(a => !a)}                
+      136 +            aria-label="Toggle annual billing"                
+      137 +            style={{                                          
+      138 +              position: 'relative', width: 40, height: 22,    
+      139 +              borderRadius: 999, border: 'none', cursor: 'poin
+          +ter',                                                         
+      140 +              background: annual ? 'var(--ink)' : 'var(--borde
+          +r)',                                                          
+      141 +              transition: 'background 0.2s',                  
+      142 +              flexShrink: 0,                                  
+      143 +            }}                                                
+      144 +          >                                                   
+      145 +            <span style={{                                    
+      146 +              position: 'absolute', top: 3, left: annual ? 21 
+          +: 3,                                                          
+      147 +              width: 16, height: 16, borderRadius: '50%', back
+          +ground: '#fff',                                               
+      148 +              transition: 'left 0.2s',                        
+      149 +              boxShadow: '0 1px 3px rgba(0,0,0,0.2)',         
+      150 +            }} />                                             
+      151 +          </button>                                           
+      152 +          <span style={{ fontSize: 13, fontWeight: 500, color:
+          + annual ? 'var(--ink)' : 'var(--ink-mute)' }}>                
+      153 +            Annual                                            
+      154 +          </span>                                             
+      155 +          <span style={{                                      
+      156 +            fontSize: 10.5, fontWeight: 700, letterSpacing: '0
+          +.04em',                                                       
+      157 +            textTransform: 'uppercase',                       
+      158 +            background: annual ? 'var(--ink)' : 'var(--border-
+          +soft)',                                                       
+      159 +            color: annual ? '#fff' : 'var(--ink-mute)',       
+      160 +            borderRadius: 999, padding: '4px 10px',           
+      161 +            transition: 'background 0.2s, color 0.2s',        
+      162 +          }}>                                                 
+      163 +            2 months free                                     
+      164 +          </span>                                             
+      165 +        </div>                                                
+      166        </div>
+      167  
+      168        <div className="pricing-grid" style={{
      ...
-      471                    <Icon.Arrow style={{ width: 14, height: 14 }
-           } />
-      472                    Download
-      473                  </a>
-      474 +                {(previewItem.content_type === 'video' || prev
-          +iewItem.content_type === 'ugc_package') && previewItem.storage
-          +_url && (                                                     
-      475 +                  <Link                                       
-      476 +                    href={`/editor?videoUrl=${encodeURICompone
-          +nt(previewItem.storage_url)}`}                                
-      477 +                    className="btn btn-ghost"                 
-      478 +                    style={{ flex: 1, textAlign: 'center', dis
-          +play: 'flex', alignItems: 'center', justifyContent: 'center', 
-          +gap: '8px' }}                                                 
-      479 +                    onClick={(e) => e.stopPropagation()}      
-      480 +                  >                                           
-      481 +                    Edit in Editor                            
-      482 +                  </Link>                                     
-      483 +                )}                                            
-      484                  <button
-      485                    onClick={() => {
-      486                      handleDelete(previewItem.id)
-⏺ Bash(npx tsc --noEmit 2>&1 | head -20)
-  ⎿  (No output)
+      171        }}>
+      172          {PLANS.map(plan => {
+      173            const popular = !!plan.popular
+      174 +          const activePriceId = annual ? plan.annualPriceId : 
+          +plan.monthlyPriceId                                           
+      175 +          const displayPrice = annual ? plan.annualPrice : pla
+          +n.monthlyPrice                                                
+      176 +          const isLoading = upgradeLoading === activePriceId  
+      177 +                                                              
+      178            return (
+      179              <div
+      180                key={plan.name}
+     ...
+      193                    letterSpacing: '0.04em', textTransform: 'upp
+           ercase',
+      194                    background: 'var(--ink)', color: '#fff',
+      195                    borderRadius: 999, padding: '4px 12px',
+      196 +                  whiteSpace: 'nowrap',                       
+      197                  }}>Most popular</span>
+      198                )}
+      199                <div style={{ fontSize: 15, fontWeight: 600, let
+           terSpacing: '-0.01em' }}>{plan.name}</div>
+      200                <div style={{ display: 'flex', alignItems: 'base
+           line', gap: 5, marginTop: 10 }}>
+      140 -                <span style={{ fontFamily: 'var(--font-serif)'
+          -, fontSize: 40, lineHeight: 1 }}>{plan.price}</span>          
+      141 -                <span style={{ fontSize: 13, color: 'var(--ink
+          --mute)' }}>{plan.unit}</span>                                 
+      201 +                <span style={{ fontFamily: 'var(--font-serif)'
+          +, fontSize: 40, lineHeight: 1, transition: 'opacity 0.15s' }}>
+      202 +                  {displayPrice}                              
+      203 +                </span>                                       
+      204 +                {plan.unit !== 'forever' && (                 
+      205 +                  <span style={{ fontSize: 13, color: 'var(--i
+          +nk-mute)' }}>/mo</span>                                       
+      206 +                )}                                            
+      207 +                {plan.unit === 'forever' && (                 
+      208 +                  <span style={{ fontSize: 13, color: 'var(--i
+          +nk-mute)' }}>forever</span>                                   
+      209 +                )}                                            
+      210                </div>
+      143 -              <div style={{ fontSize: 12.5, color: 'var(--ink-
+          -dim)', marginTop: 8 }}>{plan.credits}</div>                   
+      211 +              {annual && plan.annualTotal ? (                 
+      212 +                <div style={{ fontSize: 11.5, color: 'var(--in
+          +k-mute)', marginTop: 3 }}>                                    
+      213 +                  billed {plan.annualTotal}                   
+      214 +                </div>                                        
+      215 +              ) : null}                                       
+      216 +              <div style={{ fontSize: 12.5, color: 'var(--ink-
+          +dim)', marginTop: annual && plan.annualTotal ? 4 : 8 }}>      
+      217 +                {plan.credits}                                
+      218 +              </div>                                          
+      219  
+      145 -              {isLoggedIn && plan.priceId ? (                 
+      220 +              {isLoggedIn && activePriceId ? (                
+      221                  <button
+      147 -                  onClick={() => handleCheckout(plan.priceId, 
+          -'subscription')}                                              
+      148 -                  disabled={upgradeLoading === plan.priceId}  
+      222 +                  onClick={() => handleCheckout(activePriceId,
+          + 'subscription')}                                             
+      223 +                  disabled={isLoading}                        
+      224                    style={{
+      225                      display: 'block', textAlign: 'center', wid
+           th: '100%',
+      226                      marginTop: 16, padding: 11, borderRadius: 
+           9,
+     ...
+      228                      color: popular ? '#fff' : 'var(--ink)',
+      229                      border: popular ? 'none' : '1px solid var(
+           --border)',
+      230                      fontWeight: 600, fontSize: 13, cursor: 'po
+           inter',
+      156 -                    opacity: upgradeLoading === plan.priceId ?
+          - 0.6 : 1,                                                     
+      231 +                    opacity: isLoading ? 0.6 : 1,             
+      232                    }}
+      233                  >
+      159 -                  {upgradeLoading === plan.priceId ? 'Redirect
+          -ing…' : plan.cta}                                             
+      234 +                  {isLoading ? 'Redirecting…' : plan.cta}     
+      235                  </button>
+      236                ) : (
+      237                  <Link href={plan.href} style={{
 
-⏺ Bash(git add components/UGCPackagePreview.tsx app/library/page.tsx && git
-      commit -m "$(cat <<'EOF'
-      Add 'Edit in Editor' entry points from UGC results and Library…)
-  ⎿  [master 4838a33] Add 'Edit in Editor' entry points from UGC results an
-     d Library
-      2 files changed, 31 insertions(+), 3 deletions(-)
-     … +2 lines (ctrl+o to expand)
+⏺ Now update lib/stripe.ts to register the annual price IDs in PLAN_PRICE_MAP:
 
-⏺ Pushed. Here's what's now connected end-to-end:
+⏺ Update(lib/stripe.ts)
+  ⎿  Added 12 lines, removed 9 lines
+       1  // Required Vercel env vars for Stripe:
+       2 -// STRIPE_SECRET_KEY              — Stripe Dashboard > Develope
+         -rs > API Keys                                                  
+       3 -// NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY — same page (pk_live_... 
+         -or pk_test_...)                                                
+       4 -// STRIPE_WEBHOOK_SECRET          — Stripe Dashboard > Webhooks
+         - > endpoint secret                                             
+       5 -// NEXT_PUBLIC_STRIPE_PRICE_STARTER   — Price ID for $19/mo Sta
+         -rter plan                                                      
+       6 -// NEXT_PUBLIC_STRIPE_PRICE_PRO       — Price ID for $49/mo Pro
+         - plan                                                          
+       7 -// NEXT_PUBLIC_STRIPE_PRICE_AGENCY    — Price ID for $149/mo Ag
+         -ency plan                                                      
+       8 -// NEXT_PUBLIC_STRIPE_PRICE_PACK_500  — Price ID for 500 cr one
+         --time pack ($15)                                               
+       9 -// NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 — Price ID for 1500 cr on
+         -e-time pack ($40)                                              
+      10 -// NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 — Price ID for 5000 cr on
+         -e-time pack ($120)                                             
+       2 +// STRIPE_SECRET_KEY                       — Stripe Dashboard >
+         + Developers > API Keys                                         
+       3 +// NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY      — same page (pk_live
+         +_... or pk_test_...)                                           
+       4 +// STRIPE_WEBHOOK_SECRET                   — Stripe Dashboard >
+         + Webhooks > endpoint secret                                    
+       5 +// NEXT_PUBLIC_STRIPE_PRICE_STARTER        — Price ID for $19/m
+         +o Starter plan                                                 
+       6 +// NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL — Price ID for $190/
+         +yr Starter annual plan                                         
+       7 +// NEXT_PUBLIC_STRIPE_PRICE_PRO            — Price ID for $49/m
+         +o Pro plan                                                     
+       8 +// NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL     — Price ID for $490/
+         +yr Pro annual plan                                             
+       9 +// NEXT_PUBLIC_STRIPE_PRICE_AGENCY         — Price ID for $149/
+         +mo Agency plan                                                 
+      10 +// NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL  — Price ID for $1490
+         +/yr Agency annual plan                                         
+      11 +// NEXT_PUBLIC_STRIPE_PRICE_PACK_500       — Price ID for 500 c
+         +r one-time pack ($15)                                          
+      12 +// NEXT_PUBLIC_STRIPE_PRICE_PACK_1500      — Price ID for 1500 
+         +cr one-time pack ($40)                                         
+      13 +// NEXT_PUBLIC_STRIPE_PRICE_PACK_5000      — Price ID for 5000 
+         +cr one-time pack ($120)                                        
+      14  
+      15  import Stripe from 'stripe'
+      16  
 
-  UGC page → after the video generates:
-  - Final stitched video → "Edit in Editor" opens /editor with the video +
-  aspect ratio pre-filled
-  - Raw Kling clip (before stitch) → same, also passes duration
+⏺ Update(lib/stripe.ts)
+  ⎿  Added 3 lines
+      36  
+      37  export const PLAN_PRICE_MAP: Record<string, { plan: string; mon
+          thly_credits: number }> = {
+      38    [process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? 'price_start
+          er']: { plan: 'starter', monthly_credits: 800 },
+      39 +  [process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? 'pric
+         +e_starter_annual']: { plan: 'starter', monthly_credits: 800 }, 
+      40    [process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? 'price_pro']: { 
+          plan: 'pro', monthly_credits: 2000 },
+      41 +  [process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? 'price_pr
+         +o_annual']: { plan: 'pro', monthly_credits: 2000 },            
+      42    [process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? 'price_agency
+          ']: { plan: 'agency', monthly_credits: 6500 },
+      43 +  [process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? 'price
+         +_agency_annual']: { plan: 'agency', monthly_credits: 6500 },   
+      44  }
+      45  
+      46  export const PACK_CREDIT_MAP: Record<string, number> = {
 
-  Library page → clicking any video or UGC package in the preview drawer shows
-  an "Edit in Editor" button
+⏺ Now commit and push:
+⏺ Bash(git add app/pricing/page.tsx lib/stripe.ts && git commit -m "$(cat
+      <<'EOF'
+      Add annual billing toggle to pricing page…)
+  ⎿  [master 71a0097] Add annual billing toggle to pricing page
+      2 files changed, 106 insertions(+), 25 deletions(-)
 
-  The editor itself at /editor has trim, text overlays, music, AI editing, and
-  Shotstack export — all wired up.
+⏺ Bash(git push)
+  ⎿  To github.com:kooliabdallah09-ui/ContentFlow.git
+        ef90bfe..71a0097  master -> master
 
-  What do you want to build next?
+⏺ Done and pushed. Here's what was added:
 
-✻ Sautéed for 3m 20s
+  - Toggle pill below the hero — Monthly / Annual with a "2 months free" badge
+  that highlights when annual is active
+  - Annual prices: Starter $16/mo, Pro $41/mo, Agency $124/mo (billed at
+  $190/$490/$1,490/yr)
+  - "billed X/yr" sub-label appears under the price when annual is selected
+  - Checkout passes the annual price ID when the toggle is on
 
-※ recap: Building a UGC video platform with an AI-powered editor. Last session: added the video editor with trim, text overlays, music, AI editing, and Shotstack export, plus "Edit in Editor" buttons throughout the app. Next: continue building or test the editor flow.
+  One thing you'll need to do in Stripe: create annual prices for each paid plan
+   (same products, billing period = yearly, prices $190/$490/$1,490), then add
+  three new env vars to Vercel:
+  - NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL
+  - NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL
+  - NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL
+
+✻ Brewed for 2m 3s

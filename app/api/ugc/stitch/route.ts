@@ -50,8 +50,6 @@ export async function POST(request: NextRequest) {
       spokenScript,
       language,
       aspect,
-      uiScreenshotUrl,
-      softwareMode,
     } = await request.json()
 
     if (!talkingHeadUrl) {
@@ -80,7 +78,6 @@ export async function POST(request: NextRequest) {
       syncedCaptions,
       watermark,
       aspect: typeof aspect === 'string' ? aspect as 'portrait' | 'square' | 'landscape' : undefined,
-      uiScreenshotUrl: softwareMode && typeof uiScreenshotUrl === 'string' ? uiScreenshotUrl : undefined,
     })
     return NextResponse.json({ renderId })
   } catch (error) {

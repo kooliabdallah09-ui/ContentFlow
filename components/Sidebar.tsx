@@ -76,6 +76,10 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <Icon.Voice />
           <span style={{ flex: 1 }}>Voiceover</span>
         </Link>
+        <Link href="/generate/screen-demo" className={`nav-item ${isActive('/generate/screen-demo') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Monitor />
+          <span style={{ flex: 1 }}>Screen Demo</span>
+        </Link>
         <Link href="/generate/business-card" className={`nav-item ${isActive('/generate/business-card') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Card />
           <span style={{ flex: 1 }}>Business Card</span>
