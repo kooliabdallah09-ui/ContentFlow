@@ -199,8 +199,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       display: 'flex',
       flexDirection: 'column' as const,
       height: 'calc(100vh - 60px)',
-      background: '#0e0e10',
-      color: '#e8e8e8',
+      background: 'var(--surface-2)',
+      color: 'var(--ink)',
       fontFamily: 'var(--font-sans)',
       overflow: 'hidden',
     },
@@ -210,20 +210,20 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       gap: 12,
       padding: '0 20px',
       height: 52,
-      borderBottom: '1px solid #222226',
-      background: '#141416',
+      borderBottom: '1px solid var(--border)',
+      background: 'var(--surface)',
       flexShrink: 0,
     },
-    title: { fontSize: 14, fontWeight: 600, color: '#fff', marginRight: 'auto' },
+    title: { fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginRight: 'auto' },
     arBtn: (active: boolean) => ({
       padding: '4px 10px',
       fontSize: 12,
       fontWeight: 500,
       borderRadius: 6,
       border: '1px solid',
-      borderColor: active ? '#6c63ff' : '#333',
-      background: active ? '#6c63ff22' : 'transparent',
-      color: active ? '#a99fff' : '#888',
+      borderColor: active ? 'var(--ink)' : 'var(--border)',
+      background: active ? 'var(--ink)' : 'transparent',
+      color: active ? 'var(--surface)' : 'var(--ink-mute)',
       cursor: 'pointer',
       transition: 'all 0.15s',
     }),
@@ -235,9 +235,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       fontSize: 13,
       fontWeight: 600,
       borderRadius: 8,
-      border: '1px solid #444',
-      background: '#1e1e22',
-      color: '#e8e8e8',
+      border: '1px solid var(--border)',
+      background: 'var(--surface)',
+      color: 'var(--ink)',
       cursor: 'pointer',
       transition: 'background 0.15s',
     },
@@ -250,8 +250,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       fontWeight: 700,
       borderRadius: 8,
       border: 'none',
-      background: 'linear-gradient(135deg, #6c63ff, #9b59f7)',
-      color: '#fff',
+      background: 'var(--ink)',
+      color: 'var(--surface)',
       cursor: 'pointer',
     },
     body: {
@@ -268,7 +268,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       justifyContent: 'center',
       padding: 24,
       gap: 16,
-      background: '#0e0e10',
+      background: 'var(--surface-3)',
       overflow: 'hidden',
     },
     videoWrap: {
@@ -279,7 +279,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       aspectRatio: aspectStyle,
       maxHeight: 'calc(100vh - 280px)',
       maxWidth: '100%',
-      boxShadow: '0 8px 40px rgba(0,0,0,0.6)',
+      boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
     },
     emptyState: {
       width: '100%',
@@ -291,7 +291,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       justifyContent: 'center',
       gap: 12,
       cursor: 'pointer',
-      border: '2px dashed #333',
+      border: '2px dashed var(--border-strong)',
       borderRadius: 12,
     },
     controls: {
@@ -306,9 +306,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       height: primary ? 44 : 36,
       borderRadius: '50%',
       border: '1px solid',
-      borderColor: primary ? '#6c63ff' : '#333',
-      background: primary ? '#6c63ff' : '#1e1e22',
-      color: '#fff',
+      borderColor: primary ? 'var(--ink)' : 'var(--border)',
+      background: primary ? 'var(--ink)' : 'var(--surface)',
+      color: primary ? 'var(--surface)' : 'var(--ink)',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
@@ -320,7 +320,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     timeLabel: {
       fontSize: 13,
       fontVariantNumeric: 'tabular-nums' as const,
-      color: '#888',
+      color: 'var(--ink-mute)',
       marginLeft: 4,
     },
     // ── Timeline ──────────────────────────────────────────────────────────
@@ -334,25 +334,25 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     timelineTrack: {
       position: 'relative' as const,
       height: 40,
-      background: '#1a1a1e',
+      background: 'var(--surface)',
       borderRadius: 8,
       overflow: 'visible',
       cursor: 'pointer',
-      border: '1px solid #2a2a2e',
+      border: '1px solid var(--border)',
     },
     // ── Right panel ───────────────────────────────────────────────────────
     rightPanel: {
       width: 320,
       flexShrink: 0,
-      borderLeft: '1px solid #222226',
-      background: '#141416',
+      borderLeft: '1px solid var(--border)',
+      background: 'var(--surface)',
       display: 'flex',
       flexDirection: 'column' as const,
       overflow: 'hidden',
     },
     tabRow: {
       display: 'flex',
-      borderBottom: '1px solid #222226',
+      borderBottom: '1px solid var(--border)',
       flexShrink: 0,
     },
     tab: (active: boolean) => ({
@@ -366,11 +366,11 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       fontWeight: 600,
       letterSpacing: '0.04em',
       textTransform: 'uppercase' as const,
-      color: active ? '#a99fff' : '#555',
+      color: active ? 'var(--ink)' : 'var(--ink-mute)',
       cursor: 'pointer',
       background: 'none',
       border: 'none',
-      borderBottom: active ? '2px solid #6c63ff' : '2px solid transparent',
+      borderBottom: active ? '2px solid var(--ink)' : '2px solid transparent',
       transition: 'color 0.15s',
     }),
     tabIcon: { fontSize: 16 },
@@ -387,12 +387,12 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       fontWeight: 700,
       letterSpacing: '0.06em',
       textTransform: 'uppercase' as const,
-      color: '#555',
+      color: 'var(--ink-mute)',
       marginBottom: 8,
     },
     fieldLabel: {
       fontSize: 12,
-      color: '#888',
+      color: 'var(--ink-dim)',
       marginBottom: 5,
       display: 'block',
     },
@@ -400,9 +400,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       width: '100%',
       padding: '8px 12px',
       borderRadius: 8,
-      border: '1px solid #2a2a2e',
-      background: '#1a1a1e',
-      color: '#e8e8e8',
+      border: '1px solid var(--border)',
+      background: 'var(--surface-2)',
+      color: 'var(--ink)',
       fontSize: 13,
       boxSizing: 'border-box' as const,
       outline: 'none',
@@ -411,9 +411,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       width: '100%',
       padding: '8px 12px',
       borderRadius: 8,
-      border: '1px solid #2a2a2e',
-      background: '#1a1a1e',
-      color: '#e8e8e8',
+      border: '1px solid var(--border)',
+      background: 'var(--surface-2)',
+      color: 'var(--ink)',
       fontSize: 13,
       boxSizing: 'border-box' as const,
       outline: 'none',
@@ -428,8 +428,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       padding: '10px',
       borderRadius: 8,
       border: 'none',
-      background: 'linear-gradient(135deg, #6c63ff, #9b59f7)',
-      color: '#fff',
+      background: 'var(--ink)',
+      color: 'var(--surface)',
       fontSize: 14,
       fontWeight: 700,
       cursor: 'pointer',
@@ -439,9 +439,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       width: '100%',
       padding: '9px',
       borderRadius: 8,
-      border: '1px solid #333',
+      border: '1px solid var(--border)',
       background: 'transparent',
-      color: '#aaa',
+      color: 'var(--ink-dim)',
       fontSize: 13,
       fontWeight: 600,
       cursor: 'pointer',
@@ -449,8 +449,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     overlayCard: {
       padding: '10px 12px',
       borderRadius: 8,
-      border: '1px solid #2a2a2e',
-      background: '#1a1a1e',
+      border: '1px solid var(--border)',
+      background: 'var(--surface-2)',
       display: 'flex',
       alignItems: 'center',
       gap: 10,
@@ -458,8 +458,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     musicCard: (active: boolean) => ({
       padding: '12px 14px',
       borderRadius: 8,
-      border: `1px solid ${active ? '#6c63ff' : '#2a2a2e'}`,
-      background: active ? '#6c63ff18' : '#1a1a1e',
+      border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+      background: active ? 'var(--accent-soft)' : 'var(--surface-2)',
       cursor: 'pointer',
       display: 'flex',
       alignItems: 'center',
@@ -471,8 +471,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       justifyContent: 'space-between',
       fontSize: 13,
       padding: '6px 0',
-      borderBottom: '1px solid #222',
-      color: '#aaa',
+      borderBottom: '1px solid var(--border)',
+      color: 'var(--ink-dim)',
     },
   }
 
@@ -481,7 +481,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       {/* ── Top bar ──────────────────────────────────────────────────────── */}
       <div style={S.topBar}>
         <span style={S.title}>
-          <span style={{ color: '#6c63ff', marginRight: 8 }}>▶</span>
+          <span style={{ color: 'var(--ink)', marginRight: 8 }}>▶</span>
           Video Editor
         </span>
 
@@ -520,7 +520,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         >
           {/* Video / empty state */}
           {spec.videoUrl ? (
-            <div ref={videoWrapRef} onClick={() => setSelectedOverlayId(null)} style={{ ...S.videoWrap, outline: isDraggingFile ? '2px dashed #6c63ff' : 'none' }}>
+            <div ref={videoWrapRef} onClick={() => setSelectedOverlayId(null)} style={{ ...S.videoWrap, outline: isDraggingFile ? '2px dashed var(--ink)' : 'none' }}>
               <video
                 ref={videoRef}
                 src={spec.videoUrl}
@@ -560,7 +560,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       cursor: 'grab',
                       userSelect: 'none',
                       opacity: visible ? 1 : 0.25,
-                      outline: isSelected ? '1.5px dashed rgba(108,99,255,0.8)' : 'none',
+                      outline: isSelected ? '1.5px dashed var(--ink)' : 'none',
                       outlineOffset: 4,
                       whiteSpace: 'nowrap',
                       maxWidth: '90%',
@@ -571,7 +571,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   >
                     {o.text}
                     {isSelected && (
-                      <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: '#a99fff', background: 'rgba(0,0,0,0.7)', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
+                      <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: 'var(--surface)', background: 'rgba(26,26,23,0.75)', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
                         drag to reposition
                       </div>
                     )}
@@ -581,14 +581,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             </div>
           ) : (
             <div
-              style={{ ...S.emptyState, borderColor: isDraggingFile ? '#6c63ff' : '#333', background: isDraggingFile ? '#6c63ff0a' : 'transparent' }}
+              style={{ ...S.emptyState, borderColor: isDraggingFile ? 'var(--ink)' : 'var(--border-strong)', background: isDraggingFile ? 'var(--accent-soft)' : 'transparent' }}
               onClick={() => fileInputRef.current?.click()}
             >
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#1e1e22', border: '1px solid #333', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#666" strokeWidth="2"><path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.889L15 14"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2"><path d="M15 10l4.553-2.069A1 1 0 0 1 21 8.82v6.36a1 1 0 0 1-1.447.889L15 14"/><rect x="3" y="6" width="12" height="12" rx="2"/></svg>
               </div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#888' }}>Drop a video or click to upload</div>
-              <div style={{ fontSize: 12, color: '#555' }}>MP4, MOV, WebM</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink-dim)' }}>Drop a video or click to upload</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>MP4, MOV, WebM</div>
             </div>
           )}
 
@@ -612,7 +612,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
               </button>
               <span style={S.timeLabel}>{fmt(currentTime)} / {fmt(spec.duration)}</span>
               <div style={{ flex: 1 }} />
-              <span style={{ fontSize: 12, color: '#555', fontWeight: 600 }}>
+              <span style={{ fontSize: 12, color: 'var(--ink-mute)', fontWeight: 600 }}>
                 {(spec.trimEnd - spec.trimStart).toFixed(1)}s trimmed
               </span>
             </div>
@@ -626,7 +626,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 {/* Time ruler tick marks */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
                   {Array.from({ length: 7 }).map((_, i) => (
-                    <span key={i} style={{ fontSize: 10, color: '#444', fontVariantNumeric: 'tabular-nums' }}>
+                    <span key={i} style={{ fontSize: 10, color: 'var(--ink-mute)', fontVariantNumeric: 'tabular-nums' }}>
                       {((spec.duration / 6) * i).toFixed(0)}s
                     </span>
                   ))}
@@ -647,7 +647,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   <div style={{
                     position: 'absolute',
                     left: 0, top: 0, right: 0, bottom: 0,
-                    background: 'repeating-linear-gradient(90deg, #1e1e28, #1e1e28 1px, #22222c 1px, #22222c 40px)',
+                    background: 'repeating-linear-gradient(90deg, var(--surface-2), var(--surface-2) 1px, var(--surface-3) 1px, var(--surface-3) 40px)',
                     borderRadius: 8,
                   }} />
 
@@ -657,9 +657,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     left: `${trimPct.start}%`,
                     width: `${trimPct.end - trimPct.start}%`,
                     top: 0, bottom: 0,
-                    background: 'rgba(108,99,255,0.25)',
-                    borderTop: '2px solid #6c63ff',
-                    borderBottom: '2px solid #6c63ff',
+                    background: 'rgba(26,26,23,0.12)',
+                    borderTop: '2px solid var(--ink)',
+                    borderBottom: '2px solid var(--ink)',
                     pointerEvents: 'none',
                   }} />
 
@@ -669,7 +669,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       position: 'absolute',
                       left: `${trimPct.start}%`,
                       top: 0, bottom: 0, width: 10,
-                      background: '#6c63ff',
+                      background: 'var(--ink)',
                       borderRadius: '4px 0 0 4px',
                       cursor: 'ew-resize',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -697,7 +697,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       position: 'absolute',
                       left: `${trimPct.end}%`,
                       top: 0, bottom: 0, width: 10,
-                      background: '#6c63ff',
+                      background: 'var(--ink)',
                       borderRadius: '0 4px 4px 0',
                       cursor: 'ew-resize',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -725,11 +725,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     position: 'absolute',
                     left: `${trimPct.cursor}%`,
                     top: -4, bottom: -4, width: 2,
-                    background: '#fff',
+                    background: 'var(--ink)',
                     pointerEvents: 'none',
-                    boxShadow: '0 0 6px rgba(255,255,255,0.5)',
                   }}>
-                    <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 8, height: 8, background: '#fff', borderRadius: '50%' }} />
+                    <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 8, height: 8, background: 'var(--ink)', borderRadius: '50%' }} />
                   </div>
 
                   {/* Overlay marker ticks */}
@@ -739,7 +738,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       left: `${(o.start / spec.duration) * 100}%`,
                       width: `${(o.duration / spec.duration) * 100}%`,
                       top: '60%', height: '30%',
-                      background: 'rgba(255,180,50,0.5)',
+                      background: 'rgba(26,26,23,0.25)',
                       borderRadius: 2,
                       pointerEvents: 'none',
                     }} />
@@ -788,7 +787,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   <div style={S.sliderWrap}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <label style={S.fieldLabel}>In point</label>
-                      <span style={{ fontSize: 12, color: '#a99fff', fontVariantNumeric: 'tabular-nums' }}>{fmt(spec.trimStart)}</span>
+                      <span style={{ fontSize: 12, color: 'var(--ink-dim)', fontVariantNumeric: 'tabular-nums' }}>{fmt(spec.trimStart)}</span>
                     </div>
                     <input
                       type="range"
@@ -797,7 +796,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       step={0.05}
                       value={spec.trimStart}
                       onChange={e => setSpec(s => ({ ...s, trimStart: Math.min(parseFloat(e.target.value), s.trimEnd - 0.1) }))}
-                      style={{ width: '100%', accentColor: '#6c63ff' }}
+                      style={{ width: '100%', accentColor: 'var(--ink)' }}
                     />
                   </div>
                 </div>
@@ -805,7 +804,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   <div style={S.sliderWrap}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                       <label style={S.fieldLabel}>Out point</label>
-                      <span style={{ fontSize: 12, color: '#a99fff', fontVariantNumeric: 'tabular-nums' }}>{fmt(spec.trimEnd)}</span>
+                      <span style={{ fontSize: 12, color: 'var(--ink-dim)', fontVariantNumeric: 'tabular-nums' }}>{fmt(spec.trimEnd)}</span>
                     </div>
                     <input
                       type="range"
@@ -814,14 +813,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       step={0.05}
                       value={spec.trimEnd}
                       onChange={e => setSpec(s => ({ ...s, trimEnd: Math.max(parseFloat(e.target.value), s.trimStart + 0.1) }))}
-                      style={{ width: '100%', accentColor: '#6c63ff' }}
+                      style={{ width: '100%', accentColor: 'var(--ink)' }}
                     />
                   </div>
                 </div>
-                <div style={{ padding: '12px 14px', borderRadius: 8, background: '#1a1a1e', border: '1px solid #2a2a2e' }}>
+                <div style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
-                    <span style={{ color: '#666' }}>Final duration</span>
-                    <span style={{ color: '#fff', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{ color: 'var(--ink-dim)' }}>Final duration</span>
+                    <span style={{ color: 'var(--ink)', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>
                       {Math.max(0, spec.trimEnd - spec.trimStart).toFixed(2)}s
                     </span>
                   </div>
@@ -843,14 +842,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     <div style={S.sectionLabel}>Active Overlays</div>
                     {spec.overlays.map(o => (
                       <div key={o.id} style={{ ...S.overlayCard, marginBottom: 8 }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 6, background: '#2a2a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0, color: '#f5a524' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 6, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0, color: 'var(--ink-dim)' }}>
                           T
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e8e8', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.text}</div>
-                          <div style={{ fontSize: 11, color: '#555' }}>{fmt(o.start)} – {fmt(o.start + o.duration)} · {o.position} · {o.style}</div>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.text}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{fmt(o.start)} – {fmt(o.start + o.duration)} · {o.position} · {o.style}</div>
                         </div>
-                        <button onClick={() => setSpec(s => ({ ...s, overlays: s.overlays.filter(x => x.id !== o.id) }))} style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
+                        <button onClick={() => setSpec(s => ({ ...s, overlays: s.overlays.filter(x => x.id !== o.id) }))} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
                       </div>
                     ))}
                   </div>
@@ -907,9 +906,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   style={S.musicCard(!spec.music)}
                   onClick={() => setSpec(s => ({ ...s, music: undefined }))}
                 >
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: '#2a2a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔇</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#ccc' }}>No music</div>
-                  {!spec.music && <span style={{ marginLeft: 'auto', color: '#6c63ff', fontSize: 16 }}>✓</span>}
+                  <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🔇</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-dim)' }}>No music</div>
+                  {!spec.music && <span style={{ marginLeft: 'auto', color: 'var(--ink)', fontSize: 16 }}>✓</span>}
                 </div>
 
                 {MUSIC_LIBRARY.map((track, i) => (
@@ -918,14 +917,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     style={S.musicCard(spec.music?.url === track.url)}
                     onClick={() => setSpec(s => ({ ...s, music: { ...track, volume: s.music?.volume ?? track.volume } }))}
                   >
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: ['#1a2a3a', '#2a1a3a', '#1a3a2a'][i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: (['var(--surface-2)', 'var(--surface-3)', 'var(--accent-soft)'] as const)[i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
                       {['🎵', '🎶', '🎸'][i]}
                     </div>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#e8e8e8' }}>{track.label}</div>
-                      <div style={{ fontSize: 11, color: '#555' }}>Royalty-free</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{track.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Royalty-free</div>
                     </div>
-                    {spec.music?.url === track.url && <span style={{ marginLeft: 'auto', color: '#6c63ff', fontSize: 16 }}>✓</span>}
+                    {spec.music?.url === track.url && <span style={{ marginLeft: 'auto', color: 'var(--ink)', fontSize: 16 }}>✓</span>}
                   </div>
                 ))}
 
@@ -933,7 +932,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   <div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
                       <label style={S.fieldLabel}>Volume</label>
-                      <span style={{ fontSize: 12, color: '#a99fff' }}>{Math.round((spec.music.volume ?? 0.25) * 100)}%</span>
+                      <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{Math.round((spec.music.volume ?? 0.25) * 100)}%</span>
                     </div>
                     <input
                       type="range"
@@ -942,7 +941,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       step={0.01}
                       value={spec.music.volume ?? 0.25}
                       onChange={e => setSpec(s => s.music ? { ...s, music: { ...s.music, volume: parseFloat(e.target.value) } } : s)}
-                      style={{ width: '100%', accentColor: '#6c63ff' }}
+                      style={{ width: '100%', accentColor: 'var(--ink)' }}
                     />
                   </div>
                 )}
@@ -953,7 +952,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             {activePanel === 'ai' && (
               <>
                 <div style={S.sectionLabel}>AI Editor</div>
-                <div style={{ padding: '12px 14px', borderRadius: 8, background: '#6c63ff12', border: '1px solid #6c63ff30', fontSize: 12, color: '#a99fff', lineHeight: 1.6 }}>
+                <div style={{ padding: '12px 14px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.6 }}>
                   Describe any edit in plain language and AI will apply it instantly.
                 </div>
                 <div>
@@ -966,7 +965,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       <button
                         key={ex}
                         onClick={() => setAiInput(ex)}
-                        style={{ textAlign: 'left', padding: '8px 12px', borderRadius: 8, border: '1px solid #2a2a2e', background: '#1a1a1e', color: '#888', fontSize: 12, cursor: 'pointer' }}
+                        style={{ textAlign: 'left', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--ink-dim)', fontSize: 12, cursor: 'pointer' }}
                       >
                         "{ex}"
                       </button>
@@ -997,7 +996,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             {activePanel === 'export' && (
               <>
                 <div style={S.sectionLabel}>Render Summary</div>
-                <div style={{ borderRadius: 8, border: '1px solid #2a2a2e', overflow: 'hidden' }}>
+                <div style={{ borderRadius: 8, border: '1px solid var(--border)', overflow: 'hidden' }}>
                   {[
                     ['Aspect ratio', spec.aspectRatio],
                     ['In → Out', `${fmt(spec.trimStart)} → ${fmt(spec.trimEnd)}`],
@@ -1005,14 +1004,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     ['Text overlays', String(spec.overlays.length)],
                     ['Music', spec.music ? `${spec.music.label} (${Math.round(spec.music.volume * 100)}%)` : 'None'],
                   ].map(([k, v], i, arr) => (
-                    <div key={k} style={{ ...S.summaryRow, padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid #222' : 'none', margin: 0 }}>
-                      <span style={{ color: '#666' }}>{k}</span>
-                      <span style={{ color: '#e8e8e8', fontWeight: 600 }}>{v}</span>
+                    <div key={k} style={{ ...S.summaryRow, padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', margin: 0 }}>
+                      <span style={{ color: 'var(--ink-mute)' }}>{k}</span>
+                      <span style={{ color: 'var(--ink)', fontWeight: 600 }}>{v}</span>
                     </div>
                   ))}
                 </div>
 
-                <div style={{ padding: '10px 14px', borderRadius: 8, background: '#1a1a1e', border: '1px solid #2a2a2e', fontSize: 12, color: '#555', lineHeight: 1.6 }}>
+                <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-mute)', lineHeight: 1.6 }}>
                   Rendered via Shotstack — full quality MP4, takes 30–60s.
                 </div>
 
@@ -1028,7 +1027,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   <a
                     href={exportUrl}
                     download
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: '#1a3a2a', border: '1px solid #2a5a3a', color: '#4ade80', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border-strong)', color: 'var(--ink)', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                     Download MP4
