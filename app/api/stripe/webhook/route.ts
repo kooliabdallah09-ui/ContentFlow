@@ -120,6 +120,36 @@ export async function POST(request: NextRequest) {
         }
         break
       }
+
+      // Fires on every successful renewal payment — this is how monthly credits are topped up.
+      case 'invoice.paid': {
+        const invoice = event.data.object as Stripe.Invoice
+        // Only handle subscription invoices (not one-off credit pack payments)
+        if (!invoice.subscription) break
+        // Skip the very first invoice — checkout.session.completed already handled it
+        if (invoice.billing_reason === 'subscription_create') break
+
+        const sub = await stripe.subscriptions.retrieve(invoice.subscription as string)
+        const priceId = sub.items.data[0]?.price?.id ?? ''
+        const planInfo = PLAN_PRICE_MAP[priceId]
+        if (!planInfo) break
+
+        const userId = await getUserIdByCustomer(supabase, invoice.customer as string)
+        if (!userId) break
+
+        const resetDate = new Date()
+        resetDate.setMonth(resetDate.getMonth() + 1)
+        resetDate.setDate(1)
+        await supabase
+          .from('user_credits')
+          .update({
+            balance: planInfo.monthly_credits,
+            monthly_credits: planInfo.monthly_credits,
+            reset_date: resetDate.toISOString(),
+          })
+          .eq('user_id', userId)
+        break
+      }
     }
   } catch (e) {
     console.error('[stripe/webhook] handler error', e)
