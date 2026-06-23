@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { EditSpec, TextOverlay, EMPTY_EDIT_SPEC, MUSIC_LIBRARY, DEFAULT_FILTERS } from '@/lib/edit-spec'
+import { EditSpec, TextOverlay, ImageOverlay, EMPTY_EDIT_SPEC, MUSIC_LIBRARY, DEFAULT_FILTERS } from '@/lib/edit-spec'
 import { getSupabase } from '@/lib/auth'
 
 interface VideoEditorProps {
@@ -10,7 +10,7 @@ interface VideoEditorProps {
   initialAspect?: '9:16' | '1:1' | '16:9'
 }
 
-type Panel = 'trim' | 'text' | 'adjust' | 'music' | 'ai' | 'export'
+type Panel = 'trim' | 'text' | 'image' | 'adjust' | 'music' | 'ai' | 'export'
 
 function genId() { return Math.random().toString(36).slice(2, 9) }
 function fmt(s: number) {
@@ -23,6 +23,7 @@ function fmt(s: number) {
 const PANEL_TABS: { id: Panel; icon: string; label: string }[] = [
   { id: 'trim',   icon: '✂',  label: 'Trim'   },
   { id: 'text',   icon: 'T',  label: 'Text'   },
+  { id: 'image',  icon: '⊡',  label: 'Image'  },
   { id: 'adjust', icon: '✦',  label: 'Adjust' },
   { id: 'music',  icon: '♪',  label: 'Music'  },
   { id: 'ai',     icon: '✧',  label: 'AI'     },
@@ -75,6 +76,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     volume: 1,
     speed: 1,
     filters: { ...DEFAULT_FILTERS },
+    imageOverlays: [],
   })
 
   const [spec, setSpec] = useState<EditSpec>(makeInitialSpec)
@@ -96,12 +98,22 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [newFontSize, setNewFontSize] = useState<TextOverlay['fontSize']>('md')
   const [isMuted, setIsMuted] = useState(false)
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null)
+  const [captionLoading, setCaptionLoading] = useState(false)
+  const [captionError, setCaptionError] = useState<string | null>(null)
+  const [imgStart, setImgStart] = useState(0)
+  const [imgDuration, setImgDuration] = useState(3)
+  const [imgScale, setImgScale] = useState(0.3)
+  const [imgOpacity, setImgOpacity] = useState(1)
+  const [imgUrl, setImgUrl] = useState('')
+  const [selectedImgId, setSelectedImgId] = useState<string | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const imgInputRef = useRef<HTMLInputElement>(null)
   const videoWrapRef = useRef<HTMLDivElement>(null)
   const isDraggingTrim = useRef<null | 'start' | 'end'>(null)
   const draggingOverlay = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
+  const draggingImg = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
 
   // Undo/redo history
   const history = useRef<EditSpec[]>([makeInitialSpec()])
@@ -133,10 +145,15 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       const meta = e.metaKey || e.ctrlKey
       if (meta && e.shiftKey && e.key === 'z') { e.preventDefault(); redo(); return }
       if (meta && e.key === 'z') { e.preventDefault(); undo(); return }
+      if (e.code === 'Space' && !(e.target instanceof HTMLInputElement) && !(e.target instanceof HTMLTextAreaElement)) {
+        e.preventDefault()
+        videoRef.current?.[isPlaying ? 'pause' : 'play']()
+        return
+      }
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [])
+  }, [isPlaying])
 
   function loadVideoFile(file: File) {
     const url = URL.createObjectURL(file)
@@ -166,10 +183,38 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       const supabase = getSupabase()
       const { data: session } = await supabase!.auth.getSession()
       const token = session?.session?.access_token
+      const { data: userInfo } = await supabase!.auth.getUser(token ?? '')
+
+      // Upload any blob: image overlays to Supabase before export
+      let exportSpec = { ...spec }
+      const blobImages = (spec.imageOverlays ?? []).filter(o => o.src.startsWith('blob:'))
+      if (blobImages.length > 0) {
+        setExportStatus('Uploading images...')
+        const uploadedImages = await Promise.all(
+          blobImages.map(async o => {
+            const blob = await fetch(o.src).then(r => r.blob())
+            const ext = blob.type.split('/')[1] || 'png'
+            const filename = `editor-images/${userInfo?.user?.id ?? 'anon'}-${Date.now()}-${genId()}.${ext}`
+            const supabase2 = getSupabase()!
+            const { error: upErr } = await supabase2.storage.from('ugc-assets').upload(filename, blob, { contentType: blob.type, upsert: true })
+            if (upErr) throw new Error(`Image upload failed: ${upErr.message}`)
+            const { data: { publicUrl } } = supabase2.storage.from('ugc-assets').getPublicUrl(filename)
+            return { id: o.id, publicUrl }
+          })
+        )
+        exportSpec = {
+          ...exportSpec,
+          imageOverlays: (exportSpec.imageOverlays ?? []).map(o => {
+            const uploaded = uploadedImages.find(u => u.id === o.id)
+            return uploaded ? { ...o, src: uploaded.publicUrl } : o
+          }),
+        }
+      }
+
       const res = await fetch('/api/video/editor-export', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ spec }),
+        body: JSON.stringify({ spec: exportSpec }),
       })
       const { renderId, error } = await res.json()
       if (error) throw new Error(error)
@@ -250,6 +295,104 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         fontSize: 'xl',
       }],
     })
+  }
+
+  async function handleAutoCaption() {
+    if (!spec.videoUrl) return
+    setCaptionLoading(true)
+    setCaptionError(null)
+    try {
+      const supabase = getSupabase()
+      const { data: session } = await supabase!.auth.getSession()
+      const token = session?.session?.access_token
+
+      let res: Response
+      if (spec.videoUrl.startsWith('blob:')) {
+        const blob = await fetch(spec.videoUrl).then(r => r.blob())
+        const form = new FormData()
+        form.append('file', blob, 'video.mp4')
+        form.append('duration', String(spec.duration))
+        res = await fetch('/api/video/transcribe', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        })
+      } else {
+        res = await fetch('/api/video/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ videoUrl: spec.videoUrl, duration: spec.duration }),
+        })
+      }
+
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      pushHistory({ ...spec, overlays: [...spec.overlays, ...data.overlays] })
+    } catch (e) {
+      setCaptionError(e instanceof Error ? e.message : 'Caption failed')
+    } finally {
+      setCaptionLoading(false)
+    }
+  }
+
+  function addImageOverlay(src: string) {
+    pushHistory({
+      ...spec,
+      imageOverlays: [...(spec.imageOverlays ?? []), {
+        id: genId(),
+        src,
+        start: imgStart,
+        duration: imgDuration,
+        x: 0.5,
+        y: 0.5,
+        scale: imgScale,
+        opacity: imgOpacity,
+      }],
+    })
+    setImgUrl('')
+  }
+
+  function handleImgFileInput(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    addImageOverlay(url)
+    e.target.value = ''
+  }
+
+  function startImgDrag(e: React.MouseEvent, imgId: string) {
+    e.preventDefault()
+    e.stopPropagation()
+    const img = (spec.imageOverlays ?? []).find(o => o.id === imgId)
+    if (!img) return
+    setSelectedImgId(imgId)
+    draggingImg.current = { id: imgId, startX: e.clientX, startY: e.clientY, origX: img.x, origY: img.y }
+    const rect = videoWrapRef.current?.getBoundingClientRect()
+    if (!rect) return
+    const specSnapshot = { ...spec, imageOverlays: [...(spec.imageOverlays ?? [])] }
+    function onMove(me: MouseEvent) {
+      if (!draggingImg.current || !rect) return
+      const { id, startX, startY, origX, origY } = draggingImg.current
+      const dx = (me.clientX - startX) / rect.width
+      const dy = (me.clientY - startY) / rect.height
+      const nx = Math.max(0, Math.min(1, origX + dx))
+      const ny = Math.max(0, Math.min(1, origY + dy))
+      setSpec(s => ({ ...s, imageOverlays: (s.imageOverlays ?? []).map(o => o.id === id ? { ...o, x: nx, y: ny } : o) }))
+    }
+    function onUp(me: MouseEvent) {
+      if (!draggingImg.current || !rect) { draggingImg.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); return }
+      const { id, startX, startY, origX, origY } = draggingImg.current
+      const dx = (me.clientX - startX) / rect.width
+      const dy = (me.clientY - startY) / rect.height
+      const nx = Math.max(0, Math.min(1, origX + dx))
+      const ny = Math.max(0, Math.min(1, origY + dy))
+      pushHistory({ ...specSnapshot, imageOverlays: specSnapshot.imageOverlays.map(o => o.id === id ? { ...o, x: nx, y: ny } : o) })
+      draggingImg.current = null
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
   }
 
   function startOverlayDrag(e: React.MouseEvent, overlayId: string) {
@@ -497,6 +640,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       display: 'flex',
       borderBottom: '1px solid var(--border)',
       flexShrink: 0,
+      overflowX: 'auto' as const,
     },
     tab: (active: boolean) => ({
       flex: 1,
@@ -690,6 +834,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
         {/* Upload */}
         <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileInput} style={{ display: 'none' }} />
+        <input ref={imgInputRef} type="file" accept="image/*" onChange={handleImgFileInput} style={{ display: 'none' }} />
         <button style={S.uploadBtn} onClick={() => fileInputRef.current?.click()}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Upload Video
@@ -778,6 +923,37 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       </div>
                     )}
                   </div>
+                )
+              })}
+              {/* Image overlay previews — draggable */}
+              {(spec.imageOverlays ?? []).map(o => {
+                const visible = currentTime >= o.start && currentTime < o.start + o.duration
+                const isSelected = selectedImgId === o.id
+                return (
+                  <img
+                    key={o.id}
+                    src={o.src}
+                    alt=""
+                    onMouseDown={e => startImgDrag(e, o.id)}
+                    onClick={e => { e.stopPropagation(); setSelectedImgId(o.id) }}
+                    style={{
+                      position: 'absolute',
+                      left: `${o.x * 100}%`,
+                      top: `${o.y * 100}%`,
+                      transform: 'translate(-50%, -50%)',
+                      width: `${o.scale * 100}%`,
+                      height: 'auto',
+                      opacity: visible ? o.opacity : o.opacity * 0.25,
+                      cursor: 'grab',
+                      userSelect: 'none',
+                      outline: isSelected ? '1.5px dashed var(--ink)' : 'none',
+                      outlineOffset: 3,
+                      borderRadius: 4,
+                      zIndex: 11,
+                      pointerEvents: 'auto',
+                    }}
+                    draggable={false}
+                  />
                 )
               })}
             </div>
@@ -945,6 +1121,18 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       pointerEvents: 'none',
                     }} />
                   ))}
+                  {/* Image overlay ticks */}
+                  {(spec.imageOverlays ?? []).map(o => (
+                    <div key={`img-${o.id}`} style={{
+                      position: 'absolute',
+                      left: `${(o.start / spec.duration) * 100}%`,
+                      width: `${(o.duration / spec.duration) * 100}%`,
+                      top: '30%', height: '30%',
+                      background: 'rgba(77,159,255,0.4)',
+                      borderRadius: 2,
+                      pointerEvents: 'none',
+                    }} />
+                  ))}
                 </div>
               </div>
 
@@ -1039,6 +1227,39 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             {/* ── Text overlays ─────────────────────────────────────────── */}
             {activePanel === 'text' && (
               <>
+                {/* Auto Caption */}
+                <div>
+                  <div style={S.sectionLabel}>Auto Caption</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <button
+                      style={{
+                        ...S.primaryBtn,
+                        opacity: (!spec.videoUrl || captionLoading) ? 0.5 : 1,
+                        cursor: (!spec.videoUrl || captionLoading) ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                      }}
+                      onClick={handleAutoCaption}
+                      disabled={!spec.videoUrl || captionLoading}
+                    >
+                      {captionLoading
+                        ? <><span style={{ display: 'inline-block', width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />Transcribing…</>
+                        : <><span style={{ fontSize: 16 }}>✦</span> Generate Captions</>
+                      }
+                    </button>
+                    {captionError && (
+                      <div style={{ fontSize: 12, color: '#e84040', padding: '6px 10px', borderRadius: 6, background: 'rgba(232,64,64,0.08)', border: '1px solid rgba(232,64,64,0.2)' }}>
+                        {captionError}
+                      </div>
+                    )}
+                    <div style={{ fontSize: 11, color: 'var(--ink-mute)', lineHeight: 1.5 }}>
+                      Uses Whisper AI to transcribe speech and add synced captions automatically.
+                    </div>
+                  </div>
+                </div>
+
                 {/* Quick stickers */}
                 <div>
                   <div style={S.sectionLabel}>Quick Stickers</div>
@@ -1191,6 +1412,161 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     </button>
                   </div>
                 </div>
+              </>
+            )}
+
+            {/* ── Image overlays ────────────────────────────────────────── */}
+            {activePanel === 'image' && (
+              <>
+                {/* Add Image section */}
+                <div>
+                  <div style={S.sectionLabel}>Add Image</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+
+                    {/* Upload button */}
+                    <button
+                      style={S.primaryBtn}
+                      onClick={() => imgInputRef.current?.click()}
+                    >
+                      Upload Image
+                    </button>
+
+                    {/* URL input */}
+                    <div>
+                      <label style={S.fieldLabel}>Or paste URL</label>
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <input
+                          type="text"
+                          placeholder="https://..."
+                          value={imgUrl}
+                          onChange={e => setImgUrl(e.target.value)}
+                          style={{ ...S.input, flex: 1 }}
+                        />
+                        <button
+                          style={{ ...S.primaryBtn, width: 'auto', padding: '8px 14px', whiteSpace: 'nowrap' as const, opacity: imgUrl.trim() ? 1 : 0.4 }}
+                          onClick={() => { if (imgUrl.trim()) addImageOverlay(imgUrl.trim()) }}
+                          disabled={!imgUrl.trim()}
+                        >Add</button>
+                      </div>
+                    </div>
+
+                    {/* Timing */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      <div>
+                        <label style={S.fieldLabel}>Start (s)</label>
+                        <input type="number" min={0} max={spec.duration} step={0.1} value={imgStart}
+                          onChange={e => setImgStart(parseFloat(e.target.value) || 0)} style={S.input} />
+                      </div>
+                      <div>
+                        <label style={S.fieldLabel}>Duration (s)</label>
+                        <input type="number" min={0.5} max={spec.duration} step={0.1} value={imgDuration}
+                          onChange={e => setImgDuration(parseFloat(e.target.value) || 1)} style={S.input} />
+                      </div>
+                    </div>
+
+                    {/* Size */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <label style={S.fieldLabel}>Size</label>
+                        <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{Math.round(imgScale * 100)}%</span>
+                      </div>
+                      <input type="range" min={0.05} max={1} step={0.01} value={imgScale}
+                        onChange={e => setImgScale(parseFloat(e.target.value))}
+                        style={{ width: '100%', accentColor: 'var(--ink)' }} />
+                    </div>
+
+                    {/* Opacity */}
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <label style={S.fieldLabel}>Opacity</label>
+                        <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{Math.round(imgOpacity * 100)}%</span>
+                      </div>
+                      <input type="range" min={0} max={1} step={0.01} value={imgOpacity}
+                        onChange={e => setImgOpacity(parseFloat(e.target.value))}
+                        style={{ width: '100%', accentColor: 'var(--ink)' }} />
+                    </div>
+
+                    <div style={{ fontSize: 11, color: 'var(--ink-mute)', lineHeight: 1.5 }}>
+                      Upload a logo, watermark, or product image. Drag it on the canvas to reposition.
+                    </div>
+                  </div>
+                </div>
+
+                {/* Active images list */}
+                {(spec.imageOverlays ?? []).length > 0 && (
+                  <div>
+                    <div style={S.sectionLabel}>Active Images</div>
+                    {(spec.imageOverlays ?? []).map(o => (
+                      <div key={o.id} style={{ ...S.overlayCard, marginBottom: 8, gap: 8 }}>
+                        <img
+                          src={o.src}
+                          alt=""
+                          style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 4, border: '1px solid var(--border)', flexShrink: 0 }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {o.src.startsWith('blob:') ? 'Local image' : o.src.split('/').pop()?.slice(0, 20) ?? 'Image'}
+                          </div>
+                          <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>
+                            {fmt(o.start)} – {fmt(o.start + o.duration)} · {Math.round(o.scale * 100)}% · {Math.round(o.opacity * 100)}% opacity
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => pushHistory({ ...spec, imageOverlays: (spec.imageOverlays ?? []).filter(x => x.id !== o.id) })}
+                          style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Edit selected image */}
+                {selectedImgId && (spec.imageOverlays ?? []).find(o => o.id === selectedImgId) && (() => {
+                  const sel = (spec.imageOverlays ?? []).find(o => o.id === selectedImgId)!
+                  return (
+                    <div>
+                      <div style={S.sectionLabel}>Selected Image</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <label style={S.fieldLabel}>Size</label>
+                            <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{Math.round(sel.scale * 100)}%</span>
+                          </div>
+                          <input type="range" min={0.05} max={1} step={0.01} value={sel.scale}
+                            onChange={e => pushHistory({ ...spec, imageOverlays: (spec.imageOverlays ?? []).map(o => o.id === selectedImgId ? { ...o, scale: parseFloat(e.target.value) } : o) })}
+                            style={{ width: '100%', accentColor: 'var(--ink)' }} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <label style={S.fieldLabel}>Opacity</label>
+                            <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{Math.round(sel.opacity * 100)}%</span>
+                          </div>
+                          <input type="range" min={0} max={1} step={0.01} value={sel.opacity}
+                            onChange={e => pushHistory({ ...spec, imageOverlays: (spec.imageOverlays ?? []).map(o => o.id === selectedImgId ? { ...o, opacity: parseFloat(e.target.value) } : o) })}
+                            style={{ width: '100%', accentColor: 'var(--ink)' }} />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <div>
+                            <label style={S.fieldLabel}>Start (s)</label>
+                            <input type="number" min={0} max={spec.duration} step={0.1} value={sel.start}
+                              onChange={e => pushHistory({ ...spec, imageOverlays: (spec.imageOverlays ?? []).map(o => o.id === selectedImgId ? { ...o, start: parseFloat(e.target.value) || 0 } : o) })}
+                              style={S.input} />
+                          </div>
+                          <div>
+                            <label style={S.fieldLabel}>Duration (s)</label>
+                            <input type="number" min={0.5} step={0.1} value={sel.duration}
+                              onChange={e => pushHistory({ ...spec, imageOverlays: (spec.imageOverlays ?? []).map(o => o.id === selectedImgId ? { ...o, duration: parseFloat(e.target.value) || 1 } : o) })}
+                              style={S.input} />
+                          </div>
+                        </div>
+                        <button
+                          style={{ ...S.ghostBtn, fontSize: 12 }}
+                          onClick={() => setSelectedImgId(null)}
+                        >Deselect</button>
+                      </div>
+                    </div>
+                  )
+                })()}
               </>
             )}
 

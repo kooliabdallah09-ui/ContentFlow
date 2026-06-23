@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { EditSpec } from '@/lib/edit-spec'
+import { EditSpec, ImageOverlay } from '@/lib/edit-spec'
 
 const SHOTSTACK_BASE = process.env.SHOTSTACK_ENV === 'production'
   ? 'https://api.shotstack.io/edge'
@@ -86,6 +86,37 @@ function buildShotstackBody(spec: EditSpec) {
       }
     })
     tracks.push({ clips: textClips })
+  }
+
+  // Image overlays track
+  if (spec.imageOverlays && spec.imageOverlays.length > 0) {
+    const imageClips = spec.imageOverlays.map((overlay: ImageOverlay) => {
+      let position: string
+      let offset: { x: number; y: number }
+      if (overlay.x !== undefined && overlay.y !== undefined) {
+        position = 'center'
+        offset = {
+          x: (overlay.x - 0.5) * 1.4,
+          y: -((overlay.y - 0.5) * 1.4),
+        }
+      } else {
+        position = 'center'
+        offset = { x: 0, y: 0 }
+      }
+      return {
+        asset: {
+          type: 'image',
+          src: overlay.src,
+        },
+        start: overlay.start,
+        length: overlay.duration,
+        position,
+        offset,
+        scale: overlay.scale,
+        opacity: overlay.opacity,
+      }
+    })
+    tracks.push({ clips: imageClips })
   }
 
   // Video track

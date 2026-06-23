@@ -1,3 +1,14 @@
+export interface ImageOverlay {
+  id: string
+  src: string       // public URL or blob URL
+  start: number     // seconds
+  duration: number  // seconds
+  x: number         // 0–1
+  y: number         // 0–1
+  scale: number     // 0.05–1, fraction of video width
+  opacity: number   // 0–1
+}
+
 export interface TextOverlay {
   id: string
   text: string
@@ -23,6 +34,7 @@ export interface EditSpec {
   trimStart: number    // seconds from start to cut in
   trimEnd: number      // seconds from start to cut out (0 = use full duration)
   overlays: TextOverlay[]
+  imageOverlays: ImageOverlay[]
   music?: MusicTrack
   aspectRatio: '9:16' | '1:1' | '16:9'
   volume?: number      // 0–1, original video audio (default 1)
@@ -45,6 +57,7 @@ export const EMPTY_EDIT_SPEC: EditSpec = {
   trimStart: 0,
   trimEnd: 0,
   overlays: [],
+  imageOverlays: [],
   music: undefined,
   aspectRatio: '9:16',
 }
