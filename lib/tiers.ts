@@ -39,8 +39,8 @@ export interface TierConfig {
 export const TIERS: Record<UGCTier, TierConfig> = {
   standard: {
     label: 'Standard',
-    tagline: 'Kling v3 omni',
-    description: 'Kling v3 generates the talking head with native synced audio. Your product carries through from a Nano Banana hero frame.',
+    tagline: 'Talking head · native audio',
+    description: 'AI generates the talking head with native synced audio. Your product carries through into the first frame.',
     aRollProvider: 'kling-v3-omni',
     available: true,
   },

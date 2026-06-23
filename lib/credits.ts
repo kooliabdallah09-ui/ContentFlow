@@ -28,7 +28,7 @@ export const PLAN_CREDITS = {
 // Per-credit price intentionally above subscription rate to push commit.
 export const CREDIT_PACKS = [
   { id: 'small',  credits: 500,  priceUSD: 15,  perCredit: 0.030 },
-  { id: 'medium', credits: 1500, priceUSD: 40,  perCredit: 0.027, bonus: 11 },
+  { id: 'medium', credits: 1500, priceUSD: 40,  perCredit: 0.0267, bonus: 11 },
   { id: 'large',  credits: 5000, priceUSD: 120, perCredit: 0.024, bonus: 20 },
 ] as const
 

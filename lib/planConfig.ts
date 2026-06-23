@@ -15,7 +15,7 @@ export const CREDIT_COSTS: Record<string, number> = {
   email: 10,
   blog: 20,
   image: 3,
-  voice: 12,
+  voice: 5, // min charge; actual = max(5, ceil(chars/80)) — see generate/voice/page
 }
 
 // 1 credit = $0.025 USD. Mirrored from lib/tiers.ts for places that don't
