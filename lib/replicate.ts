@@ -11,10 +11,14 @@ export async function submitSora2ViaReplicate(params: {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
+  // Sora 2 only accepts "portrait" or "landscape" (not ratio strings)
+  const soraAspect =
+    params.aspectRatio === '16:9' ? 'landscape' : 'portrait'
+
   const input: Record<string, unknown> = {
     prompt: params.prompt,
     duration: params.durationSeconds,
-    aspect_ratio: params.aspectRatio ?? '9:16',
+    aspect_ratio: soraAspect,
     resolution: params.resolution ?? '720p',
   }
   if (params.referenceImageUrl) input.image = params.referenceImageUrl
