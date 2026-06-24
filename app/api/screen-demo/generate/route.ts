@@ -6,14 +6,15 @@ import { submitScreenDemoJob } from '@/lib/shotstack'
 export const maxDuration = 120
 
 const CHAR_BLOCK = 80
-const MIN_CREDITS = 20  // floor reflects finished mixed-video value, not just audio
+const MIN_CREDITS = 20
 const MAX_CHARS = 2000
-const MAX_VIDEO_BYTES = 200 * 1024 * 1024  // 200 MB
 
 function calcCreditCost(charCount: number): number {
   return Math.max(MIN_CREDITS, Math.ceil(charCount / CHAR_BLOCK))
 }
 
+// Accepts JSON (not multipart) — video was already uploaded directly from the
+// browser to Supabase using a signed URL from /api/screen-demo/upload-url.
 export async function POST(req: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -34,18 +35,12 @@ export async function POST(req: NextRequest) {
     }
     const userId = userData.user.id
 
-    const form = await req.formData()
-    const videoFile = form.get('video') as File | null
-    const script = (form.get('script') as string | null)?.trim() ?? ''
-    const voiceId = (form.get('voiceId') as string | null)?.trim() || 'Rachel'
-    const speed = parseFloat((form.get('speed') as string | null) ?? '1.0') || 1.0
-    const aspect = (form.get('aspect') as string | null) ?? 'landscape'
+    const body = await req.json()
+    const { storagePath, script: rawScript, voiceId = 'Rachel', aspect = 'landscape' } = body
+    const script = (rawScript ?? '').trim()
 
-    if (!videoFile) {
-      return NextResponse.json({ error: 'Screen recording is required' }, { status: 400 })
-    }
-    if (videoFile.size > MAX_VIDEO_BYTES) {
-      return NextResponse.json({ error: 'Screen recording must be under 200 MB' }, { status: 400 })
+    if (!storagePath || typeof storagePath !== 'string') {
+      return NextResponse.json({ error: 'storagePath is required' }, { status: 400 })
     }
     if (!script || script.length < 10) {
       return NextResponse.json({ error: 'Script is required (min 10 characters)' }, { status: 400 })
@@ -72,19 +67,13 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Upload screen recording
-    const videoBuf = Buffer.from(await videoFile.arrayBuffer())
-    const videoFilename = `screen-demo/${userId}-${Date.now()}.mp4`
-    const { error: videoUploadErr } = await supabase.storage
+    // Get public URL for the already-uploaded screen recording
+    const { data: { publicUrl: screenRecordingUrl } } = supabase.storage
       .from('ugc-assets')
-      .upload(videoFilename, videoBuf, { contentType: 'video/mp4', upsert: false })
-    if (videoUploadErr) {
-      return NextResponse.json({ error: `Video upload failed: ${videoUploadErr.message}` }, { status: 500 })
-    }
-    const { data: { publicUrl: screenRecordingUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(videoFilename)
+      .getPublicUrl(storagePath)
 
-    // Generate voiceover
-    const audioBuf = await generateSpeech(script, voiceId, { speed })
+    // Generate voiceover with ElevenLabs
+    const audioBuf = await generateSpeech(script, voiceId, {})
     const audioFilename = `screen-demo/${userId}-${Date.now()}-vo.mp3`
     const { error: audioUploadErr } = await supabase.storage
       .from('ugc-assets')
@@ -92,7 +81,9 @@ export async function POST(req: NextRequest) {
     if (audioUploadErr) {
       return NextResponse.json({ error: `Audio upload failed: ${audioUploadErr.message}` }, { status: 500 })
     }
-    const { data: { publicUrl: voiceoverUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename)
+    const { data: { publicUrl: voiceoverUrl } } = supabase.storage
+      .from('ugc-assets')
+      .getPublicUrl(audioFilename)
 
     // Submit Shotstack render
     const { renderId } = await submitScreenDemoJob({

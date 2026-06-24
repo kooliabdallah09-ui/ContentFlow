@@ -123,16 +123,36 @@ export default function ScreenDemoPage() {
     setResultUrl(null)
 
     try {
-      const form = new FormData()
-      form.append('video', videoFile)
-      form.append('script', script)
-      form.append('voiceId', voiceId)
-      form.append('aspect', aspect)
-
-      const res = await fetch('/api/screen-demo/generate', {
+      // Step 1: get a signed upload URL so the video goes browser → Supabase
+      // directly (bypasses the Vercel 4.5 MB body limit on API routes).
+      const urlRes = await fetch('/api/screen-demo/upload-url', {
         method: 'POST',
         headers: { Authorization: `Bearer ${session.access_token}` },
-        body: form,
+      })
+      const urlData = await urlRes.json()
+      if (!urlRes.ok || !urlData.signedUrl) {
+        setStatus('idle')
+        showError(urlData.error || 'Could not prepare upload')
+        return
+      }
+
+      // Step 2: PUT the video file directly to Supabase storage
+      const uploadRes = await fetch(urlData.signedUrl, {
+        method: 'PUT',
+        body: videoFile,
+        headers: { 'Content-Type': 'video/mp4' },
+      })
+      if (!uploadRes.ok) {
+        setStatus('idle')
+        showError('Video upload failed — please try again')
+        return
+      }
+
+      // Step 3: call generate with the storage path (no large body)
+      const res = await fetch('/api/screen-demo/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ storagePath: urlData.storagePath, script, voiceId, aspect }),
       })
       const data = await res.json()
       if (!res.ok || !data.renderId) {
