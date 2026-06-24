@@ -31,9 +31,10 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const videoUrl: string = body.videoUrl
+    const language: string | undefined = body.language  // e.g. 'en', 'fr' — undefined = auto detect
     if (!videoUrl) return NextResponse.json({ error: 'Missing videoUrl' }, { status: 400 })
 
-    const predictionId = await startTranscription(videoUrl)
+    const predictionId = await startTranscription(videoUrl, language)
     return NextResponse.json({ predictionId })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'

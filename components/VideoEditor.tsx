@@ -122,6 +122,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [selectedOverlayId, setSelectedOverlayId] = useState<string | null>(null)
   const [captionLoading, setCaptionLoading] = useState(false)
   const [captionError, setCaptionError] = useState<string | null>(null)
+  const [captionLanguage, setCaptionLanguage] = useState('auto')
   const [imgStart, setImgStart] = useState(0)
   const [imgDuration, setImgDuration] = useState(3)
   const [imgScale, setImgScale] = useState(0.3)
@@ -672,7 +673,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       const startRes = await fetch('/api/video/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ videoUrl }),
+        body: JSON.stringify({ videoUrl, language: captionLanguage === 'auto' ? undefined : captionLanguage }),
       })
       const startData = await startRes.json()
       if (startData.error) throw new Error(startData.error)
@@ -1715,6 +1716,34 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 <div>
                   <div style={S.sectionLabel}>Auto Caption</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {/* Language selector */}
+                    <div>
+                      <label style={S.fieldLabel}>Language</label>
+                      <select
+                        value={captionLanguage}
+                        onChange={e => setCaptionLanguage(e.target.value)}
+                        style={{ ...S.input, cursor: 'pointer' }}
+                        disabled={captionLoading}
+                      >
+                        <option value="auto">🌐 Auto detect</option>
+                        <option value="en">🇺🇸 English</option>
+                        <option value="fr">🇫🇷 French</option>
+                        <option value="es">🇪🇸 Spanish</option>
+                        <option value="de">🇩🇪 German</option>
+                        <option value="it">🇮🇹 Italian</option>
+                        <option value="pt">🇧🇷 Portuguese</option>
+                        <option value="ar">🇸🇦 Arabic</option>
+                        <option value="zh">🇨🇳 Chinese</option>
+                        <option value="ja">🇯🇵 Japanese</option>
+                        <option value="ko">🇰🇷 Korean</option>
+                        <option value="ru">🇷🇺 Russian</option>
+                        <option value="hi">🇮🇳 Hindi</option>
+                        <option value="tr">🇹🇷 Turkish</option>
+                        <option value="nl">🇳🇱 Dutch</option>
+                        <option value="pl">🇵🇱 Polish</option>
+                        <option value="id">🇮🇩 Indonesian</option>
+                      </select>
+                    </div>
                     <button
                       style={{
                         ...S.primaryBtn,
