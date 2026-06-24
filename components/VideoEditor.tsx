@@ -1125,10 +1125,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       pointerEvents: visible || isSelected ? 'auto' : 'none',
                       outline: isSelected ? '1.5px dashed var(--ink)' : 'none',
                       outlineOffset: 4,
-                      whiteSpace: 'nowrap',
-                      maxWidth: '90%',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      whiteSpace: 'normal',
+                      maxWidth: '88%',
+                      wordBreak: 'break-word',
                       zIndex: 10,
                     }}
                   >
