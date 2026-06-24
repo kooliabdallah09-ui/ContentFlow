@@ -24,6 +24,7 @@ export interface TextOverlay {
   captionStyle?: 'default' | 'tiktok' | 'outline' | 'highlight' | 'bubble'
   strokeColor?: string   // text outline color (for tiktok/outline styles)
   bgColor?: string       // background override
+  fontFamily?: 'sans' | 'rounded' | 'mono' | 'serif'
 }
 
 export interface MusicTrack {

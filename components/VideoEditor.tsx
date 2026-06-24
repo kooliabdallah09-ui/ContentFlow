@@ -63,6 +63,15 @@ const COLOR_SWATCHES = [
   { hex: '#FF4444', label: 'Red' },
   { hex: '#4D9FFF', label: 'Blue' },
   { hex: '#4DFF91', label: 'Green' },
+  { hex: '#FF6BF5', label: 'Pink' },
+  { hex: '#FF8C00', label: 'Orange' },
+]
+
+const FONT_FAMILIES: { id: TextOverlay['fontFamily']; label: string; css: string }[] = [
+  { id: 'sans',    label: 'Clean',   css: 'Inter,Arial,sans-serif' },
+  { id: 'rounded', label: 'Round',   css: '"Nunito","Varela Round",Arial,sans-serif' },
+  { id: 'mono',    label: 'Mono',    css: '"Courier New",Courier,monospace' },
+  { id: 'serif',   label: 'Serif',   css: 'Georgia,"Times New Roman",serif' },
 ]
 
 const SPEED_OPTIONS = [0.25, 0.5, 0.75, 1, 1.5, 2]
@@ -123,10 +132,12 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [newAnimation, setNewAnimation] = useState<TextOverlay['animation']>('none')
   const [activeCaptionStyle, setActiveCaptionStyle] = useState<TextOverlay['style']>('caption')
   const [zoomEnabled, setZoomEnabled] = useState(false)
+  const [expandedOverlayId, setExpandedOverlayId] = useState<string | null>(null)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imgInputRef = useRef<HTMLInputElement>(null)
+  const musicInputRef = useRef<HTMLInputElement>(null)
   const uploadedFileRef = useRef<File | null>(null)
   const videoWrapRef = useRef<HTMLDivElement>(null)
   const isDraggingTrim = useRef<null | 'start' | 'end'>(null)
@@ -425,56 +436,80 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
     ctx.textAlign    = 'center'
     ctx.textBaseline = 'middle'
-    ctx.font = `700 ${fs}px Inter,Montserrat,Arial,sans-serif`
+    const fontFamilyMap: Record<string, string> = {
+      sans:    'Inter,Arial,sans-serif',
+      rounded: 'Nunito,"Varela Round",Arial,sans-serif',
+      mono:    '"Courier New",Courier,monospace',
+      serif:   'Georgia,"Times New Roman",serif',
+    }
+    const ff = fontFamilyMap[ov.fontFamily ?? 'sans'] ?? 'Inter,Arial,sans-serif'
+    ctx.font = `700 ${fs}px ${ff}`
 
     const style = ov.style ?? 'caption'
+    const displayText = style === 'tiktok' ? ov.text.toUpperCase() : ov.text
 
     if (style === 'bold-white') {
-      ctx.font        = `800 ${fs}px Montserrat,Arial,sans-serif`
+      ctx.font        = `800 ${fs}px Montserrat,${ff}`
       ctx.fillStyle   = ov.color ?? '#ffffff'
       ctx.shadowColor = 'rgba(0,0,0,0.85)'
       ctx.shadowBlur  = 10
-      ctx.fillText(ov.text, cx, cy)
+      ctx.fillText(displayText, cx, cy)
     } else if (style === 'minimal') {
-      ctx.font        = `400 ${fs}px Inter,Arial,sans-serif`
+      ctx.font        = `400 ${fs}px ${ff}`
       ctx.fillStyle   = ov.color ?? '#ffffff'
       ctx.globalAlpha = (ctx.globalAlpha ?? 1) * 0.9
-      ctx.fillText(ov.text, cx, cy)
+      ctx.fillText(displayText, cx, cy)
     } else if (style === 'tiktok') {
-      ctx.font = `900 ${fs}px Montserrat,Arial,sans-serif`
-      ctx.strokeStyle = ov.strokeColor ?? '#000000'
-      ctx.lineWidth   = fs * 0.12
+      ctx.font = `900 ${fs}px "Montserrat","Arial Black",sans-serif`
       ctx.lineJoin    = 'round'
-      ctx.strokeText(ov.text, cx, cy)
-      ctx.fillStyle = ov.color ?? '#ffffff'
-      ctx.fillText(ov.text, cx, cy)
+      // thick black stroke first
+      ctx.strokeStyle = ov.strokeColor ?? '#000000'
+      ctx.lineWidth   = fs * 0.16
+      ctx.strokeText(displayText, cx, cy)
+      // shadow pass
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'
+      ctx.shadowBlur  = fs * 0.3
+      ctx.fillStyle   = ov.color ?? '#ffffff'
+      ctx.fillText(displayText, cx, cy)
+      ctx.shadowBlur  = 0
     } else if (style === 'outline') {
-      ctx.font = `800 ${fs}px Montserrat,Arial,sans-serif`
+      ctx.font = `800 ${fs}px Montserrat,${ff}`
       ctx.strokeStyle = ov.strokeColor ?? '#ffffff'
       ctx.lineWidth   = fs * 0.08
       ctx.lineJoin    = 'round'
-      ctx.strokeText(ov.text, cx, cy)
+      ctx.strokeText(displayText, cx, cy)
       ctx.fillStyle = ov.color ?? '#FFE14D'
-      ctx.fillText(ov.text, cx, cy)
+      ctx.fillText(displayText, cx, cy)
     } else if (style === 'highlight') {
-      const tw = ctx.measureText(ov.text).width
+      ctx.font = `700 ${fs}px ${ff}`
+      const tw = ctx.measureText(displayText).width
       ctx.fillStyle = ov.bgColor ?? '#FFE14D'
       // @ts-ignore
       ctx.roundRect?.(cx - tw / 2 - 16, cy - fs / 2 - 10, tw + 32, fs + 20, 10)
       ctx.fill()
       ctx.fillStyle = ov.color ?? '#000000'
-      ctx.fillText(ov.text, cx, cy)
+      ctx.fillText(displayText, cx, cy)
     } else if (style === 'bubble') {
-      const tw = ctx.measureText(ov.text).width
-      ctx.fillStyle = ov.bgColor ?? '#ffffff'
-      ctx.shadowColor = 'rgba(0,0,0,0.2)'
-      ctx.shadowBlur  = 12
+      ctx.font = `700 ${fs}px ${ff}`
+      const tw = ctx.measureText(displayText).width
+      const bw = tw + 44, bh = fs + 28
+      const bx = cx - bw / 2, by = cy - bh / 2
+      // shadow
+      ctx.shadowColor = 'rgba(0,0,0,0.28)'
+      ctx.shadowBlur  = 20
+      ctx.fillStyle   = ov.bgColor ?? '#ffffff'
       // @ts-ignore
-      ctx.roundRect?.(cx - tw / 2 - 18, cy - fs / 2 - 12, tw + 36, fs + 24, 99)
+      ctx.roundRect?.(bx, by, bw, bh, bh / 2)
       ctx.fill()
-      ctx.shadowBlur = 0
-      ctx.fillStyle = ov.color ?? '#1a1a17'
-      ctx.fillText(ov.text, cx, cy)
+      // border
+      ctx.shadowBlur  = 0
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)'
+      ctx.lineWidth   = 2
+      // @ts-ignore
+      ctx.roundRect?.(bx, by, bw, bh, bh / 2)
+      ctx.stroke()
+      ctx.fillStyle   = ov.color ?? '#1a1a17'
+      ctx.fillText(displayText, cx, cy)
     } else {
       // default caption
       const tw = ctx.measureText(ov.text).width
@@ -1168,6 +1203,13 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         {/* Upload */}
         <input ref={fileInputRef} type="file" accept="video/*" onChange={handleFileInput} style={{ display: 'none' }} />
         <input ref={imgInputRef} type="file" accept="image/*" onChange={handleImgFileInput} style={{ display: 'none' }} />
+        <input ref={musicInputRef} type="file" accept="audio/*" onChange={e => {
+          const file = e.target.files?.[0]
+          if (!file) return
+          const url = URL.createObjectURL(file)
+          pushHistory({ ...spec, music: { url, label: file.name.replace(/\.[^.]+$/, ''), volume: 0.5 } })
+          e.target.value = ''
+        }} style={{ display: 'none' }} />
         <button style={S.uploadBtn} onClick={() => fileInputRef.current?.click()}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           Upload Video
@@ -1214,7 +1256,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   })(),
                   transition: 'transform 0.05s linear',
                 }}
-                onTimeUpdate={e => setCurrentTime(e.currentTarget.currentTime)}
+                onTimeUpdate={e => {
+                  const vid = e.currentTarget
+                  const tStart = spec.trimStart ?? 0
+                  const tEnd   = spec.trimEnd > 0 ? spec.trimEnd : spec.duration
+                  if (vid.currentTime < tStart) { vid.currentTime = tStart }
+                  else if (vid.currentTime >= tEnd) { vid.pause(); vid.currentTime = tStart }
+                  setCurrentTime(vid.currentTime)
+                }}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onLoadedMetadata={e => {
@@ -1241,14 +1290,15 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 }
 
                 // Style-specific appearance
+                const fontFamilyCss = FONT_FAMILIES.find(f => f.id === o.fontFamily)?.css ?? 'Inter,Arial,sans-serif'
                 const styleMap: Record<string, React.CSSProperties> = {
-                  'bold-white': { color: o.color ?? '#fff', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.9)', background: 'none' },
-                  'minimal':    { color: o.color ?? '#fff', fontWeight: 400, opacity: 0.9, background: 'none' },
-                  'caption':    { color: o.color ?? '#fff', fontWeight: 700, background: o.bgColor ?? 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 },
-                  'tiktok':     { color: o.color ?? '#fff', fontWeight: 900, WebkitTextStroke: `${fs * 0.1}px ${o.strokeColor ?? '#000'}`, background: 'none', letterSpacing: '0.02em' },
-                  'outline':    { color: o.color ?? '#FFE14D', fontWeight: 800, WebkitTextStroke: `${fs * 0.06}px ${o.strokeColor ?? '#fff'}`, background: 'none' },
-                  'highlight':  { color: o.color ?? '#000', fontWeight: 700, background: o.bgColor ?? '#FFE14D', padding: '5px 14px', borderRadius: 10 },
-                  'bubble':     { color: o.color ?? '#1a1a17', fontWeight: 700, background: o.bgColor ?? '#fff', padding: '6px 16px', borderRadius: 99, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' },
+                  'bold-white': { color: o.color ?? '#fff', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.9)', background: 'none', fontFamily: fontFamilyCss },
+                  'minimal':    { color: o.color ?? '#fff', fontWeight: 400, opacity: 0.9, background: 'none', fontFamily: fontFamilyCss },
+                  'caption':    { color: o.color ?? '#fff', fontWeight: 700, background: o.bgColor ?? 'rgba(0,0,0,0.6)', padding: '4px 12px', borderRadius: 6, fontFamily: fontFamilyCss },
+                  'tiktok':     { color: o.color ?? '#fff', fontWeight: 900, WebkitTextStroke: `${fs * 0.14}px ${o.strokeColor ?? '#000'}`, textShadow: `0 0 ${fs * 0.3}px rgba(0,0,0,0.5)`, background: 'none', letterSpacing: '0.03em', textTransform: 'uppercase' as const, fontFamily: '"Montserrat","Arial Black",sans-serif' },
+                  'outline':    { color: o.color ?? '#FFE14D', fontWeight: 800, WebkitTextStroke: `${fs * 0.06}px ${o.strokeColor ?? '#fff'}`, background: 'none', fontFamily: fontFamilyCss },
+                  'highlight':  { color: o.color ?? '#000', fontWeight: 700, background: o.bgColor ?? '#FFE14D', padding: '5px 14px', borderRadius: 10, fontFamily: fontFamilyCss },
+                  'bubble':     { color: o.color ?? '#1a1a17', fontWeight: 700, background: o.bgColor ?? '#ffffff', padding: '8px 20px', borderRadius: 999, boxShadow: '0 4px 20px rgba(0,0,0,0.22), 0 1px 4px rgba(0,0,0,0.12)', border: '2px solid rgba(255,255,255,0.9)', fontFamily: o.fontFamily === 'rounded' ? '"Nunito","Varela Round",Arial,sans-serif' : fontFamilyCss },
                 }
                 const appearanceStyle = styleMap[o.style ?? 'caption'] ?? styleMap.caption
 
@@ -1388,7 +1438,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   onClick={e => {
                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
                     const pct = (e.clientX - rect.left) / rect.width
-                    const t = pct * spec.duration
+                    const raw = pct * spec.duration
+                    const tStart = spec.trimStart ?? 0
+                    const tEnd   = spec.trimEnd > 0 ? spec.trimEnd : spec.duration
+                    const t = Math.max(tStart, Math.min(tEnd, raw))
                     setCurrentTime(t)
                     if (videoRef.current) videoRef.current.currentTime = t
                   }}
@@ -1470,15 +1523,26 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     <svg width="4" height="12" viewBox="0 0 4 12" fill="none"><rect x="0.5" y="0" width="1" height="12" rx="0.5" fill="white" opacity="0.6"/><rect x="2.5" y="0" width="1" height="12" rx="0.5" fill="white" opacity="0.6"/></svg>
                   </div>
 
-                  {/* Playhead */}
-                  <div style={{
-                    position: 'absolute',
-                    left: `${trimPct.cursor}%`,
-                    top: -4, bottom: -4, width: 2,
-                    background: 'var(--ink)',
-                    pointerEvents: 'none',
-                  }}>
-                    <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 8, height: 8, background: 'var(--ink)', borderRadius: '50%' }} />
+                  {/* Playhead (draggable) */}
+                  <div
+                    style={{ position: 'absolute', left: `${trimPct.cursor}%`, top: -4, bottom: -4, width: 12, transform: 'translateX(-5px)', cursor: 'ew-resize', zIndex: 20, display: 'flex', justifyContent: 'center' }}
+                    onMouseDown={e => {
+                      e.stopPropagation()
+                      const onMove = (me: MouseEvent) => {
+                        const rect = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect()
+                        if (!rect) return
+                        const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width))
+                        const t = Math.max(spec.trimStart, Math.min(spec.trimEnd > 0 ? spec.trimEnd : spec.duration, pct * spec.duration))
+                        setCurrentTime(t)
+                        if (videoRef.current) videoRef.current.currentTime = t
+                      }
+                      const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                      window.addEventListener('mousemove', onMove)
+                      window.addEventListener('mouseup', onUp)
+                    }}
+                  >
+                    <div style={{ position: 'absolute', top: 0, bottom: 0, width: 2, background: '#e84040', left: '50%', transform: 'translateX(-50%)' }} />
+                    <div style={{ position: 'absolute', top: -2, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, background: '#e84040', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #e84040' }} />
                   </div>
 
                   {/* Caption / text overlay blocks */}
@@ -1722,27 +1786,145 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 {spec.overlays.length > 0 && (
                   <div>
                     <div style={S.sectionLabel}>Active Overlays</div>
-                    {spec.overlays.map(o => (
-                      <div key={o.id} style={{ ...S.overlayCard, marginBottom: 8 }}>
-                        {/* Color dot */}
-                        <div style={{
-                          width: 10,
-                          height: 10,
-                          borderRadius: '50%',
-                          background: o.color ?? '#ffffff',
-                          border: '1px solid var(--border)',
-                          flexShrink: 0,
-                        }} />
-                        <div style={{ width: 22, height: 22, borderRadius: 6, background: 'var(--surface-3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0, color: 'var(--ink-dim)' }}>
-                          T
+                    {spec.overlays.map(o => {
+                      const isExp = expandedOverlayId === o.id
+                      const updateOv = (patch: Partial<TextOverlay>) =>
+                        pushHistory({ ...spec, overlays: spec.overlays.map(x => x.id === o.id ? { ...x, ...patch } : x) })
+                      return (
+                        <div key={o.id} style={{ borderRadius: 10, border: `1px solid ${isExp ? 'var(--ink)' : 'var(--border)'}`, marginBottom: 8, overflow: 'hidden', background: 'var(--surface-2)' }}>
+                          {/* Header row */}
+                          <div
+                            style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', cursor: 'pointer' }}
+                            onClick={() => setExpandedOverlayId(isExp ? null : o.id)}
+                          >
+                            <div style={{ width: 10, height: 10, borderRadius: '50%', background: o.color ?? '#ffffff', border: '1px solid var(--border)', flexShrink: 0 }} />
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.text}</div>
+                              <div style={{ fontSize: 10, color: 'var(--ink-mute)' }}>{fmt(o.start)} – {fmt(o.start + o.duration)} · {o.style ?? 'caption'}</div>
+                            </div>
+                            <span style={{ fontSize: 10, color: 'var(--ink-mute)', transform: isExp ? 'rotate(180deg)' : 'none', display: 'inline-block', transition: 'transform 0.15s' }}>▾</span>
+                            <button onClick={e => { e.stopPropagation(); pushHistory({ ...spec, overlays: spec.overlays.filter(x => x.id !== o.id) }) }} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 16, lineHeight: 1, padding: '0 2px' }}>×</button>
+                          </div>
+                          {/* Expanded editor */}
+                          {isExp && (
+                            <div style={{ padding: '0 10px 12px', display: 'flex', flexDirection: 'column' as const, gap: 10, borderTop: '1px solid var(--border)' }}>
+                              {/* Text */}
+                              <div style={{ paddingTop: 10 }}>
+                                <label style={S.fieldLabel}>Text</label>
+                                <input value={o.text} onChange={e => updateOv({ text: e.target.value })} style={S.input} />
+                              </div>
+                              {/* Style */}
+                              <div>
+                                <label style={S.fieldLabel}>Caption Style</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 4 }}>
+                                  {CAPTION_STYLES.map(cs => (
+                                    <button key={cs.id} onClick={() => updateOv({ style: cs.id as TextOverlay['style'] })}
+                                      style={{ border: (o.style ?? 'caption') === cs.id ? '2px solid var(--ink)' : '1px solid var(--border)', borderRadius: 7, padding: '5px 3px', cursor: 'pointer', background: cs.preview.bg === 'transparent' ? 'var(--surface-3)' : cs.preview.bg, display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 2 }}>
+                                      <span style={{ fontSize: 10, fontWeight: 800, color: cs.preview.color }}>Aa</span>
+                                      <span style={{ fontSize: 7, color: 'var(--ink-mute)' }}>{cs.label}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              {/* Text color */}
+                              <div>
+                                <label style={S.fieldLabel}>Text Color</label>
+                                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const }}>
+                                  {COLOR_SWATCHES.map(sw => (
+                                    <button key={sw.hex} onClick={() => updateOv({ color: sw.hex })} title={sw.label}
+                                      style={{ width: 22, height: 22, borderRadius: '50%', background: sw.hex, border: `2px solid ${(o.color ?? '#ffffff') === sw.hex ? 'var(--ink)' : 'var(--border)'}`, cursor: 'pointer', padding: 0 }} />
+                                  ))}
+                                  <input type="color" value={o.color ?? '#ffffff'} onChange={e => updateOv({ color: e.target.value })}
+                                    style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid var(--border)', padding: 0, cursor: 'pointer', background: 'none' }} title="Custom color" />
+                                </div>
+                              </div>
+                              {/* BG / stroke color */}
+                              {(o.style === 'caption' || o.style === 'highlight' || o.style === 'bubble') && (
+                                <div>
+                                  <label style={S.fieldLabel}>Background Color</label>
+                                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const }}>
+                                    {COLOR_SWATCHES.map(sw => (
+                                      <button key={sw.hex} onClick={() => updateOv({ bgColor: sw.hex })} title={sw.label}
+                                        style={{ width: 22, height: 22, borderRadius: '50%', background: sw.hex, border: `2px solid ${(o.bgColor) === sw.hex ? 'var(--ink)' : 'var(--border)'}`, cursor: 'pointer', padding: 0 }} />
+                                    ))}
+                                    <input type="color" value={o.bgColor ?? '#000000'} onChange={e => updateOv({ bgColor: e.target.value })}
+                                      style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid var(--border)', padding: 0, cursor: 'pointer', background: 'none' }} title="Custom bg color" />
+                                  </div>
+                                </div>
+                              )}
+                              {(o.style === 'tiktok' || o.style === 'outline') && (
+                                <div>
+                                  <label style={S.fieldLabel}>Stroke Color</label>
+                                  <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' as const }}>
+                                    {COLOR_SWATCHES.map(sw => (
+                                      <button key={sw.hex} onClick={() => updateOv({ strokeColor: sw.hex })} title={sw.label}
+                                        style={{ width: 22, height: 22, borderRadius: '50%', background: sw.hex, border: `2px solid ${(o.strokeColor) === sw.hex ? 'var(--ink)' : 'var(--border)'}`, cursor: 'pointer', padding: 0 }} />
+                                    ))}
+                                    <input type="color" value={o.strokeColor ?? '#000000'} onChange={e => updateOv({ strokeColor: e.target.value })}
+                                      style={{ width: 22, height: 22, borderRadius: '50%', border: '1px solid var(--border)', padding: 0, cursor: 'pointer', background: 'none' }} title="Custom stroke" />
+                                  </div>
+                                </div>
+                              )}
+                              {/* Font family */}
+                              <div>
+                                <label style={S.fieldLabel}>Font</label>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 4 }}>
+                                  {FONT_FAMILIES.map(ff => (
+                                    <button key={ff.id} onClick={() => updateOv({ fontFamily: ff.id })}
+                                      style={{ border: (o.fontFamily ?? 'sans') === ff.id ? '2px solid var(--ink)' : '1px solid var(--border)', borderRadius: 6, padding: '5px 3px', cursor: 'pointer', background: (o.fontFamily ?? 'sans') === ff.id ? 'var(--ink)' : 'var(--surface-3)', color: (o.fontFamily ?? 'sans') === ff.id ? 'var(--surface)' : 'var(--ink-dim)', fontSize: 10, fontWeight: 600, fontFamily: ff.css }}>
+                                      {ff.label}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              {/* Font size */}
+                              <div>
+                                <label style={S.fieldLabel}>Size</label>
+                                <div style={{ display: 'flex', gap: 4 }}>
+                                  {(['sm', 'md', 'lg', 'xl'] as const).map(sz => (
+                                    <button key={sz} onClick={() => updateOv({ fontSize: sz })}
+                                      style={{ flex: 1, padding: '5px 3px', borderRadius: 6, border: `1px solid ${(o.fontSize ?? 'md') === sz ? 'var(--ink)' : 'var(--border)'}`, background: (o.fontSize ?? 'md') === sz ? 'var(--ink)' : 'var(--surface-3)', color: (o.fontSize ?? 'md') === sz ? 'var(--surface)' : 'var(--ink-dim)', fontSize: 11, fontWeight: 600, cursor: 'pointer', textTransform: 'uppercase' as const }}>
+                                      {sz}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                              {/* Animation */}
+                              <div>
+                                <label style={S.fieldLabel}>Animation</label>
+                                <select value={o.animation ?? 'none'} onChange={e => updateOv({ animation: e.target.value as TextOverlay['animation'] })} style={{ ...S.input, cursor: 'pointer' }}>
+                                  <option value="none">None</option>
+                                  <option value="fade">Fade In</option>
+                                  <option value="slide-up">Slide Up</option>
+                                  <option value="zoom">Zoom In</option>
+                                  <option value="typewriter">Typewriter</option>
+                                </select>
+                              </div>
+                              {/* Timing */}
+                              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                <div>
+                                  <label style={S.fieldLabel}>Start (s)</label>
+                                  <input type="number" min={0} max={spec.duration} step={0.1} value={o.start} onChange={e => updateOv({ start: parseFloat(e.target.value) || 0 })} style={S.input} />
+                                </div>
+                                <div>
+                                  <label style={S.fieldLabel}>Duration (s)</label>
+                                  <input type="number" min={0.1} max={spec.duration} step={0.1} value={o.duration} onChange={e => updateOv({ duration: parseFloat(e.target.value) || 1 })} style={S.input} />
+                                </div>
+                              </div>
+                              {/* X/Y position */}
+                              <div>
+                                <label style={S.fieldLabel}>Position X — {Math.round((o.x ?? 0.5) * 100)}%</label>
+                                <input type="range" min={0} max={1} step={0.01} value={o.x ?? 0.5} onChange={e => updateOv({ x: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                              </div>
+                              <div>
+                                <label style={S.fieldLabel}>Position Y — {Math.round((o.y ?? (o.position === 'top' ? 0.12 : o.position === 'center' ? 0.5 : 0.85)) * 100)}%</label>
+                                <input type="range" min={0} max={1} step={0.01} value={o.y ?? (o.position === 'top' ? 0.12 : o.position === 'center' ? 0.5 : 0.85)} onChange={e => updateOv({ y: parseFloat(e.target.value) })} style={{ width: '100%' }} />
+                              </div>
+                            </div>
+                          )}
                         </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.text}</div>
-                          <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{fmt(o.start)} – {fmt(o.start + o.duration)} · {o.position}</div>
-                        </div>
-                        <button onClick={() => pushHistory({ ...spec, overlays: spec.overlays.filter(x => x.id !== o.id) })} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px' }}>×</button>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 )}
 
@@ -2294,6 +2476,16 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             {activePanel === 'music' && (
               <>
                 <div style={S.sectionLabel}>Background Track</div>
+
+                {/* Upload from computer */}
+                <button
+                  style={{ ...S.primaryBtn, display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}
+                  onClick={() => musicInputRef.current?.click()}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+                  Upload from computer
+                </button>
+
                 <div
                   style={S.musicCard(!spec.music)}
                   onClick={() => pushHistory({ ...spec, music: undefined })}
