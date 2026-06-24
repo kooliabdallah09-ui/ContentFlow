@@ -370,6 +370,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       })
       console.log('[caption] transcribe status:', res.status)
       const data = await res.json()
+      console.log('[caption] full response:', JSON.stringify(data).slice(0, 500))
       if (data.error) throw new Error(data.error)
       console.log('[caption] got overlays:', data.overlays?.length)
       pushHistory({ ...spec, overlays: [...spec.overlays, ...data.overlays] })

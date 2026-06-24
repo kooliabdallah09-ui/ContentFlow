@@ -78,7 +78,8 @@ export async function POST(request: NextRequest) {
       fontSize: 'md' as const,
     }))
 
-    return NextResponse.json({ overlays, fullText: text, duration: videoDuration })
+    console.log('[transcribe] text:', text.slice(0, 200), '| words:', words.length, '| overlays:', overlays.length)
+    return NextResponse.json({ overlays, fullText: text, duration: videoDuration, _debug: { wordCount: words.length, textSnippet: text.slice(0, 100) } })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
     console.error('[transcribe]', msg)
