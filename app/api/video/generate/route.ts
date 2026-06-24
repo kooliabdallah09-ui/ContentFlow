@@ -25,6 +25,50 @@ function soraImageSize(aspectRatio: '9:16' | '1:1' | '16:9'): [number, number] {
   return [720, 1280] // portrait and square both 720x1280
 }
 
+// Composite multiple images into a single reference image.
+// Layout: 1 image → full canvas; 2 → side by side; 3 → 2 top + 1 bottom centered; 4 → 2×2 grid.
+async function compositeReferenceImages(
+  images: Array<{ base64: string; mimeType: string }>,
+  canvasW: number,
+  canvasH: number,
+): Promise<Buffer> {
+  const n = images.length
+  if (n === 0) throw new Error('No images to composite')
+
+  // Determine tile grid dimensions
+  const cols = n <= 1 ? 1 : n <= 2 ? 2 : n <= 3 ? 2 : 2
+  const rows = n <= 1 ? 1 : n <= 2 ? 1 : n <= 3 ? 2 : 2
+  const tileW = Math.floor(canvasW / cols)
+  const tileH = Math.floor(canvasH / rows)
+
+  // Resize each image to its tile slot
+  const resized = await Promise.all(
+    images.map(img =>
+      sharp(Buffer.from(img.base64, 'base64'))
+        .resize(tileW, tileH, { fit: 'cover', position: 'center' })
+        .png()
+        .toBuffer()
+    )
+  )
+
+  // Calculate positions: 3-image layout centers the last image in bottom row
+  const positions = resized.map((_, i) => {
+    const col = i % cols
+    const row = Math.floor(i / cols)
+    let left = col * tileW
+    // Center lone tile in last row for 3-image layout
+    if (n === 3 && i === 2) left = Math.floor((canvasW - tileW) / 2)
+    return { input: resized[i], left, top: row * tileH }
+  })
+
+  return sharp({
+    create: { width: canvasW, height: canvasH, channels: 3, background: '#000000' },
+  })
+    .composite(positions)
+    .png()
+    .toBuffer()
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -61,8 +105,12 @@ export async function POST(request: NextRequest) {
     const aspectRatio: '9:16' | '1:1' | '16:9' =
       aspectRaw === 'landscape' ? '16:9' : aspectRaw === 'square' ? '1:1' : '9:16'
 
-    const refImageBase64 = typeof body.referenceImageBase64 === 'string' ? body.referenceImageBase64 : undefined
-    const refImageMimeType = typeof body.referenceImageMimeType === 'string' ? body.referenceImageMimeType : undefined
+    // Accept either new multi-image array or legacy single-image fields
+    const referenceImages: Array<{ base64: string; mimeType: string }> = Array.isArray(body.referenceImages)
+      ? body.referenceImages.filter((img: { base64?: unknown; mimeType?: unknown }) => typeof img.base64 === 'string' && typeof img.mimeType === 'string').slice(0, 4)
+      : (typeof body.referenceImageBase64 === 'string' ? [{ base64: body.referenceImageBase64, mimeType: body.referenceImageMimeType ?? 'image/jpeg' }] : [])
+    const refImageBase64 = referenceImages[0]?.base64
+    const refImageMimeType = referenceImages[0]?.mimeType
 
     const totalCost = getCost(model, duration)
     const { data: userCredits } = await supabase
@@ -82,14 +130,16 @@ export async function POST(request: NextRequest) {
     let provider: string
 
     if (model === 'sora-2') {
-      // input_reference is optional — only upload if the user provided one
+      // Composite all reference images into one canvas before sending to Sora
       let referenceImageUrl: string | undefined
-      if (refImageBase64 && refImageMimeType) {
+      if (referenceImages.length > 0) {
         const [soraW, soraH] = soraImageSize(aspectRatio)
-        const refImageBuf = await sharp(Buffer.from(refImageBase64, 'base64'))
-          .resize(soraW, soraH, { fit: 'cover', position: 'center' })
-          .png()
-          .toBuffer()
+        const refImageBuf = referenceImages.length === 1
+          ? await sharp(Buffer.from(referenceImages[0].base64, 'base64'))
+              .resize(soraW, soraH, { fit: 'cover', position: 'center' })
+              .png()
+              .toBuffer()
+          : await compositeReferenceImages(referenceImages, soraW, soraH)
         const filename = `video-ref/${userId}-${Date.now()}.png`
         const { error: upErr } = await supabase.storage
           .from('ugc-assets')

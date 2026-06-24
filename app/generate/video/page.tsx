@@ -219,8 +219,7 @@ export default function VideoGeneratorPage() {
           model,
           duration,
           aspect,
-          referenceImageBase64: refImages[0]?.base64,
-          referenceImageMimeType: refImages[0]?.mimeType,
+          referenceImages: refImages.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
         }),
       })
       const data = await res.json()
