@@ -1,12 +1,11 @@
 // Whisper transcription via Replicate (openai/whisper) — word-level timestamps.
-// Uses REPLICATE_API_TOKEN instead of OPENAI_API_KEY to avoid OpenAI quota limits.
-// Pinned to a specific version hash because openai/whisper doesn't expose a "latest" deployment.
+// Split into start/poll so no single server function waits more than ~5s.
 const WHISPER_VERSION = '4d50797290df275329f202e48c76360b3f22b08d28c196cbc54600319435f8d2'
 
 export interface WhisperWord {
   word: string
-  start: number  // seconds from clip start
-  end: number    // seconds from clip start
+  start: number
+  end: number
 }
 
 export interface WhisperResult {
@@ -14,7 +13,8 @@ export interface WhisperResult {
   words: WhisperWord[]
 }
 
-export async function transcribeWithTimestamps(audioUrl: string, languageCode?: string): Promise<WhisperResult> {
+// Step 1: Submit the job. Returns immediately with a predictionId.
+export async function startTranscription(audioUrl: string, languageCode?: string): Promise<string> {
   const apiToken = process.env.REPLICATE_API_TOKEN
   if (!apiToken) throw new Error('REPLICATE_API_TOKEN not configured')
 
@@ -25,92 +25,81 @@ export async function transcribeWithTimestamps(audioUrl: string, languageCode?: 
   }
   if (languageCode) input.language = languageCode
 
-  const createRes = await fetch('https://api.replicate.com/v1/predictions', {
+  const res = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiToken}`,
       'Content-Type': 'application/json',
-      Prefer: 'wait=60',
     },
     body: JSON.stringify({ version: WHISPER_VERSION, input }),
   })
 
-  if (!createRes.ok) {
-    const err = await createRes.text().catch(() => '')
-    throw new Error(`Whisper transcription failed ${createRes.status}: ${err.slice(0, 300)}`)
+  if (!res.ok) {
+    const err = await res.text().catch(() => '')
+    throw new Error(`Failed to start transcription ${res.status}: ${err.slice(0, 300)}`)
   }
 
-  let prediction = await createRes.json()
+  const data = await res.json()
+  if (!data.id) throw new Error('Replicate did not return a prediction ID')
+  return data.id
+}
 
-  // Poll until done (max ~90s)
-  const deadline = Date.now() + 90_000
-  while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
-    if (Date.now() > deadline) throw new Error('Whisper transcription timed out')
-    await new Promise(r => setTimeout(r, 2000))
-    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
-      headers: { Authorization: `Bearer ${apiToken}` },
-    })
-    prediction = await pollRes.json()
+// Step 2: Poll once. Returns { done, result? } — caller retries until done.
+export async function pollTranscription(predictionId: string): Promise<{ done: boolean; result?: WhisperResult; error?: string }> {
+  const apiToken = process.env.REPLICATE_API_TOKEN
+  if (!apiToken) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const res = await fetch(`https://api.replicate.com/v1/predictions/${predictionId}`, {
+    headers: { Authorization: `Bearer ${apiToken}` },
+  })
+  const prediction = await res.json()
+
+  if (prediction.status === 'failed' || prediction.status === 'canceled') {
+    return { done: true, error: prediction.error ?? prediction.status }
   }
-
   if (prediction.status !== 'succeeded') {
-    throw new Error(`Whisper transcription failed: ${prediction.error ?? prediction.status}`)
+    return { done: false }
   }
 
-  const output = prediction.output
-  console.log('[whisper] raw output keys:', output ? Object.keys(output) : 'null')
-  console.log('[whisper] transcription:', String(output?.transcription ?? '').slice(0, 200))
-  console.log('[whisper] segments count:', Array.isArray(output?.segments) ? output.segments.length : 'none')
-  console.log('[whisper] word_segments count:', Array.isArray(output?.word_segments) ? output.word_segments.length : 'none')
-  if (Array.isArray(output?.segments) && output.segments.length > 0) {
-    console.log('[whisper] first segment:', JSON.stringify(output.segments[0]).slice(0, 300))
-  }
+  return { done: true, result: parseWhisperOutput(prediction.output) }
+}
 
+function parseWhisperOutput(output: Record<string, unknown>): WhisperResult {
   const text = typeof output?.transcription === 'string' ? output.transcription : ''
-
   let words: WhisperWord[] = []
 
-  // Try word-level timestamps first
-  if (Array.isArray(output?.word_segments) && output.word_segments.length > 0) {
-    words = output.word_segments.map((w: { word: string; start: number; end: number }) => ({
+  if (Array.isArray(output?.word_segments) && (output.word_segments as unknown[]).length > 0) {
+    words = (output.word_segments as Array<{ word: string; start: number; end: number }>).map(w => ({
       word: String(w.word).trim(),
       start: Number(w.start),
       end: Number(w.end),
     }))
   } else if (Array.isArray(output?.segments)) {
-    const segsWithWords = (output.segments as Array<{ words?: Array<{ word: string; start: number; end: number }> }>)
-      .filter(seg => Array.isArray(seg.words) && seg.words.length > 0)
-    if (segsWithWords.length > 0) {
-      words = segsWithWords.flatMap(seg =>
-        seg.words!.map(w => ({ word: String(w.word).trim(), start: Number(w.start), end: Number(w.end) }))
-      )
+    const segs = output.segments as Array<{ words?: Array<{ word: string; start: number; end: number }>; text?: string; start?: number; end?: number }>
+    const withWords = segs.filter(s => Array.isArray(s.words) && s.words!.length > 0)
+    if (withWords.length > 0) {
+      words = withWords.flatMap(s => s.words!.map(w => ({
+        word: String(w.word).trim(), start: Number(w.start), end: Number(w.end),
+      })))
+    } else {
+      // Distribute each segment's text evenly across its time window
+      for (const seg of segs) {
+        const segWords = String(seg.text ?? '').trim().split(/\s+/).filter(Boolean)
+        const segStart = Number(seg.start ?? 0)
+        const segEnd   = Number(seg.end ?? segStart + 2)
+        if (!segWords.length) continue
+        const dur = (segEnd - segStart) / segWords.length
+        segWords.forEach((w, i) => {
+          words.push({ word: w, start: segStart + i * dur, end: segStart + (i + 1) * dur })
+        })
+      }
     }
   }
 
-  // Fallback: distribute segment text evenly across each segment's time window
-  if (words.length === 0 && Array.isArray(output?.segments) && output.segments.length > 0) {
-    console.log('[whisper] no word timestamps — falling back to segment-level distribution')
-    type Seg = { text?: string; start?: number; end?: number }
-    for (const seg of output.segments as Seg[]) {
-      const segText = String(seg.text ?? '').trim()
-      const segStart = Number(seg.start ?? 0)
-      const segEnd = Number(seg.end ?? segStart + 2)
-      const segWords = segText.split(/\s+/).filter(Boolean)
-      if (!segWords.length) continue
-      const dur = (segEnd - segStart) / segWords.length
-      segWords.forEach((w, i) => {
-        words.push({ word: w, start: segStart + i * dur, end: segStart + (i + 1) * dur })
-      })
-    }
-  }
-
-  console.log('[whisper] final words count:', words.length)
   return { text, words }
 }
 
-// Chunk words into caption clips. Phrase-friendly grouping: stays under maxWords
-// and breaks on natural punctuation. Each chunk gets its own start/end based on
-// the actual Whisper timing — frame-accurate sync.
+// Chunk words into caption clips.
 export function buildSyncedCaptionChunks(
   words: WhisperWord[],
   options: { maxWords?: number; offsetSeconds?: number } = {},
@@ -124,18 +113,13 @@ export function buildSyncedCaptionChunks(
   const flush = () => {
     if (!buffer.length) return
     const text = buffer.map(w => w.word).join(' ').replace(/\s+([.,!?])/g, '$1').trim()
-    chunks.push({
-      text,
-      start: buffer[0].start + offsetSeconds,
-      end: buffer[buffer.length - 1].end + offsetSeconds,
-    })
+    chunks.push({ text, start: buffer[0].start + offsetSeconds, end: buffer[buffer.length - 1].end + offsetSeconds })
     buffer = []
   }
 
   for (const w of words) {
     buffer.push(w)
-    const last = w.word.replace(/[^.,!?]/g, '')
-    if (last || buffer.length >= maxWords) flush()
+    if (w.word.match(/[.,!?]$/) || buffer.length >= maxWords) flush()
   }
   flush()
 

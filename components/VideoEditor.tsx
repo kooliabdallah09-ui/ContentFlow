@@ -514,18 +514,34 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         console.log('[caption] public URL:', publicUrl)
       }
 
-      console.log('[caption] calling /api/video/transcribe')
-      const res = await fetch('/api/video/transcribe', {
+      // Start the Replicate job (fast — returns predictionId immediately)
+      const startRes = await fetch('/api/video/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ videoUrl, duration: spec.duration }),
+        body: JSON.stringify({ videoUrl }),
       })
-      console.log('[caption] transcribe status:', res.status)
-      const data = await res.json()
-      console.log('[caption] full response:', JSON.stringify(data).slice(0, 500))
-      if (data.error) throw new Error(data.error)
-      console.log('[caption] got overlays:', data.overlays?.length)
-      pushHistory({ ...spec, overlays: [...spec.overlays, ...data.overlays] })
+      const startData = await startRes.json()
+      if (startData.error) throw new Error(startData.error)
+      const { predictionId } = startData
+
+      // Poll from the browser until done (avoids Vercel function timeout)
+      const deadline = Date.now() + 120_000
+      let overlays: unknown[] = []
+      while (Date.now() < deadline) {
+        await new Promise(r => setTimeout(r, 3000))
+        const pollRes = await fetch(
+          `/api/video/transcribe?predictionId=${predictionId}&duration=${spec.duration}`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        )
+        const pollData = await pollRes.json()
+        if (pollData.error) throw new Error(pollData.error)
+        if (pollData.status === 'done') {
+          overlays = pollData.overlays ?? []
+          break
+        }
+      }
+      if (!overlays.length && Date.now() >= deadline) throw new Error('Transcription timed out')
+      pushHistory({ ...spec, overlays: [...spec.overlays, ...(overlays as typeof spec.overlays)] })
     } catch (e) {
       console.error('[caption] FAILED:', e)
       setCaptionError(e instanceof Error ? e.message : 'Caption failed')
