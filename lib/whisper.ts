@@ -1,5 +1,7 @@
 // Whisper transcription via Replicate (openai/whisper) — word-level timestamps.
 // Uses REPLICATE_API_TOKEN instead of OPENAI_API_KEY to avoid OpenAI quota limits.
+// Pinned to a specific version hash because openai/whisper doesn't expose a "latest" deployment.
+const WHISPER_VERSION = '4d50797290df275329f202e48c76360b3f22b08d28c196cbc54600319435f8d2'
 
 export interface WhisperWord {
   word: string
@@ -16,7 +18,6 @@ export async function transcribeWithTimestamps(audioUrl: string, languageCode?: 
   const apiToken = process.env.REPLICATE_API_TOKEN
   if (!apiToken) throw new Error('REPLICATE_API_TOKEN not configured')
 
-  // Start prediction
   const input: Record<string, unknown> = {
     audio: audioUrl,
     word_timestamps: true,
@@ -24,14 +25,14 @@ export async function transcribeWithTimestamps(audioUrl: string, languageCode?: 
   }
   if (languageCode) input.language = languageCode
 
-  const createRes = await fetch('https://api.replicate.com/v1/models/openai/whisper/predictions', {
+  const createRes = await fetch('https://api.replicate.com/v1/predictions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiToken}`,
       'Content-Type': 'application/json',
       Prefer: 'wait=60',
     },
-    body: JSON.stringify({ input }),
+    body: JSON.stringify({ version: WHISPER_VERSION, input }),
   })
 
   if (!createRes.ok) {
@@ -59,7 +60,7 @@ export async function transcribeWithTimestamps(audioUrl: string, languageCode?: 
   const output = prediction.output
   const text = typeof output?.transcription === 'string' ? output.transcription : ''
 
-  // Replicate Whisper returns word_segments array with word-level timestamps
+  // openai/whisper on Replicate returns segments[] each with words[]
   const segments: Array<{ words?: Array<{ word: string; start: number; end: number }> }> =
     Array.isArray(output?.segments) ? output.segments : []
 
