@@ -238,6 +238,12 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   }
 
   async function handleAiEdit() {
+    // Caption/subtitle requests need real Whisper transcription, not Claude guessing
+    if (/caption|subtitle|transcri/i.test(aiInput)) {
+      setAiInput('')
+      await handleAutoCaption()
+      return
+    }
     setAiLoading(true)
     try {
       const supabase = getSupabase()

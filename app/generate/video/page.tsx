@@ -74,7 +74,8 @@ export default function VideoGeneratorPage() {
   const [prompt, setPrompt] = useState('')
   const [duration, setDuration] = useState(10)
   const [aspect, setAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait')
-  const [refImage, setRefImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
+  const [refImages, setRefImages] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
+
   const [generating, setGenerating] = useState(false)
   const [video, setVideo] = useState<VideoState | null>(null)
   const [error, setError] = useState('')
@@ -138,15 +139,20 @@ export default function VideoGeneratorPage() {
   }, [video?.predictionId, video?.status, contentId])
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    if (file.size > 5 * 1024 * 1024) { setError('Reference image must be under 5MB'); return }
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const result = ev.target?.result as string
-      setRefImage({ base64: result.split(',')[1], mimeType: file.type, preview: result })
+    const files = Array.from(e.target.files ?? [])
+    if (!files.length) return
+    const remaining = 4 - refImages.length
+    const toAdd = files.slice(0, remaining)
+    for (const file of toAdd) {
+      if (file.size > 5 * 1024 * 1024) { setError('Each reference image must be under 5MB'); continue }
+      const reader = new FileReader()
+      reader.onload = ev => {
+        const result = ev.target?.result as string
+        setRefImages(prev => prev.length < 4 ? [...prev, { base64: result.split(',')[1], mimeType: file.type, preview: result }] : prev)
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
+    e.target.value = ''
     setSelectedShopifyProduct(null)
     setShopifyImageLoaded(false)
   }
@@ -173,20 +179,21 @@ export default function VideoGeneratorPage() {
     setSelectedShopifyProduct(product)
     setShopifyImageLoaded(false)
 
-    const imageUrl = product.images[0]
-    if (imageUrl) {
+    const imagesToLoad = product.images.slice(0, 4)
+    setRefImages([])
+    for (const imageUrl of imagesToLoad) {
       try {
         const res = await fetch(imageUrl)
         const blob = await res.blob()
         const reader = new FileReader()
         reader.onload = (e) => {
           const dataUrl = e.target?.result as string
-          setRefImage({ base64: dataUrl.split(',')[1], mimeType: blob.type || 'image/jpeg', preview: imageUrl })
+          setRefImages(prev => prev.length < 4 ? [...prev, { base64: dataUrl.split(',')[1], mimeType: blob.type || 'image/jpeg', preview: imageUrl }] : prev)
           setShopifyImageLoaded(true)
         }
         reader.readAsDataURL(blob)
       } catch {
-        setShopifyImageLoaded(false)
+        // skip failed images
       }
     }
   }
@@ -212,8 +219,8 @@ export default function VideoGeneratorPage() {
           model,
           duration,
           aspect,
-          referenceImageBase64: refImage?.base64,
-          referenceImageMimeType: refImage?.mimeType,
+          referenceImageBase64: refImages[0]?.base64,
+          referenceImageMimeType: refImages[0]?.mimeType,
         }),
       })
       const data = await res.json()
@@ -508,7 +515,7 @@ export default function VideoGeneratorPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => { setSelectedShopifyProduct(null); setShopifyImageLoaded(false); setRefImage(null) }}
+                    onClick={() => { setSelectedShopifyProduct(null); setShopifyImageLoaded(false); setRefImages([]) }}
                     style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: 4, display: 'flex' }}
                   >
                     <X size={14} />
@@ -519,32 +526,40 @@ export default function VideoGeneratorPage() {
           )}
         </div>
 
-        {/* Reference image */}
+        {/* Reference images */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 6 }}>
-            Reference Image <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional)</span>
+            Reference Images <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional · up to 4)</span>
           </div>
           <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: '0 0 12px', lineHeight: 1.55 }}>
-            Seeds the first frame. {model === 'sora-2' ? 'Great for product shots or character references.' : 'Used as the starting face or scene.'}
+            {model === 'sora-2' ? 'Seeds the first frame. Add product shots or character references.' : 'First image used as the starting face or scene.'}
           </p>
-          {refImage ? (
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center', padding: 10, background: 'var(--bg-elev, rgba(0,0,0,0.03))', borderRadius: 9, border: '1px solid var(--border)' }}>
-              <img src={refImage.preview} alt="ref" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 7 }} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                  {selectedShopifyProduct ? selectedShopifyProduct.title : 'Reference uploaded'}
+
+          {refImages.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>
+              {refImages.map((img, i) => (
+                <div key={i} style={{ position: 'relative', width: 72, height: 72 }}>
+                  <img src={img.preview} alt={`ref ${i + 1}`} style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 9, border: i === 0 ? '2px solid var(--accent, #6366f1)' : '1.5px solid var(--border)', display: 'block' }} />
+                  {i === 0 && (
+                    <span style={{ position: 'absolute', bottom: 3, left: 3, fontSize: 9, fontFamily: 'var(--font-mono)', background: 'var(--accent, #6366f1)', color: '#fff', padding: '1px 4px', borderRadius: 4, letterSpacing: '.04em' }}>MAIN</span>
+                  )}
+                  <button
+                    onClick={() => setRefImages(prev => prev.filter((_, j) => j !== i))}
+                    disabled={generating}
+                    style={{ position: 'absolute', top: -6, right: -6, width: 18, height: 18, borderRadius: '50%', background: 'var(--danger, #e84a4a)', border: 'none', color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, fontSize: 10 }}
+                  >
+                    ×
+                  </button>
                 </div>
-                <div style={{ fontSize: 11, color: 'var(--ink-dim)' }}>{refImage.mimeType}</div>
-              </div>
-              <button onClick={() => { setRefImage(null); setSelectedShopifyProduct(null); setShopifyImageLoaded(false) }} disabled={generating} style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: 4, display: 'flex' }}>
-                <X size={16} />
-              </button>
+              ))}
             </div>
-          ) : (
+          )}
+
+          {refImages.length < 4 && (
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 9, border: '1.5px dashed var(--border)', color: 'var(--ink-dim)', fontSize: 13, cursor: generating ? 'not-allowed' : 'pointer' }}>
               <Upload size={14} />
-              <span>Upload reference (max 5MB)</span>
-              <input type="file" accept="image/*" onChange={handleImageChange} disabled={generating} style={{ display: 'none' }} />
+              <span>{refImages.length === 0 ? 'Upload images (max 5MB each)' : 'Add another image'}</span>
+              <input type="file" accept="image/*" multiple onChange={handleImageChange} disabled={generating} style={{ display: 'none' }} />
             </label>
           )}
         </div>
