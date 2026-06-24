@@ -60,19 +60,23 @@ export async function transcribeWithTimestamps(audioUrl: string, languageCode?: 
   const output = prediction.output
   const text = typeof output?.transcription === 'string' ? output.transcription : ''
 
-  // openai/whisper on Replicate returns segments[] each with words[]
-  const segments: Array<{ words?: Array<{ word: string; start: number; end: number }> }> =
-    Array.isArray(output?.segments) ? output.segments : []
-
-  const words: WhisperWord[] = segments.flatMap(seg =>
-    Array.isArray(seg.words)
-      ? seg.words.map((w) => ({
-          word: String(w.word).trim(),
-          start: Number(w.start),
-          end: Number(w.end),
-        }))
-      : [],
-  )
+  // Replicate openai/whisper returns word-level timestamps in output.word_segments[]
+  // (top-level array), not nested under segments[].words
+  let words: WhisperWord[] = []
+  if (Array.isArray(output?.word_segments) && output.word_segments.length > 0) {
+    words = output.word_segments.map((w: { word: string; start: number; end: number }) => ({
+      word: String(w.word).trim(),
+      start: Number(w.start),
+      end: Number(w.end),
+    }))
+  } else if (Array.isArray(output?.segments)) {
+    // Fallback: extract from segments[].words
+    words = (output.segments as Array<{ words?: Array<{ word: string; start: number; end: number }> }>).flatMap(
+      seg => Array.isArray(seg.words)
+        ? seg.words.map(w => ({ word: String(w.word).trim(), start: Number(w.start), end: Number(w.end) }))
+        : [],
+    )
+  }
 
   return { text, words }
 }
