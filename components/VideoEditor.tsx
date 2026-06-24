@@ -2753,17 +2753,19 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                           const { data: session } = await supabase.auth.getSession()
                           const token = session?.session?.access_token
                           if (!token) throw new Error('Not signed in')
-                          const urlRes = await fetch('/api/upload-url', {
+
+                          const filename = `contentflow-edit-${new Date().toISOString().slice(0, 10)}.webm`
+                          const formData = new FormData()
+                          formData.append('file', blob, filename)
+                          formData.append('filename', filename)
+
+                          const res = await fetch('/api/drive/upload', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ folder: 'library', ext: 'webm' }),
+                            headers: { Authorization: `Bearer ${token}` },
+                            body: formData,
                           })
-                          const { signedUrl, storagePath, error: urlErr } = await urlRes.json()
-                          if (urlErr) throw new Error(urlErr)
-                          await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': 'video/webm' }, body: blob })
-                          const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(storagePath)
-                          // Insert into videos table
-                          await supabase.from('videos').insert({ url: publicUrl, title: `Edited ${new Date().toLocaleDateString()}`, status: 'ready' })
+                          const data = await res.json()
+                          if (!res.ok) throw new Error(data.error ?? 'Upload failed')
                           setSavedToLibrary(true)
                         } catch (err) {
                           alert(err instanceof Error ? err.message : 'Save failed')
