@@ -8,6 +8,7 @@ import Link from 'next/link'
 
 interface LibraryItem {
   id: string
+  name?: string
   content_type: string
   storage_url: string
   external_id: string
@@ -72,10 +73,13 @@ export default function LibraryPage() {
   }, [])
 
   const filteredItems = items.filter((item) => {
-    const matchesSearch = item.metadata?.prompt?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.metadata?.text?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.metadata?.script?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.metadata?.productName?.toLowerCase().includes(searchTerm.toLowerCase())
+    const q = searchTerm.toLowerCase()
+    const matchesSearch = !q ||
+      item.metadata?.prompt?.toLowerCase().includes(q) ||
+      item.metadata?.text?.toLowerCase().includes(q) ||
+      item.metadata?.script?.toLowerCase().includes(q) ||
+      item.metadata?.productName?.toLowerCase().includes(q) ||
+      item.name?.toLowerCase().includes(q)
     const matchesFilter = filterType === 'all' || item.content_type === filterType
     return matchesSearch && matchesFilter
   })
@@ -358,6 +362,7 @@ export default function LibraryPage() {
                     item.metadata?.text ||
                     item.metadata?.script ||
                     item.metadata?.productName ||
+                    item.name ||
                     'Generated content'}
                 </p>
 

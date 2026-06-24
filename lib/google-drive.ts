@@ -133,6 +133,7 @@ export function driveFileToLibraryItem(file: DriveFile) {
 
   return {
     id: file.id,
+    name: file.name,
     content_type: ap.contentType ?? 'video',
     storage_url: ap.sourceUrl ?? file.webContentLink,
     external_id: file.id,
