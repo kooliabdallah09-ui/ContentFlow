@@ -139,6 +139,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imgInputRef = useRef<HTMLInputElement>(null)
   const musicInputRef = useRef<HTMLInputElement>(null)
+  const musicPreviewRef = useRef<HTMLAudioElement>(null)
   const uploadedFileRef = useRef<File | null>(null)
   const videoWrapRef = useRef<HTMLDivElement>(null)
   const isDraggingTrim = useRef<null | 'start' | 'end'>(null)
@@ -171,6 +172,32 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   }
 
   // Keyboard shortcuts
+  // Sync playback speed to video element whenever spec changes
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.playbackRate = spec.speed ?? 1
+  }, [spec.speed])
+
+  // Sync video volume
+  useEffect(() => {
+    if (videoRef.current) videoRef.current.volume = spec.volume ?? 1
+  }, [spec.volume])
+
+  // Sync music preview: src + volume
+  useEffect(() => {
+    const el = musicPreviewRef.current
+    if (!el) return
+    if (spec.music?.url) {
+      if (el.src !== spec.music.url) {
+        el.src = spec.music.url
+        el.load()
+      }
+      el.volume = spec.music.volume ?? 0.5
+    } else {
+      el.pause()
+      el.src = ''
+    }
+  }, [spec.music?.url, spec.music?.volume])
+
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const meta = e.metaKey || e.ctrlKey
@@ -264,17 +291,20 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       gainNode.connect(audioDest)
       gainNode.connect(audioCtx.destination)
 
-      // Music track (optional)
+      // Music track (optional) — use an Audio element to avoid CORS fetch issues
+      let musicEl: HTMLAudioElement | null = null
       if (spec.music?.url) {
-        const musicRes  = await fetch(spec.music.url)
-        const musicBuf  = await audioCtx.decodeAudioData(await musicRes.arrayBuffer())
-        const musicSrc  = audioCtx.createBufferSource()
-        musicSrc.buffer = musicBuf
+        musicEl = document.createElement('audio')
+        musicEl.crossOrigin = 'anonymous'
+        musicEl.src = spec.music.url
+        musicEl.loop = true
+        await new Promise<void>(r => { musicEl!.oncanplaythrough = () => r(); musicEl!.onerror = () => r(); musicEl!.load() })
+        const musicSrc  = audioCtx.createMediaElementSource(musicEl)
         const musicGain = audioCtx.createGain()
         musicGain.gain.value = spec.music.volume ?? 0.5
         musicSrc.connect(musicGain)
         musicGain.connect(audioDest)
-        musicSrc.start(0, trimStart)
+        musicGain.connect(audioCtx.destination)
       }
 
       // MediaRecorder captures canvas + audio
@@ -305,8 +335,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       vid.playbackRate = speed
       await new Promise<void>(r => { vid.onseeked = () => r() })
 
+      await audioCtx.resume()  // browser may suspend AudioContext until user interaction
       recorder.start(100)
       setExportStatus('Rendering 0%')
+      if (musicEl) { musicEl.currentTime = trimStart; await musicEl.play().catch(() => {}) }
       await vid.play()
 
       await new Promise<void>((resolve, reject) => {
@@ -1241,6 +1273,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 ref={videoRef}
                 src={spec.videoUrl}
                 muted={isMuted}
+                volume={spec.volume ?? 1}
                 style={{
                   width: '100%',
                   height: '100%',
@@ -1264,16 +1297,48 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   const tStart = spec.trimStart ?? 0
                   const tEnd   = spec.trimEnd > 0 ? spec.trimEnd : spec.duration
                   if (vid.currentTime < tStart) { vid.currentTime = tStart }
-                  else if (vid.currentTime >= tEnd) { vid.pause(); vid.currentTime = tStart }
+                  else if (vid.currentTime >= tEnd) {
+                    vid.pause(); vid.currentTime = tStart
+                    const m = musicPreviewRef.current; if (m) { m.pause(); m.currentTime = 0 }
+                  }
                   setCurrentTime(vid.currentTime)
                 }}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
+                onPlay={() => {
+                  setIsPlaying(true)
+                  const m = musicPreviewRef.current
+                  if (m && spec.music?.url) { m.currentTime = 0; m.play().catch(() => {}) }
+                }}
+                onPause={() => {
+                  setIsPlaying(false)
+                  musicPreviewRef.current?.pause()
+                }}
+                onSeeked={e => {
+                  // Sync music position when user scrubs
+                  const m = musicPreviewRef.current
+                  if (m && spec.music?.url) m.currentTime = e.currentTarget.currentTime
+                }}
                 onLoadedMetadata={e => {
                   const d = e.currentTarget.duration
+                  e.currentTarget.playbackRate = spec.speed ?? 1
+                  e.currentTarget.volume = spec.volume ?? 1
                   setSpec(s => ({ ...s, duration: d, trimEnd: s.trimEnd === 0 ? d : s.trimEnd }))
                 }}
               />
+              {/* Hidden music preview audio element */}
+              <audio ref={musicPreviewRef} loop style={{ display: 'none' }} />
+
+              {/* Fade in/out overlay */}
+              {(spec.fadeIn || spec.fadeOut) && (() => {
+                const tStart = spec.trimStart ?? 0
+                const tEnd   = spec.trimEnd > 0 ? spec.trimEnd : spec.duration
+                let opacity = 0
+                if (spec.fadeIn && currentTime - tStart < 0.5) opacity = 1 - (currentTime - tStart) / 0.5
+                if (spec.fadeOut && tEnd - currentTime < 0.5) opacity = Math.max(opacity, 1 - (tEnd - currentTime) / 0.5)
+                return opacity > 0 ? (
+                  <div style={{ position: 'absolute', inset: 0, background: 'black', opacity, pointerEvents: 'none', borderRadius: 'inherit' }} />
+                ) : null
+              })()}
+
               {/* Text overlay previews — draggable */}
               {spec.overlays.map(o => {
                 const visible = currentTime >= o.start && currentTime < o.start + o.duration
