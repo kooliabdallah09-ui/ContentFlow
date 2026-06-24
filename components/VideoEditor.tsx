@@ -1434,6 +1434,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
                 {/* Main timeline track */}
                 <div
+                  data-timeline
                   style={S.timelineTrack}
                   onClick={e => {
                     const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
