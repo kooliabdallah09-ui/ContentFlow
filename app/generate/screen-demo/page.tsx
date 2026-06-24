@@ -6,6 +6,7 @@ import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Upload, X, Sparkles } from 'lucide-react'
 import { useDriveSync } from '@/lib/useDriveSync'
+import PublishToYouTube from '@/components/PublishToYouTube'
 
 const CHAR_BLOCK = 80
 const MIN_CREDITS = 20
@@ -408,6 +409,7 @@ export default function ScreenDemoPage() {
                 }}>
                 <Download size={14} /> Download
               </a>
+              <PublishToYouTube videoUrl={resultUrl} defaultTitle="Screen Demo" />
               <button onClick={() => { setStatus('idle'); setResultUrl(null); setVideoFile(null); setScript(''); setDescription('') }}
                 style={{
                   padding: '9px 20px', borderRadius: 9,

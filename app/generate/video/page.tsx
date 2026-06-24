@@ -5,6 +5,7 @@ import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Play, Upload, X } from 'lucide-react'
+import PublishToYouTube from '@/components/PublishToYouTube'
 
 type Model = 'sora-2' | 'kling-v3'
 
@@ -623,7 +624,10 @@ export default function VideoGeneratorPage() {
                     <Play size={14} /> Open in tab
                   </a>
                 </div>
-                <div style={{ textAlign: 'center', marginTop: 12 }}>
+                <div style={{ marginTop: 10 }}>
+                  <PublishToYouTube videoUrl={video.videoUrl!} defaultTitle="AI Generated Video" />
+                </div>
+                <div style={{ textAlign: 'center', marginTop: 10 }}>
                   <a href="/library" style={{ fontSize: 12.5, color: 'var(--ink-dim)', textDecoration: 'none', fontWeight: 500 }}>
                     Saved to library →
                   </a>

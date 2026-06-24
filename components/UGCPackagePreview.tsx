@@ -3,6 +3,7 @@
 import { Download, Copy, Loader, Film } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import PublishToYouTube from '@/components/PublishToYouTube'
 
 interface VideoComponent {
   videoId?: string
@@ -274,6 +275,9 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
                 <Film style={{ width: 14, height: 14 }} />
                 Edit in Editor
               </Link>
+              <div style={{ marginTop: 8 }}>
+                <PublishToYouTube videoUrl={finalVideoUrl} defaultTitle="UGC Video" />
+              </div>
             </>
           )}
         </div>
