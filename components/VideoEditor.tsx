@@ -2767,9 +2767,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                           const { uploadUrl } = sessionData
 
                           // Step 2: upload blob directly to Drive — bypasses Vercel body limit
+                          // Note: don't set Content-Length — it's a forbidden header in browser fetch
                           const uploadRes = await fetch(uploadUrl, {
                             method: 'PUT',
-                            headers: { 'Content-Type': blob.type || 'video/webm', 'Content-Length': String(blob.size) },
+                            headers: { 'Content-Type': blob.type || 'video/webm' },
                             body: blob,
                           })
                           if (!uploadRes.ok) {

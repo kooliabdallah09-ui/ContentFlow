@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
           'X-Upload-Content-Type': mimeType ?? 'video/webm',
-          ...(fileSize ? { 'X-Upload-Content-Length': String(fileSize) } : {}),
+          'X-Upload-Content-Length': String(fileSize ?? 0),
         },
         body: JSON.stringify({
           name: filename,
