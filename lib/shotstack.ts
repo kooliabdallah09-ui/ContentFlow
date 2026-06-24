@@ -314,12 +314,14 @@ function buildCaptionClips(script: string, startAt: number, totalLength: number)
 export async function submitScreenDemoJob({
   screenRecordingUrl,
   voiceoverUrl,
+  voiceoverDuration,
   spokenScript,
   watermark,
   aspect,
 }: {
   screenRecordingUrl: string
   voiceoverUrl: string
+  voiceoverDuration?: number  // actual audio duration in seconds (from buffer size)
   spokenScript?: string
   watermark?: boolean
   aspect?: 'portrait' | 'square' | 'landscape'
@@ -327,8 +329,11 @@ export async function submitScreenDemoJob({
   const apiKey = process.env.SHOTSTACK_API_KEY
   if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
 
-  // Estimate duration from script length (~10 chars/sec speaking rate, min 15s).
-  const estimatedDuration = Math.max(15, Math.ceil((spokenScript?.length ?? 150) / 10))
+  // Use actual voiceover duration when available; fall back to script-length estimate.
+  // Add 0.5s tail so the last syllable isn't cut off at the exact frame boundary.
+  const estimatedDuration = voiceoverDuration
+    ? voiceoverDuration + 0.5
+    : Math.max(15, Math.ceil((spokenScript?.length ?? 150) / 10))
 
   const outputSize =
     aspect === 'square'    ? { width: 1080, height: 1080 } :

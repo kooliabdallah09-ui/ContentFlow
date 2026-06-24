@@ -74,6 +74,10 @@ export async function POST(req: NextRequest) {
 
     // Generate voiceover with ElevenLabs
     const audioBuf = await generateSpeech(script, voiceId, {})
+
+    // Calculate actual audio duration from buffer size (ElevenLabs outputs MP3 at 128kbps)
+    const voiceoverDuration = Math.round((audioBuf.byteLength / 16000) * 10) / 10 // seconds, 1 decimal
+
     const audioFilename = `screen-demo/${userId}-${Date.now()}-vo.mp3`
     const { error: audioUploadErr } = await supabase.storage
       .from('ugc-assets')
@@ -89,6 +93,7 @@ export async function POST(req: NextRequest) {
     const { renderId } = await submitScreenDemoJob({
       screenRecordingUrl,
       voiceoverUrl,
+      voiceoverDuration,
       spokenScript: script,
       watermark: credits.plan === 'free',
       aspect: aspect as 'portrait' | 'square' | 'landscape',
