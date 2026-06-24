@@ -1,9 +1,11 @@
+import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { getValidDriveToken, getOrCreateFolder, listDriveFiles, driveFileToLibraryItem } from '@/lib/google-drive'
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader?.startsWith('Bearer ')) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const token = authHeader.slice(7)
@@ -11,28 +13,45 @@ export async function GET(request: Request) {
   try {
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
 
     const { data: userData, error: userError } = await supabase.auth.getUser(token)
     if (userError || !userData?.user?.id) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const userId = userData.user.id
+
+    // Check if Drive is connected
+    const { data: integration } = await supabase
+      .from('integrations')
+      .select('is_connected, account_name')
+      .eq('user_id', userId)
+      .eq('platform', 'google-drive')
+      .single()
+
+    if (!integration?.is_connected) {
+      return NextResponse.json({ items: [], driveConnected: false })
     }
 
-    const { data: items, error } = await supabase
-      .from('ugc_content')
-      .select('*')
-      .eq('user_id', userData.user.id)
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      console.error('Database error:', error)
-      return Response.json({ error: 'Failed to fetch library' }, { status: 500 })
+    // Fetch from Drive
+    try {
+      const accessToken = await getValidDriveToken(userId, supabase)
+      const folderId = await getOrCreateFolder(accessToken, userId, supabase)
+      const files = await listDriveFiles(accessToken, folderId)
+      const items = files.map(driveFileToLibraryItem)
+      return NextResponse.json({
+        items,
+        driveConnected: true,
+        accountName: integration.account_name,
+      })
+    } catch (driveErr) {
+      console.error('[library] Drive fetch failed:', driveErr)
+      // Drive token expired or folder issue — tell the UI to prompt reconnect
+      return NextResponse.json({ items: [], driveConnected: false, driveError: true })
     }
-
-    return Response.json({ items: items || [] })
   } catch (err) {
-    console.error('Error:', err)
-    return Response.json({ error: 'Internal server error' }, { status: 500 })
+    console.error('[library]', err)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

@@ -15,6 +15,7 @@ interface LibraryItem {
   credit_cost: number
   created_at: string
   status: string
+  drive_view_link?: string
 }
 
 export default function LibraryPage() {
@@ -24,6 +25,7 @@ export default function LibraryPage() {
   const [filterType, setFilterType] = useState('all')
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [previewItem, setPreviewItem] = useState<LibraryItem | null>(null)
+  const [driveConnected, setDriveConnected] = useState<boolean | null>(null)
 
   const fetchLibrary = async () => {
     try {
@@ -49,6 +51,7 @@ export default function LibraryPage() {
       if (response.ok) {
         const data = await response.json()
         setItems(data.items || [])
+        setDriveConnected(data.driveConnected ?? false)
       } else {
         showError('Failed to load library')
       }
@@ -159,6 +162,35 @@ export default function LibraryPage() {
         <h1 className="page-title">Content <em>Library</em></h1>
         <p className="page-sub">View and manage all your generated content</p>
       </div>
+
+      {/* Drive connection banner */}
+      {driveConnected === false && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '14px 18px', marginBottom: 20,
+          gap: 16,
+        }}>
+          <div>
+            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>
+              Connect Google Drive to see your library
+            </p>
+            <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: '3px 0 0' }}>
+              Every generation is automatically saved to a ContentFlow folder in your Drive.
+            </p>
+          </div>
+          <a
+            href="/settings/integrations"
+            style={{
+              flexShrink: 0, padding: '8px 16px', borderRadius: 8,
+              background: 'var(--ink)', color: '#fff', fontSize: 13,
+              fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
+            }}
+          >
+            Connect Drive
+          </a>
+        </div>
+      )}
 
       {/* Search and Filter Bar */}
       <div className="lib-search">

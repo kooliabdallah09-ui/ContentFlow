@@ -5,6 +5,7 @@ import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Upload, X, Sparkles } from 'lucide-react'
+import { useDriveSync } from '@/lib/useDriveSync'
 
 const CHAR_BLOCK = 80
 const MIN_CREDITS = 20
@@ -44,6 +45,7 @@ export default function ScreenDemoPage() {
   const [dragOver, setDragOver] = useState(false)
   const [generatingScript, setGeneratingScript] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const { autoSave: saveToDrive } = useDriveSync()
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { balance: rawBalance, refresh: refreshCredits } = useCredits()
   const creditBalance = rawBalance ?? 0
@@ -101,6 +103,13 @@ export default function ScreenDemoPage() {
         setStatus('done')
         showSuccess('Screen demo ready!')
         refreshCredits()
+        saveToDrive({
+          sourceUrl: data.url,
+          filename: `screen-demo-${Date.now()}.mp4`,
+          mimeType: 'video/mp4',
+          contentType: 'screen-demo',
+          metadata: { script: script.slice(0, 200) },
+        })
       } else if (data.status === 'failed') {
         setStatus('failed')
         showError(data.error || 'Render failed')
