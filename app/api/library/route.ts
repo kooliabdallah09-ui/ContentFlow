@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { getValidDriveToken, getOrCreateFolder, listDriveFiles, driveFileToLibraryItem } from '@/lib/google-drive'
+
+// Extract the usable media URL from a storage_url field that may be a raw URL
+// or a JSON blob like { video: { videoUrl: "..." } } or { url: "..." }
+function extractMediaUrl(storageUrl: string): string {
+  if (!storageUrl) return ''
+  try {
+    const parsed = JSON.parse(storageUrl)
+    return (
+      parsed?.video?.videoUrl ||
+      parsed?.audio?.audioUrl ||
+      parsed?.image?.imageUrl ||
+      parsed?.url ||
+      parsed?.videoUrl ||
+      ''
+    )
+  } catch {
+    // Already a plain URL
+    return storageUrl
+  }
+}
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
@@ -22,34 +41,25 @@ export async function GET(request: NextRequest) {
     }
     const userId = userData.user.id
 
-    // Check if Drive is connected
-    const { data: integration } = await supabase
-      .from('integrations')
-      .select('is_connected, account_name')
+    // Read from ugc_content — the source of truth for all generations
+    const { data: rows, error: dbErr } = await supabase
+      .from('ugc_content')
+      .select('id, content_type, storage_url, external_id, metadata, credit_cost, created_at, status')
       .eq('user_id', userId)
-      .eq('platform', 'google-drive')
-      .single()
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(200)
 
-    if (!integration?.is_connected) {
-      return NextResponse.json({ items: [], driveConnected: false })
+    if (dbErr) {
+      console.error('[library] DB error:', dbErr)
+      return NextResponse.json({ error: 'Failed to load library' }, { status: 500 })
     }
 
-    // Fetch from Drive
-    try {
-      const accessToken = await getValidDriveToken(userId, supabase)
-      const folderId = await getOrCreateFolder(accessToken, userId, supabase)
-      const files = await listDriveFiles(accessToken, folderId)
-      const items = files.map(driveFileToLibraryItem)
-      return NextResponse.json({
-        items,
-        driveConnected: true,
-        accountName: integration.account_name,
-      })
-    } catch (driveErr) {
-      console.error('[library] Drive fetch failed:', driveErr)
-      // Drive token expired or folder issue — tell the UI to prompt reconnect
-      return NextResponse.json({ items: [], driveConnected: false, driveError: true })
-    }
+    const items = (rows ?? [])
+      .map(row => ({ ...row, storage_url: extractMediaUrl(row.storage_url) }))
+      .filter(row => row.storage_url) // drop rows where URL couldn't be resolved
+
+    return NextResponse.json({ items, driveConnected: false })
   } catch (err) {
     console.error('[library]', err)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
