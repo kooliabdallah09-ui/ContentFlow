@@ -144,6 +144,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const videoWrapRef = useRef<HTMLDivElement>(null)
   const isDraggingTrim = useRef<null | 'start' | 'end'>(null)
   const isDraggingPlayhead = useRef(false)
+  const timelineRef = useRef<HTMLDivElement>(null)
   const draggingOverlay = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
   const draggingImg = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
 
@@ -1021,11 +1022,11 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     },
     timelineTrack: {
       position: 'relative' as const,
-      height: 40,
+      height: 90,
       background: 'var(--surface)',
       borderRadius: 8,
       overflow: 'visible',
-      cursor: 'pointer',
+      cursor: 'crosshair',
       border: '1px solid var(--border)',
     },
     // ── Right panel ───────────────────────────────────────────────────────
@@ -1501,6 +1502,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
                 {/* Main timeline track */}
                 <div
+                  ref={timelineRef}
                   data-timeline
                   style={S.timelineTrack}
                   onClick={e => {
@@ -1514,12 +1516,13 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     if (videoRef.current) videoRef.current.currentTime = t
                   }}
                 >
-                  {/* Clip fill */}
+                  {/* Clip fill — pointerEvents none so blocks above can receive events */}
                   <div style={{
                     position: 'absolute',
                     left: 0, top: 0, right: 0, bottom: 0,
                     background: 'repeating-linear-gradient(90deg, var(--surface-2), var(--surface-2) 1px, var(--surface-3) 1px, var(--surface-3) 40px)',
                     borderRadius: 8,
+                    pointerEvents: 'none',
                   }} />
 
                   {/* Trim zone */}
@@ -1536,212 +1539,133 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
                   {/* Trim handles */}
                   <div
-                    style={{
-                      position: 'absolute',
-                      left: `${trimPct.start}%`,
-                      top: 0, bottom: 0, width: 14,
-                      background: 'var(--ink)',
-                      borderRadius: '4px 0 0 4px',
-                      cursor: 'ew-resize',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transform: 'translateX(-7px)',
-                      zIndex: 15,
-                    }}
+                    style={{ position: 'absolute', left: `${trimPct.start}%`, top: 0, bottom: 0, width: 14, background: 'var(--ink)', borderRadius: '4px 0 0 4px', cursor: 'ew-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translateX(-7px)', zIndex: 25 }}
                     onMouseDown={e => {
-                      e.stopPropagation()
+                      e.stopPropagation(); e.preventDefault()
                       isDraggingTrim.current = 'start'
-                      // Capture rect immediately — e.currentTarget is nulled after handler returns
-                      const trackEl = (e.currentTarget as HTMLElement).parentElement!
+                      const rect = timelineRef.current!.getBoundingClientRect()
                       const onMove = (me: MouseEvent) => {
-                        const rect = trackEl.getBoundingClientRect()
                         const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width))
                         const t = pct * spec.duration
                         setSpec(s => ({ ...s, trimStart: Math.min(t, s.trimEnd - 0.1) }))
                       }
                       const onUp = () => { isDraggingTrim.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-                      window.addEventListener('mousemove', onMove)
-                      window.addEventListener('mouseup', onUp)
+                      window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp)
                     }}
                   >
-                    <svg width="4" height="12" viewBox="0 0 4 12" fill="none"><rect x="0.5" y="0" width="1" height="12" rx="0.5" fill="white" opacity="0.6"/><rect x="2.5" y="0" width="1" height="12" rx="0.5" fill="white" opacity="0.6"/></svg>
+                    <svg width="4" height="16" viewBox="0 0 4 16" fill="none"><rect x="0.5" y="0" width="1" height="16" rx="0.5" fill="white" opacity="0.7"/><rect x="2.5" y="0" width="1" height="16" rx="0.5" fill="white" opacity="0.7"/></svg>
                   </div>
                   <div
-                    style={{
-                      position: 'absolute',
-                      left: `${trimPct.end}%`,
-                      top: 0, bottom: 0, width: 14,
-                      background: 'var(--ink)',
-                      borderRadius: '0 4px 4px 0',
-                      cursor: 'ew-resize',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transform: 'translateX(-7px)',
-                      zIndex: 15,
-                    }}
+                    style={{ position: 'absolute', left: `${trimPct.end}%`, top: 0, bottom: 0, width: 14, background: 'var(--ink)', borderRadius: '0 4px 4px 0', cursor: 'ew-resize', display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translateX(-7px)', zIndex: 25 }}
                     onMouseDown={e => {
-                      e.stopPropagation()
-                      // Capture rect immediately — e.currentTarget is nulled after handler returns
-                      const trackEl = (e.currentTarget as HTMLElement).parentElement!
+                      e.stopPropagation(); e.preventDefault()
+                      const rect = timelineRef.current!.getBoundingClientRect()
                       const onMove = (me: MouseEvent) => {
-                        const rect = trackEl.getBoundingClientRect()
                         const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width))
                         const t = pct * spec.duration
                         setSpec(s => ({ ...s, trimEnd: Math.max(t, s.trimStart + 0.1) }))
                       }
                       const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-                      window.addEventListener('mousemove', onMove)
-                      window.addEventListener('mouseup', onUp)
+                      window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp)
                     }}
                   >
-                    <svg width="4" height="12" viewBox="0 0 4 12" fill="none"><rect x="0.5" y="0" width="1" height="12" rx="0.5" fill="white" opacity="0.6"/><rect x="2.5" y="0" width="1" height="12" rx="0.5" fill="white" opacity="0.6"/></svg>
+                    <svg width="4" height="16" viewBox="0 0 4 16" fill="none"><rect x="0.5" y="0" width="1" height="16" rx="0.5" fill="white" opacity="0.7"/><rect x="2.5" y="0" width="1" height="16" rx="0.5" fill="white" opacity="0.7"/></svg>
                   </div>
 
                   {/* Playhead (draggable) */}
                   <div
-                    style={{ position: 'absolute', left: `${trimPct.cursor}%`, top: -4, bottom: -4, width: 12, transform: 'translateX(-5px)', cursor: 'ew-resize', zIndex: 20, display: 'flex', justifyContent: 'center' }}
+                    style={{ position: 'absolute', left: `${trimPct.cursor}%`, top: -6, bottom: -6, width: 16, transform: 'translateX(-7px)', cursor: 'ew-resize', zIndex: 30, display: 'flex', justifyContent: 'center' }}
                     onMouseDown={e => {
-                      e.stopPropagation()
+                      e.stopPropagation(); e.preventDefault()
                       isDraggingPlayhead.current = true
                       let lastT = currentTime
-                      const trackEl = (e.currentTarget as HTMLElement).parentElement!
+                      const rect = timelineRef.current!.getBoundingClientRect()
                       const onMove = (me: MouseEvent) => {
-                        const rect = trackEl.getBoundingClientRect()
-                        if (!rect) return
                         const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width))
                         const t = Math.max(spec.trimStart, Math.min(spec.trimEnd > 0 ? spec.trimEnd : spec.duration, pct * spec.duration))
-                        lastT = t
-                        setCurrentTime(t)  // update state only — no video seek during drag
+                        lastT = t; setCurrentTime(t)
                       }
                       const onUp = () => {
                         isDraggingPlayhead.current = false
-                        if (videoRef.current) videoRef.current.currentTime = lastT  // seek once on release
-                        window.removeEventListener('mousemove', onMove)
-                        window.removeEventListener('mouseup', onUp)
+                        if (videoRef.current) videoRef.current.currentTime = lastT
+                        window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp)
                       }
-                      window.addEventListener('mousemove', onMove)
-                      window.addEventListener('mouseup', onUp)
+                      window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp)
                     }}
                   >
                     <div style={{ position: 'absolute', top: 0, bottom: 0, width: 2, background: '#e84040', left: '50%', transform: 'translateX(-50%)' }} />
-                    <div style={{ position: 'absolute', top: -2, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, background: '#e84040', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #e84040' }} />
+                    <div style={{ position: 'absolute', top: 4, left: '50%', transform: 'translateX(-50%)', width: 12, height: 12, background: '#e84040', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #e84040' }} />
                   </div>
 
-                  {/* Caption / text overlay blocks — draggable */}
-                  {spec.overlays.map(o => (
-                    <div
-                      key={o.id}
-                      title={o.text}
-                      style={{
-                        position: 'absolute',
-                        left: `${(o.start / spec.duration) * 100}%`,
-                        width: `${Math.max(1, (o.duration / spec.duration) * 100)}%`,
-                        top: '60%', height: '28%',
-                        background: selectedOverlayId === o.id ? '#1a1a17' : 'rgba(20,184,166,0.7)',
-                        borderRadius: 3,
-                        cursor: 'grab',
-                        overflow: 'hidden',
-                        display: 'flex', alignItems: 'center',
-                        paddingLeft: 4,
-                        userSelect: 'none',
-                      }}
-                      onMouseDown={e => {
-                        e.stopPropagation()
-                        setSelectedOverlayId(o.id); setActivePanel('text')
-                        const trackEl = (e.currentTarget as HTMLElement).parentElement!
-                        const startX = e.clientX
-                        const origStart = o.start
-                        let moved = false
-                        const onMove = (me: MouseEvent) => {
-                          if (!moved && Math.abs(me.clientX - startX) < 3) return
-                          moved = true
-                          const rect = trackEl.getBoundingClientRect()
-                          const dx = (me.clientX - startX) / rect.width * spec.duration
-                          const newStart = Math.max(0, Math.min(spec.duration - o.duration, origStart + dx))
-                          setSpec(s => ({ ...s, overlays: s.overlays.map(x => x.id === o.id ? { ...x, start: newStart } : x) }))
-                        }
-                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-                        window.addEventListener('mousemove', onMove)
-                        window.addEventListener('mouseup', onUp)
-                      }}
-                    >
-                      <span style={{ fontSize: 8, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1 }}>{o.text}</span>
-                    </div>
-                  ))}
-                  {/* Image overlay blocks — draggable */}
-                  {(spec.imageOverlays ?? []).map(o => (
-                    <div
-                      key={`img-${o.id}`}
-                      style={{
-                        position: 'absolute',
-                        left: `${(o.start / spec.duration) * 100}%`,
-                        width: `${Math.max(1, (o.duration / spec.duration) * 100)}%`,
-                        top: '30%', height: '28%',
-                        background: selectedImgId === o.id ? '#1a1a17' : 'rgba(77,159,255,0.7)',
-                        borderRadius: 3,
-                        cursor: 'grab',
-                        userSelect: 'none',
-                        display: 'flex', alignItems: 'center', paddingLeft: 3, overflow: 'hidden',
-                      }}
-                      onMouseDown={e => {
-                        e.stopPropagation()
-                        setSelectedImgId(o.id); setActivePanel('image')
-                        const trackEl = (e.currentTarget as HTMLElement).parentElement!
-                        const startX = e.clientX
-                        const origStart = o.start
-                        let moved = false
-                        const onMove = (me: MouseEvent) => {
-                          if (!moved && Math.abs(me.clientX - startX) < 3) return
-                          moved = true
-                          const rect = trackEl.getBoundingClientRect()
-                          const dx = (me.clientX - startX) / rect.width * spec.duration
-                          const newStart = Math.max(0, Math.min(spec.duration - o.duration, origStart + dx))
-                          setSpec(s => ({ ...s, imageOverlays: (s.imageOverlays ?? []).map(x => x.id === o.id ? { ...x, start: newStart } : x) }))
-                        }
-                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-                        window.addEventListener('mousemove', onMove)
-                        window.addEventListener('mouseup', onUp)
-                      }}
-                    >
-                      <span style={{ fontSize: 8, color: '#fff', lineHeight: 1 }}>🖼</span>
-                    </div>
-                  ))}
-                  {/* Music block — draggable (shifts which part of the audio plays) */}
+                  {/* Music block — top row, draggable to shift audio start */}
                   {spec.music && (
                     <div
-                      onClick={e => { e.stopPropagation(); setActivePanel('music') }}
-                      style={{
-                        position: 'absolute',
-                        left: `${(spec.trimStart / spec.duration) * 100}%`,
-                        width: `${((spec.trimEnd - spec.trimStart) / spec.duration) * 100}%`,
-                        top: '3%', height: '24%',
-                        background: 'rgba(139,92,246,0.6)',
-                        borderRadius: 3,
-                        cursor: 'grab',
-                        display: 'flex', alignItems: 'center', paddingLeft: 4,
-                        overflow: 'hidden',
-                        userSelect: 'none',
-                      }}
+                      style={{ position: 'absolute', left: `${(spec.trimStart / spec.duration) * 100}%`, width: `${((spec.trimEnd - spec.trimStart) / spec.duration) * 100}%`, top: 6, height: 22, background: 'rgba(139,92,246,0.85)', borderRadius: 5, cursor: 'grab', display: 'flex', alignItems: 'center', paddingLeft: 8, overflow: 'hidden', userSelect: 'none', zIndex: 5, gap: 5 }}
                       onMouseDown={e => {
-                        e.stopPropagation()
+                        e.stopPropagation(); e.preventDefault()
+                        const rect = timelineRef.current!.getBoundingClientRect()
                         const startX = e.clientX
-                        const trackEl = (e.currentTarget as HTMLElement).parentElement!
                         const origOffset = spec.music!.startOffset ?? 0
-                        let moved = false
                         const onMove = (me: MouseEvent) => {
-                          if (!moved && Math.abs(me.clientX - startX) < 3) return
-                          moved = true
-                          const rect = trackEl.getBoundingClientRect()
                           const dx = (me.clientX - startX) / rect.width * spec.duration
                           const newOffset = Math.max(0, origOffset - dx)
                           setSpec(s => s.music ? { ...s, music: { ...s.music!, startOffset: newOffset } } : s)
                         }
-                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
-                        window.addEventListener('mousemove', onMove)
-                        window.addEventListener('mouseup', onUp)
+                        const onUp = () => { setActivePanel('music'); window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                        window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp)
                       }}
                     >
-                      <span style={{ fontSize: 8, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>♪ {spec.music.label}</span>
+                      <span style={{ fontSize: 10 }}>♪</span>
+                      <span style={{ fontSize: 10, color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{spec.music.label}</span>
                     </div>
                   )}
+
+                  {/* Image overlay blocks — middle row */}
+                  {(spec.imageOverlays ?? []).map(o => (
+                    <div
+                      key={`img-${o.id}`}
+                      style={{ position: 'absolute', left: `${(o.start / spec.duration) * 100}%`, width: `${Math.max(2, (o.duration / spec.duration) * 100)}%`, top: 34, height: 22, background: selectedImgId === o.id ? '#1a1a17' : 'rgba(77,159,255,0.85)', borderRadius: 5, cursor: 'grab', userSelect: 'none', display: 'flex', alignItems: 'center', paddingLeft: 6, overflow: 'hidden', zIndex: 5, gap: 4 }}
+                      onMouseDown={e => {
+                        e.stopPropagation(); e.preventDefault()
+                        setSelectedImgId(o.id); setActivePanel('image')
+                        const rect = timelineRef.current!.getBoundingClientRect()
+                        const startX = e.clientX; const origStart = o.start; const dur = o.duration
+                        const onMove = (me: MouseEvent) => {
+                          const dx = (me.clientX - startX) / rect.width * spec.duration
+                          const newStart = Math.max(0, Math.min(spec.duration - dur, origStart + dx))
+                          setSpec(s => ({ ...s, imageOverlays: (s.imageOverlays ?? []).map(x => x.id === o.id ? { ...x, start: newStart } : x) }))
+                        }
+                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                        window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp)
+                      }}
+                    >
+                      <span style={{ fontSize: 10 }}>🖼</span>
+                    </div>
+                  ))}
+
+                  {/* Caption / text overlay blocks — bottom row */}
+                  {spec.overlays.map(o => (
+                    <div
+                      key={o.id}
+                      title={o.text}
+                      style={{ position: 'absolute', left: `${(o.start / spec.duration) * 100}%`, width: `${Math.max(2, (o.duration / spec.duration) * 100)}%`, top: 62, height: 22, background: selectedOverlayId === o.id ? '#0f766e' : 'rgba(20,184,166,0.85)', borderRadius: 5, cursor: 'grab', overflow: 'hidden', display: 'flex', alignItems: 'center', paddingLeft: 8, userSelect: 'none', zIndex: 5 }}
+                      onMouseDown={e => {
+                        e.stopPropagation(); e.preventDefault()
+                        setSelectedOverlayId(o.id); setActivePanel('text')
+                        const rect = timelineRef.current!.getBoundingClientRect()
+                        const startX = e.clientX; const origStart = o.start; const dur = o.duration
+                        const onMove = (me: MouseEvent) => {
+                          const dx = (me.clientX - startX) / rect.width * spec.duration
+                          const newStart = Math.max(0, Math.min(spec.duration - dur, origStart + dx))
+                          setSpec(s => ({ ...s, overlays: s.overlays.map(x => x.id === o.id ? { ...x, start: newStart } : x) }))
+                        }
+                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                        window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp)
+                      }}
+                    >
+                      <span style={{ fontSize: 10, color: '#fff', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{o.text}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
