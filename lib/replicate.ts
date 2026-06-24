@@ -194,6 +194,79 @@ export async function generateElevenLabsViaReplicate(
   throw new Error('Replicate ElevenLabs TTS timed out after 90s')
 }
 
+// Whisper transcription via Replicate. Accepts a public audio/video URL
+// (no 25 MB upload limit like OpenAI), returns word-level timestamps.
+// Uses our existing REPLICATE_API_TOKEN — no separate OpenAI billing needed.
+const WHISPER_MODEL = 'vaibhavs10/incredibly-fast-whisper'
+
+export interface ReplicateWhisperWord {
+  word: string
+  start: number
+  end: number
+}
+
+export async function transcribeWithReplicate(audioUrl: string): Promise<{
+  text: string
+  words: ReplicateWhisperWord[]
+}> {
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const res = await fetch(`${REPLICATE_BASE}/models/${WHISPER_MODEL}/predictions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'respond-async',
+    },
+    body: JSON.stringify({
+      input: {
+        audio: audioUrl,
+        batch_size: 24,
+        timestamp: 'word',
+        language: 'None',
+      },
+    }),
+  })
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Replicate Whisper error ${res.status}: ${JSON.stringify(err)}`)
+  }
+
+  const prediction = await res.json()
+  const predictionId: string | undefined = prediction?.id
+  if (!predictionId) throw new Error('Replicate Whisper: no prediction id')
+
+  const TIMEOUT_MS = 120_000
+  const POLL_MS = 2_000
+  const deadline = Date.now() + TIMEOUT_MS
+
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, POLL_MS))
+    const poll = await fetch(`${REPLICATE_BASE}/predictions/${predictionId}`, {
+      headers: { Authorization: `Bearer ${apiKey}` },
+    })
+    if (!poll.ok) throw new Error(`Replicate Whisper poll error: ${poll.statusText}`)
+    const data = await poll.json()
+
+    if (data.status === 'succeeded') {
+      const output = data.output as { text?: string; chunks?: Array<{ text: string; timestamp: [number, number] }> }
+      const text = output?.text ?? ''
+      const words: ReplicateWhisperWord[] = (output?.chunks ?? []).map(c => ({
+        word: String(c.text ?? '').trim(),
+        start: Number(c.timestamp?.[0] ?? 0),
+        end: Number(c.timestamp?.[1] ?? 0),
+      })).filter(w => w.word)
+      return { text, words }
+    }
+    if (data.status === 'failed' || data.status === 'canceled') {
+      throw new Error(`Replicate Whisper ${data.status}: ${data.error ?? 'unknown'}`)
+    }
+  }
+  throw new Error('Replicate Whisper timed out after 120s')
+}
+
 // Sync Labs lipsync-2 — remaps lips on `videoUrl` to match `audioUrl`.
 // Used to lip-sync Sora's talking head to the ElevenLabs voice overlay on Hero.
 // Returns the URL of the new (synced) video. Polls inline up to ~3 minutes.

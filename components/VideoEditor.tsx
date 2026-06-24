@@ -37,11 +37,24 @@ const FILTER_PRESETS: Record<string, { brightness: number; contrast: number; sat
   vivid:   { brightness: 1.05, contrast: 1.2,  saturation: 1.5  },
   cinema:  { brightness: 0.9,  contrast: 1.3,  saturation: 0.85 },
   muted:   { brightness: 1,    contrast: 0.85, saturation: 0.6  },
+  warm:    { brightness: 1.05, contrast: 1.05, saturation: 1.2  },
+  cool:    { brightness: 1.0,  contrast: 1.1,  saturation: 0.85 },
+  fade:    { brightness: 1.1,  contrast: 0.82, saturation: 0.7  },
+  punch:   { brightness: 1.0,  contrast: 1.35, saturation: 1.45 },
 }
 
 const PRESET_LABELS: Record<string, string> = {
   none: 'None', bw: 'B&W', vintage: 'Vintage', vivid: 'Vivid', cinema: 'Cinema', muted: 'Muted',
+  warm: 'Warm', cool: 'Cool', fade: 'Fade', punch: 'Punch',
 }
+
+const CAPTION_STYLES = [
+  { id: 'caption',   label: 'Default',   preview: { bg: 'rgba(0,0,0,0.6)', color: '#fff',    outline: false } },
+  { id: 'tiktok',    label: 'TikTok',    preview: { bg: 'transparent',     color: '#fff',    outline: true  } },
+  { id: 'highlight', label: 'Highlight', preview: { bg: '#FFE14D',         color: '#000',    outline: false } },
+  { id: 'bubble',    label: 'Bubble',    preview: { bg: '#ffffff',         color: '#1a1a17', outline: false } },
+  { id: 'outline',   label: 'Outline',   preview: { bg: 'transparent',     color: '#FFE14D', outline: true  } },
+] as const
 
 const COLOR_SWATCHES = [
   { hex: '#ffffff', label: 'White' },
@@ -106,6 +119,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [imgOpacity, setImgOpacity] = useState(1)
   const [imgUrl, setImgUrl] = useState('')
   const [selectedImgId, setSelectedImgId] = useState<string | null>(null)
+  const [exportProgress, setExportProgress] = useState(0)
+  const [newAnimation, setNewAnimation] = useState<TextOverlay['animation']>('none')
+  const [activeCaptionStyle, setActiveCaptionStyle] = useState<TextOverlay['style']>('caption')
+  const [zoomEnabled, setZoomEnabled] = useState(false)
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -182,6 +199,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     setExporting(true)
     setExportUrl(null)
     setExportStatus('Loading video...')
+    setExportProgress(0)
 
     try {
       const [outW, outH] =
@@ -290,11 +308,27 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
           const pct = Math.round(((t - trimStart) / (trimEnd - trimStart)) * 100)
           setExportStatus(`Rendering ${pct}%`)
+          setExportProgress(pct)
 
-          // Draw video frame with optional filter
+          // Draw video frame with optional Ken Burns zoom
+          ctx.save()
           if (filterStr) ctx.filter = filterStr
-          ctx.drawImage(vid, 0, 0, outW, outH)
+          if (spec.zoom) {
+            const progress = (t - trimStart) / (trimEnd - trimStart)
+            const scale = spec.zoom.fromScale + (spec.zoom.toScale - spec.zoom.fromScale) * progress
+            const px = (spec.zoom.fromX + (spec.zoom.toX - spec.zoom.fromX) * progress) * outW
+            const py = (spec.zoom.fromY + (spec.zoom.toY - spec.zoom.fromY) * progress) * outH
+            ctx.translate(px, py)
+            ctx.scale(scale, scale)
+            ctx.translate(-px, -py)
+          }
+          if (spec.crop) {
+            ctx.drawImage(vid, spec.crop.x * outW, spec.crop.y * outH, spec.crop.w * outW, spec.crop.h * outH, 0, 0, outW, outH)
+          } else {
+            ctx.drawImage(vid, 0, 0, outW, outH)
+          }
           ctx.filter = 'none'
+          ctx.restore()
 
           // Fade in / out overlays
           if (spec.fadeIn && t - trimStart < 0.5) {
@@ -324,7 +358,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
           // Text overlays
           for (const ov of spec.overlays) {
             if (t >= ov.start && t < ov.start + ov.duration) {
-              drawTextOnCanvas(ctx, ov, outW, outH)
+              drawTextOnCanvas(ctx, ov, outW, outH, t)
             }
           }
 
@@ -339,7 +373,11 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
       const blob = new Blob(chunks, { type: mimeType })
       const url  = URL.createObjectURL(blob)
+      const sizeMB = (blob.size / 1024 / 1024).toFixed(1)
+      const durSec = (trimEnd - trimStart).toFixed(1)
       setExportUrl(url)
+      setExportProgress(100)
+      setExportStatus(`Done — ${durSec}s · ${sizeMB} MB`)
 
       // Auto-download
       const a = document.createElement('a')
@@ -351,11 +389,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       alert(e instanceof Error ? e.message : 'Export failed')
     } finally {
       setExporting(false)
-      setExportStatus('')
     }
   }
 
-  function drawTextOnCanvas(ctx: CanvasRenderingContext2D, ov: TextOverlay, outW: number, outH: number) {
+  function drawTextOnCanvas(ctx: CanvasRenderingContext2D, ov: TextOverlay, outW: number, outH: number, t?: number) {
     ctx.save()
     const sizeMap: Record<string, number> = { sm: 36, md: 48, lg: 64, xl: 86 }
     const fs = sizeMap[ov.fontSize ?? 'md'] ?? 48
@@ -364,25 +401,86 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
              : ov.position === 'top' ? outH * 0.1
              : ov.position === 'center' ? outH * 0.5
              : outH * 0.85
+
+    // Entrance animation
+    if (t !== undefined && ov.animation && ov.animation !== 'none') {
+      const elapsed = t - ov.start
+      const progress = Math.min(1, elapsed / 0.35)
+      if (ov.animation === 'fade') {
+        ctx.globalAlpha = progress
+      } else if (ov.animation === 'slide-up') {
+        ctx.globalAlpha = progress
+        ctx.translate(0, (1 - progress) * 40)
+      } else if (ov.animation === 'zoom') {
+        const s = 0.6 + 0.4 * progress
+        ctx.translate(cx, cy)
+        ctx.scale(s, s)
+        ctx.translate(-cx, -cy)
+        ctx.globalAlpha = progress
+      } else if (ov.animation === 'typewriter') {
+        const chars = Math.floor(progress * ov.text.length)
+        ov = { ...ov, text: ov.text.slice(0, chars) }
+      }
+    }
+
     ctx.textAlign    = 'center'
     ctx.textBaseline = 'middle'
-    if (ov.style === 'bold-white') {
+    ctx.font = `700 ${fs}px Inter,Montserrat,Arial,sans-serif`
+
+    const style = ov.style ?? 'caption'
+
+    if (style === 'bold-white') {
       ctx.font        = `800 ${fs}px Montserrat,Arial,sans-serif`
       ctx.fillStyle   = ov.color ?? '#ffffff'
       ctx.shadowColor = 'rgba(0,0,0,0.85)'
       ctx.shadowBlur  = 10
       ctx.fillText(ov.text, cx, cy)
-    } else if (ov.style === 'minimal') {
+    } else if (style === 'minimal') {
       ctx.font        = `400 ${fs}px Inter,Arial,sans-serif`
       ctx.fillStyle   = ov.color ?? '#ffffff'
-      ctx.globalAlpha = 0.9
+      ctx.globalAlpha = (ctx.globalAlpha ?? 1) * 0.9
+      ctx.fillText(ov.text, cx, cy)
+    } else if (style === 'tiktok') {
+      ctx.font = `900 ${fs}px Montserrat,Arial,sans-serif`
+      ctx.strokeStyle = ov.strokeColor ?? '#000000'
+      ctx.lineWidth   = fs * 0.12
+      ctx.lineJoin    = 'round'
+      ctx.strokeText(ov.text, cx, cy)
+      ctx.fillStyle = ov.color ?? '#ffffff'
+      ctx.fillText(ov.text, cx, cy)
+    } else if (style === 'outline') {
+      ctx.font = `800 ${fs}px Montserrat,Arial,sans-serif`
+      ctx.strokeStyle = ov.strokeColor ?? '#ffffff'
+      ctx.lineWidth   = fs * 0.08
+      ctx.lineJoin    = 'round'
+      ctx.strokeText(ov.text, cx, cy)
+      ctx.fillStyle = ov.color ?? '#FFE14D'
+      ctx.fillText(ov.text, cx, cy)
+    } else if (style === 'highlight') {
+      const tw = ctx.measureText(ov.text).width
+      ctx.fillStyle = ov.bgColor ?? '#FFE14D'
+      // @ts-ignore
+      ctx.roundRect?.(cx - tw / 2 - 16, cy - fs / 2 - 10, tw + 32, fs + 20, 10)
+      ctx.fill()
+      ctx.fillStyle = ov.color ?? '#000000'
+      ctx.fillText(ov.text, cx, cy)
+    } else if (style === 'bubble') {
+      const tw = ctx.measureText(ov.text).width
+      ctx.fillStyle = ov.bgColor ?? '#ffffff'
+      ctx.shadowColor = 'rgba(0,0,0,0.2)'
+      ctx.shadowBlur  = 12
+      // @ts-ignore
+      ctx.roundRect?.(cx - tw / 2 - 18, cy - fs / 2 - 12, tw + 36, fs + 24, 99)
+      ctx.fill()
+      ctx.shadowBlur = 0
+      ctx.fillStyle = ov.color ?? '#1a1a17'
       ctx.fillText(ov.text, cx, cy)
     } else {
-      ctx.font = `700 ${fs}px Inter,Arial,sans-serif`
+      // default caption
       const tw = ctx.measureText(ov.text).width
-      ctx.fillStyle = 'rgba(0,0,0,0.55)'
+      ctx.fillStyle = ov.bgColor ?? 'rgba(0,0,0,0.55)'
       ctx.beginPath()
-      // @ts-ignore roundRect is widely supported
+      // @ts-ignore
       ctx.roundRect?.(cx - tw / 2 - 14, cy - fs / 2 - 8, tw + 28, fs + 16, 8)
       ctx.fill()
       ctx.fillStyle = ov.color ?? '#ffffff'
@@ -435,6 +533,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         y: defaultY,
         color: newColor,
         fontSize: newFontSize,
+        animation: newAnimation ?? 'none',
       }],
     })
     setNewText('')
@@ -454,6 +553,25 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         y: 0.5,
         fontSize: 'xl',
       }],
+    })
+  }
+
+  function splitAtPlayhead() {
+    if (!spec.videoUrl || currentTime <= spec.trimStart || currentTime >= spec.trimEnd) return
+    const keep = confirm(`Trim to:\n• Before: keep 0s – ${fmt(currentTime)}\n• After: keep ${fmt(currentTime)} – end\n\nClick OK for "Before", Cancel for "After"`)
+    if (keep) {
+      pushHistory({ ...spec, trimEnd: currentTime })
+    } else {
+      pushHistory({ ...spec, trimStart: currentTime })
+    }
+    if (videoRef.current) videoRef.current.currentTime = keep ? spec.trimStart : currentTime
+  }
+
+  function applyCaptionStyleToAll(style: TextOverlay['style']) {
+    setActiveCaptionStyle(style)
+    pushHistory({
+      ...spec,
+      overlays: spec.overlays.map(o => ({ ...o, style })),
     })
   }
 
@@ -1082,9 +1200,19 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 style={{
                   width: '100%',
                   height: '100%',
-                  objectFit: 'contain',
+                  objectFit: spec.crop ? 'cover' : 'contain',
+                  objectPosition: spec.crop ? `${spec.crop.x * 100}% ${spec.crop.y * 100}%` : 'center',
                   display: 'block',
                   filter: videoFilterStyle,
+                  transform: (() => {
+                    if (!spec.zoom) return undefined
+                    const progress = spec.duration > 0 ? currentTime / spec.duration : 0
+                    const scale = spec.zoom.fromScale + (spec.zoom.toScale - spec.zoom.fromScale) * progress
+                    const tx = (spec.zoom.fromX + (spec.zoom.toX - spec.zoom.fromX) * progress - 0.5) * 100
+                    const ty = (spec.zoom.fromY + (spec.zoom.toY - spec.zoom.fromY) * progress - 0.5) * 100
+                    return `scale(${scale}) translate(${tx}%, ${ty}%)`
+                  })(),
+                  transition: 'transform 0.05s linear',
                 }}
                 onTimeUpdate={e => setCurrentTime(e.currentTarget.currentTime)}
                 onPlay={() => setIsPlaying(true)}
@@ -1100,7 +1228,30 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 const isSelected = selectedOverlayId === o.id
                 const xPct = (o.x ?? 0.5) * 100
                 const yPct = (o.y ?? (o.position === 'top' ? 0.12 : o.position === 'center' ? 0.5 : 0.82)) * 100
-                const overlayFontSize = o.fontSize === 'sm' ? 13 : o.fontSize === 'lg' ? 22 : o.fontSize === 'xl' ? 28 : 18
+                const fs = o.fontSize === 'sm' ? 13 : o.fontSize === 'lg' ? 22 : o.fontSize === 'xl' ? 28 : 18
+
+                // Entrance animation CSS
+                const elapsed = currentTime - o.start
+                const prog = visible ? Math.min(1, elapsed / 0.35) : 1
+                let animStyle: React.CSSProperties = {}
+                if (visible && o.animation && o.animation !== 'none') {
+                  if (o.animation === 'fade') animStyle = { opacity: prog }
+                  else if (o.animation === 'slide-up') animStyle = { opacity: prog, transform: `translate(-50%, calc(-50% + ${(1 - prog) * 20}px))` }
+                  else if (o.animation === 'zoom') animStyle = { opacity: prog, transform: `translate(-50%,-50%) scale(${0.6 + 0.4 * prog})` }
+                }
+
+                // Style-specific appearance
+                const styleMap: Record<string, React.CSSProperties> = {
+                  'bold-white': { color: o.color ?? '#fff', fontWeight: 900, textShadow: '0 2px 12px rgba(0,0,0,0.9)', background: 'none' },
+                  'minimal':    { color: o.color ?? '#fff', fontWeight: 400, opacity: 0.9, background: 'none' },
+                  'caption':    { color: o.color ?? '#fff', fontWeight: 700, background: o.bgColor ?? 'rgba(0,0,0,0.6)', padding: '4px 10px', borderRadius: 6 },
+                  'tiktok':     { color: o.color ?? '#fff', fontWeight: 900, WebkitTextStroke: `${fs * 0.1}px ${o.strokeColor ?? '#000'}`, background: 'none', letterSpacing: '0.02em' },
+                  'outline':    { color: o.color ?? '#FFE14D', fontWeight: 800, WebkitTextStroke: `${fs * 0.06}px ${o.strokeColor ?? '#fff'}`, background: 'none' },
+                  'highlight':  { color: o.color ?? '#000', fontWeight: 700, background: o.bgColor ?? '#FFE14D', padding: '5px 14px', borderRadius: 10 },
+                  'bubble':     { color: o.color ?? '#1a1a17', fontWeight: 700, background: o.bgColor ?? '#fff', padding: '6px 16px', borderRadius: 99, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' },
+                }
+                const appearanceStyle = styleMap[o.style ?? 'caption'] ?? styleMap.caption
+
                 return (
                   <div
                     key={o.id}
@@ -1112,16 +1263,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       top: `${yPct}%`,
                       transform: 'translate(-50%, -50%)',
                       textAlign: 'center',
-                      color: o.color ?? '#fff',
-                      fontSize: overlayFontSize,
-                      fontWeight: o.style === 'minimal' ? 400 : 800,
-                      textShadow: '0 2px 12px rgba(0,0,0,0.9)',
-                      padding: o.style === 'caption' ? '4px 10px' : '2px 12px',
-                      background: o.style === 'caption' ? 'rgba(0,0,0,0.6)' : 'none',
-                      borderRadius: o.style === 'caption' ? 6 : 0,
+                      fontSize: fs,
                       cursor: 'grab',
                       userSelect: 'none',
-                      opacity: visible || isSelected ? 1 : 0,
+                      opacity: visible || isSelected ? (animStyle.opacity ?? 1) : 0,
                       pointerEvents: visible || isSelected ? 'auto' : 'none',
                       outline: isSelected ? '1.5px dashed var(--ink)' : 'none',
                       outlineOffset: 4,
@@ -1129,9 +1274,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       maxWidth: '88%',
                       wordBreak: 'break-word',
                       zIndex: 10,
+                      transition: 'opacity 0.1s',
+                      ...appearanceStyle,
+                      ...(animStyle.transform ? { transform: animStyle.transform } : {}),
                     }}
                   >
-                    {o.text}
+                    {o.animation === 'typewriter' && visible
+                      ? o.text.slice(0, Math.floor(prog * o.text.length))
+                      : o.text}
                     {isSelected && (
                       <div style={{ position: 'absolute', top: -18, left: '50%', transform: 'translateX(-50%)', fontSize: 9, color: 'var(--surface)', background: 'rgba(26,26,23,0.75)', padding: '2px 6px', borderRadius: 4, whiteSpace: 'nowrap', pointerEvents: 'none' }}>
                         drag to reposition
@@ -1205,8 +1355,15 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
               </button>
               <span style={S.timeLabel}>{fmt(currentTime)} / {fmt(spec.duration)}</span>
               <div style={{ flex: 1 }} />
+              <button
+                title="Split at playhead"
+                onClick={splitAtPlayhead}
+                style={{ ...S.ctrlBtn(), fontSize: 13, padding: '0 8px', gap: 4, display: 'flex', alignItems: 'center' }}
+              >
+                ✂
+              </button>
               <span style={{ fontSize: 12, color: 'var(--ink-mute)', fontWeight: 600 }}>
-                {(spec.trimEnd - spec.trimStart).toFixed(1)}s trimmed
+                {(spec.trimEnd - spec.trimStart).toFixed(1)}s
               </span>
             </div>
           )}
@@ -1324,30 +1481,63 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: 8, height: 8, background: 'var(--ink)', borderRadius: '50%' }} />
                   </div>
 
-                  {/* Overlay marker ticks */}
+                  {/* Caption / text overlay blocks */}
                   {spec.overlays.map(o => (
-                    <div key={o.id} style={{
-                      position: 'absolute',
-                      left: `${(o.start / spec.duration) * 100}%`,
-                      width: `${(o.duration / spec.duration) * 100}%`,
-                      top: '60%', height: '30%',
-                      background: 'rgba(26,26,23,0.25)',
-                      borderRadius: 2,
-                      pointerEvents: 'none',
-                    }} />
+                    <div
+                      key={o.id}
+                      onClick={e => { e.stopPropagation(); setSelectedOverlayId(o.id); setActivePanel('text') }}
+                      title={o.text}
+                      style={{
+                        position: 'absolute',
+                        left: `${(o.start / spec.duration) * 100}%`,
+                        width: `${Math.max(1, (o.duration / spec.duration) * 100)}%`,
+                        top: '60%', height: '28%',
+                        background: selectedOverlayId === o.id ? '#1a1a17' : 'rgba(20,184,166,0.7)',
+                        borderRadius: 3,
+                        cursor: 'pointer',
+                        overflow: 'hidden',
+                        display: 'flex', alignItems: 'center',
+                        paddingLeft: 4,
+                      }}
+                    >
+                      <span style={{ fontSize: 8, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1 }}>{o.text}</span>
+                    </div>
                   ))}
-                  {/* Image overlay ticks */}
+                  {/* Image overlay blocks */}
                   {(spec.imageOverlays ?? []).map(o => (
-                    <div key={`img-${o.id}`} style={{
-                      position: 'absolute',
-                      left: `${(o.start / spec.duration) * 100}%`,
-                      width: `${(o.duration / spec.duration) * 100}%`,
-                      top: '30%', height: '30%',
-                      background: 'rgba(77,159,255,0.4)',
-                      borderRadius: 2,
-                      pointerEvents: 'none',
-                    }} />
+                    <div
+                      key={`img-${o.id}`}
+                      onClick={e => { e.stopPropagation(); setSelectedImgId(o.id); setActivePanel('image') }}
+                      style={{
+                        position: 'absolute',
+                        left: `${(o.start / spec.duration) * 100}%`,
+                        width: `${Math.max(1, (o.duration / spec.duration) * 100)}%`,
+                        top: '30%', height: '28%',
+                        background: selectedImgId === o.id ? '#1a1a17' : 'rgba(77,159,255,0.7)',
+                        borderRadius: 3,
+                        cursor: 'pointer',
+                      }}
+                    />
                   ))}
+                  {/* Music block */}
+                  {spec.music && (
+                    <div
+                      onClick={e => { e.stopPropagation(); setActivePanel('music') }}
+                      style={{
+                        position: 'absolute',
+                        left: `${(spec.trimStart / spec.duration) * 100}%`,
+                        width: `${((spec.trimEnd - spec.trimStart) / spec.duration) * 100}%`,
+                        top: '3%', height: '24%',
+                        background: 'rgba(139,92,246,0.6)',
+                        borderRadius: 3,
+                        cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', paddingLeft: 4,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      <span style={{ fontSize: 8, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>♪ {spec.music.label}</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1475,6 +1665,31 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   </div>
                 </div>
 
+                {/* Caption style presets */}
+                {spec.overlays.length > 0 && (
+                  <div>
+                    <div style={S.sectionLabel}>Caption Style</div>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: 5 }}>
+                      {CAPTION_STYLES.map(cs => (
+                        <button
+                          key={cs.id}
+                          onClick={() => applyCaptionStyleToAll(cs.id as TextOverlay['style'])}
+                          title={cs.label}
+                          style={{
+                            border: activeCaptionStyle === cs.id ? '2px solid var(--ink)' : '1px solid var(--border)',
+                            borderRadius: 8, padding: '6px 4px', cursor: 'pointer',
+                            background: cs.preview.bg === 'transparent' ? 'var(--surface-2)' : cs.preview.bg,
+                            display: 'flex', flexDirection: 'column' as const, alignItems: 'center', gap: 3,
+                          }}
+                        >
+                          <span style={{ fontSize: 10, fontWeight: 800, color: cs.preview.color }}>Aa</span>
+                          <span style={{ fontSize: 8, color: 'var(--ink-mute)', lineHeight: 1 }}>{cs.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 {/* Quick stickers */}
                 <div>
                   <div style={S.sectionLabel}>Quick Stickers</div>
@@ -1563,6 +1778,22 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                           />
                         ))}
                       </div>
+                    </div>
+
+                    {/* Animation */}
+                    <div>
+                      <label style={S.fieldLabel}>Entrance Animation</label>
+                      <select
+                        value={newAnimation ?? 'none'}
+                        onChange={e => setNewAnimation(e.target.value as TextOverlay['animation'])}
+                        style={{ ...S.input, cursor: 'pointer' }}
+                      >
+                        <option value="none">None</option>
+                        <option value="fade">Fade In</option>
+                        <option value="slide-up">Slide Up</option>
+                        <option value="zoom">Zoom In</option>
+                        <option value="typewriter">Typewriter</option>
+                      </select>
                     </div>
 
                     {/* Font size */}
@@ -1954,6 +2185,108 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     </div>
                   </div>
                 </div>
+
+                {/* Ken Burns / Zoom */}
+                <div>
+                  <div style={S.sectionLabel}>Ken Burns Zoom</div>
+                  <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 10 }}>
+                    <div
+                      style={S.toggleCard(!!spec.zoom)}
+                      onClick={() => {
+                        if (spec.zoom) {
+                          pushHistory({ ...spec, zoom: undefined })
+                          setZoomEnabled(false)
+                        } else {
+                          pushHistory({ ...spec, zoom: { fromScale: 1.0, toScale: 1.3, fromX: 0.5, fromY: 0.5, toX: 0.5, toY: 0.5 } })
+                          setZoomEnabled(true)
+                        }
+                      }}
+                    >
+                      <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Enable Zoom Effect</span>
+                      <div style={{
+                        width: 20, height: 20, borderRadius: 4,
+                        border: `2px solid ${spec.zoom ? 'var(--ink)' : 'var(--border)'}`,
+                        background: spec.zoom ? 'var(--ink)' : 'transparent',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s',
+                      }}>
+                        {spec.zoom && <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--surface)" strokeWidth="2"><polyline points="1.5,5 4,7.5 8.5,2.5"/></svg>}
+                      </div>
+                    </div>
+
+                    {spec.zoom && (
+                      <>
+                        {/* Direction presets */}
+                        <div>
+                          <label style={S.fieldLabel}>Direction Preset</label>
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
+                            {[
+                              { label: 'Center In',        z: { fromScale: 1.0, toScale: 1.3, fromX: 0.5, fromY: 0.5, toX: 0.5, toY: 0.5 } },
+                              { label: 'Pan Right',        z: { fromScale: 1.2, toScale: 1.2, fromX: 0.2, fromY: 0.5, toX: 0.8, toY: 0.5 } },
+                              { label: 'Pan Left',         z: { fromScale: 1.2, toScale: 1.2, fromX: 0.8, fromY: 0.5, toX: 0.2, toY: 0.5 } },
+                              { label: 'Top Left→Center',  z: { fromScale: 1.2, toScale: 1.0, fromX: 0.2, fromY: 0.2, toX: 0.5, toY: 0.5 } },
+                            ].map(p => (
+                              <button
+                                key={p.label}
+                                onClick={() => pushHistory({ ...spec, zoom: p.z })}
+                                style={{ padding: '6px 4px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2)', color: 'var(--ink-dim)', fontSize: 10, fontWeight: 600, cursor: 'pointer' }}
+                              >{p.label}</button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* From/To scale sliders */}
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <label style={S.fieldLabel}>From Scale</label>
+                            <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{spec.zoom.fromScale.toFixed(1)}x</span>
+                          </div>
+                          <input type="range" min={1} max={2} step={0.05} value={spec.zoom.fromScale}
+                            onChange={e => pushHistory({ ...spec, zoom: { ...spec.zoom!, fromScale: parseFloat(e.target.value) } })}
+                            style={{ width: '100%', accentColor: 'var(--ink)' }} />
+                        </div>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <label style={S.fieldLabel}>To Scale</label>
+                            <span style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{spec.zoom.toScale.toFixed(1)}x</span>
+                          </div>
+                          <input type="range" min={1} max={2} step={0.05} value={spec.zoom.toScale}
+                            onChange={e => pushHistory({ ...spec, zoom: { ...spec.zoom!, toScale: parseFloat(e.target.value) } })}
+                            style={{ width: '100%', accentColor: 'var(--ink)' }} />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Crop / Reframe */}
+                <div>
+                  <div style={S.sectionLabel}>Crop / Reframe</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                    {[
+                      { label: 'Original', crop: undefined },
+                      { label: 'Square 1:1', crop: { x: 0.125, y: 0, w: 0.75, h: 1 } },
+                      { label: '16:9 Wide', crop: { x: 0, y: 0.156, w: 1, h: 0.688 } },
+                      { label: '9:16 Portrait', crop: { x: 0.25, y: 0, w: 0.5, h: 1 } },
+                    ].map(p => {
+                      const isActive = !p.crop
+                        ? !spec.crop
+                        : spec.crop && spec.crop.x === p.crop.x && spec.crop.y === p.crop.y
+                      return (
+                        <button
+                          key={p.label}
+                          onClick={() => pushHistory({ ...spec, crop: p.crop })}
+                          style={{
+                            padding: '8px 6px', borderRadius: 7,
+                            border: `1px solid ${isActive ? 'var(--ink)' : 'var(--border)'}`,
+                            background: isActive ? 'var(--ink)' : 'var(--surface-2)',
+                            color: isActive ? 'var(--surface)' : 'var(--ink-dim)',
+                            fontSize: 11, fontWeight: 600, cursor: 'pointer', textAlign: 'center' as const, transition: 'all 0.15s',
+                          }}
+                        >{p.label}</button>
+                      )
+                    })}
+                  </div>
+                </div>
               </>
             )}
 
@@ -1976,8 +2309,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     style={S.musicCard(spec.music?.url === track.url)}
                     onClick={() => pushHistory({ ...spec, music: { ...track, volume: spec.music?.volume ?? track.volume } })}
                   >
-                    <div style={{ width: 36, height: 36, borderRadius: 8, background: (['var(--surface-2)', 'var(--surface-3)', 'var(--accent-soft)'] as const)[i], display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-                      {['🎵', '🎶', '🎸'][i]}
+                    <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
+                      {['🎵', '🎶', '🎸', '🎼', '🎹', '🥁'][i] ?? '🎵'}
                     </div>
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{track.label}</div>
@@ -2081,8 +2414,33 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   disabled={exporting}
                   onClick={handleExport}
                 >
-                  {exporting ? exportStatus || 'Rendering...' : '↗ Export Video'}
+                  {exporting ? (exportStatus || 'Rendering...') : '↗ Export Video'}
                 </button>
+
+                {/* Progress bar */}
+                {exporting && (
+                  <div>
+                    <div style={{ height: 8, background: 'var(--surface-2)', borderRadius: 99, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                      <div style={{
+                        height: '100%',
+                        width: `${exportProgress}%`,
+                        background: 'linear-gradient(90deg, #22c55e, #16a34a)',
+                        borderRadius: 99,
+                        transition: 'width 0.3s ease',
+                      }} />
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 4, textAlign: 'center' as const }}>
+                      {exportStatus}
+                    </div>
+                  </div>
+                )}
+
+                {/* Completion info */}
+                {!exporting && exportStatus.startsWith('Done') && (
+                  <div style={{ padding: '10px 14px', borderRadius: 8, background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', fontSize: 12, color: '#16a34a', fontWeight: 600, textAlign: 'center' as const }}>
+                    {exportStatus}
+                  </div>
+                )}
 
                 {exportUrl && (
                   <a
