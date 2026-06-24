@@ -187,9 +187,23 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       const token = session?.session?.access_token
       const { data: userInfo } = await supabase!.auth.getUser(token ?? '')
 
-      // Upload any blob: image overlays to Supabase before export
+      // Upload blob: video to Supabase before export (Shotstack needs a public URL)
       let exportSpec = { ...spec }
-      const blobImages = (spec.imageOverlays ?? []).filter(o => o.src.startsWith('blob:'))
+      if (exportSpec.videoUrl?.startsWith('blob:')) {
+        setExportStatus('Uploading video...')
+        const videoBlob = uploadedFileRef.current ?? await fetch(exportSpec.videoUrl).then(r => r.blob())
+        const ext = videoBlob.type.includes('webm') ? 'webm' : videoBlob.type.includes('mov') ? 'mov' : 'mp4'
+        const filename = `editor-export/${userInfo?.user?.id ?? 'anon'}-${Date.now()}.${ext}`
+        const supabase2 = getSupabase()!
+        const { error: upErr } = await supabase2.storage.from('ugc-assets').upload(filename, videoBlob, { contentType: videoBlob.type || 'video/mp4', upsert: true })
+        if (upErr) throw new Error(`Video upload failed: ${upErr.message}`)
+        const { data: { publicUrl } } = supabase2.storage.from('ugc-assets').getPublicUrl(filename)
+        exportSpec = { ...exportSpec, videoUrl: publicUrl }
+        setExportStatus('Submitting to Shotstack...')
+      }
+
+      // Upload any blob: image overlays to Supabase before export
+      const blobImages = (exportSpec.imageOverlays ?? []).filter(o => o.src.startsWith('blob:'))
       if (blobImages.length > 0) {
         setExportStatus('Uploading images...')
         const uploadedImages = await Promise.all(

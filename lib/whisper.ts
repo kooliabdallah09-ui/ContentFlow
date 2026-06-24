@@ -69,6 +69,8 @@ export async function transcribeWithTimestamps(audioUrl: string, languageCode?: 
   const text = typeof output?.transcription === 'string' ? output.transcription : ''
 
   let words: WhisperWord[] = []
+
+  // Try word-level timestamps first
   if (Array.isArray(output?.word_segments) && output.word_segments.length > 0) {
     words = output.word_segments.map((w: { word: string; start: number; end: number }) => ({
       word: String(w.word).trim(),
@@ -76,11 +78,30 @@ export async function transcribeWithTimestamps(audioUrl: string, languageCode?: 
       end: Number(w.end),
     }))
   } else if (Array.isArray(output?.segments)) {
-    words = (output.segments as Array<{ words?: Array<{ word: string; start: number; end: number }> }>).flatMap(
-      seg => Array.isArray(seg.words)
-        ? seg.words.map(w => ({ word: String(w.word).trim(), start: Number(w.start), end: Number(w.end) }))
-        : [],
-    )
+    const segsWithWords = (output.segments as Array<{ words?: Array<{ word: string; start: number; end: number }> }>)
+      .filter(seg => Array.isArray(seg.words) && seg.words.length > 0)
+    if (segsWithWords.length > 0) {
+      words = segsWithWords.flatMap(seg =>
+        seg.words!.map(w => ({ word: String(w.word).trim(), start: Number(w.start), end: Number(w.end) }))
+      )
+    }
+  }
+
+  // Fallback: distribute segment text evenly across each segment's time window
+  if (words.length === 0 && Array.isArray(output?.segments) && output.segments.length > 0) {
+    console.log('[whisper] no word timestamps — falling back to segment-level distribution')
+    type Seg = { text?: string; start?: number; end?: number }
+    for (const seg of output.segments as Seg[]) {
+      const segText = String(seg.text ?? '').trim()
+      const segStart = Number(seg.start ?? 0)
+      const segEnd = Number(seg.end ?? segStart + 2)
+      const segWords = segText.split(/\s+/).filter(Boolean)
+      if (!segWords.length) continue
+      const dur = (segEnd - segStart) / segWords.length
+      segWords.forEach((w, i) => {
+        words.push({ word: w, start: segStart + i * dur, end: segStart + (i + 1) * dur })
+      })
+    }
   }
 
   console.log('[whisper] final words count:', words.length)
