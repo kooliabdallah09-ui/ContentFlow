@@ -1,8 +1,5 @@
-// OpenAI Whisper API — word-level timestamps for caption sync.
-// ~$0.006 per minute ($0.0001 per 10s video). Uses the existing OPENAI_API_KEY.
-//
-// Input: a public audio or video URL (we fetch + repost as multipart).
-// Output: { text, words: [{ word, start, end }, ...] }.
+// Whisper transcription via Replicate (openai/whisper) — word-level timestamps.
+// Uses REPLICATE_API_TOKEN instead of OPENAI_API_KEY to avoid OpenAI quota limits.
 
 export interface WhisperWord {
   word: string
@@ -15,57 +12,68 @@ export interface WhisperResult {
   words: WhisperWord[]
 }
 
-const OPENAI_BASE = 'https://api.openai.com/v1'
-
 export async function transcribeWithTimestamps(audioUrl: string, languageCode?: string): Promise<WhisperResult> {
-  const apiKey = process.env.OPENAI_API_KEY
-  if (!apiKey) throw new Error('OPENAI_API_KEY not configured')
+  const apiToken = process.env.REPLICATE_API_TOKEN
+  if (!apiToken) throw new Error('REPLICATE_API_TOKEN not configured')
 
-  // Fetch the audio/video bytes — Whisper accepts mp3/mp4/m4a/wav/webm etc.
-  const audioRes = await fetch(audioUrl)
-  if (!audioRes.ok) throw new Error(`Failed to fetch audio for transcription: ${audioRes.status}`)
-  const buf = await audioRes.arrayBuffer()
-  if (buf.byteLength > 24 * 1024 * 1024) {
-    throw new Error(`Video file is too large (${Math.round(buf.byteLength / 1024 / 1024)} MB). Whisper's limit is 24 MB — try a shorter clip.`)
+  // Start prediction
+  const input: Record<string, unknown> = {
+    audio: audioUrl,
+    word_timestamps: true,
+    transcription: 'plain text',
   }
-  const mime = audioRes.headers.get('content-type') ?? 'audio/mpeg'
-  const ext = mime.includes('mp4') || mime.includes('mpeg-4') ? 'mp4'
-            : mime.includes('mp3') || mime.includes('mpeg') ? 'mp3'
-            : mime.includes('wav') ? 'wav'
-            : mime.includes('webm') ? 'webm'
-            : 'mp3'
+  if (languageCode) input.language = languageCode
 
-  const form = new FormData()
-  form.append('file', new Blob([buf], { type: mime }), `clip.${ext}`)
-  form.append('model', 'whisper-1')
-  form.append('response_format', 'verbose_json')
-  // Language hint dramatically improves transcription quality for non-English
-  // audio. Whisper accepts ISO-639-1 codes (en, es, fr, de, ja, etc.).
-  if (languageCode) form.append('language', languageCode)
-  // 'word' granularity gives per-word start/end times — crucial for TikTok-style captions.
-  form.append('timestamp_granularities[]', 'word')
-
-  const res = await fetch(`${OPENAI_BASE}/audio/transcriptions`, {
+  const createRes = await fetch('https://api.replicate.com/v1/models/openai/whisper/predictions', {
     method: 'POST',
-    headers: { Authorization: `Bearer ${apiKey}` },
-    body: form,
+    headers: {
+      Authorization: `Bearer ${apiToken}`,
+      'Content-Type': 'application/json',
+      Prefer: 'wait=60',
+    },
+    body: JSON.stringify({ input }),
   })
 
-  if (!res.ok) {
-    const err = await res.text().catch(() => '')
-    throw new Error(`Whisper transcription failed ${res.status}: ${err.slice(0, 300)}`)
+  if (!createRes.ok) {
+    const err = await createRes.text().catch(() => '')
+    throw new Error(`Whisper transcription failed ${createRes.status}: ${err.slice(0, 300)}`)
   }
 
-  const data = await res.json()
-  const words: WhisperWord[] = Array.isArray(data.words)
-    ? data.words.map((w: { word: string; start: number; end: number }) => ({
-        word: String(w.word).trim(),
-        start: Number(w.start),
-        end: Number(w.end),
-      }))
-    : []
+  let prediction = await createRes.json()
 
-  return { text: String(data.text ?? ''), words }
+  // Poll until done (max ~90s)
+  const deadline = Date.now() + 90_000
+  while (prediction.status !== 'succeeded' && prediction.status !== 'failed' && prediction.status !== 'canceled') {
+    if (Date.now() > deadline) throw new Error('Whisper transcription timed out')
+    await new Promise(r => setTimeout(r, 2000))
+    const pollRes = await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+      headers: { Authorization: `Bearer ${apiToken}` },
+    })
+    prediction = await pollRes.json()
+  }
+
+  if (prediction.status !== 'succeeded') {
+    throw new Error(`Whisper transcription failed: ${prediction.error ?? prediction.status}`)
+  }
+
+  const output = prediction.output
+  const text = typeof output?.transcription === 'string' ? output.transcription : ''
+
+  // Replicate Whisper returns word_segments array with word-level timestamps
+  const segments: Array<{ words?: Array<{ word: string; start: number; end: number }> }> =
+    Array.isArray(output?.segments) ? output.segments : []
+
+  const words: WhisperWord[] = segments.flatMap(seg =>
+    Array.isArray(seg.words)
+      ? seg.words.map((w) => ({
+          word: String(w.word).trim(),
+          start: Number(w.start),
+          end: Number(w.end),
+        }))
+      : [],
+  )
+
+  return { text, words }
 }
 
 // Chunk words into caption clips. Phrase-friendly grouping: stays under maxWords
@@ -95,7 +103,6 @@ export function buildSyncedCaptionChunks(
   for (const w of words) {
     buffer.push(w)
     const last = w.word.replace(/[^.,!?]/g, '')
-    // Break on punctuation OR when we hit max words.
     if (last || buffer.length >= maxWords) flush()
   }
   flush()
