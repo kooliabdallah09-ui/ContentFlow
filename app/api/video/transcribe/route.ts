@@ -61,6 +61,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'OPENAI_API_KEY not configured' }, { status: 500 })
     }
 
+    // Whisper hard limit is 25 MB. Check size via HEAD before downloading the whole file.
+    const WHISPER_MAX = 24 * 1024 * 1024
+    try {
+      const head = await fetch(videoUrl, { method: 'HEAD' })
+      const contentLength = Number(head.headers.get('content-length') ?? 0)
+      if (contentLength > WHISPER_MAX) {
+        return NextResponse.json(
+          { error: `Video is too large for transcription (${Math.round(contentLength / 1024 / 1024)} MB). Whisper's limit is 24 MB. Try a shorter clip.` },
+          { status: 413 },
+        )
+      }
+    } catch {
+      // HEAD request failed (some CDNs block it) — proceed and let Whisper reject if needed
+    }
+
     const { words, text } = await transcribeWithTimestamps(videoUrl)
     const chunks = buildSyncedCaptionChunks(words, { maxWords: 4 })
 

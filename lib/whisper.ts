@@ -25,6 +25,9 @@ export async function transcribeWithTimestamps(audioUrl: string, languageCode?: 
   const audioRes = await fetch(audioUrl)
   if (!audioRes.ok) throw new Error(`Failed to fetch audio for transcription: ${audioRes.status}`)
   const buf = await audioRes.arrayBuffer()
+  if (buf.byteLength > 24 * 1024 * 1024) {
+    throw new Error(`Video file is too large (${Math.round(buf.byteLength / 1024 / 1024)} MB). Whisper's limit is 24 MB — try a shorter clip.`)
+  }
   const mime = audioRes.headers.get('content-type') ?? 'audio/mpeg'
   const ext = mime.includes('mp4') || mime.includes('mpeg-4') ? 'mp4'
             : mime.includes('mp3') || mime.includes('mpeg') ? 'mp3'
