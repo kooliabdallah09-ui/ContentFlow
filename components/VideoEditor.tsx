@@ -130,6 +130,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [imgUrl, setImgUrl] = useState('')
   const [selectedImgId, setSelectedImgId] = useState<string | null>(null)
   const [exportProgress, setExportProgress] = useState(0)
+  const [savingToLibrary, setSavingToLibrary] = useState(false)
+  const [savedToLibrary, setSavedToLibrary] = useState(false)
+  const exportBlobRef = useRef<Blob | null>(null)
   const [newAnimation, setNewAnimation] = useState<TextOverlay['animation']>('none')
   const [activeCaptionStyle, setActiveCaptionStyle] = useState<TextOverlay['style']>('caption')
   const [zoomEnabled, setZoomEnabled] = useState(false)
@@ -418,11 +421,13 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       await audioCtx.close()
 
       const blob = new Blob(chunks, { type: mimeType })
+      exportBlobRef.current = blob
       const url  = URL.createObjectURL(blob)
       const sizeMB = (blob.size / 1024 / 1024).toFixed(1)
       const durSec = (trimEnd - trimStart).toFixed(1)
       setExportUrl(url)
       setExportProgress(100)
+      setSavedToLibrary(false)
       setExportStatus(`Done — ${durSec}s · ${sizeMB} MB`)
 
       // Auto-download
@@ -2727,14 +2732,54 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 )}
 
                 {exportUrl && (
-                  <a
-                    href={exportUrl}
-                    download
-                    style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border-strong)', color: 'var(--ink)', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
-                  >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Download Video
-                  </a>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <a
+                      href={exportUrl}
+                      download
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border-strong)', color: 'var(--ink)', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      Download Video
+                    </a>
+                    <button
+                      disabled={savingToLibrary || savedToLibrary}
+                      onClick={async () => {
+                        const blob = exportBlobRef.current
+                        if (!blob) return
+                        setSavingToLibrary(true)
+                        try {
+                          const supabase = getSupabase()
+                          if (!supabase) throw new Error('Not signed in')
+                          const { data: session } = await supabase.auth.getSession()
+                          const token = session?.session?.access_token
+                          if (!token) throw new Error('Not signed in')
+                          const urlRes = await fetch('/api/upload-url', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ folder: 'library', ext: 'webm' }),
+                          })
+                          const { signedUrl, storagePath, error: urlErr } = await urlRes.json()
+                          if (urlErr) throw new Error(urlErr)
+                          await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': 'video/webm' }, body: blob })
+                          const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(storagePath)
+                          // Insert into videos table
+                          await supabase.from('videos').insert({ url: publicUrl, title: `Edited ${new Date().toLocaleDateString()}`, status: 'ready' })
+                          setSavedToLibrary(true)
+                        } catch (err) {
+                          alert(err instanceof Error ? err.message : 'Save failed')
+                        } finally {
+                          setSavingToLibrary(false)
+                        }
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: savedToLibrary ? '#16a34a' : 'var(--ink)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: savingToLibrary || savedToLibrary ? 'default' : 'pointer', opacity: savingToLibrary ? 0.7 : 1 }}
+                    >
+                      {savingToLibrary ? (
+                        <><span style={{ display: 'inline-block', width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />Saving…</>
+                      ) : savedToLibrary ? '✓ Saved to Library' : (
+                        <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save to Library</>
+                      )}
+                    </button>
+                  </div>
                 )}
               </>
             )}
