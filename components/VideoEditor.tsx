@@ -304,54 +304,67 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   }
 
   async function handleAutoCaption() {
-    if (!spec.videoUrl) return
+    console.log('[caption] handleAutoCaption start', { videoUrl: spec.videoUrl?.slice(0, 80), duration: spec.duration })
+    if (!spec.videoUrl) { console.log('[caption] no videoUrl, returning'); return }
     setCaptionLoading(true)
     setCaptionError(null)
     try {
+      console.log('[caption] getting supabase session')
       const supabase = getSupabase()
-      const { data: session } = await supabase!.auth.getSession()
+      if (!supabase) throw new Error('Supabase client not available')
+      const { data: session } = await supabase.auth.getSession()
       const token = session?.session?.access_token
+      console.log('[caption] token present:', !!token)
+      if (!token) throw new Error('Not signed in')
 
       let videoUrl = spec.videoUrl
 
       // For local blob videos, upload directly to Supabase first to bypass
       // Vercel's 4.5 MB body limit before sending URL to the transcribe endpoint
       if (spec.videoUrl.startsWith('blob:')) {
+        console.log('[caption] blob URL detected, fetching blob')
         const blob = await fetch(spec.videoUrl).then(r => r.blob())
+        console.log('[caption] blob fetched, size:', blob.size, 'type:', blob.type)
         const ext = blob.type.includes('webm') ? 'webm' : blob.type.includes('mov') ? 'mov' : 'mp4'
 
-        // Get signed upload URL
+        console.log('[caption] requesting signed upload URL')
         const urlRes = await fetch('/api/upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({ folder: 'editor-transcribe', ext }),
         })
+        console.log('[caption] upload-url status:', urlRes.status)
         const { signedUrl, storagePath, error: urlErr } = await urlRes.json()
-        if (urlErr) throw new Error(urlErr)
+        if (urlErr) throw new Error(`Upload URL error: ${urlErr}`)
+        if (!signedUrl) throw new Error('No signed URL returned')
 
-        // Upload directly to Supabase
+        console.log('[caption] uploading to Supabase, path:', storagePath)
         const putRes = await fetch(signedUrl, {
           method: 'PUT',
           headers: { 'Content-Type': blob.type || 'video/mp4' },
           body: blob,
         })
-        if (!putRes.ok) throw new Error('Upload failed')
+        console.log('[caption] supabase PUT status:', putRes.status)
+        if (!putRes.ok) throw new Error(`Upload failed: ${putRes.status}`)
 
-        // Get public URL
-        const { data: { publicUrl } } = supabase!.storage.from('ugc-assets').getPublicUrl(storagePath)
+        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(storagePath)
         videoUrl = publicUrl
+        console.log('[caption] public URL:', publicUrl)
       }
 
+      console.log('[caption] calling /api/video/transcribe')
       const res = await fetch('/api/video/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ videoUrl, duration: spec.duration }),
       })
-
+      console.log('[caption] transcribe status:', res.status)
       const data = await res.json()
       if (data.error) throw new Error(data.error)
+      console.log('[caption] got overlays:', data.overlays?.length)
       pushHistory({ ...spec, overlays: [...spec.overlays, ...data.overlays] })
     } catch (e) {
+      console.error('[caption] FAILED:', e)
       setCaptionError(e instanceof Error ? e.message : 'Caption failed')
     } finally {
       setCaptionLoading(false)
