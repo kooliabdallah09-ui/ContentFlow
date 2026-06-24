@@ -2756,27 +2756,25 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
                           const filename = `contentflow-edit-${new Date().toISOString().slice(0, 10)}.webm`
 
-                          // Step 1: get a Drive resumable upload URL from our server
-                          const sessionRes = await fetch('/api/drive/upload', {
+                          // Step 1: upload blob to Supabase temp storage (client → Supabase, no CORS issues)
+                          const urlRes = await fetch('/api/upload-url', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ filename, mimeType: blob.type || 'video/webm', fileSize: blob.size }),
+                            body: JSON.stringify({ folder: 'drive-tmp', ext: 'webm' }),
                           })
-                          const sessionData = await sessionRes.json()
-                          if (!sessionRes.ok) throw new Error(sessionData.error ?? 'Could not start upload')
-                          const { uploadUrl } = sessionData
+                          const { signedUrl, storagePath, error: urlErr } = await urlRes.json()
+                          if (urlErr) throw new Error(urlErr)
+                          const putRes = await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': 'video/webm' }, body: blob })
+                          if (!putRes.ok) throw new Error(`Temp upload failed: ${putRes.status}`)
 
-                          // Step 2: upload blob directly to Drive — bypasses Vercel body limit
-                          // Note: don't set Content-Length — it's a forbidden header in browser fetch
-                          const uploadRes = await fetch(uploadUrl, {
-                            method: 'PUT',
-                            headers: { 'Content-Type': blob.type || 'video/webm' },
-                            body: blob,
+                          // Step 2: server fetches from Supabase and pushes to Drive (no CORS, no body limit)
+                          const driveRes = await fetch('/api/drive/upload', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ storagePath, filename }),
                           })
-                          if (!uploadRes.ok) {
-                            const errText = await uploadRes.text()
-                            throw new Error(`Drive upload failed (${uploadRes.status}): ${errText.slice(0, 200)}`)
-                          }
+                          const driveData = await driveRes.json()
+                          if (!driveRes.ok) throw new Error(driveData.error ?? 'Drive upload failed')
                           setSavedToLibrary(true)
                         } catch (err) {
                           alert(err instanceof Error ? err.message : 'Save failed')
