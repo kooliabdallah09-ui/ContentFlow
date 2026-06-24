@@ -1474,19 +1474,21 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     style={{
                       position: 'absolute',
                       left: `${trimPct.start}%`,
-                      top: 0, bottom: 0, width: 10,
+                      top: 0, bottom: 0, width: 14,
                       background: 'var(--ink)',
                       borderRadius: '4px 0 0 4px',
                       cursor: 'ew-resize',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transform: 'translateX(-5px)',
+                      transform: 'translateX(-7px)',
+                      zIndex: 15,
                     }}
                     onMouseDown={e => {
                       e.stopPropagation()
                       isDraggingTrim.current = 'start'
+                      // Capture rect immediately — e.currentTarget is nulled after handler returns
+                      const trackEl = (e.currentTarget as HTMLElement).parentElement!
                       const onMove = (me: MouseEvent) => {
-                        const rect = (e.currentTarget as HTMLElement).closest('[data-timeline]')?.getBoundingClientRect()
-                        if (!rect) return
+                        const rect = trackEl.getBoundingClientRect()
                         const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width))
                         const t = pct * spec.duration
                         setSpec(s => ({ ...s, trimStart: Math.min(t, s.trimEnd - 0.1) }))
@@ -1502,18 +1504,20 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     style={{
                       position: 'absolute',
                       left: `${trimPct.end}%`,
-                      top: 0, bottom: 0, width: 10,
+                      top: 0, bottom: 0, width: 14,
                       background: 'var(--ink)',
                       borderRadius: '0 4px 4px 0',
                       cursor: 'ew-resize',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      transform: 'translateX(-5px)',
+                      transform: 'translateX(-7px)',
+                      zIndex: 15,
                     }}
                     onMouseDown={e => {
                       e.stopPropagation()
+                      // Capture rect immediately — e.currentTarget is nulled after handler returns
+                      const trackEl = (e.currentTarget as HTMLElement).parentElement!
                       const onMove = (me: MouseEvent) => {
-                        const rect = (e.currentTarget as HTMLElement).closest('[data-timeline]')?.getBoundingClientRect()
-                        if (!rect) return
+                        const rect = trackEl.getBoundingClientRect()
                         const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width))
                         const t = pct * spec.duration
                         setSpec(s => ({ ...s, trimEnd: Math.max(t, s.trimStart + 0.1) }))
@@ -1533,8 +1537,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       e.stopPropagation()
                       isDraggingPlayhead.current = true
                       let lastT = currentTime
+                      const trackEl = (e.currentTarget as HTMLElement).parentElement!
                       const onMove = (me: MouseEvent) => {
-                        const rect = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect()
+                        const rect = trackEl.getBoundingClientRect()
                         if (!rect) return
                         const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width))
                         const t = Math.max(spec.trimStart, Math.min(spec.trimEnd > 0 ? spec.trimEnd : spec.duration, pct * spec.duration))
