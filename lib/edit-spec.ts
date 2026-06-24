@@ -15,7 +15,7 @@ export interface TextOverlay {
   start: number        // seconds
   duration: number     // seconds
   position: 'top' | 'center' | 'bottom'
-  style: 'bold-white' | 'minimal' | 'caption'
+  style: 'bold-white' | 'minimal' | 'caption' | 'tiktok' | 'outline' | 'highlight' | 'bubble'
   x?: number           // 0–1, 0=left edge, 1=right edge (free positioning)
   y?: number           // 0–1, 0=top edge, 1=bottom edge
   color?: string       // hex e.g. '#ffffff'
