@@ -51,7 +51,14 @@ export default function LibraryPage() {
 
       if (response.ok) {
         const data = await response.json()
-        setItems(data.items || [])
+        // Append auth token to proxy URLs so <video> can load Drive files
+        const accessToken = sessionData.session.access_token
+        const items = (data.items || []).map((item: LibraryItem) =>
+          item.storage_url?.startsWith('/api/drive/file/')
+            ? { ...item, storage_url: `${item.storage_url}?token=${encodeURIComponent(accessToken)}` }
+            : item
+        )
+        setItems(items)
         setDriveConnected(data.driveConnected ?? false)
       } else {
         showError('Failed to load library')

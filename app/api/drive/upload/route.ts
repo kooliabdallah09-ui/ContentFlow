@@ -37,8 +37,21 @@ export async function POST(request: NextRequest) {
 
     const arrayBuffer = await fileData.arrayBuffer()
 
-    // Clean up temp file (fire and forget)
+    // Move to permanent path and get a public URL for playback in the library
+    const finalName = filename ?? `contentflow-edit-${Date.now()}.webm`
+    const permanentPath = `editor-exports/${userId}/${finalName}`
+    await supabase.storage.from('ugc-assets').remove([permanentPath]).catch(() => {})
+    const { error: uploadErr } = await supabase.storage
+      .from('ugc-assets')
+      .upload(permanentPath, new Uint8Array(arrayBuffer), { contentType: 'video/webm', upsert: true })
+    // Delete original temp file
     supabase.storage.from('ugc-assets').remove([storagePath]).catch(() => {})
+
+    let sourceUrl: string | undefined
+    if (!uploadErr) {
+      const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(permanentPath)
+      sourceUrl = publicUrl
+    }
 
     // Upload to Drive
     const accessToken = await getValidDriveToken(userId, supabase)
@@ -46,9 +59,9 @@ export async function POST(request: NextRequest) {
 
     const boundary = 'CFBoundary' + Date.now()
     const meta = JSON.stringify({
-      name: filename ?? `contentflow-edit-${Date.now()}.webm`,
+      name: finalName,
       parents: [folderId],
-      appProperties: { contentType: 'video', source: 'video-editor' },
+      appProperties: { contentType: 'video', source: 'video-editor', ...(sourceUrl ? { sourceUrl } : {}) },
     })
 
     const enc = new TextEncoder()

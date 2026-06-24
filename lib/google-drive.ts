@@ -131,11 +131,15 @@ export function driveFileToLibraryItem(file: DriveFile) {
   let metadata: Record<string, unknown> = {}
   try { metadata = JSON.parse(ap.metadata ?? '{}') } catch { /* ignore */ }
 
+  // sourceUrl = Supabase public URL (set on new uploads)
+  // Falls back to our proxy endpoint which adds Drive auth headers server-side
+  const storageUrl = ap.sourceUrl ?? `/api/drive/file/${file.id}`
+
   return {
     id: file.id,
     name: file.name,
     content_type: ap.contentType ?? 'video',
-    storage_url: ap.sourceUrl ?? file.webContentLink,
+    storage_url: storageUrl,
     external_id: file.id,
     metadata,
     credit_cost: parseInt(ap.creditCost ?? '0', 10),
