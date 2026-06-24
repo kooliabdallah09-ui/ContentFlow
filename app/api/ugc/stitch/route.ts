@@ -1,4 +1,4 @@
-import * as shotstack from '@/lib/shotstack'
+import { submitStitchJob, getStitchStatus } from '@/lib/shotstack'
 import { NextRequest, NextResponse } from 'next/server'
 
 // Stitch concatenates Kling clips and applies aspect ratio.

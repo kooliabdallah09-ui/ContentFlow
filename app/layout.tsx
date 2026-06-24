@@ -8,6 +8,8 @@ import { TopBar } from '@/components/TopBar'
 import ToastContainer from '@/components/ToastContainer'
 import AppAssistant from '@/components/AppAssistant'
 import { CreditsProvider } from '@/lib/CreditsContext'
+import { Analytics } from '@vercel/analytics/react'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 import "./globals.css";
 
 export default function RootLayout({
@@ -133,6 +135,26 @@ export default function RootLayout({
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
         <meta name="theme-color" content="#FAFAF8" />
+
+        {/* Primary meta */}
+        <meta name="description" content="ContentFlow — Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish content in minutes." />
+        <meta name="keywords" content="AI content creation, UGC ads, talking head video, AI voiceover, screen demo, social copy generator" />
+
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:site_name" content="ContentFlow" />
+        <meta property="og:title" content="ContentFlow — AI Content Studio" />
+        <meta property="og:description" content="Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish in minutes." />
+        <meta property="og:image" content="https://contentflow.app/og-image.png" />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        <meta property="og:url" content="https://contentflow.app" />
+
+        {/* Twitter / X */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:title" content="ContentFlow — AI Content Studio" />
+        <meta name="twitter:description" content="Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish in minutes." />
+        <meta name="twitter:image" content="https://contentflow.app/og-image.png" />
       </head>
       <body>
         <CreditsProvider>
@@ -165,6 +187,8 @@ export default function RootLayout({
         </CreditsProvider>
         <ToastContainer />
         <AppAssistant />
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )

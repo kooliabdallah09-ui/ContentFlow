@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { initializeUserCredits } from '@/lib/credits'
+import { sendWelcomeEmail } from '@/lib/email'
 
 export async function POST(request: Request) {
   try {
@@ -39,8 +40,10 @@ export async function POST(request: Request) {
       await initializeUserCredits(authData.user.id, 'free')
     } catch (creditsError) {
       console.error('Failed to initialize credits:', creditsError)
-      // Don't fail signup if credits initialization fails
     }
+
+    // Welcome email — fire and forget, never block signup
+    sendWelcomeEmail(email, fullName).catch(() => {})
 
     return Response.json(
       {

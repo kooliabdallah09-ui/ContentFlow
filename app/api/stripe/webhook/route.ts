@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { stripe, PLAN_PRICE_MAP, PACK_CREDIT_MAP } from '@/lib/stripe'
 import Stripe from 'stripe'
+import { sendSubscriptionEmail, sendCreditPackEmail, sendCreditsRenewedEmail } from '@/lib/email'
 
 export const dynamic = 'force-dynamic'
 
@@ -23,6 +24,18 @@ async function getUserIdByCustomer(supabase: Supa, customerId: string): Promise<
     .single()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return (data as any)?.user_id ?? null
+}
+
+async function getUserEmailAndName(supabase: Supa, userId: string): Promise<{ email: string; name: string }> {
+  try {
+    const { data } = await supabase.auth.admin.getUserById(userId)
+    return {
+      email: data.user?.email ?? '',
+      name: data.user?.user_metadata?.full_name ?? '',
+    }
+  } catch {
+    return { email: '', name: '' }
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -53,7 +66,6 @@ export async function POST(request: NextRequest) {
         if (!userId) break
 
         if (session.mode === 'subscription') {
-          // Get the price ID from the line items
           const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
             expand: ['line_items'],
           })
@@ -72,6 +84,8 @@ export async function POST(request: NextRequest) {
                 stripe_customer_id: session.customer as string,
               })
               .eq('user_id', userId)
+            const { email, name } = await getUserEmailAndName(supabase, userId)
+            if (email) sendSubscriptionEmail(email, name, planInfo.plan, planInfo.monthly_credits).catch(() => {})
           }
         } else if (session.mode === 'payment') {
           const fullSession = await stripe.checkout.sessions.retrieve(session.id, {
@@ -89,6 +103,8 @@ export async function POST(request: NextRequest) {
               .from('user_credits')
               .update({ balance: (current?.balance ?? 0) + creditsToAdd })
               .eq('user_id', userId)
+            const { email, name } = await getUserEmailAndName(supabase, userId)
+            if (email) sendCreditPackEmail(email, name, creditsToAdd).catch(() => {})
           }
         }
         break
@@ -150,6 +166,8 @@ export async function POST(request: NextRequest) {
             reset_date: resetDate.toISOString(),
           })
           .eq('user_id', userId)
+        const { email, name } = await getUserEmailAndName(supabase, userId)
+        if (email) sendCreditsRenewedEmail(email, name, planInfo.monthly_credits, planInfo.plan).catch(() => {})
         break
       }
     }
