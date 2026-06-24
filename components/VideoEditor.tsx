@@ -312,24 +312,41 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       const { data: session } = await supabase!.auth.getSession()
       const token = session?.session?.access_token
 
-      let res: Response
+      let videoUrl = spec.videoUrl
+
+      // For local blob videos, upload directly to Supabase first to bypass
+      // Vercel's 4.5 MB body limit before sending URL to the transcribe endpoint
       if (spec.videoUrl.startsWith('blob:')) {
         const blob = await fetch(spec.videoUrl).then(r => r.blob())
-        const form = new FormData()
-        form.append('file', blob, 'video.mp4')
-        form.append('duration', String(spec.duration))
-        res = await fetch('/api/video/transcribe', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: form,
-        })
-      } else {
-        res = await fetch('/api/video/transcribe', {
+        const ext = blob.type.includes('webm') ? 'webm' : blob.type.includes('mov') ? 'mov' : 'mp4'
+
+        // Get signed upload URL
+        const urlRes = await fetch('/api/upload-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ videoUrl: spec.videoUrl, duration: spec.duration }),
+          body: JSON.stringify({ folder: 'editor-transcribe', ext }),
         })
+        const { signedUrl, storagePath, error: urlErr } = await urlRes.json()
+        if (urlErr) throw new Error(urlErr)
+
+        // Upload directly to Supabase
+        const putRes = await fetch(signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': blob.type || 'video/mp4' },
+          body: blob,
+        })
+        if (!putRes.ok) throw new Error('Upload failed')
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase!.storage.from('ugc-assets').getPublicUrl(storagePath)
+        videoUrl = publicUrl
       }
+
+      const res = await fetch('/api/video/transcribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ videoUrl, duration: spec.duration }),
+      })
 
       const data = await res.json()
       if (data.error) throw new Error(data.error)
