@@ -31,6 +31,7 @@ export interface MusicTrack {
   url: string
   label: string
   volume: number       // 0–1
+  startOffset?: number // seconds into the audio file to start from
 }
 
 export interface EditSpec {

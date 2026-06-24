@@ -338,7 +338,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       await audioCtx.resume()  // browser may suspend AudioContext until user interaction
       recorder.start(100)
       setExportStatus('Rendering 0%')
-      if (musicEl) { musicEl.currentTime = trimStart; await musicEl.play().catch(() => {}) }
+      if (musicEl) { musicEl.currentTime = spec.music?.startOffset ?? 0; await musicEl.play().catch(() => {}) }
       await vid.play()
 
       await new Promise<void>((resolve, reject) => {
@@ -1305,7 +1305,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 onPlay={() => {
                   setIsPlaying(true)
                   const m = musicPreviewRef.current
-                  if (m && spec.music?.url) { m.currentTime = 0; m.play().catch(() => {}) }
+                  if (m && spec.music?.url) { m.currentTime = spec.music.startOffset ?? 0; m.play().catch(() => {}) }
                 }}
                 onPause={() => {
                   setIsPlaying(false)
@@ -1625,11 +1625,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     <div style={{ position: 'absolute', top: -2, left: '50%', transform: 'translateX(-50%)', width: 10, height: 10, background: '#e84040', borderRadius: '50%', border: '2px solid #fff', boxShadow: '0 0 0 1px #e84040' }} />
                   </div>
 
-                  {/* Caption / text overlay blocks */}
+                  {/* Caption / text overlay blocks — draggable */}
                   {spec.overlays.map(o => (
                     <div
                       key={o.id}
-                      onClick={e => { e.stopPropagation(); setSelectedOverlayId(o.id); setActivePanel('text') }}
                       title={o.text}
                       style={{
                         position: 'absolute',
@@ -1638,20 +1637,39 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                         top: '60%', height: '28%',
                         background: selectedOverlayId === o.id ? '#1a1a17' : 'rgba(20,184,166,0.7)',
                         borderRadius: 3,
-                        cursor: 'pointer',
+                        cursor: 'grab',
                         overflow: 'hidden',
                         display: 'flex', alignItems: 'center',
                         paddingLeft: 4,
+                        userSelect: 'none',
+                      }}
+                      onMouseDown={e => {
+                        e.stopPropagation()
+                        setSelectedOverlayId(o.id); setActivePanel('text')
+                        const trackEl = (e.currentTarget as HTMLElement).parentElement!
+                        const startX = e.clientX
+                        const origStart = o.start
+                        let moved = false
+                        const onMove = (me: MouseEvent) => {
+                          if (!moved && Math.abs(me.clientX - startX) < 3) return
+                          moved = true
+                          const rect = trackEl.getBoundingClientRect()
+                          const dx = (me.clientX - startX) / rect.width * spec.duration
+                          const newStart = Math.max(0, Math.min(spec.duration - o.duration, origStart + dx))
+                          setSpec(s => ({ ...s, overlays: s.overlays.map(x => x.id === o.id ? { ...x, start: newStart } : x) }))
+                        }
+                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                        window.addEventListener('mousemove', onMove)
+                        window.addEventListener('mouseup', onUp)
                       }}
                     >
                       <span style={{ fontSize: 8, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1 }}>{o.text}</span>
                     </div>
                   ))}
-                  {/* Image overlay blocks */}
+                  {/* Image overlay blocks — draggable */}
                   {(spec.imageOverlays ?? []).map(o => (
                     <div
                       key={`img-${o.id}`}
-                      onClick={e => { e.stopPropagation(); setSelectedImgId(o.id); setActivePanel('image') }}
                       style={{
                         position: 'absolute',
                         left: `${(o.start / spec.duration) * 100}%`,
@@ -1659,11 +1677,34 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                         top: '30%', height: '28%',
                         background: selectedImgId === o.id ? '#1a1a17' : 'rgba(77,159,255,0.7)',
                         borderRadius: 3,
-                        cursor: 'pointer',
+                        cursor: 'grab',
+                        userSelect: 'none',
+                        display: 'flex', alignItems: 'center', paddingLeft: 3, overflow: 'hidden',
                       }}
-                    />
+                      onMouseDown={e => {
+                        e.stopPropagation()
+                        setSelectedImgId(o.id); setActivePanel('image')
+                        const trackEl = (e.currentTarget as HTMLElement).parentElement!
+                        const startX = e.clientX
+                        const origStart = o.start
+                        let moved = false
+                        const onMove = (me: MouseEvent) => {
+                          if (!moved && Math.abs(me.clientX - startX) < 3) return
+                          moved = true
+                          const rect = trackEl.getBoundingClientRect()
+                          const dx = (me.clientX - startX) / rect.width * spec.duration
+                          const newStart = Math.max(0, Math.min(spec.duration - o.duration, origStart + dx))
+                          setSpec(s => ({ ...s, imageOverlays: (s.imageOverlays ?? []).map(x => x.id === o.id ? { ...x, start: newStart } : x) }))
+                        }
+                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                        window.addEventListener('mousemove', onMove)
+                        window.addEventListener('mouseup', onUp)
+                      }}
+                    >
+                      <span style={{ fontSize: 8, color: '#fff', lineHeight: 1 }}>🖼</span>
+                    </div>
                   ))}
-                  {/* Music block */}
+                  {/* Music block — draggable (shifts which part of the audio plays) */}
                   {spec.music && (
                     <div
                       onClick={e => { e.stopPropagation(); setActivePanel('music') }}
@@ -1674,9 +1715,28 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                         top: '3%', height: '24%',
                         background: 'rgba(139,92,246,0.6)',
                         borderRadius: 3,
-                        cursor: 'pointer',
+                        cursor: 'grab',
                         display: 'flex', alignItems: 'center', paddingLeft: 4,
                         overflow: 'hidden',
+                        userSelect: 'none',
+                      }}
+                      onMouseDown={e => {
+                        e.stopPropagation()
+                        const startX = e.clientX
+                        const trackEl = (e.currentTarget as HTMLElement).parentElement!
+                        const origOffset = spec.music!.startOffset ?? 0
+                        let moved = false
+                        const onMove = (me: MouseEvent) => {
+                          if (!moved && Math.abs(me.clientX - startX) < 3) return
+                          moved = true
+                          const rect = trackEl.getBoundingClientRect()
+                          const dx = (me.clientX - startX) / rect.width * spec.duration
+                          const newOffset = Math.max(0, origOffset - dx)
+                          setSpec(s => s.music ? { ...s, music: { ...s.music!, startOffset: newOffset } } : s)
+                        }
+                        const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                        window.addEventListener('mousemove', onMove)
+                        window.addEventListener('mouseup', onUp)
                       }}
                     >
                       <span style={{ fontSize: 8, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>♪ {spec.music.label}</span>
