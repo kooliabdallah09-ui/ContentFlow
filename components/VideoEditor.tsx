@@ -2755,17 +2755,27 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                           if (!token) throw new Error('Not signed in')
 
                           const filename = `contentflow-edit-${new Date().toISOString().slice(0, 10)}.webm`
-                          const formData = new FormData()
-                          formData.append('file', blob, filename)
-                          formData.append('filename', filename)
 
-                          const res = await fetch('/api/drive/upload', {
+                          // Step 1: get a Drive resumable upload URL from our server
+                          const sessionRes = await fetch('/api/drive/upload', {
                             method: 'POST',
-                            headers: { Authorization: `Bearer ${token}` },
-                            body: formData,
+                            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ filename, mimeType: blob.type || 'video/webm', fileSize: blob.size }),
                           })
-                          const data = await res.json()
-                          if (!res.ok) throw new Error(data.error ?? 'Upload failed')
+                          const sessionData = await sessionRes.json()
+                          if (!sessionRes.ok) throw new Error(sessionData.error ?? 'Could not start upload')
+                          const { uploadUrl } = sessionData
+
+                          // Step 2: upload blob directly to Drive — bypasses Vercel body limit
+                          const uploadRes = await fetch(uploadUrl, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': blob.type || 'video/webm', 'Content-Length': String(blob.size) },
+                            body: blob,
+                          })
+                          if (!uploadRes.ok) {
+                            const errText = await uploadRes.text()
+                            throw new Error(`Drive upload failed (${uploadRes.status}): ${errText.slice(0, 200)}`)
+                          }
                           setSavedToLibrary(true)
                         } catch (err) {
                           alert(err instanceof Error ? err.message : 'Save failed')

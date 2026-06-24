@@ -2,14 +2,15 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { getValidDriveToken, getOrCreateFolder } from '@/lib/google-drive'
 
-export const maxDuration = 60
+export const maxDuration = 30
 
 function getSupabase() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
 }
 
-// POST — uploads a video blob to the user's ContentFlow Google Drive folder
-// Body: FormData with `file` (Blob) and optional `filename`
+// POST — returns a Drive resumable upload URL.
+// The client then uploads the blob directly to Drive (bypasses Vercel body limit).
+// Body: { filename, mimeType, fileSize }
 export async function POST(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   if (!authHeader?.startsWith('Bearer ')) {
@@ -25,73 +26,45 @@ export async function POST(request: NextRequest) {
     }
     const userId = userData.user.id
 
-    const formData = await request.formData()
-    const file = formData.get('file') as File | null
-    const filename = (formData.get('filename') as string | null) ?? `contentflow-edit-${Date.now()}.webm`
-    if (!file) return NextResponse.json({ error: 'Missing file' }, { status: 400 })
+    const { filename, mimeType, fileSize } = await request.json()
+    if (!filename) return NextResponse.json({ error: 'Missing filename' }, { status: 400 })
 
     const accessToken = await getValidDriveToken(userId, supabase)
     const folderId = await getOrCreateFolder(accessToken, userId, supabase)
 
-    const arrayBuffer = await file.arrayBuffer()
-
-    // Multipart upload to Drive
-    const boundary = '-------ContentFlowBoundary'
-    const metadata = JSON.stringify({
-      name: filename,
-      parents: [folderId],
-      appProperties: {
-        contentType: 'video',
-        source: 'video-editor',
-      },
-    })
-
-    const metaPart = [
-      `--${boundary}`,
-      'Content-Type: application/json; charset=UTF-8',
-      '',
-      metadata,
-      `--${boundary}`,
-      `Content-Type: ${file.type || 'video/webm'}`,
-      '',
-    ].join('\r\n')
-
-    const closing = `\r\n--${boundary}--`
-
-    const metaBytes = new TextEncoder().encode(metaPart)
-    const closingBytes = new TextEncoder().encode(closing)
-    const fileBytes = new Uint8Array(arrayBuffer)
-
-    const body = new Uint8Array(metaBytes.length + fileBytes.length + closingBytes.length)
-    body.set(metaBytes, 0)
-    body.set(fileBytes, metaBytes.length)
-    body.set(closingBytes, metaBytes.length + fileBytes.length)
-
-    const uploadRes = await fetch(
-      'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name',
+    // Initiate a resumable upload session — Drive returns an upload URL
+    const initRes = await fetch(
+      'https://www.googleapis.com/upload/drive/v3/files?uploadType=resumable',
       {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': `multipart/related; boundary=${boundary}`,
-          'Content-Length': String(body.length),
+          'Content-Type': 'application/json',
+          'X-Upload-Content-Type': mimeType ?? 'video/webm',
+          ...(fileSize ? { 'X-Upload-Content-Length': String(fileSize) } : {}),
         },
-        body,
+        body: JSON.stringify({
+          name: filename,
+          parents: [folderId],
+          appProperties: { contentType: 'video', source: 'video-editor' },
+        }),
       },
     )
 
-    if (!uploadRes.ok) {
-      const errText = await uploadRes.text()
-      console.error('[drive/upload] Drive error:', errText)
-      return NextResponse.json({ error: `Drive upload failed: ${uploadRes.status}` }, { status: 500 })
+    if (!initRes.ok) {
+      const errText = await initRes.text()
+      console.error('[drive/upload] initiate failed:', errText)
+      return NextResponse.json({ error: `Drive session failed: ${initRes.status}` }, { status: 500 })
     }
 
-    const driveFile = await uploadRes.json()
-    return NextResponse.json({ success: true, fileId: driveFile.id, viewLink: driveFile.webViewLink, name: driveFile.name })
+    const uploadUrl = initRes.headers.get('location')
+    if (!uploadUrl) return NextResponse.json({ error: 'No upload URL from Drive' }, { status: 500 })
+
+    return NextResponse.json({ uploadUrl })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Upload failed'
+    const msg = err instanceof Error ? err.message : 'Failed'
     if (msg === 'DRIVE_NOT_CONNECTED') {
-      return NextResponse.json({ error: 'Google Drive not connected. Connect it in Settings → Integrations.' }, { status: 400 })
+      return NextResponse.json({ error: 'Google Drive not connected. Go to Settings → Integrations to connect.' }, { status: 400 })
     }
     if (msg === 'DRIVE_TOKEN_EXPIRED') {
       return NextResponse.json({ error: 'Google Drive session expired. Reconnect in Settings → Integrations.' }, { status: 400 })
