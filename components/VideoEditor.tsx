@@ -178,79 +178,217 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   }, [])
 
   async function handleExport() {
+    if (!spec.videoUrl) return
     setExporting(true)
-    setExportStatus('Submitting to Shotstack...')
     setExportUrl(null)
+    setExportStatus('Loading video...')
+
     try {
-      const supabase = getSupabase()
-      const { data: session } = await supabase!.auth.getSession()
-      const token = session?.session?.access_token
-      const { data: userInfo } = await supabase!.auth.getUser(token ?? '')
+      const [outW, outH] =
+        spec.aspectRatio === '16:9' ? [1920, 1080] :
+        spec.aspectRatio === '1:1'  ? [1080, 1080] :
+                                      [1080, 1920]
 
-      // Upload blob: video to Supabase before export (Shotstack needs a public URL)
-      let exportSpec = { ...spec }
-      if (exportSpec.videoUrl?.startsWith('blob:')) {
-        setExportStatus('Uploading video...')
-        const videoBlob = uploadedFileRef.current ?? await fetch(exportSpec.videoUrl).then(r => r.blob())
-        const ext = videoBlob.type.includes('webm') ? 'webm' : videoBlob.type.includes('mov') ? 'mov' : 'mp4'
-        const filename = `editor-export/${userInfo?.user?.id ?? 'anon'}-${Date.now()}.${ext}`
-        const supabase2 = getSupabase()!
-        const { error: upErr } = await supabase2.storage.from('ugc-assets').upload(filename, videoBlob, { contentType: videoBlob.type || 'video/mp4', upsert: true })
-        if (upErr) throw new Error(`Video upload failed: ${upErr.message}`)
-        const { data: { publicUrl } } = supabase2.storage.from('ugc-assets').getPublicUrl(filename)
-        exportSpec = { ...exportSpec, videoUrl: publicUrl }
-        setExportStatus('Submitting to Shotstack...')
+      const trimStart = spec.trimStart ?? 0
+      const trimEnd   = spec.trimEnd > 0 ? spec.trimEnd : spec.duration
+      const speed     = spec.speed ?? 1
+
+      // Create an off-screen video element. Blob URLs work directly; remote
+      // URLs need to be fetched first so the canvas doesn't get tainted.
+      const vid = document.createElement('video')
+      vid.crossOrigin = 'anonymous'
+      vid.playsInline = true
+
+      if (spec.videoUrl.startsWith('blob:')) {
+        vid.src = spec.videoUrl
+      } else {
+        const r = await fetch(spec.videoUrl)
+        vid.src = URL.createObjectURL(await r.blob())
+      }
+      await new Promise<void>((res, rej) => { vid.onloadedmetadata = () => res(); vid.onerror = rej; vid.load() })
+
+      // Preload image overlays
+      const imgEls = new Map<string, HTMLImageElement>()
+      for (const img of (spec.imageOverlays ?? [])) {
+        const el = new Image()
+        el.crossOrigin = 'anonymous'
+        el.src = img.src
+        await new Promise(r => { el.onload = r; el.onerror = r })
+        imgEls.set(img.id, el)
       }
 
-      // Upload any blob: image overlays to Supabase before export
-      const blobImages = (exportSpec.imageOverlays ?? []).filter(o => o.src.startsWith('blob:'))
-      if (blobImages.length > 0) {
-        setExportStatus('Uploading images...')
-        const uploadedImages = await Promise.all(
-          blobImages.map(async o => {
-            const blob = await fetch(o.src).then(r => r.blob())
-            const ext = blob.type.split('/')[1] || 'png'
-            const filename = `editor-images/${userInfo?.user?.id ?? 'anon'}-${Date.now()}-${genId()}.${ext}`
-            const supabase2 = getSupabase()!
-            const { error: upErr } = await supabase2.storage.from('ugc-assets').upload(filename, blob, { contentType: blob.type, upsert: true })
-            if (upErr) throw new Error(`Image upload failed: ${upErr.message}`)
-            const { data: { publicUrl } } = supabase2.storage.from('ugc-assets').getPublicUrl(filename)
-            return { id: o.id, publicUrl }
-          })
-        )
-        exportSpec = {
-          ...exportSpec,
-          imageOverlays: (exportSpec.imageOverlays ?? []).map(o => {
-            const uploaded = uploadedImages.find(u => u.id === o.id)
-            return uploaded ? { ...o, src: uploaded.publicUrl } : o
-          }),
+      // Canvas
+      const canvas = document.createElement('canvas')
+      canvas.width  = outW
+      canvas.height = outH
+      const ctx = canvas.getContext('2d')!
+
+      // Audio graph: video → gain → MediaStreamDestination (for capture) + speakers
+      const audioCtx  = new AudioContext()
+      const src        = audioCtx.createMediaElementSource(vid)
+      const gainNode   = audioCtx.createGain()
+      gainNode.gain.value = spec.volume ?? 1
+      const audioDest  = audioCtx.createMediaStreamDestination()
+      src.connect(gainNode)
+      gainNode.connect(audioDest)
+      gainNode.connect(audioCtx.destination)
+
+      // Music track (optional)
+      if (spec.music?.url) {
+        const musicRes  = await fetch(spec.music.url)
+        const musicBuf  = await audioCtx.decodeAudioData(await musicRes.arrayBuffer())
+        const musicSrc  = audioCtx.createBufferSource()
+        musicSrc.buffer = musicBuf
+        const musicGain = audioCtx.createGain()
+        musicGain.gain.value = spec.music.volume ?? 0.5
+        musicSrc.connect(musicGain)
+        musicGain.connect(audioDest)
+        musicSrc.start(0, trimStart)
+      }
+
+      // MediaRecorder captures canvas + audio
+      const capStream = canvas.captureStream(30)
+      for (const t of audioDest.stream.getAudioTracks()) capStream.addTrack(t)
+
+      const mimeType =
+        MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' :
+        MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' :
+        'video/webm'
+
+      const recorder = new MediaRecorder(capStream, { mimeType, videoBitsPerSecond: 8_000_000 })
+      const chunks: BlobPart[] = []
+      recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
+
+      // Build filter string once
+      const f = spec.filters
+      const filterStr = f
+        ? [
+            f.brightness !== 1 ? `brightness(${f.brightness})` : '',
+            f.contrast   !== 1 ? `contrast(${f.contrast})`     : '',
+            f.saturation !== 1 ? `saturate(${f.saturation})`   : '',
+          ].filter(Boolean).join(' ')
+        : ''
+
+      // Seek to trim start
+      vid.currentTime = trimStart
+      vid.playbackRate = speed
+      await new Promise<void>(r => { vid.onseeked = () => r() })
+
+      recorder.start(100)
+      setExportStatus('Rendering 0%')
+      await vid.play()
+
+      await new Promise<void>((resolve, reject) => {
+        const tick = () => {
+          const t = vid.currentTime
+          if (t >= trimEnd || vid.ended) {
+            vid.pause()
+            recorder.stop()
+            resolve()
+            return
+          }
+
+          const pct = Math.round(((t - trimStart) / (trimEnd - trimStart)) * 100)
+          setExportStatus(`Rendering ${pct}%`)
+
+          // Draw video frame with optional filter
+          if (filterStr) ctx.filter = filterStr
+          ctx.drawImage(vid, 0, 0, outW, outH)
+          ctx.filter = 'none'
+
+          // Fade in / out overlays
+          if (spec.fadeIn && t - trimStart < 0.5) {
+            ctx.fillStyle = `rgba(0,0,0,${1 - (t - trimStart) / 0.5})`
+            ctx.fillRect(0, 0, outW, outH)
+          }
+          if (spec.fadeOut && trimEnd - t < 0.5) {
+            ctx.fillStyle = `rgba(0,0,0,${1 - (trimEnd - t) / 0.5})`
+            ctx.fillRect(0, 0, outW, outH)
+          }
+
+          // Image overlays
+          for (const img of (spec.imageOverlays ?? [])) {
+            if (t >= img.start && t < img.start + img.duration) {
+              const el = imgEls.get(img.id)
+              if (el) {
+                ctx.save()
+                ctx.globalAlpha = img.opacity ?? 1
+                const w = outW * (img.scale ?? 0.3)
+                const h = (el.naturalHeight / el.naturalWidth) * w
+                ctx.drawImage(el, (img.x ?? 0.5) * outW - w / 2, (img.y ?? 0.5) * outH - h / 2, w, h)
+                ctx.restore()
+              }
+            }
+          }
+
+          // Text overlays
+          for (const ov of spec.overlays) {
+            if (t >= ov.start && t < ov.start + ov.duration) {
+              drawTextOnCanvas(ctx, ov, outW, outH)
+            }
+          }
+
+          requestAnimationFrame(tick)
         }
-      }
-
-      const res = await fetch('/api/video/editor-export', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ spec: exportSpec }),
+        vid.onerror = reject
+        requestAnimationFrame(tick)
       })
-      const { renderId, error } = await res.json()
-      if (error) throw new Error(error)
-      setExportStatus('Rendering...')
-      for (let i = 0; i < 60; i++) {
-        await new Promise(r => setTimeout(r, 3000))
-        const poll = await fetch(`/api/video/editor-export?renderId=${renderId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        })
-        const status = await poll.json()
-        if (status.url) { setExportUrl(status.url); break }
-        if (status.status === 'failed') throw new Error('Render failed')
-        setExportStatus(`Rendering... ${status.status ?? ''}`)
-      }
+
+      await new Promise<void>(r => { recorder.onstop = () => r() })
+      await audioCtx.close()
+
+      const blob = new Blob(chunks, { type: mimeType })
+      const url  = URL.createObjectURL(blob)
+      setExportUrl(url)
+
+      // Auto-download
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `contentflow-${Date.now()}.webm`
+      a.click()
+
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Export failed')
     } finally {
       setExporting(false)
       setExportStatus('')
     }
+  }
+
+  function drawTextOnCanvas(ctx: CanvasRenderingContext2D, ov: TextOverlay, outW: number, outH: number) {
+    ctx.save()
+    const sizeMap: Record<string, number> = { sm: 36, md: 48, lg: 64, xl: 86 }
+    const fs = sizeMap[ov.fontSize ?? 'md'] ?? 48
+    const cx = (ov.x ?? 0.5) * outW
+    const cy = ov.y !== undefined ? ov.y * outH
+             : ov.position === 'top' ? outH * 0.1
+             : ov.position === 'center' ? outH * 0.5
+             : outH * 0.85
+    ctx.textAlign    = 'center'
+    ctx.textBaseline = 'middle'
+    if (ov.style === 'bold-white') {
+      ctx.font        = `800 ${fs}px Montserrat,Arial,sans-serif`
+      ctx.fillStyle   = ov.color ?? '#ffffff'
+      ctx.shadowColor = 'rgba(0,0,0,0.85)'
+      ctx.shadowBlur  = 10
+      ctx.fillText(ov.text, cx, cy)
+    } else if (ov.style === 'minimal') {
+      ctx.font        = `400 ${fs}px Inter,Arial,sans-serif`
+      ctx.fillStyle   = ov.color ?? '#ffffff'
+      ctx.globalAlpha = 0.9
+      ctx.fillText(ov.text, cx, cy)
+    } else {
+      ctx.font = `700 ${fs}px Inter,Arial,sans-serif`
+      const tw = ctx.measureText(ov.text).width
+      ctx.fillStyle = 'rgba(0,0,0,0.55)'
+      ctx.beginPath()
+      // @ts-ignore roundRect is widely supported
+      ctx.roundRect?.(cx - tw / 2 - 14, cy - fs / 2 - 8, tw + 28, fs + 16, 8)
+      ctx.fill()
+      ctx.fillStyle = ov.color ?? '#ffffff'
+      ctx.fillText(ov.text, cx, cy)
+    }
+    ctx.restore()
   }
 
   async function handleAiEdit() {
@@ -1919,7 +2057,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 </div>
 
                 <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-mute)', lineHeight: 1.6 }}>
-                  Rendered via Shotstack — full quality MP4, takes 30–60s.
+                  Rendered locally in your browser — no upload needed. Output is WebM (plays everywhere).
                 </div>
 
                 <button
@@ -1937,7 +2075,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border-strong)', color: 'var(--ink)', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                    Download MP4
+                    Download Video
                   </a>
                 )}
               </>
