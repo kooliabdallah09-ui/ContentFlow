@@ -141,6 +141,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const uploadedFileRef = useRef<File | null>(null)
   const videoWrapRef = useRef<HTMLDivElement>(null)
   const isDraggingTrim = useRef<null | 'start' | 'end'>(null)
+  const isDraggingPlayhead = useRef(false)
   const draggingOverlay = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
   const draggingImg = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
 
@@ -1257,6 +1258,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   transition: 'transform 0.05s linear',
                 }}
                 onTimeUpdate={e => {
+                  if (isDraggingPlayhead.current) return  // don't override drag position
                   const vid = e.currentTarget
                   const tStart = spec.trimStart ?? 0
                   const tEnd   = spec.trimEnd > 0 ? spec.trimEnd : spec.duration
@@ -1529,15 +1531,22 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     style={{ position: 'absolute', left: `${trimPct.cursor}%`, top: -4, bottom: -4, width: 12, transform: 'translateX(-5px)', cursor: 'ew-resize', zIndex: 20, display: 'flex', justifyContent: 'center' }}
                     onMouseDown={e => {
                       e.stopPropagation()
+                      isDraggingPlayhead.current = true
+                      let lastT = currentTime
                       const onMove = (me: MouseEvent) => {
                         const rect = (e.currentTarget as HTMLElement).parentElement?.getBoundingClientRect()
                         if (!rect) return
                         const pct = Math.max(0, Math.min(1, (me.clientX - rect.left) / rect.width))
                         const t = Math.max(spec.trimStart, Math.min(spec.trimEnd > 0 ? spec.trimEnd : spec.duration, pct * spec.duration))
-                        setCurrentTime(t)
-                        if (videoRef.current) videoRef.current.currentTime = t
+                        lastT = t
+                        setCurrentTime(t)  // update state only — no video seek during drag
                       }
-                      const onUp = () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+                      const onUp = () => {
+                        isDraggingPlayhead.current = false
+                        if (videoRef.current) videoRef.current.currentTime = lastT  // seek once on release
+                        window.removeEventListener('mousemove', onMove)
+                        window.removeEventListener('mouseup', onUp)
+                      }
                       window.addEventListener('mousemove', onMove)
                       window.addEventListener('mouseup', onUp)
                     }}
