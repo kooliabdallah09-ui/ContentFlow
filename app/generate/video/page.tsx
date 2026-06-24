@@ -39,9 +39,9 @@ const MODELS: {
       'Consistent characters across a single scene',
     ],
     caveat: 'No native audio · 2–4 min generation time',
-    durations: [5, 10, 15, 20],
+    durations: [4, 8, 12],
     // Sora 2: $0.10/s → 4cr/s at cost → 7.2cr/s at 1.8× → round to nearest integer per duration
-    credits: { 5: 36, 10: 72, 15: 108, 20: 144 },
+    credits: { 4: 29, 8: 58, 12: 87 },
   },
   {
     id: 'kling-v3',
@@ -72,7 +72,7 @@ interface VideoState {
 export default function VideoGeneratorPage() {
   const [model, setModel] = useState<Model>('sora-2')
   const [prompt, setPrompt] = useState('')
-  const [duration, setDuration] = useState(10)
+  const [duration, setDuration] = useState(8)
   const [aspect, setAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait')
   const [refImages, setRefImages] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
 

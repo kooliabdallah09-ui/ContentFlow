@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
 
       const soraJob = await submitSora2ViaReplicate({
         prompt,
-        durationSeconds: duration as 5 | 10 | 15 | 20,
+        durationSeconds: duration as 4 | 8 | 12,
         aspectRatio,
         referenceImageUrl,
       })

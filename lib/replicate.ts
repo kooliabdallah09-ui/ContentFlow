@@ -3,7 +3,7 @@ const SORA_2_MODEL = 'openai/sora-2'
 
 export async function submitSora2ViaReplicate(params: {
   prompt: string
-  durationSeconds: 5 | 10 | 15 | 20
+  durationSeconds: 4 | 8 | 12
   aspectRatio?: '9:16' | '16:9' | '1:1'
   referenceImageUrl?: string
 }): Promise<{ predictionId: string }> {
