@@ -110,6 +110,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const imgInputRef = useRef<HTMLInputElement>(null)
+  const uploadedFileRef = useRef<File | null>(null)
   const videoWrapRef = useRef<HTMLDivElement>(null)
   const isDraggingTrim = useRef<null | 'start' | 'end'>(null)
   const draggingOverlay = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null)
@@ -157,6 +158,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
   function loadVideoFile(file: File) {
     const url = URL.createObjectURL(file)
+    uploadedFileRef.current = file
     const newS: EditSpec = { ...makeInitialSpec(), videoUrl: url, duration: 0, trimStart: 0, trimEnd: 0 }
     pushHistory(newS)
     setCurrentTime(0)
@@ -322,9 +324,17 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       // For local blob videos, upload directly to Supabase first to bypass
       // Vercel's 4.5 MB body limit before sending URL to the transcribe endpoint
       if (spec.videoUrl.startsWith('blob:')) {
-        console.log('[caption] blob URL detected, fetching blob')
-        const blob = await fetch(spec.videoUrl).then(r => r.blob())
-        console.log('[caption] blob fetched, size:', blob.size, 'type:', blob.type)
+        // Prefer the stored File object — fetching a blob URL can be blocked by
+        // some browser extensions, and the original File is always reliable
+        let blob: Blob
+        if (uploadedFileRef.current) {
+          console.log('[caption] using stored File object, size:', uploadedFileRef.current.size)
+          blob = uploadedFileRef.current
+        } else {
+          console.log('[caption] no stored File, fetching blob URL')
+          blob = await fetch(spec.videoUrl).then(r => r.blob())
+        }
+        console.log('[caption] blob ready, size:', blob.size, 'type:', blob.type)
         const ext = blob.type.includes('webm') ? 'webm' : blob.type.includes('mov') ? 'mov' : 'mp4'
 
         console.log('[caption] requesting signed upload URL')
