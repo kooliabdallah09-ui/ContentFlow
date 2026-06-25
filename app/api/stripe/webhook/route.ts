@@ -74,20 +74,19 @@ export async function POST(request: NextRequest) {
           if (planInfo) {
             const resetDate = new Date()
             resetDate.setMonth(resetDate.getMonth() + 1)
-            // Preserve any pack credits the user already has — add subscription
-            // credits on top rather than overwriting the balance.
+            // Preserve pack credits — add subscription credits on top.
             const { data: current } = await supabase
               .from('user_credits')
-              .select('balance')
+              .select('pack_credits')
               .eq('user_id', userId)
               .single()
-            const existingBalance = current?.balance ?? 0
+            const packCredits = current?.pack_credits ?? 0
             await supabase
               .from('user_credits')
               .update({
                 plan: planInfo.plan,
                 monthly_credits: planInfo.monthly_credits,
-                balance: existingBalance + planInfo.monthly_credits,
+                balance: planInfo.monthly_credits + packCredits,
                 reset_date: resetDate.toISOString(),
                 stripe_customer_id: session.customer as string,
               })
@@ -104,12 +103,15 @@ export async function POST(request: NextRequest) {
           if (creditsToAdd) {
             const { data: current } = await supabase
               .from('user_credits')
-              .select('balance')
+              .select('balance, pack_credits')
               .eq('user_id', userId)
               .single()
             await supabase
               .from('user_credits')
-              .update({ balance: (current?.balance ?? 0) + creditsToAdd })
+              .update({
+                balance: (current?.balance ?? 0) + creditsToAdd,
+                pack_credits: (current?.pack_credits ?? 0) + creditsToAdd,
+              })
               .eq('user_id', userId)
             const { email, name } = await getUserEmailAndName(supabase, userId)
             if (email) sendCreditPackEmail(email, name, creditsToAdd).catch(() => {})
@@ -163,14 +165,15 @@ export async function POST(request: NextRequest) {
         const userId = await getUserIdByCustomer(supabase, invoice.customer as string)
         if (!userId) break
 
-        // Preserve pack credits: any balance above the old monthly allowance is
-        // from one-time packs and should survive the renewal reset.
+        // Recalculate remaining pack credits from current balance.
+        // Monthly credits are consumed first, so anything above monthly_credits
+        // is unused pack credits. Clamp to 0 if the user spent into their pack.
         const { data: currentCredits } = await supabase
           .from('user_credits')
           .select('balance, monthly_credits')
           .eq('user_id', userId)
           .single()
-        const packRemainder = Math.max(0, (currentCredits?.balance ?? 0) - (currentCredits?.monthly_credits ?? 0))
+        const packCredits = Math.max(0, (currentCredits?.balance ?? 0) - (currentCredits?.monthly_credits ?? 0))
 
         const resetDate = new Date()
         resetDate.setMonth(resetDate.getMonth() + 1)
@@ -178,7 +181,8 @@ export async function POST(request: NextRequest) {
         await supabase
           .from('user_credits')
           .update({
-            balance: planInfo.monthly_credits + packRemainder,
+            balance: planInfo.monthly_credits + packCredits,
+            pack_credits: packCredits,
             monthly_credits: planInfo.monthly_credits,
             reset_date: resetDate.toISOString(),
           })
