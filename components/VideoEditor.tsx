@@ -283,7 +283,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       const canvas = document.createElement('canvas')
       canvas.width  = outW
       canvas.height = outH
-      const ctx = canvas.getContext('2d')!
+      const ctx = canvas.getContext('2d', { alpha: false })!
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
 
       // Audio graph: video → gain → MediaStreamDestination (for capture) + speakers
       const audioCtx  = new AudioContext()
@@ -312,7 +314,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       }
 
       // MediaRecorder captures canvas + audio
-      const capStream = canvas.captureStream(30)
+      // Use 60fps capture so fast motion stays sharp; VP9 at 20Mbps for archival quality
+      const capStream = canvas.captureStream(60)
       for (const t of audioDest.stream.getAudioTracks()) capStream.addTrack(t)
 
       const mimeType =
@@ -320,7 +323,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' :
         'video/webm'
 
-      const recorder = new MediaRecorder(capStream, { mimeType, videoBitsPerSecond: 8_000_000 })
+      const recorder = new MediaRecorder(capStream, { mimeType, videoBitsPerSecond: 20_000_000 })
       const chunks: BlobPart[] = []
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
 
@@ -361,6 +364,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
 
           // Draw video frame with optional Ken Burns zoom
           ctx.save()
+          ctx.imageSmoothingEnabled = true
+          ctx.imageSmoothingQuality = 'high'
           if (filterStr) ctx.filter = filterStr
           if (spec.zoom) {
             const progress = (t - trimStart) / (trimEnd - trimStart)
