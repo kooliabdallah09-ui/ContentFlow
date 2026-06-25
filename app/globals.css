@@ -55,12 +55,53 @@
   --rail-w: 262px;
 }
 
-/* The legacy data-tone overrides are kept disabled — the editorial palette
-   above is now the single source of truth. We intentionally drop dark modes
-   for now; the design is light-only. */
-[data-tone] { --bg: #FAFAF8; }
+/* ── Dark mode ── toggle via data-theme="dark" on <html> */
+[data-theme="dark"] {
+  --bg:        #111110;
+  --bg-elev:   #161614;
+  --surface:   #1C1C1A;
+  --surface-2: #222220;
+  --surface-3: #2A2A27;
+  --hover:     #252523;
 
-/* (Legacy tone variants removed — design system is now single-source above) */
+  --border:        #2E2E2B;
+  --border-soft:   #252523;
+  --border-strong: #3C3C38;
+
+  --ink:       #EDEAE2;
+  --ink-2:     #C8C5BC;
+  --ink-3:     #A8A59C;
+  --ink-dim:   #8A887E;
+  --ink-mute:  #6A6864;
+  --ink-fade:  #524F4A;
+  --ink-faint: #3E3C38;
+  --ink-ghost: #2E2C28;
+
+  --accent:      #EDEAE2;
+  --accent-soft: rgba(237,234,226,0.06);
+  --accent-ink:  #111110;
+
+  --shadow-sm: 0 2px 12px rgba(0,0,0,0.40);
+  --shadow-md: 0 6px 18px rgba(0,0,0,0.50);
+  --shadow-lg: 0 14px 34px rgba(0,0,0,0.60);
+}
+
+[data-theme="dark"] .topbar {
+  background: rgba(17,17,16,0.88);
+}
+
+[data-theme="dark"] .credits-bar {
+  background: #2A2A27;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #3A3A37;
+  border-color: var(--bg);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #4C4C48;
+}
 
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }

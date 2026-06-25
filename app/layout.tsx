@@ -20,14 +20,17 @@ export default function RootLayout({
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  // Theme: pastel (light) is the default. The TopBar toggle flips between pastel
-  // and cocoa (the legacy warm-dark theme) for users who want a dark mode.
   const [isDark, setIsDark] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
 
+  // Restore saved theme preference on first mount
   useEffect(() => {
-    document.documentElement.setAttribute('data-tone', 'pastel')
+    const saved = localStorage.getItem('cf-theme')
+    if (saved === 'dark') {
+      setIsDark(true)
+      document.documentElement.setAttribute('data-theme', 'dark')
+    }
   }, [])
 
   useEffect(() => {
@@ -67,9 +70,15 @@ export default function RootLayout({
   }, [pathname])
 
   const toggleTheme = () => {
-    const next = isDark ? 'pastel' : 'cocoa'
-    document.documentElement.setAttribute('data-tone', next)
-    setIsDark(!isDark)
+    const next = !isDark
+    setIsDark(next)
+    if (next) {
+      document.documentElement.setAttribute('data-theme', 'dark')
+      localStorage.setItem('cf-theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+      localStorage.setItem('cf-theme', 'light')
+    }
   }
 
   useEffect(() => {
