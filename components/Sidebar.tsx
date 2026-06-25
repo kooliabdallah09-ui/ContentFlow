@@ -80,6 +80,10 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <Icon.Monitor />
           <span style={{ flex: 1 }}>Screen Demo</span>
         </Link>
+        <Link href="/generate/social" className={`nav-item ${isActive('/generate/social') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Social />
+          <span style={{ flex: 1 }}>Social</span>
+        </Link>
         <Link href="/generate/carousel" className={`nav-item ${isActive('/generate/carousel') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Carousel />
           <span style={{ flex: 1 }}>Carousel</span>
@@ -99,7 +103,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
         <div className="rail-label">Coming soon</div>
         <div className="nav-item nav-soon">
           <Icon.Blog />
-          <span style={{ flex: 1 }}>Blog · Social · Email</span>
+          <span style={{ flex: 1 }}>Blog · Email</span>
           <span className="soon-badge">Soon</span>
         </div>
         <div className="nav-item nav-soon">
