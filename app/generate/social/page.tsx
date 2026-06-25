@@ -125,7 +125,7 @@ export default function SocialPage() {
               onClick={() => ct.id === 'carousel' ? router.push('/generate/carousel') : setContentType(ct.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
-                padding: '16px 20px', borderRadius: 14, border: 'none',
+                padding: '16px 20px', borderRadius: 14,
                 background: active ? 'var(--ink)' : 'var(--surface)',
                 border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                 cursor: 'pointer', textAlign: 'left',
