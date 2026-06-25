@@ -74,12 +74,20 @@ export async function POST(request: NextRequest) {
           if (planInfo) {
             const resetDate = new Date()
             resetDate.setMonth(resetDate.getMonth() + 1)
+            // Preserve any pack credits the user already has — add subscription
+            // credits on top rather than overwriting the balance.
+            const { data: current } = await supabase
+              .from('user_credits')
+              .select('balance')
+              .eq('user_id', userId)
+              .single()
+            const existingBalance = current?.balance ?? 0
             await supabase
               .from('user_credits')
               .update({
                 plan: planInfo.plan,
                 monthly_credits: planInfo.monthly_credits,
-                balance: planInfo.monthly_credits,
+                balance: existingBalance + planInfo.monthly_credits,
                 reset_date: resetDate.toISOString(),
                 stripe_customer_id: session.customer as string,
               })
