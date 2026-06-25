@@ -131,9 +131,17 @@ export function driveFileToLibraryItem(file: DriveFile) {
   let metadata: Record<string, unknown> = {}
   try { metadata = JSON.parse(ap.metadata ?? '{}') } catch { /* ignore */ }
 
-  // sourceUrl = Supabase public URL (set on new uploads)
-  // Falls back to our proxy endpoint which adds Drive auth headers server-side
-  const storageUrl = ap.sourceUrl ?? `/api/drive/file/${file.id}`
+  // storagePath = short Supabase path stored to stay under Drive's 124-byte appProperty limit.
+  // Reconstruct the public URL here; fall back to Drive proxy for older files.
+  let storageUrl: string
+  if (ap.storagePath) {
+    const base = process.env.NEXT_PUBLIC_SUPABASE_URL!.replace(/\/$/, '')
+    storageUrl = `${base}/storage/v1/object/public/ugc-assets/${ap.storagePath}`
+  } else if (ap.sourceUrl) {
+    storageUrl = ap.sourceUrl
+  } else {
+    storageUrl = `/api/drive/file/${file.id}`
+  }
 
   return {
     id: file.id,

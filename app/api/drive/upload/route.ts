@@ -47,21 +47,20 @@ export async function POST(request: NextRequest) {
     // Delete original temp file
     supabase.storage.from('ugc-assets').remove([storagePath]).catch(() => {})
 
-    let sourceUrl: string | undefined
-    if (!uploadErr) {
-      const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(permanentPath)
-      sourceUrl = publicUrl
-    }
-
     // Upload to Drive
     const accessToken = await getValidDriveToken(userId, supabase)
     const folderId = await getOrCreateFolder(accessToken, userId, supabase)
+
+    // Store only the short storage path (not full URL) to stay under Drive's
+    // 124-byte appProperties key+value limit. URL is reconstructed in the library.
+    const appProps: Record<string, string> = { contentType: 'video', source: 'video-editor' }
+    if (!uploadErr) appProps.storagePath = permanentPath
 
     const boundary = 'CFBoundary' + Date.now()
     const meta = JSON.stringify({
       name: finalName,
       parents: [folderId],
-      appProperties: { contentType: 'video', source: 'video-editor', ...(sourceUrl ? { sourceUrl } : {}) },
+      appProperties: appProps,
     })
 
     const enc = new TextEncoder()
