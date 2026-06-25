@@ -228,10 +228,10 @@ export default function BillingPage() {
     },
     {
       credits: 1500,
-      price: '$40',
+      price: '$45',
       priceId: PRICE_IDS.pack_1500,
-      pricePerCredit: '$0.027/cr',
-      discount: '+11%',
+      pricePerCredit: '$0.030/cr',
+      discount: null,
       popular: false,
     },
     {
@@ -239,7 +239,7 @@ export default function BillingPage() {
       price: '$120',
       priceId: PRICE_IDS.pack_5000,
       pricePerCredit: '$0.024/cr',
-      discount: '+20%',
+      discount: null,
       popular: true,
     },
   ]
@@ -386,7 +386,7 @@ export default function BillingPage() {
       <div style={{ marginBottom: '48px' }}>
         <div className="section-head" style={{ marginBottom: '24px' }}>
           <h2 className="section-title">Credit <em>Packs</em></h2>
-          <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginTop: '8px' }}>One-time purchase — cheaper per credit than plans</p>
+          <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginTop: '8px' }}>One-time purchase — no subscription required</p>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
           {creditPacks.map((pack) => (
