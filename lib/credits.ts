@@ -29,7 +29,7 @@ export const PLAN_CREDITS = {
 export const CREDIT_PACKS = [
   { id: 'small',  credits: 500,  priceUSD: 15,  perCredit: 0.030 },
   { id: 'medium', credits: 1500, priceUSD: 45,  perCredit: 0.030 },
-  { id: 'large',  credits: 5000, priceUSD: 150, perCredit: 0.030 },
+  { id: 'large',  credits: 5000, priceUSD: 120, perCredit: 0.024 },
 ] as const
 
 export async function getUserCredits(userId: string) {
