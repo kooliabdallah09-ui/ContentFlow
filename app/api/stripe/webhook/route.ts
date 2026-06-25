@@ -165,15 +165,14 @@ export async function POST(request: NextRequest) {
         const userId = await getUserIdByCustomer(supabase, invoice.customer as string)
         if (!userId) break
 
-        // Recalculate remaining pack credits from current balance.
-        // Monthly credits are consumed first, so anything above monthly_credits
-        // is unused pack credits. Clamp to 0 if the user spent into their pack.
+        // pack_credits is always accurate (deductCredits keeps it in sync),
+        // so just restore monthly allowance on top of remaining pack credits.
         const { data: currentCredits } = await supabase
           .from('user_credits')
-          .select('balance, monthly_credits')
+          .select('pack_credits')
           .eq('user_id', userId)
           .single()
-        const packCredits = Math.max(0, (currentCredits?.balance ?? 0) - (currentCredits?.monthly_credits ?? 0))
+        const packCredits = currentCredits?.pack_credits ?? 0
 
         const resetDate = new Date()
         resetDate.setMonth(resetDate.getMonth() + 1)
@@ -182,7 +181,6 @@ export async function POST(request: NextRequest) {
           .from('user_credits')
           .update({
             balance: planInfo.monthly_credits + packCredits,
-            pack_credits: packCredits,
             monthly_credits: planInfo.monthly_credits,
             reset_date: resetDate.toISOString(),
           })
