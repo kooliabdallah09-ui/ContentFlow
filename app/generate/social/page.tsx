@@ -315,7 +315,7 @@ export default function SocialPage() {
               }}>
               <div style={{
                 width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-                background: active ? 'rgba(255,255,255,0.12)' : 'var(--bg-elev)',
+                background: active ? 'var(--on-ink-subtle)' : 'var(--bg-elev)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: active ? 'var(--on-ink)' : 'var(--ink-2)',
               }}>
@@ -323,8 +323,8 @@ export default function SocialPage() {
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--on-ink)' : 'var(--ink)' }}>{ct.label}</div>
-                <div style={{ fontSize: 12.5, color: active ? 'rgba(255,255,255,0.65)' : 'var(--ink-mute)', marginTop: 2 }}>
-                  {ct.desc} · <strong style={{ color: active ? 'rgba(255,255,255,0.8)' : 'var(--ink-2)' }}>{ct.cost}</strong>
+                <div style={{ fontSize: 12.5, color: active ? 'var(--on-ink-mute)' : 'var(--ink-mute)', marginTop: 2 }}>
+                  {ct.desc} · <strong style={{ color: active ? 'var(--on-ink-dim)' : 'var(--ink-2)' }}>{ct.cost}</strong>
                 </div>
               </div>
             </button>

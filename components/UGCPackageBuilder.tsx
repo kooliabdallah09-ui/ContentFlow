@@ -771,13 +771,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             <span style={{
               position: 'relative', flexShrink: 0,
               width: 32, height: 18, borderRadius: 99,
-              background: useBrand ? 'rgba(255,255,255,0.25)' : 'var(--border-strong)',
+              background: useBrand ? 'var(--on-ink-subtle)' : 'var(--border-strong)',
               transition: 'background 0.15s',
             }}>
               <span style={{
                 position: 'absolute', top: 2, left: useBrand ? 16 : 2,
                 width: 14, height: 14, borderRadius: '50%',
-                background: '#fff', transition: 'left 0.15s',
+                background: useBrand ? 'var(--on-ink)' : '#fff', transition: 'left 0.15s',
               }} />
             </span>
             <input type="checkbox" checked={useBrand} onChange={e => toggleUseBrand(e.target.checked)}
@@ -789,7 +789,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               </div>
               <div style={{
                 fontSize: 11.5,
-                color: useBrand ? 'rgba(255,255,255,0.7)' : 'var(--ink-mute)',
+                color: useBrand ? 'var(--on-ink-mute)' : 'var(--ink-mute)',
                 marginTop: 2,
               }}>
                 {useBrand ? `Pre-filled with “${brand.productName}”` : 'Or fill the fields manually below'}

@@ -458,7 +458,7 @@ export default function VideoGeneratorPage() {
                   }}
                 >
                   {shopifyLoading
-                    ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'vid-spin 0.7s linear infinite' }} />Loading...</>
+                    ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', display: 'inline-block', animation: 'vid-spin 0.7s linear infinite' }} />Loading...</>
                     : 'Fetch Products'}
                 </button>
               </div>
@@ -596,7 +596,7 @@ export default function VideoGeneratorPage() {
           >
             {generating ? (
               <>
-                <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'vid-spin 0.8s linear infinite' }} />
+                <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', borderRadius: '50%', animation: 'vid-spin 0.8s linear infinite' }} />
                 Submitting…
               </>
             ) : `Generate with ${cfg.name} · ${cost} credits`}

@@ -287,7 +287,7 @@ export default function ScreenDemoPage() {
                 }}
               >
                 {generatingScript
-                  ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', display: 'inline-block', animation: 'sd-spin 0.8s linear infinite' }} />Writing…</>
+                  ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', display: 'inline-block', animation: 'sd-spin 0.8s linear infinite' }} />Writing…</>
                   : <><Sparkles size={13} />Generate script</>}
               </button>
             </div>
@@ -382,9 +382,9 @@ export default function ScreenDemoPage() {
             }}
           >
             {status === 'uploading' ? (
-              <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'sd-spin 0.8s linear infinite' }} />Uploading…</>
+              <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', borderRadius: '50%', animation: 'sd-spin 0.8s linear infinite' }} />Uploading…</>
             ) : status === 'rendering' ? (
-              <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'sd-spin 0.8s linear infinite' }} />Rendering — usually 1–2 min…</>
+              <><span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', borderRadius: '50%', animation: 'sd-spin 0.8s linear infinite' }} />Rendering — usually 1–2 min…</>
             ) : (
               `Generate Screen Demo · ${cost} credits`
             )}

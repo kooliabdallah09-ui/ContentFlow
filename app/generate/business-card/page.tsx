@@ -378,7 +378,7 @@ export default function BusinessCardPage() {
           >
             {loading ? (
               <>
-                <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.35)', borderTopColor: '#fff', borderRadius: '50%', animation: 'bc-spin 0.8s linear infinite' }} />
+                <span style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', borderRadius: '50%', animation: 'bc-spin 0.8s linear infinite' }} />
                 Exporting…
               </>
             ) : (
