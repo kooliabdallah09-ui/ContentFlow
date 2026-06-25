@@ -208,4 +208,10 @@ export const Icon = {
       <path d="M8 21h8M12 17v4"/>
     </svg>
   ),
+  Carousel: (props: React.SVGProps<SVGSVGElement>) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <rect x="5" y="4" width="14" height="16" rx="2"/>
+      <path d="M2 7v10M22 7v10"/>
+    </svg>
+  ),
 };
