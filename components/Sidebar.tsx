@@ -84,10 +84,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <Icon.Social />
           <span style={{ flex: 1 }}>Social</span>
         </Link>
-        <Link href="/generate/carousel" className={`nav-item ${isActive('/generate/carousel') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Carousel />
-          <span style={{ flex: 1 }}>Carousel</span>
-        </Link>
         <Link href="/generate/business-card" className={`nav-item ${isActive('/generate/business-card') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Card />
           <span style={{ flex: 1 }}>Business Card</span>
