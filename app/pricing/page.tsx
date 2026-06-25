@@ -63,8 +63,8 @@ const PLANS = [
 
 const PACKS = [
   { credits: 500, price: 15, perCredit: 0.030, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '' },
-  { credits: 1500, price: 40, perCredit: 0.027, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '' },
-  { credits: 5000, price: 120, perCredit: 0.024, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '' },
+  { credits: 1500, price: 45, perCredit: 0.030, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '' },
+  { credits: 5000, price: 150, perCredit: 0.030, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '' },
 ]
 
 export default function PricingPage() {
