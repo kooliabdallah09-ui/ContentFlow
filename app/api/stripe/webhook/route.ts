@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
           if (planInfo) {
             const { data: current } = await supabase
               .from('user_credits')
-              .select('plan, balance, pack_credits')
+              .select('plan, balance, pack_credits, monthly_credits')
               .eq('user_id', userId)
               .single()
 
