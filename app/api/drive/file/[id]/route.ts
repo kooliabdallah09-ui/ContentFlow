@@ -11,7 +11,7 @@ function getSupabase() {
 // Proxy a Drive file download — needed for files without a public sourceUrl.
 // Accepts auth via Authorization header OR ?token= query param (needed for <video src=...>).
 // Supports Range requests so <video> seeking works.
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const authHeader = request.headers.get('authorization')
   const queryToken = request.nextUrl.searchParams.get('token')
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : queryToken
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     }
 
     const accessToken = await getValidDriveToken(userData.user.id, supabase)
-    const fileId = params.id
+    const { id: fileId } = await params
 
     const rangeHeader = request.headers.get('range')
     const driveRes = await fetch(
