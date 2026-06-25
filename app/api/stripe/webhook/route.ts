@@ -163,13 +163,22 @@ export async function POST(request: NextRequest) {
         const userId = await getUserIdByCustomer(supabase, invoice.customer as string)
         if (!userId) break
 
+        // Preserve pack credits: any balance above the old monthly allowance is
+        // from one-time packs and should survive the renewal reset.
+        const { data: currentCredits } = await supabase
+          .from('user_credits')
+          .select('balance, monthly_credits')
+          .eq('user_id', userId)
+          .single()
+        const packRemainder = Math.max(0, (currentCredits?.balance ?? 0) - (currentCredits?.monthly_credits ?? 0))
+
         const resetDate = new Date()
         resetDate.setMonth(resetDate.getMonth() + 1)
         resetDate.setDate(1)
         await supabase
           .from('user_credits')
           .update({
-            balance: planInfo.monthly_credits,
+            balance: planInfo.monthly_credits + packRemainder,
             monthly_credits: planInfo.monthly_credits,
             reset_date: resetDate.toISOString(),
           })
