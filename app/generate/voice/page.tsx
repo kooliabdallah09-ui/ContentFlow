@@ -165,7 +165,7 @@ export default function VoicePage() {
                   padding: '9px 18px', borderRadius: 999,
                   background: active ? 'var(--ink)' : 'var(--surface)',
                   border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                  color: active ? '#fff' : 'var(--ink-2)',
+                  color: active ? 'var(--on-ink)' : 'var(--ink-2)',
                   fontSize: 13, fontWeight: 600,
                   cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
                   display: 'flex', alignItems: 'center', gap: 5,
@@ -228,7 +228,7 @@ export default function VoicePage() {
               marginLeft: 'auto',
               padding: '11px 26px', borderRadius: 999,
               background: !canGenerate || loading ? 'var(--ink-faint)' : 'var(--ink)',
-              color: '#fff', border: 'none',
+              color: 'var(--on-ink)', border: 'none',
               fontSize: 14, fontWeight: 600,
               cursor: !canGenerate || loading ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 8,
@@ -305,7 +305,7 @@ export default function VoicePage() {
                 onClick={() => togglePlay(idx)}
                 style={{
                   flexShrink: 0, width: 40, height: 40, borderRadius: '50%',
-                  background: 'var(--ink)', color: '#fff', border: 'none',
+                  background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   cursor: 'pointer',
                 }}>

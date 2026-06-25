@@ -115,7 +115,7 @@ export default function ActorPicker({ value, onChange, disabled }: ActorPickerPr
                   {active && (
                     <div style={{
                       position: 'absolute', top: 8, right: 8,
-                      background: 'var(--ink)', color: '#fff',
+                      background: 'var(--ink)', color: 'var(--on-ink)',
                       borderRadius: 999, padding: '2px 8px',
                       fontSize: 10, fontWeight: 600, letterSpacing: '0.04em',
                     }}>
@@ -161,7 +161,7 @@ export default function ActorPicker({ value, onChange, disabled }: ActorPickerPr
                     <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>Your photo</div>
                   </div>
                   {selectedId === '__custom__' && (
-                    <div style={{ position: 'absolute', top: 8, right: 8, background: 'var(--ink)', color: '#fff', borderRadius: 999, padding: '2px 8px', fontSize: 10, fontWeight: 600 }}>Selected</div>
+                    <div style={{ position: 'absolute', top: 8, right: 8, background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 999, padding: '2px 8px', fontSize: 10, fontWeight: 600 }}>Selected</div>
                   )}
                 </button>
               ) : (

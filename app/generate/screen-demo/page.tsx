@@ -279,7 +279,7 @@ export default function ScreenDemoPage() {
                 disabled={!description.trim() || busy || generatingScript}
                 style={{
                   padding: '9px 16px', borderRadius: 8,
-                  border: 'none', background: 'var(--ink)', color: '#fff',
+                  border: 'none', background: 'var(--ink)', color: 'var(--on-ink)',
                   fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   opacity: !description.trim() || busy || generatingScript ? 0.4 : 1,
                   display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
@@ -324,7 +324,7 @@ export default function ScreenDemoPage() {
                     padding: '11px 14px', borderRadius: 10, textAlign: 'left',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'transparent',
-                    color: active ? '#fff' : 'var(--ink)',
+                    color: active ? 'var(--on-ink)' : 'var(--ink)',
                     cursor: busy ? 'not-allowed' : 'pointer',
                     transition: 'all 0.12s',
                   }}>
@@ -348,7 +348,7 @@ export default function ScreenDemoPage() {
                     flex: 1, padding: '14px 8px', borderRadius: 10, textAlign: 'center',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'transparent',
-                    color: active ? '#fff' : 'var(--ink)',
+                    color: active ? 'var(--on-ink)' : 'var(--ink)',
                     cursor: busy ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s',
                     display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center',
@@ -374,7 +374,7 @@ export default function ScreenDemoPage() {
             style={{
               width: '100%', padding: '14px 0', borderRadius: 12,
               background: !canGenerate ? 'var(--border)' : 'var(--ink)',
-              color: !canGenerate ? 'var(--ink-dim)' : '#fff',
+              color: !canGenerate ? 'var(--ink-dim)' : 'var(--on-ink)',
               border: 'none', fontSize: 15, fontWeight: 700,
               cursor: !canGenerate ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -403,7 +403,7 @@ export default function ScreenDemoPage() {
             <div style={{ padding: '14px 20px', display: 'flex', gap: 10 }}>
               <a href={resultUrl} download="screen-demo.mp4"
                 style={{
-                  padding: '9px 20px', borderRadius: 9, background: 'var(--ink)', color: '#fff',
+                  padding: '9px 20px', borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)',
                   fontSize: 13, fontWeight: 600, textDecoration: 'none',
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}>

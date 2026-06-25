@@ -548,14 +548,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 disabled={!reviseInput.trim() || revising || isLoading}
                 style={{
                   padding: '9px 16px', borderRadius: 8, border: 'none',
-                  background: 'var(--ink)', color: '#fff',
+                  background: 'var(--ink)', color: 'var(--on-ink)',
                   fontSize: 13, fontWeight: 600, cursor: !reviseInput.trim() || revising ? 'not-allowed' : 'pointer',
                   opacity: !reviseInput.trim() || revising ? 0.5 : 1,
                   whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6,
                 }}
               >
                 {revising ? (
-                  <><span style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Revising…</>
+                  <><span style={{ width: 12, height: 12, border: '2px solid rgba(128,128,128,0.3)', borderTopColor: 'var(--on-ink)', borderRadius: '50%', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} /> Revising…</>
                 ) : 'Revise ↵'}
               </button>
             </div>
@@ -634,7 +634,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     padding: '10px 6px', borderRadius: 10,
                     border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'var(--surface)',
-                    color: active ? '#fff' : 'var(--ink)',
+                    color: active ? 'var(--on-ink)' : 'var(--ink)',
                     opacity: locked ? 0.45 : 1,
                     transition: 'all 0.15s',
                     display: 'flex', flexDirection: 'column', gap: 2,
@@ -720,7 +720,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               disabled={!shopifyUrl.trim() || shopifyLoading}
               style={{ padding: '8px 14px', borderRadius: 8, border: 'none', background: 'var(--ink)', color: 'var(--surface)', fontSize: 13, fontWeight: 600, cursor: shopifyUrl.trim() && !shopifyLoading ? 'pointer' : 'not-allowed', opacity: shopifyUrl.trim() && !shopifyLoading ? 1 : 0.4, whiteSpace: 'nowrap' as const, display: 'flex', alignItems: 'center', gap: 6 }}
             >
-              {shopifyLoading ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Loading...</> : 'Fetch Products'}
+              {shopifyLoading ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(128,128,128,0.3)', borderTopColor: 'var(--on-ink)', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Loading...</> : 'Fetch Products'}
             </button>
           </div>
           {shopifyError && (
@@ -765,7 +765,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             padding: '12px 14px', borderRadius: 11,
             background: useBrand ? 'var(--ink)' : 'var(--surface-2)',
             border: `1px solid ${useBrand ? 'var(--ink)' : 'var(--border)'}`,
-            color: useBrand ? '#fff' : 'var(--ink)',
+            color: useBrand ? 'var(--on-ink)' : 'var(--ink)',
             cursor: 'pointer', transition: 'all 0.15s',
           }}>
             <span style={{

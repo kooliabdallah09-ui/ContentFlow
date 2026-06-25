@@ -113,7 +113,7 @@ export default function AppAssistant() {
           style={{
             position: 'fixed', bottom: 20, right: 20, zIndex: 90,
             width: 52, height: 52, borderRadius: '50%',
-            background: 'var(--ink)', color: '#fff', border: 'none',
+            background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             boxShadow: 'var(--shadow-md)',
             cursor: 'pointer', transition: 'transform 0.15s, opacity 0.15s',
@@ -152,7 +152,7 @@ export default function AppAssistant() {
               <div style={{
                 width: 28, height: 28, borderRadius: 8,
                 background: 'var(--ink)', display: 'flex',
-                alignItems: 'center', justifyContent: 'center', color: '#fff',
+                alignItems: 'center', justifyContent: 'center', color: 'var(--on-ink)',
               }}>
                 <MessageCircle size={15} />
               </div>
@@ -250,7 +250,7 @@ export default function AppAssistant() {
                         display: 'flex', alignItems: 'center', gap: 6,
                         marginTop: 10,
                         padding: '7px 12px',
-                        background: 'var(--ink)', color: '#fff',
+                        background: 'var(--ink)', color: 'var(--on-ink)',
                         border: 'none', borderRadius: 9,
                         fontSize: 12, fontWeight: 600,
                         cursor: 'pointer',
@@ -326,7 +326,7 @@ export default function AppAssistant() {
               style={{
                 width: 36, height: 36, padding: 0,
                 background: input.trim() && !sending ? 'var(--ink)' : 'var(--border)',
-                color: '#fff', border: 'none', borderRadius: 10,
+                color: 'var(--on-ink)', border: 'none', borderRadius: 10,
                 cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,

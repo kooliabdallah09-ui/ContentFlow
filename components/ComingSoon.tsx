@@ -72,7 +72,7 @@ export default function ComingSoon({ feature, description, eta, alternative }: C
               style={{
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 gap: 8, padding: '13px 28px',
-                background: 'var(--ink)', color: '#fff',
+                background: 'var(--ink)', color: 'var(--on-ink)',
                 borderRadius: 11, textDecoration: 'none',
                 fontSize: 14, fontWeight: 600,
               }}

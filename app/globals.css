@@ -31,6 +31,10 @@
   --accent-soft: #F1EFEA;
   --accent-ink: #FFFFFF;
 
+  /* Text colour for elements that sit on a var(--ink) background.
+     White in light mode; dark bg colour in dark mode so it stays readable. */
+  --on-ink: #ffffff;
+
   /* Semantic */
   --danger: #B83A35;
   --good: #2F7A4E;
@@ -80,6 +84,7 @@
   --accent:      #EDEAE2;
   --accent-soft: rgba(237,234,226,0.06);
   --accent-ink:  #111110;
+  --on-ink:      #111110;
 
   --shadow-sm: 0 2px 12px rgba(0,0,0,0.40);
   --shadow-md: 0 6px 18px rgba(0,0,0,0.50);

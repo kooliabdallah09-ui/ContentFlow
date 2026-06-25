@@ -299,7 +299,7 @@ export default function BusinessCardPage() {
                       padding: '8px 18px', borderRadius: 999,
                       background: active ? 'var(--ink)' : 'transparent',
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                      color: active ? '#fff' : 'var(--ink-dim)',
+                      color: active ? 'var(--on-ink)' : 'var(--ink-dim)',
                       fontSize: 13, fontWeight: 600,
                       cursor: 'pointer', transition: 'all 0.15s',
                     }}
@@ -367,7 +367,7 @@ export default function BusinessCardPage() {
               width: '100%',
               padding: '14px 0', borderRadius: 12,
               background: !canExport || loading ? 'var(--border)' : 'var(--ink)',
-              color: !canExport || loading ? 'var(--ink-dim)' : '#fff',
+              color: !canExport || loading ? 'var(--ink-dim)' : 'var(--on-ink)',
               border: 'none',
               fontSize: 15, fontWeight: 700,
               cursor: !canExport || loading ? 'not-allowed' : 'pointer',

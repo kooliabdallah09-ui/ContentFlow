@@ -317,12 +317,12 @@ export default function SocialPage() {
                 width: 40, height: 40, borderRadius: 10, flexShrink: 0,
                 background: active ? 'rgba(255,255,255,0.12)' : 'var(--bg-elev)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: active ? '#fff' : 'var(--ink-2)',
+                color: active ? 'var(--on-ink)' : 'var(--ink-2)',
               }}>
                 {ct.id === 'caption' ? <Icon.Social style={{ width: 20, height: 20 }} /> : <Icon.Carousel style={{ width: 20, height: 20 }} />}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, fontWeight: 700, color: active ? '#fff' : 'var(--ink)' }}>{ct.label}</div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: active ? 'var(--on-ink)' : 'var(--ink)' }}>{ct.label}</div>
                 <div style={{ fontSize: 12.5, color: active ? 'rgba(255,255,255,0.65)' : 'var(--ink-mute)', marginTop: 2 }}>
                   {ct.desc} · <strong style={{ color: active ? 'rgba(255,255,255,0.8)' : 'var(--ink-2)' }}>{ct.cost}</strong>
                 </div>
@@ -375,7 +375,7 @@ export default function SocialPage() {
                   const active = capTone === t.id
                   return (
                     <button key={t.id} type="button" onClick={() => setCapTone(t.id)} disabled={capLoading}
-                      style={{ padding: '8px 16px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? '#fff' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: capLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                      style={{ padding: '8px 16px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: capLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {t.label}
                     </button>
                   )
@@ -384,7 +384,7 @@ export default function SocialPage() {
             </div>
 
             <button onClick={generateCaption} disabled={!canCaption}
-              style={{ padding: '13px 28px', borderRadius: 999, background: !canCaption ? 'var(--ink-faint)' : 'var(--ink)', color: '#fff', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCaption ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
+              style={{ padding: '13px 28px', borderRadius: 999, background: !canCaption ? 'var(--ink-faint)' : 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCaption ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
               {capLoading ? <><Loader2 size={15} className="animate-spin" /> Writing posts…</> : `Generate${selPlatforms.length > 1 ? ` (${selPlatforms.length} platforms)` : ''}`}
             </button>
 
@@ -460,7 +460,7 @@ export default function SocialPage() {
                   const active = carPlatform === p.id
                   return (
                     <button key={p.id} type="button" onClick={() => setCarPlatform(p.id)} disabled={carLoading}
-                      style={{ padding: '9px 20px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? '#fff' : 'var(--ink-2)', fontSize: 13, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                      style={{ padding: '9px 20px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 13, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {p.label}
                     </button>
                   )
@@ -475,7 +475,7 @@ export default function SocialPage() {
                   const active = slideCount === n
                   return (
                     <button key={n} type="button" onClick={() => setSlideCount(n)} disabled={carLoading}
-                      style={{ width: 48, height: 40, borderRadius: 10, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? '#fff' : 'var(--ink-2)', fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                      style={{ width: 48, height: 40, borderRadius: 10, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {n}
                     </button>
                   )
@@ -490,7 +490,7 @@ export default function SocialPage() {
                   const active = carTone === t.id
                   return (
                     <button key={t.id} type="button" onClick={() => setCarTone(t.id)} disabled={carLoading}
-                      style={{ padding: '8px 16px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? '#fff' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                      style={{ padding: '8px 16px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {t.label}
                     </button>
                   )
@@ -520,7 +520,7 @@ export default function SocialPage() {
             )}
 
             <button onClick={generateCarousel} disabled={!canCarousel}
-              style={{ padding: '13px 28px', borderRadius: 999, background: !canCarousel ? 'var(--ink-faint)' : 'var(--ink)', color: '#fff', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCarousel ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
+              style={{ padding: '13px 28px', borderRadius: 999, background: !canCarousel ? 'var(--ink-faint)' : 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCarousel ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
               {carLoading ? <><Loader2 size={15} className="animate-spin" /> Generating {slideCount} slides…</> : `Generate ${slideCount} slides`}
             </button>
 
@@ -582,7 +582,7 @@ export default function SocialPage() {
               </div>
 
               <button onClick={downloadAll}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 0', borderRadius: 12, background: 'var(--ink)', color: '#fff', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 0', borderRadius: 12, background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                 <Download size={15} /> Download all {slides.length} slides
               </button>
 

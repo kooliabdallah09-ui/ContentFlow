@@ -2787,7 +2787,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                           setSavingToLibrary(false)
                         }
                       }}
-                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: savedToLibrary ? '#16a34a' : 'var(--ink)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 700, cursor: savingToLibrary || savedToLibrary ? 'default' : 'pointer', opacity: savingToLibrary ? 0.7 : 1 }}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: savedToLibrary ? '#16a34a' : 'var(--ink)', border: 'none', color: 'var(--on-ink)', fontSize: 13, fontWeight: 700, cursor: savingToLibrary || savedToLibrary ? 'default' : 'pointer', opacity: savingToLibrary ? 0.7 : 1 }}
                     >
                       {savingToLibrary ? (
                         <><span style={{ display: 'inline-block', width: 13, height: 13, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', animation: 'spin 0.7s linear infinite' }} />Saving…</>

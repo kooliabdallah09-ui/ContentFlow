@@ -284,7 +284,7 @@ export default function CarouselGeneratorPage() {
                       padding: '9px 20px', borderRadius: 999,
                       background: active ? 'var(--ink)' : 'var(--surface)',
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                      color: active ? '#fff' : 'var(--ink-2)',
+                      color: active ? 'var(--on-ink)' : 'var(--ink-2)',
                       fontSize: 13, fontWeight: 600,
                       cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
                     }}>
@@ -309,7 +309,7 @@ export default function CarouselGeneratorPage() {
                       width: 48, height: 40, borderRadius: 10,
                       background: active ? 'var(--ink)' : 'var(--surface)',
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                      color: active ? '#fff' : 'var(--ink-2)',
+                      color: active ? 'var(--on-ink)' : 'var(--ink-2)',
                       fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 600,
                       cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
                     }}>
@@ -334,7 +334,7 @@ export default function CarouselGeneratorPage() {
                       padding: '8px 18px', borderRadius: 999,
                       background: active ? 'var(--ink)' : 'var(--surface)',
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                      color: active ? '#fff' : 'var(--ink-2)',
+                      color: active ? 'var(--on-ink)' : 'var(--ink-2)',
                       fontSize: 13, fontWeight: 600,
                       cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
                     }}>
@@ -515,7 +515,7 @@ export default function CarouselGeneratorPage() {
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 padding: '13px 0', borderRadius: 12,
-                background: 'var(--ink)', color: '#fff', border: 'none',
+                background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
                 fontSize: 14, fontWeight: 600, cursor: 'pointer',
               }}>
               <Download size={15} />

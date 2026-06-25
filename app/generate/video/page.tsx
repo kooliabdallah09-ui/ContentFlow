@@ -286,7 +286,7 @@ export default function VideoGeneratorPage() {
                   fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
                   padding: '2px 7px', borderRadius: 999,
                   background: active ? 'var(--ink)' : 'var(--border)',
-                  color: active ? '#fff' : 'var(--ink-dim)',
+                  color: active ? 'var(--on-ink)' : 'var(--ink-dim)',
                 }}>{m.badge}</span>
                 {active && (
                   <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-dim)', fontWeight: 600 }}>✓ Selected</span>
@@ -325,14 +325,14 @@ export default function VideoGeneratorPage() {
                     flex: 1, padding: '14px 8px', borderRadius: 10, textAlign: 'center',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'transparent',
-                    color: active ? '#fff' : 'var(--ink)',
+                    color: active ? 'var(--on-ink)' : 'var(--ink)',
                     cursor: generating ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s',
                     display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center',
                   }}
                 >
                   <span style={{ fontSize: 18, fontWeight: 700 }}>{sec}s</span>
-                  <span style={{ fontSize: 11, opacity: active ? 0.75 : 1, color: active ? '#fff' : 'var(--ink-dim)', fontWeight: 600 }}>{cr} cr</span>
+                  <span style={{ fontSize: 11, opacity: active ? 0.75 : 1, color: active ? 'var(--on-ink)' : 'var(--ink-dim)', fontWeight: 600 }}>{cr} cr</span>
                 </button>
               )
             })}
@@ -359,7 +359,7 @@ export default function VideoGeneratorPage() {
                     flex: 1, padding: '14px 8px', borderRadius: 10, textAlign: 'center',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'transparent',
-                    color: active ? '#fff' : 'var(--ink)',
+                    color: active ? 'var(--on-ink)' : 'var(--ink)',
                     cursor: generating ? 'not-allowed' : 'pointer',
                     transition: 'all 0.15s',
                     display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center',
@@ -367,7 +367,7 @@ export default function VideoGeneratorPage() {
                 >
                   <span style={{ fontSize: 20 }}>{f.icon}</span>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{f.label}</span>
-                  <span style={{ fontSize: 10.5, opacity: active ? 0.7 : 1, color: active ? '#fff' : 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>{f.sub}</span>
+                  <span style={{ fontSize: 10.5, opacity: active ? 0.7 : 1, color: active ? 'var(--on-ink)' : 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>{f.sub}</span>
                 </button>
               )
             })}
@@ -450,7 +450,7 @@ export default function VideoGeneratorPage() {
                   disabled={!shopifyUrl.trim() || shopifyLoading}
                   style={{
                     padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: 'var(--ink)', color: '#fff',
+                    background: 'var(--ink)', color: 'var(--on-ink)',
                     fontSize: 13, fontWeight: 600,
                     cursor: shopifyUrl.trim() && !shopifyLoading ? 'pointer' : 'not-allowed',
                     opacity: shopifyUrl.trim() && !shopifyLoading ? 1 : 0.4,
@@ -587,7 +587,7 @@ export default function VideoGeneratorPage() {
             style={{
               width: '100%', padding: '14px 0', borderRadius: 12,
               background: !canGenerate || generating ? 'var(--border)' : 'var(--ink)',
-              color: !canGenerate || generating ? 'var(--ink-dim)' : '#fff',
+              color: !canGenerate || generating ? 'var(--ink-dim)' : 'var(--on-ink)',
               border: 'none', fontSize: 15, fontWeight: 700,
               cursor: !canGenerate || generating ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
@@ -636,7 +636,7 @@ export default function VideoGeneratorPage() {
               <>
                 <video controls src={video.videoUrl} style={{ width: '100%', borderRadius: 10, marginBottom: 14, maxHeight: 500, background: '#000' }} />
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <a href={video.videoUrl} download={`video-${Date.now()}.mp4`} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, background: 'var(--ink)', color: '#fff', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
+                  <a href={video.videoUrl} download={`video-${Date.now()}.mp4`} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
                     <Download size={14} /> Download
                   </a>
                   <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>

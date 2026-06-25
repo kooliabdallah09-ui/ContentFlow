@@ -179,7 +179,7 @@ export default function UGCGeneratorPage() {
           textTransform: 'uppercase', color: 'var(--ink-fade)',
         }}>
           <span style={{
-            background: 'var(--ink)', color: '#fff', borderRadius: 5,
+            background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 5,
             padding: '2px 7px', letterSpacing: '0.04em',
           }}>Flagship</span>
           UGC Package

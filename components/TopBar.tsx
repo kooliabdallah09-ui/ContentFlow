@@ -101,7 +101,7 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
           onClick={() => setMenuOpen(o => !o)}
           style={{
             width: 34, height: 34, borderRadius: '50%',
-            background: 'var(--ink)', color: '#fff',
+            background: 'var(--ink)', color: 'var(--on-ink)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 13, fontWeight: 600, border: 0, cursor: 'pointer',
           }}
