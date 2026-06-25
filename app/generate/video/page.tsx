@@ -164,7 +164,12 @@ export default function VideoGeneratorPage() {
     setShopifyProducts(null)
     setSelectedShopifyProduct(null)
     try {
-      const res = await fetch(`/api/shopify/products?store=${encodeURIComponent(shopifyUrl.trim())}`)
+      const supabase = getSupabase()
+      const { data: sess } = await supabase!.auth.getSession()
+      const token = sess?.session?.access_token
+      const res = await fetch(`/api/shopify/products?store=${encodeURIComponent(shopifyUrl.trim())}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      })
       const data = await res.json()
       if (data.error) throw new Error(data.error)
       setShopifyProducts(data.products)

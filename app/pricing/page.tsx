@@ -42,7 +42,7 @@ const PLANS = [
     credits: '2,000 credits/month',
     monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
     annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '',
-    features: ['~22 UGC videos/mo at 5s · ~11 at 10s · ~7 at 15s', '~400 product images or voiceovers', '~34 standalone videos (8s)', 'Everything in Starter', 'Software / app mode · Shopify import'],
+    features: ['~22 UGC videos/mo at 5s · ~11 at 10s · ~7 at 15s', '~400 product images or voiceovers', '~34 standalone videos (8s)', 'Everything in Starter', 'Shopify product import'],
     cta: 'Get Pro',
     href: '/auth/signup?plan=pro',
   },

@@ -188,7 +188,6 @@ export default function BillingPage() {
         '~400 product images or voiceovers',
         '~34 standalone videos (8s)',
         'Everything in Starter',
-        'Software / app product mode',
         'Shopify product import',
         'Priority support',
       ],

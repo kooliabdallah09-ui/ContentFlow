@@ -1,22 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
+  // Gate to Pro and Agency plans only
+  const authHeader = request.headers.get('authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+
+  const { data: userData, error: userError } = await supabase.auth.getUser(authHeader.slice(7))
+  if (userError || !userData?.user?.id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const { data: credits } = await supabase
+    .from('user_credits')
+    .select('plan')
+    .eq('user_id', userData.user.id)
+    .single()
+
+  if (!credits || !['pro', 'agency'].includes(credits.plan)) {
+    return NextResponse.json({ error: 'Shopify import is available on Pro and Agency plans.' }, { status: 403 })
+  }
+
   const storeUrl = request.nextUrl.searchParams.get('store')
   if (!storeUrl) return NextResponse.json({ error: 'Missing store' }, { status: 400 })
 
-  // Normalize: strip https://, trailing slash, add /products.json?limit=50
-  // Handle both mystore.myshopify.com and custom domains
   const host = storeUrl.replace(/^https?:\/\//i, '').replace(/\/.*$/, '').toLowerCase()
 
   try {
     const res = await fetch(`https://${host}/products.json?limit=50`, {
       headers: { 'Accept': 'application/json' },
-      // 8 second timeout
       signal: AbortSignal.timeout(8000),
     })
     if (!res.ok) throw new Error(`Store returned ${res.status}`)
     const data = await res.json()
-    // Return only what we need: id, title, handle, body_html, images[0..2], variants[0].price
     const products = (data.products ?? []).map((p: Record<string, unknown>) => ({
       id: p.id,
       title: p.title,
