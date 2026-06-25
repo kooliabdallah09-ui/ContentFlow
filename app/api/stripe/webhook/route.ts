@@ -72,25 +72,41 @@ export async function POST(request: NextRequest) {
           const priceId = fullSession.line_items?.data[0]?.price?.id ?? ''
           const planInfo = PLAN_PRICE_MAP[priceId]
           if (planInfo) {
-            const resetDate = new Date()
-            resetDate.setMonth(resetDate.getMonth() + 1)
-            // Preserve pack credits — add subscription credits on top.
             const { data: current } = await supabase
               .from('user_credits')
-              .select('pack_credits')
+              .select('plan, balance, pack_credits')
               .eq('user_id', userId)
               .single()
+
+            const isNewSubscription = !current?.plan || current.plan === 'free'
             const packCredits = current?.pack_credits ?? 0
-            await supabase
-              .from('user_credits')
-              .update({
-                plan: planInfo.plan,
-                monthly_credits: planInfo.monthly_credits,
-                balance: planInfo.monthly_credits + packCredits,
-                reset_date: resetDate.toISOString(),
-                stripe_customer_id: session.customer as string,
-              })
-              .eq('user_id', userId)
+            const resetDate = new Date()
+            resetDate.setMonth(resetDate.getMonth() + 1)
+
+            if (isNewSubscription) {
+              // First-time subscriber: grant full monthly allowance + any pack credits
+              await supabase
+                .from('user_credits')
+                .update({
+                  plan: planInfo.plan,
+                  monthly_credits: planInfo.monthly_credits,
+                  balance: planInfo.monthly_credits + packCredits,
+                  reset_date: resetDate.toISOString(),
+                  stripe_customer_id: session.customer as string,
+                })
+                .eq('user_id', userId)
+            } else {
+              // Plan change (upgrade/downgrade): preserve current balance,
+              // just update plan metadata. Balance resets correctly at next renewal.
+              await supabase
+                .from('user_credits')
+                .update({
+                  plan: planInfo.plan,
+                  monthly_credits: planInfo.monthly_credits,
+                  stripe_customer_id: session.customer as string,
+                })
+                .eq('user_id', userId)
+            }
             const { email, name } = await getUserEmailAndName(supabase, userId)
             if (email) sendSubscriptionEmail(email, name, planInfo.plan, planInfo.monthly_credits).catch(() => {})
           }
