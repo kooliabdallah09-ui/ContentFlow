@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deductCredits } from '@/lib/deduct-credits'
 import { generateSpeech } from '@/lib/tts'
 
 // POST { text, voiceId, language?, speed? } → { audioUrl, creditDeducted, newBalance }
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     const { data: credits } = await supabase
       .from('user_credits')
-      .select('balance')
+      .select('balance, pack_credits')
       .eq('user_id', userId)
       .single()
 
@@ -73,8 +74,7 @@ export async function POST(req: NextRequest) {
 
     const { data: { publicUrl: audioUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
 
-    const newBalance = credits.balance - CREDIT_COST
-    await supabase.from('user_credits').update({ balance: newBalance }).eq('user_id', userId)
+    const { newBalance } = await deductCredits(supabase, userId, CREDIT_COST, credits.balance, credits.pack_credits)
     await supabase.from('credit_transactions').insert({
       user_id: userId,
       amount: CREDIT_COST,

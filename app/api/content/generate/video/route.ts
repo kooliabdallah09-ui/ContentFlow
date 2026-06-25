@@ -1,3 +1,4 @@
+import { deductCredits } from '@/lib/deduct-credits'
 import { submitVideoJob as generateVideo } from '@/lib/heygen'
 import { CREDIT_COSTS } from '@/lib/credits'
 import { createClient } from '@supabase/supabase-js'
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     // Check user credits
     const { data: userCredits, error: creditsError } = await supabase
       .from('user_credits')
-      .select('balance')
+      .select('balance, pack_credits')
       .eq('user_id', userId)
       .single()
 
@@ -108,18 +109,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Deduct credits
-    const { error: updateError } = await supabase
-      .from('user_credits')
-      .update({ balance: userCredits.balance - creditCost })
-      .eq('user_id', userId)
-
-    if (updateError) {
-      console.error('Credit deduction error:', updateError)
-      return NextResponse.json(
-        { error: 'Failed to deduct credits' },
-        { status: 500 }
-      )
-    }
+    const { newBalance } = await deductCredits(supabase, userId, creditCost, userCredits.balance, userCredits.pack_credits)
 
     // Log transaction
     await supabase.from('credit_transactions').insert({
@@ -136,7 +126,7 @@ export async function POST(request: NextRequest) {
         videoId: result.videoId,
         status: 'processing',
         creditDeducted: creditCost,
-        newBalance: userCredits.balance - creditCost,
+        newBalance,
       },
       { status: 201 }
     )

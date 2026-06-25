@@ -1,3 +1,4 @@
+import { deductCredits } from '@/lib/deduct-credits'
 import { generateImage } from '@/lib/gemini-image'
 import { generateCharacterWithProduct, ugcifyPortrait, generateCharacterInFrontOfUI } from '@/lib/nanobanana'
 import { submitKlingV3OmniJob } from '@/lib/replicate'
@@ -131,7 +132,7 @@ export async function POST(request: NextRequest) {
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
     if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += calculateVideoCredits(tier, duration)
 
-    const { data: userCredits } = await supabase.from('user_credits').select('balance').eq('user_id', userId).single()
+    const { data: userCredits } = await supabase.from('user_credits').select('balance, pack_credits').eq('user_id', userId).single()
     if (!userCredits || userCredits.balance < totalCost) {
       return NextResponse.json({ error: `Insufficient credits. Need ${totalCost}, have ${userCredits?.balance ?? 0}` }, { status: 400 })
     }
@@ -336,7 +337,7 @@ export async function POST(request: NextRequest) {
         credit_cost: totalCost,
         status: 'generating',
       })
-      await supabase.from('user_credits').update({ balance: userCredits.balance - totalCost }).eq('user_id', userId)
+      const { newBalance: newBalanceVideo } = await deductCredits(supabase, userId, totalCost, userCredits.balance, userCredits.pack_credits)
       await supabase.from('credit_transactions').insert({
         user_id: userId, amount: totalCost, transaction_type: 'generation',
         content_type: 'ugc_package', description: `UGC package: ${productName} (Kling v3 omni)`,
@@ -344,7 +345,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true, ugcType, components, script,
-        creditDeducted: totalCost, newBalance: userCredits.balance - totalCost,
+        creditDeducted: totalCost, newBalance: newBalanceVideo,
       }, { status: 201 })
     }
 
@@ -364,7 +365,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to save UGC package' }, { status: 500 })
     }
 
-    await supabase.from('user_credits').update({ balance: userCredits.balance - totalCost }).eq('user_id', userId)
+    const { newBalance } = await deductCredits(supabase, userId, totalCost, userCredits.balance, userCredits.pack_credits)
     await supabase.from('credit_transactions').insert({
       user_id: userId,
       amount: totalCost,
@@ -379,7 +380,7 @@ export async function POST(request: NextRequest) {
       components,
       script,
       creditDeducted: totalCost,
-      newBalance: userCredits.balance - totalCost,
+      newBalance,
     }, { status: 201 })
 
   } catch (error) {

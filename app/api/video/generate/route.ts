@@ -1,3 +1,4 @@
+import { deductCredits } from '@/lib/deduct-credits'
 import { submitSora2ViaReplicate } from '@/lib/replicate'
 import { submitKlingV3OmniJob } from '@/lib/replicate'
 import { generateTextToImage } from '@/lib/nanobanana'
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
     const totalCost = getCost(model, duration)
     const { data: userCredits } = await supabase
       .from('user_credits')
-      .select('balance')
+      .select('balance, pack_credits')
       .eq('user_id', userId)
       .single()
 
@@ -203,7 +204,7 @@ export async function POST(request: NextRequest) {
       status: 'processing',
     }).select('id').single()
 
-    await supabase.from('user_credits').update({ balance: userCredits.balance - totalCost }).eq('user_id', userId)
+    const { newBalance } = await deductCredits(supabase, userId, totalCost, userCredits.balance, userCredits.pack_credits)
     await supabase.from('credit_transactions').insert({
       user_id: userId,
       amount: totalCost,
@@ -219,7 +220,7 @@ export async function POST(request: NextRequest) {
       duration,
       contentId: contentRow?.id ?? null,
       creditDeducted: totalCost,
-      newBalance: userCredits.balance - totalCost,
+      newBalance,
     }, { status: 201 })
   } catch (error) {
     return NextResponse.json(

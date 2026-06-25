@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deductCredits } from '@/lib/deduct-credits'
 import { generateSpeech } from '@/lib/tts'
 import { submitScreenDemoJob } from '@/lib/shotstack'
 
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     const { data: credits } = await supabase
       .from('user_credits')
-      .select('balance, plan')
+      .select('balance, pack_credits, plan')
       .eq('user_id', userId)
       .single()
 
@@ -100,8 +101,7 @@ export async function POST(req: NextRequest) {
     })
 
     // Deduct credits
-    const newBalance = credits.balance - creditCost
-    await supabase.from('user_credits').update({ balance: newBalance }).eq('user_id', userId)
+    const { newBalance } = await deductCredits(supabase, userId, creditCost, credits.balance, credits.pack_credits)
     await supabase.from('credit_transactions').insert({
       user_id: userId,
       amount: creditCost,

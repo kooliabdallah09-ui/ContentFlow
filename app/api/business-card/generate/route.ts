@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { deductCredits } from '@/lib/deduct-credits'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 
 const CREDIT_COST = 3
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
 
     const { data: credits } = await supabase
       .from('user_credits')
-      .select('balance')
+      .select('balance, pack_credits')
       .eq('user_id', userId)
       .single()
 
@@ -92,8 +93,7 @@ QUALITY REQUIREMENTS:
       referenceImageMimeType: logoMimeType ?? undefined,
     })
 
-    const newBalance = credits.balance - CREDIT_COST
-    await supabase.from('user_credits').update({ balance: newBalance }).eq('user_id', userId)
+    const { newBalance } = await deductCredits(supabase, userId, CREDIT_COST, credits.balance, credits.pack_credits)
     await supabase.from('credit_transactions').insert({
       user_id: userId,
       amount: CREDIT_COST,
