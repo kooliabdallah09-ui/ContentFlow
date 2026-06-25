@@ -258,6 +258,34 @@ export default function PricingPage() {
         })}
       </div>
 
+      {/* Credits policy */}
+      <div style={{
+        marginTop: 32,
+        border: '1px solid var(--border)', borderRadius: 14,
+        background: 'var(--surface)', padding: '20px 24px',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px 32px',
+      }}>
+        {[
+          { icon: '↑', title: 'Upgrading', body: 'Your balance resets to the new plan\'s full monthly allowance. Any one-time pack credits are preserved on top.' },
+          { icon: '↓', title: 'Downgrading', body: 'Your current credits are kept and the new plan\'s monthly credits are added on top. Nothing is taken away.' },
+          { icon: '↻', title: 'Monthly renewal', body: 'Your balance resets to your plan\'s monthly allowance. One-time pack credits never expire and always carry over.' },
+          { icon: '＋', title: 'Credit packs', body: 'Stacked on top of your subscription balance. Survive plan changes and monthly resets — they never disappear.' },
+        ].map(({ icon, title, body }) => (
+          <div key={title} style={{ display: 'flex', gap: 12 }}>
+            <span style={{
+              flexShrink: 0, width: 28, height: 28, borderRadius: 8,
+              background: 'var(--bg-elev)', border: '1px solid var(--border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 13, fontWeight: 700, color: 'var(--ink)',
+            }}>{icon}</span>
+            <div>
+              <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{title}</p>
+              <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>{body}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Pay as you go */}
       <div style={{
         marginTop: 54,
