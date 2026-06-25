@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getValidDriveToken } from '@/lib/google-drive'
 
 export async function DELETE(
   request: Request,
@@ -23,31 +24,38 @@ export async function DELETE(
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership before deleting
-    const { data: item, error: fetchError } = await supabase
-      .from('ugc_content')
-      .select('user_id')
-      .eq('id', id)
-      .single()
+    const userId = userData.user.id
+    const accessToken = await getValidDriveToken(userId, supabase)
 
-    if (fetchError || item?.user_id !== userData.user.id) {
-      return Response.json({ error: 'Not found' }, { status: 404 })
+    // Fetch file metadata to get storagePath before deleting
+    const metaRes = await fetch(
+      `https://www.googleapis.com/drive/v3/files/${id}?fields=id,appProperties`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    )
+
+    if (metaRes.ok) {
+      const meta = await metaRes.json()
+      const storagePath = meta.appProperties?.storagePath
+      if (storagePath) {
+        supabase.storage.from('ugc-assets').remove([storagePath]).catch(() => {})
+      }
     }
 
-    // Delete the item
-    const { error } = await supabase
-      .from('ugc_content')
-      .delete()
-      .eq('id', id)
+    // Delete from Drive
+    const delRes = await fetch(`https://www.googleapis.com/drive/v3/files/${id}`, {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    })
 
-    if (error) {
-      console.error('Delete error:', error)
-      return Response.json({ error: 'Failed to delete' }, { status: 500 })
+    if (!delRes.ok && delRes.status !== 204) {
+      const err = await delRes.text()
+      console.error('[library/delete] Drive error:', delRes.status, err)
+      return Response.json({ error: 'Failed to delete from Drive' }, { status: 500 })
     }
 
     return Response.json({ success: true })
   } catch (err) {
-    console.error('Error:', err)
+    console.error('[library/delete]', err)
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

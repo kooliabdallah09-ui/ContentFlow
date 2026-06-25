@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import { getValidDriveToken } from '@/lib/google-drive'
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization')
@@ -24,36 +25,42 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Verify ownership of all items before deleting
-    const { data: items, error: fetchError } = await supabase
-      .from('ugc_content')
-      .select('id, user_id')
-      .in('id', ids)
+    const userId = userData.user.id
+    const accessToken = await getValidDriveToken(userId, supabase)
 
-    if (fetchError || !items) {
-      return Response.json({ error: 'Failed to verify items' }, { status: 500 })
-    }
+    // Delete each file from Drive (and clean up Supabase storage if applicable)
+    const results = await Promise.allSettled(ids.map(async (id: string) => {
+      // Fetch metadata to get storagePath
+      const metaRes = await fetch(
+        `https://www.googleapis.com/drive/v3/files/${id}?fields=id,appProperties`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      )
+      if (metaRes.ok) {
+        const meta = await metaRes.json()
+        const storagePath = meta.appProperties?.storagePath
+        if (storagePath) {
+          supabase.storage.from('ugc-assets').remove([storagePath]).catch(() => {})
+        }
+      }
 
-    // Check if all items belong to the user
-    const allOwned = items.every((item) => item.user_id === userData.user.id)
-    if (!allOwned) {
-      return Response.json({ error: 'Not authorized to delete some items' }, { status: 403 })
-    }
+      const delRes = await fetch(`https://www.googleapis.com/drive/v3/files/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      })
+      if (!delRes.ok && delRes.status !== 204) {
+        throw new Error(`Drive delete failed for ${id}: ${delRes.status}`)
+      }
+    }))
 
-    // Delete all items
-    const { error } = await supabase
-      .from('ugc_content')
-      .delete()
-      .in('id', ids)
-
-    if (error) {
-      console.error('Bulk delete error:', error)
-      return Response.json({ error: 'Failed to delete items' }, { status: 500 })
+    const failed = results.filter(r => r.status === 'rejected').length
+    if (failed > 0) {
+      console.error('[bulk-delete] Some deletions failed:', results)
+      return Response.json({ error: `${failed} item(s) could not be deleted` }, { status: 500 })
     }
 
     return Response.json({ success: true, deleted: ids.length })
   } catch (err) {
-    console.error('Error:', err)
+    console.error('[bulk-delete]', err)
     return Response.json({ error: 'Internal server error' }, { status: 500 })
   }
 }
