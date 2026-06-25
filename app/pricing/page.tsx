@@ -63,8 +63,8 @@ const PLANS = [
 
 const PACKS = [
   { credits: 500, price: 15, perCredit: 0.030, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '' },
-  { credits: 1500, price: 40, perCredit: 0.027, bonus: '+11%', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '' },
-  { credits: 5000, price: 120, perCredit: 0.024, bonus: '+20%', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '' },
+  { credits: 1500, price: 40, perCredit: 0.027, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '' },
+  { credits: 5000, price: 120, perCredit: 0.024, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '' },
 ]
 
 export default function PricingPage() {
@@ -288,13 +288,6 @@ export default function PricingPage() {
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em' }}>
                   {pack.credits.toLocaleString()} <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>cr</span>
                 </div>
-                {pack.bonus && (
-                  <span style={{
-                    fontSize: 10, fontWeight: 600,
-                    background: 'var(--ink)', color: '#fff',
-                    borderRadius: 999, padding: '2px 8px',
-                  }}>{pack.bonus}</span>
-                )}
               </div>
               <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>
                 <span style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>${pack.price}</span>
