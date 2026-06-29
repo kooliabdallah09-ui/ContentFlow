@@ -4,16 +4,8 @@ import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 import type { DailySuggestion } from '@/lib/planner'
-import { Loader2, RefreshCcw, ArrowRight } from 'lucide-react'
-
-// Calendar — reads the user's saved monthly plan and renders it as an
-// editorial day grid + day-detail rail on the right. The plan itself is
-// generated during onboarding (/onboarding/brand) which calls
-// /api/planner/generate-monthly-plan then /api/planner/save-plan. This
-// page just displays and allows opening generations from the suggestions.
-//
-// If no plan exists yet, we show a clear "Set up your plan" CTA pointing
-// at the onboarding flow.
+import { Loader2, RefreshCcw, ArrowRight, Youtube, ExternalLink, Trash2 } from 'lucide-react'
+import ScheduleYouTubeModal, { type ScheduledJob } from '@/components/ScheduleYouTubeModal'
 
 const CONTENT_ICONS: Record<string, string> = {
   ugc: '◉',
@@ -33,28 +25,43 @@ const CONTENT_HREF: Record<string, string> = {
   social: '/generate/social',
 }
 
+const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
+  queued:    { label: '⏳ Queued',     bg: 'rgba(100,100,100,0.1)',    color: 'var(--ink-2)' },
+  uploading: { label: '⬆ Uploading',  bg: 'rgba(59,130,246,0.12)',    color: '#3b82f6' },
+  published: { label: '✓ Published',  bg: 'rgba(47,122,78,0.12)',     color: 'var(--good)' },
+  failed:    { label: '✗ Failed',     bg: 'rgba(184,58,53,0.1)',      color: 'var(--danger)' },
+}
+
 export default function CalendarPage() {
-  const [loading, setLoading] = useState(true)
-  const [refreshing, setRefreshing] = useState(false)
-  const [plan, setPlan] = useState<DailySuggestion[] | null>(null)
+  const [loading, setLoading]         = useState(true)
+  const [refreshing, setRefreshing]   = useState(false)
+  const [plan, setPlan]               = useState<DailySuggestion[] | null>(null)
   const [selectedDay, setSelectedDay] = useState<DailySuggestion | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError]             = useState<string | null>(null)
+
+  // YouTube queue state
+  const [ytJobs, setYtJobs]           = useState<ScheduledJob[]>([])
+  const [showYtModal, setShowYtModal] = useState(false)
+  const [cancellingId, setCancellingId] = useState<string | null>(null)
 
   const now = useMemo(() => new Date(), [])
   const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
-  useEffect(() => {
-    loadPlan()
-  }, [])
+  useEffect(() => { loadPlan() }, [])
+  useEffect(() => { loadYtQueue() }, [])
+
+  async function getToken() {
+    const supabase = getSupabase()
+    if (!supabase) return null
+    const { data: sess } = await supabase.auth.getSession()
+    return sess?.session?.access_token ?? null
+  }
 
   async function loadPlan() {
     setLoading(true)
     setError(null)
     try {
-      const supabase = getSupabase()
-      if (!supabase) throw new Error('Auth not ready')
-      const { data: sess } = await supabase.auth.getSession()
-      const token = sess?.session?.access_token
+      const token = await getToken()
       if (!token) throw new Error('Not signed in')
 
       const res = await fetch(
@@ -66,7 +73,6 @@ export default function CalendarPage() {
 
       const days: DailySuggestion[] = Array.isArray(data.plan) ? data.plan : []
       if (days.length === 0) {
-        // Fallback to the session-cached plan from onboarding
         try {
           const cached = sessionStorage.getItem('generatedPlan')
           if (cached) {
@@ -92,9 +98,39 @@ export default function CalendarPage() {
     }
   }
 
+  async function loadYtQueue() {
+    try {
+      const token = await getToken()
+      if (!token) return
+      const res = await fetch('/api/youtube/queue', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) return
+      const data = await res.json()
+      setYtJobs(data.jobs ?? [])
+    } catch {}
+  }
+
   function findTodayOrFirst(days: DailySuggestion[]): DailySuggestion | null {
     const todayStr = new Date().toISOString().slice(0, 10)
     return days.find(d => d.date === todayStr) ?? days[0] ?? null
+  }
+
+  function jobForDay(date: string): ScheduledJob | undefined {
+    return ytJobs.find(j => j.calendar_date === date)
+  }
+
+  async function cancelJob(id: string) {
+    setCancellingId(id)
+    try {
+      const token = await getToken()
+      if (!token) return
+      await fetch(`/api/youtube/queue?id=${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      setYtJobs(prev => prev.filter(j => j.id !== id))
+    } finally {
+      setCancellingId(null)
+    }
   }
 
   async function regenerate() {
@@ -108,16 +144,13 @@ export default function CalendarPage() {
       const user = sess?.session?.user
       if (!user) throw new Error('Not signed in')
 
-      // Pull the user's brand profile to feed the planner.
       const { data: brand } = await supabase
         .from('brand_profiles')
         .select('company_name, description, target_audience, tone_of_voice, unique_value_prop, brand_mission, customer_pain_points, product_type, posting_frequency')
         .eq('user_id', user.id)
         .maybeSingle()
 
-      if (!brand) {
-        throw new Error('No brand profile yet — fill it in first.')
-      }
+      if (!brand) throw new Error('No brand profile yet — fill it in first.')
 
       const platforms = ['tiktok', 'instagram']
       const frequency = (brand.posting_frequency as 'light' | 'moderate' | 'heavy') || 'moderate'
@@ -197,19 +230,17 @@ export default function CalendarPage() {
             Edit brand profile
           </Link>
         </div>
-        {error && (
-          <p style={{ marginTop: 18, fontSize: 12, color: 'var(--danger)' }}>{error}</p>
-        )}
+        {error && <p style={{ marginTop: 18, fontSize: 12, color: 'var(--danger)' }}>{error}</p>}
       </main>
     )
   }
 
-  // Calendar grid: render the days laid out in their actual weekday columns.
-  // Group plan entries into weeks of 7 (pad with nulls to align Monday-first).
   const firstDate = plan[0]?.date ? new Date(plan[0].date) : new Date()
-  const startWeekday = (firstDate.getDay() + 6) % 7 // 0 = Monday
+  const startWeekday = (firstDate.getDay() + 6) % 7
   const cells: (DailySuggestion | null)[] = Array(startWeekday).fill(null).concat(plan as (DailySuggestion | null)[])
   while (cells.length % 7 !== 0) cells.push(null)
+
+  const selectedJob = selectedDay ? jobForDay(selectedDay.date) : undefined
 
   return (
     <main className="content" style={{ maxWidth: 1180 }}>
@@ -249,14 +280,14 @@ export default function CalendarPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
             {cells.map((cell, i) => {
-              if (!cell) {
-                return <div key={`empty-${i}`} style={{ aspectRatio: '1', borderRadius: 11, background: 'transparent' }} />
-              }
+              if (!cell) return <div key={`empty-${i}`} style={{ aspectRatio: '1', borderRadius: 11, background: 'transparent' }} />
               const active = selectedDay?.date === cell.date
               const dateObj = new Date(cell.date)
               const dayNum = dateObj.getDate()
               const isToday = cell.date === new Date().toISOString().slice(0, 10)
               const icon = CONTENT_ICONS[cell.contentType] ?? '◯'
+              const job = jobForDay(cell.date)
+
               return (
                 <button
                   key={cell.date}
@@ -267,7 +298,7 @@ export default function CalendarPage() {
                     padding: 10, borderRadius: 11,
                     background: active ? 'var(--ink)' : 'var(--surface)',
                     border: `1px solid ${active ? 'var(--ink)' : (isToday ? 'var(--border-strong)' : 'var(--border)')}`,
-                    color: active ? '#fff' : 'var(--ink)',
+                    color: active ? 'var(--on-ink)' : 'var(--ink)',
                     display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
                     cursor: 'pointer', transition: 'all 0.15s',
                     minWidth: 0, overflow: 'hidden',
@@ -275,20 +306,24 @@ export default function CalendarPage() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <span style={{
                       fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 500,
-                      color: active ? '#fff' : (isToday ? 'var(--ink)' : 'var(--ink-mute)'),
+                      color: active ? 'var(--on-ink)' : (isToday ? 'var(--ink)' : 'var(--ink-mute)'),
                     }}>{dayNum}</span>
-                    {cell.completed && (
-                      <span style={{ fontSize: 11, color: active ? 'rgba(255,255,255,0.7)' : 'var(--good)' }}>✓</span>
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      {cell.completed && (
+                        <span style={{ fontSize: 11, color: active ? 'var(--on-ink-dim)' : 'var(--good)' }}>✓</span>
+                      )}
+                      {job && (
+                        <span title={`YouTube: ${job.status}`} style={{ fontSize: 9, lineHeight: 1 }}>
+                          {job.status === 'published' ? '🔴' : job.status === 'failed' ? '⚠️' : '📅'}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div style={{ minWidth: 0 }}>
-                    <div style={{
-                      fontSize: 16, lineHeight: 1, marginBottom: 4,
-                      color: active ? '#fff' : 'var(--ink-2)',
-                    }}>{icon}</div>
+                    <div style={{ fontSize: 16, lineHeight: 1, marginBottom: 4, color: active ? 'var(--on-ink)' : 'var(--ink-2)' }}>{icon}</div>
                     <div style={{
                       fontSize: 10.5, lineHeight: 1.2, fontWeight: 500,
-                      color: active ? 'rgba(255,255,255,0.85)' : 'var(--ink-dim)',
+                      color: active ? 'var(--on-ink-dim)' : 'var(--ink-dim)',
                       overflow: 'hidden', textOverflow: 'ellipsis',
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
                     }}>
@@ -335,10 +370,98 @@ export default function CalendarPage() {
 
               <Link href={CONTENT_HREF[selectedDay.contentType] ?? '/dashboard'}
                 className="btn btn-primary"
-                style={{ display: 'flex', width: '100%', padding: 12, fontSize: 13.5, borderRadius: 11 }}>
+                style={{ display: 'flex', width: '100%', padding: 12, fontSize: 13.5, borderRadius: 11, marginBottom: 10 }}>
                 Create now
                 <ArrowRight size={14} />
               </Link>
+
+              {/* YouTube scheduling section */}
+              {selectedJob ? (
+                <div style={{
+                  borderRadius: 11, border: '1px solid var(--border)',
+                  background: 'var(--surface-2)', overflow: 'hidden',
+                }}>
+                  {/* Status bar */}
+                  <div style={{
+                    padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
+                    borderBottom: selectedJob.status !== 'published' ? '1px solid var(--border-soft)' : undefined,
+                  }}>
+                    <Youtube size={14} color="#FF0000" />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {selectedJob.title}
+                      </div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 1 }}>
+                        {new Date(selectedJob.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                      </div>
+                    </div>
+                    {(() => {
+                      const b = STATUS_BADGE[selectedJob.status]
+                      return (
+                        <span style={{
+                          fontSize: 10.5, fontWeight: 600, padding: '2px 8px',
+                          borderRadius: 99, background: b.bg, color: b.color,
+                          whiteSpace: 'nowrap',
+                        }}>{b.label}</span>
+                      )
+                    })()}
+                  </div>
+
+                  {/* Published link */}
+                  {selectedJob.status === 'published' && selectedJob.yt_video_url && (
+                    <a href={selectedJob.yt_video_url} target="_blank" rel="noopener noreferrer"
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        padding: '8px 14px', fontSize: 12, color: '#FF0000',
+                        textDecoration: 'none', fontWeight: 600,
+                      }}>
+                      <ExternalLink size={12} />
+                      Watch on YouTube
+                    </a>
+                  )}
+
+                  {/* Cancel button for queued jobs */}
+                  {selectedJob.status === 'queued' && (
+                    <button
+                      onClick={() => cancelJob(selectedJob.id)}
+                      disabled={cancellingId === selectedJob.id}
+                      style={{
+                        width: '100%', padding: '8px 14px',
+                        background: 'none', border: 'none', cursor: 'pointer',
+                        display: 'flex', alignItems: 'center', gap: 6,
+                        fontSize: 12, color: 'var(--ink-mute)',
+                      }}>
+                      {cancellingId === selectedJob.id
+                        ? <><Loader2 size={11} className="animate-spin" /> Cancelling…</>
+                        : <><Trash2 size={11} /> Cancel schedule</>}
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowYtModal(true)}
+                  style={{
+                    width: '100%', padding: '11px 0', borderRadius: 11,
+                    background: 'transparent',
+                    border: '1.5px dashed var(--border-strong)',
+                    color: 'var(--ink-2)', fontSize: 13, fontWeight: 600,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: 7,
+                    transition: 'all 0.15s',
+                  }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = '#FF0000'
+                    e.currentTarget.style.color = '#FF0000'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--border-strong)'
+                    e.currentTarget.style.color = 'var(--ink-2)'
+                  }}
+                >
+                  <Youtube size={14} />
+                  Schedule to YouTube
+                </button>
+              )}
             </div>
           ) : (
             <div className="card" style={{ padding: 22, color: 'var(--ink-mute)', fontSize: 13 }}>
@@ -347,6 +470,23 @@ export default function CalendarPage() {
           )}
         </aside>
       </div>
+
+      {/* YouTube schedule modal */}
+      {showYtModal && selectedDay && (
+        <ScheduleYouTubeModal
+          prefill={{
+            title: selectedDay.title,
+            description: selectedDay.description,
+            calendarDate: selectedDay.date,
+            suggestedTime: selectedDay.suggestedTime || '9:00 AM',
+          }}
+          onClose={() => setShowYtModal(false)}
+          onScheduled={job => {
+            setYtJobs(prev => [...prev.filter(j => j.calendar_date !== job.calendar_date), job])
+            setShowYtModal(false)
+          }}
+        />
+      )}
 
       <style>{`
         @media (max-width: 900px) {
