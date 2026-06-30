@@ -17,7 +17,7 @@ export interface BrandContext {
 export interface DailySuggestion {
   date: string;
   day: string;
-  contentType: "video" | "image" | "voice" | "blog" | "social" | "ugc";
+  contentType: "video" | "image" | "voice" | "social" | "ugc" | "screen-demo";
   title: string;
   description: string;
   icon: string;
@@ -56,6 +56,21 @@ export async function generateMonthlyPlan(
   };
 
   const formatInstruction = formatPreferences ? buildFormatInstruction(formatPreferences) : ''
+
+  // Build an explicit ban list for any format set to "Never" (0) AND the
+  // unavailable formats (blog, email) which are Coming Soon in the app.
+  const unavailableFormats = ['blog', 'email']
+  const neverFormats = formatPreferences
+    ? Object.entries(formatPreferences).filter(([, v]) => v === 0).map(([k]) => k)
+    : []
+  const bannedFormats = [...new Set([...unavailableFormats, ...neverFormats])]
+  const bannedInstruction = bannedFormats.length > 0
+    ? `BANNED content types — NEVER use these, not even once: ${bannedFormats.join(', ')}.`
+    : ''
+
+  const allowedTypes = ['ugc', 'video', 'image', 'social', 'voice', 'screen-demo'].filter(
+    t => !bannedFormats.includes(t)
+  )
   const hasScreenshots = (brand?.screenshotCount ?? 0) > 0
 
   const brandSection = brand ? `
@@ -74,7 +89,7 @@ ${brand.keyFeatures ? `- Key screens/features: ${brand.keyFeatures}` : ''}` : ''
   const toolCapabilities = `
 CONTENT TOOLS — what ContentFlow's AI generators actually produce (be strictly accurate):
 
-━━ "ugc" → HeyGen AI Avatar (talking head video)
+━━ "ugc" → Kling v3 AI talking-head video
    WHAT IT ACTUALLY IS: A pre-built AI character (not the user, not a real human) reads a script on camera with a branded background.
    CAN produce: avatar speaking a script, text overlays, call-to-action screens, background visuals
    CANNOT produce: real human footage, screen recordings, unboxing, real customer reactions, anything requiring real-world footage
@@ -82,7 +97,7 @@ CONTENT TOOLS — what ContentFlow's AI generators actually produce (be strictly
    CONTENT IDEAS THAT WORK: "Avatar explains why [brand] solves [pain point]", "Avatar announces new feature", "Avatar walks through 3 key benefits"
    CONTENT IDEAS THAT DO NOT WORK: "Show customer using the product", "Record yourself explaining X", "Screen capture the dashboard"
 
-━━ "video" → HeyGen AI video (scripted marketing video)
+━━ "video" → Sora 2 AI video (scripted marketing video)
    WHAT IT ACTUALLY IS: AI-generated short video — animated text, transitions, background footage, voiceover. NOT a screen recorder.
    CAN produce: scripted narrative with text + voiceover, animated titles, stock-style background clips, brand colors
    CANNOT produce: real screen recordings, real product demos, actual app UI, live action footage
@@ -105,11 +120,10 @@ CONTENT TOOLS — what ContentFlow's AI generators actually produce (be strictly
    CANNOT produce: any visual content on its own
    CONTENT IDEAS THAT WORK: "5 content mistakes killing your reach", "Poll: what's your biggest content struggle?", "Hot take: consistency beats virality"
 
-━━ "blog" → Claude AI long-form article
-   WHAT IT ACTUALLY IS: A full written article (500–2000 words).
-   CAN produce: tutorials, comparisons, opinion pieces, case studies, SEO posts, how-to guides
-   CANNOT produce: visual content, videos, infographics
-   CONTENT IDEAS THAT WORK: "The complete guide to repurposing content", "Why AI content tools are changing marketing in 2026"
+━━ "screen-demo" → Shotstack software demo video
+   WHAT IT ACTUALLY IS: An animated walkthrough or demo video showing software/app features.
+   CAN produce: step-by-step feature walkthroughs, onboarding demos, feature highlight videos
+   CANNOT produce: real-time screen recordings, real human footage
 
 ━━ "voice" → ElevenLabs AI text-to-speech
    WHAT IT ACTUALLY IS: An AI voice reads a script. Audio file only — no video, no visuals at all.
@@ -117,11 +131,6 @@ CONTENT TOOLS — what ContentFlow's AI generators actually produce (be strictly
    CANNOT produce: anything visual — pure audio output
    CONTENT IDEAS THAT WORK: "60-second audio tip on content strategy", "Weekly voice note from the brand"
    CONTENT IDEAS THAT DO NOT WORK: "Show the product in action", anything requiring a visual
-
-━━ "email" → Claude AI email/newsletter
-   WHAT IT ACTUALLY IS: Written email content ready to send via any email platform.
-   CAN produce: welcome sequences, weekly newsletters, product announcements, promotional emails, re-engagement
-   CANNOT produce: visual designs — text content only
 
 ━━ GLOBAL RULES (never break these):
    1. Never suggest "record yourself", "film a video", "take a photo" — the user is not recording anything manually
@@ -141,6 +150,8 @@ Requirements:
 - Platforms: ${platforms.join(", ")}
 - Build a narrative arc: Week 1 (introduce brand/problem), Week 2 (educate/value), Week 3 (showcase/proof), Week 4 (convert/CTA)
 - Leave 1-2 rest/buffer days
+- ALLOWED contentType values (ONLY use these): ${allowedTypes.join(', ')}
+${bannedInstruction ? `- ${bannedInstruction}` : ''}
 ${formatInstruction ? `- ${formatInstruction}` : '- Vary content types — avoid same type 2 days in a row'}
 - Every title and description must be SPECIFIC to ${brand?.name || 'this brand'} — never generic placeholders
 - If suggesting video/ugc that shows the app: only do so when hasScreenshots = ${hasScreenshots}
@@ -218,13 +229,12 @@ function generateDefaultPlan(
   platforms: string[],
   frequency: "light" | "moderate" | "heavy"
 ): DailySuggestion[] {
-  const contentTypes: Array<"video" | "image" | "social" | "blog" | "voice" | "ugc"> = [
+  const contentTypes: Array<"video" | "image" | "social" | "voice" | "ugc"> = [
+    "ugc",
     "video",
     "image",
     "social",
-    "blog",
     "voice",
-    "ugc",
   ];
 
   const contentDescriptions = {
