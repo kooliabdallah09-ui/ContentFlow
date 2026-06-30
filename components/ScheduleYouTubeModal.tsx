@@ -2,7 +2,15 @@
 
 import { useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { X, Youtube, Clock, Lock, Globe, Eye, Loader2, CheckCircle } from 'lucide-react'
+import { X, Clock, Lock, Globe, Eye, Loader2, CheckCircle } from 'lucide-react'
+
+function YTIcon({ size = 15 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor">
+      <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+    </svg>
+  )
+}
 
 interface Props {
   prefill: {
@@ -123,7 +131,7 @@ export default function ScheduleYouTubeModal({ prefill, onClose, onScheduled }: 
               width: 32, height: 32, borderRadius: 8,
               background: '#FF0000', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
-              <Youtube size={16} color="#fff" />
+              <YTIcon size={16} />
             </div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Schedule to YouTube</div>
@@ -278,7 +286,7 @@ export default function ScheduleYouTubeModal({ prefill, onClose, onScheduled }: 
             >
               {submitting
                 ? <><Loader2 size={15} className="animate-spin" /> Scheduling…</>
-                : <><Youtube size={15} /> Schedule Video</>
+                : <><YTIcon size={15} /> Schedule Video</>
               }
             </button>
           </form>
