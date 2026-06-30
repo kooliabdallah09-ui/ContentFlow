@@ -5,7 +5,7 @@
   "crons": [
     {
       "path": "/api/youtube/auto-publish",
-      "schedule": "0 * * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }
