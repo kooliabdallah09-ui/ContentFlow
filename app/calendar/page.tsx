@@ -8,21 +8,21 @@ import { Loader2, RefreshCcw, ArrowRight, Youtube, ExternalLink, Trash2 } from '
 import ScheduleYouTubeModal, { type ScheduledJob } from '@/components/ScheduleYouTubeModal'
 
 const CONTENT_ICONS: Record<string, string> = {
-  ugc: '◉',
-  video: '▶',
-  image: '◐',
-  voice: '♪',
-  blog: '¶',
-  social: '☉',
+  ugc:         '◉',
+  video:       '▶',
+  image:       '◐',
+  voice:       '♪',
+  social:      '☉',
+  'screen-demo': '⬡',
 }
 
 const CONTENT_HREF: Record<string, string> = {
-  ugc: '/generate/ugc',
-  video: '/generate/video',
-  image: '/generate/image',
-  voice: '/generate/voice',
-  blog: '/generate/blog',
-  social: '/generate/social',
+  ugc:         '/generate/ugc',
+  video:       '/generate/video',
+  image:       '/generate/image',
+  voice:       '/generate/voice',
+  social:      '/generate/social',
+  'screen-demo': '/generate/screen-demo',
 }
 
 const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {

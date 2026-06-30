@@ -8,13 +8,12 @@ import { DailySuggestion } from '@/lib/planner'
 import { FormatPreferences, FormatFrequency } from '@/lib/planConfig'
 
 const FORMAT_OPTIONS: { id: keyof FormatPreferences; label: string; desc: string }[] = [
-  { id: 'ugc',    label: 'UGC Video',    desc: 'AI avatar brand videos' },
-  { id: 'video',  label: 'Short Video',  desc: 'Reels, clips, demos' },
-  { id: 'image',  label: 'AI Image',     desc: 'Visuals and graphics' },
-  { id: 'social', label: 'Social Post',  desc: 'Text posts and threads' },
-  { id: 'blog',   label: 'Blog Post',    desc: 'Long-form articles' },
-  { id: 'voice',  label: 'Voice / Audio', desc: 'Podcasts and audio clips' },
-  { id: 'email',  label: 'Email',        desc: 'Newsletters and sequences' },
+  { id: 'ugc',         label: 'UGC Video',     desc: 'AI talking-head brand videos' },
+  { id: 'video',       label: 'AI Video',       desc: 'Short clips, reels & Sora generations' },
+  { id: 'image',       label: 'AI Image',       desc: 'AI-generated visuals & graphics' },
+  { id: 'social',      label: 'Social Post',    desc: 'Captions, hashtags & image carousels' },
+  { id: 'voice',       label: 'Voice / Audio',  desc: 'ElevenLabs voiceovers & audio clips' },
+  { id: 'screen-demo', label: 'Screen Demo',    desc: 'Software demo & walkthrough videos' },
 ]
 
 const FREQ_CHIPS: { value: FormatFrequency; label: string }[] = [
@@ -124,7 +123,7 @@ export default function OnboardingBrandPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   const [frequency, setFrequency] = useState('moderate')
   const [formatPrefs, setFormatPrefs] = useState<FormatPreferences>({
-    ugc: 2, video: 2, image: 2, social: 3, blog: 1, voice: 1, email: 1,
+    ugc: 2, video: 2, image: 2, social: 3, voice: 1, 'screen-demo': 1,
   })
 
   // Step 3: Generated plan
@@ -572,7 +571,7 @@ export default function OnboardingBrandPage() {
                         const pct = ((formatPrefs[fmt.id] ?? 0) / total) * 100
                         const colors: Record<string, string> = {
                           ugc: 'var(--accent)', video: '#6366f1', image: '#06b6d4',
-                          social: '#10b981', blog: '#f59e0b', voice: '#8b5cf6', email: '#ec4899',
+                          social: '#10b981', voice: '#8b5cf6', 'screen-demo': '#f59e0b',
                         }
                         return (
                           <div key={fmt.id} style={{
@@ -586,7 +585,7 @@ export default function OnboardingBrandPage() {
                       {FORMAT_OPTIONS.filter(f => (formatPrefs[f.id] ?? 0) > 0).map(fmt => {
                         const colors: Record<string, string> = {
                           ugc: 'var(--accent)', video: '#6366f1', image: '#06b6d4',
-                          social: '#10b981', blog: '#f59e0b', voice: '#8b5cf6', email: '#ec4899',
+                          social: '#10b981', voice: '#8b5cf6', 'screen-demo': '#f59e0b',
                         }
                         return (
                           <span key={fmt.id} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--ink-dim)' }}>
