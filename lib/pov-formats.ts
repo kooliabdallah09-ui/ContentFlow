@@ -39,18 +39,32 @@ const NEG =
 
 export const POV_FORMATS: PovFormat[] = [
   {
-    id: 'lazy-discovery',
-    name: 'Cozy Discovery',
+    id: 'late-night-bed',
+    name: 'Late-Night Bed',
     category: 'discovery',
-    emoji: '🛋️',
-    tagline: 'Couch + laptop, casual "I just found this" energy',
+    emoji: '🌙',
+    tagline: 'On the bed, 1AM, dark room lit only by laptop glow',
     needsProductImage: false,
     needsUiScreenshot: true,
     needsVoiceover: true,
     durationSeconds: 5,
     aspectRatio: '9:16',
     buildPrompt: (ctx) =>
-      `POV shot from a phone held at chest height, first-person perspective, someone sitting on a beige linen couch during a bright afternoon. In the foreground: a MacBook resting on the person's lap, screen visible, tilted slightly toward the camera. The screen clearly shows the ${ctx.productName} interface (${ctx.productDescription}). Warm afternoon sunlight through a large window, cozy living room in soft focus, plants and a coffee mug on the side table. The hand not holding the phone occasionally reaches to scroll on the trackpad. Very slight handheld micro-shake, casual home vibe. Focus on the laptop screen: it stays crisp so the UI is legible. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
+      `POV shot from a phone held in the creator's own hand, angled down at her lap while lying propped up on a bed at 1AM. Dark bedroom lit only by the warm glow of the MacBook screen spilling onto the duvet. Laptop dominates the frame, screen crisp and legible, showing the ${ctx.productName} interface (${ctx.productDescription}). One hand on the trackpad, phone tilts up occasionally to show a partial face. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
+  },
+  {
+    id: 'lazy-discovery',
+    name: 'Cozy Discovery',
+    category: 'discovery',
+    emoji: '🛋️',
+    tagline: 'Couch + laptop, warm evening indoor light',
+    needsProductImage: false,
+    needsUiScreenshot: true,
+    needsVoiceover: true,
+    durationSeconds: 5,
+    aspectRatio: '9:16',
+    buildPrompt: (ctx) =>
+      `POV shot from a phone held in the creator's own hand, angled down at her lap while sitting on a couch in the evening. Warm lamp glow, TV blur in the far background. Laptop takes up most of the frame, showing the ${ctx.productName} interface (${ctx.productDescription}) — screen legible. One hand on the trackpad, phone tilts up occasionally to catch a partial face. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
   },
   {
     id: 'cafe-scroll',

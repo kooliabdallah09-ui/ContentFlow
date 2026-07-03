@@ -33,17 +33,12 @@ function povCreditCost(durationSeconds: 5 | 10, hasVoiceover: boolean): number {
 // Realistic UGC voice — same defaults as the standalone /voice generator.
 const DEFAULT_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'
 
-// Seedance's content filter reads these phrases as intimate / suggestive framing.
-// We strip them from ALL user-provided text fields — the autofill Claude prompt
-// tells the model to avoid them, but users can still type them by hand, so this
-// is a belt-and-braces guard right before the prompt reaches the model.
+// Belt-and-braces guard: strip profanity, nudity, and minor references.
+// Kling v3 is much more permissive than Seedance so bedroom/night are fine.
 const RISKY_REPLACEMENTS: Array<[RegExp, string]> = [
-  [/\b(bed ?room|in bed|on the bed|on a bed|the bed|my bed|bedroom lighting|bedroom scene)\b/gi, 'living room'],
-  [/\b(late[-\s]?night|midnight|1[-\s]?a\.?m\.?|2[-\s]?a\.?m\.?|3[-\s]?a\.?m\.?|4[-\s]?a\.?m\.?)\b/gi, 'evening'],
-  [/\b(dark room|dim room|dimly lit|low light bedroom|dim lighting)\b/gi, 'warm indoor lighting'],
-  [/\b(undressed|underwear|lingerie|naked|nude|topless|bare skin|intimate|sensual|sexy)\b/gi, 'casual'],
-  [/\b(fucking|shit|damn|hell yeah|asshole|bitch)\b/gi, ''],
-  [/\b(minor|child|teen|teenage|teenager|kid)\b/gi, 'adult'],
+  [/\b(undressed|underwear|lingerie|naked|nude|topless|bare skin|sensual|sexy)\b/gi, 'casual'],
+  [/\b(fucking|shit|damn|asshole|bitch)\b/gi, ''],
+  [/\b(minor|underage|teen|teenage|teenager|kid)\b/gi, 'adult'],
 ]
 
 function sanitize(text: string | undefined | null): string | undefined {
