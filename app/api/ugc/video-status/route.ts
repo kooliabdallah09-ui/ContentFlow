@@ -1,6 +1,6 @@
 import { getVideoStatus } from '@/lib/heygen'
 import { getSoraStatus, downloadSoraVideo } from '@/lib/sora'
-import { getKlingV3OmniStatus, getSora2ReplicateStatus } from '@/lib/replicate'
+import { getKlingV3OmniStatus, getSora2ReplicateStatus, getSeedanceStatus } from '@/lib/replicate'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -67,6 +67,10 @@ export async function GET(request: NextRequest) {
         clipStatuses: allClips.map(c => c.status),
         error: anyFailed ? allClips.find(c => c.status === 'failed')?.error : undefined,
       }
+    } else if (provider === 'seedance') {
+      // Seedance outputs a public Replicate-hosted URL — no rehost needed.
+      const status = await getSeedanceStatus(videoId)
+      result.video = status
     } else if (provider === 'sora-2-replicate') {
       const status = await getSora2ReplicateStatus(videoId)
       result.video = status

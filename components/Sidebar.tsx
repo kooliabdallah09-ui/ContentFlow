@@ -64,6 +64,11 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>UGC Package</span>
           <span className="flagship-badge">Flagship</span>
         </Link>
+        <Link href="/generate/pov" className={`nav-item ${isActive('/generate/pov') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Video />
+          <span style={{ flex: 1 }}>POV Studio</span>
+          <span className="flagship-badge">New</span>
+        </Link>
         <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Image />
           <span style={{ flex: 1 }}>Image</span>
