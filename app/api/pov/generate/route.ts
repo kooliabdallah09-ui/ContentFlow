@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { deductCredits } from '@/lib/deduct-credits'
-import { submitSeedanceJob, generateElevenLabsViaReplicate } from '@/lib/replicate'
+import { submitKlingV3OmniJob, generateElevenLabsViaReplicate } from '@/lib/replicate'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { getPovFormat } from '@/lib/pov-formats'
 import { buildPovSeedancePrompt, buildHeroFramePrompt } from '@/lib/pov-prompt'
@@ -136,16 +136,15 @@ export async function POST(request: NextRequest) {
     }
 
     // === 1. Hero frame ===
-    // For product / UI formats, build a start frame with Nano Banana so
-    // Seedance keeps the packaging or app UI legible across the clip.
-    let startImageUrl: string | undefined
+    // Kling v3 omni is image-to-video, so we always need a start frame.
+    // If the format takes a product photo or UI screenshot, we composite it
+    // with the character. Otherwise Nano Banana renders a character-only frame.
+    let startImageUrl: string
+    {
+      const refBase64 = format.needsProductImage ? productImageBase64 : format.needsUiScreenshot ? uiScreenshotBase64 : undefined
+      const refMime = format.needsProductImage ? productImageMimeType : format.needsUiScreenshot ? uiScreenshotMimeType : undefined
 
-    if (format.needsProductImage || format.needsUiScreenshot) {
-      const refBase64 = format.needsProductImage ? productImageBase64 : uiScreenshotBase64
-      const refMime = format.needsProductImage ? productImageMimeType : uiScreenshotMimeType
-
-      // Hero framing prompt in the Arcads two-image style: "use this reference
-      // character in this setting, with this product/UI visible."
+      // Hero framing prompt in the Arcads two-image style.
       const heroPrompt = buildHeroFramePrompt({
         format,
         productName,
@@ -208,11 +207,15 @@ export async function POST(request: NextRequest) {
     // risky phrase from the user's fields into the final prompt, strip it.
     prompt = sanitize(prompt) ?? prompt
 
-    const { predictionId } = await submitSeedanceJob({
+    // Kling v3 omni is proven for character-consistent POV UGC (same model as
+    // UGC Package). Native audio disabled — ElevenLabs overlay owns the voice.
+    const { predictionId } = await submitKlingV3OmniJob({
       prompt,
-      durationSeconds,
-      aspectRatio: format.aspectRatio,
       startImageUrl,
+      durationSeconds: durationSeconds === 5 ? 5 : 10,
+      aspectRatio: format.aspectRatio,
+      mode: 'standard',
+      generateAudio: false,
     })
 
     // === 3. Voiceover (fire and forget in parallel) ===
@@ -260,7 +263,7 @@ export async function POST(request: NextRequest) {
       video: {
         videoId: predictionId,
         status: 'processing',
-        provider: 'seedance',
+        provider: 'kling-v3-omni',
         duration: durationSeconds,
         voiceoverUrl,
       },

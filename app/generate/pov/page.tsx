@@ -7,7 +7,7 @@ import { showError, showSuccess } from '@/lib/notifications'
 
 interface GenState {
   predictionId: string
-  provider: 'seedance'
+  provider: 'kling-v3-omni'
   voiceoverUrl?: string
   status: 'processing' | 'completed' | 'failed'
   videoUrl?: string
@@ -40,13 +40,15 @@ export default function PovGeneratorPage() {
     const tick = async () => {
       try {
         const res = await fetch(
-          `/api/ugc/video-status?videoId=${gen.predictionId}&provider=seedance`,
+          `/api/ugc/video-status?videoId=${gen.predictionId}&provider=kling-v3-omni`,
         )
         const data = await res.json()
         if (stop) return
         const v = data.video
-        if (v?.status === 'completed' && v.videoUrl) {
-          setGen({ ...gen, status: 'completed', videoUrl: v.videoUrl })
+        // Kling v3 omni status endpoint returns { status, videoUrl, videoUrls, ... }
+        const videoUrl = v?.videoUrl ?? (Array.isArray(v?.videoUrls) ? v.videoUrls[0] : undefined)
+        if (v?.status === 'completed' && videoUrl) {
+          setGen({ ...gen, status: 'completed', videoUrl })
         } else if (v?.status === 'failed') {
           setGen({ ...gen, status: 'failed', error: v.error ?? 'Generation failed' })
         }
@@ -149,7 +151,7 @@ export default function PovGeneratorPage() {
       const video = data.components?.video
       setGen({
         predictionId: video.videoId,
-        provider: 'seedance',
+        provider: 'kling-v3-omni',
         voiceoverUrl: video.voiceoverUrl,
         status: 'processing',
         formatName: selectedFormat.name,
@@ -205,7 +207,7 @@ export default function PovGeneratorPage() {
           POV <em>Studio</em>
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: 0, maxWidth: 620 }}>
-          Faceless UGC — the product does the selling, not a talking head. Seedance renders realistic phone-shot POV clips: unboxings, product-in-use, cozy discovery, and app demos.
+          POV UGC ads — casual phone-shot clips of a real-feeling creator showing your product. Cozy discovery, unboxings, GRWM, and app demos.
         </p>
       </div>
 
@@ -575,7 +577,7 @@ function ResultBox({
 
       {gen.status === 'processing' && (
         <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-          <div style={{ fontSize: 15, marginBottom: 8 }}>Seedance is rendering your clip…</div>
+          <div style={{ fontSize: 15, marginBottom: 8 }}>Rendering your clip…</div>
           <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>Typically 60–120 seconds. You can leave this page — it'll be in Library when done.</div>
         </div>
       )}

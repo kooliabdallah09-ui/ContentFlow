@@ -421,6 +421,7 @@ export async function submitKlingV3OmniJob(params: {
   aspectRatio: '9:16' | '1:1' | '16:9'
   mode?: 'standard' | 'pro'
   negativePrompt?: string
+  generateAudio?: boolean       // defaults true (matches UGC package). POV sets false.
 }): Promise<KlingV3Job> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
@@ -439,7 +440,7 @@ export async function submitKlingV3OmniJob(params: {
         duration: params.durationSeconds,
         aspect_ratio: params.aspectRatio,
         mode: params.mode ?? 'standard',
-        generate_audio: true,
+        generate_audio: params.generateAudio ?? true,
         negative_prompt: params.negativePrompt ?? 'text, watermark, blurry, low quality, distorted face, deformed hands, extra fingers',
       },
     }),

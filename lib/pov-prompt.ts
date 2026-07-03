@@ -34,7 +34,7 @@ Aspect: ${input.format.aspectRatio}
 Needs UI on screen: ${input.format.needsUiScreenshot ? 'YES — laptop or phone screen is the focal point' : 'no'}
 Needs product visible: ${input.format.needsProductImage ? 'YES — product held or in frame' : 'no'}`
 
-  const prompt = `You are writing a Seedance 2.0 video prompt in the "Arcads / Claude-ad" cinematic style.
+  const prompt = `You are writing a Kling v3 video prompt in the "Arcads / Claude-ad" cinematic style. Kling animates the still frame — the reference image already has the character, product/UI, and setting locked in. Your job is to describe the MOTION and the SPOKEN DIALOG.
 
 REFERENCE EXAMPLE (for style calibration only — do NOT copy content, do NOT copy the profanity):
 "14:43 UGC POV — young woman on her couch during a bright afternoon, laptop open, Vans website visible. She speaks casually to camera: 'okay Vans just dropped their summer collection and I am obsessed.' 'obsessed' — smooth zoom into laptop screen, product grid fills the frame, eases back. She scrolls the trackpad, screen slides down, women's tops appear in clean grid. 'they actually sent me this early' — quick zoom into screen, yellow tank top fills the frame."
