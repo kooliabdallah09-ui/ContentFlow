@@ -6,6 +6,7 @@ import { submitKlingV3OmniJob, generateElevenLabsViaReplicate } from '@/lib/repl
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { getPovFormat } from '@/lib/pov-formats'
 import { buildPovSeedancePrompt, buildHeroFramePrompt } from '@/lib/pov-prompt'
+import { canAccessPovStudio } from '@/lib/pov-access'
 
 // POV / faceless ad generator.
 // Pipeline:
@@ -65,6 +66,9 @@ export async function POST(request: NextRequest) {
     const { data: userData, error: userError } = await supabase.auth.getUser(authHeader.slice(7))
     if (userError || !userData.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!canAccessPovStudio(userData.user.email)) {
+      return NextResponse.json({ error: 'POV Studio is still in beta' }, { status: 403 })
     }
     const userId = userData.user.id
 

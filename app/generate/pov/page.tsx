@@ -1,9 +1,11 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 import { POV_FORMATS, type PovFormat } from '@/lib/pov-formats'
 import { showError, showSuccess } from '@/lib/notifications'
+import { canAccessPovStudio } from '@/lib/pov-access'
 
 interface GenState {
   predictionId: string
@@ -17,6 +19,55 @@ interface GenState {
 }
 
 export default function PovGeneratorPage() {
+  const [access, setAccess] = useState<'checking' | 'allowed' | 'blocked'>('checking')
+
+  useEffect(() => {
+    (async () => {
+      const supabase = getSupabase()
+      if (!supabase) { setAccess('blocked'); return }
+      const { data: sess } = await supabase.auth.getSession()
+      const email = sess?.session?.user?.email
+      setAccess(canAccessPovStudio(email) ? 'allowed' : 'blocked')
+    })()
+  }, [])
+
+  if (access === 'checking') {
+    return (
+      <main style={{ maxWidth: 720, margin: '0 auto', padding: '80px 32px', textAlign: 'center', color: 'var(--ink-dim)', fontSize: 14 }}>
+        Loading…
+      </main>
+    )
+  }
+
+  if (access === 'blocked') return <ComingSoon />
+
+  return <PovGenerator />
+}
+
+function ComingSoon() {
+  return (
+    <main style={{ maxWidth: 720, margin: '0 auto', padding: '80px 32px' }}>
+      <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)', marginBottom: 8 }}>
+        STUDIO / POV STUDIO
+      </div>
+      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 42, fontWeight: 400, letterSpacing: '-0.01em', margin: '0 0 16px' }}>
+        POV <em>Studio</em>
+      </h1>
+      <p style={{ fontSize: 15, color: 'var(--ink-dim)', lineHeight: 1.7, maxWidth: 560, margin: '0 0 32px' }}>
+        Faceless UGC ads in the Arcads style — the phone is in the creator's hand, filming down at their laptop or product. Cozy discovery, unboxings, GRWM, and app demos.
+      </p>
+      <div style={{ padding: '20px 24px', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+        <span style={{ fontSize: 20 }}>🚧</span>
+        <div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Still building</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>POV Studio launches soon. Meanwhile — try the <Link href="/generate/ugc" style={{ color: 'var(--ink)', borderBottom: '1px solid var(--ink)' }}>UGC Package</Link> generator.</div>
+        </div>
+      </div>
+    </main>
+  )
+}
+
+function PovGenerator() {
   const [selectedFormat, setSelectedFormat] = useState<PovFormat | null>(null)
   const [productName, setProductName] = useState('')
   const [productDescription, setProductDescription] = useState('')

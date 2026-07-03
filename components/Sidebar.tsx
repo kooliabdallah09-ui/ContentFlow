@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Icon } from '@/components/Icons'
 import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
+import { getSupabase } from '@/lib/auth'
+import { canAccessPovStudio } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -20,6 +22,16 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
   const displayBalance = creditBalance ?? 0
 
   const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
+
+  const [povAccess, setPovAccess] = useState(false)
+  useEffect(() => {
+    (async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      setPovAccess(canAccessPovStudio(sess?.session?.user?.email))
+    })()
+  }, [])
 
   return (
     <aside className={`rail${mobileOpen ? ' mobile-open' : ''}`}>
@@ -67,7 +79,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
         <Link href="/generate/pov" className={`nav-item ${isActive('/generate/pov') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Video />
           <span style={{ flex: 1 }}>POV Studio</span>
-          <span className="flagship-badge">New</span>
+          <span className={povAccess ? 'flagship-badge' : 'soon-badge'}>{povAccess ? 'New' : 'Soon'}</span>
         </Link>
         <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Image />

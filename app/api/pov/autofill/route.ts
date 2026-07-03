@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { getPovFormat } from '@/lib/pov-formats'
+import { canAccessPovStudio } from '@/lib/pov-access'
 
 const CREDIT_COST = 1
 
@@ -21,6 +22,9 @@ export async function POST(request: NextRequest) {
     const { data: userData, error: userError } = await supabase.auth.getUser(authHeader.slice(7))
     if (userError || !userData.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!canAccessPovStudio(userData.user.email)) {
+      return NextResponse.json({ error: 'POV Studio is still in beta' }, { status: 403 })
     }
     const userId = userData.user.id
 
