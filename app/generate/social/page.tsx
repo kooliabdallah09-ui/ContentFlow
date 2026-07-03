@@ -11,12 +11,14 @@ import { Icon } from '@/components/Icons'
 
 const CAPTION_PLATFORMS = [
   { id: 'instagram', label: 'Instagram',  color: '#E1306C' },
+  { id: 'facebook',  label: 'Facebook',   color: '#1877F2' },
   { id: 'twitter',   label: 'X / Twitter', color: '#000000' },
-  { id: 'tiktok',    label: 'TikTok',     color: '#010101' },
 ]
 
 const CAROUSEL_PLATFORMS = [
   { id: 'instagram', label: 'Instagram' },
+  { id: 'facebook',  label: 'Facebook' },
+  { id: 'tiktok',    label: 'TikTok (Photo Mode)' },
 ]
 
 const MUSIC_MOODS = [

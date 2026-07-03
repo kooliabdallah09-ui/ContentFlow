@@ -91,9 +91,11 @@ export async function POST(request: NextRequest) {
     tone === 'professional' ? 'Polished, credible, authoritative. Formal but engaging.' :
                               'Engaging and persuasive.'
 
-  const platformGuide = platform === 'linkedin'
-    ? 'LinkedIn: professionals and decision-makers. Prioritise ROI, career value, industry insights. Slightly longer copy is fine.'
-    : 'Instagram: visual-first, lifestyle-driven. Keep text tight — 1-2 punchy lines per slide.'
+  const platformGuide =
+    platform === 'linkedin' ? 'LinkedIn: professionals and decision-makers. Prioritise ROI, career value, industry insights. Slightly longer copy is fine.' :
+    platform === 'tiktok'   ? 'TikTok Photo Mode: Gen-Z, fast-scroll. Ultra-short punchy text per slide (1 line max). Bold hook slide, quick payoff, punchline finish. Feels native to short-form video culture.' :
+    platform === 'facebook' ? 'Facebook: broad audience, conversational. 2-3 lines per slide, direct benefit-driven copy, invites engagement.' :
+                              'Instagram: visual-first, lifestyle-driven. Keep text tight — 1-2 punchy lines per slide.'
 
   const brandCtx = await loadBrandContext(supabase, userId)
   const brandBlock = formatBrandPrompt(brandCtx)
@@ -153,7 +155,7 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
         : slide.imagePrompt
       return generateNanoBananaImage(finalPrompt, {
         style: 'professional',
-        ratio: platform === 'linkedin' ? '1:1' : '4:5',
+        ratio: platform === 'tiktok' ? '9:16' : platform === 'linkedin' ? '1:1' : '4:5',
         referenceImageBase64: referenceImageBase64 || undefined,
         referenceImageMimeType: referenceImageMimeType || undefined,
       })

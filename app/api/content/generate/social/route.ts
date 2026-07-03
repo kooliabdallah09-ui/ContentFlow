@@ -8,9 +8,9 @@ const CREDIT_COST = 5
 
 const PLATFORM_GUIDES: Record<string, string> = {
   instagram: 'Instagram caption (max 2200 chars). Hook in line 1, short punchy paragraphs, end with 5–10 relevant hashtags on a new line.',
+  facebook:  'Facebook post (max 500 chars for optimal reach). Conversational, direct. Ask a question or invite engagement. 1–3 hashtags max, inline.',
   linkedin:  'LinkedIn post (max 3000 chars). Lead with an insight or story, expand with 3–5 short paragraphs, end with a question or CTA. 3–5 hashtags inline.',
   twitter:   'X/Twitter post (max 280 chars). One sharp, quotable sentence. No hashtags unless they fit naturally within the limit.',
-  tiktok:    'TikTok video caption (max 300 chars). Casual, energetic, FOMO-driven. 3–5 trending hashtags on the same line.',
 }
 
 export async function POST(request: NextRequest) {
