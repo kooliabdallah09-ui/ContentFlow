@@ -65,8 +65,8 @@ Return ONLY valid JSON (no markdown, no explanation) with these exact keys:
   "productName": "the brand or specific product name",
   "productDescription": "one clear sentence — what it is and who it's for",
   "benefit": "the exact feeling / moment this specific POV clip should sell (short, concrete, visual)",
-  "characterDescription": "one dense sentence describing a UGC creator: ethnicity, age, build, skin tone, hair, one small jewelry / accessory, one outfit detail — e.g. 'a young Southeast Asian woman, 20s, athletic build, warm brown skin, dark hair pulled back into a high ponytail, small gold hoop earrings, oversized black hoodie'",
-${format.needsVoiceover ? `  "script": "1-2 sentence casual voiceover — sounds like a friend telling you about it in a DM, uses lowercase and light punctuation, matches the ${format.name} vibe, one phrase in it should feel emphasized so the camera can zoom in on that keyword",\n` : ''}  "extraDirection": "an optional vibe direction — colors, background details, props (2-8 words)"
+  "characterDescription": "one dense sentence describing a UGC creator: ethnicity, age (mid-20s to mid-30s adult), build, skin tone, hair, one small jewelry / accessory, one casual outfit detail — e.g. 'a young Southeast Asian woman, mid-20s, athletic build, warm brown skin, dark hair pulled back into a high ponytail, small gold hoop earrings, oversized black hoodie'",
+${format.needsVoiceover ? `  "script": "1-2 sentence casual voiceover — sounds like a friend telling you about it in a DM, uses lowercase and light punctuation, matches the ${format.name} vibe, one phrase in it should feel emphasized so the camera can zoom in on that keyword. Absolutely no profanity, no swear words.",\n` : ''}  "extraDirection": "an optional vibe direction — colors, props, background details ONLY (2-8 words). Never use words like: bedroom, bed, night, late-night, 1am, dim, dark room, intimate, underwear. Use words like: living room, couch, morning light, afternoon, coffee mug, plants, warm ceramic mug, linen throw."
 }`
 
     const msg = await anthropic.messages.create({

@@ -33,6 +33,26 @@ function povCreditCost(durationSeconds: 5 | 10, hasVoiceover: boolean): number {
 // Realistic UGC voice — same defaults as the standalone /voice generator.
 const DEFAULT_VOICE_ID = 'JBFqnCBsd6RMkjVDRZzb'
 
+// Seedance's content filter reads these phrases as intimate / suggestive framing.
+// We strip them from ALL user-provided text fields — the autofill Claude prompt
+// tells the model to avoid them, but users can still type them by hand, so this
+// is a belt-and-braces guard right before the prompt reaches the model.
+const RISKY_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\b(bed ?room|in bed|on the bed|on a bed|the bed|my bed|bedroom lighting|bedroom scene)\b/gi, 'living room'],
+  [/\b(late[-\s]?night|midnight|1[-\s]?a\.?m\.?|2[-\s]?a\.?m\.?|3[-\s]?a\.?m\.?|4[-\s]?a\.?m\.?)\b/gi, 'evening'],
+  [/\b(dark room|dim room|dimly lit|low light bedroom|dim lighting)\b/gi, 'warm indoor lighting'],
+  [/\b(undressed|underwear|lingerie|naked|nude|topless|bare skin|intimate|sensual|sexy)\b/gi, 'casual'],
+  [/\b(fucking|shit|damn|hell yeah|asshole|bitch)\b/gi, ''],
+  [/\b(minor|child|teen|teenage|teenager|kid)\b/gi, 'adult'],
+]
+
+function sanitize(text: string | undefined | null): string | undefined {
+  if (!text) return undefined
+  let out = text
+  for (const [re, sub] of RISKY_REPLACEMENTS) out = out.replace(re, sub)
+  return out.replace(/\s{2,}/g, ' ').trim() || undefined
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -56,19 +76,22 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const {
       formatId,
-      productName,
-      productDescription,
-      benefit,
-      extraDirection,
       productImageBase64,
       productImageMimeType,
       uiScreenshotBase64,
       uiScreenshotMimeType,
-      script,
       voiceId,
-      characterDescription,
       duration: overrideDuration,
     } = body
+
+    // Sanitize every free-text field to keep Seedance's content filter (E005)
+    // from tripping on words like "bedroom", "1am", "dim", or profanity.
+    const productName = sanitize(body.productName) ?? ''
+    const productDescription = sanitize(body.productDescription) ?? ''
+    const benefit = sanitize(body.benefit) ?? ''
+    const extraDirection = sanitize(body.extraDirection)
+    const script = sanitize(body.script)
+    const characterDescription = sanitize(body.characterDescription)
 
     if (!formatId || !productName || !productDescription || !benefit) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -180,6 +203,10 @@ export async function POST(request: NextRequest) {
       console.error('POV Claude prompt build failed, falling back to template:', err)
       prompt = format.buildPrompt({ productName, productDescription, benefit, extraDirection: extraDirection ?? undefined })
     }
+
+    // Belt-and-braces sanitize the composed prompt too — if Claude echoed any
+    // risky phrase from the user's fields into the final prompt, strip it.
+    prompt = sanitize(prompt) ?? prompt
 
     const { predictionId } = await submitSeedanceJob({
       prompt,

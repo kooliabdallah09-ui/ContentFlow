@@ -51,10 +51,11 @@ RULES:
 - Character description goes inline: describe him/her in one clause.
 - Total length: 90–160 words. No line breaks — one flowing paragraph.
 
-DO NOT:
+DO NOT (STRICT — the model has a content filter that will reject the video if you break these):
 - Use profanity, swear words, or crude language of any kind — clean, casual copy only.
-- Describe bedrooms, undressed scenes, or intimate/suggestive framing. Setting must be a public-safe living space (living room, kitchen, café, desk, park).
-- Describe minors — the creator is always an adult in their 20s or 30s.
+- Say "bedroom", "bed", "in bed", "on the bed", "late night", "1am", "midnight", "dim", "dark room". Never. Substitute with living room, couch, afternoon, evening, warm indoor lighting.
+- Describe undressed scenes, underwear, intimate framing, or anyone touching skin suggestively.
+- Describe minors, teens, or children — the creator is always an adult in their mid-20s to mid-30s.
 - Use bullet points.
 - Add narrator commentary.
 - Invent screen content beyond what user provided.
@@ -90,10 +91,10 @@ export function buildHeroFramePrompt(input: BuildPovPromptInput): string {
   const scene = input.format.tagline.toLowerCase()
 
   const sceneLine = input.format.needsUiScreenshot
-    ? `The scene: ${scene}. The laptop or phone screen clearly shows the ${input.productName} interface (${input.productDescription}) — the screen content stays crisp and legible. The creator looks directly at the phone camera with natural casual energy while interacting with the trackpad or screen.`
+    ? `Scene: the creator is sitting comfortably on a couch in a bright living room during the afternoon, holding a MacBook on their lap tilted slightly toward the camera. The laptop screen fills a good portion of the lower half of the frame and clearly shows the ${input.productName} interface (${input.productDescription}) — the screen content stays crisp and legible, no garbled text. The creator's upper body and face are fully visible above the laptop, looking naturally toward the phone camera with a soft casual smile, one hand resting on the trackpad. Framing: medium shot from just above the laptop, phone-camera height.`
     : input.format.needsProductImage
-      ? `The scene: ${scene}. The creator holds or uses the ${input.productName} (${input.productDescription}), product visible and clearly recognizable. They look directly at the phone camera with natural energy.`
-      : `The scene: ${scene}. The creator looks directly at the phone camera with natural energy.`
+      ? `Scene: the creator is casually holding or using the ${input.productName} (${input.productDescription}) — product visible, clearly recognizable, packaging and label preserved. Bright living room or kitchen during the afternoon. The creator is fully in frame, looking naturally toward the phone camera.`
+      : `Scene: the creator sits comfortably in a bright afternoon living room, looking naturally toward the phone camera with a soft casual smile.`
 
-  return `Using the attached reference image as the exact character (preserve face, hair, outfit, jewelry, all identity details), generate a still frame for a POV UGC video of ${character}, an adult fully clothed in casual everyday outfit. ${sceneLine} POV handheld phone camera, natural daylight or warm indoor lighting, slightly grainy, authentic UGC feel. No captions, no overlays, no on-screen text except the app UI already present. Public-safe living space. ${input.extraDirection ?? ''}`.trim()
+  return `Using the attached reference image as the exact character (preserve face, hair, skin tone, outfit, jewelry, all identity details), generate a still frame for a POV UGC video of ${character} — an adult fully clothed in casual everyday outfit. ${sceneLine} POV handheld phone camera aesthetic (slight micro-shake, casual framing), natural daylight through a window or warm indoor lamps, slightly grainy, authentic phone-shot UGC feel — not cinematic, not studio-lit. No captions, no overlays, no on-screen text except the app UI already present. Public-safe living space, morning or afternoon time-of-day. ${input.extraDirection ?? ''}`.trim()
 }
