@@ -8,10 +8,20 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const { user_id, month, year, plan_data } = body
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(authHeader.slice(7))
+    if (userError || !userData.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const user_id = userData.user.id
 
-    if (!user_id || !month || !year || !plan_data) {
+    const body = await req.json()
+    const { month, year, plan_data } = body
+
+    if (!month || !year || !plan_data) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 

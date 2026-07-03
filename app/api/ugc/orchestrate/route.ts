@@ -132,7 +132,7 @@ export async function POST(request: NextRequest) {
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
     if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += calculateVideoCredits(tier, duration)
 
-    const { data: userCredits } = await supabase.from('user_credits').select('balance, pack_credits').eq('user_id', userId).single()
+    const { data: userCredits } = await supabase.from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
     if (!userCredits || userCredits.balance < totalCost) {
       return NextResponse.json({ error: `Insufficient credits. Need ${totalCost}, have ${userCredits?.balance ?? 0}` }, { status: 400 })
     }

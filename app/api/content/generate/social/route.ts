@@ -124,5 +124,20 @@ Return ONLY valid JSON (no markdown fences):
     return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 })
   }
 
-  return NextResponse.json({ posts, creditsUsed: CREDIT_COST })
+  const { data: saved } = await supabase.from('ugc_content').insert([{
+    user_id: userId,
+    content_type: 'social',
+    storage_url: null,
+    metadata: {
+      topic: topic.trim(),
+      tone,
+      platforms: validPlatforms,
+      posts,
+      generatedAt: new Date().toISOString(),
+    },
+    credit_cost: CREDIT_COST,
+    status: 'completed',
+  }]).select('id').maybeSingle()
+
+  return NextResponse.json({ id: saved?.id ?? null, posts, creditsUsed: CREDIT_COST })
 }

@@ -57,6 +57,20 @@ export async function POST(request: NextRequest) {
 
   const supabase = getSupabase()
 
+  // Idempotency guard: reject duplicate deliveries so credits can't double-apply.
+  const { error: dedupError } = await supabase
+    .from('stripe_webhook_events')
+    .insert({ event_id: event.id, event_type: event.type })
+  if (dedupError) {
+    // Unique violation = already processed. Any other error = fail so Stripe retries.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if ((dedupError as any).code === '23505') {
+      return NextResponse.json({ received: true, duplicate: true })
+    }
+    console.error('[stripe/webhook] dedup insert failed', dedupError)
+    return NextResponse.json({ error: 'dedup failed' }, { status: 500 })
+  }
+
   try {
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -206,6 +220,9 @@ export async function POST(request: NextRequest) {
     }
   } catch (e) {
     console.error('[stripe/webhook] handler error', e)
+    // Roll back dedup row so Stripe's retry can reprocess this event.
+    await supabase.from('stripe_webhook_events').delete().eq('event_id', event.id)
+    return NextResponse.json({ error: 'handler failed' }, { status: 500 })
   }
 
   return NextResponse.json({ received: true })

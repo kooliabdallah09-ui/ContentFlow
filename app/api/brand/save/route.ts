@@ -8,17 +8,23 @@ const supabaseAdmin = createClient(
 
 export async function POST(req: NextRequest) {
   try {
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(authHeader.slice(7))
+    if (userError || !userData.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const user_id = userData.user.id
+    const user_email = userData.user.email
+
     const body = await req.json()
     const {
-      user_id, user_email,
       company_name, description, target_audience, tone_of_voice,
       product_type, unique_value_prop, brand_mission, customer_pain_points,
       brand_colors, posting_frequency, logo_url,
     } = body
-
-    if (!user_id) {
-      return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
-    }
 
     // Ensure profiles row exists (needed if brand_profiles.user_id FK still points to profiles.id)
     const { error: pe } = await supabaseAdmin

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { getSupabase } from '@/lib/auth'
 
 export default function SignupPage() {
   const router = useRouter()
@@ -27,6 +28,12 @@ export default function SignupPage() {
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.error || 'Signup failed')
+      }
+
+      const supabase = getSupabase()
+      if (supabase) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password })
+        if (signInError) throw new Error(signInError.message)
       }
 
       router.push('/onboarding/plan')

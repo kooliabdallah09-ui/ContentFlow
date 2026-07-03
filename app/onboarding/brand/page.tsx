@@ -168,10 +168,11 @@ export default function OnboardingBrandPage() {
 
       const res = await fetch('/api/brand/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
-          user_id: session.user.id,
-          user_email: session.user.email,
           company_name: companyName,
           description,
           target_audience: targetAudience,
@@ -285,9 +286,11 @@ export default function OnboardingBrandPage() {
       const now = new Date()
       const saveRes = await fetch('/api/planner/save-plan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({
-          user_id: session.user.id,
           month: now.getMonth() + 1,
           year: now.getFullYear(),
           plan_data: generatedPlan,

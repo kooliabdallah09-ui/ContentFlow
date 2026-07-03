@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
-import { initializeUserCredits } from '@/lib/credits'
+import { PLAN_CREDITS } from '@/lib/credits'
 
 export async function POST(request: Request) {
   try {
@@ -36,15 +36,9 @@ export async function POST(request: Request) {
       return Response.json({ message: 'Credits already initialized', data: existingCredits })
     }
 
-    // Initialize credits directly on server
-    const PLAN_CREDITS: any = {
-      free: { monthly: 50, signup_bonus: 150 },
-      starter: { monthly: 1000 },
-      pro: { monthly: 4000 },
-      agency: { monthly: 15000 },
-    }
-
-    const monthlyCredits = PLAN_CREDITS[plan].monthly
+    const planKey = (plan in PLAN_CREDITS ? plan : 'free') as keyof typeof PLAN_CREDITS
+    const monthlyCredits = PLAN_CREDITS[planKey].monthly
+    const signupBonus = planKey === 'free' ? PLAN_CREDITS.free.signup_bonus : 0
     const resetDate = new Date()
     resetDate.setMonth(resetDate.getMonth() + 1)
     resetDate.setDate(1)
@@ -53,8 +47,8 @@ export async function POST(request: Request) {
       .from('user_credits')
       .insert({
         user_id: userData.user.id,
-        balance: monthlyCredits + (plan === 'free' ? PLAN_CREDITS.free.signup_bonus : 0),
-        plan,
+        balance: monthlyCredits + signupBonus,
+        plan: planKey,
         monthly_credits: monthlyCredits,
         reset_date: resetDate.toISOString(),
       })

@@ -163,9 +163,15 @@ export default function CalendarPage() {
       const platforms = ['tiktok', 'instagram']
       const frequency = (brand.posting_frequency as 'light' | 'moderate' | 'heavy') || 'moderate'
 
+      const accessToken = sess?.session?.access_token
+      if (!accessToken) throw new Error('Not signed in')
+
       const genRes = await fetch('/api/planner/generate-monthly-plan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
           industry: brand.product_type || 'general',
           platforms,
@@ -190,8 +196,11 @@ export default function CalendarPage() {
       const y = now.getFullYear()
       const saveRes = await fetch('/api/planner/save-plan', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: user.id, month: m, year: y, plan_data: newPlan }),
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({ month: m, year: y, plan_data: newPlan }),
       })
       const saveData = await saveRes.json()
       if (!saveRes.ok) throw new Error(saveData.error || 'Failed to save plan')

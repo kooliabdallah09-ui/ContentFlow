@@ -171,5 +171,21 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
     }
   })
 
-  return NextResponse.json({ slides, creditsUsed: totalCost })
+  const { data: saved } = await supabase.from('ugc_content').insert([{
+    user_id: userId,
+    content_type: 'carousel',
+    storage_url: null,
+    metadata: {
+      topic: topic.trim(),
+      platform,
+      tone,
+      slideCount: safeSlideCount,
+      slides: slides.map(s => ({ headline: s.headline, body: s.body, cta: s.cta })),
+      generatedAt: new Date().toISOString(),
+    },
+    credit_cost: totalCost,
+    status: 'completed',
+  }]).select('id').maybeSingle()
+
+  return NextResponse.json({ id: saved?.id ?? null, slides, creditsUsed: totalCost })
 }

@@ -9,9 +9,16 @@ import { publishToYouTube, refreshYouTubeToken } from '@/lib/integrations/youtub
 export const maxDuration = 300
 
 export async function GET(req: NextRequest) {
-  // Verify this is called by Vercel's cron scheduler
-  const secret = req.headers.get('x-cron-secret') ?? req.nextUrl.searchParams.get('secret')
-  if (process.env.CRON_SECRET && secret !== process.env.CRON_SECRET) {
+  // Verify this is called by Vercel's cron scheduler. Fail closed if unset.
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    return NextResponse.json({ error: 'Cron not configured' }, { status: 500 })
+  }
+  const provided =
+    req.headers.get('x-cron-secret') ??
+    req.headers.get('authorization')?.replace(/^Bearer /, '') ??
+    req.nextUrl.searchParams.get('secret')
+  if (provided !== cronSecret) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

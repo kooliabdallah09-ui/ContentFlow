@@ -189,12 +189,17 @@ export default function BrandSettingsPage() {
       const { data: userData } = await supabase.auth.getUser()
       if (!userData.user) throw new Error('Not authenticated')
 
+      const { data: sessionData } = await supabase.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+      if (!accessToken) throw new Error('Not authenticated')
+
       const res = await fetch('/api/brand/save', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${accessToken}`,
+        },
         body: JSON.stringify({
-          user_id:              userData.user.id,
-          user_email:           userData.user.email,
           company_name:         form.companyName.trim(),
           description:          form.description.trim(),
           product_type:         form.productType.trim(),
