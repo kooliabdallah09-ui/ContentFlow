@@ -239,8 +239,8 @@ export default function PovGeneratorPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <Field label="Product / app name" placeholder="e.g. ContentFlow, Lumo Skin, Nike Vaporfly">
-              <input className="input" value={productName} onChange={(e) => setProductName(e.target.value)} />
+            <Field label="Product / app name">
+              <input className="input" placeholder="e.g. ContentFlow, Lumo Skin, Nike Vaporfly" value={productName} onChange={(e) => setProductName(e.target.value)} />
             </Field>
 
             <Field label="Product description" hint="1 sentence — what it is and who it's for">
