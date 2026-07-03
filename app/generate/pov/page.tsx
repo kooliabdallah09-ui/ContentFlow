@@ -26,6 +26,7 @@ export default function PovGeneratorPage() {
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [uiScreenshot, setUiScreenshot] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [loading, setLoading] = useState(false)
+  const [autofilling, setAutofilling] = useState(false)
   const [gen, setGen] = useState<GenState | null>(null)
   const videoRef = useRef<HTMLVideoElement>(null)
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -52,6 +53,34 @@ export default function PovGeneratorPage() {
     const id = setInterval(tick, 4000)
     return () => { stop = true; clearInterval(id) }
   }, [gen])
+
+  async function autofill() {
+    if (!selectedFormat) return
+    setAutofilling(true)
+    try {
+      const supabase = getSupabase()!
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Please sign in')
+      const res = await fetch('/api/pov/autofill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ formatId: selectedFormat.id }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Autofill failed')
+      if (data.productName) setProductName(data.productName)
+      if (data.productDescription) setProductDescription(data.productDescription)
+      if (data.benefit) setBenefit(data.benefit)
+      if (data.script && selectedFormat.needsVoiceover) setScript(data.script)
+      if (data.extraDirection) setExtraDirection(data.extraDirection)
+      showSuccess('Filled', 'All fields autofilled from your brand profile')
+    } catch (err) {
+      showError('Autofill failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setAutofilling(false)
+    }
+  }
 
   async function pickFile(e: React.ChangeEvent<HTMLInputElement>, target: 'product' | 'ui') {
     const file = e.target.files?.[0]
@@ -232,10 +261,34 @@ export default function PovGeneratorPage() {
             ← Back to formats
           </button>
 
-          <div style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 14, marginBottom: 24, background: 'var(--surface)' }}>
-            <div style={{ fontSize: 24, marginBottom: 4 }}>{selectedFormat.emoji}</div>
-            <div style={{ fontSize: 20, fontWeight: 600 }}>{selectedFormat.name}</div>
-            <div style={{ fontSize: 13.5, color: 'var(--ink-dim)', marginTop: 4 }}>{selectedFormat.tagline}</div>
+          <div style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 14, marginBottom: 24, background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div>
+              <div style={{ fontSize: 24, marginBottom: 4 }}>{selectedFormat.emoji}</div>
+              <div style={{ fontSize: 20, fontWeight: 600 }}>{selectedFormat.name}</div>
+              <div style={{ fontSize: 13.5, color: 'var(--ink-dim)', marginTop: 4 }}>{selectedFormat.tagline}</div>
+            </div>
+            <button
+              onClick={autofill}
+              disabled={autofilling}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 16px',
+                borderRadius: 10,
+                border: '1px solid var(--line)',
+                background: 'var(--bg)',
+                color: 'var(--ink)',
+                fontSize: 13.5,
+                fontWeight: 500,
+                cursor: autofilling ? 'wait' : 'pointer',
+                opacity: autofilling ? 0.6 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              <span style={{ fontSize: 15 }}>✨</span>
+              {autofilling ? 'Filling…' : 'Autofill with AI'}
+            </button>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
@@ -299,8 +352,19 @@ export default function PovGeneratorPage() {
             <button
               onClick={submit}
               disabled={loading}
-              className="btn btn-primary"
-              style={{ padding: '14px 24px', borderRadius: 12, marginTop: 12, opacity: loading ? 0.6 : 1 }}
+              style={{
+                padding: '14px 24px',
+                borderRadius: 12,
+                marginTop: 12,
+                opacity: loading ? 0.6 : 1,
+                background: 'var(--ink)',
+                color: 'var(--bg)',
+                border: 'none',
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: loading ? 'wait' : 'pointer',
+                width: '100%',
+              }}
             >
               {loading ? 'Submitting…' : `Generate — ${selectedFormat.durationSeconds === 5 ? 30 : 50} credits`}
             </button>
@@ -322,16 +386,113 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 function FileInput({ file, onChange }: { file: { preview: string } | null; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) {
-  return (
-    <div>
-      {file && (
-        <div style={{ marginBottom: 10 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={file.preview} alt="" style={{ maxWidth: 240, borderRadius: 10, border: '1px solid var(--line)' }} />
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  if (file) {
+    return (
+      <div
+        style={{
+          position: 'relative',
+          border: '1px solid var(--line)',
+          borderRadius: 12,
+          padding: 14,
+          background: 'var(--surface)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 14,
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={file.preview}
+          alt=""
+          style={{ width: 72, height: 72, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--line)' }}
+        />
+        <div style={{ flex: 1, fontSize: 13, color: 'var(--ink-dim)' }}>
+          Image ready — Seedance will use this as the reference.
         </div>
-      )}
-      <input type="file" accept="image/*" onChange={onChange} className="input" />
-    </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--line)',
+            borderRadius: 8,
+            padding: '8px 14px',
+            fontSize: 12.5,
+            cursor: 'pointer',
+            color: 'var(--ink)',
+          }}
+        >
+          Replace
+        </button>
+        <input ref={inputRef} type="file" accept="image/*" onChange={onChange} style={{ display: 'none' }} />
+      </div>
+    )
+  }
+
+  return (
+    <label
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 6,
+        padding: '28px 20px',
+        border: '1.5px dashed var(--line)',
+        borderRadius: 12,
+        background: 'var(--surface)',
+        cursor: 'pointer',
+        transition: 'all 0.15s',
+        textAlign: 'center',
+      }}
+      onDragOver={(e) => {
+        e.preventDefault()
+        e.currentTarget.style.borderColor = 'var(--ink)'
+      }}
+      onDragLeave={(e) => {
+        e.currentTarget.style.borderColor = 'var(--line)'
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        e.currentTarget.style.borderColor = 'var(--line)'
+        const files = e.dataTransfer.files
+        if (files.length) {
+          const dt = new DataTransfer()
+          dt.items.add(files[0])
+          if (inputRef.current) {
+            inputRef.current.files = dt.files
+            const evt = new Event('change', { bubbles: true })
+            inputRef.current.dispatchEvent(evt)
+          }
+        }
+      }}
+    >
+      <div
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 10,
+          background: 'var(--bg)',
+          border: '1px solid var(--line)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 18,
+          marginBottom: 4,
+        }}
+      >
+        ⬆
+      </div>
+      <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>
+        Click to upload or drag & drop
+      </div>
+      <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>
+        PNG, JPG, or WebP · up to 10 MB
+      </div>
+      <input ref={inputRef} type="file" accept="image/*" onChange={onChange} style={{ display: 'none' }} />
+    </label>
   )
 }
 
