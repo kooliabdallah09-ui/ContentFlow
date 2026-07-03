@@ -241,7 +241,7 @@ export default function PovGeneratorPage() {
                 <span>·</span>
                 <span>{f.aspectRatio}</span>
                 <span>·</span>
-                <span>{f.durationSeconds === 5 ? 30 : 50}cr</span>
+                <span>{f.durationSeconds === 5 ? 60 : 110}cr</span>
               </div>
             </button>
           ))}
@@ -380,7 +380,7 @@ export default function PovGeneratorPage() {
                 width: '100%',
               }}
             >
-              {loading ? 'Submitting…' : `Generate — ${selectedFormat.durationSeconds === 5 ? 30 : 50} credits`}
+              {loading ? 'Submitting…' : `Generate — ${selectedFormat.durationSeconds === 5 ? 60 : 110} credits`}
             </button>
           </div>
         </div>

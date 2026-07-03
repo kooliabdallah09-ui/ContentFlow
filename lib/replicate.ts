@@ -1,10 +1,12 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
 const SORA_2_MODEL = 'openai/sora-2'
 
-// Seedance 2.0 Pro — ByteDance's realism-focused text-to-video / image-to-video model.
-// v2 dramatically improved character consistency + prompt adherence with dialog +
-// timed camera moves, which is what makes the Arcads-style POV UGC ads work.
-const SEEDANCE_MODEL = 'bytedance/seedance-2-pro'
+// Seedance 2.0 — ByteDance's multimodal video model with native audio, image
+// reference, and intelligent duration control. Non-video-input path (i2v from
+// our Nano Banana hero frame) at 720p is the sweet spot: $0.18/s, ~$0.90 for 5s.
+// v2 dramatically improved character consistency + dialog + timed camera moves,
+// which is what makes the Arcads-style POV UGC ads work.
+const SEEDANCE_MODEL = 'bytedance/seedance-2.0'
 
 // Text-to-video (no reference image) — used for pure POV scenes.
 // Image-to-video (image param) — used when we need product/UI consistency across the clip.
@@ -21,7 +23,7 @@ export async function submitSeedanceJob(params: {
     prompt: params.prompt,
     duration: params.durationSeconds,
     aspect_ratio: params.aspectRatio ?? '9:16',
-    resolution: '1080p',
+    resolution: '720p',
     camera_fixed: false,
   }
   if (params.startImageUrl) input.image = params.startImageUrl

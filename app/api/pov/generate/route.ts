@@ -21,12 +21,13 @@ import { buildPovSeedancePrompt, buildHeroFramePrompt } from '@/lib/pov-prompt'
 
 export const maxDuration = 300
 
-// Cost model: Seedance ~$0.30/5s, ~$0.55/10s. Nano Banana hero ~$0.05.
-// ElevenLabs voice ~$0.10. At $0.03/credit sold price → 15-25 raw cost.
-// Applied margin: 25cr for 5s, 45cr for 10s. +5cr if voiceover included.
+// Cost model (Seedance 2.0 non_video_in 720p — $0.18/s of output):
+//   5s clip = $0.90 Seedance + $0.05 Nano Banana + $0.10 ElevenLabs = ~$1.05 raw
+//   10s clip = $1.80 Seedance + $0.05 Nano Banana + $0.10 ElevenLabs = ~$1.95 raw
+// At $0.03 per credit sold price, price at 60cr / 110cr keeps a healthy margin.
 function povCreditCost(durationSeconds: 5 | 10, hasVoiceover: boolean): number {
-  const base = durationSeconds === 5 ? 25 : 45
-  return hasVoiceover ? base + 5 : base
+  const base = durationSeconds === 5 ? 60 : 110
+  return hasVoiceover ? base : base - 5
 }
 
 // Realistic UGC voice — same defaults as the standalone /voice generator.
