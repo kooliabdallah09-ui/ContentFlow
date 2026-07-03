@@ -67,6 +67,7 @@ export async function POST(request: NextRequest) {
       script,
       voiceId,
       characterDescription,
+      duration: overrideDuration,
     } = body
 
     if (!formatId || !productName || !productDescription || !benefit) {
@@ -78,6 +79,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unknown format' }, { status: 400 })
     }
 
+    // Duration can be overridden by the user (5 or 10s). Falls back to format default.
+    const requestedDuration = Number(overrideDuration)
+    const durationSeconds: 5 | 10 =
+      requestedDuration === 5 || requestedDuration === 10
+        ? (requestedDuration as 5 | 10)
+        : format.durationSeconds
+
     if (format.needsProductImage && !productImageBase64) {
       return NextResponse.json({ error: 'This format needs a product photo' }, { status: 400 })
     }
@@ -88,7 +96,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'This format needs a voiceover script' }, { status: 400 })
     }
 
-    const totalCost = povCreditCost(format.durationSeconds, format.needsVoiceover)
+    const totalCost = povCreditCost(durationSeconds, format.needsVoiceover)
 
     const { data: userCredits } = await supabase
       .from('user_credits')
@@ -175,7 +183,7 @@ export async function POST(request: NextRequest) {
 
     const { predictionId } = await submitSeedanceJob({
       prompt,
-      durationSeconds: format.durationSeconds,
+      durationSeconds,
       aspectRatio: format.aspectRatio,
       startImageUrl,
     })
@@ -216,7 +224,7 @@ export async function POST(request: NextRequest) {
       seedancePrompt: prompt,
       voiceoverUrl: voiceoverUrl ?? null,
       startImageUrl: startImageUrl ?? null,
-      durationSeconds: format.durationSeconds,
+      durationSeconds,
       aspectRatio: format.aspectRatio,
       generatedAt: new Date().toISOString(),
     }
@@ -226,7 +234,7 @@ export async function POST(request: NextRequest) {
         videoId: predictionId,
         status: 'processing',
         provider: 'seedance',
-        duration: format.durationSeconds,
+        duration: durationSeconds,
         voiceoverUrl,
       },
     }

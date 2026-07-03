@@ -25,6 +25,10 @@ export async function submitSeedanceJob(params: {
     aspect_ratio: params.aspectRatio ?? '9:16',
     resolution: '720p',
     camera_fixed: false,
+    // ElevenLabs handles the voiceover — disable Seedance's native audio so we
+    // don't get a lipsync mismatch (Seedance would generate its own dialog).
+    enable_audio: false,
+    generate_audio: false,
     // Keep the safety filter from flagging borderline framings — POV UGC
     // legitimately sits close to "bedroom / dim light" which the filter
     // interprets as suggestive. Force-clean the framing.

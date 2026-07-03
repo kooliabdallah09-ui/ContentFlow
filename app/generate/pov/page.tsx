@@ -24,6 +24,7 @@ export default function PovGeneratorPage() {
   const [extraDirection, setExtraDirection] = useState('')
   const [script, setScript] = useState('')
   const [characterDescription, setCharacterDescription] = useState('')
+  const [duration, setDuration] = useState<5 | 10>(5)
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [uiScreenshot, setUiScreenshot] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -135,6 +136,7 @@ export default function PovGeneratorPage() {
           extraDirection: extraDirection.trim() || undefined,
           script: selectedFormat.needsVoiceover ? script : undefined,
           characterDescription: characterDescription.trim() || undefined,
+          duration,
           productImageBase64: selectedFormat.needsProductImage ? productImage?.base64 : undefined,
           productImageMimeType: selectedFormat.needsProductImage ? productImage?.mimeType : undefined,
           uiScreenshotBase64: selectedFormat.needsUiScreenshot ? uiScreenshot?.base64 : undefined,
@@ -216,7 +218,7 @@ export default function PovGeneratorPage() {
           {POV_FORMATS.map(f => (
             <button
               key={f.id}
-              onClick={() => setSelectedFormat(f)}
+              onClick={() => { setSelectedFormat(f); setDuration(f.durationSeconds) }}
               className="card"
               style={{
                 textAlign: 'left',
@@ -296,6 +298,41 @@ export default function PovGeneratorPage() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+            <Field label="Duration" hint="5 seconds is punchy for hooks. 10 seconds gives room for a full beat.">
+              <div style={{ display: 'flex', gap: 10 }}>
+                {([5, 10] as const).map((d) => {
+                  const active = duration === d
+                  const cost = d === 5 ? 60 : 110
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDuration(d)}
+                      style={{
+                        flex: 1,
+                        padding: '14px 16px',
+                        borderRadius: 12,
+                        border: `1px solid ${active ? 'var(--ink)' : 'var(--line)'}`,
+                        background: active ? 'var(--ink)' : 'var(--surface)',
+                        color: active ? 'var(--bg)' : 'var(--ink)',
+                        cursor: 'pointer',
+                        fontSize: 14,
+                        fontWeight: 500,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: 4,
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      <span style={{ fontSize: 16, fontWeight: 600 }}>{d} seconds</span>
+                      <span style={{ fontSize: 12, opacity: 0.75 }}>{cost} credits</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+
             <Field label="Product / app name">
               <input className="input" placeholder="e.g. ContentFlow, Lumo Skin, Nike Vaporfly" value={productName} onChange={(e) => setProductName(e.target.value)} />
             </Field>
@@ -380,7 +417,7 @@ export default function PovGeneratorPage() {
                 width: '100%',
               }}
             >
-              {loading ? 'Submitting…' : `Generate — ${selectedFormat.durationSeconds === 5 ? 60 : 110} credits`}
+              {loading ? 'Submitting…' : `Generate — ${duration === 5 ? 60 : 110} credits`}
             </button>
           </div>
         </div>
