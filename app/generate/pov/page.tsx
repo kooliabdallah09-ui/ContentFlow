@@ -23,6 +23,7 @@ export default function PovGeneratorPage() {
   const [benefit, setBenefit] = useState('')
   const [extraDirection, setExtraDirection] = useState('')
   const [script, setScript] = useState('')
+  const [characterDescription, setCharacterDescription] = useState('')
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [uiScreenshot, setUiScreenshot] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -73,6 +74,7 @@ export default function PovGeneratorPage() {
       if (data.productDescription) setProductDescription(data.productDescription)
       if (data.benefit) setBenefit(data.benefit)
       if (data.script && selectedFormat.needsVoiceover) setScript(data.script)
+      if (data.characterDescription) setCharacterDescription(data.characterDescription)
       if (data.extraDirection) setExtraDirection(data.extraDirection)
       showSuccess('Filled', 'All fields autofilled from your brand profile')
     } catch (err) {
@@ -132,6 +134,7 @@ export default function PovGeneratorPage() {
           benefit,
           extraDirection: extraDirection.trim() || undefined,
           script: selectedFormat.needsVoiceover ? script : undefined,
+          characterDescription: characterDescription.trim() || undefined,
           productImageBase64: selectedFormat.needsProductImage ? productImage?.base64 : undefined,
           productImageMimeType: selectedFormat.needsProductImage ? productImage?.mimeType : undefined,
           uiScreenshotBase64: selectedFormat.needsUiScreenshot ? uiScreenshot?.base64 : undefined,
@@ -166,6 +169,7 @@ export default function PovGeneratorPage() {
     setBenefit('')
     setExtraDirection('')
     setScript('')
+    setCharacterDescription('')
     setProductImage(null)
     setUiScreenshot(null)
   }
@@ -312,6 +316,16 @@ export default function PovGeneratorPage() {
                 value={benefit}
                 onChange={(e) => setBenefit(e.target.value)}
                 placeholder="how easy it is to launch an ad in 30 seconds"
+              />
+            </Field>
+
+            <Field label="Character (creator)" hint="Who's on camera. One dense line — age, ethnicity, hair, one accessory, one outfit detail. Autofill can generate this.">
+              <textarea
+                className="textarea"
+                rows={2}
+                value={characterDescription}
+                onChange={(e) => setCharacterDescription(e.target.value)}
+                placeholder="a young Southeast Asian woman, 20s, athletic build, warm brown skin, dark hair pulled back into a high ponytail, small gold hoop earrings, oversized black hoodie"
               />
             </Field>
 

@@ -13,11 +13,12 @@ export interface PovFormat {
   tagline: string
   needsProductImage: boolean
   needsUiScreenshot: boolean       // laptop/app UI reveal formats
-  needsVoiceover: boolean          // whether ElevenLabs is added on top
+  needsVoiceover: boolean          // ElevenLabs overlay on top
   durationSeconds: 5 | 10
   aspectRatio: '9:16' | '1:1' | '16:9'
-  // builder returns the full Seedance prompt. Kept as a pure function so tests
-  // can render sample prompts without touching Replicate.
+  // Fallback prompt used only if Claude prompt-builder fails. Not the primary path —
+  // buildPovSeedancePrompt (lib/pov-prompt.ts) composes a bespoke Arcads-style prompt
+  // per generation using format, character, script, and product context.
   buildPrompt: (ctx: PovPromptContext) => string
 }
 

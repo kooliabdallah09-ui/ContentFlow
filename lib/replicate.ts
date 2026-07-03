@@ -1,10 +1,10 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
 const SORA_2_MODEL = 'openai/sora-2'
 
-// Seedance Pro — ByteDance's realism-focused text-to-video / image-to-video model.
-// Excels at POV, hand-product interaction, physical realism (unboxing, GRWM, cozy scroll).
-// Bump to `bytedance/seedance-2-pro` when the 2.0 endpoint is confirmed live on Replicate.
-const SEEDANCE_MODEL = 'bytedance/seedance-1-pro'
+// Seedance 2.0 Pro — ByteDance's realism-focused text-to-video / image-to-video model.
+// v2 dramatically improved character consistency + prompt adherence with dialog +
+// timed camera moves, which is what makes the Arcads-style POV UGC ads work.
+const SEEDANCE_MODEL = 'bytedance/seedance-2-pro'
 
 // Text-to-video (no reference image) — used for pure POV scenes.
 // Image-to-video (image param) — used when we need product/UI consistency across the clip.

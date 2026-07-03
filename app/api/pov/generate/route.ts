@@ -5,6 +5,7 @@ import { deductCredits } from '@/lib/deduct-credits'
 import { submitSeedanceJob, generateElevenLabsViaReplicate } from '@/lib/replicate'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { getPovFormat } from '@/lib/pov-formats'
+import { buildPovSeedancePrompt, buildHeroFramePrompt } from '@/lib/pov-prompt'
 
 // POV / faceless ad generator.
 // Pipeline:
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
       uiScreenshotMimeType,
       script,
       voiceId,
+      characterDescription,
     } = body
 
     if (!formatId || !productName || !productDescription || !benefit) {
@@ -110,12 +112,15 @@ export async function POST(request: NextRequest) {
       const refBase64 = format.needsProductImage ? productImageBase64 : uiScreenshotBase64
       const refMime = format.needsProductImage ? productImageMimeType : uiScreenshotMimeType
 
-      // Reuse the prompt scaffold as the hero framing — Nano Banana renders
-      // the still, then Seedance animates from it.
-      const heroPrompt = format.buildPrompt({
+      // Hero framing prompt in the Arcads two-image style: "use this reference
+      // character in this setting, with this product/UI visible."
+      const heroPrompt = buildHeroFramePrompt({
+        format,
         productName,
         productDescription,
         benefit,
+        script: script ?? '',
+        characterDescription: characterDescription ?? '',
         extraDirection: extraDirection ?? undefined,
       })
 
@@ -147,12 +152,25 @@ export async function POST(request: NextRequest) {
     }
 
     // === 2. Seedance submission ===
-    const prompt = format.buildPrompt({
-      productName,
-      productDescription,
-      benefit,
-      extraDirection: extraDirection ?? undefined,
-    })
+    // Claude composes a bespoke Arcads-style cinematic prompt: timestamped opener,
+    // dialog inline in single quotes, camera moves tied to spoken keywords,
+    // handheld phone aesthetic. Falls back to the format's own template if Claude
+    // errors out — Seedance still gets a usable prompt.
+    let prompt: string
+    try {
+      prompt = await buildPovSeedancePrompt({
+        format,
+        productName,
+        productDescription,
+        benefit,
+        script: script ?? '',
+        characterDescription: characterDescription ?? '',
+        extraDirection: extraDirection ?? undefined,
+      })
+    } catch (err) {
+      console.error('POV Claude prompt build failed, falling back to template:', err)
+      prompt = format.buildPrompt({ productName, productDescription, benefit, extraDirection: extraDirection ?? undefined })
+    }
 
     const { predictionId } = await submitSeedanceJob({
       prompt,
@@ -193,6 +211,8 @@ export async function POST(request: NextRequest) {
       benefit,
       extraDirection: extraDirection ?? null,
       script: script ?? null,
+      characterDescription: characterDescription ?? null,
+      seedancePrompt: prompt,
       voiceoverUrl: voiceoverUrl ?? null,
       startImageUrl: startImageUrl ?? null,
       durationSeconds: format.durationSeconds,
