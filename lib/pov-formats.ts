@@ -40,17 +40,17 @@ const NEG =
 export const POV_FORMATS: PovFormat[] = [
   {
     id: 'lazy-discovery',
-    name: 'Lazy Discovery',
+    name: 'Cozy Discovery',
     category: 'discovery',
-    emoji: '🛏️',
-    tagline: 'Bed + laptop, casual "I just found this" energy',
+    emoji: '🛋️',
+    tagline: 'Couch + laptop, casual "I just found this" energy',
     needsProductImage: false,
     needsUiScreenshot: true,
     needsVoiceover: true,
     durationSeconds: 5,
     aspectRatio: '9:16',
     buildPrompt: (ctx) =>
-      `POV shot from a phone held at chest height, first-person perspective, filmed by someone lying on a white unmade bed at golden hour. In the foreground: a MacBook resting on the person's lap, screen visible, tilted slightly toward the camera. The screen clearly shows the ${ctx.productName} interface (${ctx.productDescription}). Warm afternoon sunlight through a window, cozy bedroom in soft focus, plants and a coffee mug on the nightstand. The hand not holding the phone occasionally reaches to scroll on the trackpad. Very slight handheld micro-shake, casual home vibe. Focus on the laptop screen: it stays crisp so the UI is legible. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
+      `POV shot from a phone held at chest height, first-person perspective, someone sitting on a beige linen couch during a bright afternoon. In the foreground: a MacBook resting on the person's lap, screen visible, tilted slightly toward the camera. The screen clearly shows the ${ctx.productName} interface (${ctx.productDescription}). Warm afternoon sunlight through a large window, cozy living room in soft focus, plants and a coffee mug on the side table. The hand not holding the phone occasionally reaches to scroll on the trackpad. Very slight handheld micro-shake, casual home vibe. Focus on the laptop screen: it stays crisp so the UI is legible. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
   },
   {
     id: 'cafe-scroll',
@@ -67,18 +67,18 @@ export const POV_FORMATS: PovFormat[] = [
       `POV shot from a person's face-height, looking down at their own hand holding a phone. Camera captures both the phone (screen crisp and legible, showing the ${ctx.productName} app: ${ctx.productDescription}) and a rustic café table below — a matcha latte, a croissant on a plate, warm wood texture. Ambient café background heavily blurred, soft afternoon light through a window. The thumb scrolls slowly on the phone screen. Very natural, unstyled. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
   },
   {
-    id: 'late-night-scroll',
-    name: 'Late-Night Scroll',
+    id: 'evening-scroll',
+    name: 'Evening Scroll',
     category: 'discovery',
-    emoji: '🌙',
-    tagline: 'Dim room, blue screen glow, night-mode browsing',
+    emoji: '🌆',
+    tagline: 'Warm evening light, phone in hand, casual browsing',
     needsProductImage: false,
     needsUiScreenshot: true,
     needsVoiceover: true,
     durationSeconds: 5,
     aspectRatio: '9:16',
     buildPrompt: (ctx) =>
-      `POV shot in a dark bedroom late at night. Only the blue-purple glow from a phone illuminates the person's hands and duvet cover. The phone screen dominates the frame, sharp and legible, showing the ${ctx.productName} interface (${ctx.productDescription}). Warm yellow lamp barely visible in the far background. Thumb slowly scrolls, tapping through the app. Intimate, quiet late-night mood. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
+      `POV shot in a cozy living room during warm golden-hour evening light through a large window. Person sits on a couch, phone held in one hand. The phone screen dominates the frame, sharp and legible, showing the ${ctx.productName} interface (${ctx.productDescription}). A warm ambient lamp visible in the background, plants and books on a nearby shelf. Thumb slowly scrolls, tapping through the app. Calm, casual home mood. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
   },
   {
     id: 'unboxing',
@@ -148,7 +148,7 @@ export const POV_FORMATS: PovFormat[] = [
     durationSeconds: 10,
     aspectRatio: '9:16',
     buildPrompt: (ctx) =>
-      `POV filmed via a phone held at chest level in a bathroom, aimed at a mirror. Person's reflection is visible from the neck down or with face partially cropped — never fully seeing the face. They pick up ${ctx.productName} (${ctx.productDescription}) from the sink counter and use it. Realistic bathroom: white subway tile, warm vanity lights, plants. Natural morning light mixed with warm bulbs. Focus on the product and the routine motion around ${ctx.benefit}. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
+      `POV filmed via a phone held at chest level in a bright modern bathroom, aimed at a large mirror. The creator is fully clothed in a casual t-shirt or hoodie, reflection framed from the shoulders up so their face is visible looking into the camera. They pick up ${ctx.productName} (${ctx.productDescription}) from the sink counter and use it. Realistic bathroom: white subway tile, warm vanity lights, plants. Natural morning light mixed with warm bulbs. Focus on the product and the routine motion around ${ctx.benefit}. ${ctx.extraDirection ?? ''} ${REALISM_TAIL}`,
   },
   {
     id: 'desk-showcase',

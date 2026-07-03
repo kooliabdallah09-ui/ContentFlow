@@ -25,6 +25,10 @@ export async function submitSeedanceJob(params: {
     aspect_ratio: params.aspectRatio ?? '9:16',
     resolution: '720p',
     camera_fixed: false,
+    // Keep the safety filter from flagging borderline framings — POV UGC
+    // legitimately sits close to "bedroom / dim light" which the filter
+    // interprets as suggestive. Force-clean the framing.
+    negative_prompt: 'nudity, undressed, underwear, bare skin, suggestive pose, sexual content, minors, children, bedroom bed, undressing, intimate framing, blurry face, distorted hands, extra fingers, deformed face, text overlays, captions, watermarks, logos',
   }
   if (params.startImageUrl) input.image = params.startImageUrl
 

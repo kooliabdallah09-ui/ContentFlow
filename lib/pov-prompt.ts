@@ -34,24 +34,27 @@ Aspect: ${input.format.aspectRatio}
 Needs UI on screen: ${input.format.needsUiScreenshot ? 'YES — laptop or phone screen is the focal point' : 'no'}
 Needs product visible: ${input.format.needsProductImage ? 'YES — product held or in frame' : 'no'}`
 
-  const prompt = `You are writing a Seedance 2.0 video prompt in the exact "Arcads / Claude-ad" cinematic style.
+  const prompt = `You are writing a Seedance 2.0 video prompt in the "Arcads / Claude-ad" cinematic style.
 
-REFERENCE EXAMPLE (Vans / late-night bedroom, for style calibration only — do NOT copy content):
-"14:43 UGC POV — girl on bed, 1AM, dark room lit only by MacBook screen. Laptop open on bed, Vans website visible. She speaks casually to camera: 'It's fucking 1 a.m. but I don't care — Vans just dropped their summer collection and I'm obsessed.' '1 a.m.' — fast smooth zoom into clock: 1:03 AM top-right corner, rest of frame softly blurs, eases back to normal. She scrolls trackpad, screen slides down, women's tops appear in clean grid. 'they actually sent me this early' — quick zoom into screen, yellow Vans tank top fills frame."
+REFERENCE EXAMPLE (for style calibration only — do NOT copy content, do NOT copy the profanity):
+"14:43 UGC POV — young woman on her couch during a bright afternoon, laptop open, Vans website visible. She speaks casually to camera: 'okay Vans just dropped their summer collection and I am obsessed.' 'obsessed' — smooth zoom into laptop screen, product grid fills the frame, eases back. She scrolls the trackpad, screen slides down, women's tops appear in clean grid. 'they actually sent me this early' — quick zoom into screen, yellow tank top fills the frame."
 
 RULES:
-- Start with a timestamp tag like "14:43" or "23:12" that matches the format's mood (late-night, morning, afternoon).
+- Start with a timestamp tag like "14:43" or "10:12" that matches the format's mood (morning, afternoon, evening — avoid 'late-night bedroom' framing).
 - Then "UGC POV — " and the scene setup in one clean sentence.
 - Describe: the character position, the setting/lighting, and what product / UI is visible.
-- Insert the character's dialog EXACTLY as written by the user, using single quotes: 'the exact line goes here'.
+- Insert the character's dialog EXACTLY as written by the user, using single quotes: 'the exact line goes here'. If the user's line contains profanity or NSFW words, rewrite the line to remove those words while keeping the same casual meaning.
 - Pick 2-3 keywords or short phrases from that dialog. For each, add a beat in the format:
-  "'[keyword]' — [specific camera move that lands on that word]" (fast zoom, slow push-in, rack focus to screen, etc.)
+  "'[keyword]' — [specific camera move that lands on that word]" (smooth zoom, slow push-in, rack focus to screen, etc.)
 - Include one "she interacts with X" beat (scrolls trackpad, clicks CTA, holds product up, etc.).
-- End with camera aesthetic notes: "POV handheld phone camera, low-light / warm daylight / etc., slightly grainy, authentic ${input.format.name.toLowerCase()} feel. No captions, no overlays, no text on screen except the app UI already present."
-- Character description goes inline: describe her/him in one clause.
+- End with camera aesthetic notes: "POV handheld phone camera, natural daylight or warm indoor lighting, slightly grainy, authentic UGC feel. No captions, no overlays, no on-screen text except the app UI already present."
+- Character description goes inline: describe him/her in one clause.
 - Total length: 90–160 words. No line breaks — one flowing paragraph.
 
 DO NOT:
+- Use profanity, swear words, or crude language of any kind — clean, casual copy only.
+- Describe bedrooms, undressed scenes, or intimate/suggestive framing. Setting must be a public-safe living space (living room, kitchen, café, desk, park).
+- Describe minors — the creator is always an adult in their 20s or 30s.
 - Use bullet points.
 - Add narrator commentary.
 - Invent screen content beyond what user provided.
@@ -87,10 +90,10 @@ export function buildHeroFramePrompt(input: BuildPovPromptInput): string {
   const scene = input.format.tagline.toLowerCase()
 
   const sceneLine = input.format.needsUiScreenshot
-    ? `The scene: ${scene}. The laptop or phone screen clearly shows the ${input.productName} interface (${input.productDescription}) — the screen content stays crisp and legible. She looks directly at the phone camera with natural ${input.format.name.toLowerCase()} energy while interacting with the trackpad or screen.`
+    ? `The scene: ${scene}. The laptop or phone screen clearly shows the ${input.productName} interface (${input.productDescription}) — the screen content stays crisp and legible. The creator looks directly at the phone camera with natural casual energy while interacting with the trackpad or screen.`
     : input.format.needsProductImage
-      ? `The scene: ${scene}. She holds or uses the ${input.productName} (${input.productDescription}), product visible and clearly recognizable. She looks directly at the phone camera with natural energy.`
-      : `The scene: ${scene}. She looks directly at the phone camera with natural energy.`
+      ? `The scene: ${scene}. The creator holds or uses the ${input.productName} (${input.productDescription}), product visible and clearly recognizable. They look directly at the phone camera with natural energy.`
+      : `The scene: ${scene}. The creator looks directly at the phone camera with natural energy.`
 
-  return `Using the attached reference image as the exact character (preserve face, hair, outfit, jewelry, all identity details), generate a still frame for a POV UGC video of ${character}. ${sceneLine} POV handheld phone camera, low-light or natural window light appropriate to the scene, slightly grainy, authentic ${input.format.name.toLowerCase()} feel. No captions, no overlays. ${input.extraDirection ?? ''}`.trim()
+  return `Using the attached reference image as the exact character (preserve face, hair, outfit, jewelry, all identity details), generate a still frame for a POV UGC video of ${character}, an adult fully clothed in casual everyday outfit. ${sceneLine} POV handheld phone camera, natural daylight or warm indoor lighting, slightly grainy, authentic UGC feel. No captions, no overlays, no on-screen text except the app UI already present. Public-safe living space. ${input.extraDirection ?? ''}`.trim()
 }
