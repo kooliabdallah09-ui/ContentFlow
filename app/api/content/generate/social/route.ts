@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { deductCredits } from '@/lib/deduct-credits'
+import { loadBrandContext, formatBrandPrompt } from '@/lib/brand-context'
 
 const CREDIT_COST = 5
 
@@ -48,17 +49,32 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No valid platforms selected' }, { status: 400 })
   }
 
-  const { data: creditsRow } = await supabase
-    .from('user_credits')
-    .select('balance, pack_credits')
-    .eq('user_id', userId)
-    .single()
+  let balance = 0
+  let packCredits = 0
+  {
+    const withPack = await supabase
+      .from('user_credits')
+      .select('balance, pack_credits')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (withPack.data) {
+      balance = withPack.data.balance ?? 0
+      packCredits = withPack.data.pack_credits ?? 0
+    } else {
+      const fallback = await supabase
+        .from('user_credits')
+        .select('balance')
+        .eq('user_id', userId)
+        .maybeSingle()
+      balance = fallback.data?.balance ?? 0
+    }
+  }
 
-  if (!creditsRow || creditsRow.balance < CREDIT_COST) {
+  if (balance < CREDIT_COST) {
     return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 })
   }
 
-  await deductCredits(supabase, userId, CREDIT_COST, creditsRow.balance, creditsRow.pack_credits)
+  await deductCredits(supabase, userId, CREDIT_COST, balance, packCredits)
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -73,8 +89,11 @@ export async function POST(request: NextRequest) {
     .map((p: string) => `${p.toUpperCase()}: ${PLATFORM_GUIDES[p]}`)
     .join('\n\n')
 
-  const prompt = `You are an expert social media copywriter. Generate platform-native posts for the topic below.
+  const brandCtx = await loadBrandContext(supabase, userId)
+  const brandBlock = formatBrandPrompt(brandCtx)
 
+  const prompt = `You are an expert social media copywriter. Generate platform-native posts for the topic below.
+${brandBlock}
 TOPIC: ${topic.trim()}
 TONE: ${toneGuide}
 

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
 }
 
 const EFFECTIVE_DATE = 'June 24, 2026'
-const CONTACT_EMAIL = 'support@contentflow.ai'
+const CONTACT_EMAIL = 'contentflow.web@gmail.com'
 const COMPANY_NAME = 'ContentFlow'
 
 export default function TermsPage() {

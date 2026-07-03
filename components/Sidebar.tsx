@@ -96,20 +96,22 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       </div>
 
       <div className="rail-section">
+        <div className="rail-label">Publish</div>
+        <Link href="/scheduler" className={`nav-item ${isActive('/scheduler') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Calendar />
+          <span style={{ flex: 1 }}>Scheduler</span>
+        </Link>
+        <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.TrendUp />
+          <span style={{ flex: 1 }}>Analytics</span>
+        </Link>
+      </div>
+
+      <div className="rail-section">
         <div className="rail-label">Coming soon</div>
         <div className="nav-item nav-soon">
           <Icon.Blog />
           <span style={{ flex: 1 }}>Blog · Email</span>
-          <span className="soon-badge">Soon</span>
-        </div>
-        <div className="nav-item nav-soon">
-          <Icon.Calendar />
-          <span style={{ flex: 1 }}>Scheduler</span>
-          <span className="soon-badge">Soon</span>
-        </div>
-        <div className="nav-item nav-soon">
-          <Icon.TrendUp />
-          <span style={{ flex: 1 }}>Analytics</span>
           <span className="soon-badge">Soon</span>
         </div>
       </div>

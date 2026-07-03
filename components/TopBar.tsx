@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Icon } from '@/components/Icons'
 import { getSupabase } from '@/lib/auth'
+import { CommandPalette } from '@/components/CommandPalette'
+import { NotificationsDropdown } from '@/components/NotificationsDropdown'
 
 interface TopBarProps {
   currentPath: string
@@ -37,6 +39,7 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [initial, setInitial] = useState('A')
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const title = TITLES[currentPath] || 'Dashboard'
 
   useEffect(() => {
@@ -46,6 +49,18 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
       const name = data.user?.user_metadata?.full_name || data.user?.email
       if (name) setInitial(name.charAt(0).toUpperCase())
     })
+  }, [])
+
+  // ⌘K / Ctrl+K opens the palette
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPaletteOpen(o => !o)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
   }, [])
 
   const signOut = async () => {
@@ -74,11 +89,15 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
         <span className="cur" style={{ fontSize: 12.5 }}>{title}</span>
       </div>
       <div style={{ flex: 1 }} />
-      <div className="search">
+      <button
+        className="search"
+        onClick={() => setPaletteOpen(true)}
+        style={{ cursor: 'pointer', textAlign: 'left' }}
+      >
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-        <input placeholder="Search…" />
+        <span style={{ flex: 1, color: 'var(--ink-mute)', fontSize: 13 }}>Search…</span>
         <span className="kbd">⌘K</span>
-      </div>
+      </button>
       <button className="icon-btn" title={isDark ? 'Switch to light' : 'Switch to dark'} onClick={onToggleTheme}>
         {isDark ? (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -91,10 +110,7 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
           </svg>
         )}
       </button>
-      <button className="icon-btn" title="Notifications" style={{ position: 'relative' }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
-        <span style={{ position: 'absolute', top: 9, right: 10, width: 6, height: 6, borderRadius: '50%', background: 'var(--ink)', border: '1.5px solid var(--bg)' }} />
-      </button>
+      <NotificationsDropdown />
       <div style={{ position: 'relative' }}>
         <button
           aria-label="Account"
@@ -120,6 +136,7 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
           </div>
         )}
       </div>
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
     </header>
   )
 }

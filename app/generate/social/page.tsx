@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
 import { Loader2, Copy, Check, Download, ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react'
@@ -11,14 +11,21 @@ import { Icon } from '@/components/Icons'
 
 const CAPTION_PLATFORMS = [
   { id: 'instagram', label: 'Instagram',  color: '#E1306C' },
-  { id: 'linkedin',  label: 'LinkedIn',   color: '#0A66C2' },
   { id: 'twitter',   label: 'X / Twitter', color: '#000000' },
   { id: 'tiktok',    label: 'TikTok',     color: '#010101' },
 ]
 
 const CAROUSEL_PLATFORMS = [
   { id: 'instagram', label: 'Instagram' },
-  { id: 'linkedin',  label: 'LinkedIn' },
+]
+
+const MUSIC_MOODS = [
+  { id: 'none',      label: 'No music' },
+  { id: 'upbeat',    label: 'Upbeat' },
+  { id: 'chill',     label: 'Chill' },
+  { id: 'cinematic', label: 'Cinematic' },
+  { id: 'bold',      label: 'Bold / dramatic' },
+  { id: 'trending',  label: 'Trending audio' },
 ]
 
 const TONES = [
@@ -83,27 +90,61 @@ export default function SocialPage() {
 
   // ── Caption state ──
   const [capTopic, setCapTopic]     = useState('')
-  const [selPlatforms, setSelPlats] = useState<string[]>(['instagram', 'linkedin'])
+  const [selPlatforms, setSelPlats] = useState<string[]>(['instagram'])
   const [capTone, setCapTone]       = useState('bold')
+  const [postType, setPostType]     = useState<'text' | 'image'>('image')
+  const [imagePrompt, setImagePrompt] = useState('')
+  const [musicMood, setMusicMood]   = useState('none')
   const [capLoading, setCapLoading] = useState(false)
   const [posts, setPosts]           = useState<Record<string, string>>({})
+  const [postImage, setPostImage]   = useState<string | null>(null)
   const [activeTab, setActiveTab]   = useState('')
   const [copied, setCopied]         = useState<string | null>(null)
+
+  // ── Brand context (loaded once) ──
+  interface BrandInfo {
+    company_name?: string
+    description?: string
+    product_type?: string
+    unique_value_prop?: string
+    target_audience?: string
+    tone_of_voice?: string
+  }
+  const [brand, setBrand] = useState<BrandInfo | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const res = await fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) return
+      const data = await res.json()
+      if (!cancelled) setBrand(data.brand ?? data)
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   // ── Carousel state ──
   const [carTopic, setCarTopic]     = useState('')
   const [carPlatform, setCarPlatform] = useState('instagram')
   const [slideCount, setSlideCount] = useState(5)
   const [carTone, setCarTone]       = useState('bold')
+  const [illustrationDesc, setIllustrationDesc] = useState('')
   const [reference, setReference]   = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [carLoading, setCarLoading] = useState(false)
   const [slides, setSlides]         = useState<CarouselSlide[]>([])
   const [activeSlide, setActiveSlide] = useState(0)
 
   // ── Derived ──
-  const capCost     = CAPTION_COST
+  const IMAGE_COST  = 3
+  const includeImage = postType === 'image'
+  const capCost     = CAPTION_COST + (includeImage ? IMAGE_COST : 0)
   const carCost     = slideCount * CAROUSEL_CREDIT_PER_SLIDE
-  const isSquare    = carPlatform === 'linkedin'
+  const isSquare    = false // Only Instagram now (4:5)
 
   const canCaption  = capTopic.trim().length >= 3 && selPlatforms.length > 0 && balance >= capCost && !capLoading
   const canCarousel = carTopic.trim().length >= 3 && balance >= carCost && !carLoading
@@ -117,6 +158,7 @@ export default function SocialPage() {
     if (!canCaption) return
     setCapLoading(true)
     setPosts({})
+    setPostImage(null)
     setActiveTab('')
     try {
       const supabase = getSupabase()
@@ -124,17 +166,58 @@ export default function SocialPage() {
       const token = sess?.session?.access_token
       if (!token) throw new Error('Not signed in')
 
-      const res = await fetch('/api/content/generate/social', {
+      // 1. Generate caption(s)
+      const capRes = await fetch('/api/content/generate/social', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ topic: capTopic.trim(), platforms: selPlatforms, tone: capTone }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Generation failed')
-      setPosts(data.posts)
+      const capData = await capRes.json()
+      if (!capRes.ok) throw new Error(capData.error || 'Generation failed')
+      setPosts(capData.posts)
       setActiveTab(selPlatforms[0])
+
+      // 2. Generate image in parallel (if requested)
+      if (includeImage) {
+        try {
+          // Build a brand-aware image prompt.
+          // Rule: user description is ALWAYS a style/mood modifier, never the subject.
+          // Subject is locked to brand + topic so the visual stays on-context.
+          const brandParts: string[] = []
+          if (brand?.company_name) brandParts.push(`Brand: ${brand.company_name}`)
+          if (brand?.product_type) brandParts.push(`Product type: ${brand.product_type}`)
+          if (brand?.description) brandParts.push(`What it does: ${brand.description}`)
+          if (brand?.target_audience) brandParts.push(`Audience: ${brand.target_audience}`)
+          const brandLine = brandParts.length > 0 ? `BRAND CONTEXT — ${brandParts.join('. ')}.\n\n` : ''
+
+          const userStyle = imagePrompt.trim()
+          const styleLine = userStyle
+            ? `STYLE / MOOD DIRECTION (from user — apply as visual style only, NOT as the subject): ${userStyle}\n\n`
+            : ''
+
+          const fullImagePrompt = `${brandLine}${styleLine}SUBJECT (this is what the image MUST show): A social media visual for the post topic "${capTopic.trim()}". The visual must clearly represent the brand's product/service above. Do NOT show unrelated items like candles, food, skincare, or lifestyle scenes unless the brand is actually in that industry. If the topic mentions growth, results, or metrics — visualize that concept (phone screens, dashboards, charts, before/after) in a way that matches the brand.\n\nHigh-quality, editorial, scroll-stopping. Absolutely no text, letters, logos, or words in the image.`
+
+          const imgRes = await fetch('/api/content/generate/image', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              prompt: fullImagePrompt,
+              style: 'realistic',
+              ratio: '4:5',
+              quantity: 1,
+            }),
+          })
+          const imgData = await imgRes.json()
+          if (imgRes.ok && imgData.images?.[0]) {
+            setPostImage(imgData.images[0])
+          } else if (!imgRes.ok) {
+            console.error('Image gen failed:', imgData.error)
+          }
+        } catch { /* image failure shouldn't block caption */ }
+      }
+
       refreshCredits()
-      showSuccess('Posts ready', `${Object.keys(data.posts).length} platforms generated`)
+      showSuccess('Post ready', includeImage ? 'Caption + image generated' : 'Caption generated')
     } catch (e) {
       showError('Generation failed', e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -181,6 +264,7 @@ export default function SocialPage() {
           platform: carPlatform,
           slideCount,
           tone: carTone,
+          illustrationDesc: illustrationDesc.trim() || null,
           referenceImageBase64: reference?.base64 ?? null,
           referenceImageMimeType: reference?.mimeType ?? null,
         }),
@@ -209,37 +293,65 @@ export default function SocialPage() {
       ctx.imageSmoothingQuality = 'high'
 
       const draw = () => {
-        const grad = ctx.createLinearGradient(0, H * 0.35, 0, H)
+        // Softer, lighter gradient — starts higher up but only reaches ~55% opacity at the bottom
+        // so the image stays visible while text still reads cleanly.
+        const grad = ctx.createLinearGradient(0, H * 0.45, 0, H)
         grad.addColorStop(0, 'rgba(0,0,0,0)')
-        grad.addColorStop(0.6, 'rgba(0,0,0,0.72)')
-        grad.addColorStop(1, 'rgba(0,0,0,0.92)')
+        grad.addColorStop(0.55, 'rgba(0,0,0,0.28)')
+        grad.addColorStop(1, 'rgba(0,0,0,0.62)')
         ctx.fillStyle = grad
         ctx.fillRect(0, 0, W, H)
 
-        const PAD = 64
-        const hasCta = slide.cta?.trim()
+        const PAD = 72
+        const hasCta = !!slide.cta?.trim()
+        const hasBody = !!slide.body?.trim()
+
+        // Subtle text shadow for legibility without dark background
+        ctx.shadowColor = 'rgba(0,0,0,0.5)'
+        ctx.shadowBlur = 20
+        ctx.shadowOffsetY = 2
+
+        // HEADLINE — tighter tracking, serif-like weight
         ctx.fillStyle = '#ffffff'
-        ctx.font = `bold 72px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`
         ctx.textAlign = 'left'
-        const headlineY = H - (hasCta ? 330 : 230)
-        const lastY = wrapText(ctx, slide.headline, PAD, headlineY, W - PAD * 2, 84)
-        if (slide.body?.trim()) {
-          ctx.font = `400 40px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`
-          ctx.globalAlpha = 0.82
-          wrapText(ctx, slide.body, PAD, lastY + 52, W - PAD * 2, 52)
+        const headlineSize = 74
+        const headlineLH = 86
+        ctx.font = `700 ${headlineSize}px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
+        // Slight negative letter-spacing feel via canvas — approximated by using bold weight
+        const headlineY = H - (hasCta ? 340 : hasBody ? 260 : 200)
+        const lastY = wrapText(ctx, slide.headline, PAD, headlineY, W - PAD * 2, headlineLH)
+
+        // BODY — lighter weight, softer color
+        if (hasBody) {
+          ctx.font = `400 38px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
+          ctx.globalAlpha = 0.92
+          wrapText(ctx, slide.body, PAD, lastY + 58, W - PAD * 2, 52)
           ctx.globalAlpha = 1
         }
+
+        // Kill shadow before drawing the CTA pill
+        ctx.shadowColor = 'transparent'
+        ctx.shadowBlur = 0
+        ctx.shadowOffsetY = 0
+
+        // CTA — pill-shaped, slightly narrower than full-width for a modern feel
         if (hasCta) {
+          const btnH = 82
           const btnY = H - 120
+          const btnW = Math.min(W - PAD * 2, 720)
+          const btnX = (W - btnW) / 2
           ctx.fillStyle = '#ffffff'
           ctx.beginPath()
-          ctx.roundRect(PAD, btnY, W - PAD * 2, 80, 16)
+          ctx.roundRect(btnX, btnY, btnW, btnH, btnH / 2)
           ctx.fill()
-          ctx.fillStyle = '#000000'
-          ctx.font = `bold 36px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`
+          ctx.fillStyle = '#111111'
+          ctx.font = `600 34px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
           ctx.textAlign = 'center'
-          ctx.fillText(slide.cta, W / 2, btnY + 52)
+          ctx.textBaseline = 'middle'
+          ctx.fillText(slide.cta, W / 2, btnY + btnH / 2 + 1)
+          ctx.textBaseline = 'alphabetic'
         }
+
         resolve(canvas)
       }
 
@@ -383,6 +495,86 @@ export default function SocialPage() {
               </div>
             </div>
 
+            {/* Post type selector */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Post type</label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {([
+                  { id: 'text',  label: 'Text only',    desc: 'Caption + hashtags only', extra: '' },
+                  { id: 'image', label: 'Text + image', desc: 'Caption + AI visual',     extra: `+${IMAGE_COST} cr` },
+                ] as const).map(pt => {
+                  const active = postType === pt.id
+                  return (
+                    <button key={pt.id} type="button" onClick={() => setPostType(pt.id)} disabled={capLoading}
+                      style={{
+                        padding: '12px 14px', borderRadius: 12, textAlign: 'left',
+                        background: active ? 'var(--ink)' : 'var(--surface)',
+                        border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                        color: active ? 'var(--on-ink)' : 'var(--ink)',
+                        cursor: capLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3 }}>
+                        <span style={{ fontSize: 13, fontWeight: 700 }}>{pt.label}</span>
+                        {pt.extra && <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.75 }}>{pt.extra}</span>}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: active ? 'var(--on-ink-mute)' : 'var(--ink-mute)' }}>{pt.desc}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Image description (only when Text + image selected) */}
+            {includeImage && (
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                  Image style / mood <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-faint)' }}>(optional)</span>
+                </label>
+                <textarea
+                  value={imagePrompt}
+                  onChange={e => setImagePrompt(e.target.value)}
+                  disabled={capLoading}
+                  rows={2}
+                  placeholder="e.g. Aesthetic, clean, soft lighting / Bold with neon accents / Minimal flat-lay"
+                  style={{
+                    width: '100%', resize: 'vertical', minHeight: 60,
+                    border: '1px solid var(--border)', borderRadius: 10, outline: 'none',
+                    background: 'var(--bg-elev)', fontFamily: 'inherit', fontSize: 13.5,
+                    lineHeight: 1.55, color: 'var(--ink)', padding: '9px 12px', boxSizing: 'border-box',
+                  }}
+                />
+                <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6, lineHeight: 1.5 }}>
+                  Describe the <strong>style</strong> — the subject stays locked to your brand + topic so the visual stays on-context.
+                </div>
+              </div>
+            )}
+
+            {/* Music mood */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Background music (optional)</label>
+              <select
+                value={musicMood}
+                onChange={e => setMusicMood(e.target.value)}
+                disabled={capLoading}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: 10,
+                  border: '1px solid var(--border)', background: 'var(--bg-elev)',
+                  color: 'var(--ink)', fontSize: 13.5, outline: 'none', fontFamily: 'inherit',
+                  cursor: capLoading ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {MUSIC_MOODS.map(m => (
+                  <option key={m.id} value={m.id}>{m.label}</option>
+                ))}
+              </select>
+              {musicMood !== 'none' && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6, lineHeight: 1.5 }}>
+                  Saved with the post as a music note for when you upload it to Reels or TikTok.
+                </div>
+              )}
+            </div>
+
             <button onClick={generateCaption} disabled={!canCaption}
               style={{ padding: '13px 28px', borderRadius: 999, background: !canCaption ? 'var(--ink-faint)' : 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCaption ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
               {capLoading ? <><Loader2 size={15} className="animate-spin" /> Writing posts…</> : `Generate${selPlatforms.length > 1 ? ` (${selPlatforms.length} platforms)` : ''}`}
@@ -420,15 +612,43 @@ export default function SocialPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{ width: 8, height: 8, borderRadius: '50%', background: platform.color }} />
                         <span style={{ fontSize: 12, color: 'var(--ink-mute)', fontWeight: 500 }}>{content.length} chars</span>
+                        {musicMood !== 'none' && (
+                          <span style={{ fontSize: 11, color: 'var(--ink-mute)', background: 'var(--bg-elev)', border: '1px solid var(--border)', borderRadius: 5, padding: '2px 7px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                            {MUSIC_MOODS.find(m => m.id === musicMood)?.label}
+                          </span>
+                        )}
                       </div>
                       <button onClick={() => copyPost(p)}
                         style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, background: isCopied ? 'var(--good-bg, #f0fdf4)' : 'var(--bg-elev)', border: `1px solid ${isCopied ? 'var(--good, #16a34a)' : 'var(--border)'}`, color: isCopied ? 'var(--good, #16a34a)' : 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
                         {isCopied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
                       </button>
                     </div>
+
+                    {postImage && (
+                      <div style={{ padding: '14px 20px 0' }}>
+                        <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
+                          <img src={postImage} alt="Post visual" style={{ width: '100%', display: 'block', maxHeight: 380, objectFit: 'cover' }} />
+                          <a
+                            href={postImage}
+                            download="post-image.png"
+                            style={{
+                              position: 'absolute', top: 10, right: 10,
+                              display: 'inline-flex', alignItems: 'center', gap: 5,
+                              padding: '6px 10px', borderRadius: 8,
+                              background: 'rgba(0,0,0,0.72)', color: '#fff',
+                              fontSize: 11.5, fontWeight: 600, textDecoration: 'none',
+                            }}
+                          >
+                            <Download size={12} /> Save
+                          </a>
+                        </div>
+                      </div>
+                    )}
+
                     <textarea
                       value={content} onChange={e => setPosts(prev => ({ ...prev, [p]: e.target.value }))}
-                      style={{ flex: 1, minHeight: 320, resize: 'vertical', border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.7, color: 'var(--ink)', padding: '14px 20px 20px' }}
+                      style={{ flex: 1, minHeight: 240, resize: 'vertical', border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.7, color: 'var(--ink)', padding: '14px 20px 20px' }}
                     />
                   </div>
                 )
@@ -495,6 +715,29 @@ export default function SocialPage() {
                     </button>
                   )
                 })}
+              </div>
+            </div>
+
+            {/* Illustration description */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                Illustration description <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-faint)' }}>(optional)</span>
+              </label>
+              <textarea
+                value={illustrationDesc}
+                onChange={e => setIllustrationDesc(e.target.value)}
+                disabled={carLoading}
+                rows={2}
+                placeholder="e.g. Minimalist flat-lay of the product on marble. Warm lighting, pastel palette."
+                style={{
+                  width: '100%', resize: 'vertical', minHeight: 60,
+                  border: '1px solid var(--border)', borderRadius: 10, outline: 'none',
+                  background: 'var(--bg-elev)', fontFamily: 'inherit', fontSize: 13.5,
+                  lineHeight: 1.55, color: 'var(--ink)', padding: '9px 12px', boxSizing: 'border-box',
+                }}
+              />
+              <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6, lineHeight: 1.5 }}>
+                Describe the visual style, subject, mood, or setting for all slides. Leave blank to let AI decide per slide.
               </div>
             </div>
 

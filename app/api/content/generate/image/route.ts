@@ -88,14 +88,27 @@ export async function POST(request: NextRequest) {
     // Calculate credit cost
     const creditCost = CREDIT_COSTS.image * safeQuantity
 
-    // Check user credits
-    const { data: userCredits, error: creditsError } = await supabase
-      .from('user_credits')
-      .select('balance, pack_credits')
-      .eq('user_id', userId)
-      .single()
+    // Check user credits (resilient to missing pack_credits column)
+    let userCredits: { balance: number; pack_credits: number } | null = null
+    {
+      const withPack = await supabase
+        .from('user_credits')
+        .select('balance, pack_credits')
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (withPack.data) {
+        userCredits = { balance: withPack.data.balance ?? 0, pack_credits: withPack.data.pack_credits ?? 0 }
+      } else {
+        const fallback = await supabase
+          .from('user_credits')
+          .select('balance')
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (fallback.data) userCredits = { balance: fallback.data.balance ?? 0, pack_credits: 0 }
+      }
+    }
 
-    if (creditsError || !userCredits) {
+    if (!userCredits) {
       return NextResponse.json(
         { error: 'Could not verify user credits' },
         { status: 500 }

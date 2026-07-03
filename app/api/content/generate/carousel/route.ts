@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { deductCredits } from '@/lib/deduct-credits'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
+import { loadBrandContext, formatBrandPrompt } from '@/lib/brand-context'
 
 export const maxDuration = 300
 
@@ -42,6 +43,7 @@ export async function POST(request: NextRequest) {
     platform = 'instagram',
     slideCount = 5,
     tone = 'bold',
+    illustrationDesc,
     referenceImageBase64,
     referenceImageMimeType,
   } = await request.json()
@@ -53,17 +55,32 @@ export async function POST(request: NextRequest) {
   const safeSlideCount = Math.max(3, Math.min(10, Number(slideCount) || 5))
   const totalCost = safeSlideCount * CREDIT_PER_SLIDE
 
-  const { data: creditsRow } = await supabase
-    .from('user_credits')
-    .select('balance, pack_credits')
-    .eq('user_id', userId)
-    .single()
+  let balance = 0
+  let packCredits = 0
+  {
+    const withPack = await supabase
+      .from('user_credits')
+      .select('balance, pack_credits')
+      .eq('user_id', userId)
+      .maybeSingle()
+    if (withPack.data) {
+      balance = withPack.data.balance ?? 0
+      packCredits = withPack.data.pack_credits ?? 0
+    } else {
+      const fallback = await supabase
+        .from('user_credits')
+        .select('balance')
+        .eq('user_id', userId)
+        .maybeSingle()
+      balance = fallback.data?.balance ?? 0
+    }
+  }
 
-  if (!creditsRow || creditsRow.balance < totalCost) {
+  if (balance < totalCost) {
     return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 })
   }
 
-  await deductCredits(supabase, userId, totalCost, creditsRow.balance, creditsRow.pack_credits)
+  await deductCredits(supabase, userId, totalCost, balance, packCredits)
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -78,8 +95,15 @@ export async function POST(request: NextRequest) {
     ? 'LinkedIn: professionals and decision-makers. Prioritise ROI, career value, industry insights. Slightly longer copy is fine.'
     : 'Instagram: visual-first, lifestyle-driven. Keep text tight — 1-2 punchy lines per slide.'
 
-  const copyPrompt = `You are an expert social media carousel creator for ${platform}.
+  const brandCtx = await loadBrandContext(supabase, userId)
+  const brandBlock = formatBrandPrompt(brandCtx)
+  const illDesc: string = typeof illustrationDesc === 'string' ? illustrationDesc.trim() : ''
+  const illustrationBlock = illDesc
+    ? `\nILLUSTRATION STYLE (user-provided — every slide's imagePrompt must follow this direction):\n${illDesc}\n`
+    : ''
 
+  const copyPrompt = `You are an expert social media carousel creator for ${platform}.
+${brandBlock}${illustrationBlock}
 Topic: ${topic}
 Tone: ${toneGuide}
 Platform: ${platformGuide}
@@ -123,14 +147,17 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
   }
 
   const imageResults = await Promise.allSettled(
-    slideSpecs.map(slide =>
-      generateNanoBananaImage(slide.imagePrompt, {
+    slideSpecs.map(slide => {
+      const finalPrompt = illDesc
+        ? `${illDesc}. Slide subject: ${slide.imagePrompt}`
+        : slide.imagePrompt
+      return generateNanoBananaImage(finalPrompt, {
         style: 'professional',
         ratio: platform === 'linkedin' ? '1:1' : '4:5',
         referenceImageBase64: referenceImageBase64 || undefined,
         referenceImageMimeType: referenceImageMimeType || undefined,
       })
-    )
+    })
   )
 
   const slides = slideSpecs.map((spec, i) => {
