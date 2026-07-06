@@ -214,10 +214,14 @@ export default function ApiKeysPage() {
         <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 16, border: '1px solid var(--line)', borderRadius: 10, overflow: 'auto', margin: '10px 0 18px' }}>{`{
   "mcpServers": {
     "contentflow": {
-      "url": "https://contentflow-web.com/api/mcp",
-      "headers": {
-        "Authorization": "Bearer YOUR_KEY_HERE"
-      }
+      "command": "npx",
+      "args": [
+        "-y",
+        "mcp-remote",
+        "https://contentflow-web.com/api/mcp",
+        "--header",
+        "Authorization:Bearer YOUR_KEY_HERE"
+      ]
     }
   }
 }`}</pre>
@@ -225,6 +229,29 @@ export default function ApiKeysPage() {
           Tools available: <code>get_credit_balance</code>, <code>list_library</code>, <code>generate_social_captions</code>, <code>generate_image</code>.{' '}
           <Link href="/settings" style={{ color: 'var(--ink)', borderBottom: '1px solid var(--line)' }}>Back to settings</Link>
         </p>
+      </section>
+
+      <section style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)', marginTop: 20 }}>
+        <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Using it in Claude Desktop</div>
+        <ol style={{ fontSize: 13.5, color: 'var(--ink-dim)', lineHeight: 1.7, margin: 0, paddingLeft: 22 }}>
+          <li><strong>Fully quit</strong> Claude Desktop after saving the config (Cmd+Q — not just closing the window). Hot-reload is unreliable; a fresh launch reads the config.</li>
+          <li>
+            In your chat, click the <strong>+</strong> button at the bottom-left of the input, then attach the <code>contentflow</code> tools you want to use. Tools are <em>not</em> auto-attached.
+          </li>
+          <li>
+            Invoke by <strong>explicit tool name</strong>. Ask something like:
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 10, border: '1px solid var(--line)', borderRadius: 8, margin: '8px 0' }}>
+              Call get_credit_balance
+            </div>
+            or
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 10, border: '1px solid var(--line)', borderRadius: 8, margin: '8px 0' }}>
+              Call generate_social_captions with topic &quot;launching ContentFlow&quot; for Instagram and X
+            </div>
+          </li>
+          <li>
+            Avoid vague phrasing like <em>&quot;use ContentFlow to…&quot;</em>. Claude Desktop interprets that as an unknown connector name and searches Anthropic&apos;s hosted directory — which won&apos;t find your local server. Name the tool directly and it&apos;ll fire straight through.
+          </li>
+        </ol>
       </section>
     </main>
   )
