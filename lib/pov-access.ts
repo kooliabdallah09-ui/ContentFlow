@@ -1,10 +1,21 @@
-// Feature gate for POV Studio. Still in testing — only the emails listed here
-// see the working generator. Everyone else sees a "coming soon" screen.
-export const POV_STUDIO_ALLOWED_EMAILS = new Set<string>([
-  'abdallah.kooli@icloud.com',
-])
+// Feature gates for beta / testing-only surfaces. Each list is separate so we
+// can enable features independently (POV first, then scheduling, then chat).
+
+const ADMIN_EMAILS = new Set<string>(['abdallah.kooli@icloud.com'])
+
+export const POV_STUDIO_ALLOWED_EMAILS = ADMIN_EMAILS
 
 export function canAccessPovStudio(email: string | null | undefined): boolean {
   if (!email) return false
-  return POV_STUDIO_ALLOWED_EMAILS.has(email.toLowerCase())
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
+
+export function canAccessScheduling(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
+
+export function canAccessMultiAgentChat(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
 }

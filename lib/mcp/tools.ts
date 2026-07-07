@@ -182,7 +182,7 @@ const generateImage: McpTool = {
     additionalProperties: false,
   },
   handler: async (userId, args) => {
-    const CREDIT_COST = 3
+    const CREDIT_COST = 5 // aligned with in-app image cost; 3cr was break-even
     const supabase = supa()
     const { data: credits } = await supabase
       .from('user_credits')

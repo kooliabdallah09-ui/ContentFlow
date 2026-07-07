@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessPovStudio } from '@/lib/pov-access'
+import { canAccessPovStudio, canAccessScheduling } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -24,12 +24,15 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
   const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
 
   const [povAccess, setPovAccess] = useState(false)
+  const [schedAccess, setSchedAccess] = useState(false)
   useEffect(() => {
     (async () => {
       const supabase = getSupabase()
       if (!supabase) return
       const { data: sess } = await supabase.auth.getSession()
-      setPovAccess(canAccessPovStudio(sess?.session?.user?.email))
+      const email = sess?.session?.user?.email
+      setPovAccess(canAccessPovStudio(email))
+      setSchedAccess(canAccessScheduling(email))
     })()
   }, [])
 
@@ -117,6 +120,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
         <Link href="/scheduler" className={`nav-item ${isActive('/scheduler') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Calendar />
           <span style={{ flex: 1 }}>Scheduler</span>
+          {!schedAccess && <span className="soon-badge">Soon</span>}
         </Link>
         <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.TrendUp />

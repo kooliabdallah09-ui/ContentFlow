@@ -28,7 +28,9 @@ const RATIOS = [
 
 const COUNTS = [1, 2, 4]
 
-const CREDIT_PER_IMAGE = 3
+// 5cr per image. Nano Banana 2 costs $0.075/image raw; at $0.025/cr, 5cr = $0.125
+// sold → $0.05 margin (~40%). Was 3cr but that broke even after Supabase egress.
+const CREDIT_PER_IMAGE = 5
 
 export default function ImageGeneratorPage() {
   const [prompt, setPrompt] = useState('')

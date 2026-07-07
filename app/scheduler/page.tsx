@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
+import { canAccessScheduling } from '@/lib/pov-access'
 
 interface QueueJob {
   id: string
@@ -91,10 +92,43 @@ function formatScheduled(iso: string) {
 }
 
 export default function SchedulerPage() {
+  const [access, setAccess] = useState<'checking' | 'allowed' | 'blocked'>('checking')
   const [jobs, setJobs] = useState<QueueJob[]>([])
   const [loading, setLoading] = useState(true)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'queued' | 'published' | 'failed'>('all')
+
+  useEffect(() => {
+    (async () => {
+      const supabase = getSupabase()
+      if (!supabase) { setAccess('blocked'); return }
+      const { data: sess } = await supabase.auth.getSession()
+      setAccess(canAccessScheduling(sess?.session?.user?.email) ? 'allowed' : 'blocked')
+    })()
+  }, [])
+
+  if (access === 'checking') {
+    return <main style={{ maxWidth: 720, margin: '0 auto', padding: '80px 32px', textAlign: 'center', color: 'var(--ink-dim)', fontSize: 14 }}>Loading…</main>
+  }
+
+  if (access === 'blocked') {
+    return (
+      <main style={{ maxWidth: 720, margin: '0 auto', padding: '80px 32px' }}>
+        <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)', marginBottom: 8 }}>PUBLISH / SCHEDULER</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 42, fontWeight: 400, margin: '0 0 16px' }}>Scheduler</h1>
+        <p style={{ fontSize: 15, color: 'var(--ink-dim)', lineHeight: 1.7, maxWidth: 560, margin: '0 0 32px' }}>
+          Auto-schedule your generations to YouTube, TikTok, Instagram, and more.
+        </p>
+        <div style={{ padding: '20px 24px', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ fontSize: 20 }}>🚧</span>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Coming soon</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>Auto-scheduling launches after a few more rounds of polishing.</div>
+          </div>
+        </div>
+      </main>
+    )
+  }
 
   async function loadJobs() {
     const supabase = getSupabase()
