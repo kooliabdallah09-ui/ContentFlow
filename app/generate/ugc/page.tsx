@@ -209,7 +209,7 @@ export default function UGCGeneratorPage() {
           fontSize: 14.5, color: 'var(--ink-dim)', margin: '10px 0 0',
           maxWidth: 520, lineHeight: 1.55,
         }}>
-          One real product photo in, a finished talking-head ad out — script, character, voice, captions and B-roll, stitched automatically.
+          One product photo in, a finished talking-head UGC ad out — script, character, and native synced voice, generated in about 2 minutes.
         </p>
       </div>
 

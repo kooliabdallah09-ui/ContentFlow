@@ -658,9 +658,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     textAlign: 'center',
                     cursor: locked ? 'not-allowed' : (isLoading ? 'not-allowed' : 'pointer'),
                     padding: '10px 6px', borderRadius: 10,
-                    border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                    background: active ? 'var(--ink)' : 'var(--surface)',
-                    color: active ? 'var(--on-ink)' : 'var(--ink)',
+                    border: `1px solid ${(durationTouched && active) ? 'var(--ink)' : 'var(--border)'}`,
+                    background: (durationTouched && active) ? 'var(--ink)' : 'var(--surface)',
+                    color: (durationTouched && active) ? 'var(--on-ink)' : 'var(--ink)',
                     opacity: locked ? 0.45 : 1,
                     transition: 'all 0.15s',
                     display: 'flex', flexDirection: 'column', gap: 2,
@@ -695,8 +695,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     style={{
                       textAlign: 'left',
                       padding: '10px 12px', borderRadius: 11,
-                      border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                      background: active ? 'var(--hover)' : 'var(--surface)',
+                      border: `1.5px solid ${(aspectTouched && active) ? 'var(--ink)' : 'var(--border)'}`,
+                      background: (aspectTouched && active) ? 'var(--hover)' : 'var(--surface)',
                       cursor: isLoading ? 'not-allowed' : 'pointer',
                       transition: 'all 0.15s',
                       display: 'flex', alignItems: 'center', gap: 10,
@@ -704,7 +704,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     <span style={{
                       width: boxW, height: boxH, flexShrink: 0,
                       borderRadius: 3,
-                      background: active ? 'var(--ink)' : 'var(--ink-faint)',
+                      background: (aspectTouched && active) ? 'var(--ink)' : 'var(--ink-faint)',
                     }} />
                     <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                       <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{cfg.label}</span>
@@ -953,7 +953,6 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <button
             type="button"
             onClick={() => advanceTo(3, step3Ref)}
-            disabled={!productName.trim() || !productImage}
             className="btn btn-primary"
             style={{ padding: '12px', fontSize: 14, borderRadius: 11, marginTop: 4 }}
           >
