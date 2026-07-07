@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import ActorPicker from '@/components/ActorPicker'
 import { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
 import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
@@ -119,6 +119,32 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [products, setProducts] = useState<BrandProduct[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [useBrand, setUseBrand] = useState(false)
+
+  // Progressive-reveal state. unlockedStep starts at 1; each section 2-5
+  // fades in when it becomes ≤ unlockedStep. Step 1 auto-advances once the
+  // user has interacted with both Duration and Aspect. Steps 2-4 unlock via
+  // a Continue button at the bottom of each. Once a step is unlocked it
+  // stays visible.
+  const [unlockedStep, setUnlockedStep] = useState(1)
+  const [durationTouched, setDurationTouched] = useState(false)
+  const [aspectTouched, setAspectTouched] = useState(false)
+  const step2Ref = useRef<HTMLElement | null>(null)
+  const step3Ref = useRef<HTMLElement | null>(null)
+  const step4Ref = useRef<HTMLElement | null>(null)
+  const step5Ref = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (durationTouched && aspectTouched && unlockedStep < 2) {
+      setUnlockedStep(2)
+      // Wait one paint so the newly-mounted section exists in the DOM.
+      requestAnimationFrame(() => step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    }
+  }, [durationTouched, aspectTouched, unlockedStep])
+
+  function advanceTo(n: number, ref: React.RefObject<HTMLElement | null>) {
+    setUnlockedStep(prev => Math.max(prev, n))
+    requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
 
   // Two-step flow: form → script review → video
   const [step, setStep] = useState<'form' | 'script'>('form')
@@ -625,7 +651,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 <button
                   key={sec}
                   type="button"
-                  onClick={() => !locked && setDuration(sec)}
+                  onClick={() => { if (!locked) { setDuration(sec); setDurationTouched(true) } }}
                   disabled={isLoading || locked}
                   title={chained ? 'Chained from 2 clips' : undefined}
                   style={{
@@ -664,7 +690,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   <button
                     key={a}
                     type="button"
-                    onClick={() => setAspect(a)}
+                    onClick={() => { setAspect(a); setAspectTouched(true) }}
                     disabled={isLoading}
                     style={{
                       textAlign: 'left',
@@ -692,7 +718,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       </section>
 
       {/* 2 — Your product */}
-      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {unlockedStep >= 2 && (
+      <section ref={step2Ref} className="card step-reveal" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div className="section-step-head" style={{ marginBottom: 0 }}>
           <span className="step-circle">2</span>
           <h3>Your product</h3>
@@ -921,10 +948,24 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             )}
           </label>
         </div>
+
+        {unlockedStep < 3 && (
+          <button
+            type="button"
+            onClick={() => advanceTo(3, step3Ref)}
+            disabled={!productName.trim() || !productImage}
+            className="btn btn-primary"
+            style={{ padding: '12px', fontSize: 14, borderRadius: 11, marginTop: 4 }}
+          >
+            Continue →
+          </button>
+        )}
       </section>
+      )}
 
       {/* 3 — Character + voice */}
-      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {unlockedStep >= 3 && (
+      <section ref={step3Ref} className="card step-reveal" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="section-step-head" style={{ marginBottom: 0 }}>
           <span className="step-circle">3</span>
           <h3>Character &amp; setting</h3>
@@ -943,10 +984,23 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             }}
             disabled={isLoading}
           />
+
+          {unlockedStep < 4 && (
+            <button
+              type="button"
+              onClick={() => advanceTo(4, step4Ref)}
+              className="btn btn-primary"
+              style={{ padding: '12px', fontSize: 14, borderRadius: 11, marginTop: 4 }}
+            >
+              Continue →
+            </button>
+          )}
       </section>
+      )}
 
       {/* 4 — Customize */}
-      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {unlockedStep >= 4 && (
+      <section ref={step4Ref} className="card step-reveal" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         <div className="section-step-head" style={{ marginBottom: 0 }}>
           <span className="step-circle">4</span>
           <h3>Customize</h3>
@@ -980,10 +1034,23 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             {customInstructions.length} / 1500
           </p>
         </div>
-      </section>
 
-      {/* 6 — Cost summary + generate */}
-      <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
+        {unlockedStep < 5 && (
+          <button
+            type="button"
+            onClick={() => advanceTo(5, step5Ref)}
+            className="btn btn-primary"
+            style={{ padding: '12px', fontSize: 14, borderRadius: 11, marginTop: 4 }}
+          >
+            Continue →
+          </button>
+        )}
+      </section>
+      )}
+
+      {/* 5 — Cost summary + generate */}
+      {unlockedStep >= 5 && (
+      <section ref={step5Ref} className="card step-reveal" style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
         <div className="section-step-head" style={{ marginBottom: 0 }}>
           <span className="step-circle">5</span>
           <h3>Ready when you are</h3>
@@ -1017,6 +1084,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </p>
         )}
       </section>
+      )}
 
       {hooks && (
         <div

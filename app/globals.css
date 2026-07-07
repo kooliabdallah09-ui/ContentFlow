@@ -1032,6 +1032,9 @@ a { color: inherit; text-decoration: none; }
 .animate-spin { animation: spin 1s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Progressive-reveal step sections in the UGC builder */
+.step-reveal { animation: cffade 340ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+
 .voice-card {
   border: 1px solid var(--border);
   border-radius: var(--r-lg);
