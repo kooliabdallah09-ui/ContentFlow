@@ -159,6 +159,15 @@ Preview: [preheader, max 100 chars]
 
     await deductCredits(supabase, user.id, CREDIT_COST, balance, packCredits)
 
+    await supabase.from('ugc_content').insert([{
+      user_id: user.id,
+      content_type: contentType || 'auto',
+      storage_url: null,
+      metadata: { contentType, date, title, description, platforms, content: content.text, source: 'auto-content', generatedAt: new Date().toISOString() },
+      credit_cost: CREDIT_COST,
+      status: 'completed',
+    }])
+
     return NextResponse.json({
       success: true,
       content: content.text,

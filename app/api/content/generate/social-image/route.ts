@@ -61,6 +61,15 @@ export async function POST(request: NextRequest) {
 
       await deductCredits(supabase, userId, CREDIT_COST, balance, packCredits)
 
+      await supabase.from('ugc_content').insert([{
+        user_id: userId,
+        content_type: 'image',
+        storage_url: imageUrl,
+        metadata: { platform, post, imagePrompt, size, source: 'social-image', generatedAt: new Date().toISOString() },
+        credit_cost: CREDIT_COST,
+        status: 'completed',
+      }])
+
       return NextResponse.json({ image: imageUrl, creditsUsed: CREDIT_COST })
     } catch (error) {
       console.error('Flux Pro image generation failed:', error)

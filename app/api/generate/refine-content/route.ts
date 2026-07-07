@@ -68,6 +68,15 @@ Return ONLY the updated content. No explanation, no preamble, no quotes around i
 
     await deductCredits(supabase, userId, CREDIT_COST, balance, packCredits)
 
+    await supabase.from('ugc_content').insert([{
+      user_id: userId,
+      content_type: 'refine',
+      storage_url: null,
+      metadata: { original: String(currentContent).slice(0, 500), editRequest: String(editRequest).slice(0, 500), result: content.text, source: 'refine-content', generatedAt: new Date().toISOString() },
+      credit_cost: CREDIT_COST,
+      status: 'completed',
+    }])
+
     return NextResponse.json({ success: true, content: content.text, creditsUsed: CREDIT_COST })
   } catch (error) {
     console.error('Refine content error:', error)

@@ -73,7 +73,7 @@ const listLibrary: McpTool = {
       .order('created_at', { ascending: false })
       .limit(limit)
     if (args.contentType && typeof args.contentType === 'string') {
-      q = q.eq('content_type', args.contentType)
+      q = q.eq('content_type', args.contentType.slice(0, 32))
     }
     const { data } = await q
     const rows = data ?? []
@@ -118,7 +118,8 @@ const generateSocialCaptions: McpTool = {
       ? args.platforms
       : ['instagram', 'facebook', 'twitter']
     const tone: string = typeof args.tone === 'string' ? args.tone : 'bold'
-    const topic = String(args.topic).trim()
+    const topic = String(args.topic).trim().slice(0, 2000)
+    if (!topic) throw new Error('Missing topic')
 
     const guides: Record<string, string> = {
       instagram: 'Instagram caption (max 2200 chars). Hook in line 1, short paragraphs, 5-10 hashtags on a new line.',
@@ -191,7 +192,9 @@ const generateImage: McpTool = {
     const balance = credits?.balance ?? 0
     if (balance < CREDIT_COST) throw new Error(`Insufficient credits (need ${CREDIT_COST}, have ${balance})`)
 
-    const result = await generateNanoBananaImage(String(args.prompt), {
+    const prompt = String(args.prompt ?? '').trim().slice(0, 2000)
+    if (!prompt) throw new Error('Missing prompt')
+    const result = await generateNanoBananaImage(prompt, {
       style: (args.style as 'realistic' | 'artistic' | 'professional' | 'minimalist') || 'realistic',
       ratio: (args.ratio as '1:1' | '4:5' | '9:16' | '16:9') || '1:1',
     })

@@ -1,12 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
+
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a)
+  const bb = Buffer.from(b)
+  if (ab.length !== bb.length) return false
+  return timingSafeEqual(ab, bb)
+}
 
 export async function POST(request: NextRequest) {
   try {
-    // Verify cron secret token
-    const authHeader = request.headers.get('authorization')
-    const expectedToken = `Bearer ${process.env.CRON_SECRET}`
-
-    if (authHeader !== expectedToken) {
+    const cronSecret = process.env.CRON_SECRET
+    if (!cronSecret) {
+      return NextResponse.json({ error: 'Cron not configured' }, { status: 500 })
+    }
+    const authHeader = request.headers.get('authorization') ?? ''
+    const expectedToken = `Bearer ${cronSecret}`
+    if (!safeEqual(authHeader, expectedToken)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

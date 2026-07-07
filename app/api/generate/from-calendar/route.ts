@@ -1,5 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
+import { deductCredits } from "@/lib/deduct-credits";
+
+const CREDIT_COST = 2;
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
@@ -34,7 +37,6 @@ export async function POST(request: Request) {
 
     if (brandError || !brandProfile) {
       console.error("Brand profile fetch error:", brandError);
-      console.error("User ID:", userData.user.id);
       return Response.json(
         {
           error: "Brand profile not set up. Please configure your brand in Settings first.",
@@ -42,6 +44,17 @@ export async function POST(request: Request) {
         },
         { status: 400 }
       );
+    }
+
+    const { data: credits } = await supabase
+      .from("user_credits")
+      .select("balance, pack_credits")
+      .eq("user_id", userData.user.id)
+      .maybeSingle();
+    const balance = credits?.balance ?? 0;
+    const packCredits = credits?.pack_credits ?? 0;
+    if (balance < CREDIT_COST) {
+      return Response.json({ error: "Insufficient credits" }, { status: 402 });
     }
 
     // Generate content based on content type
@@ -142,12 +155,24 @@ Return as a structured outline that the user can expand.`;
       }
     }
 
+    await deductCredits(supabase, userData.user.id, CREDIT_COST, balance, packCredits);
+
+    await supabase.from("ugc_content").insert([{
+      user_id: userData.user.id,
+      content_type: contentType || "calendar",
+      storage_url: null,
+      metadata: { date, contentType, title, description, platforms, content: generatedContent, generatedAt: new Date().toISOString() },
+      credit_cost: CREDIT_COST,
+      status: "completed",
+    }]);
+
     return Response.json({
       content: generatedContent,
       contentType,
       title,
       description,
       date,
+      creditsUsed: CREDIT_COST,
     });
   } catch (err) {
     console.error("Error generating content:", err);
