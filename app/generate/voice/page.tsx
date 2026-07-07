@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
+import { readPrefill } from '@/lib/calendar-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
 import { Loader2, Download, Play, Pause, Mic } from 'lucide-react'
@@ -46,6 +47,12 @@ export default function VoicePage() {
   const audioRefs = useRef<(HTMLAudioElement | null)[]>([])
   const { balance: rawBalance, refresh: refreshCredits } = useCredits()
   const creditBalance = rawBalance ?? 0
+
+  useEffect(() => {
+    const suggestion = readPrefill('voice')
+    if (!suggestion) return
+    setText(`${suggestion.title}\n\n${suggestion.description}`.trim())
+  }, [])
 
   const selectedVoice = VOICES.find(v => v.id === voiceId) ?? VOICES[0]
   const charCount = text.length

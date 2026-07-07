@@ -1,7 +1,8 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
+import { readPrefill } from '@/lib/calendar-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Upload, X, Sparkles } from 'lucide-react'
@@ -50,6 +51,13 @@ export default function ScreenDemoPage() {
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const { balance: rawBalance, refresh: refreshCredits } = useCredits()
   const creditBalance = rawBalance ?? 0
+
+  useEffect(() => {
+    const suggestion = readPrefill('screen-demo')
+    if (!suggestion) return
+    setDescription(suggestion.title)
+    setScript(suggestion.description)
+  }, [])
 
   const charCount = script.length
   const cost = calcCredits(charCount)

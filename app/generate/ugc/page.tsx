@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { readPrefill } from '@/lib/calendar-prefill'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
@@ -44,6 +45,20 @@ export default function UGCGeneratorPage() {
     key: 'ugcGeneratorFormState',
     onRestore: (data) => setFormData(data),
   })
+
+  // Prefill from a calendar suggestion (Create now). Runs once on mount.
+  // The calendar day's title becomes the topic-line, description becomes the
+  // benefits/script hint — user can still edit before submitting.
+  useEffect(() => {
+    const suggestion = readPrefill('ugc')
+    if (!suggestion) return
+    setFormData(prev => ({
+      ...prev,
+      productName: prev.productName || suggestion.title.slice(0, 80),
+      productDescription: prev.productDescription || suggestion.description,
+      benefits: prev.benefits || suggestion.reason || suggestion.description,
+    }))
+  }, [])
 
   // Load credit balance
   useEffect(() => {

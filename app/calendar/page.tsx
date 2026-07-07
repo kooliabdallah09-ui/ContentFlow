@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import type { DailySuggestion } from '@/lib/planner'
+import { savePrefill } from '@/lib/calendar-prefill'
 import { Loader2, RefreshCcw, ArrowRight, ExternalLink, Trash2 } from 'lucide-react'
 
 function YTIcon({ size = 14, color }: { size?: number; color?: string }) {
@@ -41,6 +43,7 @@ const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }>
 }
 
 export default function CalendarPage() {
+  const router = useRouter()
   const [loading, setLoading]         = useState(true)
   const [refreshing, setRefreshing]   = useState(false)
   const [plan, setPlan]               = useState<DailySuggestion[] | null>(null)
@@ -385,12 +388,17 @@ export default function CalendarPage() {
                 </p>
               )}
 
-              <Link href={CONTENT_HREF[selectedDay.contentType] ?? '/dashboard'}
+              <button
+                onClick={() => {
+                  savePrefill(selectedDay)
+                  router.push(CONTENT_HREF[selectedDay.contentType] ?? '/dashboard')
+                }}
                 className="btn btn-primary"
-                style={{ display: 'flex', width: '100%', padding: 12, fontSize: 13.5, borderRadius: 11, marginBottom: 10 }}>
+                style={{ display: 'flex', width: '100%', padding: 12, fontSize: 13.5, borderRadius: 11, marginBottom: 10, alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', border: 'none' }}
+              >
                 Create now
                 <ArrowRight size={14} />
-              </Link>
+              </button>
 
               {/* YouTube scheduling section */}
               {selectedJob ? (

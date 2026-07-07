@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { readPrefill } from '@/lib/calendar-prefill'
 import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
 import { Loader2, Copy, Check, Download, ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react'
@@ -128,6 +129,20 @@ export default function SocialPage() {
       if (!cancelled) setBrand(data.brand ?? data)
     })()
     return () => { cancelled = true }
+  }, [])
+
+  // Prefill from a calendar suggestion (Create now button)
+  useEffect(() => {
+    const suggestion = readPrefill('social')
+    if (!suggestion) return
+    const topic = `${suggestion.title}\n\n${suggestion.description}`.trim()
+    setCapTopic(topic)
+    setCarTopic(topic)
+    const igOrTwFb = (suggestion.platforms ?? [])
+      .map(p => p.toLowerCase())
+      .filter(p => ['instagram', 'facebook', 'twitter', 'x'].includes(p))
+      .map(p => p === 'x' ? 'twitter' : p)
+    if (igOrTwFb.length) setSelPlats(igOrTwFb)
   }, [])
 
   // ── Carousel state ──

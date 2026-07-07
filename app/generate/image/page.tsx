@@ -1,7 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
+import { readPrefill } from '@/lib/calendar-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { Loader2, Download, Image as ImageIcon, X } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
@@ -42,6 +43,13 @@ export default function ImageGeneratorPage() {
   // Reference image — optional. When set, the API runs Nano Banana 2 image-to-image
   // so the user's photo (e.g. their actual product) carries through to the output.
   const [reference, setReference] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
+
+  useEffect(() => {
+    const suggestion = readPrefill('image')
+    if (!suggestion) return
+    const combined = `${suggestion.title}. ${suggestion.description}`.trim()
+    setPrompt(combined)
+  }, [])
 
   function pickReference(file: File | null) {
     if (!file) { setReference(null); return }
