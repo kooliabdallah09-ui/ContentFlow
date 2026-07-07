@@ -607,7 +607,7 @@ export default function OnboardingBrandPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>
                   {platforms.map(p => {
                     const selected = selectedPlatforms.includes(p.id)
-                    const soon = 'soon' in p && p.soon
+                    const soon: boolean = 'soon' in p && Boolean((p as { soon?: boolean }).soon)
                     return (
                       <button
                         key={p.id}
