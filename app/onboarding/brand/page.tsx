@@ -131,7 +131,7 @@ export default function OnboardingBrandPage() {
 
   const platforms = [
     { id: 'instagram', name: 'Instagram' },
-    { id: 'tiktok', name: 'TikTok', soon: true },
+    { id: 'tiktok', name: 'TikTok' },
     { id: 'twitter', name: 'X (Twitter)' },
     { id: 'youtube', name: 'YouTube' },
     { id: 'facebook', name: 'Facebook' },
