@@ -1,4 +1,5 @@
 import { ASSISTANT_SYSTEM_PROMPT } from '@/lib/assistant-knowledge'
+import { findAgent } from '@/lib/chat-agents'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -15,6 +16,7 @@ interface ChatRequest {
   message: string
   history?: ChatMessage[]
   currentPath?: string  // Where the user is now — so the assistant can use context
+  agentId?: string       // Optional specialist persona (see lib/chat-agents.ts)
 }
 
 interface ChatResponse {
@@ -68,10 +70,16 @@ export async function POST(request: NextRequest) {
       { role: 'user', content: userMessage + currentPathLine },
     ]
 
+    // If an agent id is provided, swap in that specialist's system prompt.
+    // Fall back to the legacy generalist prompt when none matches.
+    const systemPrompt = body.agentId
+      ? findAgent(body.agentId).systemPrompt
+      : ASSISTANT_SYSTEM_PROMPT
+
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
-      system: ASSISTANT_SYSTEM_PROMPT,
+      system: systemPrompt,
       messages,
     })
 

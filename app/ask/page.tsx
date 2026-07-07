@@ -3,6 +3,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { Send, ArrowUpRight, Loader2, RefreshCcw } from 'lucide-react'
+import { getSupabase } from '@/lib/auth'
+import { canAccessMultiAgentChat } from '@/lib/pov-access'
+import { CHAT_AGENTS, findAgent } from '@/lib/chat-agents'
 
 interface Message {
   role: 'user' | 'assistant'
@@ -56,6 +59,8 @@ export default function AskPage() {
   const [messages, setMessages] = useState<Message[]>([])
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [multiAgent, setMultiAgent] = useState(false)
+  const [agentId, setAgentId] = useState<string>('general')
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -65,6 +70,16 @@ export default function AskPage() {
       if (raw) setMessages(JSON.parse(raw))
     } catch {}
     setTimeout(() => inputRef.current?.focus(), 50)
+  }, [])
+
+  // Enable the multi-agent selector for admin allowlist only (still testing).
+  useEffect(() => {
+    (async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      setMultiAgent(canAccessMultiAgentChat(sess?.session?.user?.email))
+    })()
   }, [])
 
   useEffect(() => {
@@ -94,6 +109,7 @@ export default function AskPage() {
           message: trimmed,
           history: messages.slice(-8).map(m => ({ role: m.role, content: m.content })),
           currentPath: pathname,
+          agentId: multiAgent ? agentId : undefined,
         }),
       })
       const data = await res.json()
@@ -125,6 +141,39 @@ export default function AskPage() {
       padding: '0 24px',
       maxWidth: '760px', margin: '0 auto', width: '100%',
     }}>
+      {multiAgent && (
+        <div style={{ padding: '16px 0 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-dim)', letterSpacing: '0.06em' }}>
+            AGENT (BETA)
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {CHAT_AGENTS.map(a => {
+              const active = a.id === agentId
+              return (
+                <button
+                  key={a.id}
+                  onClick={() => { setAgentId(a.id); resetThread() }}
+                  title={a.tagline}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    padding: '7px 12px', borderRadius: 999,
+                    border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                    background: active ? 'var(--ink)' : 'var(--surface)',
+                    color: active ? 'var(--on-ink)' : 'var(--ink)',
+                    fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
+                    transition: 'all 0.12s',
+                  }}
+                >
+                  <span>{a.emoji}</span>
+                  <span>{a.name}</span>
+                </button>
+              )
+            })}
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{findAgent(agentId).tagline}</div>
+        </div>
+      )}
+
       {messages.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 0' }}>
           <button
