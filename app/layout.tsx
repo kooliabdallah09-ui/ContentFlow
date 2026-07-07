@@ -113,7 +113,7 @@ export default function RootLayout({
   }, [pathname, router])
 
   const isAuthPage = pathname.includes('/auth')
-  const isLandingPage = pathname === '/landing'
+  const isLandingPage = pathname === '/landing' || pathname === '/'
   const isOnboarding = pathname.includes('/onboarding')
   const isPresentationPage = pathname === '/presentation'
   const showLayout = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage
