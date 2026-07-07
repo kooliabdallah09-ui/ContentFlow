@@ -41,7 +41,7 @@ export default async function DataDeletionPage({
           href="/"
           style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}
         >
-          ← Back to ContentFlow
+          ← Back to Contentflow Web
         </Link>
       </div>
 

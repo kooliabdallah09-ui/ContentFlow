@@ -35,38 +35,38 @@ export default function RootLayout({
 
   useEffect(() => {
     const titles: Record<string, string> = {
-      '/': 'ContentFlow — AI Content Studio',
-      '/dashboard': 'Dashboard — ContentFlow',
-      '/calendar': 'Monthly Plan — ContentFlow',
-      '/library': 'Library — ContentFlow',
-      '/analytics': 'Analytics — ContentFlow',
-      '/scheduler': 'Scheduler — ContentFlow',
-      '/generate/blog': 'Blog Post — ContentFlow',
-      '/generate/social': 'Social Post — ContentFlow',
-      '/generate/email': 'Email — ContentFlow',
-      '/generate/image': 'Image — ContentFlow',
-      '/generate/voice': 'Voiceover — ContentFlow',
-      '/generate/video': 'Video — ContentFlow',
-      '/ask': 'Ask AI — ContentFlow',
-      '/generate/ugc': 'UGC Package — ContentFlow',
-      '/generate/business-card': 'Business Card — ContentFlow',
-      '/editor': 'Video Editor — ContentFlow',
-      '/generate/from-calendar': 'Create Content — ContentFlow',
-      '/settings': 'Settings — ContentFlow',
-      '/settings/brand': 'Brand Settings — ContentFlow',
-      '/settings/account': 'Account — ContentFlow',
-      '/settings/billing': 'Billing — ContentFlow',
-      '/settings/integrations': 'Integrations — ContentFlow',
-      '/onboarding': 'Get Started — ContentFlow',
-      '/onboarding/brand': 'Brand Setup — ContentFlow',
-      '/onboarding/plan': 'Content Plan — ContentFlow',
-      '/auth/login': 'Log In — ContentFlow',
-      '/auth/signup': 'Sign Up — ContentFlow',
-      '/pricing': 'Pricing — ContentFlow',
-      '/privacy': 'Privacy Policy — ContentFlow',
-      '/help': 'Help — ContentFlow',
+      '/': 'Contentflow Web — AI Content Studio',
+      '/dashboard': 'Dashboard — Contentflow Web',
+      '/calendar': 'Monthly Plan — Contentflow Web',
+      '/library': 'Library — Contentflow Web',
+      '/analytics': 'Analytics — Contentflow Web',
+      '/scheduler': 'Scheduler — Contentflow Web',
+      '/generate/blog': 'Blog Post — Contentflow Web',
+      '/generate/social': 'Social Post — Contentflow Web',
+      '/generate/email': 'Email — Contentflow Web',
+      '/generate/image': 'Image — Contentflow Web',
+      '/generate/voice': 'Voiceover — Contentflow Web',
+      '/generate/video': 'Video — Contentflow Web',
+      '/ask': 'Ask AI — Contentflow Web',
+      '/generate/ugc': 'UGC Package — Contentflow Web',
+      '/generate/business-card': 'Business Card — Contentflow Web',
+      '/editor': 'Video Editor — Contentflow Web',
+      '/generate/from-calendar': 'Create Content — Contentflow Web',
+      '/settings': 'Settings — Contentflow Web',
+      '/settings/brand': 'Brand Settings — Contentflow Web',
+      '/settings/account': 'Account — Contentflow Web',
+      '/settings/billing': 'Billing — Contentflow Web',
+      '/settings/integrations': 'Integrations — Contentflow Web',
+      '/onboarding': 'Get Started — Contentflow Web',
+      '/onboarding/brand': 'Brand Setup — Contentflow Web',
+      '/onboarding/plan': 'Content Plan — Contentflow Web',
+      '/auth/login': 'Log In — Contentflow Web',
+      '/auth/signup': 'Sign Up — Contentflow Web',
+      '/pricing': 'Pricing — Contentflow Web',
+      '/privacy': 'Privacy Policy — Contentflow Web',
+      '/help': 'Help — Contentflow Web',
     }
-    document.title = titles[pathname] ?? 'ContentFlow'
+    document.title = titles[pathname] ?? 'Contentflow Web'
   }, [pathname])
 
   const toggleTheme = () => {
@@ -146,24 +146,24 @@ export default function RootLayout({
         <meta name="theme-color" content="#FAFAF8" />
 
         {/* Primary meta */}
-        <meta name="description" content="ContentFlow — Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish content in minutes." />
+        <meta name="description" content="Contentflow Web — Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish content in minutes." />
         <meta name="keywords" content="AI content creation, UGC ads, talking head video, AI voiceover, screen demo, social copy generator" />
 
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="ContentFlow" />
-        <meta property="og:title" content="ContentFlow — AI Content Studio" />
+        <meta property="og:site_name" content="Contentflow Web" />
+        <meta property="og:title" content="Contentflow Web — AI Content Studio" />
         <meta property="og:description" content="Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish in minutes." />
-        <meta property="og:image" content="https://contentflow.app/og-image.png" />
+        <meta property="og:image" content="https://contentflow-web.com/og-image.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
-        <meta property="og:url" content="https://contentflow.app" />
+        <meta property="og:url" content="https://contentflow-web.com" />
 
         {/* Twitter / X */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="ContentFlow — AI Content Studio" />
+        <meta name="twitter:title" content="Contentflow Web — AI Content Studio" />
         <meta name="twitter:description" content="Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish in minutes." />
-        <meta name="twitter:image" content="https://contentflow.app/og-image.png" />
+        <meta name="twitter:image" content="https://contentflow-web.com/og-image.png" />
       </head>
       <body>
         <CreditsProvider>

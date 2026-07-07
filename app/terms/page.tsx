@@ -2,25 +2,25 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Terms of Service — ContentFlow',
-  description: 'ContentFlow Terms of Service',
+  title: 'Contentflow Web Terms of Service',
+  description: 'Contentflow Web Terms of Service',
 }
 
 const EFFECTIVE_DATE = 'June 24, 2026'
 const CONTACT_EMAIL = 'contentflow.web@gmail.com'
-const COMPANY_NAME = 'ContentFlow'
+const COMPANY_NAME = 'Contentflow Web'
 
 export default function TermsPage() {
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
       <div style={{ marginBottom: 48 }}>
         <Link href="/" style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-          ← Back to ContentFlow
+          ← Back to Contentflow Web
         </Link>
       </div>
 
       <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 42, lineHeight: 1.1, letterSpacing: '-0.01em', margin: '0 0 10px' }}>
-        Terms of Service
+        Contentflow Web Terms of Service
       </h1>
       <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: '0 0 48px', fontFamily: 'var(--font-mono)' }}>
         Effective {EFFECTIVE_DATE}
