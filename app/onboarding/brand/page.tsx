@@ -131,7 +131,7 @@ export default function OnboardingBrandPage() {
 
   const platforms = [
     { id: 'instagram', name: 'Instagram' },
-    { id: 'tiktok', name: 'TikTok' },
+    { id: 'tiktok', name: 'TikTok', soon: true },
     { id: 'twitter', name: 'X (Twitter)' },
     { id: 'youtube', name: 'YouTube' },
     { id: 'facebook', name: 'Facebook' },
@@ -607,23 +607,27 @@ export default function OnboardingBrandPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '12px' }}>
                   {platforms.map(p => {
                     const selected = selectedPlatforms.includes(p.id)
+                    const soon = 'soon' in p && p.soon
                     return (
                       <button
                         key={p.id}
-                        onClick={() => setSelectedPlatforms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
+                        disabled={soon}
+                        onClick={() => !soon && setSelectedPlatforms(prev => prev.includes(p.id) ? prev.filter(x => x !== p.id) : [...prev, p.id])}
                         style={{
                           padding: '14px 16px',
                           borderRadius: 'var(--r-md)',
                           border: selected ? '2px solid var(--accent)' : '1px solid var(--border)',
                           background: selected ? 'var(--accent)' : 'var(--surface)',
                           color: selected ? 'var(--accent-ink)' : 'var(--ink)',
-                          fontSize: '14px', fontWeight: 500, cursor: 'pointer',
+                          fontSize: '14px', fontWeight: 500, cursor: soon ? 'not-allowed' : 'pointer',
+                          opacity: soon ? 0.55 : 1,
                           display: 'flex', alignItems: 'center', gap: '10px',
                           transition: 'all 120ms',
                         }}
                       >
                         <span style={{ opacity: selected ? 1 : 0.7 }}>{PLATFORM_ICONS[p.id]}</span>
-                        {p.name}
+                        <span style={{ flex: 1, textAlign: 'left' }}>{p.name}</span>
+                        {soon && <span style={{ fontSize: 10, fontWeight: 600, background: 'var(--surface-2)', color: 'var(--ink-mute)', borderRadius: 4, padding: '2px 6px', letterSpacing: '0.05em' }}>SOON</span>}
                       </button>
                     )
                   })}

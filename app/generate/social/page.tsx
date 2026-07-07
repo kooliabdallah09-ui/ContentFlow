@@ -19,7 +19,6 @@ const CAPTION_PLATFORMS = [
 const CAROUSEL_PLATFORMS = [
   { id: 'instagram', label: 'Instagram' },
   { id: 'facebook',  label: 'Facebook' },
-  { id: 'tiktok',    label: 'TikTok (Photo Mode)' },
 ]
 
 const MUSIC_MOODS = [

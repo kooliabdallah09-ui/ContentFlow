@@ -163,7 +163,7 @@ export default function CalendarPage() {
 
       if (!brand) throw new Error('No brand profile yet — fill it in first.')
 
-      const platforms = ['tiktok', 'instagram']
+      const platforms = ['instagram']
       const frequency = (brand.posting_frequency as 'light' | 'moderate' | 'heavy') || 'moderate'
 
       const accessToken = sess?.session?.access_token
