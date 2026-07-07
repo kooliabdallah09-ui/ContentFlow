@@ -1,19 +1,41 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
+import { Sun, Moon } from 'lucide-react'
 
 // Landing page — editorial design from the Claude Design export.
 // Hero + Features (6-up grid) + Pricing (3 cards) + closing CTA + Footer.
 // Every signup CTA routes to /auth/signup so the funnel is consistent.
 
 export default function LandingPage() {
+  const [isDark, setIsDark] = useState(false)
+
+  useEffect(() => {
+    const saved = typeof window !== 'undefined' ? localStorage.getItem('cf-theme') : null
+    setIsDark(saved === 'dark')
+  }, [])
+
+  const toggleTheme = () => {
+    const next = !isDark
+    setIsDark(next)
+    if (next) {
+      document.documentElement.setAttribute('data-theme', 'dark')
+      localStorage.setItem('cf-theme', 'dark')
+    } else {
+      document.documentElement.removeAttribute('data-theme')
+      localStorage.setItem('cf-theme', 'light')
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
       {/* HEADER */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 50,
-        backdropFilter: 'blur(8px)',
-        background: 'rgba(250,250,248,0.92)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        background: 'color-mix(in srgb, var(--bg) 82%, transparent)',
         borderBottom: '1px solid var(--border)',
         padding: '16px 20px',
       }}>
@@ -21,9 +43,9 @@ export default function LandingPage() {
           maxWidth: 1200, margin: '0 auto',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="brand-mark" style={{ width: 28, height: 28 }}><img src="/logo-icon.png" alt="ContentFlow" /></span>
-            <div className="brand-name" style={{ fontSize: 15 }}>Content<em>flow</em></div>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink)', textDecoration: 'none' }}>
+            <span className="brand-mark" style={{ width: 28, height: 28 }}><img src="/logo-icon.png" alt="Contentflow" /></span>
+            <div className="brand-name" style={{ fontSize: 15, color: 'var(--ink)' }}>Content<em>flow</em></div>
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="ls-nav">
             <a href="#features" style={navLink}>Features</a>
@@ -31,6 +53,20 @@ export default function LandingPage() {
             <Link href="/help" style={navLink}>Docs</Link>
           </nav>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button
+              onClick={toggleTheme}
+              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+              style={{
+                width: 36, height: 36, borderRadius: 9,
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                color: 'var(--ink)',
+                cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              }}
+            >
+              {isDark ? <Sun size={16} /> : <Moon size={16} />}
+            </button>
             <Link href="/auth/login" style={btnSecondaryLink}>Sign in</Link>
             <Link href="/auth/signup" style={btnPrimaryLink}>Get started</Link>
           </div>
@@ -281,15 +317,15 @@ const DEMO_VIDEOS = [
 
 // ---- Inline styles ----
 const navLink: React.CSSProperties = { padding: '9px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-mute)' }
-const btnPrimaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: 'var(--ink)', color: '#fff', fontSize: 14, fontWeight: 600, border: 0 }
+const btnPrimaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 14, fontWeight: 600, border: 0 }
 const btnSecondaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }
 
 const heroEyebrow: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 14 }
 const heroH1: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 64, lineHeight: 1.05, letterSpacing: '-0.02em', margin: '0 0 20px' }
 const heroP: React.CSSProperties = { fontSize: 18, color: 'var(--ink-dim)', margin: '0 0 36px', lineHeight: 1.7 }
-const btnPrimaryLg: React.CSSProperties = { padding: '13px 28px', borderRadius: 11, background: 'var(--ink)', color: '#fff', fontSize: 14, fontWeight: 600, border: 0 }
+const btnPrimaryLg: React.CSSProperties = { padding: '13px 28px', borderRadius: 11, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 14, fontWeight: 600, border: 0 }
 const btnSecondaryLg: React.CSSProperties = { padding: '13px 28px', borderRadius: 11, background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }
-const btnPrimaryXL: React.CSSProperties = { padding: '14px 32px', borderRadius: 11, background: 'var(--ink)', color: '#fff', fontSize: 15, fontWeight: 600, border: 0 }
+const btnPrimaryXL: React.CSSProperties = { padding: '14px 32px', borderRadius: 11, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 15, fontWeight: 600, border: 0 }
 
 const heroPreview: React.CSSProperties = {
   marginTop: 80, aspectRatio: '1.6',
@@ -350,13 +386,13 @@ const featureH3: React.CSSProperties = {
 const featureP: React.CSSProperties = { fontSize: 13.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }
 
 const priceCard: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 15, padding: 32 }
-const popularBadge: React.CSSProperties = { position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', background: 'var(--ink)', color: '#fff', borderRadius: 999, padding: '4px 12px' }
+const popularBadge: React.CSSProperties = { position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 999, padding: '4px 12px' }
 const priceName: React.CSSProperties = { fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 8 }
 const priceRow: React.CSSProperties = { display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 16 }
 const priceAmt: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 36, lineHeight: 1 }
 const priceUnit: React.CSSProperties = { fontSize: 13, color: 'var(--ink-mute)' }
 const priceMeta: React.CSSProperties = { fontSize: 13, color: 'var(--ink-dim)', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--border-soft)' }
-const btnPrimaryFull: React.CSSProperties = { display: 'block', textAlign: 'center', width: '100%', padding: 11, border: 0, borderRadius: 9, background: 'var(--ink)', color: '#fff', fontWeight: 600, fontSize: 13 }
+const btnPrimaryFull: React.CSSProperties = { display: 'block', textAlign: 'center', width: '100%', padding: 11, border: 0, borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)', fontWeight: 600, fontSize: 13 }
 const btnSecondaryFull: React.CSSProperties = { display: 'block', textAlign: 'center', width: '100%', padding: 11, border: '1px solid var(--border)', borderRadius: 9, background: 'var(--surface)', color: 'var(--ink)', fontWeight: 600, fontSize: 13 }
 
 const footH: React.CSSProperties = { fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 12 }
