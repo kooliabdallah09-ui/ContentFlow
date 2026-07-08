@@ -7,10 +7,16 @@ import { getSupabase } from '@/lib/auth'
 import { canAccessMultiAgentChat } from '@/lib/pov-access'
 import { CHAT_AGENTS, findAgent } from '@/lib/chat-agents'
 
+type ChatResult =
+  | { kind: 'image'; url: string; prompt: string; credits: number }
+  | { kind: 'social'; posts: Record<string, string>; topic: string; credits: number }
+  | { kind: 'error'; message: string }
+
 interface Message {
   role: 'user' | 'assistant'
   content: string
   action?: { href: string; label: string }
+  results?: ChatResult[]
 }
 
 // Suggestions surface on empty state. Grouped by topic so users see we cover
@@ -102,9 +108,16 @@ export default function AskPage() {
     setSending(true)
 
     try {
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+      const token = sess?.session?.access_token
+
       const res = await fetch('/api/assistant/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({
           message: trimmed,
           history: messages.slice(-8).map(m => ({ role: m.role, content: m.content })),
@@ -114,7 +127,12 @@ export default function AskPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Assistant unavailable')
-      setMessages([...next, { role: 'assistant', content: data.reply, action: data.action }])
+      setMessages([...next, {
+        role: 'assistant',
+        content: data.reply,
+        action: data.action,
+        results: data.results,
+      }])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -259,7 +277,7 @@ export default function AskPage() {
                     padding: '12px 16px',
                     borderRadius: 14,
                     background: m.role === 'user' ? 'var(--ink)' : 'var(--surface)',
-                    color: m.role === 'user' ? '#fff' : 'var(--ink)',
+                    color: m.role === 'user' ? 'var(--on-ink)' : 'var(--ink)',
                     fontSize: 14,
                     lineHeight: 1.55,
                     whiteSpace: 'pre-wrap',
@@ -267,6 +285,11 @@ export default function AskPage() {
                   }}
                 >
                   <span>{m.content}</span>
+                  {m.results && m.results.length > 0 && (
+                    <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      {m.results.map((r, ri) => <ResultBlock key={ri} result={r} />)}
+                    </div>
+                  )}
                   {m.action && (
                     <button
                       onClick={() => handleAction(m.action!.href)}
@@ -274,7 +297,7 @@ export default function AskPage() {
                         display: 'flex', alignItems: 'center', gap: 6,
                         marginTop: 12,
                         padding: '8px 14px',
-                        background: 'var(--ink)', color: '#fff',
+                        background: 'var(--ink)', color: 'var(--on-ink)',
                         border: 'none', borderRadius: 9,
                         fontSize: 13, fontWeight: 600,
                         cursor: 'pointer',
@@ -297,7 +320,7 @@ export default function AskPage() {
                   display: 'flex', alignItems: 'center', gap: '8px',
                 }}>
                   <Loader2 size={16} className="animate-spin" />
-                  Thinking…
+                  Working on it…
                 </div>
               </div>
             )}
@@ -374,4 +397,43 @@ export default function AskPage() {
       </form>
     </main>
   )
+}
+
+// Inline result renderer — one per generation the assistant produced.
+function ResultBlock({ result }: { result: ChatResult }) {
+  if (result.kind === 'image') {
+    return (
+      <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={result.url} alt={result.prompt} style={{ display: 'block', width: '100%', maxWidth: 480 }} />
+        <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink-mute)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)' }}>{result.credits} cr · Image</span>
+          <a href={result.url} download style={{ color: 'var(--ink)', textDecoration: 'underline', textUnderlineOffset: 3 }}>Download</a>
+        </div>
+      </div>
+    )
+  }
+  if (result.kind === 'social') {
+    return (
+      <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg)', padding: 14 }}>
+        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--ink-mute)', marginBottom: 8 }}>
+          SOCIAL · {result.credits} CR
+        </div>
+        {Object.entries(result.posts).map(([platform, text]) => (
+          <div key={platform} style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, textTransform: 'capitalize' }}>{platform}</div>
+            <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{text}</div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+  if (result.kind === 'error') {
+    return (
+      <div style={{ border: '1px solid var(--danger)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', background: 'rgba(184,58,53,0.08)' }}>
+        {result.message}
+      </div>
+    )
+  }
+  return null
 }
