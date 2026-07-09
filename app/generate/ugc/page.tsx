@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
@@ -45,6 +46,23 @@ export default function UGCGeneratorPage() {
     key: 'ugcGeneratorFormState',
     onRestore: (data) => setFormData(data),
   })
+
+  // Prefill from a Content Plan calendar entry via URL params
+  // (?hook=...&format=...). This is used when clicking "Generate ↗" in the
+  // dashboard's Content Intelligence panel.
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    const hook = searchParams?.get('hook')
+    const format = searchParams?.get('format')
+    if (!hook && !format) return
+    setFormData(prev => ({
+      ...prev,
+      benefits: hook ? (prev.benefits ? `${hook}\n\n${prev.benefits}` : hook) : prev.benefits,
+      // Stash the format id in callToAction so it makes it into the orchestrate
+      // call. The script prompt reads it and shapes the script accordingly.
+      callToAction: format && !prev.callToAction ? `[format:${format}]` : prev.callToAction,
+    }))
+  }, [searchParams])
 
   // Prefill from a calendar suggestion (Create now). Runs once on mount.
   // The calendar day's title becomes the topic-line, description becomes the

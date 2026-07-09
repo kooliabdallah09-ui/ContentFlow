@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
+import ContentPlanSection from '@/components/ContentPlanSection'
 
 interface LibraryItem {
   id: string
@@ -185,6 +186,9 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* CONTENT INTELLIGENCE PLAN */}
+      <ContentPlanSection />
 
       {/* THREE-UP FORMAT CARDS */}
       <div className="dash-grid">

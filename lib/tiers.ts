@@ -23,9 +23,10 @@ export const DURATION_CONFIGS: Record<number, DurationConfig> = {
   10: { totalSeconds: 10, klingSeconds: 10, klingClips: 1, strategy: 'native',  label: '10s', available: true },
   15: { totalSeconds: 15, klingSeconds: 15, klingClips: 1, strategy: 'native',  label: '15s', available: true },
   20: { totalSeconds: 20, klingSeconds: 10, klingClips: 2, strategy: 'chained', label: '20s', available: true },
+  30: { totalSeconds: 30, klingSeconds: 15, klingClips: 2, strategy: 'chained', label: '30s', available: true },
 }
 
-export const DURATION_OPTIONS = [5, 10, 15, 20] as const
+export const DURATION_OPTIONS = [5, 10, 15, 20, 30] as const
 export type UGCDuration = typeof DURATION_OPTIONS[number]
 
 export interface TierConfig {

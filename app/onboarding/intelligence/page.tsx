@@ -1,0 +1,185 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { getSupabase } from '@/lib/auth'
+import { showError } from '@/lib/notifications'
+import { Loader2 } from 'lucide-react'
+
+const GOALS = [
+  { id: 'brand_awareness',   label: 'Brand awareness',    desc: 'Get seen by more people in my niche' },
+  { id: 'drive_sales',       label: 'Drive sales',        desc: 'Turn views into buyers' },
+  { id: 'build_community',   label: 'Build community',    desc: 'Grow a loyal audience' },
+  { id: 'get_ugc_creators',  label: 'Get UGC creators',   desc: 'Attract creators to work with me' },
+]
+
+const STEPS = [
+  { key: 'product', title: 'What are you selling or promoting?', placeholder: 'e.g. handmade skincare soaps, SaaS tool for freelancers, fitness coaching…' },
+  { key: 'audience', title: 'Who is your target audience?', placeholder: 'e.g. women 25-40 who care about clean ingredients, indie devs shipping side projects…' },
+  { key: 'goal', title: 'What is your primary goal?' },
+] as const
+
+export default function IntelligenceOnboardingPage() {
+  const router = useRouter()
+  const [step, setStep] = useState(0)
+  const [answers, setAnswers] = useState({ product: '', audience: '', goal: '' })
+  const [phase, setPhase] = useState<'form' | 'analyzing' | 'planning'>('form')
+
+  useEffect(() => {
+    // If they've already completed onboarding, skip to the dashboard
+    (async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const res = await fetch('/api/intelligence/plan', { headers: { Authorization: `Bearer ${token}` } })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.hasProfile && data.plan) router.push('/dashboard?plan=ready')
+      }
+    })()
+  }, [router])
+
+  function next() {
+    const currentKey = STEPS[step].key
+    if (!answers[currentKey].trim()) return
+    if (step < STEPS.length - 1) setStep(step + 1)
+    else submit()
+  }
+
+  async function submit() {
+    try {
+      const supabase = getSupabase()!
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+
+      setPhase('analyzing')
+      const onb = await fetch('/api/intelligence/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ answers }),
+      })
+      if (!onb.ok) {
+        const err = await onb.json()
+        throw new Error(err.error || 'Onboarding failed')
+      }
+
+      setPhase('planning')
+      const plan = await fetch('/api/intelligence/generate-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      })
+      if (!plan.ok) {
+        const err = await plan.json()
+        throw new Error(err.error || 'Plan generation failed')
+      }
+      router.push('/dashboard?plan=ready')
+    } catch (err) {
+      setPhase('form')
+      showError('Error', err instanceof Error ? err.message : 'Something went wrong')
+    }
+  }
+
+  if (phase !== 'form') {
+    return (
+      <main style={{ maxWidth: 640, margin: '0 auto', padding: '120px 32px', textAlign: 'center' }}>
+        <Loader2 size={32} className="animate-spin" style={{ marginBottom: 20 }} />
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 400, margin: '0 0 8px' }}>
+          {phase === 'analyzing' ? 'Analyzing your niche…' : 'Building your 30-day plan…'}
+        </h1>
+        <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
+          {phase === 'analyzing'
+            ? 'Extracting your product profile and pulling real-time trend data from TikTok, Google, and Reddit.'
+            : 'Scoring UGC formats, generating hooks, and structuring 30 days of content.'}
+        </p>
+      </main>
+    )
+  }
+
+  const currentKey = STEPS[step].key
+  const currentAnswer = answers[currentKey]
+  const canProceed = currentAnswer.trim().length > 0
+  const progress = ((step + 1) / STEPS.length) * 100
+
+  return (
+    <main style={{ maxWidth: 640, margin: '0 auto', padding: '80px 32px 40px' }}>
+      {/* progress bar */}
+      <div style={{ height: 3, borderRadius: 999, background: 'var(--surface)', marginBottom: 40, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${progress}%`, background: 'var(--ink)', transition: 'width 300ms' }} />
+      </div>
+
+      <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)', marginBottom: 12 }}>
+        STEP {step + 1} OF {STEPS.length}
+      </div>
+      <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 34, fontWeight: 400, margin: '0 0 24px', letterSpacing: '-0.01em', lineHeight: 1.15 }}>
+        {STEPS[step].title}
+      </h1>
+
+      {currentKey === 'goal' ? (
+        <div style={{ display: 'grid', gap: 10, marginBottom: 24 }}>
+          {GOALS.map(g => {
+            const active = answers.goal === g.id
+            return (
+              <button
+                key={g.id}
+                onClick={() => setAnswers(a => ({ ...a, goal: g.id }))}
+                style={{
+                  textAlign: 'left',
+                  padding: '16px 18px',
+                  borderRadius: 14,
+                  border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                  background: active ? 'var(--surface-2)' : 'var(--surface)',
+                  cursor: 'pointer',
+                  transition: 'all 0.12s',
+                }}
+              >
+                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>{g.label}</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>{g.desc}</div>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <textarea
+          className="textarea"
+          rows={4}
+          value={currentAnswer}
+          onChange={e => setAnswers(a => ({ ...a, [currentKey]: e.target.value }))}
+          placeholder={('placeholder' in STEPS[step] ? STEPS[step].placeholder : '') as string}
+          style={{ marginBottom: 24, fontSize: 15 }}
+          autoFocus
+        />
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+        {step > 0 ? (
+          <button
+            onClick={() => setStep(s => s - 1)}
+            style={{
+              padding: '12px 20px', borderRadius: 11,
+              background: 'transparent', border: '1px solid var(--border)',
+              color: 'var(--ink)', fontSize: 14, cursor: 'pointer',
+            }}
+          >
+            Back
+          </button>
+        ) : <div />}
+        <button
+          onClick={next}
+          disabled={!canProceed}
+          style={{
+            padding: '12px 28px', borderRadius: 11,
+            background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
+            fontSize: 14, fontWeight: 600, cursor: canProceed ? 'pointer' : 'not-allowed',
+            opacity: canProceed ? 1 : 0.4,
+          }}
+        >
+          {step === STEPS.length - 1 ? 'Generate my content plan →' : 'Continue →'}
+        </button>
+      </div>
+    </main>
+  )
+}
