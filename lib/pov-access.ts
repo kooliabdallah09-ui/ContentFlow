@@ -24,3 +24,8 @@ export function canAccessReelAnalyzer(email: string | null | undefined): boolean
   if (!email) return false
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
+
+export function canAccessFormats(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
