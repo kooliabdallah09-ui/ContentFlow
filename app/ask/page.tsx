@@ -11,6 +11,7 @@ type ChatResult =
   | { kind: 'image'; url: string; prompt: string; credits: number }
   | { kind: 'social'; posts: Record<string, string>; topic: string; credits: number }
   | { kind: 'navigate'; path: string; prefillTopic?: string }
+  | { kind: 'switch_agent'; agentId: string; agentName: string; carryOver: string }
   | { kind: 'error'; message: string }
 
 interface Message {
@@ -98,14 +99,23 @@ export default function AskPage() {
   }, [messages, sending])
 
   async function send(text: string) {
+    return sendWithAgent(text, agentId)
+  }
+
+  // Send a message using a specific agent, bypassing the agentId state.
+  // Used by the switch_agent handoff so the specialist can respond before
+  // React has committed the state update. `silent` skips adding a user
+  // bubble — the carry-over context is invisible to the user; only the
+  // specialist's reply shows up.
+  async function sendWithAgent(text: string, agentIdOverride: string, silent = false) {
     const trimmed = text.trim()
     if (!trimmed || sending) return
 
     setError(null)
     const userMsg: Message = { role: 'user', content: trimmed }
-    const next = [...messages, userMsg]
-    setMessages(next)
-    setInput('')
+    const next = silent ? messages : [...messages, userMsg]
+    if (!silent) setMessages(next)
+    if (!silent) setInput('')
     setSending(true)
 
     try {
@@ -123,7 +133,7 @@ export default function AskPage() {
           message: trimmed,
           history: messages.slice(-8).map(m => ({ role: m.role, content: m.content })),
           currentPath: pathname,
-          agentId: multiAgent ? agentId : undefined,
+          agentId: multiAgent ? agentIdOverride : undefined,
         }),
       })
       const data = await res.json()
@@ -135,15 +145,23 @@ export default function AskPage() {
         results: data.results,
       }])
 
-      // Auto-navigate when the assistant called open_generator. We stash the
-      // prefill topic in sessionStorage so the target page can read it on
-      // mount (mirrors the calendar-prefill helper pattern).
-      const nav = (data.results as ChatResult[] | undefined)?.find(r => r.kind === 'navigate')
-      if (nav && nav.kind === 'navigate') {
+      // Handle routing results returned by the assistant's tools.
+      const results = (data.results as ChatResult[] | undefined) ?? []
+      const nav = results.find(r => r.kind === 'navigate')
+      const swap = results.find(r => r.kind === 'switch_agent')
+
+      if (swap && swap.kind === 'switch_agent') {
+        // Kooli handed off to a specialist. Switch the active agent and
+        // send the specialist a silent carry-over so it can open the
+        // conversation naturally — no duplicate user bubble.
+        setAgentId(swap.agentId)
+        setTimeout(() => {
+          void sendWithAgent(swap.carryOver || trimmed, swap.agentId, true)
+        }, 350)
+      } else if (nav && nav.kind === 'navigate') {
         if (nav.prefillTopic) {
           try { sessionStorage.setItem('chatPrefillTopic', nav.prefillTopic) } catch {}
         }
-        // Give the user a beat to read the confirmation before we route.
         setTimeout(() => router.push(nav.path), 500)
       }
     } catch (err) {
@@ -419,6 +437,14 @@ function ResultBlock({ result }: { result: ChatResult }) {
       <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--ink-dim)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Loader2 size={14} className="animate-spin" />
         Opening {result.path}…
+      </div>
+    )
+  }
+  if (result.kind === 'switch_agent') {
+    return (
+      <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--ink-dim)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-mute)', letterSpacing: '0.06em' }}>HANDOFF →</span>
+        <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>{result.agentName}</strong>
       </div>
     )
   }

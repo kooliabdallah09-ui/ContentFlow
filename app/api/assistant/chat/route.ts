@@ -23,6 +23,7 @@ type ChatResult =
   | { kind: 'image'; url: string; prompt: string; credits: number }
   | { kind: 'social'; posts: Record<string, string>; topic: string; credits: number }
   | { kind: 'navigate'; path: string; prefillTopic?: string }
+  | { kind: 'switch_agent'; agentId: string; agentName: string; carryOver: string }
   | { kind: 'error'; message: string }
 
 interface ChatRequest {
@@ -49,6 +50,25 @@ function supa() {
 // match its surface (image agent → generate_image, social → captions, etc.).
 // General agent gets everything.
 const TOOL_DEFS: Record<string, Anthropic.Tool> = {
+  switch_agent: {
+    name: 'switch_agent',
+    description: "Hand this conversation off to a specialist agent that fits the user's intent better. Call this AS SOON as you know which specialist should take over — do not ask clarifying questions first. The specialist takes over on the next turn and can handle scripting, prompts, and generation details.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        agentId: {
+          type: 'string',
+          enum: ['ugc', 'pov', 'image', 'video', 'social', 'voice'],
+          description: 'The specialist to hand off to: ugc=Reel (talking-head videos), pov=Vista (faceless POV), image=Frame (images), video=Cine (Sora/Kling cinematic), social=Buzz (captions), voice=Echo (voiceovers)',
+        },
+        carryOver: {
+          type: 'string',
+          description: 'A one-sentence handoff note the specialist reads to pick up context (e.g. "user wants a 5s clip of a boy in front of the Eiffel Tower talking about Paris").',
+        },
+      },
+      required: ['agentId', 'carryOver'],
+    },
+  },
   open_generator: {
     name: 'open_generator',
     description: "Route the user to a ContentFlow generator page. Use this AS SOON as you know which generator fits — do not ask clarifying questions first. The generator collects the details itself. Optionally include the user's original request as prefillTopic so the target page pre-fills the topic / prompt field.",
@@ -110,7 +130,7 @@ const TOOL_DEFS: Record<string, Anthropic.Tool> = {
 }
 
 const AGENT_TOOLS: Record<string, string[]> = {
-  general: ['open_generator', 'generate_image', 'generate_social_captions'],
+  general: ['switch_agent', 'open_generator', 'generate_image', 'generate_social_captions'],
   image: ['generate_image'],
   social: ['generate_social_captions'],
   ugc: ['open_generator'],
@@ -134,6 +154,19 @@ async function runTool(name: string, input: any, userId: string): Promise<ChatRe
     .maybeSingle()
   const balance = credits?.balance ?? 0
   const packCredits = credits?.pack_credits ?? 0
+
+  if (name === 'switch_agent') {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const targetId = String((input as any).agentId ?? '')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const carryOver = String((input as any).carryOver ?? '').slice(0, 500)
+    const { findAgent: findA } = await import('@/lib/chat-agents')
+    const target = findA(targetId)
+    if (!target || target.id === 'general') {
+      return { kind: 'error', message: `Unknown agent: ${targetId}` }
+    }
+    return { kind: 'switch_agent', agentId: target.id, agentName: target.name, carryOver }
+  }
 
   if (name === 'open_generator') {
     const path = String(input.path ?? '')
@@ -328,8 +361,10 @@ export async function POST(request: NextRequest) {
       anthMessages.push({ role: 'assistant', content: msg.content })
 
       const toolResults: Anthropic.ToolResultBlockParam[] = []
+      // Routing tools don't touch billing — they can run even for anon users.
+      const ROUTING_TOOLS = new Set(['switch_agent', 'open_generator'])
       for (const tu of toolUses) {
-        if (!userId) {
+        if (!userId && !ROUTING_TOOLS.has(tu.name)) {
           const err: ChatResult = { kind: 'error', message: 'Sign in to generate content in chat.' }
           results.push(err)
           toolResults.push({
@@ -340,7 +375,7 @@ export async function POST(request: NextRequest) {
           })
           continue
         }
-        const result = await runTool(tu.name, tu.input, userId)
+        const result = await runTool(tu.name, tu.input, userId ?? '')
         results.push(result)
         toolResults.push({
           type: 'tool_result',
