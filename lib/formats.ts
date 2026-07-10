@@ -29,12 +29,26 @@ export type FormatPipeline =
   | 'pov'             // Vista faceless POV
   | 'editor-only'     // No AI video — user supplies footage, we compose overlays
   | 'ugc+editor'      // UGC clip + heavy overlay work in the editor
+  | 'ugc+compositor'  // UGC clip + background removal + PIP move + icon fields
+                      // (needs the advanced compositor pass — not shipped yet)
 
 // Timing supports absolute seconds or percentage of the clip so a template
 // scales across 5s / 10s / 15s / 20s / 30s durations without rewriting.
 export type FormatTiming = {
   start: number | { pct: number } | { fromEnd: number }
   duration: number | { pct: number }
+}
+
+// Character PIP moves (Arcads-style). The talking-head clip is composited on
+// top of the background layer — this describes where + how big it sits and
+// how it transitions between positions across the timeline.
+export type CharacterPip = {
+  from: { x: number; y: number; scale: number } // 0-1 space, 1.0 scale = fills canvas
+  to: { x: number; y: number; scale: number }
+  transitionAt: FormatTiming['start']  // when the PIP starts moving to the "to" pose
+  transitionDuration: number           // seconds — how long the move takes
+  keyOut: boolean                       // remove the character's background via
+                                        // segmentation before compositing
 }
 
 export type FormatOverlay =
@@ -65,6 +79,24 @@ export type FormatOverlay =
       position: 'top' | 'center' | 'bottom' | { x: number; y: number }
       scale?: number   // 0-1, relative to canvas width
       opacity?: number
+      timing: FormatTiming
+    }
+  | {
+      // Icon-pattern background layer (dollar signs, hearts, checkmarks, etc.).
+      // Rendered as a tiled or scattered field of the icon behind the character.
+      kind: 'icon-field'
+      iconSlot: 'money' | 'heart' | 'check' | 'star' | 'flame' | 'brain' | 'arrow-up' | 'clock' | 'custom'
+      density: 'sparse' | 'medium' | 'dense'
+      color: string
+      backgroundColor: string
+      timing: FormatTiming
+    }
+  | {
+      // Full-frame background swap. Useful for multi-scene composites where
+      // the character stays but the world behind them changes.
+      kind: 'background-swap'
+      slot: 'chart-fullframe' | 'icon-field' | 'grid-dark' | 'grid-light' | 'gradient' | 'photo'
+      color?: string
       timing: FormatTiming
     }
 
@@ -106,6 +138,10 @@ export interface FormatTemplate {
 
   // Overlay timeline auto-placed in the editor after the base clip renders.
   overlays: FormatOverlay[]
+
+  // Optional: character PIP movement (Arcads-style composites). Requires the
+  // compositor pipeline.
+  pip?: CharacterPip
 
   // Example prompts the format is good for — helps first-time users see the fit.
   examples: string[]
@@ -1207,6 +1243,193 @@ export const FORMAT_TEMPLATES: FormatTemplate[] = [
     },
     overlays: [],
     examples: ['Studio tour', 'Building day', 'Team culture'],
+  },
+  // ==========================================================================
+  // ARCADS-STYLE COMPOSITE FAMILY (character PIP + dynamic backgrounds)
+  // Needs the compositor pipeline (background removal + PIP animation).
+  // ==========================================================================
+  // ------------------------------------------------------------------ 41
+  {
+    id: 'pip-explainer',
+    name: 'PIP Explainer',
+    category: 'educational',
+    tagline: 'Character shrinks from full-frame to bottom-right corner as visuals fill the rest.',
+    whenToUse: 'For finance, tech-news, or data commentary. Character starts centered talking, then ducks into a corner while a chart, icon field, or infographic dominates.',
+    pipeline: 'ugc+compositor',
+    durations: [15, 20, 30],
+    needsProduct: false,
+    needsUI: false,
+    needsUserFootage: false,
+    needsScript: 'ai',
+    audio: 'voiceover',
+    captionStyle: 'highlight',
+    vibe: 'clinical',
+    scriptScaffold: {
+      hook: 'You need to be watching {topic}.',
+      body: 'First 3s: introduce the topic while centered on camera. Then walk through 2-3 key points while the visual layer takes over. End with a hook back to your product.',
+      cta: '{cta}',
+      toneHint: 'confident news-anchor cadence',
+    },
+    pip: {
+      from: { x: 0.5, y: 0.5, scale: 1.0 },
+      to:   { x: 0.75, y: 0.82, scale: 0.4 },
+      transitionAt: 3,
+      transitionDuration: 0.6,
+      keyOut: true,
+    },
+    overlays: [
+      { kind: 'text', template: '{hook}', position: { x: 0.35, y: 0.18 }, style: 'highlight', size: 'lg', animation: 'zoom', timing: t(0.4, 3) },
+      { kind: 'image-slot', slot: 'chart-data-viz', position: { x: 0.4, y: 0.4 }, scale: 0.55, timing: t(3.5, { pct: 0.85 }) },
+      { kind: 'text', template: '{key_point_1}', position: { x: 0.4, y: 0.15 }, style: 'bold-white', size: 'md', animation: 'slide-up', timing: t(pct(0.5), 4) },
+    ],
+    examples: ['Stock reaction', 'Tech news explainer', 'Metric deep-dive'],
+  },
+  // ------------------------------------------------------------------ 42
+  {
+    id: 'icon-rain',
+    name: 'Icon Rain',
+    category: 'trending',
+    tagline: 'Repeating themed icons tile the background, character composited over.',
+    whenToUse: 'Instantly telegraphs the topic via visual metaphor — dollar signs for money, hearts for love, brains for smart, flames for hot takes.',
+    pipeline: 'ugc+compositor',
+    durations: [10, 15, 20],
+    needsProduct: false,
+    needsUI: false,
+    needsUserFootage: false,
+    needsScript: 'ai',
+    audio: 'voiceover',
+    captionStyle: 'bold-white',
+    vibe: 'bold',
+    scriptScaffold: {
+      hook: 'So what\'s driving {topic}?',
+      body: 'Explain the trend or insight in 3 tight sentences. Reference {product} as the answer or the tool.',
+      cta: '{cta}',
+      toneHint: 'high-energy, gestures with hands',
+    },
+    pip: {
+      from: { x: 0.5, y: 0.5, scale: 1.0 },
+      to:   { x: 0.75, y: 0.85, scale: 0.42 },
+      transitionAt: 2,
+      transitionDuration: 0.5,
+      keyOut: true,
+    },
+    overlays: [
+      { kind: 'icon-field', iconSlot: 'money', density: 'medium', color: '#ffffff', backgroundColor: '#000000', timing: t(2, { pct: 0.9 }) },
+      { kind: 'text', template: '{hook}', position: { x: 0.5, y: 0.35 }, style: 'bold-white', size: 'lg', animation: 'zoom', timing: t(2.5, 4) },
+    ],
+    examples: ['Money moves', 'Trending love/dating', 'Hot takes with 🔥 icons'],
+  },
+  // ------------------------------------------------------------------ 43
+  {
+    id: 'chart-reaction',
+    name: 'Chart Reaction',
+    category: 'educational',
+    tagline: 'Big chart or number dominates screen; character reacts from the corner.',
+    whenToUse: 'For data-driven claims — stock moves, growth metrics, poll results. The visual is the evidence, the character is the interpreter.',
+    pipeline: 'ugc+compositor',
+    durations: [15, 20, 30],
+    needsProduct: false,
+    needsUI: false,
+    needsUserFootage: false,
+    needsScript: 'user',
+    audio: 'voiceover',
+    captionStyle: 'caption',
+    vibe: 'urgent',
+    scriptScaffold: {
+      hook: 'Look at what just happened.',
+      body: 'Describe what the chart shows, what changed, and what it means. Keep the character\'s energy reactive — not just narrating.',
+      cta: '{cta}',
+      toneHint: 'reactive, incredulous, breathy',
+    },
+    pip: {
+      from: { x: 0.5, y: 0.5, scale: 1.0 },
+      to:   { x: 0.75, y: 0.85, scale: 0.38 },
+      transitionAt: 2,
+      transitionDuration: 0.5,
+      keyOut: true,
+    },
+    overlays: [
+      { kind: 'background-swap', slot: 'grid-dark', color: '#000000', timing: t(2, { pct: 0.9 }) },
+      { kind: 'image-slot', slot: 'chart-data-viz', position: { x: 0.5, y: 0.35 }, scale: 0.75, timing: t(2.4, { pct: 0.85 }) },
+      { kind: 'text', template: '{data_label}', position: { x: 0.5, y: 0.65 }, style: 'caption', size: 'md', animation: 'fade', timing: t(pct(0.5), 4) },
+    ],
+    examples: ['Stock chart reaction', 'Growth metric reveal', 'Poll / survey response'],
+  },
+  // ------------------------------------------------------------------ 44
+  {
+    id: 'multi-scene-composite',
+    name: 'Multi-Scene Composite',
+    category: 'educational',
+    tagline: 'Same character composited through 3-4 different backdrops as the topic evolves.',
+    whenToUse: 'The Arcads signature. Perfect for tech/finance/health explainers where you visit multiple sub-topics — plain room → chart → icon field → data screen.',
+    pipeline: 'ugc+compositor',
+    durations: [20, 30],
+    needsProduct: false,
+    needsUI: false,
+    needsUserFootage: false,
+    needsScript: 'user',
+    audio: 'voiceover',
+    captionStyle: 'highlight',
+    vibe: 'clinical',
+    scriptScaffold: {
+      hook: 'You need to be watching {topic}.',
+      body: 'Structure into 3 beats, each with a distinct backdrop: (1) plain — set up the topic, (2) chart / data — show the evidence, (3) icon field — reinforce the theme. Character transitions between the scenes with a small nod or gesture.',
+      cta: '{cta}',
+      toneHint: 'authoritative, journalist-explainer',
+    },
+    pip: {
+      from: { x: 0.5, y: 0.5, scale: 1.0 },
+      to:   { x: 0.72, y: 0.84, scale: 0.4 },
+      transitionAt: 3,
+      transitionDuration: 0.5,
+      keyOut: true,
+    },
+    overlays: [
+      { kind: 'text', template: '{hook}', position: { x: 0.4, y: 0.18 }, style: 'highlight', size: 'lg', animation: 'zoom', timing: t(0.5, 3) },
+      { kind: 'background-swap', slot: 'grid-dark', timing: t(3, 6) },
+      { kind: 'image-slot', slot: 'chart-data-viz', position: { x: 0.4, y: 0.4 }, scale: 0.6, timing: t(3.5, 5) },
+      { kind: 'text', template: '{beat_2_label}', position: { x: 0.4, y: 0.7 }, style: 'caption', size: 'md', animation: 'fade', timing: t(pct(0.4), 3) },
+      { kind: 'icon-field', iconSlot: 'money', density: 'medium', color: '#ffffff', backgroundColor: '#000000', timing: t(pct(0.6), { pct: 0.35 }) },
+      { kind: 'text', template: '{beat_3_hook}', position: { x: 0.4, y: 0.35 }, style: 'bold-white', size: 'lg', animation: 'zoom', timing: t(pct(0.65), 4) },
+    ],
+    examples: ['Stock analyst clip', 'Health explainer', 'Tech breakdown'],
+  },
+  // ------------------------------------------------------------------ 45
+  {
+    id: 'news-anchor',
+    name: 'News Anchor',
+    category: 'talking-head',
+    tagline: 'Character locked in bottom-right; big headline + sub-labels fill the rest.',
+    whenToUse: 'Fake-news-broadcast styling — perfect for market takes, product-launch commentary, milestone announcements.',
+    pipeline: 'ugc+compositor',
+    durations: [10, 15, 20],
+    needsProduct: false,
+    needsUI: false,
+    needsUserFootage: false,
+    needsScript: 'ai',
+    audio: 'voiceover',
+    captionStyle: 'bold-white',
+    vibe: 'clinical',
+    scriptScaffold: {
+      hook: 'Breaking: {headline}.',
+      body: 'Deliver the news in 2-3 sentences with anchor precision. Land on the takeaway.',
+      cta: '{cta}',
+      toneHint: 'measured, broadcast-clean, slight urgency',
+    },
+    pip: {
+      from: { x: 0.75, y: 0.82, scale: 0.4 },
+      to:   { x: 0.75, y: 0.82, scale: 0.4 },
+      transitionAt: 0,
+      transitionDuration: 0,
+      keyOut: true,
+    },
+    overlays: [
+      { kind: 'background-swap', slot: 'gradient', color: '#0a1f3d', timing: t(0, { pct: 1 }) },
+      { kind: 'text', template: 'BREAKING', position: { x: 0.28, y: 0.15 }, style: 'highlight', size: 'md', animation: 'slide-up', timing: t(0, 3) },
+      { kind: 'text', template: '{headline}', position: { x: 0.35, y: 0.35 }, style: 'bold-white', size: 'xl', animation: 'slide-up', timing: t(0.5, { pct: 0.85 }) },
+      { kind: 'text', template: '{sub_label}', position: { x: 0.35, y: 0.6 }, style: 'minimal', size: 'md', animation: 'fade', timing: t(pct(0.4), 4) },
+    ],
+    examples: ['Stock news', 'Product launch announcement', 'Milestone report'],
   },
 ]
 
