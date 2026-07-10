@@ -124,9 +124,17 @@ export async function POST(request: NextRequest) {
       : DEFAULT_DURATION
     const durationConfig = DURATION_CONFIGS[duration]
 
-    if (!ugcType || !productName || !productDescription || !benefits) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    // Only ugcType is truly required. productName/description/benefits are
+    // treated as topic/context — if a user wants a non-product talking-head
+    // (travel vlog, personal take, opinion piece), they can leave them blank
+    // and rely on customInstructions + character.scene to describe the video.
+    if (!ugcType) {
+      return NextResponse.json({ error: 'Missing ugcType' }, { status: 400 })
     }
+    // Backfill so downstream string interpolation doesn't render "undefined".
+    const safeProductName = String(productName || 'the topic').trim() || 'the topic'
+    const safeProductDescription = String(productDescription || 'general talking-head content').trim() || 'general talking-head content'
+    const safeBenefits = String(benefits || 'engaging story').trim() || 'engaging story'
 
     let totalCost = 0
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
@@ -148,9 +156,9 @@ export async function POST(request: NextRequest) {
         : trimmed
     } else {
       const baseScript = await generateUGCScript(
-        productName,
-        productDescription,
-        benefits,
+        safeProductName,
+        safeProductDescription,
+        safeBenefits,
         callToAction || 'Try it today',
         productImageBase64,
         productImageMimeType,
@@ -170,7 +178,7 @@ export async function POST(request: NextRequest) {
     // Optional image-only path (unchanged).
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') {
       const imageResult = await generateImage(
-        `Professional product showcase photo of ${productName}. ${productDescription}. Style: ${style}. Clean background, studio lighting, commercial quality.`,
+        `Hero visual of ${safeProductName}. ${safeProductDescription}. Style: ${style}. ${productImageBase64 ? 'Clean background, studio lighting, commercial quality.' : 'Cinematic composition, natural light.'}`,
         productImageBase64,
         productImageMimeType,
       )
@@ -244,7 +252,7 @@ export async function POST(request: NextRequest) {
         const heroFrame = await generateCharacterWithProduct(
           productImageBase64!,
           productImageMimeType!,
-          productName,
+          safeProductName,
           characterPrompt,
           heroScene,
           safeCustomInstructions,
@@ -286,8 +294,8 @@ export async function POST(request: NextRequest) {
 
       // 3. Claude builds the Kling v3 prompt (motion-first, embeds the spoken script).
       const klingPrompt = await buildKlingPrompt({
-        productName,
-        productDescription,
+        productName: safeProductName,
+        productDescription: safeProductDescription,
         scene: backgroundContext,
         script: spokenScript,
         language: language.name,
