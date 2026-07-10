@@ -121,6 +121,17 @@ export default function AnalyzerPage() {
   async function analyze() {
     if (!file || !videoRef.current) return
     const v = videoRef.current
+    // Guard: Whisper + Claude vision on a 90s reel would time out our 300s
+    // route. Keep the analyzer honest.
+    if (v.duration > 90) {
+      showError('Too long', `Reel is ${v.duration.toFixed(0)}s — please trim to under 90s.`)
+      return
+    }
+    if (file.size > 100 * 1024 * 1024) {
+      showError('Too big', 'Please upload a video under 100 MB.')
+      return
+    }
+
     setAnalyzing(true)
     try {
       const supabase = getSupabase()!
@@ -128,11 +139,32 @@ export default function AnalyzerPage() {
       const token = sess?.session?.access_token
       if (!token) throw new Error('Not signed in')
 
-      // 1. Upload the video to Supabase so Whisper can transcribe it.
+      // 1. Upload the video via a signed URL. Direct .upload() through the
+      // supabase-js client silently hangs on some networks / file sizes;
+      // signed URLs use a plain PUT which surfaces network errors cleanly
+      // and lets us tack on a hard timeout.
       setStatus('Uploading video…')
       const path = `analyzer-source/${sess.session?.user.id}-${Date.now()}.mp4`
-      const { error: upErr } = await supabase.storage.from('ugc-assets').upload(path, file, { contentType: file.type, upsert: false })
-      if (upErr) throw new Error(upErr.message)
+
+      const { data: signed, error: signErr } = await supabase.storage
+        .from('ugc-assets')
+        .createSignedUploadUrl(path)
+      if (signErr || !signed) throw new Error(signErr?.message || 'Could not create upload URL')
+
+      const uploadController = new AbortController()
+      const uploadTimeout = setTimeout(() => uploadController.abort(), 120_000)
+      try {
+        const putRes = await fetch(signed.signedUrl, {
+          method: 'PUT',
+          headers: { 'Content-Type': file.type || 'video/mp4' },
+          body: file,
+          signal: uploadController.signal,
+        })
+        if (!putRes.ok) throw new Error(`Upload failed (${putRes.status})`)
+      } finally {
+        clearTimeout(uploadTimeout)
+      }
+
       const { data: pub } = supabase.storage.from('ugc-assets').getPublicUrl(path)
       const audioUrl = pub.publicUrl
 
