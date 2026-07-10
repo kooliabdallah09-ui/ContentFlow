@@ -120,6 +120,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null)
   const [useBrand, setUseBrand] = useState(false)
 
+  // Hero-frame picker (new intermediate step between script review and
+  // Kling video submission). frames[] is populated by /api/ugc/hero-frames;
+  // when the user clicks one, we call /api/ugc/animate with that URL as the
+  // Kling start_image.
+  const [frames, setFrames] = useState<string[] | null>(null)
+  const [framesLoading, setFramesLoading] = useState(false)
+  const [animating, setAnimating] = useState(false)
+
   // Progressive-reveal state. unlockedStep starts at 1; each section 2-5
   // fades in when it becomes ≤ unlockedStep. Step 1 auto-advances once the
   // user has interacted with both Duration and Aspect. Steps 2-4 unlock via
@@ -146,8 +154,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
   }
 
-  // Two-step flow: form → script review → video
-  const [step, setStep] = useState<'form' | 'script'>('form')
+  // Three-step flow: form → script review → hero frame pick → video
+  const [step, setStep] = useState<'form' | 'script' | 'frames'>('form')
   const [generatedScript, setGeneratedScript] = useState<string>('')
   const [scriptLoading, setScriptLoading] = useState(false)
   const [editedScript, setEditedScript] = useState<string>('')
@@ -312,28 +320,121 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     setBenefits('')
   }
 
+  // Kick off hero-frame generation. Once we have 4 frames, move to the
+  // 'frames' step so the user can pick one.
+  const requestHeroFrames = async (finalScript: string) => {
+    setFramesLoading(true)
+    try {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error('Auth not ready')
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch('/api/ugc/hero-frames', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          productName,
+          productDescription,
+          productImageBase64: productImage?.base64,
+          productImageMimeType: productImage?.mimeType,
+          productType,
+          character,
+          avatarGender: character?.gender ?? 'Female',
+          actorId,
+          customPhotoBase64: customPhoto?.base64,
+          customPhotoMimeType: customPhoto?.mimeType,
+          aspectId: aspect,
+          customInstructions: customInstructions.trim() || undefined,
+          script: finalScript,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed to render hero frames')
+      setFrames(data.frames)
+      setStep('frames')
+    } catch (err) {
+      showError('Frames failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setFramesLoading(false)
+    }
+  }
+
+  // Called once the user has picked one of the 4 hero frames.
+  const runAnimate = async (selectedFrameUrl: string, finalScript: string) => {
+    setAnimating(true)
+    try {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error('Auth not ready')
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch('/api/ugc/animate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          selectedFrameUrl,
+          script: finalScript,
+          ugcType: UGC_TYPE,
+          duration,
+          productName,
+          productDescription,
+          benefits,
+          callToAction,
+          avatarGender: character?.gender ?? 'Female',
+          character,
+          customInstructions: customInstructions.trim() || undefined,
+          language,
+          aspect,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Kling submission failed')
+
+      // Delegate to the parent's onGenerate. We pass a special sentinel
+      // (`__animateResponse`) so the parent knows the pipeline already ran
+      // and it just needs to wire the response into UI state.
+      await onGenerate({
+        ugcType: UGC_TYPE, tier, duration, productName, productDescription, benefits, callToAction,
+        style: 'realistic', imageSize: '1024x1024', voiceId: '',
+        productImageBase64: productImage?.base64,
+        productImageMimeType: productImage?.mimeType,
+        character,
+        customInstructions: customInstructions.trim() || undefined,
+        language,
+        aspect,
+        actorId,
+        customPhotoBase64: customPhoto?.base64,
+        customPhotoMimeType: customPhoto?.mimeType,
+        productType,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        __animateResponse: data as any,
+      } as Parameters<typeof onGenerate>[0])
+
+      // Reset flow state
+      setStep('form')
+      setGeneratedScript('')
+      setEditedScript('')
+      setFrames(null)
+      resetForm()
+    } catch (err) {
+      showError('Animate failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setAnimating(false)
+    }
+  }
+
   const runGenerate = async (selectedHook?: string, prewrittenScript?: string) => {
-    await onGenerate({
-      ugcType: UGC_TYPE, tier, duration, productName, productDescription, benefits, callToAction,
-      style: 'realistic', imageSize: '1024x1024', voiceId: '',
-      productImageBase64: productImage?.base64,
-      productImageMimeType: productImage?.mimeType,
-      selectedHook,
-      character,
-      customInstructions: customInstructions.trim() || undefined,
-      language,
-      aspect,
-      actorId,
-      customPhotoBase64: customPhoto?.base64,
-      customPhotoMimeType: customPhoto?.mimeType,
-      productType,
-      prewrittenScript,
-    })
-    // Reset to form step after successful generation
-    setStep('form')
-    setGeneratedScript('')
-    setEditedScript('')
-    resetForm()
+    // The old direct-to-Kling path. Now we route through hero-frames first —
+    // final script is either the pre-written one, the edited one, or the AI
+    // draft. selectedHook is folded in earlier where we build editedScript.
+    void selectedHook
+    const finalScript = (editedScript || prewrittenScript || generatedScript || '').trim()
+    if (!finalScript) {
+      showError('No script', 'Generate or paste a script first')
+      return
+    }
+    await requestHeroFrames(finalScript)
   }
 
   async function fetchShopifyProducts() {
@@ -500,6 +601,85 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     }
   }
 
+  // Hero-frame picker — shown between script review and Kling submission.
+  if (step === 'frames') {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button
+              type="button"
+              onClick={() => setStep('script')}
+              disabled={animating}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '6px 12px', borderRadius: 8,
+                border: '1px solid var(--border)', background: 'var(--surface)',
+                color: 'var(--ink-dim)', fontSize: 13, cursor: animating ? 'not-allowed' : 'pointer',
+              }}
+            >
+              ← Back to script
+            </button>
+            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
+              Pick your starting frame
+            </h3>
+          </div>
+          <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>
+            We rendered {(frames ?? []).length} options. Kling will animate whichever one you pick — click your favorite to continue.
+          </p>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
+            {(frames ?? []).map((url, i) => (
+              <button
+                key={url}
+                type="button"
+                onClick={() => runAnimate(url, editedScript || generatedScript || '')}
+                disabled={animating}
+                style={{
+                  padding: 0, border: '2px solid var(--border)', borderRadius: 12,
+                  background: 'var(--surface)', cursor: animating ? 'wait' : 'pointer',
+                  overflow: 'hidden', position: 'relative',
+                  transition: 'all 0.15s',
+                }}
+                onMouseEnter={e => { if (!animating) e.currentTarget.style.borderColor = 'var(--ink)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt={`Frame ${i + 1}`} style={{ display: 'block', width: '100%', height: 'auto' }} />
+                <div style={{
+                  position: 'absolute', top: 8, left: 8,
+                  fontFamily: 'var(--font-mono)', fontSize: 10,
+                  background: 'rgba(0,0,0,0.65)', color: '#fff',
+                  padding: '3px 6px', borderRadius: 4, letterSpacing: '0.06em',
+                }}>OPTION {i + 1}</div>
+              </button>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => requestHeroFrames(editedScript || generatedScript || '')}
+            disabled={framesLoading || animating}
+            style={{
+              padding: '10px 14px', borderRadius: 10,
+              background: 'transparent', border: '1px solid var(--border)',
+              color: 'var(--ink)', fontSize: 13, cursor: framesLoading ? 'wait' : 'pointer',
+              alignSelf: 'flex-start',
+            }}
+          >
+            {framesLoading ? 'Regenerating…' : 'Regenerate frames'}
+          </button>
+
+          {animating && (
+            <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0 }}>
+              Submitting your pick to Kling — this takes 60–120 seconds. You&apos;ll see the video in your Library when it&apos;s ready.
+            </p>
+          )}
+        </section>
+      </div>
+    )
+  }
+
   // Script review step — shown after "Generate Script" succeeds
   if (step === 'script') {
     return (
@@ -604,12 +784,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
           <button
             type="button"
-            disabled={isLoading || !editedScript.trim() || creditBalance < totalCredits}
+            disabled={isLoading || framesLoading || !editedScript.trim() || creditBalance < totalCredits}
             onClick={() => runGenerate(undefined, editedScript)}
             className="btn btn-primary"
             style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11 }}
           >
-            {isLoading ? 'Generating…' : 'Generate Video →'}
+            {framesLoading ? 'Rendering 4 starting frames…' : isLoading ? 'Generating…' : 'Pick starting frame →'}
           </button>
 
           {creditBalance < totalCredits && (

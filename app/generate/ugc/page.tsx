@@ -164,6 +164,23 @@ export default function UGCGeneratorPage() {
     setCreditDeducted(undefined)
 
     try {
+      // If the builder already ran the two-step hero-frames → animate flow,
+      // it hands us the animate response directly on __animateResponse.
+      // In that case we just wire the response into UI state and skip the
+      // legacy single-shot orchestrate call.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const pre = (settings as any).__animateResponse as
+        | { components: unknown; newBalance: number; creditDeducted: number } | undefined
+      if (pre) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setComponents(pre.components as any)
+        setUgcType(settings.ugcType)
+        setCreditBalance(pre.newBalance)
+        setCreditDeducted(pre.creditDeducted)
+        showSuccess('UGC package generated successfully', 'Complete package ready to use')
+        return
+      }
+
       const supabase = getSupabase()
       if (!supabase) {
         throw new Error('Authentication failed')
