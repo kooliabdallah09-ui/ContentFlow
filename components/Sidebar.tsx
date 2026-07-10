@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessPovStudio, canAccessScheduling } from '@/lib/pov-access'
+import { canAccessPovStudio, canAccessScheduling, canAccessReelAnalyzer } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -25,6 +25,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
 
   const [povAccess, setPovAccess] = useState(false)
   const [schedAccess, setSchedAccess] = useState(false)
+  const [analyzerAccess, setAnalyzerAccess] = useState(false)
   useEffect(() => {
     (async () => {
       const supabase = getSupabase()
@@ -33,6 +34,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       const email = sess?.session?.user?.email
       setPovAccess(canAccessPovStudio(email))
       setSchedAccess(canAccessScheduling(email))
+      setAnalyzerAccess(canAccessReelAnalyzer(email))
     })()
   }, [])
 
@@ -84,6 +86,13 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>POV Studio</span>
           <span className={povAccess ? 'flagship-badge' : 'soon-badge'}>{povAccess ? 'New' : 'Soon'}</span>
         </Link>
+        {analyzerAccess && (
+          <Link href="/generate/analyzer" className={`nav-item ${isActive('/generate/analyzer') ? 'active' : ''}`} onClick={handleNavClick}>
+            <Icon.Video />
+            <span style={{ flex: 1 }}>Reel Analyzer</span>
+            <span className="flagship-badge">Beta</span>
+          </Link>
+        )}
         <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Image />
           <span style={{ flex: 1 }}>Image</span>
