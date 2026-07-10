@@ -29,8 +29,9 @@ function buildSystemPrompt(pronoun: string, possessive: string): string {
 3. Open with the physical motion in the first second (caught mid-laugh, lifts product up, leans toward camera with eyes widening, etc.) — never "smiles at camera".
 4. Embed the spoken script verbatim inside double quotes. Tag it explicitly: "${pronoun} says: \\"exact script here\\"" so Kling knows to generate that voice line.
 5. Specify the voice qualities AFTER the quote: warm/bright/low/young/confident, natural conversational pace, slight smile in the voice. This biases the native audio generator.
-6. End with a closing micro-beat (small nod, holds product up, glances away with grin, ${pronoun === 'he' ? 'runs hand through hair' : 'hair flip'}).
+6. End with a closing micro-beat (small nod, holds product up, glances away with grin, ${pronoun === 'he' ? 'runs hand through hair' : 'hair flip'}) that lands DURING the last spoken word — not after. The mouth stops moving the instant the final word ends.
 7. No background music — say "ambient room tone only, no music".
+8. Continuous delivery: ${pronoun} speaks through the entire clip. State this explicitly: "${pronoun} speaks continuously with no pauses, no silent frames at the end, no lip-motion after the last word." Kling drifts audio/mouth-sync at the tail if this isn't enforced.
 
 # FORBIDDEN WORDS
 "cinematic" (without context), "epic", "dramatic", "4K", "8K", "professional video", "perfect", "flawless", "stunning", "smooth motion", "gimbal", "studio lighting", "slow motion", "background score", "music swells". These push the model toward commercial render and kill the UGC feel.

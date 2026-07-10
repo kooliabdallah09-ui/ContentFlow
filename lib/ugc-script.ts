@@ -15,8 +15,12 @@ export async function generateUGCScript(
   language?: { name: string; code: string },
   productType?: 'physical' | 'software',
 ): Promise<string> {
-  // 1.9 words/sec spoken pace with 1.5s padding so the last word lands before cutoff.
-  const targetWords = Math.max(6, Math.round((targetDurationSeconds - 1.5) * 1.9))
+  // Kling v3 omni's native voice actually spits ~2.2 words/sec for casual UGC
+  // delivery. With only 0.4s of tail padding the last word lands just before
+  // the final frame — no silent-mouth drift like we had with the old (dur-1.5)×1.9
+  // formula which underfilled the clip by 2-3s. If Kling starts overrunning
+  // we can nudge WPS down to 2.1, but 2.2 lines up with the measured cadence.
+  const targetWords = Math.max(6, Math.round((targetDurationSeconds - 0.4) * 2.2))
   const hookEnd = Math.min(5, Math.round(targetDurationSeconds * 0.2))
   const bodyEnd = Math.round(targetDurationSeconds * 0.85)
 
