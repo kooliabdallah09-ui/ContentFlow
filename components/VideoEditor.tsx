@@ -349,6 +349,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       await vid.play()
 
       await new Promise<void>((resolve, reject) => {
+        // Prefer requestVideoFrameCallback (fires per decoded video frame) over
+        // rAF (fires per display refresh). rVFC gives us frame-accurate timing
+        // — every video frame gets drawn exactly once. rAF drops ticks under
+        // load, which is what was causing 15s videos to export as 14s with
+        // slower apparent playback.
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const hasRVFC = typeof (vid as any).requestVideoFrameCallback === 'function'
+
         const tick = () => {
           const t = vid.currentTime
           if (t >= trimEnd || vid.ended) {
@@ -416,10 +424,20 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             }
           }
 
-          requestAnimationFrame(tick)
+          if (hasRVFC) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (vid as any).requestVideoFrameCallback(tick)
+          } else {
+            requestAnimationFrame(tick)
+          }
         }
         vid.onerror = reject
-        requestAnimationFrame(tick)
+        if (hasRVFC) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (vid as any).requestVideoFrameCallback(tick)
+        } else {
+          requestAnimationFrame(tick)
+        }
       })
 
       await new Promise<void>(r => { recorder.onstop = () => r() })
@@ -446,6 +464,30 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     } finally {
       setExporting(false)
     }
+  }
+
+  // Word-wrap a string to fit within maxWidth on the current ctx font settings.
+  // Mirrors the preview's CSS wrapping (max-width ≈ 88% of canvas width) so
+  // exported captions break where the user sees them wrap in the editor.
+  function wrapCanvasText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+    const paragraphs = text.split('\n')
+    const out: string[] = []
+    for (const para of paragraphs) {
+      const words = para.split(/\s+/).filter(Boolean)
+      if (words.length === 0) { out.push(''); continue }
+      let line = words[0]
+      for (let i = 1; i < words.length; i++) {
+        const test = `${line} ${words[i]}`
+        if (ctx.measureText(test).width > maxWidth && line) {
+          out.push(line)
+          line = words[i]
+        } else {
+          line = test
+        }
+      }
+      out.push(line)
+    }
+    return out
   }
 
   function drawTextOnCanvas(ctx: CanvasRenderingContext2D, ov: TextOverlay, outW: number, outH: number, t?: number) {
@@ -493,79 +535,96 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     const style = ov.style ?? 'caption'
     const displayText = style === 'tiktok' ? ov.text.toUpperCase() : ov.text
 
-    if (style === 'bold-white') {
-      ctx.font        = `800 ${fs}px Montserrat,${ff}`
-      ctx.fillStyle   = ov.color ?? '#ffffff'
-      ctx.shadowColor = 'rgba(0,0,0,0.85)'
-      ctx.shadowBlur  = 10
-      ctx.fillText(displayText, cx, cy)
-    } else if (style === 'minimal') {
-      ctx.font        = `400 ${fs}px ${ff}`
-      ctx.fillStyle   = ov.color ?? '#ffffff'
-      ctx.globalAlpha = (ctx.globalAlpha ?? 1) * 0.9
-      ctx.fillText(displayText, cx, cy)
-    } else if (style === 'tiktok') {
-      ctx.font = `900 ${fs}px "Montserrat","Arial Black",sans-serif`
-      ctx.lineJoin    = 'round'
-      // thick black stroke first
-      ctx.strokeStyle = ov.strokeColor ?? '#000000'
-      ctx.lineWidth   = fs * 0.16
-      ctx.strokeText(displayText, cx, cy)
-      // shadow pass
-      ctx.shadowColor = 'rgba(0,0,0,0.5)'
-      ctx.shadowBlur  = fs * 0.3
-      ctx.fillStyle   = ov.color ?? '#ffffff'
-      ctx.fillText(displayText, cx, cy)
-      ctx.shadowBlur  = 0
-    } else if (style === 'outline') {
-      ctx.font = `800 ${fs}px Montserrat,${ff}`
-      ctx.strokeStyle = ov.strokeColor ?? '#ffffff'
-      ctx.lineWidth   = fs * 0.08
-      ctx.lineJoin    = 'round'
-      ctx.strokeText(displayText, cx, cy)
-      ctx.fillStyle = ov.color ?? '#FFE14D'
-      ctx.fillText(displayText, cx, cy)
-    } else if (style === 'highlight') {
-      ctx.font = `700 ${fs}px ${ff}`
-      const tw = ctx.measureText(displayText).width
-      ctx.fillStyle = ov.bgColor ?? '#FFE14D'
-      // @ts-ignore
-      ctx.roundRect?.(cx - tw / 2 - 16, cy - fs / 2 - 10, tw + 32, fs + 20, 10)
-      ctx.fill()
-      ctx.fillStyle = ov.color ?? '#000000'
-      ctx.fillText(displayText, cx, cy)
-    } else if (style === 'bubble') {
-      ctx.font = `700 ${fs}px ${ff}`
-      const tw = ctx.measureText(displayText).width
-      const bw = tw + 44, bh = fs + 28
-      const bx = cx - bw / 2, by = cy - bh / 2
-      // shadow
-      ctx.shadowColor = 'rgba(0,0,0,0.28)'
-      ctx.shadowBlur  = 20
-      ctx.fillStyle   = ov.bgColor ?? '#ffffff'
-      // @ts-ignore
-      ctx.roundRect?.(bx, by, bw, bh, bh / 2)
-      ctx.fill()
-      // border
-      ctx.shadowBlur  = 0
-      ctx.strokeStyle = 'rgba(255,255,255,0.8)'
-      ctx.lineWidth   = 2
-      // @ts-ignore
-      ctx.roundRect?.(bx, by, bw, bh, bh / 2)
-      ctx.stroke()
-      ctx.fillStyle   = ov.color ?? '#1a1a17'
-      ctx.fillText(displayText, cx, cy)
-    } else {
-      // default caption
-      const tw = ctx.measureText(ov.text).width
-      ctx.fillStyle = ov.bgColor ?? 'rgba(0,0,0,0.55)'
-      ctx.beginPath()
-      // @ts-ignore
-      ctx.roundRect?.(cx - tw / 2 - 14, cy - fs / 2 - 8, tw + 28, fs + 16, 8)
-      ctx.fill()
-      ctx.fillStyle = ov.color ?? '#ffffff'
-      ctx.fillText(ov.text, cx, cy)
+    // Set the style-appropriate font BEFORE measuring so wrapping matches
+    // what will actually be drawn.
+    if (style === 'bold-white')      ctx.font = `800 ${fs}px Montserrat,${ff}`
+    else if (style === 'minimal')    ctx.font = `400 ${fs}px ${ff}`
+    else if (style === 'tiktok')     ctx.font = `900 ${fs}px "Montserrat","Arial Black",sans-serif`
+    else if (style === 'outline')    ctx.font = `800 ${fs}px Montserrat,${ff}`
+    else                              ctx.font = `700 ${fs}px ${ff}`
+
+    // Mirror the preview's max-width: 88% of the canvas width. Then wrap.
+    const maxW = outW * 0.88
+    const lines = wrapCanvasText(ctx, displayText, maxW)
+    const lineHeight = fs * 1.2
+    const blockHeight = lineHeight * lines.length
+    const startY = cy - blockHeight / 2 + lineHeight / 2
+
+    // Draw one line's rendering; y is the baseline center for that line.
+    const drawLine = (text: string, y: number) => {
+      if (style === 'bold-white') {
+        ctx.fillStyle   = ov.color ?? '#ffffff'
+        ctx.shadowColor = 'rgba(0,0,0,0.85)'
+        ctx.shadowBlur  = 10
+        ctx.fillText(text, cx, y)
+        ctx.shadowBlur  = 0
+      } else if (style === 'minimal') {
+        ctx.fillStyle = ov.color ?? '#ffffff'
+        ctx.fillText(text, cx, y)
+      } else if (style === 'tiktok') {
+        ctx.lineJoin    = 'round'
+        ctx.strokeStyle = ov.strokeColor ?? '#000000'
+        ctx.lineWidth   = fs * 0.16
+        ctx.strokeText(text, cx, y)
+        ctx.shadowColor = 'rgba(0,0,0,0.5)'
+        ctx.shadowBlur  = fs * 0.3
+        ctx.fillStyle   = ov.color ?? '#ffffff'
+        ctx.fillText(text, cx, y)
+        ctx.shadowBlur  = 0
+      } else if (style === 'outline') {
+        ctx.strokeStyle = ov.strokeColor ?? '#ffffff'
+        ctx.lineWidth   = fs * 0.08
+        ctx.lineJoin    = 'round'
+        ctx.strokeText(text, cx, y)
+        ctx.fillStyle = ov.color ?? '#FFE14D'
+        ctx.fillText(text, cx, y)
+      } else if (style === 'highlight') {
+        const tw = ctx.measureText(text).width
+        ctx.fillStyle = ov.bgColor ?? '#FFE14D'
+        // @ts-ignore
+        ctx.roundRect?.(cx - tw / 2 - 16, y - fs / 2 - 10, tw + 32, fs + 20, 10)
+        ctx.fill()
+        ctx.fillStyle = ov.color ?? '#000000'
+        ctx.fillText(text, cx, y)
+      } else if (style === 'bubble') {
+        const tw = ctx.measureText(text).width
+        const bw = tw + 44, bh = fs + 28
+        const bx = cx - bw / 2, by = y - bh / 2
+        ctx.shadowColor = 'rgba(0,0,0,0.28)'
+        ctx.shadowBlur  = 20
+        ctx.fillStyle   = ov.bgColor ?? '#ffffff'
+        // @ts-ignore
+        ctx.roundRect?.(bx, by, bw, bh, bh / 2)
+        ctx.fill()
+        ctx.shadowBlur  = 0
+        ctx.strokeStyle = 'rgba(255,255,255,0.8)'
+        ctx.lineWidth   = 2
+        // @ts-ignore
+        ctx.roundRect?.(bx, by, bw, bh, bh / 2)
+        ctx.stroke()
+        ctx.fillStyle   = ov.color ?? '#1a1a17'
+        ctx.fillText(text, cx, y)
+      } else {
+        // default caption: measure widest line for the background pill
+        const tw = ctx.measureText(text).width
+        ctx.fillStyle = ov.bgColor ?? 'rgba(0,0,0,0.55)'
+        ctx.beginPath()
+        // @ts-ignore
+        ctx.roundRect?.(cx - tw / 2 - 14, y - fs / 2 - 8, tw + 28, fs + 16, 8)
+        ctx.fill()
+        ctx.fillStyle = ov.color ?? '#ffffff'
+        ctx.fillText(text, cx, y)
+      }
     }
+
+    if (style === 'minimal') {
+      ctx.globalAlpha = (ctx.globalAlpha ?? 1) * 0.9
+    }
+
+    for (let i = 0; i < lines.length; i++) {
+      drawLine(lines[i], startY + i * lineHeight)
+    }
+
     ctx.restore()
   }
 
