@@ -10,6 +10,7 @@ import { CHAT_AGENTS, findAgent } from '@/lib/chat-agents'
 type ChatResult =
   | { kind: 'image'; url: string; prompt: string; credits: number }
   | { kind: 'social'; posts: Record<string, string>; topic: string; credits: number }
+  | { kind: 'navigate'; path: string; prefillTopic?: string }
   | { kind: 'error'; message: string }
 
 interface Message {
@@ -133,6 +134,18 @@ export default function AskPage() {
         action: data.action,
         results: data.results,
       }])
+
+      // Auto-navigate when the assistant called open_generator. We stash the
+      // prefill topic in sessionStorage so the target page can read it on
+      // mount (mirrors the calendar-prefill helper pattern).
+      const nav = (data.results as ChatResult[] | undefined)?.find(r => r.kind === 'navigate')
+      if (nav && nav.kind === 'navigate') {
+        if (nav.prefillTopic) {
+          try { sessionStorage.setItem('chatPrefillTopic', nav.prefillTopic) } catch {}
+        }
+        // Give the user a beat to read the confirmation before we route.
+        setTimeout(() => router.push(nav.path), 500)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong')
     } finally {
@@ -398,6 +411,14 @@ function ResultBlock({ result }: { result: ChatResult }) {
             <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{text}</div>
           </div>
         ))}
+      </div>
+    )
+  }
+  if (result.kind === 'navigate') {
+    return (
+      <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--ink-dim)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <Loader2 size={14} className="animate-spin" />
+        Opening {result.path}…
       </div>
     )
   }

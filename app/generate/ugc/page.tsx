@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { readPrefill } from '@/lib/calendar-prefill'
+import { readChatPrefill } from '@/lib/chat-prefill'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
@@ -69,13 +70,25 @@ export default function UGCGeneratorPage() {
   // benefits/script hint — user can still edit before submitting.
   useEffect(() => {
     const suggestion = readPrefill('ugc')
-    if (!suggestion) return
-    setFormData(prev => ({
-      ...prev,
-      productName: prev.productName || suggestion.title.slice(0, 80),
-      productDescription: prev.productDescription || suggestion.description,
-      benefits: prev.benefits || suggestion.reason || suggestion.description,
-    }))
+    if (suggestion) {
+      setFormData(prev => ({
+        ...prev,
+        productName: prev.productName || suggestion.title.slice(0, 80),
+        productDescription: prev.productDescription || suggestion.description,
+        benefits: prev.benefits || suggestion.reason || suggestion.description,
+      }))
+      return
+    }
+    // Fall back to chat-agent handoff — Kooli's open_generator tool stashes
+    // the user's original request here so the form starts with their intent.
+    const chat = readChatPrefill()
+    if (chat) {
+      setFormData(prev => ({
+        ...prev,
+        productDescription: prev.productDescription || chat.slice(0, 500),
+        benefits: prev.benefits || chat.slice(0, 500),
+      }))
+    }
   }, [])
 
   // Load credit balance

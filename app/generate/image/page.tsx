@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { readPrefill } from '@/lib/calendar-prefill'
+import { readChatPrefill } from '@/lib/chat-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { Loader2, Download, Image as ImageIcon, X } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
@@ -48,9 +49,12 @@ export default function ImageGeneratorPage() {
 
   useEffect(() => {
     const suggestion = readPrefill('image')
-    if (!suggestion) return
-    const combined = `${suggestion.title}. ${suggestion.description}`.trim()
-    setPrompt(combined)
+    if (suggestion) {
+      setPrompt(`${suggestion.title}. ${suggestion.description}`.trim())
+      return
+    }
+    const chat = readChatPrefill()
+    if (chat) setPrompt(chat)
   }, [])
 
   function pickReference(file: File | null) {

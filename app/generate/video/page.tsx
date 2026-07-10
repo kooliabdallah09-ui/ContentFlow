@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { readPrefill } from '@/lib/calendar-prefill'
+import { readChatPrefill } from '@/lib/chat-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Play, Upload, X } from 'lucide-react'
@@ -108,9 +109,12 @@ export default function VideoGeneratorPage() {
   // Prefill from a calendar suggestion
   useEffect(() => {
     const suggestion = readPrefill('video')
-    if (!suggestion) return
-    const combined = `${suggestion.title}. ${suggestion.description}`.trim().slice(0, 4000)
-    setPrompt(combined)
+    if (suggestion) {
+      setPrompt(`${suggestion.title}. ${suggestion.description}`.trim().slice(0, 4000))
+      return
+    }
+    const chat = readChatPrefill()
+    if (chat) setPrompt(chat.slice(0, 4000))
   }, [])
 
   // Poll status while processing

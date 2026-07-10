@@ -22,6 +22,7 @@ interface ChatMessage {
 type ChatResult =
   | { kind: 'image'; url: string; prompt: string; credits: number }
   | { kind: 'social'; posts: Record<string, string>; topic: string; credits: number }
+  | { kind: 'navigate'; path: string; prefillTopic?: string }
   | { kind: 'error'; message: string }
 
 interface ChatRequest {
@@ -48,6 +49,34 @@ function supa() {
 // match its surface (image agent → generate_image, social → captions, etc.).
 // General agent gets everything.
 const TOOL_DEFS: Record<string, Anthropic.Tool> = {
+  open_generator: {
+    name: 'open_generator',
+    description: "Route the user to a ContentFlow generator page. Use this AS SOON as you know which generator fits — do not ask clarifying questions first. The generator collects the details itself. Optionally include the user's original request as prefillTopic so the target page pre-fills the topic / prompt field.",
+    input_schema: {
+      type: 'object',
+      properties: {
+        path: {
+          type: 'string',
+          enum: [
+            '/generate/ugc',
+            '/generate/pov',
+            '/generate/image',
+            '/generate/video',
+            '/generate/social',
+            '/generate/voice',
+            '/generate/screen-demo',
+            '/generate/business-card',
+          ],
+          description: 'The generator route to open',
+        },
+        prefillTopic: {
+          type: 'string',
+          description: 'The user\'s original request in one clean sentence, used to prefill the target generator\'s topic / prompt field.',
+        },
+      },
+      required: ['path'],
+    },
+  },
   generate_image: {
     name: 'generate_image',
     description: 'Generate an image with Nano Banana 2 and render it inline in the chat. Use this when the user asks to "generate", "make", "create" an image, photo, picture, or scene. Costs 5 credits.',
@@ -81,13 +110,13 @@ const TOOL_DEFS: Record<string, Anthropic.Tool> = {
 }
 
 const AGENT_TOOLS: Record<string, string[]> = {
-  general: ['generate_image', 'generate_social_captions'],
+  general: ['open_generator', 'generate_image', 'generate_social_captions'],
   image: ['generate_image'],
   social: ['generate_social_captions'],
-  ugc: [],
-  video: [],
-  pov: [],
-  voice: [],
+  ugc: ['open_generator'],
+  video: ['open_generator'],
+  pov: ['open_generator'],
+  voice: ['open_generator'],
 }
 
 function toolsFor(agentId: string): Anthropic.Tool[] {
@@ -105,6 +134,17 @@ async function runTool(name: string, input: any, userId: string): Promise<ChatRe
     .maybeSingle()
   const balance = credits?.balance ?? 0
   const packCredits = credits?.pack_credits ?? 0
+
+  if (name === 'open_generator') {
+    const path = String(input.path ?? '')
+    if (!path.startsWith('/generate/')) {
+      return { kind: 'error', message: `Invalid path: ${path}` }
+    }
+    const prefillTopic = typeof input.prefillTopic === 'string'
+      ? input.prefillTopic.slice(0, 500)
+      : undefined
+    return { kind: 'navigate', path, prefillTopic }
+  }
 
   if (name === 'generate_image') {
     const CREDIT_COST = 5
