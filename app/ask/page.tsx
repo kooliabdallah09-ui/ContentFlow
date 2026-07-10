@@ -159,39 +159,6 @@ export default function AskPage() {
       padding: '0 24px',
       maxWidth: '760px', margin: '0 auto', width: '100%',
     }}>
-      {multiAgent && (
-        <div style={{ padding: '16px 0 0', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-dim)', letterSpacing: '0.06em' }}>
-            AGENT (BETA)
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {CHAT_AGENTS.map(a => {
-              const active = a.id === agentId
-              return (
-                <button
-                  key={a.id}
-                  onClick={() => { setAgentId(a.id); resetThread() }}
-                  title={a.tagline}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: 6,
-                    padding: '7px 12px', borderRadius: 999,
-                    border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                    background: active ? 'var(--ink)' : 'var(--surface)',
-                    color: active ? 'var(--on-ink)' : 'var(--ink)',
-                    fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
-                    transition: 'all 0.12s',
-                  }}
-                >
-                  <span>{a.emoji}</span>
-                  <span>{a.name}</span>
-                </button>
-              )
-            })}
-          </div>
-          <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{findAgent(agentId).tagline}</div>
-        </div>
-      )}
-
       {messages.length > 0 && (
         <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px 0' }}>
           <button
@@ -376,6 +343,12 @@ export default function AskPage() {
               lineHeight: 1.55, maxHeight: 150,
             }}
           />
+          {multiAgent && (
+            <AgentPicker
+              agentId={agentId}
+              onChange={(id) => { setAgentId(id); resetThread() }}
+            />
+          )}
           <button
             type="submit"
             disabled={!input.trim() || sending}
@@ -388,7 +361,7 @@ export default function AskPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <Send size={17} color="#fff" />
+            <Send size={17} color="var(--on-ink)" />
           </button>
         </div>
         <p style={{ margin: '10px 0 0', textAlign: 'center', fontSize: 11.5, color: 'var(--ink-faint)' }}>
@@ -436,4 +409,94 @@ function ResultBlock({ result }: { result: ChatResult }) {
     )
   }
   return null
+}
+
+// Compact model-picker attached to the composer input.
+// Click the name → dropdown of all agents. Matches how ChatGPT / Claude pick
+// models on the right side of the input bar.
+function AgentPicker({ agentId, onChange }: { agentId: string; onChange: (id: string) => void }) {
+  const [open, setOpen] = useState(false)
+  const active = findAgent(agentId)
+
+  useEffect(() => {
+    if (!open) return
+    const close = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (!target.closest('[data-agent-picker]')) setOpen(false)
+    }
+    window.addEventListener('mousedown', close)
+    return () => window.removeEventListener('mousedown', close)
+  }, [open])
+
+  return (
+    <div data-agent-picker style={{ position: 'relative', flexShrink: 0 }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          height: 38,
+          padding: '0 12px',
+          borderRadius: 11,
+          background: 'transparent',
+          border: '1px solid var(--border)',
+          color: 'var(--ink)',
+          fontSize: 12.5,
+          fontWeight: 500,
+          cursor: 'pointer',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          letterSpacing: '-0.01em',
+        }}
+        title={active.tagline}
+      >
+        {active.name}
+        <span style={{ fontSize: 9, color: 'var(--ink-mute)', marginTop: 1 }}>▾</span>
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 'calc(100% + 6px)',
+            right: 0,
+            minWidth: 240,
+            background: 'var(--surface)',
+            border: '1px solid var(--border)',
+            borderRadius: 12,
+            boxShadow: '0 12px 32px rgba(20,18,12,0.15)',
+            padding: 6,
+            zIndex: 20,
+          }}
+        >
+          {CHAT_AGENTS.map(a => {
+            const isActive = a.id === agentId
+            return (
+              <button
+                key={a.id}
+                type="button"
+                onClick={() => { onChange(a.id); setOpen(false) }}
+                style={{
+                  width: '100%',
+                  display: 'block',
+                  textAlign: 'left',
+                  padding: '9px 12px',
+                  borderRadius: 8,
+                  background: isActive ? 'var(--surface-2)' : 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  color: 'var(--ink)',
+                }}
+                onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--surface-2)' }}
+                onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
+              >
+                <div style={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em' }}>{a.name}</div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 1 }}>{a.tagline}</div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
 }

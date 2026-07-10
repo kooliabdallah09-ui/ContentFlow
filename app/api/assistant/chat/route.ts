@@ -195,19 +195,32 @@ Return ONLY valid JSON: { ${platforms.map(p => `"${p}": "post"`).join(', ')} }`,
   return { kind: 'error', message: `Unknown tool: ${name}` }
 }
 
-function extractJSON(text: string): { reply: string; action?: { href: string; label: string } } {
-  const cleaned = text.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '').trim()
-  try {
-    const parsed = JSON.parse(cleaned)
-    if (typeof parsed?.reply === 'string') {
-      const result: { reply: string; action?: { href: string; label: string } } = { reply: parsed.reply }
-      if (parsed.action && typeof parsed.action.href === 'string' && parsed.action.href.startsWith('/')) {
-        result.action = { href: parsed.action.href, label: parsed.action.label }
+// Strip any leaked JSON block or code fence that Claude occasionally emits when
+// tools have run. We prefer the plain-English wrapping over the raw json.
+function cleanReply(text: string): { reply: string; action?: { href: string; label: string } } {
+  const trimmed = text.trim()
+
+  // If it's a pure JSON payload (agents were told to return JSON), parse.
+  if (trimmed.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(trimmed)
+      if (typeof parsed?.reply === 'string') {
+        const result: { reply: string; action?: { href: string; label: string } } = { reply: parsed.reply }
+        if (parsed.action?.href && typeof parsed.action.href === 'string' && parsed.action.href.startsWith('/')) {
+          result.action = { href: parsed.action.href, label: parsed.action.label }
+        }
+        return result
       }
-      return result
-    }
-  } catch { /* fall through */ }
-  return { reply: text.trim().slice(0, 1500) }
+    } catch { /* fall through */ }
+  }
+
+  // Strip fenced ```json ... ``` blocks anywhere in the text.
+  const withoutFences = trimmed.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim()
+  // Also strip any leftover raw JSON object that Claude may have leaked outside
+  // fences (starts with `{ "reply"` or similar).
+  const withoutRawJson = withoutFences.replace(/\{\s*"reply"[\s\S]*?\}\s*$/g, '').trim()
+
+  return { reply: (withoutRawJson || trimmed).slice(0, 1500) }
 }
 
 async function getUserId(request: NextRequest): Promise<string | null> {
@@ -257,7 +270,7 @@ export async function POST(request: NextRequest) {
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 800,
-        system: systemPrompt + (tools.length ? '\n\nYou have tools available. When the user asks you to generate an image or captions, CALL THE TOOL immediately with a strong prompt derived from what they said — do NOT ask clarifying questions unless the prompt is truly unusable.' : ''),
+        system: systemPrompt + (tools.length ? '\n\nYou have tools available. When the user asks you to generate an image or captions, CALL THE TOOL immediately with a strong prompt derived from what they said — do NOT ask clarifying questions unless the prompt is truly unusable. After a tool has run, reply with ONE short natural-language sentence confirming what happened. Never wrap that confirmation in JSON, never use markdown code fences, never repeat the tool output.' : ''),
         tools: tools.length ? tools : undefined,
         messages: anthMessages,
       })
@@ -305,7 +318,7 @@ export async function POST(request: NextRequest) {
     // If we still have no final text after 3 rounds, degrade gracefully.
     if (!finalText) finalText = results.length ? 'Done.' : 'Sorry, could not complete that.'
 
-    const parsed = extractJSON(finalText)
+    const parsed = cleanReply(finalText)
     const response: ChatResponse = { reply: parsed.reply }
     if (parsed.action) response.action = parsed.action
     if (results.length) response.results = results
