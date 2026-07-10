@@ -139,22 +139,27 @@ export default function AnalyzerPage() {
       const token = sess?.session?.access_token
       if (!token) throw new Error('Not signed in')
 
-      // 1. Upload the video via a signed URL. Direct .upload() through the
-      // supabase-js client silently hangs on some networks / file sizes;
-      // signed URLs use a plain PUT which surfaces network errors cleanly
-      // and lets us tack on a hard timeout.
-      setStatus('Uploading video…')
-      const path = `analyzer-source/${sess.session?.user.id}-${Date.now()}.mp4`
+      // 1. Server mints a signed upload URL. This is the same pattern the
+      // screen-demo uses successfully — the browser then PUTs the file
+      // directly to Supabase, bypassing Vercel's 4.5MB body limit. The old
+      // supabase-js client-side createSignedUploadUrl was hanging silently
+      // on some networks; going through /api/upload-url avoids that.
+      setStatus('Preparing upload…')
+      const urlRes = await fetch('/api/upload-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ folder: 'analyzer-source', ext: 'mp4' }),
+      })
+      const urlData = await urlRes.json()
+      if (!urlRes.ok || !urlData.signedUrl) {
+        throw new Error(urlData.error || 'Could not prepare upload')
+      }
 
-      const { data: signed, error: signErr } = await supabase.storage
-        .from('ugc-assets')
-        .createSignedUploadUrl(path)
-      if (signErr || !signed) throw new Error(signErr?.message || 'Could not create upload URL')
-
+      setStatus(`Uploading ${(file.size / 1024 / 1024).toFixed(1)} MB…`)
       const uploadController = new AbortController()
-      const uploadTimeout = setTimeout(() => uploadController.abort(), 120_000)
+      const uploadTimeout = setTimeout(() => uploadController.abort(), 180_000)
       try {
-        const putRes = await fetch(signed.signedUrl, {
+        const putRes = await fetch(urlData.signedUrl, {
           method: 'PUT',
           headers: { 'Content-Type': file.type || 'video/mp4' },
           body: file,
@@ -165,7 +170,7 @@ export default function AnalyzerPage() {
         clearTimeout(uploadTimeout)
       }
 
-      const { data: pub } = supabase.storage.from('ugc-assets').getPublicUrl(path)
+      const { data: pub } = supabase.storage.from('ugc-assets').getPublicUrl(urlData.storagePath)
       const audioUrl = pub.publicUrl
 
       // 2. Sample frames client-side.
