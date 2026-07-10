@@ -213,15 +213,19 @@ export default function FormatsPage() {
                 <div style={{ fontSize: 13, color: 'var(--ink-mute)' }}>None — the base clip carries the message.</div>
               ) : (
                 <ul style={{ margin: 0, paddingLeft: 20, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.7 }}>
-                  {selected.overlays.map((o, i) => (
-                    <li key={i}>
-                      {o.kind === 'text' ? (
-                        <>Text · <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, background: 'var(--surface-2)', padding: '1px 5px', borderRadius: 4 }}>{o.template}</code> · {o.style}</>
-                      ) : (
-                        <>Image slot · <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, background: 'var(--surface-2)', padding: '1px 5px', borderRadius: 4 }}>{o.slot}</code></>
-                      )}
-                    </li>
-                  ))}
+                  {selected.overlays.map((o, i) => {
+                    const chip = (v: string) => (
+                      <code style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, background: 'var(--surface-2)', padding: '1px 5px', borderRadius: 4 }}>{v}</code>
+                    )
+                    return (
+                      <li key={i}>
+                        {o.kind === 'text' && <>Text · {chip(o.template)} · {o.style}</>}
+                        {o.kind === 'image-slot' && <>Image slot · {chip(o.slot)}</>}
+                        {o.kind === 'icon-field' && <>Icon field · {chip(o.iconSlot)} · {o.density}</>}
+                        {o.kind === 'background-swap' && <>Background · {chip(o.slot)}</>}
+                      </li>
+                    )
+                  })}
                 </ul>
               )}
             </Section>
