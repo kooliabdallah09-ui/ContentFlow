@@ -338,12 +338,13 @@ export async function generateElevenLabsViaReplicate(
 // Whisper transcription via Replicate. Accepts a public audio/video URL,
 // returns word-level timestamps.
 //
-// Was on vaibhavs10/incredibly-fast-whisper but the endpoint went 404. Now
-// on victor-upmeet/whisperx which is actively maintained and gives clean
-// per-word timestamps out of the box. If this also disappears, openai/whisper
-// with word_timestamps: true is the officially-supported fallback (see
-// segments[].words in its output).
-const WHISPER_MODEL = 'victor-upmeet/whisperx'
+// History of blowups: vaibhavs10/incredibly-fast-whisper went 404, then
+// victor-upmeet/whisperx also 404 on the model endpoint (both community
+// models that didn't have Replicate's /models/{owner}/{name}/predictions
+// endpoint enabled).
+//
+// Now on openai/whisper — the officially maintained port, always accessible.
+// We ask for word_timestamps and derive per-word entries from segments[].words.
 
 export interface ReplicateWhisperWord {
   word: string
@@ -358,7 +359,7 @@ export async function transcribeWithReplicate(audioUrl: string): Promise<{
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
-  const res = await fetch(`${REPLICATE_BASE}/models/${WHISPER_MODEL}/predictions`, {
+  const res = await fetch(`${REPLICATE_BASE}/models/openai/whisper/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -367,10 +368,13 @@ export async function transcribeWithReplicate(audioUrl: string): Promise<{
     },
     body: JSON.stringify({
       input: {
-        audio_file: audioUrl,
-        align_output: true,
-        batch_size: 16,
+        audio: audioUrl,
+        model: 'large-v3',
+        transcription: 'plain text',
+        translate: false,
         temperature: 0,
+        condition_on_previous_text: true,
+        word_timestamps: true,
       },
     }),
   })
@@ -384,8 +388,8 @@ export async function transcribeWithReplicate(audioUrl: string): Promise<{
   const predictionId: string | undefined = prediction?.id
   if (!predictionId) throw new Error('Replicate Whisper: no prediction id')
 
-  const TIMEOUT_MS = 180_000
-  const POLL_MS = 2_500
+  const TIMEOUT_MS = 240_000
+  const POLL_MS = 3_000
   const deadline = Date.now() + TIMEOUT_MS
 
   while (Date.now() < deadline) {
@@ -397,12 +401,17 @@ export async function transcribeWithReplicate(audioUrl: string): Promise<{
     const data = await poll.json()
 
     if (data.status === 'succeeded') {
-      // whisperx output shape:
+      // openai/whisper output shape (with word_timestamps=true):
       // {
-      //   segments: [{ text, start, end, words: [{ word, start, end, score }] }],
-      //   detected_language: 'en'
+      //   transcription: "…",
+      //   segments: [{
+      //     start, end, text,
+      //     words: [{ start, end, word, probability }]
+      //   }],
+      //   detected_language: "english"
       // }
       const output = data.output as {
+        transcription?: string
         segments?: Array<{
           text?: string
           start?: number
@@ -410,10 +419,9 @@ export async function transcribeWithReplicate(audioUrl: string): Promise<{
           words?: Array<{ word?: string; start?: number; end?: number }>
         }>
       }
-      const segments = output?.segments ?? []
-      const text = segments.map(s => s.text ?? '').join(' ').trim()
+      const text = output?.transcription ?? (output?.segments ?? []).map(s => s.text ?? '').join(' ').trim()
       const words: ReplicateWhisperWord[] = []
-      for (const seg of segments) {
+      for (const seg of output?.segments ?? []) {
         for (const w of seg.words ?? []) {
           const word = String(w.word ?? '').trim()
           if (!word) continue
@@ -430,7 +438,7 @@ export async function transcribeWithReplicate(audioUrl: string): Promise<{
       throw new Error(`Replicate Whisper ${data.status}: ${data.error ?? 'unknown'}`)
     }
   }
-  throw new Error('Replicate Whisper timed out after 180s')
+  throw new Error('Replicate Whisper timed out after 240s')
 }
 
 // Sync Labs lipsync-2 — remaps lips on `videoUrl` to match `audioUrl`.
