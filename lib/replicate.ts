@@ -8,6 +8,63 @@ const SORA_2_MODEL = 'openai/sora-2'
 // which is what makes the Arcads-style POV UGC ads work.
 const SEEDANCE_MODEL = 'bytedance/seedance-2.0'
 
+// Video background removal — outputs the input clip with an alpha channel
+// (transparent background) so we can composite the talking head over any
+// scene. Used by the App Demo Composite renderer.
+const VIDEO_BG_REMOVAL_MODEL = 'codeplugtech/background_removal_video'
+
+export async function submitBackgroundRemovalJob(videoUrl: string): Promise<{ predictionId: string }> {
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const res = await fetch(`${REPLICATE_BASE}/models/${VIDEO_BG_REMOVAL_MODEL}/predictions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      Prefer: 'respond-async',
+    },
+    body: JSON.stringify({
+      input: { video: videoUrl },
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}))
+    throw new Error(`Background-removal error ${res.status}: ${JSON.stringify(err)}`)
+  }
+  const data = await res.json()
+  const predictionId = data?.id
+  if (!predictionId) throw new Error(`Background-removal: no prediction id. Response: ${JSON.stringify(data)}`)
+  return { predictionId }
+}
+
+export async function getBackgroundRemovalStatus(predictionId: string): Promise<{
+  status: 'pending' | 'processing' | 'completed' | 'failed'
+  videoUrl?: string
+  error?: string
+}> {
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
+
+  const res = await fetch(`${REPLICATE_BASE}/predictions/${predictionId}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  })
+  if (!res.ok) throw new Error(`BG-removal poll error: ${res.statusText}`)
+
+  const data = await res.json()
+  const status = data?.status as string | undefined
+  if (status === 'succeeded') {
+    const output = data?.output
+    const videoUrl = Array.isArray(output) ? output[0] : typeof output === 'string' ? output : undefined
+    return { status: 'completed', videoUrl }
+  }
+  if (status === 'failed' || status === 'canceled') {
+    return { status: 'failed', error: data?.error ?? 'unknown' }
+  }
+  if (status === 'processing') return { status: 'processing' }
+  return { status: 'pending' }
+}
+
 // Text-to-video (no reference image) — used for pure POV scenes.
 // Image-to-video (image param) — used when we need product/UI consistency across the clip.
 export async function submitSeedanceJob(params: {

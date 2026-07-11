@@ -51,6 +51,63 @@ export type CharacterPip = {
                                         // segmentation before compositing
 }
 
+// State-machine timeline (for multi-scene composites like App Demo where the
+// layout swaps between an overlay state and a fullscreen state at scripted
+// timestamps). Full spec written up in the Gemini blueprint.
+export type CompositeState =
+  | {
+      // Avatar cutout at bottom, background video (b-roll or app UI) fills
+      // the whole 9:16 canvas behind it.
+      kind: 'overlay'
+      background:
+        | { type: 'b_roll'; hint: string }              // Nano Banana / stock hint
+        | { type: 'app_ui'; slot: 'ui-screenshot' | 'ui-recording' }
+      avatarSize: number       // 0-1, fraction of canvas height (default 0.45)
+      avatarBottomInset: number // 0-1 fraction (default 0 = touching bottom)
+      avatarKeyOut: true       // this state always removes the character bg
+    }
+  | {
+      // The pattern-interrupt: character fills the frame with their native
+      // background. No compositing, just the raw Kling clip.
+      kind: 'fullscreen'
+      avatarKeyOut: false
+    }
+
+export type StateMachineSegment = {
+  id: number
+  startSeconds: number
+  endSeconds: number
+  state: CompositeState
+  // Spoken line for this segment. Used for word-timing extraction (Whisper)
+  // and, if the user hasn't recorded audio yet, as the target script line.
+  spokenText: string
+  captionColor: string   // hex — Gemini spec alternates purple / green / white
+}
+
+// Word-level caption specification. The renderer looks up each word's start
+// time from the Whisper transcript and pops it on screen for its window.
+export type CaptionSpec = {
+  perWord: true
+  centerX: number        // 0-1 (default 0.5)
+  centerY: number        // 0-1 (default 0.30 = 30% from top per spec)
+  fontFamily: string     // 'Montserrat' | 'Impact' | 'Futura Bold' etc
+  fontSize: number       // pixels at 1080x1920 (default 64)
+  bounceScaleActive: number // 1.1 per spec
+  strokeColor: string    // for readability against shifting backgrounds
+  strokeWidth: number    // pixels
+  maxWordsPerFrame: 1 | 2
+}
+
+// Emoji + SFX trigger — fires when a keyword lands in the caption stream.
+// The renderer times the pop-in to the exact word timestamp from Whisper.
+export type EmojiTrigger = {
+  keyword: string        // word to match (case-insensitive, first occurrence)
+  emoji: string          // the emoji to pop in
+  sfx?: string           // asset path or Replicate/Freesound id
+  scaleFrames: number    // ease-in frame count (default 15)
+  yOffset: number        // offset in canvas fraction from the caption
+}
+
 export type FormatOverlay =
   | {
       kind: 'text'
@@ -142,6 +199,17 @@ export interface FormatTemplate {
   // Optional: character PIP movement (Arcads-style composites). Requires the
   // compositor pipeline.
   pip?: CharacterPip
+
+  // Optional: full multi-state timeline for complex composites (App Demo).
+  // Overrides the simpler pip/overlays[] layout when present.
+  stateMachine?: {
+    totalSeconds: number
+    segments: StateMachineSegment[]
+    captions: CaptionSpec
+    triggers: EmojiTrigger[]
+    fps: number
+    canvas: { width: number; height: number }
+  }
 
   // Example prompts the format is good for — helps first-time users see the fit.
   examples: string[]
@@ -1403,8 +1471,8 @@ export const FORMAT_TEMPLATES: FormatTemplate[] = [
     id: 'app-demo-composite',
     name: 'App Demo Composite',
     category: 'talking-head',
-    tagline: 'Talking head → app UI takes over while character sits in the corner.',
-    whenToUse: 'The Arcads app-ad signature. Character opens talking to camera, then 3-5 app screens rotate as the main visual with her PIP\'d in the corner still narrating. Best for mobile apps, SaaS, games, cashback apps.',
+    tagline: '3-state pattern-interrupt: hook overlay → fullscreen pivot → app-UI demo overlay.',
+    whenToUse: 'The exact Arcads app-ad blueprint. State A (0-3s): B-roll behind avatar cutout. State B (3-5.5s): full-frame character break for peer-to-peer intimacy. State C (5.5-16s): app UI dominates while avatar narrates from the bottom. Word-by-word captions with alternating colors + emoji + SFX on keyword triggers.',
     pipeline: 'ugc+compositor',
     durations: [15, 20, 30],
     needsProduct: false,
@@ -1412,30 +1480,100 @@ export const FORMAT_TEMPLATES: FormatTemplate[] = [
     needsUserFootage: false,
     needsScript: 'ai',
     audio: 'voiceover',
-    captionStyle: 'bubble',
+    captionStyle: 'bold-white',
     vibe: 'funny',
     scriptScaffold: {
-      hook: 'You have to see what this app does.',
-      body: 'First 3s: character introduces the app while centered on camera. Then walk through 3 features while each app screen fills the background — 4-5s per screen. Land on the money-shot (rewards, results, dashboard highlight).',
-      cta: 'Link in bio — {cta}.',
-      toneHint: 'excited, casual, gestures with hands, real reactions',
+      hook: 'Are you really still wasting your time playing video games?',
+      body: 'Beat 1 (0-3s, State Overlay + B-roll of gameplay): call out the pain / lifestyle. Beat 2 (3-5.5s, Fullscreen pivot): break the fourth wall — "heh, so do I, but at least I earn cash doing that". Beat 3 (5.5-16s, State Overlay + app UI): reveal {product}, walk through 2-3 screens, land on the money shot.',
+      cta: 'Link in bio — download {product} and start earning.',
+      toneHint: 'sarcastic hook → conspiratorial pivot → excited demo. Real hand gestures, real reactions.',
     },
     pip: {
-      from: { x: 0.5, y: 0.5, scale: 1.0 },
-      to:   { x: 0.35, y: 0.85, scale: 0.42 },
-      transitionAt: 3,
-      transitionDuration: 0.5,
+      from: { x: 0.5, y: 0.85, scale: 0.45 },  // State A: avatar cutout at bottom
+      to:   { x: 0.5, y: 0.85, scale: 0.45 },  // State C: same cutout position
+      transitionAt: 5.5,
+      transitionDuration: 0.3,
       keyOut: true,
     },
+    // The state machine takes over from the simpler overlays[] list when
+    // present. The Format Library detail page renders both — engineers looking
+    // at the JSON will see the exact Gemini spec.
+    stateMachine: {
+      totalSeconds: 16,
+      fps: 30,
+      canvas: { width: 1080, height: 1920 },
+      segments: [
+        {
+          id: 1,
+          startSeconds: 0,
+          endSeconds: 3,
+          state: {
+            kind: 'overlay',
+            background: { type: 'b_roll', hint: 'hands playing a mobile game on a phone, cafe or couch setting, close-up' },
+            avatarSize: 0.45,
+            avatarBottomInset: 0,
+            avatarKeyOut: true,
+          },
+          spokenText: '{hook}',
+          captionColor: '#A855F7',  // purple
+        },
+        {
+          id: 2,
+          startSeconds: 3,
+          endSeconds: 5.5,
+          state: {
+            kind: 'fullscreen',
+            avatarKeyOut: false,
+          },
+          spokenText: '{pivot_line}',
+          captionColor: '#FFFFFF',  // white
+        },
+        {
+          id: 3,
+          startSeconds: 5.5,
+          endSeconds: 16,
+          state: {
+            kind: 'overlay',
+            background: { type: 'app_ui', slot: 'ui-recording' },
+            avatarSize: 0.45,
+            avatarBottomInset: 0,
+            avatarKeyOut: true,
+          },
+          spokenText: '{demo_line}',
+          captionColor: '#22C55E',  // bright green
+        },
+      ],
+      captions: {
+        perWord: true,
+        centerX: 0.5,
+        centerY: 0.30,
+        fontFamily: 'Montserrat',
+        fontSize: 64,
+        bounceScaleActive: 1.1,
+        strokeColor: '#000000',
+        strokeWidth: 6,
+        maxWordsPerFrame: 2,
+      },
+      triggers: [
+        { keyword: 'cash',     emoji: '💰', sfx: 'cash_register', scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'money',    emoji: '💵', sfx: 'cash_register', scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'app',      emoji: '📱', sfx: 'pop',           scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'game',     emoji: '🎮', sfx: 'pop',           scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'games',    emoji: '🎮', sfx: 'pop',           scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'download', emoji: '📥', sfx: 'swoosh',        scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'earn',     emoji: '✨', sfx: 'sparkle',       scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'free',     emoji: '🔥', sfx: 'whoosh',        scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'gem',      emoji: '💎', sfx: 'sparkle',       scaleFrames: 15, yOffset: -0.08 },
+        { keyword: 'real',     emoji: '💯', sfx: 'pop',           scaleFrames: 15, yOffset: -0.08 },
+      ],
+    },
     overlays: [
-      { kind: 'image-slot', slot: 'ui-screenshot', position: 'center', scale: 1.0, timing: t(3, 5) },
-      { kind: 'image-slot', slot: 'ui-screenshot', position: 'center', scale: 1.0, timing: t(8, 5) },
-      { kind: 'image-slot', slot: 'ui-screenshot', position: 'center', scale: 1.0, timing: t(13, { pct: 0.35 }) },
-      { kind: 'text', template: '{feature_1}', position: { x: 0.5, y: 0.3 }, style: 'highlight', size: 'lg', animation: 'zoom', timing: t(4, 3) },
-      { kind: 'text', template: '{feature_2}', position: { x: 0.5, y: 0.3 }, style: 'highlight', size: 'lg', animation: 'zoom', timing: t(9, 3) },
-      { kind: 'text', template: '{money_shot}', position: { x: 0.5, y: 0.4 }, style: 'highlight', size: 'xl', animation: 'zoom', timing: t(14, 3) },
+      // Kept for the legacy renderer that doesn't understand stateMachine yet.
+      // Once the compositor is live these become no-ops.
+      { kind: 'image-slot', slot: 'ui-screenshot', position: 'center', scale: 1.0, timing: t(5.5, 5) },
+      { kind: 'image-slot', slot: 'ui-screenshot', position: 'center', scale: 1.0, timing: t(10.5, { pct: 0.35 }) },
     ],
-    examples: ['Cashback app', 'Fintech onboarding', 'Game rewards app', 'Productivity SaaS'],
+    examples: ['Cashback app (Benjamin, ArgosEyes style)', 'Reward gaming apps', 'Fintech onboarding', 'Productivity SaaS'],
   },
   // ------------------------------------------------------------------ NEW-B
   {
