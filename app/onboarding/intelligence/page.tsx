@@ -148,7 +148,7 @@ export default function IntelligenceOnboardingPage() {
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', maxWidth: 460, margin: '0 auto', lineHeight: 1.6 }}>
           {phase === 'profiling' && 'Extracting your product profile and pulling real-time trend data from Google + Reddit.'}
-          {phase === 'scanning' && 'Pulling the #1 short-form video from TikTok and Instagram Reels and having Gemini read them for hook, format, and pacing.'}
+          {phase === 'scanning' && 'Pulling the #1 short-form video from TikTok and Instagram Reels and reading them for hook, format, and pacing.'}
           {phase === 'planning' && 'Scoring UGC formats, generating hooks, and structuring 30 days of content around what already works in your niche.'}
         </p>
       </main>
