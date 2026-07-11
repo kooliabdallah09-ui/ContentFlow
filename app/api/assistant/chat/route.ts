@@ -273,10 +273,21 @@ Return ONLY valid JSON: { ${platforms.map(p => `"${p}": "post"`).join(', ')} }`,
 function cleanReply(text: string): { reply: string; action?: { href: string; label: string } } {
   const trimmed = text.trim()
 
-  // If it's a pure JSON payload (agents were told to return JSON), parse.
-  if (trimmed.startsWith('{')) {
+  // Try to extract a JSON blob three ways, in order:
+  //   1) The whole message IS a JSON object.
+  //   2) Wrapped in a ```json ... ``` fence.
+  //   3) Wrapped in a plain ``` ... ``` fence with `{ "reply": … }` inside.
+  const candidates: string[] = []
+  if (trimmed.startsWith('{')) candidates.push(trimmed)
+  const fencedJson = trimmed.match(/```(?:json)?\s*(\{[\s\S]*?\})\s*```/i)
+  if (fencedJson?.[1]) candidates.push(fencedJson[1])
+  // Anywhere in the message, a bare `{ "reply": … }` block.
+  const bareBlock = trimmed.match(/\{\s*"reply"\s*:[\s\S]*?\}\s*$/)
+  if (bareBlock?.[0]) candidates.push(bareBlock[0])
+
+  for (const c of candidates) {
     try {
-      const parsed = JSON.parse(trimmed)
+      const parsed = JSON.parse(c)
       if (typeof parsed?.reply === 'string') {
         const result: { reply: string; action?: { href: string; label: string } } = { reply: parsed.reply }
         if (parsed.action?.href && typeof parsed.action.href === 'string' && parsed.action.href.startsWith('/')) {
@@ -284,16 +295,15 @@ function cleanReply(text: string): { reply: string; action?: { href: string; lab
         }
         return result
       }
-    } catch { /* fall through */ }
+    } catch { /* try next candidate */ }
   }
 
-  // Strip fenced ```json ... ``` blocks anywhere in the text.
-  const withoutFences = trimmed.replace(/```(?:json)?\s*[\s\S]*?```/g, '').trim()
-  // Also strip any leftover raw JSON object that Claude may have leaked outside
-  // fences (starts with `{ "reply"` or similar).
-  const withoutRawJson = withoutFences.replace(/\{\s*"reply"[\s\S]*?\}\s*$/g, '').trim()
-
-  return { reply: (withoutRawJson || trimmed).slice(0, 1500) }
+  // No JSON found — strip any leftover fences and return plain prose.
+  const cleaned = trimmed
+    .replace(/```(?:json)?\s*[\s\S]*?```/g, '')
+    .replace(/\{\s*"reply"[\s\S]*?\}\s*$/g, '')
+    .trim()
+  return { reply: (cleaned || trimmed).slice(0, 1500) }
 }
 
 async function getUserId(request: NextRequest): Promise<string | null> {
