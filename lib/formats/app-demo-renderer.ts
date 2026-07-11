@@ -89,12 +89,16 @@ export async function renderAppDemo(input: BuildAppDemoInput): Promise<RenderRes
     }
   }
 
-  // Dedicated audio track — the raw Kling clip played invisibly across the
-  // whole 16s so the actor's voice is continuous through overlay + pivot.
+  // Dedicated audio track — Shotstack's `type: 'audio'` asset only accepts
+  // audio-only file formats (mp3, wav, aac, ogg…). Kling emits .mp4 so we
+  // use a video asset instead. Placed on the bottom track: it is visually
+  // covered by every layer above, but its audio still plays across the full
+  // 16s so the actor's voice is continuous through overlay + pivot.
   const audioTrack: ShotstackClip[] = [{
-    asset: { type: 'audio', src: input.klingRawUrl, volume: 1 },
+    asset: { type: 'video', src: input.klingRawUrl, volume: 1 },
     start: 0,
     length: input.totalSeconds,
+    fit: 'cover',
   }]
 
   // Captions — HTML title clips, matching the Video Editor style.
@@ -144,9 +148,9 @@ export async function renderAppDemo(input: BuildAppDemoInput): Promise<RenderRes
     tracks: [
       { clips: emojiClips },
       { clips: captionClips },
-      { clips: audioTrack },
       { clips: avatarClips },
       { clips: bgClips },
+      { clips: audioTrack },   // bottom: visually hidden, audio still plays
     ],
   }
 
