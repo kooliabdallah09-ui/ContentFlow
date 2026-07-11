@@ -14,9 +14,6 @@ export default function AppDemoTestPage() {
   const [klingUrl, setKlingUrl] = useState('')
   const [brollUrl, setBrollUrl] = useState('')
   const [appUiUrl, setAppUiUrl] = useState('')
-  const [hookLine, setHookLine] = useState('Are you really still wasting your time playing video games?')
-  const [pivotLine, setPivotLine] = useState('Heh, so do I, but at least I earn cash doing that.')
-  const [demoLine, setDemoLine] = useState('No, for real. I found this hidden gem — the Benjamin app. You just play games and earn money.')
   const [avatarSide, setAvatarSide] = useState<'left' | 'right'>('right')
   const [savedToLibrary, setSavedToLibrary] = useState(false)
 
@@ -89,8 +86,8 @@ export default function AppDemoTestPage() {
   }
 
   async function submit() {
-    if (!klingUrl.trim() || !hookLine.trim() || !pivotLine.trim() || !demoLine.trim()) {
-      showError('Missing input', 'Kling URL + all three lines are required.')
+    if (!klingUrl.trim()) {
+      showError('Missing input', 'Kling URL is required.')
       return
     }
     setPhase('analyzing')
@@ -112,9 +109,6 @@ export default function AppDemoTestPage() {
           klingRawUrl: klingUrl.trim(),
           brollUrl: brollUrl.trim() || undefined,
           appUiUrl: appUiUrl.trim() || undefined,
-          hookLine,
-          pivotLine,
-          demoLine,
           avatarSide,
         }),
       })
@@ -215,34 +209,28 @@ export default function AppDemoTestPage() {
       </section>
 
       <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', marginBottom: 20 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>2. Spoken lines (must be in the Kling audio)</div>
+        <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>2. Character placement</div>
         <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: '0 0 14px', lineHeight: 1.5 }}>
-          These drive the caption chunking. Whisper transcribes the Kling audio; captions inherit the color of the segment they land in.
+          Where the keyed avatar sits on top of the b-roll / app-UI layer. Whisper handles captions automatically from the Kling audio.
         </p>
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>Character placement</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {(['left', 'right'] as const).map(side => (
-              <button
-                key={side}
-                type="button"
-                onClick={() => setAvatarSide(side)}
-                style={{
-                  flex: 1,
-                  padding: '10px 12px',
-                  borderRadius: 10,
-                  border: '1px solid ' + (avatarSide === side ? 'var(--ink)' : 'var(--border)'),
-                  background: avatarSide === side ? 'var(--ink)' : 'var(--bg)',
-                  color: avatarSide === side ? 'var(--on-ink)' : 'var(--ink)',
-                  fontSize: 13, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
-                }}
-              >Bottom {side}</button>
-            ))}
-          </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {(['left', 'right'] as const).map(side => (
+            <button
+              key={side}
+              type="button"
+              onClick={() => setAvatarSide(side)}
+              style={{
+                flex: 1,
+                padding: '10px 12px',
+                borderRadius: 10,
+                border: '1px solid ' + (avatarSide === side ? 'var(--ink)' : 'var(--border)'),
+                background: avatarSide === side ? 'var(--ink)' : 'var(--bg)',
+                color: avatarSide === side ? 'var(--on-ink)' : 'var(--ink)',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+              }}
+            >Bottom {side}</button>
+          ))}
         </div>
-        <Field label="Hook (0-3s, purple caption)" value={hookLine} onChange={setHookLine} />
-        <Field label="Pivot (3-5.5s, white caption)" value={pivotLine} onChange={setPivotLine} />
-        <Field label="Demo (5.5-16s, green caption)" value={demoLine} onChange={setDemoLine} rows={3} />
       </section>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
@@ -339,17 +327,3 @@ function AssetRow({
   )
 }
 
-function Field({ label, value, onChange, rows = 2 }: { label: string; value: string; onChange: (s: string) => void; rows?: number }) {
-  return (
-    <div style={{ marginBottom: 14 }}>
-      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>{label}</div>
-      <textarea
-        className="textarea"
-        rows={rows}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        style={{ width: '100%', boxSizing: 'border-box' }}
-      />
-    </div>
-  )
-}

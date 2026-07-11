@@ -11,11 +11,6 @@ interface RenderInput {
   klingRawUrl: string        // rendered Kling talking-head clip (native background, native audio)
   brollUrl?: string          // background video for State A (b_roll)
   appUiUrl?: string          // background video for State C (app_ui)
-  // The 3 substituted lines (hook, pivot, demo) — total should match the
-  // template's totalSeconds when read aloud.
-  hookLine: string
-  pivotLine: string
-  demoLine: string
   avatarSide?: 'left' | 'right' | 'center'
 }
 
@@ -54,24 +49,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing klingRawUrl' }, { status: 400 })
     }
 
-    // 1. Whisper per-word timings from the Kling audio track. If Whisper
-    // fails we synthesize evenly-distributed timings from the spoken lines
-    // so the render still lands (captions will still show, just approximate).
-    let words: Array<{ text: string; start: number; end: number }>
-    try {
-      const wx = await transcribeWithReplicate(body.klingRawUrl)
-      words = wx.words.map(w => ({ text: w.word, start: w.start, end: w.end }))
-      if (!words.length) throw new Error('empty word list')
-    } catch (e) {
-      console.warn('[app-demo] Whisper failed, synthesizing timings:', e instanceof Error ? e.message : e)
-      words = synthesizeWords(format.stateMachine.segments, {
-        1: body.hookLine,
-        2: body.pivotLine,
-        3: body.demoLine,
-      })
-    }
+    // 1. Whisper per-word timings from the Kling audio track. Caption colour
+    // is chosen by which segment window each word lands in.
+    const wx = await transcribeWithReplicate(body.klingRawUrl)
+    const words = wx.words.map(w => ({ text: w.word, start: w.start, end: w.end }))
     if (!words.length) {
-      return NextResponse.json({ error: 'No caption timings' }, { status: 400 })
+      return NextResponse.json({ error: 'Whisper returned no words — is the Kling clip audible?' }, { status: 500 })
     }
 
     // 2. Background removal. This runs async on Replicate; we spawn it and
@@ -91,16 +74,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Background removal timed out' }, { status: 504 })
     }
 
-    // 3. Substitute the user's lines into the state-machine segments.
-    const segments: StateMachineSegment[] = format.stateMachine.segments.map(s => {
-      const line =
-        s.id === 1 ? body.hookLine :
-        s.id === 2 ? body.pivotLine :
-                     body.demoLine
-      return { ...s, spokenText: line }
-    })
-
-    // 4. Kick off Shotstack.
+    // 3. Kick off Shotstack.
+    const segments: StateMachineSegment[] = format.stateMachine.segments
     const { renderId } = await renderAppDemo({
       segments,
       captions: format.stateMachine.captions,
@@ -124,32 +99,6 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
-}
-
-// Distribute a spoken line's tokens evenly across its segment window.
-// Punctuation stays attached to the preceding token so caption emoji triggers
-// (which match on cleaned lowercase) still fire on "cash," / "app!" etc.
-function synthesizeWords(
-  segments: StateMachineSegment[],
-  linesBySegmentId: Record<number, string>,
-): Array<{ text: string; start: number; end: number }> {
-  const out: Array<{ text: string; start: number; end: number }> = []
-  for (const seg of segments) {
-    const line = linesBySegmentId[seg.id]?.trim()
-    if (!line) continue
-    const tokens = line.split(/\s+/)
-    if (!tokens.length) continue
-    const dur = seg.endSeconds - seg.startSeconds
-    const per = dur / tokens.length
-    tokens.forEach((tok, i) => {
-      out.push({
-        text: tok,
-        start: seg.startSeconds + i * per,
-        end: seg.startSeconds + (i + 1) * per,
-      })
-    })
-  }
-  return out
 }
 
 // GET /api/formats/app-demo/render?renderId=xxx
