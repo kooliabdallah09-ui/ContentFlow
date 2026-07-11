@@ -236,10 +236,13 @@ export default function FormatsPage() {
               </ul>
             </Section>
 
-            {/* Future: Use this format → route to matching generator */}
+            {/* Route to the right generator / renderer. The app-demo composite
+                has its own test harness for now. Other templates land in the
+                matching generator. */}
             <div style={{ display: 'flex', gap: 10, marginTop: 8, justifyContent: 'flex-end' }}>
               <Link
                 href={
+                  selected.id === 'app-demo-composite' ? '/generate/formats/app-demo' :
                   selected.pipeline === 'pov' ? '/generate/pov' :
                   selected.pipeline === 'editor-only' ? '/editor' :
                   '/generate/ugc'
