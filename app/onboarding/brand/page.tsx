@@ -225,8 +225,9 @@ export default function OnboardingBrandPage() {
         const err = await res.json()
         throw new Error(err.error || 'Failed to save')
       }
-      // Chain into the intelligence step (top-video scan + plan gen).
-      router.push('/onboarding/intelligence')
+      // Advance to step 2 (platforms + frequency + format prefs).
+      // Step 2's Continue button routes to /onboarding/intelligence.
+      setStep(2)
     } catch (err) {
       showError('Error', err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -234,77 +235,22 @@ export default function OnboardingBrandPage() {
     }
   }
 
+  // Step 2 -> intelligence: stash platforms + frequency + format prefs in
+  // sessionStorage so the intelligence page can merge them into the onboard
+  // request. Avoids a migration; sessionStorage clears when the tab closes.
   const handleGeneratePlan = async () => {
     if (selectedPlatforms.length === 0) {
       showError('Missing Info', 'Select at least one platform')
       return
     }
     try {
-      setLoading(true)
-      setGenerating(true)
-      setGenProgress(0)
-
-      const steps = [
-        { pct: 15, msg: 'Analysing your brand profile...' },
-        { pct: 35, msg: 'Researching content trends...' },
-        { pct: 55, msg: 'Building your 30-day calendar...' },
-        { pct: 75, msg: 'Optimising posting schedule...' },
-        { pct: 90, msg: 'Almost there...' },
-      ]
-      let si = 0
-      const tick = setInterval(() => {
-        if (si < steps.length) {
-          setGenProgress(steps[si].pct)
-          setGenStatus(steps[si].msg)
-          si++
-        }
-      }, 2800)
-
-      const supabase = getSupabase()!
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) throw new Error('Not authenticated')
-
-      const res = await fetch('/api/planner/generate-monthly-plan', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({
-          industry: productType,
-          platforms: selectedPlatforms,
-          frequency,
-          formatPreferences: formatPrefs,
-          brandContext: {
-            name: companyName,
-            description,
-            productType,
-            targetAudience,
-            toneOfVoice,
-            uniqueValue,
-            brandMission,
-            customerPainPoints,
-            screenshotCount: appScreenshots.length,
-            keyFeatures: appKeyFeatures,
-          },
-        }),
-      })
-      clearInterval(tick)
-      if (!res.ok) {
-        const err = await res.json()
-        throw new Error(err.error || 'Failed to generate plan')
-      }
-      setGenProgress(100)
-      setGenStatus('Plan ready!')
-      const data = await res.json()
-      setGeneratedPlan(data.plan)
-      setTimeout(() => { setGenerating(false); setStep(3) }, 500)
-    } catch (err) {
-      setGenerating(false)
-      showError('Error', err instanceof Error ? err.message : 'Failed to generate plan')
-    } finally {
-      setLoading(false)
-    }
+      sessionStorage.setItem('cf-onboarding-prefs', JSON.stringify({
+        platforms: selectedPlatforms,
+        frequency,
+        formatPreferences: formatPrefs,
+      }))
+    } catch {}
+    router.push('/onboarding/intelligence')
   }
 
   const handleCompletePlan = async () => {

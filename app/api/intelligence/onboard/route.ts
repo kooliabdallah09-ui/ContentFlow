@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing answers' }, { status: 400 })
     }
 
+    // Optional prefs forwarded from brand step 2 (platforms + frequency +
+    // format preferences). If present they override Claude's inferred values.
+    const prefs = (body?.prefs ?? null) as {
+      platforms?: string[]
+      frequency?: string
+      formatPreferences?: Record<string, number>
+    } | null
+
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const prompt = `Extract a structured content-marketing profile from these three answers.
 
@@ -82,9 +90,13 @@ Return ONLY valid JSON (no markdown, no preamble) with this exact shape:
       niche_subreddits: Array.isArray(profile.niche_subreddits)
         ? (profile.niche_subreddits as unknown[]).map(String).slice(0, 8)
         : [],
-      preferred_platforms: Array.isArray(profile.preferred_platforms)
-        ? (profile.preferred_platforms as unknown[]).map(String).slice(0, 6)
-        : ['tiktok', 'instagram'],
+      preferred_platforms: (prefs?.platforms && prefs.platforms.length)
+        ? prefs.platforms.map(String).slice(0, 6)
+        : (Array.isArray(profile.preferred_platforms)
+            ? (profile.preferred_platforms as unknown[]).map(String).slice(0, 6)
+            : ['tiktok', 'instagram']),
+      posting_frequency: prefs?.frequency ?? null,
+      format_preferences: prefs?.formatPreferences ?? null,
       updated_at: new Date().toISOString(),
     }
 

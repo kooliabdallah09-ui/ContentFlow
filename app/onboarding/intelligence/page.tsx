@@ -84,10 +84,17 @@ export default function IntelligenceOnboardingPage() {
       if (!token) throw new Error('Not signed in')
 
       setPhase('profiling')
+      // If the user came from brand step 2, forward their platform + frequency
+      // + format prefs so the profile row + plan generator can honour them.
+      let prefs: unknown = null
+      try {
+        const raw = sessionStorage.getItem('cf-onboarding-prefs')
+        if (raw) prefs = JSON.parse(raw)
+      } catch {}
       const onb = await fetch('/api/intelligence/onboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ answers }),
+        body: JSON.stringify({ answers, prefs }),
       })
       if (!onb.ok) {
         const err = await onb.json()
