@@ -67,14 +67,17 @@ export async function renderAppDemo(input: BuildAppDemoInput): Promise<RenderRes
       // Layer 1: avatar cutout scaled and pinned to bottom.
       const avatarHeightFraction = seg.state.avatarSize
       clips.push({
-        asset: { type: 'video', src: input.avatarKeyedUrl, volume: 1 },
+        asset: {
+          type: 'video',
+          src: input.avatarKeyedUrl,
+          volume: 1,
+          // RVM returns a green-screen clip; chroma-key the green out so the
+          // b-roll / app-UI layer beneath shows through.
+          chromaKey: { color: '#00FF00', threshold: 60, halo: 40 },
+        },
         start: seg.startSeconds,
         length: segDur,
-        // Keep the raw Kling audio.
-        // Scale so the avatar occupies avatarHeightFraction of the canvas.
         scale: avatarHeightFraction,
-        // Position at bottom-center. Shotstack position offsets are in the
-        // -1..1 range where -1 is left/top and 1 is right/bottom.
         offset: { x: 0, y: 0.5 - avatarHeightFraction / 2 - seg.state.avatarBottomInset },
         fit: 'none',
       })

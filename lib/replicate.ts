@@ -11,7 +11,10 @@ const SEEDANCE_MODEL = 'bytedance/seedance-2.0'
 // Video background removal — outputs the input clip with an alpha channel
 // (transparent background) so we can composite the talking head over any
 // scene. Used by the App Demo Composite renderer.
-const VIDEO_BG_REMOVAL_MODEL = 'codeplugtech/background_removal_video'
+// arielreplicate/robust_video_matting — RVM model, exposes an `input_video`
+// URL and an `output_type` we set to "green-screen" so downstream Shotstack
+// can chroma-key it. codeplugtech/background_removal_video was retired.
+const VIDEO_BG_REMOVAL_MODEL = 'arielreplicate/robust_video_matting'
 
 export async function submitBackgroundRemovalJob(videoUrl: string): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN
@@ -25,7 +28,7 @@ export async function submitBackgroundRemovalJob(videoUrl: string): Promise<{ pr
       Prefer: 'respond-async',
     },
     body: JSON.stringify({
-      input: { video: videoUrl },
+      input: { input_video: videoUrl, output_type: 'green-screen' },
     }),
   })
   if (!res.ok) {
