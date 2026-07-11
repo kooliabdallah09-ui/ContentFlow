@@ -24,6 +24,7 @@ export default function IntelligenceOnboardingPage() {
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState({ product: '', audience: '', goal: '' })
   const [phase, setPhase] = useState<'form' | 'profiling' | 'scanning' | 'planning'>('form')
+  const [aiFilling, setAiFilling] = useState(false)
 
   useEffect(() => {
     // If they've already completed onboarding, skip to the dashboard
@@ -40,6 +41,33 @@ export default function IntelligenceOnboardingPage() {
       }
     })()
   }, [router])
+
+  async function autofillFromBrand() {
+    try {
+      setAiFilling(true)
+      const supabase = getSupabase()!
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch('/api/intelligence/ai-fill', {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'AI fill failed')
+      const a = data.answers ?? {}
+      setAnswers({
+        product: a.product ?? '',
+        audience: a.audience ?? '',
+        goal: a.goal ?? '',
+      })
+      // Jump to the last step so user just confirms.
+      setStep(STEPS.length - 1)
+    } catch (err) {
+      showError('AI fill failed', err instanceof Error ? err.message : 'Fill out your brand first')
+    } finally {
+      setAiFilling(false)
+    }
+  }
 
   function next() {
     const currentKey = STEPS[step].key
@@ -86,7 +114,7 @@ export default function IntelligenceOnboardingPage() {
         const err = await plan.json()
         throw new Error(err.error || 'Plan generation failed')
       }
-      router.push('/dashboard?plan=ready')
+      router.push('/dashboard?plan=ready&onboarded=1')
     } catch (err) {
       setPhase('form')
       showError('Error', err instanceof Error ? err.message : 'Something went wrong')
@@ -123,8 +151,23 @@ export default function IntelligenceOnboardingPage() {
         <div style={{ height: '100%', width: `${progress}%`, background: 'var(--ink)', transition: 'width 300ms' }} />
       </div>
 
-      <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)', marginBottom: 12 }}>
-        STEP {step + 1} OF {STEPS.length}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)' }}>
+          STEP {step + 1} OF {STEPS.length}
+        </div>
+        <button
+          type="button"
+          onClick={autofillFromBrand}
+          disabled={aiFilling}
+          style={{
+            padding: '7px 14px', borderRadius: 8,
+            border: '1px dashed var(--border)', background: 'var(--surface-2)',
+            color: 'var(--ink)', fontSize: 12, fontWeight: 600,
+            cursor: aiFilling ? 'wait' : 'pointer',
+          }}
+        >
+          {aiFilling ? 'Filling…' : '✨ Fill from my brand'}
+        </button>
       </div>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 34, fontWeight: 400, margin: '0 0 24px', letterSpacing: '-0.01em', lineHeight: 1.15 }}>
         {STEPS[step].title}

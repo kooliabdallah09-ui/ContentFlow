@@ -84,6 +84,8 @@ export default function OnboardingBrandPage() {
   const router = useRouter()
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [aiSeed, setAiSeed] = useState('')
+  const [aiFilling, setAiFilling] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [genProgress, setGenProgress] = useState(0)
   const [genStatus, setGenStatus] = useState('')
@@ -155,6 +157,41 @@ export default function OnboardingBrandPage() {
     reader.readAsDataURL(file)
   }
 
+  const handleAiFill = async () => {
+    if (aiSeed.trim().length < 5) {
+      showError('Say a bit more', 'Describe your product in one sentence.')
+      return
+    }
+    try {
+      setAiFilling(true)
+      const supabase = getSupabase()!
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('Please sign in')
+      const res = await fetch('/api/brand/ai-fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ description: aiSeed.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'AI fill failed')
+      const p = data.profile ?? {}
+      if (p.companyName) setCompanyName(p.companyName)
+      if (p.description) setDescription(p.description)
+      if (p.productType) setProductType(p.productType)
+      if (p.uniqueValue) setUniqueValue(p.uniqueValue)
+      if (p.brandMission) setBrandMission(p.brandMission)
+      if (p.targetAudience) setTargetAudience(p.targetAudience)
+      if (p.customerPainPoints) setCustomerPainPoints(p.customerPainPoints)
+      if (p.toneOfVoice) setToneOfVoice(p.toneOfVoice)
+      if (p.brandColors) setBrandColors(p.brandColors)
+      showSuccess('Filled in', 'Review the fields and tweak anything.')
+    } catch (err) {
+      showError('AI fill failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setAiFilling(false)
+    }
+  }
+
   const handleSaveBrandInfo = async () => {
     if (!companyName || !description || !productType || !uniqueValue || !brandMission || !targetAudience || !customerPainPoints || !toneOfVoice) {
       showError('Missing Info', 'Please fill in all fields')
@@ -188,7 +225,8 @@ export default function OnboardingBrandPage() {
         const err = await res.json()
         throw new Error(err.error || 'Failed to save')
       }
-      setStep(2)
+      // Chain into the intelligence step (top-video scan + plan gen).
+      router.push('/onboarding/intelligence')
     } catch (err) {
       showError('Error', err instanceof Error ? err.message : 'Failed to save')
     } finally {
@@ -348,6 +386,31 @@ export default function OnboardingBrandPage() {
           {/* ── STEP 1: Brand Info ── */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+              <div style={{ padding: '18px 20px', border: '1px dashed var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
+                <label style={{ ...labelStyle, marginBottom: 8 }}>Skip the typing <span style={{ color: 'var(--ink-mute)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontFamily: 'inherit' }}>— describe your product and AI fills every field below</span></label>
+                <textarea
+                  rows={2}
+                  placeholder="e.g. Handmade skincare soaps made with cold-pressed olive oil, for women who care about clean ingredients."
+                  value={aiSeed}
+                  onChange={e => setAiSeed(e.target.value)}
+                  style={{ ...inputStyle, resize: 'vertical', fontFamily: 'inherit' }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAiFill}
+                  disabled={aiFilling || aiSeed.trim().length < 5}
+                  style={{
+                    marginTop: 10, padding: '10px 18px', borderRadius: 10,
+                    background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
+                    fontSize: 13, fontWeight: 600,
+                    cursor: aiFilling || aiSeed.trim().length < 5 ? 'not-allowed' : 'pointer',
+                    opacity: aiFilling || aiSeed.trim().length < 5 ? 0.5 : 1,
+                  }}
+                >
+                  {aiFilling ? 'Filling…' : '✨ Fill everything with AI'}
+                </button>
+              </div>
 
               <div>
                 <label style={labelStyle}>Company Name</label>

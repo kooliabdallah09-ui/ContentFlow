@@ -36,7 +36,7 @@ export default function SignupPage() {
         if (signInError) throw new Error(signInError.message)
       }
 
-      router.push('/onboarding/plan')
+      router.push('/onboarding/brand')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed')
     } finally {
