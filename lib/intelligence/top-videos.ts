@@ -4,7 +4,7 @@
 // pipeline still proceeds.
 
 export interface TopVideoCandidate {
-  platform: 'tiktok' | 'reels' | 'shorts'
+  platform: 'tiktok' | 'reels'
   sourceUrl: string             // original URL for humans
   videoUrl?: string             // direct mp4 for Gemini analysis
   caption?: string
@@ -110,45 +110,13 @@ async function fetchTopReels(keywords: string[]): Promise<TopVideoCandidate | nu
   } catch { return null }
 }
 
-// ---------- YouTube Shorts via YouTube Data API ----------
-async function fetchTopShorts(keywords: string[]): Promise<TopVideoCandidate | null> {
-  const key = process.env.YOUTUBE_API_KEY
-  if (!key || !keywords.length) return null
-  try {
-    const query = `${keywords.slice(0, 3).join(' ')} #shorts`
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 15_000)
-    const searchRes = await fetch(
-      `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=5&type=video&videoDuration=short&order=viewCount&q=${encodeURIComponent(query)}&key=${key}`,
-      { signal: controller.signal },
-    )
-    clearTimeout(timeout)
-    if (!searchRes.ok) return null
-    const data = await searchRes.json() as {
-      items?: Array<{ id?: { videoId?: string }; snippet?: { title?: string; channelTitle?: string; description?: string } }>
-    }
-    const first = data.items?.[0]
-    if (!first?.id?.videoId) return null
-    return {
-      platform: 'shorts',
-      sourceUrl: `https://www.youtube.com/shorts/${first.id.videoId}`,
-      // YouTube Data API doesn't expose a direct mp4 URL — Gemini can still
-      // reason from the caption / title metadata alone if videoUrl is absent.
-      caption: first.snippet?.title,
-      authorHandle: first.snippet?.channelTitle,
-      hashtags: (first.snippet?.description ?? '').match(/#[\w]+/g)?.slice(0, 6) ?? [],
-    }
-  } catch { return null }
-}
-
-// Orchestrator — fires all three in parallel. Returns whichever succeeded.
+// Orchestrator — fires both in parallel. Returns whichever succeeded.
 export async function fetchTopVideosAcrossPlatforms(input: {
   keywords: string[]
 }): Promise<TopVideoCandidate[]> {
-  const [tiktok, reels, shorts] = await Promise.all([
+  const [tiktok, reels] = await Promise.all([
     fetchTopTikTok(input.keywords),
     fetchTopReels(input.keywords),
-    fetchTopShorts(input.keywords),
   ])
-  return [tiktok, reels, shorts].filter((x): x is TopVideoCandidate => !!x)
+  return [tiktok, reels].filter((x): x is TopVideoCandidate => !!x)
 }

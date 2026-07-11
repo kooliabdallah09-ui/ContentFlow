@@ -3,7 +3,7 @@
 // Fail-soft: returns null if the key is missing or Gemini rejects the URL.
 
 export interface VideoAnalysis {
-  platform: 'tiktok' | 'reels' | 'shorts'
+  platform: 'tiktok' | 'reels'
   sourceUrl: string
   videoUrl?: string
   hook: string                  // first-sentence hook
@@ -22,7 +22,7 @@ const GEMINI_MODEL = 'gemini-2.5-flash'
 // Gemini's fileData part accepts a URL. Must be reachable + not too long.
 // We wrap it in an inline-URI request and parse the JSON reply.
 export async function analyzeVideoWithGemini(input: {
-  platform: 'tiktok' | 'reels' | 'shorts'
+  platform: 'tiktok' | 'reels'
   sourceUrl: string
   videoUrl: string
   caption?: string
