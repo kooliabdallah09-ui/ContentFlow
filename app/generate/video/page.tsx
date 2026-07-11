@@ -9,7 +9,7 @@ import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Play, Upload, X } from 'lucide-react'
 import PublishToYouTube from '@/components/PublishToYouTube'
 
-type Model = 'sora-2' | 'kling-v3'
+type Model = 'seedance-2' | 'sora-2' | 'kling-v3'
 
 interface ShopifyProduct {
   id: number
@@ -30,10 +30,26 @@ const MODELS: {
   credits: Record<number, number>
 }[] = [
   {
-    id: 'sora-2',
+    id: 'seedance-2',
     name: 'Cinematic',
+    badge: 'Default',
+    tagline: 'Seedance 2.0 — image-to-video with character consistency',
+    excels: [
+      'Native audio option (voice, ambient, music)',
+      'Product / character continuity from a reference image',
+      'Fluid camera moves + timed beats',
+      'Fast: ~60–120s per clip',
+    ],
+    caveat: '5s or 10s · 720p portrait sweet spot',
+    durations: [5, 10],
+    // Seedance 2.0 at $0.18/s → ~7.2 cr/s cost → 13 cr/s at 1.8×
+    credits: { 5: 65, 10: 130 },
+  },
+  {
+    id: 'sora-2',
+    name: 'Sora 2',
     badge: '',
-    tagline: 'Cinematic storytelling & physics',
+    tagline: 'Sora 2 — physics-heavy cinematic',
     excels: [
       'Fluid camera moves — dolly, crane, tracking shots',
       'Real-world physics: water, cloth, fire, smoke',
@@ -42,7 +58,6 @@ const MODELS: {
     ],
     caveat: 'No native audio · 2–4 min generation time',
     durations: [4, 8, 12],
-    // Sora 2: $0.10/s → 4cr/s at cost → 7.2cr/s at 1.8× → round to nearest integer per duration
     credits: { 4: 29, 8: 58, 12: 87 },
   },
   {
@@ -65,14 +80,14 @@ const MODELS: {
 
 interface VideoState {
   predictionId: string
-  provider: 'sora-2-replicate' | 'kling-v3'
+  provider: 'sora-2-replicate' | 'kling-v3' | 'seedance-2'
   status: 'processing' | 'completed' | 'failed'
   videoUrl?: string
   error?: string
 }
 
 export default function VideoGeneratorPage() {
-  const [model, setModel] = useState<Model>('sora-2')
+  const [model, setModel] = useState<Model>('seedance-2')
   const [prompt, setPrompt] = useState('')
   const [duration, setDuration] = useState(8)
   const [aspect, setAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait')
@@ -110,7 +125,12 @@ export default function VideoGeneratorPage() {
   useEffect(() => {
     const suggestion = readPrefill('video')
     if (suggestion) {
-      setPrompt(`${suggestion.title}. ${suggestion.description}`.trim().slice(0, 4000))
+      // description now holds the Claude-enhanced production prompt;
+      // fall back to title only if description is missing.
+      const richPrompt = (suggestion.description && suggestion.description !== suggestion.title)
+        ? suggestion.description
+        : suggestion.title
+      setPrompt(String(richPrompt).trim().slice(0, 4000))
       return
     }
     const chat = readChatPrefill()
@@ -247,7 +267,7 @@ export default function VideoGeneratorPage() {
 
       setVideo({
         predictionId: data.predictionId,
-        provider: model === 'sora-2' ? 'sora-2-replicate' : 'kling-v3',
+        provider: model === 'sora-2' ? 'sora-2-replicate' : model === 'kling-v3' ? 'kling-v3' : 'seedance-2',
         status: 'processing',
       })
       refreshCredits()

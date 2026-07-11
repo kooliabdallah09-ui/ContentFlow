@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         clipStatuses: allClips.map(c => c.status),
         error: anyFailed ? allClips.find(c => c.status === 'failed')?.error : undefined,
       }
-    } else if (provider === 'seedance') {
+    } else if (provider === 'seedance' || provider === 'seedance-2') {
       // Seedance outputs a public Replicate-hosted URL — no rehost needed.
       const status = await getSeedanceStatus(videoId)
       result.video = status

@@ -384,8 +384,34 @@ export default function CalendarPage() {
 
               {(selectedDay.contentType as string) !== 'rest' && (
                 <button
-                  onClick={() => {
-                    savePrefill(selectedDay)
+                  onClick={async () => {
+                    // Enhance the hook into a production-ready prompt before
+                    // routing (Claude Haiku, ~$0.0002, 8s timeout budget).
+                    let enhanced = selectedDay.description || selectedDay.title
+                    try {
+                      const token = await getToken()
+                      if (token) {
+                        const controller = new AbortController()
+                        const t = setTimeout(() => controller.abort(), 8000)
+                        const res = await fetch('/api/content/enhance-prompt', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({
+                            hook: selectedDay.title,
+                            format: (selectedDay.reason ?? '').split(':')[1]?.trim() ?? selectedDay.contentType,
+                            target: selectedDay.contentType,
+                            platform: selectedDay.platforms?.[0],
+                          }),
+                          signal: controller.signal,
+                        })
+                        clearTimeout(t)
+                        if (res.ok) {
+                          const data = await res.json()
+                          if (data.prompt) enhanced = data.prompt
+                        }
+                      }
+                    } catch {}
+                    savePrefill({ ...selectedDay, description: enhanced })
                     router.push(CONTENT_HREF[selectedDay.contentType] ?? '/dashboard')
                   }}
                   className="btn btn-primary"

@@ -1,6 +1,5 @@
 import { deductCredits } from '@/lib/deduct-credits'
-import { submitSora2ViaReplicate } from '@/lib/replicate'
-import { submitKlingV3OmniJob } from '@/lib/replicate'
+import { submitSora2ViaReplicate, submitKlingV3OmniJob, submitSeedanceJob } from '@/lib/replicate'
 import { generateTextToImage } from '@/lib/nanobanana'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,6 +9,8 @@ export const maxDuration = 120
 
 // Credit costs per model + duration
 const COSTS: Record<string, Record<number, number>> = {
+  // Seedance 2.0: $0.18/s → ~7.2 cr/s cost → 13 cr/s at 1.8×
+  'seedance-2': { 5: 65, 10: 130 },
   // Sora 2: $0.10/s → 7.2 cr/s at 1.8× — Replicate only accepts 4, 8, 12
   'sora-2':   { 4: 29, 8: 58, 12: 87 },
   // Kling v3 omni standard-audio: $0.224/s → 16 cr/s at 1.8×
@@ -94,7 +95,10 @@ export async function POST(request: NextRequest) {
     const prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 4000).trim() : ''
     if (!prompt) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
 
-    const model = body.model === 'kling-v3' ? 'kling-v3' : 'sora-2'
+    const model: 'seedance-2' | 'sora-2' | 'kling-v3' =
+      body.model === 'kling-v3' ? 'kling-v3'
+      : body.model === 'sora-2' ? 'sora-2'
+      : 'seedance-2'
     const duration = Number(body.duration ?? 10)
     const allowedDurations = Object.keys(COSTS[model]).map(Number)
     if (!allowedDurations.includes(duration)) {
@@ -130,7 +134,29 @@ export async function POST(request: NextRequest) {
     let predictionId: string
     let provider: string
 
-    if (model === 'sora-2') {
+    if (model === 'seedance-2') {
+      // Seedance 2.0 — image-to-video. If a reference image is provided we
+      // upload it and use image-to-video mode; else falls back to text-to-video.
+      let startImageUrl: string | undefined
+      if (refImageBase64 && refImageMimeType) {
+        const buf = await sharp(Buffer.from(refImageBase64, 'base64'))
+          .resize(720, 1280, { fit: 'cover', position: 'center' })
+          .png()
+          .toBuffer()
+        const filename = `video-ref/${userId}-${Date.now()}.png`
+        await supabase.storage.from('ugc-assets').upload(filename, buf, { contentType: 'image/png', upsert: false })
+        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+        startImageUrl = publicUrl
+      }
+      const seedanceJob = await submitSeedanceJob({
+        prompt,
+        durationSeconds: (duration === 10 ? 10 : 5) as 5 | 10,
+        aspectRatio,
+        startImageUrl,
+      })
+      predictionId = seedanceJob.predictionId
+      provider = 'seedance-2'
+    } else if (model === 'sora-2') {
       // Composite all reference images into one canvas before sending to Sora
       let referenceImageUrl: string | undefined
       if (referenceImages.length > 0) {

@@ -67,15 +67,42 @@ export default function ContentPlanSection() {
 
   // Route a plan entry to its format-appropriate generator, and stash a
   // DailySuggestion-shaped prefill in sessionStorage so the target generator
-  // hydrates its form on mount.
-  function goGenerate(e: CalendarEntry) {
+  // hydrates its form on mount. Ask Claude to enhance the hook into a
+  // production-ready prompt for the specific generator first.
+  async function goGenerate(e: CalendarEntry) {
     const contentType = formatToContentType(e.format, productType)
+    // Kick off routing right after we savePrefill; enhance runs first but with
+    // a tight 8s budget so we don't stall the user forever.
+    let enhancedPrompt = e.hook
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+      const token = sess?.session?.access_token
+      if (token) {
+        const controller = new AbortController()
+        const t = setTimeout(() => controller.abort(), 8000)
+        const res = await fetch('/api/content/enhance-prompt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            hook: e.hook, format: e.format, target: contentType, platform: e.platform,
+          }),
+          signal: controller.signal,
+        })
+        clearTimeout(t)
+        if (res.ok) {
+          const data = await res.json()
+          if (data.prompt) enhancedPrompt = data.prompt
+        }
+      }
+    } catch { /* fall back to the raw hook */ }
+
     savePrefill({
       date: '',
       day: '',
       contentType,
-      title: e.hook,
-      description: e.hook,
+      title: e.hook,           // human-readable label
+      description: enhancedPrompt,  // what the generator's `prompt` field consumes
       icon: '◉',
       platforms: e.platform ? [e.platform] : [],
       suggestedTime: e.best_time ?? '',
