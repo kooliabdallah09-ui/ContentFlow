@@ -41,6 +41,10 @@ async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCan
         body: JSON.stringify({
           hashtags: keywords.slice(0, 3),
           resultsPerHashtag: 5,
+          // Force the actor to include a downloadable video URL. Without
+          // this flag the scraper only returns metadata + cover image, so
+          // downstream Gemini analysis has nothing to watch.
+          shouldDownloadVideos: true,
         }),
       },
     )
@@ -51,7 +55,9 @@ async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCan
     }
     const items = await res.json() as Array<{
       webVideoUrl?: string
+      mediaUrls?: string[]
       videoUrl?: string
+      videoMeta?: { downloadAddr?: string; playAddr?: string }
       text?: string
       playCount?: number
       diggCount?: number
@@ -60,11 +66,18 @@ async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCan
     }>
     if (!items.length) return { result: null, reason: 'Apify TikTok returned 0 items' }
     const top = items.slice().sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))[0]
+    // clockworks/tiktok-scraper exposes the direct mp4 in one of several
+    // fields depending on the actor version + input flags — probe all of them.
+    const directVideo =
+      top.mediaUrls?.[0]
+      ?? top.videoMeta?.downloadAddr
+      ?? top.videoMeta?.playAddr
+      ?? top.videoUrl
     return {
       result: {
         platform: 'tiktok',
         sourceUrl: top.webVideoUrl ?? '',
-        videoUrl: top.videoUrl,
+        videoUrl: directVideo,
         caption: top.text,
         hashtags: (top.hashtags ?? []).map(h => `#${h.name}`).filter(Boolean).slice(0, 8),
         views: top.playCount,
@@ -93,9 +106,12 @@ async function fetchTopReels(keywords: string[]): Promise<{ result: TopVideoCand
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
+          // apify/instagram-hashtag-scraper wants raw hashtag strings (no #)
+          // in `hashtags` + `resultsType: "reels"` to get videos rather than
+          // static posts. `searchType` isn't a valid field on this actor.
           hashtags: keywords.slice(0, 3).map(k => k.replace(/^#/, '')),
+          resultsType: 'reels',
           resultsLimit: 5,
-          searchType: 'hashtag',
         }),
       },
     )
@@ -118,11 +134,14 @@ async function fetchTopReels(keywords: string[]): Promise<{ result: TopVideoCand
     const reels = items.filter(x => x.isVideo || x.productType === 'clips' || x.videoUrl)
     if (!reels.length) return { result: null, reason: 'Apify Reels returned 0 video items' }
     const top = reels.sort((a, b) => (b.videoViewCount ?? b.likesCount ?? 0) - (a.videoViewCount ?? a.likesCount ?? 0))[0]
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const anyTop = top as any
+    const directVideo = anyTop.videoUrl ?? anyTop.videoUrlBackup ?? anyTop.displayUrl
     return {
       result: {
         platform: 'reels',
         sourceUrl: top.url ?? '',
-        videoUrl: top.videoUrl,
+        videoUrl: directVideo,
         caption: top.caption,
         hashtags: (top.hashtags ?? []).map(h => `#${h}`).slice(0, 8),
         views: top.videoViewCount,

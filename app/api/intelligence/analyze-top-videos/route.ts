@@ -42,9 +42,7 @@ export async function POST(request: NextRequest) {
     // fails or the fetch itself returned nothing, we save what we have.
     const analyses = await Promise.all(
       candidates.map(async c => {
-        // Some platforms (YouTube Shorts) don't hand us a direct mp4 — we still
-        // capture the metadata so the plan generator can reference the video.
-        if (!c.videoUrl) return { ...c, gemini: null }
+        if (!c.videoUrl) return { ...c, gemini: null, skipReason: 'no direct video URL from scraper' }
         const analysis = await analyzeVideoWithGemini({
           platform: c.platform,
           sourceUrl: c.sourceUrl,
@@ -52,7 +50,7 @@ export async function POST(request: NextRequest) {
           caption: c.caption,
           hashtags: c.hashtags,
         })
-        return { ...c, gemini: analysis }
+        return { ...c, gemini: analysis, skipReason: analysis ? undefined : 'gemini returned null' }
       }),
     )
 
