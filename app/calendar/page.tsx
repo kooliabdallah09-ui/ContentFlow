@@ -24,6 +24,7 @@ const CONTENT_ICONS: Record<string, string> = {
   voice:       '♪',
   social:      '☉',
   'screen-demo': '⬡',
+  rest:        '○',
 }
 
 const CONTENT_HREF: Record<string, string> = {
@@ -381,17 +382,19 @@ export default function CalendarPage() {
                 </p>
               )}
 
-              <button
-                onClick={() => {
-                  savePrefill(selectedDay)
-                  router.push(CONTENT_HREF[selectedDay.contentType] ?? '/dashboard')
-                }}
-                className="btn btn-primary"
-                style={{ display: 'flex', width: '100%', padding: 12, fontSize: 13.5, borderRadius: 11, marginBottom: 10, alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', border: 'none' }}
-              >
-                Create now
-                <ArrowRight size={14} />
-              </button>
+              {(selectedDay.contentType as string) !== 'rest' && (
+                <button
+                  onClick={() => {
+                    savePrefill(selectedDay)
+                    router.push(CONTENT_HREF[selectedDay.contentType] ?? '/dashboard')
+                  }}
+                  className="btn btn-primary"
+                  style={{ display: 'flex', width: '100%', padding: 12, fontSize: 13.5, borderRadius: 11, marginBottom: 10, alignItems: 'center', justifyContent: 'center', gap: 6, cursor: 'pointer', border: 'none' }}
+                >
+                  Create now
+                  <ArrowRight size={14} />
+                </button>
+              )}
 
               {/* YouTube scheduling section */}
               {selectedJob ? (

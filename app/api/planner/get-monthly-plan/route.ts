@@ -58,10 +58,13 @@ export async function GET(request: NextRequest) {
 
     // Fallback: the new intelligence flow writes to content_plans.calendar_30d
     // with a different shape (day, week, format, hook, hashtags, best_time,
-    // platform). Convert it to DailySuggestion so the calendar renders.
+    // platform). Convert it to DailySuggestion, anchoring day 1 to the plan's
+    // creation date so a plan generated on July 12 covers July 12 -> Aug 11,
+    // and filling non-post days with 'Rest Day' entries so the grid looks
+    // intentional.
     const { data: intel } = await supabase
       .from('content_plans')
-      .select('calendar_30d, updated_at')
+      .select('calendar_30d, created_at, updated_at')
       .eq('user_id', user.id)
       .maybeSingle()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,32 +73,69 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, plan: [] })
     }
 
-    // Anchor calendar to the requested month/year — day 1 = first of the month.
-    const yearN = parseInt(year)
-    const monthN = parseInt(month) - 1 // 0-indexed
+    const anchorRaw = intel?.created_at ?? intel?.updated_at ?? new Date().toISOString()
+    const anchor = new Date(anchorRaw)
+    // Normalise to UTC midnight so day math stays consistent.
+    const anchorUtc = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), anchor.getUTCDate()))
+
     const CONTENT_TYPE_MAP: Record<string, string> = {
       grwm: 'ugc', before_after: 'video', hot_take: 'ugc', unboxing: 'video',
       review: 'ugc', tutorial: 'screen-demo', pov: 'ugc', storytime: 'ugc',
     }
+
+    const isoFor = (d: Date) => d.toISOString().slice(0, 10)
+    const addDays = (d: Date, n: number) => {
+      const copy = new Date(d)
+      copy.setUTCDate(copy.getUTCDate() + n)
+      return copy
+    }
+
+    // Index posts by their absolute date within the 30-day window.
+    const postByDate = new Map<string, unknown>()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const converted = cal.map((entry: any) => {
-      const dayNum = Number(entry.day) || 1
-      const date = new Date(Date.UTC(yearN, monthN, dayNum))
-      const iso = date.toISOString().slice(0, 10)
-      const format = String(entry.format ?? 'ugc')
-      return {
-        date: iso,
-        day: date.toLocaleDateString('en-US', { weekday: 'long' }),
-        contentType: CONTENT_TYPE_MAP[format] ?? 'ugc',
-        title: String(entry.hook ?? '').slice(0, 120),
-        description: String(entry.hook ?? ''),
-        icon: '◉',
-        platforms: entry.platform ? [String(entry.platform)] : ['tiktok'],
-        suggestedTime: String(entry.best_time ?? '18:00'),
-        reason: `${entry.week_theme ?? 'Week ' + entry.week}: ${format} format`,
-        completed: false,
+    for (const entry of cal as any[]) {
+      const offset = (Number(entry.day) || 1) - 1
+      const date = addDays(anchorUtc, offset)
+      postByDate.set(isoFor(date), entry)
+    }
+
+    // Build a 30-day array: post for that day, else a Rest Day filler.
+    const converted: unknown[] = []
+    for (let i = 0; i < 30; i++) {
+      const date = addDays(anchorUtc, i)
+      const iso = isoFor(date)
+      const dayLabel = date.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const entry: any = postByDate.get(iso)
+      if (entry) {
+        const format = String(entry.format ?? 'ugc')
+        converted.push({
+          date: iso,
+          day: dayLabel,
+          contentType: CONTENT_TYPE_MAP[format] ?? 'ugc',
+          title: String(entry.hook ?? '').slice(0, 120),
+          description: String(entry.hook ?? ''),
+          icon: '◉',
+          platforms: entry.platform ? [String(entry.platform)] : ['tiktok'],
+          suggestedTime: String(entry.best_time ?? '18:00'),
+          reason: `${entry.week_theme ?? 'Week ' + entry.week}: ${format} format`,
+          completed: false,
+        })
+      } else {
+        converted.push({
+          date: iso,
+          day: dayLabel,
+          contentType: 'rest',
+          title: 'Rest Day',
+          description: 'No content scheduled — recover and engage with your audience.',
+          icon: '○',
+          platforms: [],
+          suggestedTime: '',
+          reason: 'Sustainable cadence',
+          completed: false,
+        })
       }
-    })
+    }
 
     return NextResponse.json({ success: true, plan: converted, source: 'intelligence' })
   } catch (error) {
