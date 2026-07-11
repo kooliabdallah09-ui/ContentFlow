@@ -1,6 +1,13 @@
-// Analyze a short-form vertical video using Gemini 2.5 Flash. Gemini can read
-// mp4 URLs directly via the fileData part — no frame sampling / Whisper hop.
-// Fail-soft: returns null if the key is missing or Gemini rejects the URL.
+// Analyze a short-form vertical video using Gemini 2.5 Flash — routed
+// through Replicate so we keep one dependency (REPLICATE_API_TOKEN) instead
+// of a separate Google API key.
+//
+// The Replicate wrapper accepts a URL directly for image/video/audio input.
+// Gemini 2.5 Flash handles video natively so we just point at the mp4.
+// Fail-soft: returns null on any error so onboarding is never blocked.
+
+const REPLICATE_BASE = 'https://api.replicate.com/v1'
+const GEMINI_MODEL = 'google/gemini-2.5-flash'
 
 export interface VideoAnalysis {
   platform: 'tiktok' | 'reels'
@@ -17,21 +24,7 @@ export interface VideoAnalysis {
   keyMoments: string[]          // 3-5 phrases describing what makes it work
 }
 
-const GEMINI_MODEL = 'gemini-2.5-flash'
-
-// Gemini's fileData part accepts a URL. Must be reachable + not too long.
-// We wrap it in an inline-URI request and parse the JSON reply.
-export async function analyzeVideoWithGemini(input: {
-  platform: 'tiktok' | 'reels'
-  sourceUrl: string
-  videoUrl: string
-  caption?: string
-  hashtags?: string[]
-}): Promise<VideoAnalysis | null> {
-  const key = process.env.GOOGLE_GEMINI_API_KEY
-  if (!key) return null
-
-  const promptText = `You are analyzing a short-form vertical video (TikTok / Reels / YouTube Short).
+const ANALYSIS_PROMPT = `You are analyzing a short-form vertical video (TikTok / Reels).
 
 Return ONLY valid JSON, no preamble, no markdown fences:
 {
@@ -39,47 +32,67 @@ Return ONLY valid JSON, no preamble, no markdown fences:
   "format": "grwm" | "before_after" | "hot_take" | "unboxing" | "review" | "tutorial" | "pov" | "storytime" | "other",
   "pacing": "slow" | "medium" | "fast",
   "hookVisual": "one sentence — what happens in the first 1s visually",
-  "cta": "what the video asks the viewer to do (e.g. 'try this', 'follow for more'). Empty string if none.",
+  "cta": "what the video asks the viewer to do. Empty string if none.",
   "characterOnCamera": true | false,
   "captionStyle": "caption" | "bold-white" | "tiktok" | "outline" | "highlight" | "bubble" | "minimal" | "none",
   "transcript": "rough transcript of what is said. Empty string if no speech.",
   "keyMoments": ["3-5 short phrases describing why this video works"]
-}
+}`
 
-${input.caption ? `The video's caption on ${input.platform} was: "${input.caption}"` : ''}
-${input.hashtags?.length ? `Hashtags used: ${input.hashtags.join(' ')}` : ''}`
+export async function analyzeVideoWithGemini(input: {
+  platform: 'tiktok' | 'reels'
+  sourceUrl: string
+  videoUrl: string
+  caption?: string
+  hashtags?: string[]
+}): Promise<VideoAnalysis | null> {
+  const apiKey = process.env.REPLICATE_API_TOKEN
+  if (!apiKey) return null
+
+  const contextLines: string[] = []
+  if (input.caption) contextLines.push(`The video's caption on ${input.platform} was: "${input.caption}"`)
+  if (input.hashtags?.length) contextLines.push(`Hashtags: ${input.hashtags.join(' ')}`)
+  const prompt = contextLines.length
+    ? `${ANALYSIS_PROMPT}\n\n${contextLines.join('\n')}`
+    : ANALYSIS_PROMPT
 
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 90_000)
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${key}`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal,
-        body: JSON.stringify({
-          contents: [{
-            parts: [
-              { fileData: { fileUri: input.videoUrl, mimeType: 'video/mp4' } },
-              { text: promptText },
-            ],
-          }],
-          generationConfig: { responseMimeType: 'application/json', temperature: 0.4 },
-        }),
+    const timeout = setTimeout(() => controller.abort(), 120_000)
+    const res = await fetch(`${REPLICATE_BASE}/models/${GEMINI_MODEL}/predictions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        Prefer: 'wait',
       },
-    )
+      signal: controller.signal,
+      body: JSON.stringify({
+        input: {
+          prompt,
+          // Replicate's Gemini wrapper accepts a media URL for multimodal
+          // input. mp4 videos are handled natively.
+          media: [input.videoUrl],
+        },
+      }),
+    })
     clearTimeout(timeout)
+
     if (!res.ok) {
       console.warn(`[gemini-analyze] ${res.status}: ${(await res.text()).slice(0, 200)}`)
       return null
     }
     const data = await res.json() as {
-      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>
+      status?: string
+      output?: string | string[]
+      error?: string
     }
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    if (!rawText) return null
-    const cleaned = rawText.trim().replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/, '')
+    if (data.status === 'failed' || data.error) {
+      console.warn('[gemini-analyze] failed:', data.error)
+      return null
+    }
+    const raw = Array.isArray(data.output) ? data.output.join('') : String(data.output ?? '')
+    const cleaned = raw.trim().replace(/^```(?:json)?\n?/i, '').replace(/\n?```$/, '')
     const parsed = JSON.parse(cleaned) as Partial<VideoAnalysis>
 
     return {
