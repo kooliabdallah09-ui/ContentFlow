@@ -14,10 +14,18 @@ export interface TopVideoCandidate {
   authorHandle?: string
 }
 
+// Apify's REST API expects actor IDs in `username~actor-name` form. Env
+// values with `/` (the URL slug used on apify.com) would break routing, so
+// we normalise once here.
+function normaliseActorId(id: string): string {
+  return id.replace('/', '~').trim()
+}
+
 // ---------- TikTok via Apify actor ----------
 async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCandidate | null; reason?: string }> {
   const token = process.env.APIFY_TOKEN
-  const actorId = process.env.APIFY_TIKTOK_ACTOR_ID
+  const rawActor = process.env.APIFY_TIKTOK_ACTOR_ID
+  const actorId = rawActor ? normaliseActorId(rawActor) : ''
   if (!token) return { result: null, reason: 'APIFY_TOKEN not set' }
   if (!actorId) return { result: null, reason: 'APIFY_TIKTOK_ACTOR_ID not set' }
   if (!keywords.length) return { result: null, reason: 'no keywords' }
@@ -70,7 +78,8 @@ async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCan
 // ---------- Instagram Reels via Apify actor ----------
 async function fetchTopReels(keywords: string[]): Promise<{ result: TopVideoCandidate | null; reason?: string }> {
   const token = process.env.APIFY_TOKEN
-  const actorId = process.env.APIFY_INSTAGRAM_ACTOR_ID
+  const rawActor = process.env.APIFY_INSTAGRAM_ACTOR_ID
+  const actorId = rawActor ? normaliseActorId(rawActor) : ''
   if (!token) return { result: null, reason: 'APIFY_TOKEN not set' }
   if (!actorId) return { result: null, reason: 'APIFY_INSTAGRAM_ACTOR_ID not set' }
   if (!keywords.length) return { result: null, reason: 'no keywords' }
