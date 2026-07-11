@@ -151,7 +151,7 @@ export async function renderAppDemo(input: BuildAppDemoInput): Promise<RenderRes
       { clips: avatarClips },
       { clips: bgClips },
       { clips: audioTrack },   // bottom: visually hidden, audio still plays
-    ],
+    ].filter(t => t.clips.length > 0),
   }
 
   const output = { format: 'mp4', resolution: 'hd', aspectRatio: '9:16', fps: input.fps }
