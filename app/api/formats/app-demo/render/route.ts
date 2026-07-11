@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { canAccessFormats } from '@/lib/pov-access'
 import { getFormatById, type StateMachineSegment } from '@/lib/formats'
-import { submitBackgroundRemovalJob, getBackgroundRemovalStatus } from '@/lib/replicate'
+import { submitBackgroundRemovalJob, getBackgroundRemovalStatus, transcribeWithReplicate } from '@/lib/replicate'
 import { renderAppDemo, getAppDemoRenderStatus } from '@/lib/formats/app-demo-renderer'
 
 export const maxDuration = 300
@@ -16,6 +16,7 @@ interface RenderInput {
   hookLine: string
   pivotLine: string
   demoLine: string
+  avatarSide?: 'left' | 'right' | 'center'
 }
 
 // POST /api/formats/app-demo/render
@@ -53,16 +54,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing klingRawUrl' }, { status: 400 })
     }
 
-    // 1. Synthesize per-word timings from the spoken lines. We already know
-    // each segment's time window, so we distribute its words evenly across it.
-    // Good-enough MVP timing that skips a flaky external Whisper hop entirely.
-    const words = synthesizeWords(format.stateMachine.segments, {
-      1: body.hookLine,
-      2: body.pivotLine,
-      3: body.demoLine,
-    })
+    // 1. Whisper per-word timings from the Kling audio track. If Whisper
+    // fails we synthesize evenly-distributed timings from the spoken lines
+    // so the render still lands (captions will still show, just approximate).
+    let words: Array<{ text: string; start: number; end: number }>
+    try {
+      const wx = await transcribeWithReplicate(body.klingRawUrl)
+      words = wx.words.map(w => ({ text: w.word, start: w.start, end: w.end }))
+      if (!words.length) throw new Error('empty word list')
+    } catch (e) {
+      console.warn('[app-demo] Whisper failed, synthesizing timings:', e instanceof Error ? e.message : e)
+      words = synthesizeWords(format.stateMachine.segments, {
+        1: body.hookLine,
+        2: body.pivotLine,
+        3: body.demoLine,
+      })
+    }
     if (!words.length) {
-      return NextResponse.json({ error: 'No spoken lines provided' }, { status: 400 })
+      return NextResponse.json({ error: 'No caption timings' }, { status: 400 })
     }
 
     // 2. Background removal. This runs async on Replicate; we spawn it and
@@ -104,6 +113,7 @@ export async function POST(request: NextRequest) {
       brollUrl: body.brollUrl,
       appUiUrl: body.appUiUrl,
       words,
+      avatarSide: body.avatarSide ?? 'right',
     })
 
     return NextResponse.json({ renderId, keyedUrl })
@@ -143,7 +153,8 @@ function synthesizeWords(
 }
 
 // GET /api/formats/app-demo/render?renderId=xxx
-// Polls Shotstack for the final MP4 URL.
+// Polls Shotstack for the final MP4 URL. When it completes, the caller can
+// hit /api/formats/app-demo/save to persist to library.
 export async function GET(request: NextRequest) {
   try {
     const renderId = request.nextUrl.searchParams.get('renderId')

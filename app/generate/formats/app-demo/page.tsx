@@ -17,6 +17,8 @@ export default function AppDemoTestPage() {
   const [hookLine, setHookLine] = useState('Are you really still wasting your time playing video games?')
   const [pivotLine, setPivotLine] = useState('Heh, so do I, but at least I earn cash doing that.')
   const [demoLine, setDemoLine] = useState('No, for real. I found this hidden gem — the Benjamin app. You just play games and earn money.')
+  const [avatarSide, setAvatarSide] = useState<'left' | 'right'>('right')
+  const [savedToLibrary, setSavedToLibrary] = useState(false)
 
   const [phase, setPhase] = useState<Phase>('idle')
   const [status, setStatus] = useState('')
@@ -113,6 +115,7 @@ export default function AppDemoTestPage() {
           hookLine,
           pivotLine,
           demoLine,
+          avatarSide,
         }),
       })
       const data = await res.json()
@@ -127,6 +130,22 @@ export default function AppDemoTestPage() {
     }
   }
 
+  async function saveToLibrary(videoUrl: string, token: string) {
+    try {
+      const res = await fetch('/api/formats/app-demo/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ videoUrl, filename: `app-demo-${Date.now()}.mp4` }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Save failed')
+      setSavedToLibrary(true)
+      showSuccess('Saved to Library', 'Available in your library and Google Drive.')
+    } catch (err) {
+      showError('Library save failed', err instanceof Error ? err.message : 'Try again')
+    }
+  }
+
   async function poll(id: string, token: string) {
     void token
     try {
@@ -136,6 +155,8 @@ export default function AppDemoTestPage() {
         setFinalUrl(data.videoUrl)
         setPhase('done')
         setStatus('')
+        // Fire-and-forget library save.
+        saveToLibrary(data.videoUrl, token)
         return
       }
       if (data.status === 'failed') {
@@ -198,6 +219,27 @@ export default function AppDemoTestPage() {
         <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: '0 0 14px', lineHeight: 1.5 }}>
           These drive the caption chunking. Whisper transcribes the Kling audio; captions inherit the color of the segment they land in.
         </p>
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>Character placement</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {(['left', 'right'] as const).map(side => (
+              <button
+                key={side}
+                type="button"
+                onClick={() => setAvatarSide(side)}
+                style={{
+                  flex: 1,
+                  padding: '10px 12px',
+                  borderRadius: 10,
+                  border: '1px solid ' + (avatarSide === side ? 'var(--ink)' : 'var(--border)'),
+                  background: avatarSide === side ? 'var(--ink)' : 'var(--bg)',
+                  color: avatarSide === side ? 'var(--on-ink)' : 'var(--ink)',
+                  fontSize: 13, fontWeight: 600, cursor: 'pointer', textTransform: 'capitalize',
+                }}
+              >Bottom {side}</button>
+            ))}
+          </div>
+        </div>
         <Field label="Hook (0-3s, purple caption)" value={hookLine} onChange={setHookLine} />
         <Field label="Pivot (3-5.5s, white caption)" value={pivotLine} onChange={setPivotLine} />
         <Field label="Demo (5.5-16s, green caption)" value={demoLine} onChange={setDemoLine} rows={3} />
@@ -248,6 +290,9 @@ export default function AppDemoTestPage() {
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 14 }}>
             <a href={finalUrl} download style={{ padding: '10px 18px', borderRadius: 10, background: 'var(--ink)', color: 'var(--on-ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Download</a>
             <a href={finalUrl} target="_blank" rel="noreferrer" style={{ padding: '10px 18px', borderRadius: 10, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none', fontSize: 13 }}>Open in tab</a>
+            <Link href="/library" style={{ padding: '10px 18px', borderRadius: 10, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none', fontSize: 13 }}>
+              {savedToLibrary ? '✓ In Library' : 'View Library'}
+            </Link>
           </div>
         </section>
       )}

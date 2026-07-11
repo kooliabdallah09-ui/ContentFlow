@@ -382,7 +382,10 @@ export async function transcribeWithReplicate(audioUrl: string): Promise<{
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
-  const res = await fetch(`${REPLICATE_BASE}/models/openai/whisper/predictions`, {
+  // Resolve latest version first — the /models/{owner}/{name}/predictions
+  // endpoint 404s on models without a designated default version.
+  const version = await resolveLatestVersion('openai/whisper', apiKey)
+  const res = await fetch(`${REPLICATE_BASE}/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -390,6 +393,7 @@ export async function transcribeWithReplicate(audioUrl: string): Promise<{
       Prefer: 'respond-async',
     },
     body: JSON.stringify({
+      version,
       input: {
         audio: audioUrl,
         model: 'large-v3',
