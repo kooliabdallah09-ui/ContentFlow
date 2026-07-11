@@ -15,10 +15,12 @@ export interface TopVideoCandidate {
 }
 
 // ---------- TikTok via Apify actor ----------
-async function fetchTopTikTok(keywords: string[]): Promise<TopVideoCandidate | null> {
+async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCandidate | null; reason?: string }> {
   const token = process.env.APIFY_TOKEN
   const actorId = process.env.APIFY_TIKTOK_ACTOR_ID
-  if (!token || !actorId || !keywords.length) return null
+  if (!token) return { result: null, reason: 'APIFY_TOKEN not set' }
+  if (!actorId) return { result: null, reason: 'APIFY_TIKTOK_ACTOR_ID not set' }
+  if (!keywords.length) return { result: null, reason: 'no keywords' }
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 25_000)
@@ -35,7 +37,10 @@ async function fetchTopTikTok(keywords: string[]): Promise<TopVideoCandidate | n
       },
     )
     clearTimeout(timeout)
-    if (!res.ok) return null
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      return { result: null, reason: `Apify TikTok HTTP ${res.status}: ${body.slice(0, 200)}` }
+    }
     const items = await res.json() as Array<{
       webVideoUrl?: string
       videoUrl?: string
@@ -45,26 +50,30 @@ async function fetchTopTikTok(keywords: string[]): Promise<TopVideoCandidate | n
       hashtags?: Array<{ name?: string }>
       authorMeta?: { name?: string }
     }>
-    if (!items.length) return null
+    if (!items.length) return { result: null, reason: 'Apify TikTok returned 0 items' }
     const top = items.slice().sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))[0]
     return {
-      platform: 'tiktok',
-      sourceUrl: top.webVideoUrl ?? '',
-      videoUrl: top.videoUrl,
-      caption: top.text,
-      hashtags: (top.hashtags ?? []).map(h => `#${h.name}`).filter(Boolean).slice(0, 8),
-      views: top.playCount,
-      likes: top.diggCount,
-      authorHandle: top.authorMeta?.name,
+      result: {
+        platform: 'tiktok',
+        sourceUrl: top.webVideoUrl ?? '',
+        videoUrl: top.videoUrl,
+        caption: top.text,
+        hashtags: (top.hashtags ?? []).map(h => `#${h.name}`).filter(Boolean).slice(0, 8),
+        views: top.playCount,
+        likes: top.diggCount,
+        authorHandle: top.authorMeta?.name,
+      },
     }
-  } catch { return null }
+  } catch (err) { return { result: null, reason: `Apify TikTok error: ${err instanceof Error ? err.message : 'unknown'}` } }
 }
 
 // ---------- Instagram Reels via Apify actor ----------
-async function fetchTopReels(keywords: string[]): Promise<TopVideoCandidate | null> {
+async function fetchTopReels(keywords: string[]): Promise<{ result: TopVideoCandidate | null; reason?: string }> {
   const token = process.env.APIFY_TOKEN
   const actorId = process.env.APIFY_INSTAGRAM_ACTOR_ID
-  if (!token || !actorId || !keywords.length) return null
+  if (!token) return { result: null, reason: 'APIFY_TOKEN not set' }
+  if (!actorId) return { result: null, reason: 'APIFY_INSTAGRAM_ACTOR_ID not set' }
+  if (!keywords.length) return { result: null, reason: 'no keywords' }
   try {
     const controller = new AbortController()
     const timeout = setTimeout(() => controller.abort(), 25_000)
@@ -82,7 +91,10 @@ async function fetchTopReels(keywords: string[]): Promise<TopVideoCandidate | nu
       },
     )
     clearTimeout(timeout)
-    if (!res.ok) return null
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      return { result: null, reason: `Apify Reels HTTP ${res.status}: ${body.slice(0, 200)}` }
+    }
     const items = await res.json() as Array<{
       url?: string
       videoUrl?: string
@@ -95,28 +107,37 @@ async function fetchTopReels(keywords: string[]): Promise<TopVideoCandidate | nu
       isVideo?: boolean
     }>
     const reels = items.filter(x => x.isVideo || x.productType === 'clips' || x.videoUrl)
-    if (!reels.length) return null
+    if (!reels.length) return { result: null, reason: 'Apify Reels returned 0 video items' }
     const top = reels.sort((a, b) => (b.videoViewCount ?? b.likesCount ?? 0) - (a.videoViewCount ?? a.likesCount ?? 0))[0]
     return {
-      platform: 'reels',
-      sourceUrl: top.url ?? '',
-      videoUrl: top.videoUrl,
-      caption: top.caption,
-      hashtags: (top.hashtags ?? []).map(h => `#${h}`).slice(0, 8),
-      views: top.videoViewCount,
-      likes: top.likesCount,
-      authorHandle: top.ownerUsername,
+      result: {
+        platform: 'reels',
+        sourceUrl: top.url ?? '',
+        videoUrl: top.videoUrl,
+        caption: top.caption,
+        hashtags: (top.hashtags ?? []).map(h => `#${h}`).slice(0, 8),
+        views: top.videoViewCount,
+        likes: top.likesCount,
+        authorHandle: top.ownerUsername,
+      },
     }
-  } catch { return null }
+  } catch (err) { return { result: null, reason: `Apify Reels error: ${err instanceof Error ? err.message : 'unknown'}` } }
 }
 
-// Orchestrator — fires both in parallel. Returns whichever succeeded.
+// Orchestrator — fires both in parallel. Returns candidates plus per-platform
+// debug reasons so the onboarding UI/logs can tell us why nothing came back.
 export async function fetchTopVideosAcrossPlatforms(input: {
   keywords: string[]
-}): Promise<TopVideoCandidate[]> {
+}): Promise<{ candidates: TopVideoCandidate[]; debug: Record<string, string | undefined> }> {
   const [tiktok, reels] = await Promise.all([
     fetchTopTikTok(input.keywords),
     fetchTopReels(input.keywords),
   ])
-  return [tiktok, reels].filter((x): x is TopVideoCandidate => !!x)
+  const candidates: TopVideoCandidate[] = []
+  if (tiktok.result) candidates.push(tiktok.result)
+  if (reels.result) candidates.push(reels.result)
+  return {
+    candidates,
+    debug: { tiktok: tiktok.reason, reels: reels.reason, keywords: input.keywords.join(', ') },
+  }
 }

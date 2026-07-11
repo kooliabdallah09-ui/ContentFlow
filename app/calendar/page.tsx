@@ -83,18 +83,11 @@ export default function CalendarPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to load plan')
 
       const days: DailySuggestion[] = Array.isArray(data.plan) ? data.plan : []
+      // Explicitly do NOT fall back to sessionStorage — it leaks a previous
+      // user's plan into the current account when someone signs out/in in the
+      // same tab. Empty is empty.
+      try { sessionStorage.removeItem('generatedPlan') } catch {}
       if (days.length === 0) {
-        try {
-          const cached = sessionStorage.getItem('generatedPlan')
-          if (cached) {
-            const parsed = JSON.parse(cached) as DailySuggestion[]
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              setPlan(parsed)
-              setSelectedDay(findTodayOrFirst(parsed))
-              return
-            }
-          }
-        } catch {}
         setPlan([])
         setSelectedDay(null)
       } else {

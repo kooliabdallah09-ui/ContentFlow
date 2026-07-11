@@ -35,7 +35,8 @@ export async function POST(request: NextRequest) {
       ? profile.trend_keywords
       : [String(profile.niche ?? '').replace(/_/g, ' ')]
 
-    const candidates = await fetchTopVideosAcrossPlatforms({ keywords })
+    const { candidates, debug } = await fetchTopVideosAcrossPlatforms({ keywords })
+    console.log('[analyze-top-videos] scrape debug:', JSON.stringify(debug))
 
     // Analyze each candidate with Gemini in parallel. Fail-soft: if analysis
     // fails or the fetch itself returned nothing, we save what we have.
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
       .eq('user_id', userId)
     if (error) throw error
 
-    return NextResponse.json({ success: true, analyses, count: analyses.length })
+    return NextResponse.json({ success: true, analyses, count: analyses.length, debug })
   } catch (err) {
     console.error('intelligence/analyze-top-videos error:', err)
     return NextResponse.json(

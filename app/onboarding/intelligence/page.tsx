@@ -95,14 +95,23 @@ export default function IntelligenceOnboardingPage() {
       }
 
       // Fetch the top short-form video from each platform and let Gemini
-      // read them. Fail-soft — if scrapers/keys are unset the array is empty
-      // and generate-plan falls back to Claude's own knowledge.
+      // read them. Non-fatal if it fails — generate-plan falls back to
+      // Claude's own knowledge — but we log the debug info so we can see
+      // why the scrape didn't find anything.
       setPhase('scanning')
-      await fetch('/api/intelligence/analyze-top-videos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
-      }).catch(() => {}) // never block onboarding on scraper failures
+      try {
+        const scanRes = await fetch('/api/intelligence/analyze-top-videos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({}),
+        })
+        const scanData = await scanRes.json().catch(() => null)
+        if (scanData) {
+          console.log('[intelligence] top-video scan:', scanData)
+        }
+      } catch (e) {
+        console.warn('[intelligence] top-video scan failed:', e)
+      }
 
       setPhase('planning')
       const plan = await fetch('/api/intelligence/generate-plan', {
