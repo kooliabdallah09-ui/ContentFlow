@@ -17,10 +17,12 @@ import type { StateMachineSegment, CaptionSpec, EmojiTrigger } from '../formats'
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type ShotstackClip = Record<string, any>
 
-// Use production edge — chroma-key + no watermark require the paid renderer.
-const SHOTSTACK_BASE = process.env.SHOTSTACK_ENV === 'stage'
-  ? 'https://api.shotstack.io/stage'
-  : 'https://api.shotstack.io/edge'
+// Match the working pattern in lib/shotstack.ts — default to /stage, only
+// use /edge when SHOTSTACK_ENV=production. /edge requires a paid plan and
+// 404s otherwise. /stage supports chromaKey but adds a watermark.
+const SHOTSTACK_BASE = process.env.SHOTSTACK_ENV === 'production'
+  ? 'https://api.shotstack.io/edge'
+  : 'https://api.shotstack.io/stage'
 
 export interface BuildAppDemoInput {
   segments: StateMachineSegment[]
