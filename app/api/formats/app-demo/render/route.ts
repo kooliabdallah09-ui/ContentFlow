@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { canAccessFormats } from '@/lib/pov-access'
 import { getFormatById, type StateMachineSegment } from '@/lib/formats'
-import { submitBackgroundRemovalJob, getBackgroundRemovalStatus, transcribeWithReplicate } from '@/lib/replicate'
+import { submitBackgroundRemovalJob, getBackgroundRemovalStatus } from '@/lib/replicate'
 import { renderAppDemo, getAppDemoRenderStatus } from '@/lib/formats/app-demo-renderer'
 
 export const maxDuration = 300
@@ -53,11 +53,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing klingRawUrl' }, { status: 400 })
     }
 
-    // 1. Whisper transcription — per-word timestamps. We pass the Kling video
-    // URL directly; Replicate's fast-whisper accepts any media URL.
-    const { words } = await transcribeWithReplicate(body.klingRawUrl)
+    // 1. Synthesize per-word timings from the spoken lines. We already know
+    // each segment's time window, so we distribute its words evenly across it.
+    // Good-enough MVP timing that skips a flaky external Whisper hop entirely.
+    const words = synthesizeWords(format.stateMachine.segments, {
+      1: body.hookLine,
+      2: body.pivotLine,
+      3: body.demoLine,
+    })
     if (!words.length) {
-      return NextResponse.json({ error: 'Whisper returned no words — is the Kling clip audible?' }, { status: 500 })
+      return NextResponse.json({ error: 'No spoken lines provided' }, { status: 400 })
     }
 
     // 2. Background removal. This runs async on Replicate; we spawn it and
@@ -98,7 +103,7 @@ export async function POST(request: NextRequest) {
       avatarKeyedUrl: keyedUrl,
       brollUrl: body.brollUrl,
       appUiUrl: body.appUiUrl,
-      words: words.map(w => ({ text: w.word, start: w.start, end: w.end })),
+      words,
     })
 
     return NextResponse.json({ renderId, keyedUrl })
@@ -109,6 +114,32 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     )
   }
+}
+
+// Distribute a spoken line's tokens evenly across its segment window.
+// Punctuation stays attached to the preceding token so caption emoji triggers
+// (which match on cleaned lowercase) still fire on "cash," / "app!" etc.
+function synthesizeWords(
+  segments: StateMachineSegment[],
+  linesBySegmentId: Record<number, string>,
+): Array<{ text: string; start: number; end: number }> {
+  const out: Array<{ text: string; start: number; end: number }> = []
+  for (const seg of segments) {
+    const line = linesBySegmentId[seg.id]?.trim()
+    if (!line) continue
+    const tokens = line.split(/\s+/)
+    if (!tokens.length) continue
+    const dur = seg.endSeconds - seg.startSeconds
+    const per = dur / tokens.length
+    tokens.forEach((tok, i) => {
+      out.push({
+        text: tok,
+        start: seg.startSeconds + i * per,
+        end: seg.startSeconds + (i + 1) * per,
+      })
+    })
+  }
+  return out
 }
 
 // GET /api/formats/app-demo/render?renderId=xxx
