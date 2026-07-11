@@ -16,11 +16,30 @@ const SEEDANCE_MODEL = 'bytedance/seedance-2.0'
 // can chroma-key it. codeplugtech/background_removal_video was retired.
 const VIDEO_BG_REMOVAL_MODEL = 'arielreplicate/robust_video_matting'
 
+// Community models don't reliably expose /models/{owner}/{name}/predictions.
+// We resolve the latest version hash first and POST to /v1/predictions, which
+// works for every model on Replicate.
+async function resolveLatestVersion(model: string, apiKey: string): Promise<string> {
+  const res = await fetch(`${REPLICATE_BASE}/models/${model}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Cannot resolve version for ${model} (${res.status}): ${err}`)
+  }
+  const data = await res.json()
+  const versionId = data?.latest_version?.id
+  if (!versionId) throw new Error(`No latest_version.id on ${model}. Response: ${JSON.stringify(data).slice(0, 300)}`)
+  return versionId
+}
+
 export async function submitBackgroundRemovalJob(videoUrl: string): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
-  const res = await fetch(`${REPLICATE_BASE}/models/${VIDEO_BG_REMOVAL_MODEL}/predictions`, {
+  const version = await resolveLatestVersion(VIDEO_BG_REMOVAL_MODEL, apiKey)
+
+  const res = await fetch(`${REPLICATE_BASE}/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -28,6 +47,7 @@ export async function submitBackgroundRemovalJob(videoUrl: string): Promise<{ pr
       Prefer: 'respond-async',
     },
     body: JSON.stringify({
+      version,
       input: { input_video: videoUrl, output_type: 'green-screen' },
     }),
   })
