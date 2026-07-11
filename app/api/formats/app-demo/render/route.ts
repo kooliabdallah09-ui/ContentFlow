@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { canAccessFormats } from '@/lib/pov-access'
 import { getFormatById, type StateMachineSegment } from '@/lib/formats'
-import { submitBackgroundRemovalJob, getBackgroundRemovalStatus, transcribeWithReplicate } from '@/lib/replicate'
+import { submitBackgroundRemovalJob, getBackgroundRemovalStatus } from '@/lib/replicate'
+import { startTranscription, pollTranscription } from '@/lib/whisper'
 import { renderAppDemo, getAppDemoRenderStatus } from '@/lib/formats/app-demo-renderer'
 
 export const maxDuration = 300
@@ -49,10 +50,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing klingRawUrl' }, { status: 400 })
     }
 
-    // 1. Whisper per-word timings from the Kling audio track. Caption colour
-    // is chosen by which segment window each word lands in.
-    const wx = await transcribeWithReplicate(body.klingRawUrl)
-    const words = wx.words.map(w => ({ text: w.word, start: w.start, end: w.end }))
+    // 1. Whisper per-word timings — same module the Video Editor uses.
+    const whisperId = await startTranscription(body.klingRawUrl)
+    const whisperDeadline = Date.now() + 180_000
+    let words: Array<{ text: string; start: number; end: number }> = []
+    while (Date.now() < whisperDeadline) {
+      await new Promise(r => setTimeout(r, 3000))
+      const p = await pollTranscription(whisperId)
+      if (p.done) {
+        if (p.error) return NextResponse.json({ error: `Whisper failed: ${p.error}` }, { status: 500 })
+        words = (p.result?.words ?? []).map(w => ({ text: w.word, start: w.start, end: w.end }))
+        break
+      }
+    }
     if (!words.length) {
       return NextResponse.json({ error: 'Whisper returned no words — is the Kling clip audible?' }, { status: 500 })
     }
