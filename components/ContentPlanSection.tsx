@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { RefreshCcw, ArrowUpRight, Loader2 } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
+import { formatToContentType, formatToRoute } from '@/lib/format-to-route'
+import { savePrefill } from '@/lib/calendar-prefill'
 
 interface CalendarEntry {
   day: number
@@ -30,12 +33,16 @@ interface Plan {
   calendar_30d?: CalendarEntry[]
   trending_hashtags?: string[]
   refresh_date?: string
+  product_type?: string      // pulled from brand_profiles so format->route is context-aware
 }
 
 // Dashboard "Content Intelligence" panel — top formats + calendar preview +
-// "Generate ↗" buttons that prefill the UGC generator via URL params.
+// "Generate ↗" buttons that route to the format-appropriate generator with
+// hook/format/platform/hashtags prefilled via sessionStorage.
 export default function ContentPlanSection() {
+  const router = useRouter()
   const [plan, setPlan] = useState<Plan | null>(null)
+  const [productType, setProductType] = useState<string | null>(null)
   const [hasProfile, setHasProfile] = useState(false)
   const [needsRefresh, setNeedsRefresh] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -51,10 +58,31 @@ export default function ContentPlanSection() {
     if (res.ok) {
       const data = await res.json()
       setPlan(data.plan)
+      setProductType(data.productType ?? null)
       setHasProfile(data.hasProfile)
       setNeedsRefresh(!!data.needsRefresh)
     }
     setLoading(false)
+  }
+
+  // Route a plan entry to its format-appropriate generator, and stash a
+  // DailySuggestion-shaped prefill in sessionStorage so the target generator
+  // hydrates its form on mount.
+  function goGenerate(e: CalendarEntry) {
+    const contentType = formatToContentType(e.format, productType)
+    savePrefill({
+      date: '',
+      day: '',
+      contentType,
+      title: e.hook,
+      description: e.hook,
+      icon: '◉',
+      platforms: e.platform ? [e.platform] : [],
+      suggestedTime: e.best_time ?? '',
+      reason: `${e.week_theme ?? 'Week ' + e.week}: ${e.format} format`,
+      completed: false,
+    })
+    router.push(formatToRoute(e.format, productType))
   }
 
   useEffect(() => { load() }, [])
@@ -177,18 +205,19 @@ export default function ContentPlanSection() {
               <div style={{ fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {e.hook}
               </div>
-              <Link
-                href={`/generate/ugc?hook=${encodeURIComponent(e.hook)}&format=${encodeURIComponent(e.format)}`}
+              <button
+                onClick={() => goGenerate(e)}
                 style={{
                   fontSize: 12, fontWeight: 600,
                   padding: '6px 12px', borderRadius: 8,
                   background: 'var(--ink)', color: 'var(--on-ink)',
-                  textDecoration: 'none', whiteSpace: 'nowrap',
+                  border: 'none', cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                   display: 'inline-flex', alignItems: 'center', gap: 4,
                 }}
               >
                 Generate <ArrowUpRight size={12} />
-              </Link>
+              </button>
             </div>
           ))}
         </div>

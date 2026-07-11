@@ -26,12 +26,22 @@ export async function GET(request: NextRequest) {
       .eq('user_id', userData.user.id)
       .maybeSingle()
 
+    // Pull product_type from brand_profiles too — that's the authoritative
+    // source when picking format->generator mappings ('tutorial' -> screen-
+    // demo for software, UGC otherwise).
+    const { data: brand } = await supabase
+      .from('brand_profiles')
+      .select('product_type')
+      .eq('user_id', userData.user.id)
+      .maybeSingle()
+    const productType = brand?.product_type ?? profile?.product_type ?? null
+
     if (!plan) {
-      return NextResponse.json({ plan: null, profile, hasProfile: !!profile })
+      return NextResponse.json({ plan: null, profile, hasProfile: !!profile, productType })
     }
 
     const needsRefresh = plan.refresh_date ? new Date(plan.refresh_date) < new Date() : true
-    return NextResponse.json({ plan, profile, hasProfile: !!profile, needsRefresh })
+    return NextResponse.json({ plan, profile, hasProfile: !!profile, needsRefresh, productType })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Fetch failed' },

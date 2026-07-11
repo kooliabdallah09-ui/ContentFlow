@@ -54,7 +54,7 @@ function ComingSoon() {
         POV <em>Studio</em>
       </h1>
       <p style={{ fontSize: 15, color: 'var(--ink-dim)', lineHeight: 1.7, maxWidth: 560, margin: '0 0 32px' }}>
-        Faceless UGC ads in the Arcads style — the phone is in the creator's hand, filming down at their laptop or product. Cozy discovery, unboxings, GRWM, and app demos.
+        Faceless UGC ads — the phone is in the creator's hand, filming down at their laptop or product. Cozy discovery, unboxings, GRWM, and app demos.
       </p>
       <div style={{ padding: '20px 24px', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
         <span style={{ fontSize: 20 }}>🚧</span>

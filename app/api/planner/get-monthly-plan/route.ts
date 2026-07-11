@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { formatToContentType } from '@/lib/format-to-route'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -78,10 +79,14 @@ export async function GET(request: NextRequest) {
     // Normalise to UTC midnight so day math stays consistent.
     const anchorUtc = new Date(Date.UTC(anchor.getUTCFullYear(), anchor.getUTCMonth(), anchor.getUTCDate()))
 
-    const CONTENT_TYPE_MAP: Record<string, string> = {
-      grwm: 'ugc', before_after: 'video', hot_take: 'ugc', unboxing: 'video',
-      review: 'ugc', tutorial: 'screen-demo', pov: 'ugc', storytime: 'ugc',
-    }
+    // Pull product_type so 'tutorial' resolves to screen-demo only for
+    // software products and stays as UGC for physical products.
+    const { data: brand } = await supabase
+      .from('brand_profiles')
+      .select('product_type')
+      .eq('user_id', user.id)
+      .maybeSingle()
+    const productType = brand?.product_type ?? null
 
     const isoFor = (d: Date) => d.toISOString().slice(0, 10)
     const addDays = (d: Date, n: number) => {
@@ -112,7 +117,7 @@ export async function GET(request: NextRequest) {
         converted.push({
           date: iso,
           day: dayLabel,
-          contentType: CONTENT_TYPE_MAP[format] ?? 'ugc',
+          contentType: formatToContentType(format, productType),
           title: String(entry.hook ?? '').slice(0, 120),
           description: String(entry.hook ?? ''),
           icon: '◉',
