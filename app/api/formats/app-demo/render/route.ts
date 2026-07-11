@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
       avatarKeyedUrl: keyedUrl,
       brollUrl: body.brollUrl,
       appUiUrl: body.appUiUrl,
-      words,
+      words: words.map(w => ({ text: w.word, start: w.start, end: w.end })),
     })
 
     return NextResponse.json({ renderId, keyedUrl })
