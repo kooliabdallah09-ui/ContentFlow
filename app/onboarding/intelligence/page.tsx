@@ -23,7 +23,7 @@ export default function IntelligenceOnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState({ product: '', audience: '', goal: '' })
-  const [phase, setPhase] = useState<'form' | 'analyzing' | 'planning'>('form')
+  const [phase, setPhase] = useState<'form' | 'profiling' | 'scanning' | 'planning'>('form')
 
   useEffect(() => {
     // If they've already completed onboarding, skip to the dashboard
@@ -55,7 +55,7 @@ export default function IntelligenceOnboardingPage() {
       const token = sess?.session?.access_token
       if (!token) throw new Error('Not signed in')
 
-      setPhase('analyzing')
+      setPhase('profiling')
       const onb = await fetch('/api/intelligence/onboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -65,6 +65,16 @@ export default function IntelligenceOnboardingPage() {
         const err = await onb.json()
         throw new Error(err.error || 'Onboarding failed')
       }
+
+      // Fetch the top short-form video from each platform and let Gemini
+      // read them. Fail-soft — if scrapers/keys are unset the array is empty
+      // and generate-plan falls back to Claude's own knowledge.
+      setPhase('scanning')
+      await fetch('/api/intelligence/analyze-top-videos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({}),
+      }).catch(() => {}) // never block onboarding on scraper failures
 
       setPhase('planning')
       const plan = await fetch('/api/intelligence/generate-plan', {
@@ -88,12 +98,14 @@ export default function IntelligenceOnboardingPage() {
       <main style={{ maxWidth: 640, margin: '0 auto', padding: '120px 32px', textAlign: 'center' }}>
         <Loader2 size={32} className="animate-spin" style={{ marginBottom: 20 }} />
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 400, margin: '0 0 8px' }}>
-          {phase === 'analyzing' ? 'Analyzing your niche…' : 'Building your 30-day plan…'}
+          {phase === 'profiling' && 'Reading your niche…'}
+          {phase === 'scanning' && 'Studying the top videos…'}
+          {phase === 'planning' && 'Building your 30-day plan…'}
         </h1>
-        <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', maxWidth: 420, margin: '0 auto', lineHeight: 1.6 }}>
-          {phase === 'analyzing'
-            ? 'Extracting your product profile and pulling real-time trend data from TikTok, Google, and Reddit.'
-            : 'Scoring UGC formats, generating hooks, and structuring 30 days of content.'}
+        <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', maxWidth: 460, margin: '0 auto', lineHeight: 1.6 }}>
+          {phase === 'profiling' && 'Extracting your product profile and pulling real-time trend data from Google + Reddit.'}
+          {phase === 'scanning' && 'Pulling the #1 short-form video from TikTok, Reels, and YouTube Shorts and having Gemini read them for hook, format, and pacing.'}
+          {phase === 'planning' && 'Scoring UGC formats, generating hooks, and structuring 30 days of content around what already works in your niche.'}
         </p>
       </main>
     )

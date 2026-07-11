@@ -58,10 +58,30 @@ export async function POST(request: NextRequest) {
         }, { onConflict: 'cache_key' })
     }
 
+    const topVideos = Array.isArray(profile.top_video_analyses) ? profile.top_video_analyses : []
+    const analyzedVideos = topVideos
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .filter((v: any) => v?.gemini)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      .map((v: any) => ({
+        platform: v.platform,
+        sourceUrl: v.sourceUrl,
+        views: v.views,
+        likes: v.likes,
+        authorHandle: v.authorHandle,
+        hook: v.gemini.hook,
+        format: v.gemini.format,
+        pacing: v.gemini.pacing,
+        hookVisual: v.gemini.hookVisual,
+        cta: v.gemini.cta,
+        captionStyle: v.gemini.captionStyle,
+        keyMoments: v.gemini.keyMoments,
+      }))
+
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const prompt = `You are a content strategist specializing in UGC marketing for small brands and solo founders.
 
-Given this user profile and real-time market data, do 3 things:
+Given this user profile, real-time market data, and Gemini's analysis of the top-performing short-form videos in this niche, do 3 things:
 
 1. SCORE each UGC format from 0-100 for this specific niche.
    Available formats: grwm, before_after, hot_take, unboxing, review, tutorial, pov, storytime
@@ -84,6 +104,12 @@ ${JSON.stringify(profile, null, 2)}
 
 Market data (real-time snapshot):
 ${JSON.stringify(trends, null, 2)}
+
+Top-performing videos in this niche (Gemini's frame-by-frame analysis).
+When suggesting formats and hooks, borrow structure and hook style from
+these — they already have traction. If a hook here maps to the user's
+product, echo its rhythm and specificity:
+${analyzedVideos.length ? JSON.stringify(analyzedVideos, null, 2) : '(no top-video data available — infer from the niche itself)'}
 
 Respond ONLY with valid JSON, no preamble, no markdown:
 {
