@@ -1088,9 +1088,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         <div className="form-row">
           <label className="form-label">
             Product photo{' '}
-            <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(required)</span>
+            <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(recommended)</span>
           </label>
-          <p className="help">Our AI composites your real product into the video first frame.</p>
+          <p className="help">Our AI composites your real product into the video first frame. Skip it and we&apos;ll build a character-only ad.</p>
           <label style={{
             display: 'flex', alignItems: 'center', gap: '14px',
             padding: '12px 14px', borderRadius: 12,

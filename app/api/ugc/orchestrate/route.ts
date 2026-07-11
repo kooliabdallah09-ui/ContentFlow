@@ -218,9 +218,10 @@ export async function POST(request: NextRequest) {
 
       const hasProduct = !!(productImageBase64 && productImageMimeType)
       const hasActorPhoto = !!(actorPortraitBase64 && actorPortraitMimeType)
+      const hasCustomCharacter = !!(character && character.gender)
 
-      if (!hasProduct && !hasActorPhoto) {
-        return NextResponse.json({ error: 'Please provide a product photo or select an actor / upload your photo.' }, { status: 400 })
+      if (!hasProduct && !hasActorPhoto && !hasCustomCharacter) {
+        return NextResponse.json({ error: 'Add a product photo or pick / build a character.' }, { status: 400 })
       }
 
       // 1. Build the hero frame via Nano Banana (or use portrait directly for library actor + no product).

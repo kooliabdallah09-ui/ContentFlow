@@ -70,10 +70,14 @@ export async function POST(request: NextRequest) {
 
     const hasProduct = !!(productImageBase64 && productImageMimeType)
     const hasActorPhoto = !!(actorPortraitBase64 && actorPortraitMimeType)
+    // A custom persona with at least a gender is enough for Nano Banana to
+    // generate the character from text alone — no portrait required.
+    const cfCandidate = characterFromForm as CharacterProfile | undefined
+    const hasCustomCharacter = !!(cfCandidate && cfCandidate.gender)
 
-    if (!hasProduct && !hasActorPhoto) {
+    if (!hasProduct && !hasActorPhoto && !hasCustomCharacter) {
       return NextResponse.json(
-        { error: 'Please provide a product photo or pick an actor / upload your own photo.' },
+        { error: 'Add a product photo or pick / build a character (Actor library or Custom persona).' },
         { status: 400 },
       )
     }
