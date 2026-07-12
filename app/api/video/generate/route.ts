@@ -1,5 +1,5 @@
 import { deductCredits } from '@/lib/deduct-credits'
-import { submitSora2ViaReplicate, submitKlingV3OmniJob, submitSeedanceJob } from '@/lib/replicate'
+import { submitKlingV3OmniJob, submitSeedanceJob } from '@/lib/replicate'
 import { generateTextToImage } from '@/lib/nanobanana'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -7,18 +7,27 @@ import sharp from 'sharp'
 
 export const maxDuration = 120
 
-// Credit costs per model + duration
-const COSTS: Record<string, Record<number, number>> = {
-  // Seedance 2.0: $0.18/s → ~7.2 cr/s cost → 13 cr/s at 1.8×
-  'seedance-2': { 5: 65, 10: 130 },
-  // Sora 2: $0.10/s → 7.2 cr/s at 1.8× — Replicate only accepts 4, 8, 12
-  'sora-2':   { 4: 29, 8: 58, 12: 87 },
-  // Kling v3 omni standard-audio: $0.224/s → 16 cr/s at 1.8×
+// Non-Seedance flat cost table (kept for kling-v3 backward compat).
+const FLAT_COSTS: Record<string, Record<number, number>> = {
   'kling-v3': { 5: 80, 10: 160, 15: 240 },
 }
 
-function getCost(model: string, duration: number): number {
-  return COSTS[model]?.[duration] ?? 60
+// Seedance 2.0 non_video_in pricing per second, in credits (1.8× markup on
+// Replicate's raw cost). Must stay in lockstep with SEEDANCE_CR_PER_SECOND
+// on the client.
+const SEEDANCE_CR_PER_SECOND: Record<string, number> = {
+  '480p': 6,     // $0.08/s
+  '720p': 13,    // $0.18/s
+  '1080p': 33,   // $0.45/s
+  '4k':    72,   // $1.00/s
+}
+
+function getCost(model: string, duration: number, resolution?: string): number {
+  if (model === 'seedance-2') {
+    const per = SEEDANCE_CR_PER_SECOND[resolution ?? '720p'] ?? SEEDANCE_CR_PER_SECOND['720p']
+    return Math.max(1, Math.round(duration * per))
+  }
+  return FLAT_COSTS[model]?.[duration] ?? 60
 }
 
 // Sora reference image dimensions must match the selected aspect ratio
@@ -95,14 +104,22 @@ export async function POST(request: NextRequest) {
     const prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 4000).trim() : ''
     if (!prompt) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
 
-    const model: 'seedance-2' | 'sora-2' | 'kling-v3' =
-      body.model === 'kling-v3' ? 'kling-v3'
-      : body.model === 'sora-2' ? 'sora-2'
-      : 'seedance-2'
-    const duration = Number(body.duration ?? 10)
-    const allowedDurations = Object.keys(COSTS[model]).map(Number)
-    if (!allowedDurations.includes(duration)) {
-      return NextResponse.json({ error: `Invalid duration for ${model}` }, { status: 400 })
+    const model: 'seedance-2' | 'kling-v3' =
+      body.model === 'kling-v3' ? 'kling-v3' : 'seedance-2'
+    const duration = Number(body.duration ?? 5)
+    const resolution: '480p' | '720p' | '1080p' | '4k' =
+      body.resolution === '480p' || body.resolution === '1080p' || body.resolution === '4k'
+        ? body.resolution
+        : '720p'
+    if (model === 'seedance-2') {
+      if (!Number.isFinite(duration) || duration < 3 || duration > 60) {
+        return NextResponse.json({ error: 'Seedance duration must be between 3 and 60 seconds' }, { status: 400 })
+      }
+    } else {
+      const allowedDurations = Object.keys(FLAT_COSTS[model] ?? {}).map(Number)
+      if (!allowedDurations.includes(duration)) {
+        return NextResponse.json({ error: `Invalid duration for ${model}` }, { status: 400 })
+      }
     }
 
     // aspect: portrait=9:16, square=1:1, landscape=16:9
@@ -117,7 +134,7 @@ export async function POST(request: NextRequest) {
     const refImageBase64 = referenceImages[0]?.base64
     const refImageMimeType = referenceImages[0]?.mimeType
 
-    const totalCost = getCost(model, duration)
+    const totalCost = getCost(model, duration, resolution)
     const { data: userCredits } = await supabase
       .from('user_credits')
       .select('balance, pack_credits')
@@ -150,40 +167,13 @@ export async function POST(request: NextRequest) {
       }
       const seedanceJob = await submitSeedanceJob({
         prompt,
-        durationSeconds: (duration === 10 ? 10 : 5) as 5 | 10,
+        durationSeconds: duration,
         aspectRatio,
         startImageUrl,
+        resolution,
       })
       predictionId = seedanceJob.predictionId
       provider = 'seedance-2'
-    } else if (model === 'sora-2') {
-      // Composite all reference images into one canvas before sending to Sora
-      let referenceImageUrl: string | undefined
-      if (referenceImages.length > 0) {
-        const [soraW, soraH] = soraImageSize(aspectRatio)
-        const refImageBuf = referenceImages.length === 1
-          ? await sharp(Buffer.from(referenceImages[0].base64, 'base64'))
-              .resize(soraW, soraH, { fit: 'cover', position: 'center' })
-              .png()
-              .toBuffer()
-          : await compositeReferenceImages(referenceImages, soraW, soraH)
-        const filename = `video-ref/${userId}-${Date.now()}.png`
-        const { error: upErr } = await supabase.storage
-          .from('ugc-assets')
-          .upload(filename, refImageBuf, { contentType: 'image/png', upsert: false })
-        if (upErr) return NextResponse.json({ error: `Storage upload failed: ${upErr.message}` }, { status: 500 })
-        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-        referenceImageUrl = publicUrl
-      }
-
-      const soraJob = await submitSora2ViaReplicate({
-        prompt,
-        durationSeconds: duration as 4 | 8 | 12,
-        aspectRatio,
-        referenceImageUrl,
-      })
-      predictionId = soraJob.predictionId
-      provider = 'sora-2'
     } else {
       // Kling v3 — also needs a start image
       let startImageUrl: string

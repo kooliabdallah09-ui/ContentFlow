@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
-import { generateCharacterWithProduct, ugcifyPortrait, generateCharacterInFrontOfUI } from '@/lib/nanobanana'
+import { generateCharacterWithProduct, ugcifyPortrait, generateCharacterInFrontOfUI, generateTextToImage } from '@/lib/nanobanana'
 import { buildCharacterPrompt, type CharacterProfile } from '@/lib/character'
 
 export const maxDuration = 180
@@ -122,14 +122,23 @@ export async function POST(request: NextRequest) {
         )
         return { base64: f.imageBase64, mimeType: f.mimeType }
       }
-      // No product path — ugcify the portrait into the scene.
-      const f = await ugcifyPortrait(
-        actorPortraitBase64 as string,
-        actorPortraitMimeType as string,
-        heroScene,
-        characterPrompt,
-        aspect.nanoBananaRatio,
-      )
+      // No product AND we have an actor portrait — ugcify it into the scene.
+      if (hasActorPhoto) {
+        const f = await ugcifyPortrait(
+          actorPortraitBase64 as string,
+          actorPortraitMimeType as string,
+          heroScene,
+          characterPrompt,
+          aspect.nanoBananaRatio,
+        )
+        return { base64: f.imageBase64, mimeType: f.mimeType }
+      }
+      // No product, no portrait — text-only from the custom-persona description.
+      // Nano Banana generates the character + scene from words alone. This is
+      // the fix for the "Invalid base64" crash where the previous branch
+      // tried to feed `undefined` as a reference image.
+      const textPrompt = `${characterPrompt}. Setting: ${heroScene}. Vertical 9:16 phone-camera framing, candid UGC vibe, soft natural light, real skin texture with pores and small imperfections, no beauty filter, no captions, no watermark.`
+      const f = await generateTextToImage(textPrompt)
       return { base64: f.imageBase64, mimeType: f.mimeType }
     }
 

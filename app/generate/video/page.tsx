@@ -9,7 +9,8 @@ import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Play, Upload, X } from 'lucide-react'
 import PublishToYouTube from '@/components/PublishToYouTube'
 
-type Model = 'seedance-2' | 'sora-2' | 'kling-v3'
+type Model = 'seedance-2' | 'kling-v3'
+type Resolution = '480p' | '720p' | '1080p' | '4k'
 
 interface ShopifyProduct {
   id: number
@@ -33,32 +34,20 @@ const MODELS: {
     id: 'seedance-2',
     name: 'Cinematic',
     badge: 'Default',
-    tagline: 'Seedance 2.0 — image-to-video with character consistency',
+    tagline: 'Seedance 2.0 — cinematic with native audio & character consistency',
     excels: [
-      'Native audio option (voice, ambient, music)',
+      'Native audio (voice, ambient, music)',
       'Product / character continuity from a reference image',
       'Fluid camera moves + timed beats',
-      'Fast: ~60–120s per clip',
+      'Up to 60 seconds per clip',
     ],
-    caveat: '5s or 10s · 720p portrait sweet spot',
-    durations: [5, 10],
-    // Seedance 2.0 at $0.18/s → ~7.2 cr/s cost → 13 cr/s at 1.8×
-    credits: { 5: 65, 10: 130 },
-  },
-  {
-    id: 'sora-2',
-    name: 'Sora 2',
-    badge: '',
-    tagline: 'Sora 2 — physics-heavy cinematic',
-    excels: [
-      'Fluid camera moves — dolly, crane, tracking shots',
-      'Real-world physics: water, cloth, fire, smoke',
-      'Diverse scene composition & depth of field',
-      'Consistent characters across a single scene',
-    ],
-    caveat: 'No native audio · 2–4 min generation time',
-    durations: [4, 8, 12],
-    credits: { 4: 29, 8: 58, 12: 87 },
+    caveat: 'Pick resolution below — 480p is 6× cheaper than 1080p',
+    // Seedance supports any int duration up to 60. Presets picked to match
+    // common short-form clip lengths.
+    durations: [5, 10, 15, 30, 60],
+    // Credits: per-second based on RESOLUTION, not duration. Kept for
+    // interface compatibility; real cost computed with getSeedanceCost().
+    credits: { 5: 0, 10: 0, 15: 0, 30: 0, 60: 0 },
   },
   {
     id: 'kling-v3',
@@ -80,16 +69,29 @@ const MODELS: {
 
 interface VideoState {
   predictionId: string
-  provider: 'sora-2-replicate' | 'kling-v3' | 'seedance-2'
+  provider: 'kling-v3' | 'seedance-2'
   status: 'processing' | 'completed' | 'failed'
   videoUrl?: string
   error?: string
 }
 
+// Seedance 2.0 non_video_in pricing per second, in credits (1.8× markup on
+// Replicate's raw cost, rounded up so we never lose money).
+const SEEDANCE_CR_PER_SECOND: Record<Resolution, number> = {
+  '480p': 6,     // $0.08/s
+  '720p': 13,    // $0.18/s
+  '1080p': 33,   // $0.45/s
+  '4k':   72,    // $1.00/s
+}
+function getSeedanceCost(duration: number, resolution: Resolution): number {
+  return Math.max(1, Math.round(duration * SEEDANCE_CR_PER_SECOND[resolution]))
+}
+
 export default function VideoGeneratorPage() {
   const [model, setModel] = useState<Model>('seedance-2')
   const [prompt, setPrompt] = useState('')
-  const [duration, setDuration] = useState(8)
+  const [duration, setDuration] = useState(5)
+  const [resolution, setResolution] = useState<Resolution>('720p')
   const [aspect, setAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait')
   const [refImages, setRefImages] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
 
@@ -111,7 +113,11 @@ export default function VideoGeneratorPage() {
   const [shopifyImageLoaded, setShopifyImageLoaded] = useState(false)
 
   const cfg = MODELS.find(m => m.id === model)!
-  const cost = cfg.credits[duration] ?? 60
+  // Seedance pricing depends on resolution × duration. Other models keep
+  // the flat per-duration table.
+  const cost = model === 'seedance-2'
+    ? getSeedanceCost(duration, resolution)
+    : (cfg.credits[duration] ?? 60)
   const canGenerate = prompt.trim().length >= 5 && creditBalance >= cost
 
   // Reset duration when switching models if current duration isn't valid
@@ -256,6 +262,7 @@ export default function VideoGeneratorPage() {
           prompt: prompt.trim(),
           model,
           duration,
+          resolution,
           aspect,
           referenceImages: refImages.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
         }),
@@ -267,7 +274,7 @@ export default function VideoGeneratorPage() {
 
       setVideo({
         predictionId: data.predictionId,
-        provider: model === 'sora-2' ? 'sora-2-replicate' : model === 'kling-v3' ? 'kling-v3' : 'seedance-2',
+        provider: model === 'kling-v3' ? 'kling-v3' : 'seedance-2',
         status: 'processing',
       })
       refreshCredits()
@@ -290,7 +297,7 @@ export default function VideoGeneratorPage() {
           Video
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: '10px 0 0', lineHeight: 1.55 }}>
-          Two AI models, two strengths. Pick the one that fits your shot.
+          Cinematic clips with Seedance 2.0 — pick resolution to control cost.
         </p>
       </header>
 
@@ -346,7 +353,7 @@ export default function VideoGeneratorPage() {
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 14 }}>Duration</div>
           <div style={{ display: 'flex', gap: 10 }}>
             {cfg.durations.map(sec => {
-              const cr = cfg.credits[sec]
+              const cr = model === 'seedance-2' ? getSeedanceCost(sec, resolution) : cfg.credits[sec]
               const active = duration === sec
               return (
                 <button
@@ -370,6 +377,41 @@ export default function VideoGeneratorPage() {
               )
             })}
           </div>
+
+          {/* Resolution — Seedance only */}
+          {model === 'seedance-2' && (
+            <>
+              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginTop: 24, marginBottom: 14 }}>
+                Resolution <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-mute)', fontFamily: 'inherit' }}>· lower is cheaper</span>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {(['480p', '720p', '1080p', '4k'] as Resolution[]).map(r => {
+                  const active = resolution === r
+                  const perSec = SEEDANCE_CR_PER_SECOND[r]
+                  return (
+                    <button
+                      key={r}
+                      type="button"
+                      onClick={() => setResolution(r)}
+                      disabled={generating}
+                      style={{
+                        flex: 1, padding: '12px 8px', borderRadius: 10, textAlign: 'center',
+                        border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                        background: active ? 'var(--ink)' : 'transparent',
+                        color: active ? 'var(--on-ink)' : 'var(--ink)',
+                        cursor: generating ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.15s',
+                        display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ fontSize: 15, fontWeight: 700 }}>{r}</span>
+                      <span style={{ fontSize: 10.5, opacity: active ? 0.75 : 1, color: active ? 'var(--on-ink)' : 'var(--ink-dim)', fontWeight: 500 }}>{perSec} cr/s</span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Format */}
@@ -413,8 +455,8 @@ export default function VideoGeneratorPage() {
             Prompt <span style={{ color: 'var(--danger, #e84a4a)' }}>*</span>
           </label>
           <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: '0 0 10px', lineHeight: 1.55 }}>
-            {model === 'sora-2'
-              ? 'Describe the camera move, scene, lighting and mood. Be specific about the shot type for the best cinematic result.'
+            {model === 'seedance-2'
+              ? 'Describe the scene, camera move, lighting, motion and mood. Reference images below seed the first frame.'
               : 'Describe the character, expression, action and setting. Mention tone of voice or emotion if you want it in the audio.'}
           </p>
           <textarea
@@ -422,8 +464,8 @@ export default function VideoGeneratorPage() {
             onChange={e => setPrompt(e.target.value.slice(0, 4000))}
             disabled={generating}
             rows={6}
-            placeholder={model === 'sora-2'
-              ? 'Example: Slow cinematic crane shot rising above a misty forest at dawn, golden hour light breaking through the canopy, a lone figure walking a path below, film grain, 35mm anamorphic lens.'
+            placeholder={model === 'seedance-2'
+              ? 'Example: Cozy morning kitchen, soft window light. A woman in her late 20s slowly pours coffee into a ceramic mug, steam curling, handheld phone-camera framing, gentle push-in.'
               : 'Example: A confident woman in her 30s looking directly at camera, saying "This changed everything for me" with a warm smile. Lived-in home office background, soft window light, handheld camera feel.'}
             style={{
               width: '100%', boxSizing: 'border-box',
@@ -569,7 +611,7 @@ export default function VideoGeneratorPage() {
             Reference Images <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional · up to 4)</span>
           </div>
           <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: '0 0 12px', lineHeight: 1.55 }}>
-            {model === 'sora-2' ? 'Seeds the first frame. Add product shots or character references.' : 'First image used as the starting face or scene.'}
+            {model === 'seedance-2' ? 'Seeds the first frame. Product shots or character references work great.' : 'First image used as the starting face or scene.'}
           </p>
 
           {refImages.length > 0 && (
@@ -650,7 +692,7 @@ export default function VideoGeneratorPage() {
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '20px 0' }}>
                 <div style={{ width: 36, height: 36, border: '3px solid var(--border)', borderTopColor: 'var(--ink)', borderRadius: '50%', animation: 'vid-spin 0.8s linear infinite' }} />
                 <p style={{ fontSize: 13.5, color: 'var(--ink)', fontWeight: 600, margin: 0 }}>
-                  {model === 'sora-2' ? 'Generating your video — usually 2–4 min' : 'Generating your video — usually 60–90 sec'}
+                  {model === 'seedance-2' ? 'Generating your video — usually 60–120 sec' : 'Generating your video — usually 60–90 sec'}
                 </p>
                 <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: 0 }}>Polling every 5 seconds…</p>
               </div>

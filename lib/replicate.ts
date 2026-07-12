@@ -92,18 +92,20 @@ export async function getBackgroundRemovalStatus(predictionId: string): Promise<
 // Image-to-video (image param) — used when we need product/UI consistency across the clip.
 export async function submitSeedanceJob(params: {
   prompt: string
-  durationSeconds: 5 | 10
+  durationSeconds: number    // Seedance 2.0 supports 3-60 seconds
   aspectRatio?: '9:16' | '16:9' | '1:1'
   startImageUrl?: string
+  resolution?: '480p' | '720p' | '1080p' | '4k'
 }): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
+  const clampedDuration = Math.max(3, Math.min(60, Math.round(params.durationSeconds)))
   const input: Record<string, unknown> = {
     prompt: params.prompt,
-    duration: params.durationSeconds,
+    duration: clampedDuration,
     aspect_ratio: params.aspectRatio ?? '9:16',
-    resolution: '720p',
+    resolution: params.resolution ?? '720p',
     camera_fixed: false,
     // ElevenLabs handles the voiceover — disable Seedance's native audio so we
     // don't get a lipsync mismatch (Seedance would generate its own dialog).
