@@ -49,16 +49,25 @@ export async function POST(request: NextRequest) {
       supabase.from('user_intelligence').select('niche, audience_profile').eq('user_id', userData.user.id).maybeSingle(),
     ])
 
+    const beatBudget =
+      duration <= 5  ? '1 beat, 0 cuts'
+      : duration <= 10 ? '2 beats, 0–1 cut'
+      : duration <= 20 ? '3 beats, 1 cut'
+      : duration <= 40 ? '4–5 beats, 1–2 cuts'
+      :                  '5–7 beats, 2–3 cuts, one reset beat'
+
     const targetRules: Record<Body['target'], string> = {
       video: `TARGET: text-to-video model (Seedance 2.0). Describe:
-- The scene: setting, lighting (soft natural / dramatic / studio), time of day
-- Camera work: static / slow push-in / handheld / tracking shot / crane
-- Motion: what moves in the frame (product rotation, hand entering, fabric sway)
-- Subject detail: age, ethnicity, wardrobe, product placement, one hero prop
-- Mood: cinematic / cozy / editorial / gritty / glossy
-- Duration cues: ${duration}s clip
+- Shot type first (MCU / CU / MS / WS / POV / OTS / establishing)
+- Camera work: dolly in, push-in, tracking, whip pan, orbit, handheld jitter
+- Lighting: soft window / golden hour / diffused softbox / rim / volumetric
+- Lens: 35mm, 85mm, macro, shallow depth of field, bokeh, anamorphic
+- Motion in present-participle verbs (pouring, drifting, cascading, swirling)
+- **Clip length: EXACTLY ${duration}s. Pace the action to fill this and no more.**
+  Beat budget for ${duration}s: ${beatBudget}. Never describe more beats than
+  the seconds can physically hold; never waste seconds on a single tiny gesture.
 
-Keep it a single dense paragraph, 60-120 words. No captions, no on-screen text, no watermark, no logos.`,
+Keep it a single dense paragraph, 60-140 words. No captions, no on-screen text, no watermark, no logos.`,
       ugc: `TARGET: UGC talking-head generator (Kling v3 lipsync). Describe:
 - Character on camera: age, ethnicity, hair, one accessory, wardrobe vibe
 - Setting: bedroom / kitchen / desk / bathroom / car — cozy, phone-camera framing
