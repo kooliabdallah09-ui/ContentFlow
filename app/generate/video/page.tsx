@@ -90,6 +90,7 @@ function getSeedanceCost(duration: number, resolution: Resolution): number {
 export default function VideoGeneratorPage() {
   const [model, setModel] = useState<Model>('seedance-2')
   const [prompt, setPrompt] = useState('')
+  const [rewriting, setRewriting] = useState(false)
   const [duration, setDuration] = useState(5)
   const [resolution, setResolution] = useState<Resolution>('720p')
   const [aspect, setAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait')
@@ -451,9 +452,48 @@ export default function VideoGeneratorPage() {
 
         {/* Prompt */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-          <label style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', display: 'block', marginBottom: 10 }}>
-            Prompt <span style={{ color: 'var(--danger, #e84a4a)' }}>*</span>
-          </label>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+            <label style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)' }}>
+              Prompt <span style={{ color: 'var(--danger, #e84a4a)' }}>*</span>
+            </label>
+            <button
+              type="button"
+              disabled={rewriting || generating || prompt.trim().length < 4}
+              onClick={async () => {
+                setRewriting(true)
+                try {
+                  const supabase = getSupabase()
+                  if (!supabase) throw new Error('Not signed in')
+                  const { data: sess } = await supabase.auth.getSession()
+                  const token = sess?.session?.access_token
+                  if (!token) throw new Error('Not signed in')
+                  const res = await fetch('/api/video/rewrite-prompt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ prompt: prompt.trim(), duration, aspect }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) throw new Error(data.error || 'Rewrite failed')
+                  if (data.prompt) setPrompt(String(data.prompt).slice(0, 4000))
+                } catch (err) {
+                  showError('Enhance failed', err instanceof Error ? err.message : 'Try again')
+                } finally {
+                  setRewriting(false)
+                }
+              }}
+              style={{
+                fontSize: 11.5, fontWeight: 600,
+                padding: '6px 12px', borderRadius: 8,
+                border: '1px dashed var(--border-strong, var(--border))',
+                background: 'var(--surface-2, var(--surface))',
+                color: 'var(--ink)',
+                cursor: (rewriting || generating || prompt.trim().length < 4) ? 'not-allowed' : 'pointer',
+                opacity: (rewriting || generating || prompt.trim().length < 4) ? 0.5 : 1,
+              }}
+            >
+              {rewriting ? 'Enhancing…' : '✨ Enhance prompt'}
+            </button>
+          </div>
           <p style={{ fontSize: 12, color: 'var(--ink-dim)', margin: '0 0 10px', lineHeight: 1.55 }}>
             {model === 'seedance-2'
               ? 'Describe the scene, camera move, lighting, motion and mood. Reference images below seed the first frame.'
