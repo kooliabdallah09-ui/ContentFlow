@@ -55,7 +55,7 @@ const ACTORS = [
 
 function buildPrompt(a) {
   const features = a.features ? `, ${a.features}` : ''
-  return `Hyper-realistic photograph of a ${a.age} ${a.ethnicity} ${a.gender}, ${a.hair}${features}, wearing ${a.outfit}, in a ${a.scene}, candid mid-expression, soft natural lighting, real skin texture with pores and slight imperfections, natural hair with flyaways, looking slightly off-camera, no beauty filter, no studio polish, no commercial gloss.
+  return `Hyper-realistic phone-selfie photograph of a ${a.age} ${a.ethnicity} ${a.gender}, ${a.hair}${features}, wearing ${a.outfit}, in a ${a.scene}. Looking DIRECTLY into the camera lens, eyes locked on the viewer, small natural expression (subtle smile or neutral-warm), the phone is at arm's length so the framing feels like a real front-camera selfie. Soft natural lighting, real skin texture with pores and slight imperfections, natural hair with flyaways, no beauty filter, no studio polish, no commercial gloss.
 
 Framing: vertical 9:16, head and upper shoulders visible.
 
