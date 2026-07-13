@@ -71,7 +71,6 @@ export type ProductCategory =
   | 'supplement' // vitamins, gummies, powders
   | 'apparel'    // t-shirt, hoodie, sneakers, accessories
   | 'gadget'     // physical hardware — headphones, gadgets, home gym
-  | 'app'        // software, SaaS, mobile app, browser extension
   | 'other'
 
 // Ask Claude Haiku to place the product in one of the above buckets.
@@ -92,8 +91,10 @@ export async function inferProductCategory(input: {
       max_tokens: 20,
       messages: [{
         role: 'user',
-        content: `Categorise this product into ONE of these tokens (return the token only, lowercase, nothing else):
-skincare | makeup | haircare | food | drink | supplement | apparel | gadget | app | other
+        content: `Categorise this PHYSICAL product into ONE of these tokens (return the token only, lowercase, nothing else):
+skincare | makeup | haircare | food | drink | supplement | apparel | gadget | other
+
+The UGC pipeline is for physical products only — never software or apps.
 
 Product: ${input.productName}
 Type: ${input.productType ?? ''}
@@ -101,7 +102,7 @@ Description: ${(input.productDescription ?? '').slice(0, 400)}`,
       }],
     })
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim().toLowerCase()
-    const allowed: ProductCategory[] = ['skincare','makeup','haircare','food','drink','supplement','apparel','gadget','app','other']
+    const allowed: ProductCategory[] = ['skincare','makeup','haircare','food','drink','supplement','apparel','gadget','other']
     return (allowed as string[]).includes(raw) ? (raw as ProductCategory) : 'other'
   } catch { return 'other' }
 }
@@ -168,12 +169,6 @@ const CATEGORY_SLOTS: Record<ProductCategory, Record<CutawaySlot, SlotDetail>> =
     apply:    { surface: 'a desk / kitchen counter', action: 'same person turns it on / picks it up / uses the primary function', angle: 'over-the-shoulder or handheld phone view, hands and gadget in-frame', framing: 'MS OTS' },
     reaction: { surface: 'same setting', action: 'same person nods, subtle smile, quiet exhale as the gadget does its thing', angle: 'handheld phone camera front-on', framing: 'MCU' },
     usage:    { surface: 'natural setting for the gadget (desk, living room, gym)', action: 'same person using it in-context, product visible in-hand', angle: 'handheld phone camera waist-up', framing: 'MS' },
-  },
-  app: {
-    hero:     { surface: 'a phone or laptop screen on a wooden desk', action: 'the app open showing the main dashboard / hero screen, UI crisp and readable', angle: 'macro over-the-shoulder onto the screen, screen glow tinting the fingers', framing: 'macro CU on the screen' },
-    apply:    { surface: 'the phone in the same person\'s hand', action: 'same person taps / scrolls / clicks through the app, thumb visible', angle: 'over-the-shoulder from behind them, screen in-frame', framing: 'MS OTS' },
-    reaction: { surface: 'behind the desk or on a couch', action: 'same person looks up from the screen, small satisfied smile', angle: 'handheld phone camera front-on', framing: 'MCU' },
-    usage:    { surface: 'desk or living room', action: 'same person actively using the app for a real task', angle: 'handheld phone camera waist-up, laptop / phone in-frame', framing: 'MS' },
   },
   other: {
     hero:     { surface: 'a matching surface for the product', action: 'product sitting undisturbed, label sharp', angle: 'macro side-lit, background soft-blurred', framing: 'macro ECU' },
