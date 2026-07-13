@@ -18,6 +18,7 @@ import {
 } from '@/lib/tiers'
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
+import { readPrefill } from '@/lib/calendar-prefill'
 
 interface HookVariant {
   id: string
@@ -78,12 +79,33 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // distinction is gone. `tier` kept in state purely as a constant for the API contract.
   const tier: UGCTier = DEFAULT_TIER
   const [duration, setDuration] = useState<UGCDuration>(DEFAULT_DURATION)
-  const [productName, setProductName] = useState('')
-  const [productDescription, setProductDescription] = useState('')
-  const [benefits, setBenefits] = useState('')
+
+  // Pop the calendar / dashboard prefill synchronously on first render so
+  // productName / description / benefits / customInstructions are already
+  // filled on the initial paint — no flash of empty inputs, no animation
+  // needed. readPrefill deletes the sessionStorage key on read.
+  const initialPrefill = (() => {
+    if (typeof window === 'undefined') return null
+    return readPrefill('ugc')
+  })()
+
+  const [productName, setProductName] = useState(
+    initialPrefill?.title ? initialPrefill.title.slice(0, 80) : '',
+  )
+  const [productDescription, setProductDescription] = useState(
+    initialPrefill?.description ?? '',
+  )
+  const [benefits, setBenefits] = useState(
+    initialPrefill?.reason || initialPrefill?.description || '',
+  )
   const [callToAction, setCallToAction] = useState('Try it today')
   const [benefitsGenerating, setBenefitsGenerating] = useState(false)
-  const [customInstructions, setCustomInstructions] = useState('')
+  const [customInstructions, setCustomInstructions] = useState(
+    // The enhanced prompt from /api/content/enhance-prompt lives in
+    // description; it's a director-style note that maps perfectly to
+    // "custom instructions" here.
+    initialPrefill?.description ?? '',
+  )
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)

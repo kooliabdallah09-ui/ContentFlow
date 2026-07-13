@@ -128,16 +128,55 @@ export default function VideoGeneratorPage() {
     }
   }, [model])
 
-  // Prefill from a calendar suggestion
+  // Prefill from a calendar suggestion. Also loads the brand's primary
+  // product photo (if any) into refImages so the video seed matches the
+  // real product — no extra clicks for the user.
   useEffect(() => {
     const suggestion = readPrefill('video')
     if (suggestion) {
-      // description now holds the Claude-enhanced production prompt;
-      // fall back to title only if description is missing.
       const richPrompt = (suggestion.description && suggestion.description !== suggestion.title)
         ? suggestion.description
         : suggestion.title
       setPrompt(String(richPrompt).trim().slice(0, 4000))
+      // Fire-and-forget: fetch the brand's product image and stash it as a
+      // reference image. Runs after the prompt is already filled.
+      ;(async () => {
+        try {
+          const supabase = getSupabase()
+          if (!supabase) return
+          const { data: sess } = await supabase.auth.getSession()
+          const token = sess?.session?.access_token
+          if (!token) return
+          const res = await fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } })
+          if (!res.ok) return
+          const data = await res.json()
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const brand = data?.brand as any
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const products = Array.isArray(brand?.products) ? brand.products as any[] : []
+          const productImageUrl: string | undefined =
+            products.find(p => typeof p?.image_url === 'string' && p.image_url)?.image_url
+            ?? brand?.product_image_url
+            ?? brand?.logo_url
+          if (!productImageUrl) return
+          const imgRes = await fetch(productImageUrl)
+          if (!imgRes.ok) return
+          const blob = await imgRes.blob()
+          const mimeType = blob.type || 'image/jpeg'
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const r = new FileReader()
+            r.onloadend = () => {
+              const dataUrl = String(r.result ?? '')
+              const b64 = dataUrl.split(',')[1] ?? ''
+              b64 ? resolve(b64) : reject(new Error('empty'))
+            }
+            r.onerror = () => reject(new Error('read'))
+            r.readAsDataURL(blob)
+          })
+          const preview = `data:${mimeType};base64,${base64}`
+          setRefImages(prev => prev.length ? prev : [{ base64, mimeType, preview }])
+        } catch { /* non-fatal */ }
+      })()
       return
     }
     const chat = readChatPrefill()

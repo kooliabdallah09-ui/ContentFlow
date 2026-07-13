@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { readPrefill } from '@/lib/calendar-prefill'
 import { readChatPrefill } from '@/lib/chat-prefill'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
@@ -68,19 +67,12 @@ export default function UGCGeneratorPage() {
   // Prefill from a calendar suggestion (Create now). Runs once on mount.
   // The calendar day's title becomes the topic-line, description becomes the
   // benefits/script hint — user can still edit before submitting.
+  // Prefill from the calendar / dashboard is now handled inside
+  // UGCPackageBuilder itself (synchronously in useState initializers), so
+  // the form is populated on the first paint with no flash. We still catch
+  // the chat-agent handoff here since UGCPackageBuilder doesn't own that
+  // sessionStorage key.
   useEffect(() => {
-    const suggestion = readPrefill('ugc')
-    if (suggestion) {
-      setFormData(prev => ({
-        ...prev,
-        productName: prev.productName || suggestion.title.slice(0, 80),
-        productDescription: prev.productDescription || suggestion.description,
-        benefits: prev.benefits || suggestion.reason || suggestion.description,
-      }))
-      return
-    }
-    // Fall back to chat-agent handoff — Kooli's open_generator tool stashes
-    // the user's original request here so the form starts with their intent.
     const chat = readChatPrefill()
     if (chat) {
       setFormData(prev => ({
