@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import sharp from 'sharp'
 import { deductCredits } from '@/lib/deduct-credits'
 import { submitKlingV3OmniJob } from '@/lib/replicate'
 import { buildKlingPrompt } from '@/lib/kling-prompt'
+import { refineProductInFrame } from '@/lib/nanobanana'
 import { CREDIT_COSTS } from '@/lib/credits'
 import {
   DEFAULT_TIER,
@@ -50,6 +52,8 @@ export async function POST(request: NextRequest) {
       customInstructions,
       language: languageRaw,
       aspect: aspectRaw,
+      productImageBase64,
+      productImageMimeType,
     } = body as Record<string, unknown>
 
     if (!selectedFrameUrl || typeof selectedFrameUrl !== 'string' || !selectedFrameUrl.startsWith('http')) {
@@ -112,12 +116,62 @@ export async function POST(request: NextRequest) {
       gender: (avatarGender === 'Male' || character?.gender === 'Male') ? 'Male' : 'Female',
     })
 
+    // ── Pass 2: product-pixel refinement ─────────────────────────────────
+    // If the user uploaded a product photo, run a second Nano Banana pass
+    // that composites the EXACT product (label text, logo, colours) into
+    // the chosen hero frame. Runs once per package — not per candidate
+    // frame — so it's ~$0.03 per generation, not $0.12.
+    //
+    // Fail-soft: if the refinement errors we fall back to the raw picked
+    // frame so the pipeline never blocks.
+    let animateStartUrl = selectedFrameUrl
+    let refinedFrameUrl: string | undefined
+    if (
+      typeof productImageBase64 === 'string' && productImageBase64.length > 100 &&
+      typeof productImageMimeType === 'string'
+    ) {
+      try {
+        // Download the picked hero frame, run pass 2, upload the result.
+        const frameRes = await fetch(selectedFrameUrl)
+        if (frameRes.ok) {
+          const frameBuf = Buffer.from(await frameRes.arrayBuffer())
+          const frameB64 = frameBuf.toString('base64')
+          const frameMime = frameRes.headers.get('content-type') || 'image/jpeg'
+          const refined = await refineProductInFrame(
+            frameB64,
+            frameMime,
+            productImageBase64,
+            productImageMimeType,
+            safeProductName,
+            aspect.nanoBananaRatio,
+          )
+          // Resize + JPEG for a smaller upload footprint (Kling doesn't need PNG here).
+          const refinedBuf = await sharp(Buffer.from(refined.imageBase64, 'base64'))
+            .jpeg({ quality: 92 })
+            .toBuffer()
+          const stamp = Date.now()
+          const filename = `hero-frames/${userId}-${stamp}-refined.jpg`
+          const { error: upErr } = await supabase.storage
+            .from('ugc-assets')
+            .upload(filename, refinedBuf, { contentType: 'image/jpeg', upsert: false })
+          if (!upErr) {
+            const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+            animateStartUrl = publicUrl
+            refinedFrameUrl = publicUrl
+          }
+        }
+      } catch (err) {
+        console.warn('[ugc/animate] product refinement failed, using raw frame:', err instanceof Error ? err.message : err)
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     const klingSeconds = durationConfig.klingSeconds
     const clipCount = durationConfig.klingClips
 
     const primary = await submitKlingV3OmniJob({
       prompt: klingPrompt,
-      startImageUrl: selectedFrameUrl,
+      startImageUrl: animateStartUrl,
       durationSeconds: klingSeconds,
       aspectRatio: aspect.nanoBananaRatio,
     })
@@ -126,7 +180,7 @@ export async function POST(request: NextRequest) {
     if (clipCount >= 2) {
       secondary = await submitKlingV3OmniJob({
         prompt: klingPrompt,
-        startImageUrl: selectedFrameUrl,
+        startImageUrl: animateStartUrl,
         durationSeconds: klingSeconds,
         aspectRatio: aspect.nanoBananaRatio,
       })
@@ -161,6 +215,8 @@ export async function POST(request: NextRequest) {
         script,
         tier,
         selectedFrameUrl,
+        refinedFrameUrl,
+        productRefined: !!refinedFrameUrl,
         generatedAt: new Date().toISOString(),
       },
       credit_cost: totalCost,

@@ -411,3 +411,49 @@ Render in ${aspectRatio} aspect ratio.`
 
   return callNanoBanana(prompt, [{ base64: portraitBase64, mimeType: portraitMimeType }], aspectRatio)
 }
+
+// Pass 2 — product refinement / anti-Arcads pixel lock.
+//
+// The hero-frame render (pass 1) can scramble label text, logos, and small
+// packaging details. This helper takes the already-generated hero frame plus
+// the ORIGINAL clean product photo and asks Nano Banana to composite the
+// exact product pixels into the character's hand, preserving everything else
+// (face, hair, hands, background, lighting). Called only once — after the
+// user picks one of the 4 frames from the picker — so we spend ~$0.03 per
+// package, not $0.12.
+export async function refineProductInFrame(
+  frameBase64: string,
+  frameMimeType: string,
+  productBase64: string,
+  productMimeType: string,
+  productName: string,
+  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+): Promise<NanoBananaResult> {
+  const prompt = `Two images are attached.
+- Image 1 (SCENE): a first-frame photograph of a person holding or displaying a product. Preserve EVERYTHING in this image — the person's face, skin, hair, hands, wardrobe, background, lighting, mood, camera framing, and depth of field — with pixel-level fidelity. Do NOT redesign the person, background, or scene. Do NOT alter their expression or pose.
+- Image 2 (PRODUCT): a clean reference photo of ${productName}. This is the source of truth for the packaging's exact label text, logo, colours, geometry, proportions, and any typography.
+
+TASK: Replace whatever product-shaped object is currently in the person's hand (or on their body / in front of them) in Image 1 with the EXACT product from Image 2. Match the product's real orientation, real label text (letter-for-letter), real logo mark, real colours, real materials, and real proportions. If the object in Image 1 is misspelled, blurred, or a rough approximation, replace it entirely with the product from Image 2.
+
+Then relight the newly composited product so it sits believably in the SCENE's original lighting — same key direction, same skin tone bounce, matching shadow softness, matching specular highlights on the packaging. The product should feel physically present in the character's grip, not pasted on. Preserve the character's finger positions naturally around the new product shape.
+
+DO NOT change:
+- The person's identity, face, or expression
+- The person's hair, skin texture, wardrobe
+- The scene's background, props, or ambient lighting
+- The overall composition, framing, or aspect ratio
+- Any part of the image that is not the product itself
+
+DO NOT add: text overlays, watermarks, captions, or extra objects.
+
+Output a single hyper-realistic phone-camera photograph, rendered in ${aspectRatio} aspect ratio.`
+
+  return callNanoBanana(
+    prompt,
+    [
+      { base64: frameBase64, mimeType: frameMimeType },
+      { base64: productBase64, mimeType: productMimeType },
+    ],
+    aspectRatio,
+  )
+}

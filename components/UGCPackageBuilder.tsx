@@ -408,6 +408,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           customInstructions: customInstructions.trim() || undefined,
           language,
           aspect,
+          // Product photo, forwarded so the animate route can run pass-2
+          // Nano Banana refinement against the user-picked frame. Server
+          // fails soft — if refinement errors we keep the raw frame.
+          productImageBase64: productImage?.base64,
+          productImageMimeType: productImage?.mimeType,
         }),
       })
       const data = await res.json()
