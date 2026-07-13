@@ -63,15 +63,25 @@ export function planCutaways(anchorDurationSeconds: number): CutawayPlan {
 // surface, and camera angle used in each b-roll cutaway. Inferred once
 // per generation via inferProductCategory() below.
 export type ProductCategory =
-  | 'skincare'   // serums, moisturizers, mists, cleansers, toners
-  | 'makeup'     // foundation, lipstick, mascara, palettes
-  | 'haircare'   // shampoo, oil, styling cream
-  | 'food'       // snacks, packaged food, ready meals
-  | 'drink'      // coffee, tea, protein shake, water, soda
-  | 'supplement' // vitamins, gummies, powders
-  | 'apparel'    // t-shirt, hoodie, jacket, accessories worn on the upper body
-  | 'footwear'   // sneakers, boots, sandals, cleats
-  | 'gadget'     // physical hardware — headphones, gadgets, home gym
+  | 'skincare'    // serums, moisturizers, mists, cleansers, toners
+  | 'makeup'      // foundation, lipstick, mascara, palettes
+  | 'haircare'    // shampoo, oil, styling cream
+  | 'fragrance'   // perfume, cologne, EDT / EDP, body mist
+  | 'food'        // snacks, packaged food, ready meals
+  | 'drink'       // coffee, tea, protein shake, water, soda
+  | 'supplement'  // vitamins, gummies, powders
+  | 'cookware'    // pans, blenders, coffee makers, kitchen tools
+  | 'household'   // cleaning sprays, wipes, laundry, detergent
+  | 'homewares'   // candles, mugs, throws, plates, home decor
+  | 'apparel'     // t-shirt, hoodie, jacket, hat
+  | 'footwear'    // sneakers, boots, sandals, cleats
+  | 'jewelry'     // earrings, necklaces, rings, bracelets, watches
+  | 'eyewear'     // glasses, sunglasses, blue-light frames
+  | 'bag'         // backpacks, handbags, totes, crossbody
+  | 'headphones'  // airpods, earbuds, over-ear cans
+  | 'gadget'      // remaining hardware — cameras, smart-home, chargers
+  | 'fitness'     // dumbbells, mats, resistance bands, foam rollers
+  | 'pet'         // pet food, treats, toys, accessories
   | 'other'
 
 // Ask Claude Haiku to place the product in one of the above buckets.
@@ -93,11 +103,24 @@ export async function inferProductCategory(input: {
       messages: [{
         role: 'user',
         content: `Categorise this PHYSICAL product into ONE of these tokens (return the token only, lowercase, nothing else):
-skincare | makeup | haircare | food | drink | supplement | apparel | footwear | gadget | other
+skincare | makeup | haircare | fragrance | food | drink | supplement | cookware | household | homewares | apparel | footwear | jewelry | eyewear | bag | headphones | gadget | fitness | pet | other
 
-Use "footwear" for anything worn on the feet (sneakers, boots, sandals, cleats).
-Use "apparel" for anything else worn on the body (t-shirts, hoodies, jackets, hats, jewelry).
-The UGC pipeline is for physical products only — never software or apps.
+Disambiguation rules:
+- footwear = worn on feet (sneakers, boots, sandals)
+- apparel = worn on body but NOT feet, NOT jewelry, NOT eyewear, NOT bag
+- jewelry = earrings, necklaces, rings, bracelets, watches
+- eyewear = glasses, sunglasses, blue-light frames
+- bag = backpacks, handbags, totes, crossbody
+- headphones = airpods, earbuds, over-ear cans (any personal-audio hardware)
+- gadget = other electronics / hardware that doesn't fit headphones or fitness
+- cookware = kitchen tools used for cooking (pans, blenders, coffee makers)
+- household = cleaning / laundry / non-food kitchen consumables
+- homewares = decor, candles, mugs, throws, plates
+- fitness = home gym gear (dumbbells, mats, bands, foam rollers)
+- pet = anything for pets
+- fragrance = perfume, cologne, body mist (separate from skincare)
+
+The UGC pipeline is for physical products only — never software or apps. If truly ambiguous, use 'other'.
 
 Product: ${input.productName}
 Type: ${input.productType ?? ''}
@@ -105,7 +128,13 @@ Description: ${(input.productDescription ?? '').slice(0, 400)}`,
       }],
     })
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim().toLowerCase()
-    const allowed: ProductCategory[] = ['skincare','makeup','haircare','food','drink','supplement','apparel','footwear','gadget','other']
+    const allowed: ProductCategory[] = [
+      'skincare','makeup','haircare','fragrance',
+      'food','drink','supplement',
+      'cookware','household','homewares',
+      'apparel','footwear','jewelry','eyewear','bag',
+      'headphones','gadget','fitness','pet','other',
+    ]
     return (allowed as string[]).includes(raw) ? (raw as ProductCategory) : 'other'
   } catch { return 'other' }
 }
@@ -143,6 +172,12 @@ const CATEGORY_SLOTS: Record<ProductCategory, Record<CutawaySlot, SlotDetail>> =
     reaction: { surface: 'same bathroom mirror', action: 'same person tosses hair back gently, subtle satisfied smile', angle: 'mirror shot, phone-propped, close on the face', framing: 'MCU through the mirror' },
     usage:    { surface: 'bathroom or bedroom', action: 'same person combing through / styling hair', angle: 'handheld phone-camera, waist-up, natural light', framing: 'MS' },
   },
+  fragrance: {
+    hero:     { surface: 'a marble or wooden vanity next to a small glass tray, morning window light behind the bottle so the liquid glows', action: 'the bottle upright with atomizer facing camera, label + brand mark sharp, faint backlit haze on the glass', angle: 'macro side-lit with the window as the key, shallow depth of field', framing: 'macro CU' },
+    apply:    { surface: 'a bathroom or bedroom mirror, phone propped on the vanity', action: 'same person angles the bottle toward the side of the neck / inner wrist and gives a single gentle press', angle: 'mirror shot, phone-propped, three-quarter angle so we see the spray moment', framing: 'MCU through the mirror' },
+    reaction: { surface: 'same vanity mirror', action: 'same person lifts the wrist toward the nose, a soft inhale and a small mouth-corner lift', angle: 'mirror shot, phone-propped, close on the face and wrist', framing: 'MCU through the mirror' },
+    usage:    { surface: 'a bedroom or entryway, coat and keys on a hook', action: 'same person finishing the getting-ready routine — quick spray, tuck the bottle back on the vanity, glance toward the door', angle: 'handheld phone-camera waist-up', framing: 'MS' },
+  },
   food: {
     hero:     { surface: 'a wooden board or ceramic plate on a kitchen counter, small garnish nearby', action: 'the product sitting plated, packaging next to it, label visible', angle: 'top-down 45° macro with soft window light', framing: 'macro CU' },
     apply:    { surface: 'kitchen counter, plate and utensil ready', action: 'same person opens the packaging / plates the food / picks up a piece', angle: 'over-the-shoulder or handheld phone view of the hands and food', framing: 'MS OTS' },
@@ -161,6 +196,24 @@ const CATEGORY_SLOTS: Record<ProductCategory, Record<CutawaySlot, SlotDetail>> =
     reaction: { surface: 'kitchen', action: 'same person swallows, small satisfied breath, quick nod', angle: 'handheld phone camera front-on', framing: 'MCU' },
     usage:    { surface: 'kitchen or bathroom', action: 'same person adding the routine into their morning — pouring water, taking the supplement, small casual movements', angle: 'handheld phone camera waist-up', framing: 'MS' },
   },
+  cookware: {
+    hero:     { surface: 'a clean stovetop or wooden kitchen counter with ingredients arranged nearby (herbs, produce, eggs)', action: 'the cookware placed at hero angle — pan tilted slightly toward camera, blender jug upright on base, coffee maker with cup underneath — brand mark visible', angle: 'top-down 45° macro with soft window light, shallow depth of field', framing: 'macro CU' },
+    apply:    { surface: 'the same stovetop or counter with prepped ingredients', action: 'same person pours batter into the pan / drops fruit into the blender / clicks the coffee brew — hands and cookware in-frame', angle: 'over-the-shoulder or handheld phone camera looking down at the surface', framing: 'MS OTS' },
+    reaction: { surface: 'kitchen counter, plated result nearby', action: 'same person tastes the cooked / brewed / blended output — small satisfied nod, quick lip-press', angle: 'handheld phone camera front-on', framing: 'MCU' },
+    usage:    { surface: 'kitchen mid-cook', action: 'same person mid-action — flipping, stirring, pouring — the cookware doing its job', angle: 'handheld phone camera waist-up with the stovetop / counter in-frame', framing: 'MS' },
+  },
+  household: {
+    hero:     { surface: 'the target surface for the product (kitchen counter for a spray, laundry basket for a detergent, bathroom tile for a wipe)', action: 'bottle / packaging upright with a folded cloth or spray target nearby, label + brand sharp', angle: 'macro side-lit, soft daylight through a nearby window', framing: 'macro CU' },
+    apply:    { surface: 'the surface being cleaned / laundry being loaded', action: 'same person sprays / wipes / pours the product onto the target with a natural motion', angle: 'handheld phone camera at counter height, hands + product + surface in-frame', framing: 'MS' },
+    reaction: { surface: 'same area, freshly cleaned', action: 'same person glances at the clean result, a subtle satisfied breath, small eyebrow lift', angle: 'handheld phone camera front-on', framing: 'MCU' },
+    usage:    { surface: 'kitchen, bathroom, or laundry room mid-chore', action: 'same person mid-cleaning routine — wiping down a counter, folding laundry, spraying a mirror', angle: 'handheld phone camera waist-up', framing: 'MS' },
+  },
+  homewares: {
+    hero:     { surface: 'a styled surface that matches the item — coffee table for a candle, open shelf for a mug, folded on a bed for a throw', action: 'the item as the hero of the tableau with matching supporting props (a book, a small plant, a linen napkin)', angle: 'natural window light from the side, top-down or three-quarter, soft shadows', framing: 'macro CU on the item' },
+    apply:    { surface: 'the target spot in the home (side table, shelf, couch, bed)', action: 'same person places / lights / arranges the item — striking a match to light the candle, setting the mug on the shelf, laying the throw on the couch', angle: 'handheld phone camera side-on, hands and item in-frame', framing: 'MS' },
+    reaction: { surface: 'a step back from the placement', action: 'same person takes a step back, small satisfied breath, subtle mouth-corner lift as they take in the arrangement', angle: 'handheld phone camera front-on', framing: 'MCU' },
+    usage:    { surface: 'the room lived-in with the item integrated', action: 'same person using the room naturally — sipping from the mug on the couch, reading next to the candle, curled under the throw', angle: 'handheld phone camera waist-up', framing: 'MS' },
+  },
   apparel: {
     hero:     { surface: 'a wooden hanger against a plain wall or laid flat on a bed', action: 'the garment shown from the front, tag / label visible', angle: 'flat-lay top-down or hanger front-on, soft natural light', framing: 'macro CU on the fabric detail' },
     apply:    { surface: 'a full-length mirror in a bedroom, phone propped on a dresser', action: 'same person slipping it on / adjusting the fit', angle: 'mirror shot, phone-propped, we see them front-on', framing: 'WS through the mirror' },
@@ -173,11 +226,47 @@ const CATEGORY_SLOTS: Record<ProductCategory, Record<CutawaySlot, SlotDetail>> =
     reaction: { surface: 'a full-length mirror in the entryway or bedroom, phone propped on a nearby shelf', action: 'same person stands up, small ankle turn to check the profile, subtle satisfied nod', angle: 'mirror shot from the phone-propped position, we see them front-on head-to-toe', framing: 'WS through the mirror' },
     usage:    { surface: 'a sidewalk, gym floor, café entrance, or apartment hallway', action: 'same person walks naturally, sneakers taking every step — this is a stride shot', angle: 'handheld phone-camera at knee height following the feet, waist-DOWN framing, sneakers front-and-centre for the whole clip', framing: 'MS waist-down / feet-forward' },
   },
+  jewelry: {
+    hero:     { surface: 'a small velvet tray or open jewelry box on a wooden dresser, morning window light', action: 'the piece placed centre-frame with the metal catching light and any stones sparkling, brand mark / hallmark visible', angle: 'macro top-down or three-quarter with a small light glint on the metal, shallow depth of field', framing: 'macro ECU' },
+    apply:    { surface: 'a vanity or bedroom mirror with the phone propped on a shelf', action: 'same person puts the piece on — clasping a necklace, sliding an earring in, latching a bracelet or watch — hands and piece visible in the mirror', angle: 'mirror shot, phone-propped, close on the neck / ear / wrist', framing: 'MCU through the mirror' },
+    reaction: { surface: 'same mirror, piece now worn', action: 'same person angles the neck / ear / wrist toward the mirror, subtle satisfied breath, small mouth-corner lift', angle: 'mirror shot with a macro-close feel on the piece against skin', framing: 'CU through the mirror on the worn piece' },
+    usage:    { surface: 'a full-length mirror or entryway', action: 'same person in a full outfit with the piece worn as part of the look, small natural movement (adjusting a sleeve, tucking hair behind the ear so the earring shows)', angle: 'mirror shot or handheld phone camera three-quarter, waist-up', framing: 'MS' },
+  },
+  eyewear: {
+    hero:     { surface: 'a hardcover book, open case, or wooden desk with a folded newspaper', action: 'the frames side-profile with a small light glint on the lens and hinge', angle: 'macro side-on, natural light from a window, shallow depth of field on the temple + brand mark', framing: 'macro CU' },
+    apply:    { surface: 'a bathroom or vanity mirror with the phone propped', action: 'same person slides the frames on, two-handed, small adjustment at the temples', angle: 'mirror shot, phone-propped, three-quarter angle so we see both the frames and the face', framing: 'MCU through the mirror' },
+    reaction: { surface: 'same mirror', action: 'same person tilts the head slightly to check the side profile, subtle mouth-corner lift', angle: 'mirror shot, phone-propped, close on the face', framing: 'MCU through the mirror' },
+    usage:    { surface: 'a café, park bench, or sunlit apartment window', action: 'same person wearing the frames in-context, small natural movement (reading, sipping coffee, looking out a window)', angle: 'handheld phone camera three-quarter, waist-up, natural daylight', framing: 'MS' },
+  },
+  bag: {
+    hero:     { surface: 'a wooden hook by the door, a linen chair, or the edge of a bed with a couple of items styled around it (keys, wallet, a book)', action: 'the bag hero-forward with the strap draped naturally and any brand mark / hardware visible', angle: 'macro three-quarter with soft natural light, shallow depth of field on the material texture and logo', framing: 'macro CU' },
+    apply:    { surface: 'a bed or table where the bag lies open', action: 'same person opens the bag and places items inside — wallet, keys, sunglasses, laptop — hands and bag interior visible', angle: 'handheld phone camera top-down or three-quarter, hands + bag in-frame', framing: 'MS' },
+    reaction: { surface: 'a full-length or wall mirror with the phone propped nearby', action: 'same person shoulders / holds the bag and does a small turn to check the look in the mirror, subtle satisfied nod', angle: 'mirror shot, phone-propped, three-quarter angle', framing: 'MS through the mirror' },
+    usage:    { surface: 'a sidewalk, café, or apartment hallway', action: 'same person carrying the bag naturally — walking, sitting, adjusting the strap', angle: 'handheld phone camera at hip / shoulder height following them, three-quarter angle', framing: 'MS' },
+  },
+  headphones: {
+    hero:     { surface: 'a wooden desk, coffee table, or bedside stand — for AirPods / earbuds, the CASE is OPEN with the buds nestled inside; for over-ear cans, they sit on a stand or laid flat with the ear cups facing camera', action: 'the headphones / open case as the hero with any brand mark and materials sharp, small pool of window light on the metal / plastic', angle: 'macro three-quarter, shallow depth of field on the logo and driver / driver grille', framing: 'macro CU' },
+    apply:    { surface: 'the same person\'s hands', action: 'same person takes the buds out of the case and slides them into their ears, or lifts the over-ear cans and settles them over the head, adjusting once', angle: 'handheld phone camera at chest / face height, hands + headphones + head in-frame', framing: 'MCU' },
+    reaction: { surface: 'wherever they wear them (desk, kitchen, couch)', action: 'same person\'s head settles, eyes soften as the audio starts, tiny nod on a beat, subtle mouth-corner lift', angle: 'handheld phone camera front-on', framing: 'MCU' },
+    usage:    { surface: 'a desk with a laptop, a sidewalk / commute, or a home gym', action: 'same person wearing the headphones in-context — typing at the laptop, walking outside, mid-workout — small natural movement', angle: 'handheld phone camera three-quarter, waist-up', framing: 'MS' },
+  },
   gadget: {
     hero:     { surface: 'a desk or side table with a soft mat', action: 'the gadget sitting upright / plugged in, small LED glow if applicable, label / logo visible', angle: 'macro side-lit, product-forward, background soft-blurred', framing: 'macro CU' },
     apply:    { surface: 'a desk / kitchen counter', action: 'same person turns it on / picks it up / uses the primary function', angle: 'over-the-shoulder or handheld phone view, hands and gadget in-frame', framing: 'MS OTS' },
     reaction: { surface: 'same setting', action: 'same person nods, subtle smile, quiet exhale as the gadget does its thing', angle: 'handheld phone camera front-on', framing: 'MCU' },
     usage:    { surface: 'natural setting for the gadget (desk, living room, gym)', action: 'same person using it in-context, product visible in-hand', angle: 'handheld phone camera waist-up', framing: 'MS' },
+  },
+  fitness: {
+    hero:     { surface: 'a rolled or half-unrolled yoga mat on a wood or concrete floor with matching gear laid out nearby', action: 'the piece(s) — dumbbells stacked, resistance bands coiled, foam roller centre-frame, kettlebell upright — brand marks visible', angle: 'top-down or three-quarter macro with soft daylight, shallow depth of field', framing: 'macro CU' },
+    apply:    { surface: 'the same mat / floor', action: 'same person grabs the gear and gets into position — picks up the dumbbell into a curl, wraps the band around a foot, sits onto the mat with hands on the roller', angle: 'handheld phone camera at floor / knee height, gear and hands in-frame', framing: 'MS' },
+    reaction: { surface: 'same space, mid-set or post-set', action: 'same person exhales after a rep, quick wipe of the forehead with the back of the wrist, small satisfied nod', angle: 'handheld phone camera front-on', framing: 'MCU' },
+    usage:    { surface: 'a home gym / bedroom corner / living room set up as a workout space', action: 'same person mid-exercise — a rep of a curl, a stretch on the mat, a band pull — natural continuous motion', angle: 'handheld phone camera three-quarter, waist-up or full-body depending on the movement', framing: 'MS' },
+  },
+  pet: {
+    hero:     { surface: 'a wooden floor with a pet bed, bowl, or favorite spot next to the product', action: 'the product placed hero-forward with the pet\'s bowl or toy nearby as supporting prop, label visible', angle: 'top-down or three-quarter macro, warm home light, shallow depth of field', framing: 'macro CU' },
+    apply:    { surface: 'a pet bowl on the floor, a treat jar on a counter, or the pet\'s play area', action: 'same person opens / scoops / offers the product to the pet — filling the bowl, offering a treat, clipping on a collar or harness', angle: 'handheld phone camera at pet height, hands + product + pet in-frame', framing: 'MS' },
+    reaction: { surface: 'floor with the pet enjoying', action: 'the PET reacts — dog wagging while eating, cat purring next to the bowl, dog chasing the toy — the human is off-camera or partly visible in the background', angle: 'handheld phone camera at pet height, pet as subject', framing: 'MCU on the pet' },
+    usage:    { surface: 'the pet\'s natural space (living room floor, backyard, kitchen)', action: 'the pet using / eating / playing with the product naturally, human hand possibly ruffling fur once', angle: 'handheld phone camera at pet height, three-quarter angle', framing: 'MS' },
   },
   other: {
     hero:     { surface: 'a matching surface for the product', action: 'product sitting undisturbed, label sharp', angle: 'macro side-lit, background soft-blurred', framing: 'macro ECU' },
