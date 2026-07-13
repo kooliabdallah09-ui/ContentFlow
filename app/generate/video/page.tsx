@@ -83,8 +83,17 @@ const SEEDANCE_CR_PER_SECOND: Record<Resolution, number> = {
   '1080p': 33,   // $0.45/s
   '4k':   72,    // $1.00/s
 }
-function getSeedanceCost(duration: number, resolution: Resolution): number {
-  return Math.max(1, Math.round(duration * SEEDANCE_CR_PER_SECOND[resolution]))
+// Disabling native audio drops the compute meaningfully — we pass 15% of
+// the savings back to the user (nice round discount, still profitable).
+const NO_AUDIO_MULTIPLIER = 0.85
+function getSeedanceCost(duration: number, resolution: Resolution, withAudio: boolean): number {
+  const base = duration * SEEDANCE_CR_PER_SECOND[resolution]
+  return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER))
+}
+function getSeedancePerSecond(resolution: Resolution, withAudio: boolean): number {
+  return withAudio
+    ? SEEDANCE_CR_PER_SECOND[resolution]
+    : Math.ceil(SEEDANCE_CR_PER_SECOND[resolution] * NO_AUDIO_MULTIPLIER)
 }
 
 export default function VideoGeneratorPage() {
@@ -93,6 +102,7 @@ export default function VideoGeneratorPage() {
   const [rewriting, setRewriting] = useState(false)
   const [duration, setDuration] = useState(5)
   const [resolution, setResolution] = useState<Resolution>('720p')
+  const [withAudio, setWithAudio] = useState(true)
   const [aspect, setAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait')
   const [refImages, setRefImages] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
 
@@ -117,7 +127,7 @@ export default function VideoGeneratorPage() {
   // Seedance pricing depends on resolution × duration. Other models keep
   // the flat per-duration table.
   const cost = model === 'seedance-2'
-    ? getSeedanceCost(duration, resolution)
+    ? getSeedanceCost(duration, resolution, withAudio)
     : (cfg.credits[duration] ?? 60)
   const canGenerate = prompt.trim().length >= 5 && creditBalance >= cost
 
@@ -303,6 +313,7 @@ export default function VideoGeneratorPage() {
           model,
           duration,
           resolution,
+          withAudio,
           aspect,
           referenceImages: refImages.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
         }),
@@ -393,7 +404,7 @@ export default function VideoGeneratorPage() {
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 14 }}>Duration</div>
           <div style={{ display: 'flex', gap: 10 }}>
             {cfg.durations.map(sec => {
-              const cr = model === 'seedance-2' ? getSeedanceCost(sec, resolution) : cfg.credits[sec]
+              const cr = model === 'seedance-2' ? getSeedanceCost(sec, resolution, withAudio) : cfg.credits[sec]
               const active = duration === sec
               return (
                 <button
@@ -427,7 +438,7 @@ export default function VideoGeneratorPage() {
               <div style={{ display: 'flex', gap: 10 }}>
                 {(['480p', '720p', '1080p', '4k'] as Resolution[]).map(r => {
                   const active = resolution === r
-                  const perSec = SEEDANCE_CR_PER_SECOND[r]
+                  const perSec = getSeedancePerSecond(r, withAudio)
                   return (
                     <button
                       key={r}
@@ -446,6 +457,39 @@ export default function VideoGeneratorPage() {
                     >
                       <span style={{ fontSize: 15, fontWeight: 700 }}>{r}</span>
                       <span style={{ fontSize: 10.5, opacity: active ? 0.75 : 1, color: active ? 'var(--on-ink)' : 'var(--ink-dim)', fontWeight: 500 }}>{perSec} cr/s</span>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Audio toggle */}
+              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginTop: 24, marginBottom: 14 }}>
+                Native audio <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-mute)', fontFamily: 'inherit' }}>· voice, ambient sound, music</span>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                {([
+                  { on: true,  label: 'With audio',    hint: 'default rate' },
+                  { on: false, label: 'Silent',        hint: '15% cheaper' },
+                ] as const).map(opt => {
+                  const active = withAudio === opt.on
+                  return (
+                    <button
+                      key={String(opt.on)}
+                      type="button"
+                      onClick={() => setWithAudio(opt.on)}
+                      disabled={generating}
+                      style={{
+                        flex: 1, padding: '12px 12px', borderRadius: 10, textAlign: 'left',
+                        border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                        background: active ? 'var(--ink)' : 'transparent',
+                        color: active ? 'var(--on-ink)' : 'var(--ink)',
+                        cursor: generating ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.15s',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                      }}
+                    >
+                      <span style={{ fontSize: 13.5, fontWeight: 700 }}>{opt.label}</span>
+                      <span style={{ fontSize: 10.5, opacity: active ? 0.75 : 1, color: active ? 'var(--on-ink)' : 'var(--ink-dim)', fontWeight: 500 }}>{opt.hint}</span>
                     </button>
                   )
                 })}

@@ -96,21 +96,25 @@ export async function submitSeedanceJob(params: {
   aspectRatio?: '9:16' | '16:9' | '1:1'
   startImageUrl?: string
   resolution?: '480p' | '720p' | '1080p' | '4k'
+  enableAudio?: boolean       // native voice + ambient + music, default off
 }): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
   const clampedDuration = Math.max(3, Math.min(60, Math.round(params.durationSeconds)))
+  const wantAudio = params.enableAudio === true
   const input: Record<string, unknown> = {
     prompt: params.prompt,
     duration: clampedDuration,
     aspect_ratio: params.aspectRatio ?? '9:16',
     resolution: params.resolution ?? '720p',
     camera_fixed: false,
-    // ElevenLabs handles the voiceover — disable Seedance's native audio so we
-    // don't get a lipsync mismatch (Seedance would generate its own dialog).
-    enable_audio: false,
-    generate_audio: false,
+    // Native audio toggle. When ElevenLabs handles voiceover we want this
+    // off to avoid a double track / lipsync mismatch. When the video is
+    // stand-alone (no downstream VO), leaving audio on gives the render
+    // ambient sound + music + spoken hook lines out of the box.
+    enable_audio: wantAudio,
+    generate_audio: wantAudio,
     // Keep the safety filter from flagging borderline framings — POV UGC
     // legitimately sits close to "bedroom / dim light" which the filter
     // interprets as suggestive. Force-clean the framing.

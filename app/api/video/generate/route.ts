@@ -21,11 +21,15 @@ const SEEDANCE_CR_PER_SECOND: Record<string, number> = {
   '1080p': 33,   // $0.45/s
   '4k':    72,   // $1.00/s
 }
+// Silent renders skip audio synthesis compute — we pass 15% back to the
+// user. Keep this in sync with NO_AUDIO_MULTIPLIER on the client.
+const NO_AUDIO_MULTIPLIER = 0.85
 
-function getCost(model: string, duration: number, resolution?: string): number {
+function getCost(model: string, duration: number, resolution?: string, withAudio: boolean = true): number {
   if (model === 'seedance-2') {
     const per = SEEDANCE_CR_PER_SECOND[resolution ?? '720p'] ?? SEEDANCE_CR_PER_SECOND['720p']
-    return Math.max(1, Math.round(duration * per))
+    const base = duration * per
+    return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER))
   }
   return FLAT_COSTS[model]?.[duration] ?? 60
 }
@@ -111,6 +115,7 @@ export async function POST(request: NextRequest) {
       body.resolution === '480p' || body.resolution === '1080p' || body.resolution === '4k'
         ? body.resolution
         : '720p'
+    const withAudio: boolean = body.withAudio !== false  // default true
     if (model === 'seedance-2') {
       if (!Number.isFinite(duration) || duration < 3 || duration > 60) {
         return NextResponse.json({ error: 'Seedance duration must be between 3 and 60 seconds' }, { status: 400 })
@@ -134,7 +139,7 @@ export async function POST(request: NextRequest) {
     const refImageBase64 = referenceImages[0]?.base64
     const refImageMimeType = referenceImages[0]?.mimeType
 
-    const totalCost = getCost(model, duration, resolution)
+    const totalCost = getCost(model, duration, resolution, withAudio)
     const { data: userCredits } = await supabase
       .from('user_credits')
       .select('balance, pack_credits')
@@ -171,6 +176,7 @@ export async function POST(request: NextRequest) {
         aspectRatio,
         startImageUrl,
         resolution,
+        enableAudio: withAudio,
       })
       predictionId = seedanceJob.predictionId
       provider = 'seedance-2'
