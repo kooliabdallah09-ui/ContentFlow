@@ -39,6 +39,18 @@ const ACTORS = [
   { id: 'noah',    age: 'early 20s', gender: 'man',   ethnicity: 'mixed race',            hair: 'dark brown curly hair', features: 'small ear piercing', scene: 'city street', outfit: 'streetwear and a cap' },
   { id: 'leila',   age: 'late 20s', gender: 'woman', ethnicity: 'Middle Eastern',        hair: 'dark brown straight hair', features: '',         scene: 'café',         outfit: 'smart casual top with earrings' },
   { id: 'marcus',  age: '40s',      gender: 'man',   ethnicity: 'Black / African American', hair: 'short coily hair',    features: 'salt-and-pepper beard', scene: 'living room', outfit: 'cozy sweater' },
+
+  // Expansion pack — added 2026-07-13
+  { id: 'priya',   age: 'late 20s',  gender: 'woman', ethnicity: 'South Asian',           hair: 'long straight black hair',    features: '',                        scene: 'home office',       outfit: 'silk camisole and cardigan, small hoop earrings' },
+  { id: 'kai',     age: 'late 20s',  gender: 'man',   ethnicity: 'Pacific Islander',      hair: 'medium wavy black hair',      features: 'sun-kissed tan skin',     scene: 'bright kitchen',    outfit: 'linen button-down shirt and a thin cord necklace' },
+  { id: 'elena',   age: 'early 30s', gender: 'woman', ethnicity: 'Mediterranean (Southern European)', hair: 'dark brown curly shoulder-length hair', features: '',           scene: 'warm home kitchen', outfit: 'linen apron over a plain t-shirt, flour on the sleeve' },
+  { id: 'zara',    age: 'early 20s', gender: 'woman', ethnicity: 'East Asian',            hair: 'straight black hair with soft bangs', features: '',                    scene: 'bathroom vanity',   outfit: 'cropped white tee, small stud earrings' },
+  { id: 'jamal',   age: 'early 30s', gender: 'man',   ethnicity: 'Black / African American', hair: 'short fade haircut',       features: 'neat goatee',             scene: 'home gym corner',   outfit: 'athletic tank top, sport watch on wrist' },
+  { id: 'mia',     age: 'early 20s', gender: 'woman', ethnicity: 'Southeast Asian (Filipino)', hair: 'long straight dark brown hair', features: '',                    scene: 'coffee shop by a window', outfit: 'cropped cardigan over a tank top, backpack strap on the shoulder' },
+  { id: 'naomi',   age: 'late 20s',  gender: 'woman', ethnicity: 'Black / African American', hair: 'natural coily medium-length hair', features: 'gold hoop earrings', scene: 'home office',       outfit: 'fitted ribbed turtleneck' },
+  { id: 'oliver',  age: '50s',       gender: 'man',   ethnicity: 'Northern European',     hair: 'short silver grey hair',      features: 'salt-and-pepper stubble', scene: 'kitchen counter',   outfit: 'rolled-sleeve chambray button-up, silver wristwatch' },
+  { id: 'hana',    age: 'late 20s',  gender: 'woman', ethnicity: 'East Asian',            hair: 'long straight warm brown hair', features: '',                      scene: 'sunlit kitchen with a few potted plants', outfit: 'loose linen top, delicate gold necklace' },
+  { id: 'carlos',  age: '40s',       gender: 'man',   ethnicity: 'Latin American',        hair: 'short black hair with grey at the temples', features: 'short trimmed beard', scene: 'lived-in living room', outfit: 'henley shirt' },
 ]
 
 function buildPrompt(a) {
