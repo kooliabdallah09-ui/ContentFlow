@@ -5,7 +5,7 @@ import { deductCredits } from '@/lib/deduct-credits'
 import { submitKlingV3OmniJob, submitSeedanceJob } from '@/lib/replicate'
 import { buildKlingPrompt } from '@/lib/kling-prompt'
 import { refineProductInFrame, renderCutawayFrame } from '@/lib/nanobanana'
-import { planCutaways, cutawayFramePrompt, cutawayMotionPrompt, type CutawaySlot } from '@/lib/multi-shot'
+import { planCutaways, cutawayFramePrompt, cutawayMotionPrompt, inferProductCategory, type CutawaySlot } from '@/lib/multi-shot'
 import { CREDIT_COSTS } from '@/lib/credits'
 import {
   DEFAULT_TIER,
@@ -216,10 +216,18 @@ export async function POST(request: NextRequest) {
           const anchorB64 = anchorBuf.toString('base64')
           const anchorMime = anchorRes.headers.get('content-type') || 'image/jpeg'
 
+          // Classify the product once so every cutaway slot pulls the right
+          // real-world action + camera angle (skincare -> mirror + propped
+          // phone; drink -> kitchen counter + sip; app -> laptop OTS; etc.)
+          const productCategory = await inferProductCategory({
+            productName: safeProductName,
+            productDescription: safeProductDescription,
+          })
+
           const settled = await Promise.allSettled(
             cutawayPlan.slots.map(async (slot, idx) => {
-              // 1. Nano Banana frame for this slot
-              const framePrompt = cutawayFramePrompt(slot, safeProductName, backgroundContext)
+              // 1. Nano Banana frame for this slot — product-category aware
+              const framePrompt = cutawayFramePrompt(slot, safeProductName, backgroundContext, productCategory)
               const cf = await renderCutawayFrame(
                 anchorB64, anchorMime,
                 productImageBase64 as string, productImageMimeType as string,
@@ -236,8 +244,8 @@ export async function POST(request: NextRequest) {
                 .upload(filename, cutawayBuf, { contentType: 'image/jpeg', upsert: false })
               if (upErr) throw new Error(`Cutaway frame upload: ${upErr.message}`)
               const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-              // 3. Kick off silent Seedance
-              const motion = cutawayMotionPrompt(slot, safeProductName)
+              // 3. Kick off silent Seedance — same category so motion matches framing
+              const motion = cutawayMotionPrompt(slot, safeProductName, productCategory)
               const job = await submitSeedanceJob({
                 prompt: motion,
                 durationSeconds: cutawayPlan.cutawayDuration,
