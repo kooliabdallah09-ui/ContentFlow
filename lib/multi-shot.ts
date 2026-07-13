@@ -69,7 +69,8 @@ export type ProductCategory =
   | 'food'       // snacks, packaged food, ready meals
   | 'drink'      // coffee, tea, protein shake, water, soda
   | 'supplement' // vitamins, gummies, powders
-  | 'apparel'    // t-shirt, hoodie, sneakers, accessories
+  | 'apparel'    // t-shirt, hoodie, jacket, accessories worn on the upper body
+  | 'footwear'   // sneakers, boots, sandals, cleats
   | 'gadget'     // physical hardware — headphones, gadgets, home gym
   | 'other'
 
@@ -92,8 +93,10 @@ export async function inferProductCategory(input: {
       messages: [{
         role: 'user',
         content: `Categorise this PHYSICAL product into ONE of these tokens (return the token only, lowercase, nothing else):
-skincare | makeup | haircare | food | drink | supplement | apparel | gadget | other
+skincare | makeup | haircare | food | drink | supplement | apparel | footwear | gadget | other
 
+Use "footwear" for anything worn on the feet (sneakers, boots, sandals, cleats).
+Use "apparel" for anything else worn on the body (t-shirts, hoodies, jackets, hats, jewelry).
 The UGC pipeline is for physical products only — never software or apps.
 
 Product: ${input.productName}
@@ -102,7 +105,7 @@ Description: ${(input.productDescription ?? '').slice(0, 400)}`,
       }],
     })
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim().toLowerCase()
-    const allowed: ProductCategory[] = ['skincare','makeup','haircare','food','drink','supplement','apparel','gadget','other']
+    const allowed: ProductCategory[] = ['skincare','makeup','haircare','food','drink','supplement','apparel','footwear','gadget','other']
     return (allowed as string[]).includes(raw) ? (raw as ProductCategory) : 'other'
   } catch { return 'other' }
 }
@@ -163,6 +166,12 @@ const CATEGORY_SLOTS: Record<ProductCategory, Record<CutawaySlot, SlotDetail>> =
     apply:    { surface: 'a full-length mirror in a bedroom, phone propped on a dresser', action: 'same person slipping it on / adjusting the fit', angle: 'mirror shot, phone-propped, we see them front-on', framing: 'WS through the mirror' },
     reaction: { surface: 'same full-length mirror', action: 'same person adjusts collar / turns to check fit, subtle satisfied smile', angle: 'mirror shot, phone-propped', framing: 'MS through the mirror' },
     usage:    { surface: 'bedroom, street, or coffee shop', action: 'same person wearing the item naturally, small casual movement (walking / sitting / adjusting a sleeve)', angle: 'handheld phone camera front-on or side, waist-up', framing: 'MS' },
+  },
+  footwear: {
+    hero:     { surface: 'a light wooden floor or a clean entryway mat next to a folded pair of socks', action: 'the sneakers placed side-profile with laces neat, one shoe slightly angled toward camera to show the branding and silhouette', angle: 'macro from a low three-quarter angle, soft natural light coming in from a window, brand mark and lace treatment sharp', framing: 'macro CU on the side profile' },
+    apply:    { surface: 'the edge of a bed or a low bench near a doorway', action: 'same person seated, hands lacing them up and pulling the tongue straight, foot resting on the opposite knee then set down', angle: 'phone-camera looking DOWN at the feet from the person\'s perspective — a natural first-person tie-up POV', framing: 'CU on hands + feet + shoes' },
+    reaction: { surface: 'a full-length mirror in the entryway or bedroom, phone propped on a nearby shelf', action: 'same person stands up, small ankle turn to check the profile, subtle satisfied nod', angle: 'mirror shot from the phone-propped position, we see them front-on head-to-toe', framing: 'WS through the mirror' },
+    usage:    { surface: 'a sidewalk, gym floor, café entrance, or apartment hallway', action: 'same person walks naturally, sneakers taking every step — this is a stride shot', angle: 'handheld phone-camera at knee height following the feet, waist-DOWN framing, sneakers front-and-centre for the whole clip', framing: 'MS waist-down / feet-forward' },
   },
   gadget: {
     hero:     { surface: 'a desk or side table with a soft mat', action: 'the gadget sitting upright / plugged in, small LED glow if applicable, label / logo visible', angle: 'macro side-lit, product-forward, background soft-blurred', framing: 'macro CU' },
