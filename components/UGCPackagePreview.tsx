@@ -24,10 +24,23 @@ interface BrollClip {
   label?: string
 }
 
+interface CutawayClip {
+  slot: string
+  startAt: number
+  duration: number
+  predictionId?: string       // Seedance job ID
+  videoUrl?: string           // Set once poll returns completed
+  status?: 'processing' | 'completed' | 'failed'
+  startImageUrl?: string
+  error?: string
+}
+
 interface UGCComponent {
   image?: { url: string; id: string }
   video?: VideoComponent
   broll?: BrollClip[]
+  cutaways?: CutawayClip[]
+  multiShot?: boolean
   script?: string
   audioOverlayUrl?: string  // Hero tier: ElevenLabs voice to overlay on the muted Sora video
   language?: string         // ISO-639-1 code — drives Whisper transcription hint
@@ -47,6 +60,11 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [copied, setCopied] = useState<string | null>(null)
   const [video, setVideo] = useState<VideoComponent | null>(null)
   const [brolls, setBrolls] = useState<BrollClip[]>([])
+  const [cutaways, setCutaways] = useState<CutawayClip[]>([])
+  const [multiShot, setMultiShot] = useState(false)
+  const [compositeRenderId, setCompositeRenderId] = useState<string | null>(null)
+  const compositePollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const compositeStartedRef = useRef(false)
   const [stitchRenderId, setStitchRenderId] = useState<string | null>(null)
   const [stitchStatus, setStitchStatus] = useState<'idle' | 'stitching' | 'completed' | 'failed'>('idle')
   const [stitchError, setStitchError] = useState<string | null>(null)
@@ -60,7 +78,46 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     if (components?.video) setVideo(components.video)
     if (components?.broll) setBrolls(components.broll)
     if (components?.audioOverlayUrl) setAudioOverlayUrl(components.audioOverlayUrl)
+    if (components?.cutaways?.length) {
+      setCutaways(components.cutaways.map(c => ({
+        ...c,
+        status: c.predictionId ? 'processing' : 'failed',
+      })))
+    }
+    if (components?.multiShot) setMultiShot(true)
   }, [components])
+
+  // Poll each cutaway's Seedance job independently. Uses the same
+  // /api/ugc/video-status endpoint that handles the anchor and legacy
+  // B-rolls, passing provider=seedance-2 per cutaway.
+  useEffect(() => {
+    const processing = cutaways.filter(c => c.predictionId && c.status === 'processing')
+    if (!processing.length) return
+    const t = setInterval(async () => {
+      const updates = await Promise.all(processing.map(async c => {
+        try {
+          const res = await fetch(`/api/ugc/video-status?videoId=${c.predictionId}&provider=seedance-2`)
+          if (!res.ok) return null
+          const data = await res.json()
+          const v = data.video
+          if (!v) return null
+          if (v.status === 'completed' || v.status === 'failed') {
+            return { predictionId: c.predictionId, status: v.status, videoUrl: v.videoUrl, error: v.error }
+          }
+          return null
+        } catch { return null }
+      }))
+      const meaningful = updates.filter((u): u is NonNullable<typeof u> => !!u)
+      if (meaningful.length) {
+        setCutaways(prev => prev.map(c => {
+          const u = meaningful.find(m => m.predictionId === c.predictionId)
+          return u ? { ...c, status: u.status as 'completed' | 'failed', videoUrl: u.videoUrl, error: u.error } : c
+        }))
+      }
+    }, 5000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cutaways.map(c => `${c.predictionId}:${c.status}`).join('|')])
 
   // Main video + B-roll polling
   useEffect(() => {
@@ -112,14 +169,88 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     return () => clearInterval(pollRef.current!)
   }, [video?.videoId, video?.status, brolls.length])
 
-  // When the talking head is ready, promote it directly to Final Video — no Shotstack, no B-rolls.
+  // Single-shot path: anchor is the final video, no composite needed.
   useEffect(() => {
-    if (stitchStartedRef.current) return
+    if (stitchStartedRef.current || compositeStartedRef.current) return
+    if (multiShot) return
     if (video?.status !== 'completed' || !video.videoUrl) return
     stitchStartedRef.current = true
     setFinalVideoUrl(video.videoUrl)
     setStitchStatus('completed')
-  }, [video?.status, video?.videoUrl])
+  }, [video?.status, video?.videoUrl, multiShot])
+
+  // Multi-shot path: once anchor + every cutaway are done (or failed), fire
+  // the Shotstack composite. We include only the cutaways that produced a
+  // videoUrl. Voice comes from the anchor track, cuts overlay on top.
+  useEffect(() => {
+    if (compositeStartedRef.current || stitchStartedRef.current) return
+    if (!multiShot) return
+    if (video?.status !== 'completed' || !video.videoUrl) return
+    // Wait for every cutaway to finish polling (either completed or failed).
+    if (cutaways.some(c => c.status === 'processing')) return
+    const usable = cutaways.filter(c => c.status === 'completed' && c.videoUrl)
+    // If somehow every cutaway failed, fall back to the anchor as-is.
+    if (!usable.length) {
+      compositeStartedRef.current = true
+      setFinalVideoUrl(video.videoUrl)
+      setStitchStatus('completed')
+      return
+    }
+    compositeStartedRef.current = true
+    setStitchStatus('stitching')
+    ;(async () => {
+      try {
+        const supabase = await import('@/lib/auth').then(m => m.getSupabase())
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+        const token = sess?.session?.access_token
+        if (!token) throw new Error('Not signed in')
+        const anchorRatio = components?.aspect === 'landscape' ? '16:9' : components?.aspect === 'square' ? '1:1' : '9:16'
+        const res = await fetch('/api/ugc/multishot-composite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            anchorUrl: video.videoUrl,
+            anchorDuration: video.duration ?? video.estimatedDuration ?? 10,
+            aspectRatio: anchorRatio,
+            cutaways: usable.map(c => ({
+              videoUrl: c.videoUrl!,
+              startAt: c.startAt,
+              duration: c.duration,
+              slot: c.slot,
+            })),
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.renderId) throw new Error(data.error || 'Composite kickoff failed')
+        setCompositeRenderId(data.renderId)
+      } catch (err) {
+        setStitchStatus('failed')
+        setStitchError(err instanceof Error ? err.message : 'Composite failed')
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [multiShot, video?.status, video?.videoUrl, cutaways.map(c => c.status).join('|')])
+
+  // Poll the Shotstack composite until it produces a final MP4.
+  useEffect(() => {
+    if (!compositeRenderId || stitchStatus !== 'stitching') return
+    compositePollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/ugc/multishot-composite?renderId=${compositeRenderId}`)
+        const data = await res.json()
+        if (data.status === 'completed' && data.videoUrl) {
+          setFinalVideoUrl(data.videoUrl)
+          setStitchStatus('completed')
+          if (compositePollRef.current) clearInterval(compositePollRef.current)
+        } else if (data.status === 'failed') {
+          setStitchStatus('failed')
+          setStitchError(data.error || 'Composite failed')
+          if (compositePollRef.current) clearInterval(compositePollRef.current)
+        }
+      } catch { /* keep polling */ }
+    }, 4000)
+    return () => { if (compositePollRef.current) clearInterval(compositePollRef.current) }
+  }, [compositeRenderId, stitchStatus])
 
   const handleDownload = async (url: string, filename: string) => {
     setDownloading(filename)

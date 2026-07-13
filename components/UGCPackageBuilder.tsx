@@ -106,6 +106,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     // "custom instructions" here.
     initialPrefill?.description ?? '',
   )
+  // Multi-shot cutaways — Kling anchor talking-head + Seedance 720p silent
+  // b-roll shots (product hero, apply, reaction, usage) overlaid on the
+  // anchor's audio track. Default on for anything 10s+; user can turn off
+  // for a fast talking-head-only render.
+  const [multiShot, setMultiShot] = useState(true)
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
@@ -413,6 +418,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           // fails soft — if refinement errors we keep the raw frame.
           productImageBase64: productImage?.base64,
           productImageMimeType: productImage?.mimeType,
+          multiShot,
         }),
       })
       const data = await res.json()
@@ -922,6 +928,29 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               })}
             </div>
           </div>
+
+          {/* Multi-shot toggle — enables Seedance b-roll cutaways layered on the anchor's audio track. */}
+          {duration >= 10 && (
+            <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: 12, background: 'var(--surface-2, var(--surface))', border: '1px solid var(--border)' }}>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={multiShot}
+                  onChange={e => setMultiShot(e.target.checked)}
+                  disabled={isLoading}
+                  style={{ marginTop: 2, cursor: isLoading ? 'not-allowed' : 'pointer' }}
+                />
+                <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
+                    Multi-shot cutaways <span style={{ fontWeight: 400, color: 'var(--ink-mute)', fontSize: 12 }}>· recommended</span>
+                  </span>
+                  <span style={{ fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.5 }}>
+                    Overlays 2–4 silent b-roll shots (product hero, apply, reaction) on the talking-head. One continuous voice, no cuts audible. Adds ~90s render time and ~15% cost.
+                  </span>
+                </span>
+              </label>
+            </div>
+          )}
       </section>
 
       {/* 2 — Your product */}
