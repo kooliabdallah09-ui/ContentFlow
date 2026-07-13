@@ -55,15 +55,7 @@ const ACTORS = [
 
 function buildPrompt(a) {
   const features = a.features ? `, ${a.features}` : ''
-  return `Hyper-realistic phone-selfie photograph of a ${a.age} ${a.ethnicity} ${a.gender}, ${a.hair}${features}, wearing ${a.outfit}, in a ${a.scene}. Looking DIRECTLY into the camera lens, eyes locked on the viewer, small natural expression (subtle smile or neutral-warm), the phone is at arm's length so the framing feels like a real front-camera selfie. Soft natural lighting, real skin texture with pores and slight imperfections, natural hair with flyaways, no beauty filter, no studio polish, no commercial gloss.
-
-Framing: vertical 9:16, head and upper shoulders visible.
-
-CRITICAL — the FINAL IMAGE must be a plain photograph only:
-- NO camera app viewfinder UI, NO shutter button, NO camera icons, NO flash symbol, NO 'X' close button, NO timestamp or clock, NO circular capture button, NO photo-flip icons, NO screen HUD overlays of any kind
-- NO phone bezel, NO status bar, NO app chrome or on-screen menus
-- NO captions, NO text watermark, NO logos, NO app-screenshot elements
-The image is a bare photograph of the person in their environment — nothing else layered on top.`
+  return `Hyper-realistic photograph of a ${a.age} ${a.ethnicity} ${a.gender}, ${a.hair}${features}, wearing ${a.outfit}, in a ${a.scene}, candid mid-expression, looking directly at the camera lens with eyes locked on the viewer, subtle neutral-warm expression, soft natural lighting, real skin texture with pores and slight imperfections, natural hair with flyaways, no beauty filter, no studio polish, no commercial gloss. Vertical 9:16 portrait framing, head and upper shoulders visible. Bare photograph only — no phone bezel, no status bar, no camera app UI, no shutter button, no timestamps, no icons, no captions, no watermark.`
 }
 
 async function submitPrediction(prompt) {
