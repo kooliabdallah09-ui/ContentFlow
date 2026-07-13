@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { deductCredits } from '@/lib/deduct-credits'
-import { submitKlingV3OmniJob } from '@/lib/replicate'
+import { submitKlingV3OmniJob, submitSeedanceJob } from '@/lib/replicate'
 import { buildKlingPrompt } from '@/lib/kling-prompt'
-import { refineProductInFrame } from '@/lib/nanobanana'
+import { refineProductInFrame, renderCutawayFrame } from '@/lib/nanobanana'
+import { planCutaways, cutawayFramePrompt, cutawayMotionPrompt, type CutawaySlot } from '@/lib/multi-shot'
 import { CREDIT_COSTS } from '@/lib/credits'
 import {
   DEFAULT_TIER,
@@ -54,7 +55,9 @@ export async function POST(request: NextRequest) {
       aspect: aspectRaw,
       productImageBase64,
       productImageMimeType,
+      multiShot: multiShotRaw,
     } = body as Record<string, unknown>
+    const multiShot = multiShotRaw !== false  // default on
 
     if (!selectedFrameUrl || typeof selectedFrameUrl !== 'string' || !selectedFrameUrl.startsWith('http')) {
       return NextResponse.json({ error: 'Missing selectedFrameUrl' }, { status: 400 })
@@ -186,6 +189,89 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // ── Multi-shot cutaways ──────────────────────────────────────────────
+    // Kick off silent Seedance 2.0 b-roll cutaways in parallel with the
+    // Kling anchor. Each cutaway is 2s of image-to-video seeded by a
+    // Nano Banana render that uses the refined anchor frame + product
+    // photo as image_input so the character stays consistent.
+    //
+    // Fail-soft: if any cutaway errors we save what we have and the
+    // downstream composite will just skip the missing slot.
+    const cutawayPlan = multiShot ? planCutaways(duration) : { count: 0, cutawayDuration: 0, positions: [], slots: [] as CutawaySlot[] }
+    const cutawayJobs: Array<{
+      slot: CutawaySlot
+      startAt: number
+      duration: number
+      predictionId?: string
+      startImageUrl?: string
+      error?: string
+    }> = []
+
+    if (cutawayPlan.count > 0 && typeof productImageBase64 === 'string' && productImageBase64.length > 100 && typeof productImageMimeType === 'string') {
+      try {
+        // Download the animate start frame (refined if pass-2 ran, else the picked frame).
+        const anchorRes = await fetch(animateStartUrl)
+        if (anchorRes.ok) {
+          const anchorBuf = Buffer.from(await anchorRes.arrayBuffer())
+          const anchorB64 = anchorBuf.toString('base64')
+          const anchorMime = anchorRes.headers.get('content-type') || 'image/jpeg'
+
+          const settled = await Promise.allSettled(
+            cutawayPlan.slots.map(async (slot, idx) => {
+              // 1. Nano Banana frame for this slot
+              const framePrompt = cutawayFramePrompt(slot, safeProductName, backgroundContext)
+              const cf = await renderCutawayFrame(
+                anchorB64, anchorMime,
+                productImageBase64 as string, productImageMimeType as string,
+                framePrompt, aspect.nanoBananaRatio,
+              )
+              // 2. Upload the cutaway frame
+              const cutawayBuf = await sharp(Buffer.from(cf.imageBase64, 'base64'))
+                .jpeg({ quality: 90 })
+                .toBuffer()
+              const stamp = Date.now()
+              const filename = `hero-frames/${userId}-${stamp}-cutaway-${idx}-${slot}.jpg`
+              const { error: upErr } = await supabase.storage
+                .from('ugc-assets')
+                .upload(filename, cutawayBuf, { contentType: 'image/jpeg', upsert: false })
+              if (upErr) throw new Error(`Cutaway frame upload: ${upErr.message}`)
+              const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+              // 3. Kick off silent Seedance
+              const motion = cutawayMotionPrompt(slot, safeProductName)
+              const job = await submitSeedanceJob({
+                prompt: motion,
+                durationSeconds: cutawayPlan.cutawayDuration,
+                aspectRatio: aspect.nanoBananaRatio,
+                startImageUrl: publicUrl,
+                resolution: '720p',
+                enableAudio: false,
+              })
+              return { slot, predictionId: job.predictionId, startImageUrl: publicUrl }
+            }),
+          )
+          settled.forEach((r, i) => {
+            if (r.status === 'fulfilled') {
+              cutawayJobs.push({
+                ...r.value,
+                startAt: cutawayPlan.positions[i],
+                duration: cutawayPlan.cutawayDuration,
+              })
+            } else {
+              cutawayJobs.push({
+                slot: cutawayPlan.slots[i],
+                startAt: cutawayPlan.positions[i],
+                duration: cutawayPlan.cutawayDuration,
+                error: r.reason instanceof Error ? r.reason.message : 'unknown',
+              })
+            }
+          })
+        }
+      } catch (err) {
+        console.warn('[ugc/animate] cutaway generation failed, falling back to single-shot:', err instanceof Error ? err.message : err)
+      }
+    }
+    // ─────────────────────────────────────────────────────────────────────
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const components: Record<string, any> = {
       script,
@@ -199,6 +285,8 @@ export async function POST(request: NextRequest) {
         estimatedDuration: duration,
         chainedIds: secondary ? [secondary.predictionId] : undefined,
       },
+      cutaways: cutawayJobs.length ? cutawayJobs : undefined,
+      multiShot: cutawayJobs.length > 0,
     }
 
     await supabase.from('ugc_content').insert({
@@ -217,6 +305,8 @@ export async function POST(request: NextRequest) {
         selectedFrameUrl,
         refinedFrameUrl,
         productRefined: !!refinedFrameUrl,
+        multiShot: cutawayJobs.length > 0,
+        cutawayCount: cutawayJobs.filter(c => c.predictionId).length,
         generatedAt: new Date().toISOString(),
       },
       credit_cost: totalCost,

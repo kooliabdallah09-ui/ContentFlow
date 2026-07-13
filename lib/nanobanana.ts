@@ -412,6 +412,28 @@ Render in ${aspectRatio} aspect ratio.`
   return callNanoBanana(prompt, [{ base64: portraitBase64, mimeType: portraitMimeType }], aspectRatio)
 }
 
+// Multi-shot cutaway frame renderer. Uses the refined anchor frame as the
+// identity anchor (Image 1) and the clean product photo as the label anchor
+// (Image 2) so cutaways share the same character + product with the main
+// talking-head clip. Prompt is slot-specific and comes from lib/multi-shot.
+export async function renderCutawayFrame(
+  anchorFrameBase64: string,
+  anchorFrameMimeType: string,
+  productBase64: string,
+  productMimeType: string,
+  prompt: string,
+  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+): Promise<NanoBananaResult> {
+  return callNanoBanana(
+    prompt,
+    [
+      { base64: anchorFrameBase64, mimeType: anchorFrameMimeType },
+      { base64: productBase64, mimeType: productMimeType },
+    ],
+    aspectRatio,
+  )
+}
+
 // Pass 2 — product refinement / anti-Arcads pixel lock.
 //
 // The hero-frame render (pass 1) can scramble label text, logos, and small
