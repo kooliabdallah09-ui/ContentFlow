@@ -78,7 +78,8 @@ export type ProductCategory =
   | 'jewelry'     // earrings, necklaces, rings, bracelets, watches
   | 'eyewear'     // glasses, sunglasses, blue-light frames
   | 'bag'         // backpacks, handbags, totes, crossbody
-  | 'headphones'  // airpods, earbuds, over-ear cans
+  | 'earbuds'     // AirPods, in-ear buds — anything with a case
+  | 'headphones'  // over-ear cans — AirPods Max, Sony XM, Bose QC, Beats Studio
   | 'gadget'      // remaining hardware — cameras, smart-home, chargers
   | 'fitness'     // dumbbells, mats, resistance bands, foam rollers
   | 'pet'         // pet food, treats, toys, accessories
@@ -103,7 +104,7 @@ export async function inferProductCategory(input: {
       messages: [{
         role: 'user',
         content: `Categorise this PHYSICAL product into ONE of these tokens (return the token only, lowercase, nothing else):
-skincare | makeup | haircare | fragrance | food | drink | supplement | cookware | household | homewares | apparel | footwear | jewelry | eyewear | bag | headphones | gadget | fitness | pet | other
+skincare | makeup | haircare | fragrance | food | drink | supplement | cookware | household | homewares | apparel | footwear | jewelry | eyewear | bag | earbuds | headphones | gadget | fitness | pet | other
 
 Disambiguation rules:
 - footwear = worn on feet (sneakers, boots, sandals)
@@ -111,7 +112,8 @@ Disambiguation rules:
 - jewelry = earrings, necklaces, rings, bracelets, watches
 - eyewear = glasses, sunglasses, blue-light frames
 - bag = backpacks, handbags, totes, crossbody
-- headphones = airpods, earbuds, over-ear cans (any personal-audio hardware)
+- earbuds = anything with a charging case that goes IN the ear (AirPods, Galaxy Buds, in-ear buds — includes any small buds you pull out of a case)
+- headphones = over-the-head cans with ear cups (AirPods Max, Sony WH-1000XM, Bose QuietComfort, Beats Studio) — big, worn OVER the ears not in them
 - gadget = other electronics / hardware that doesn't fit headphones or fitness
 - cookware = kitchen tools used for cooking (pans, blenders, coffee makers)
 - household = cleaning / laundry / non-food kitchen consumables
@@ -133,7 +135,7 @@ Description: ${(input.productDescription ?? '').slice(0, 400)}`,
       'food','drink','supplement',
       'cookware','household','homewares',
       'apparel','footwear','jewelry','eyewear','bag',
-      'headphones','gadget','fitness','pet','other',
+      'earbuds','headphones','gadget','fitness','pet','other',
     ]
     return (allowed as string[]).includes(raw) ? (raw as ProductCategory) : 'other'
   } catch { return 'other' }
@@ -244,11 +246,17 @@ const CATEGORY_SLOTS: Record<ProductCategory, Record<CutawaySlot, SlotDetail>> =
     reaction: { surface: 'a full-length or wall mirror with the phone propped nearby', action: 'same person shoulders / holds the bag and does a small turn to check the look in the mirror, subtle satisfied nod', angle: 'mirror shot, phone-propped, three-quarter angle', framing: 'MS through the mirror' },
     usage:    { surface: 'a sidewalk, café, or apartment hallway', action: 'same person carrying the bag naturally — walking, sitting, adjusting the strap', angle: 'handheld phone camera at hip / shoulder height following them, three-quarter angle', framing: 'MS' },
   },
+  earbuds: {
+    hero:     { surface: 'a wooden desk, coffee table, or bedside stand', action: 'the charging case is OPEN with both buds nestled inside, brand mark and driver grilles sharp; a small pool of window light on the case lid', angle: 'macro three-quarter with shallow depth of field on the logo + buds', framing: 'macro CU' },
+    apply:    { surface: 'the same person\'s hands', action: 'same person picks the buds out of the open case with a pinch of the thumb and index, then slides each one into their ear with a small settle-and-twist to lock', angle: 'handheld phone camera at chest / face height, hands + case + ears in-frame', framing: 'MCU' },
+    reaction: { surface: 'wherever they wear them (desk, kitchen, couch)', action: 'same person\'s head settles, eyes soften as the audio starts, a tiny nod on a beat, subtle mouth-corner lift', angle: 'handheld phone camera front-on', framing: 'MCU' },
+    usage:    { surface: 'a desk with a laptop, a sidewalk / commute, a home gym, or the couch', action: 'same person wearing the buds naturally — typing, walking outside, mid-workout, watching something — buds visible in the ear', angle: 'handheld phone camera three-quarter, waist-up', framing: 'MS' },
+  },
   headphones: {
-    hero:     { surface: 'a wooden desk, coffee table, or bedside stand — for AirPods / earbuds, the CASE is OPEN with the buds nestled inside; for over-ear cans, they sit on a stand or laid flat with the ear cups facing camera', action: 'the headphones / open case as the hero with any brand mark and materials sharp, small pool of window light on the metal / plastic', angle: 'macro three-quarter, shallow depth of field on the logo and driver / driver grille', framing: 'macro CU' },
-    apply:    { surface: 'the same person\'s hands', action: 'same person takes the buds out of the case and slides them into their ears, or lifts the over-ear cans and settles them over the head, adjusting once', angle: 'handheld phone camera at chest / face height, hands + headphones + head in-frame', framing: 'MCU' },
-    reaction: { surface: 'wherever they wear them (desk, kitchen, couch)', action: 'same person\'s head settles, eyes soften as the audio starts, tiny nod on a beat, subtle mouth-corner lift', angle: 'handheld phone camera front-on', framing: 'MCU' },
-    usage:    { surface: 'a desk with a laptop, a sidewalk / commute, or a home gym', action: 'same person wearing the headphones in-context — typing at the laptop, walking outside, mid-workout — small natural movement', angle: 'handheld phone camera three-quarter, waist-up', framing: 'MS' },
+    hero:     { surface: 'a wooden desk or a shelf next to a stack of books, on a proper headphone stand OR laid flat on their side with the ear cups facing camera', action: 'the over-ear cans hero-forward, ear cushions visible, headband arc catching the light, brand mark on the ear cup sharp — a small pool of window light on the metal / leather', angle: 'macro three-quarter, shallow depth of field on the logo + ear cushion', framing: 'macro CU' },
+    apply:    { surface: 'the same person facing a slight three-quarter angle to camera', action: 'same person lifts the cans two-handed by the ear cups, opens them slightly, brings them over the top of the head and settles them down over the ears with a small adjustment of the headband. Hair may shift subtly as the cans settle', angle: 'handheld phone camera at chest / face height, capturing the full lift-and-settle from arms-up to headphones-in-place', framing: 'MS' },
+    reaction: { surface: 'wherever they wear them (desk, couch, cozy room)', action: 'same person\'s head settles, eyes soften and half-close as the audio starts, a tiny nod on a beat, a fingertip brushing the ear cup edge, subtle mouth-corner lift', angle: 'handheld phone camera front-on or three-quarter, close on the face + one ear cup', framing: 'MCU' },
+    usage:    { surface: 'a desk with a laptop, a bright living-room couch, a train seat, or a home studio setup', action: 'same person wearing the over-ear cans naturally — head slightly bobbing while typing, leaning back on the couch with eyes closed, mid-conversation on a call — cans are prominently on the head the whole clip', angle: 'handheld phone camera three-quarter, waist-up so both ear cups are readable in-frame', framing: 'MS' },
   },
   gadget: {
     hero:     { surface: 'a desk or side table with a soft mat', action: 'the gadget sitting upright / plugged in, small LED glow if applicable, label / logo visible', angle: 'macro side-lit, product-forward, background soft-blurred', framing: 'macro CU' },
