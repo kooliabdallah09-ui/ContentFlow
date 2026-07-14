@@ -25,15 +25,19 @@ export interface BuildSeedancePromptInput {
   productBase64?: string
   productMimeType?: string
   productName?: string
+  productCategory?: string      // e.g. 'apparel', 'skincare' — informs how the product is used
 
   // Freeform note from the user: tone, scenes, lines they want. Passed
   // verbatim to Claude.
   videoDirection?: string
+
+  // The target clip length in seconds. Strictly enforced in the prompt.
+  durationSeconds: number
 }
 
 const SYSTEM = `You are an expert UGC ad director, TikTok scriptwriter, direct-response marketer, and Seedance 2.0 prompt engineer.
 
-Your job is to draft ONE polished 15-second Seedance 2.0 prompt for a realistic UGC-style product ad, designed for TikTok / Reels in vertical 9:16.
+Your job is to draft ONE polished Seedance 2.0 prompt for a realistic UGC-style product ad, designed for TikTok / Reels in vertical 9:16. The total clip length is passed to you in the user message — you MUST fit every scene inside it. The last scene's end timestamp equals the target duration exactly — not one second more, not one less. Never write a scene block that ends after the target duration.
 
 Your character reference comes as a mosaic grid of small tiles (image_1). Do NOT describe the grid itself — describe the character that the grid represents, as reconstructed from the tiles: age (adult, no specific number), gender-presentation, ethnicity, hair, features, wardrobe, mood. Preserve the character's identity from the grid.
 
@@ -47,14 +51,20 @@ Include natural spoken dialogue from the creator throughout the video. The dialo
 
 The product must be used in a realistic way. No unrealistic transformations, no fake results, no medical / financial claims, no exaggerated promises.
 
-Split the prompt into timestamped individual scenes with the dialogue baked into each scene block:
+Split the prompt into timestamped individual scenes with the dialogue baked into each scene block. Beat budget scales with duration:
+- <=5s  = 1 scene
+- 6-10s = 2 scenes
+- 11-20s = 3 scenes
+- 21-40s = 4-5 scenes
+- 41-60s = 5-7 scenes
 
-SCENE 1 [00:00 – 00:03]
+Every scene's [MM:SS – MM:SS] range must respect the target duration. Sum of scene durations = target duration exactly.
+
+SCENE 1 [00:00 – …]
 Visual: …
 Dialogue: "…"
 
-SCENE 2 [00:03 – 00:07]
-…
+SCENE 2 …
 
 The Seedance prompt must include:
 - vertical 9:16 TikTok/Reels format
@@ -109,10 +119,24 @@ export async function buildSeedanceUGCPrompt(input: BuildSeedancePromptInput): P
     ? `The product name is "${input.productName.trim()}". The product image ${input.productBase64 ? '(image_2)' : ''} is the source of truth for its exact appearance.`
     : (input.productBase64 ? 'The product image (image_2) is the source of truth for its exact appearance.' : 'No product image was provided — build the ad around the character in a believable everyday moment.')
 
+  const clampedDuration = Math.max(3, Math.min(60, Math.round(input.durationSeconds)))
+  const beatBudget =
+    clampedDuration <= 5  ? '1 scene, 0 cuts' :
+    clampedDuration <= 10 ? '2 scenes' :
+    clampedDuration <= 20 ? '3 scenes' :
+    clampedDuration <= 40 ? '4-5 scenes' :
+                            '5-7 scenes'
+  const productCategoryLine = input.productCategory === 'apparel' || input.productCategory === 'footwear'
+    ? '\nThis is wearable — the character MUST be wearing / trying on / adjusting the product for the majority of the clip. Focus on how it looks on the body, not on a table.'
+    : ''
+
   parts.push({
     type: 'text',
     text: `Attached: the character grid (image_1)${input.productBase64 ? ' and the product photo (image_2)' : ''}.
-${productBlock}${directionBlock}
+${productBlock}${productCategoryLine}${directionBlock}
+
+TARGET DURATION: EXACTLY ${clampedDuration} seconds. STRICT — never go over, never leave time unused.
+Beat budget: ${beatBudget}. The last scene's end timestamp must equal ${String(Math.floor(clampedDuration / 60)).padStart(2, '0')}:${String(clampedDuration % 60).padStart(2, '0')}.
 
 Draft the polished Seedance 2.0 prompt now.`,
   })

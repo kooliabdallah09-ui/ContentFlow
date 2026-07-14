@@ -5,7 +5,7 @@ import { deductCredits } from '@/lib/deduct-credits'
 import { submitSeedanceJob } from '@/lib/replicate'
 import { refineProductInFrame, renderCutawayFrame } from '@/lib/nanobanana'
 import { planCutaways, cutawayFramePrompt, cutawayMotionPrompt, inferProductCategory, type CutawaySlot } from '@/lib/multi-shot'
-import { gridifyWithValidation, GRID_RETRIES, gridify, isSensitivityFlag } from '@/lib/gridify'
+import { gridifyWithValidation, GRID_RETRIES, gridify, isSensitivityFlag, attachProductReference } from '@/lib/gridify'
 import { buildSeedanceUGCPrompt } from '@/lib/ugc-seedance-prompt'
 import { CREDIT_COSTS } from '@/lib/credits'
 import {
@@ -56,11 +56,12 @@ export async function POST(request: NextRequest) {
       aspect: aspectRaw,
       productImageBase64,
       productImageMimeType,
-      multiShot: multiShotRaw,
       videoDirection,
+      resolution: resolutionRaw,
     } = body as Record<string, unknown>
-    const multiShot = multiShotRaw !== false  // default on
     const safeVideoDirection = typeof videoDirection === 'string' ? videoDirection.slice(0, 2000) : undefined
+    const resolution: '720p' | '1080p' | '4k' =
+      resolutionRaw === '720p' || resolutionRaw === '4k' ? resolutionRaw : '1080p'
 
     if (!selectedFrameUrl || typeof selectedFrameUrl !== 'string' || !selectedFrameUrl.startsWith('http')) {
       return NextResponse.json({ error: 'Missing selectedFrameUrl' }, { status: 400 })
@@ -85,10 +86,16 @@ export async function POST(request: NextRequest) {
 
     const tier: UGCTier = DEFAULT_TIER
 
-    // Cost
+    // Cost — Seedance 2.0 per-second pricing by resolution (1.8x markup on
+    // Replicate's raw cost). Kept in lockstep with the /generate/video
+    // rate card + the client UGC builder's price display.
+    const SEEDANCE_CR_PER_SECOND: Record<string, number> = { '720p': 13, '1080p': 33, '4k': 72 }
+    const perSec = SEEDANCE_CR_PER_SECOND[resolution] ?? SEEDANCE_CR_PER_SECOND['1080p']
     let totalCost = 0
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
-    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += calculateVideoCredits(tier, duration)
+    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += Math.max(1, Math.ceil(duration * perSec))
+    // tier is retained for compatibility with existing callers; not used here.
+    void calculateVideoCredits; void tier
 
     const { data: userCredits } = await supabase
       .from('user_credits')
@@ -180,7 +187,19 @@ export async function POST(request: NextRequest) {
     const anchorSourceBuf = Buffer.from(await anchorRes0.arrayBuffer())
 
     const initialGrid = await gridifyWithValidation(anchorSourceBuf)
+    // Attach the product photo as a visual reference strip (right-side panel
+    // on the grid canvas). Seedance sees it as reference-image context; the
+    // prompt never mentions it, but the model uses it for packaging fidelity
+    // and — for wearables — to know what to put on the character.
     let currentGridBuf = initialGrid.buf
+    if (typeof productImageBase64 === 'string' && productImageBase64.length > 100) {
+      try {
+        const prodBuf = Buffer.from(productImageBase64, 'base64')
+        currentGridBuf = await attachProductReference(currentGridBuf, prodBuf)
+      } catch (err) {
+        console.warn('[ugc/animate] attachProductReference failed, using grid-only:', err instanceof Error ? err.message : err)
+      }
+    }
     let currentGridParams = initialGrid.params
     let currentGridAttemptIdx = GRID_RETRIES.findIndex(p =>
       p.cols === currentGridParams.cols && p.rows === currentGridParams.rows && p.gap === currentGridParams.gap,
@@ -201,13 +220,18 @@ export async function POST(request: NextRequest) {
     let currentGridUrl = await uploadGrid(currentGridBuf)
 
     // Build the Seedance prompt once (grid + product + user direction).
+    const productCategoryForPrompt = typeof productImageBase64 === 'string' && productImageBase64.length > 100
+      ? await inferProductCategory({ productName: safeProductName, productDescription: safeProductDescription })
+      : undefined
     const seedancePrompt = await buildSeedanceUGCPrompt({
-      characterGridBase64: currentGridBuf.toString('base64'),
+      characterGridBase64: initialGrid.buf.toString('base64'),      // uncomposited grid for Claude vision
       characterGridMimeType: 'image/png',
       productBase64: typeof productImageBase64 === 'string' ? productImageBase64 : undefined,
       productMimeType: typeof productImageMimeType === 'string' ? productImageMimeType : undefined,
       productName: safeProductName,
+      productCategory: productCategoryForPrompt,
       videoDirection: safeVideoDirection,
+      durationSeconds: duration,
     })
 
     // Seedance submission with sensitivity retry across the grid ladder.
@@ -220,7 +244,7 @@ export async function POST(request: NextRequest) {
           durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
           aspectRatio: aspect.nanoBananaRatio,
           startImageUrl: currentGridUrl,
-          resolution: '1080p',
+          resolution,
           enableAudio: true,
         })
         break
@@ -239,15 +263,10 @@ export async function POST(request: NextRequest) {
     const secondary: { predictionId: string } | undefined = undefined
     void secondary
 
-    // ── Multi-shot cutaways ──────────────────────────────────────────────
-    // Kick off silent Seedance 2.0 b-roll cutaways in parallel with the
-    // Kling anchor. Each cutaway is 2s of image-to-video seeded by a
-    // Nano Banana render that uses the refined anchor frame + product
-    // photo as image_input so the character stays consistent.
-    //
-    // Fail-soft: if any cutaway errors we save what we have and the
-    // downstream composite will just skip the missing slot.
-    const cutawayPlan = multiShot ? planCutaways(duration) : { count: 0, cutawayDuration: 0, positions: [], slots: [] as CutawaySlot[] }
+    // Multi-shot cutaway compositing removed — the Seedance 2.0 prompt is
+    // now scene-timestamped and produces its own multi-shot output in a
+    // single continuous render with continuous native audio. No Shotstack
+    // overlay pass needed.
     const cutawayJobs: Array<{
       slot: CutawaySlot
       startAt: number
@@ -256,79 +275,9 @@ export async function POST(request: NextRequest) {
       startImageUrl?: string
       error?: string
     }> = []
+    void planCutaways; void cutawayFramePrompt; void cutawayMotionPrompt; void renderCutawayFrame
 
-    if (cutawayPlan.count > 0 && typeof productImageBase64 === 'string' && productImageBase64.length > 100 && typeof productImageMimeType === 'string') {
-      try {
-        // Download the animate start frame (refined if pass-2 ran, else the picked frame).
-        const anchorRes = await fetch(animateStartUrl)
-        if (anchorRes.ok) {
-          const anchorBuf = Buffer.from(await anchorRes.arrayBuffer())
-          const anchorB64 = anchorBuf.toString('base64')
-          const anchorMime = anchorRes.headers.get('content-type') || 'image/jpeg'
-
-          // Classify the product once so every cutaway slot pulls the right
-          // real-world action + camera angle (skincare -> mirror + propped
-          // phone; drink -> kitchen counter + sip; app -> laptop OTS; etc.)
-          const productCategory = await inferProductCategory({
-            productName: safeProductName,
-            productDescription: safeProductDescription,
-          })
-
-          const settled = await Promise.allSettled(
-            cutawayPlan.slots.map(async (slot, idx) => {
-              // 1. Nano Banana frame for this slot — product-category aware
-              const framePrompt = cutawayFramePrompt(slot, safeProductName, backgroundContext, productCategory)
-              const cf = await renderCutawayFrame(
-                anchorB64, anchorMime,
-                productImageBase64 as string, productImageMimeType as string,
-                framePrompt, aspect.nanoBananaRatio,
-              )
-              // 2. Upload the cutaway frame
-              const cutawayBuf = await sharp(Buffer.from(cf.imageBase64, 'base64'))
-                .jpeg({ quality: 90 })
-                .toBuffer()
-              const stamp = Date.now()
-              const filename = `hero-frames/${userId}-${stamp}-cutaway-${idx}-${slot}.jpg`
-              const { error: upErr } = await supabase.storage
-                .from('ugc-assets')
-                .upload(filename, cutawayBuf, { contentType: 'image/jpeg', upsert: false })
-              if (upErr) throw new Error(`Cutaway frame upload: ${upErr.message}`)
-              const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-              // 3. Kick off silent Seedance — same category so motion matches framing
-              const motion = cutawayMotionPrompt(slot, safeProductName, productCategory)
-              const job = await submitSeedanceJob({
-                prompt: motion,
-                durationSeconds: cutawayPlan.cutawayDuration,
-                aspectRatio: aspect.nanoBananaRatio,
-                startImageUrl: publicUrl,
-                resolution: '720p',
-                enableAudio: false,
-              })
-              return { slot, predictionId: job.predictionId, startImageUrl: publicUrl }
-            }),
-          )
-          settled.forEach((r, i) => {
-            if (r.status === 'fulfilled') {
-              cutawayJobs.push({
-                ...r.value,
-                startAt: cutawayPlan.positions[i],
-                duration: cutawayPlan.cutawayDuration,
-              })
-            } else {
-              cutawayJobs.push({
-                slot: cutawayPlan.slots[i],
-                startAt: cutawayPlan.positions[i],
-                duration: cutawayPlan.cutawayDuration,
-                error: r.reason instanceof Error ? r.reason.message : 'unknown',
-              })
-            }
-          })
-        }
-      } catch (err) {
-        console.warn('[ugc/animate] cutaway generation failed, falling back to single-shot:', err instanceof Error ? err.message : err)
-      }
-    }
-    // ─────────────────────────────────────────────────────────────────────
+    // (Cutaway generation removed — Seedance handles multi-scene natively.)
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const components: Record<string, any> = {

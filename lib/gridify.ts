@@ -79,6 +79,53 @@ export function isSensitivityFlag(err: unknown): boolean {
   return msg.includes('e005') || msg.includes('flagged as sensitive') || msg.includes('sensitive content')
 }
 
+// Attach the product photo as a small reference strip alongside the grid.
+// Seedance's reference-image scan sees the product as extra visual context
+// — it never gets mentioned in the prompt, but the model uses it to keep
+// packaging + geometry accurate, and (for wearables) to know what to put
+// on the character. Layout: original grid on the left, product on the
+// right at ~1/4 of the grid height, on a shared white canvas.
+export async function attachProductReference(
+  gridBuf: Buffer,
+  productBuf: Buffer,
+): Promise<Buffer> {
+  const gridMeta = await sharp(gridBuf).metadata()
+  const gW = gridMeta.width ?? 720
+  const gH = gridMeta.height ?? 1280
+
+  // Product panel occupies ~24% of the total canvas width on the right.
+  const prodPanelW = Math.round(gW * 0.32)
+  const prodPanelH = gH
+  const canvasW = gW + prodPanelW
+  const canvasH = gH
+
+  // Fit the product photo inside the product panel, keeping aspect and
+  // padding with white.
+  const productFitted = await sharp(productBuf)
+    .resize(prodPanelW, prodPanelH, {
+      fit: 'contain',
+      position: 'center',
+      background: { r: 255, g: 255, b: 255 },
+    })
+    .png()
+    .toBuffer()
+
+  return sharp({
+    create: {
+      width: canvasW,
+      height: canvasH,
+      channels: 3,
+      background: { r: 255, g: 255, b: 255 },
+    },
+  })
+    .composite([
+      { input: gridBuf, left: 0, top: 0 },
+      { input: productFitted, left: gW, top: 0 },
+    ])
+    .png()
+    .toBuffer()
+}
+
 // ── Grid usability validator ─────────────────────────────────────────────
 // After gridifying, Claude Haiku glances at the result and answers whether
 // the character is still readable. The bar is LOW — the grid should always

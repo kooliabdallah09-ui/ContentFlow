@@ -106,11 +106,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     // "custom instructions" here.
     initialPrefill?.description ?? '',
   )
-  // Multi-shot cutaways — Kling anchor talking-head + Seedance 720p silent
-  // b-roll shots (product hero, apply, reaction, usage) overlaid on the
-  // anchor's audio track. Default on for anything 10s+; user can turn off
-  // for a fast talking-head-only render.
-  const [multiShot, setMultiShot] = useState(true)
+  // Resolution — Seedance 2.0 supports 720p / 1080p / 4k. Different
+  // per-second credit prices. Default 1080p.
+  const [resolution, setResolution] = useState<'720p' | '1080p' | '4k'>('1080p')
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
@@ -418,7 +416,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           // fails soft — if refinement errors we keep the raw frame.
           productImageBase64: productImage?.base64,
           productImageMimeType: productImage?.mimeType,
-          multiShot,
+          resolution,
           // videoDirection is the freeform "how should this ad feel"
           // note the Seedance prompt builder ingests. Reuse the existing
           // Custom Instructions textarea for this — same intent.
@@ -933,28 +931,46 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             </div>
           </div>
 
-          {/* Multi-shot toggle — enables Seedance b-roll cutaways layered on the anchor's audio track. */}
-          {duration >= 10 && (
-            <div style={{ marginTop: 18, padding: '12px 14px', borderRadius: 12, background: 'var(--surface-2, var(--surface))', border: '1px solid var(--border)' }}>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={multiShot}
-                  onChange={e => setMultiShot(e.target.checked)}
-                  disabled={isLoading}
-                  style={{ marginTop: 2, cursor: isLoading ? 'not-allowed' : 'pointer' }}
-                />
-                <span style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-                    Multi-shot cutaways <span style={{ fontWeight: 400, color: 'var(--ink-mute)', fontSize: 12 }}>· recommended</span>
-                  </span>
-                  <span style={{ fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.5 }}>
-                    Overlays 2–4 silent b-roll shots (product hero, apply, reaction) on the talking-head. One continuous voice, no cuts audible. Adds ~90s render time and ~15% cost.
-                  </span>
-                </span>
-              </label>
+          {/* Resolution picker — Seedance 2.0 supports 720p / 1080p / 4k
+             with per-second credit pricing. Multi-shot cutaways removed —
+             the Seedance prompt is scene-timestamped and produces its own
+             multi-shot output in one continuous render. */}
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 8 }}>
+              Resolution <span style={{ fontWeight: 400, color: 'var(--ink-mute)' }}>· lower is cheaper</span>
             </div>
-          )}
+            <div style={{ display: 'flex', gap: 10 }}>
+              {([
+                { id: '720p',  label: '720p',  perSec: 13, note: 'draft' },
+                { id: '1080p', label: '1080p', perSec: 33, note: 'default' },
+                { id: '4k',    label: '4K',    perSec: 72, note: 'premium' },
+              ] as const).map(r => {
+                const active = resolution === r.id
+                return (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setResolution(r.id)}
+                    disabled={isLoading}
+                    style={{
+                      flex: 1, padding: '12px 8px', borderRadius: 10, textAlign: 'center',
+                      border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                      background: active ? 'var(--ink)' : 'var(--surface)',
+                      color: active ? 'var(--on-ink)' : 'var(--ink)',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s',
+                      display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: 15, fontWeight: 700 }}>{r.label}</span>
+                    <span style={{ fontSize: 10.5, opacity: active ? 0.75 : 1, color: active ? 'var(--on-ink)' : 'var(--ink-dim)', fontWeight: 500 }}>
+                      {r.perSec} cr/s · {r.note}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
       </section>
 
       {/* 2 — Your product */}
