@@ -106,9 +106,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     // "custom instructions" here.
     initialPrefill?.description ?? '',
   )
-  // Resolution — Seedance 2.0 supports 720p / 1080p / 4k. Different
+  // Resolution — Seedance 2.0 supports 480p / 720p / 1080p / 4k. Different
   // per-second credit prices. Default 1080p.
-  const [resolution, setResolution] = useState<'720p' | '1080p' | '4k'>('1080p')
+  const [resolution, setResolution] = useState<'480p' | '720p' | '1080p' | '4k'>('1080p')
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
@@ -941,7 +941,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
               {([
-                { id: '720p',  label: '720p',  perSec: 13, note: 'draft' },
+                { id: '480p',  label: '480p',  perSec: 6,  note: 'draft' },
+                { id: '720p',  label: '720p',  perSec: 13, note: 'social' },
                 { id: '1080p', label: '1080p', perSec: 33, note: 'default' },
                 { id: '4k',    label: '4K',    perSec: 72, note: 'premium' },
               ] as const).map(r => {

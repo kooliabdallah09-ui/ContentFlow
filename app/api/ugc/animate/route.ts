@@ -60,8 +60,8 @@ export async function POST(request: NextRequest) {
       resolution: resolutionRaw,
     } = body as Record<string, unknown>
     const safeVideoDirection = typeof videoDirection === 'string' ? videoDirection.slice(0, 2000) : undefined
-    const resolution: '720p' | '1080p' | '4k' =
-      resolutionRaw === '720p' || resolutionRaw === '4k' ? resolutionRaw : '1080p'
+    const resolution: '480p' | '720p' | '1080p' | '4k' =
+      resolutionRaw === '480p' || resolutionRaw === '720p' || resolutionRaw === '4k' ? resolutionRaw : '1080p'
 
     if (!selectedFrameUrl || typeof selectedFrameUrl !== 'string' || !selectedFrameUrl.startsWith('http')) {
       return NextResponse.json({ error: 'Missing selectedFrameUrl' }, { status: 400 })
@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
     // Cost — Seedance 2.0 per-second pricing by resolution (1.8x markup on
     // Replicate's raw cost). Kept in lockstep with the /generate/video
     // rate card + the client UGC builder's price display.
-    const SEEDANCE_CR_PER_SECOND: Record<string, number> = { '720p': 13, '1080p': 33, '4k': 72 }
+    // Non-video-in Seedance 2.0 pricing (Replicate) × 1.8 markup, rounded up.
+    const SEEDANCE_CR_PER_SECOND: Record<string, number> = { '480p': 6, '720p': 13, '1080p': 33, '4k': 72 }
     const perSec = SEEDANCE_CR_PER_SECOND[resolution] ?? SEEDANCE_CR_PER_SECOND['1080p']
     let totalCost = 0
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
