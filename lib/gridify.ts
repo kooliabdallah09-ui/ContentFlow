@@ -16,66 +16,60 @@ import sharp from 'sharp'
 export interface GridParams {
   cols: number
   rows: number
-  gap: number       // white bar width in pixels
-  tileW: number     // visible tile width in pixels
-  tileH: number     // visible tile height in pixels
+  gap: number       // white bar thickness in pixels
 }
 
 // Retry ladder. If Seedance flags the render as sensitive we resubmit with
 // the next set of parameters — each pattern presents different fragmentation
-// to the safety scanner.
-//
-// Attempt 1 matches the reference grid: 7 columns × 10 rows of tall
-// windows with thick white bars, canvas close to 9:16. Subsequent attempts
-// adjust column count and tile aspect while keeping the tall-window look.
+// to the safety scanner. Every attempt keeps the source at its real
+// dimensions (no crop, no resize) — only the number of bars and their
+// thickness changes.
 export const GRID_RETRIES: GridParams[] = [
-  { cols: 7,  rows: 10, gap: 14, tileW: 90,  tileH: 117 },
-  { cols: 8,  rows: 10, gap: 12, tileW: 80,  tileH: 116 },
-  { cols: 6,  rows: 10, gap: 16, tileW: 100, tileH: 121 },
-  { cols: 7,  rows: 12, gap: 12, tileW: 90,  tileH: 100 },
-  { cols: 8,  rows: 11, gap: 12, tileW: 80,  tileH: 108 },
+  { cols: 7,  rows: 10, gap: 24 },
+  { cols: 8,  rows: 10, gap: 22 },
+  { cols: 6,  rows: 10, gap: 28 },
+  { cols: 7,  rows: 12, gap: 20 },
+  { cols: 8,  rows: 11, gap: 20 },
 ]
 
-// Turn a portrait image into a grid-overlay image: the source photo behind
-// (never cropped or repositioned) with white vertical + horizontal bars
-// composited on top, so the visible photo appears in `cols × rows` tall
-// windows separated by white gutters.
+// Draw a white grid overlay on top of the source image, preserving the
+// source's exact dimensions. `cols × rows` = the visible-window grid;
+// `gap` = white bar thickness in pixels. The source is never resized or
+// cropped — the same original pixels are visible in the tile windows.
 export async function gridify(sourceBuf: Buffer, params: GridParams): Promise<Buffer> {
-  const { cols, rows, gap, tileW, tileH } = params
+  const { cols, rows, gap } = params
 
-  // Final canvas dimensions include tiles + gutters (edges + between).
-  const canvasW = cols * tileW + (cols + 1) * gap
-  const canvasH = rows * tileH + (rows + 1) * gap
+  // Read the source's real dimensions and use them as the output canvas.
+  const meta = await sharp(sourceBuf).metadata()
+  const canvasW = meta.width ?? 0
+  const canvasH = meta.height ?? 0
+  if (!canvasW || !canvasH) throw new Error('gridify: could not read source dimensions')
 
-  // 1) Resize the source to fill the full canvas (cover, so no cropping
-  // in the visible area shows white bands from padding).
-  const base = await sharp(sourceBuf)
-    .resize(canvasW, canvasH, { fit: 'cover', position: 'center' })
-    .png()
-    .toBuffer()
+  // Distribute the remaining space evenly across visible tiles.
+  // (cols+1) vertical bars, (rows+1) horizontal bars.
+  const tileW = Math.max(1, Math.floor((canvasW - (cols + 1) * gap) / cols))
+  const tileH = Math.max(1, Math.floor((canvasH - (rows + 1) * gap) / rows))
 
-  // 2) Build all the white bars as pre-rendered PNG buffers.
+  // Build white bars as pre-rendered PNG buffers.
   const overlays: sharp.OverlayOptions[] = []
 
-  // Horizontal bars — span the entire canvas width.
   const hBar = await sharp({
     create: { width: canvasW, height: gap, channels: 3, background: { r: 255, g: 255, b: 255 } },
   }).png().toBuffer()
   for (let r = 0; r <= rows; r++) {
-    const y = r * (tileH + gap)
+    const y = Math.min(canvasH - gap, r * (tileH + gap))
     overlays.push({ input: hBar, left: 0, top: y })
   }
 
-  // Vertical bars — span the entire canvas height.
   const vBar = await sharp({
     create: { width: gap, height: canvasH, channels: 3, background: { r: 255, g: 255, b: 255 } },
   }).png().toBuffer()
   for (let c = 0; c <= cols; c++) {
-    const x = c * (tileW + gap)
+    const x = Math.min(canvasW - gap, c * (tileW + gap))
     overlays.push({ input: vBar, left: x, top: 0 })
   }
 
-  return sharp(base).composite(overlays).png().toBuffer()
+  return sharp(sourceBuf).composite(overlays).png().toBuffer()
 }
 
 // Detect the Seedance sensitivity flag from an error string. Seedance returns

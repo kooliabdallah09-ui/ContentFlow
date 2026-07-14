@@ -24,44 +24,42 @@ const OUT_DIR = path.join(ROOT, 'output', 'gridify')
 // Inline copy of the retry ladder + gridify() — kept in sync with lib/gridify.ts.
 // (Duplicated so this script has no ts / import build step.)
 const GRID_RETRIES = [
-  { cols: 7,  rows: 10, gap: 14, tileW: 90,  tileH: 117 },
-  { cols: 8,  rows: 10, gap: 12, tileW: 80,  tileH: 116 },
-  { cols: 6,  rows: 10, gap: 16, tileW: 100, tileH: 121 },
-  { cols: 7,  rows: 12, gap: 12, tileW: 90,  tileH: 100 },
-  { cols: 8,  rows: 11, gap: 12, tileW: 80,  tileH: 108 },
+  { cols: 7,  rows: 10, gap: 24 },
+  { cols: 8,  rows: 10, gap: 22 },
+  { cols: 6,  rows: 10, gap: 28 },
+  { cols: 7,  rows: 12, gap: 20 },
+  { cols: 8,  rows: 11, gap: 20 },
 ]
 
 async function gridify(sourceBuf, params) {
-  const { cols, rows, gap, tileW, tileH } = params
-  const canvasW = cols * tileW + (cols + 1) * gap
-  const canvasH = rows * tileH + (rows + 1) * gap
+  const { cols, rows, gap } = params
+  const meta = await sharp(sourceBuf).metadata()
+  const canvasW = meta.width
+  const canvasH = meta.height
+  const tileW = Math.max(1, Math.floor((canvasW - (cols + 1) * gap) / cols))
+  const tileH = Math.max(1, Math.floor((canvasH - (rows + 1) * gap) / rows))
 
-  // 1) Full source image resized to fill the canvas (cover).
-  const base = await sharp(sourceBuf)
-    .resize(canvasW, canvasH, { fit: 'cover', position: 'center' })
-    .png()
-    .toBuffer()
-
-  // 2) White bars composited on top.
   const overlays = []
   const hBar = await sharp({
     create: { width: canvasW, height: gap, channels: 3, background: { r: 255, g: 255, b: 255 } },
   }).png().toBuffer()
   for (let r = 0; r <= rows; r++) {
-    overlays.push({ input: hBar, left: 0, top: r * (tileH + gap) })
+    const y = Math.min(canvasH - gap, r * (tileH + gap))
+    overlays.push({ input: hBar, left: 0, top: y })
   }
   const vBar = await sharp({
     create: { width: gap, height: canvasH, channels: 3, background: { r: 255, g: 255, b: 255 } },
   }).png().toBuffer()
   for (let c = 0; c <= cols; c++) {
-    overlays.push({ input: vBar, left: c * (tileW + gap), top: 0 })
+    const x = Math.min(canvasW - gap, c * (tileW + gap))
+    overlays.push({ input: vBar, left: x, top: 0 })
   }
 
-  return sharp(base).composite(overlays).png().toBuffer()
+  return sharp(sourceBuf).composite(overlays).png().toBuffer()
 }
 
 function paramLabel(p, idx) {
-  return `attempt${idx + 1}_${p.cols}x${p.rows}_g${p.gap}_${p.tileW}x${p.tileH}`
+  return `attempt${idx + 1}_${p.cols}x${p.rows}_gap${p.gap}`
 }
 
 async function main() {
