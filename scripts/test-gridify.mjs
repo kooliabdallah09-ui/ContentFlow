@@ -24,11 +24,11 @@ const OUT_DIR = path.join(ROOT, 'output', 'gridify')
 // Inline copy of the retry ladder + gridify() — kept in sync with lib/gridify.ts.
 // (Duplicated so this script has no ts / import build step.)
 const GRID_RETRIES = [
-  { cols: 7,  rows: 10, gap: 6,  tileW: 90,  tileH: 150 },
-  { cols: 8,  rows: 10, gap: 6,  tileW: 80,  tileH: 140 },
-  { cols: 6,  rows: 10, gap: 8,  tileW: 100, tileH: 160 },
-  { cols: 7,  rows: 12, gap: 5,  tileW: 90,  tileH: 130 },
-  { cols: 8,  rows: 11, gap: 5,  tileW: 80,  tileH: 130 },
+  { cols: 7,  rows: 10, gap: 14, tileW: 90,  tileH: 150 },
+  { cols: 8,  rows: 10, gap: 12, tileW: 80,  tileH: 140 },
+  { cols: 6,  rows: 10, gap: 16, tileW: 100, tileH: 160 },
+  { cols: 7,  rows: 12, gap: 12, tileW: 90,  tileH: 130 },
+  { cols: 8,  rows: 11, gap: 12, tileW: 80,  tileH: 130 },
 ]
 
 async function gridify(sourceBuf, params) {
@@ -38,7 +38,11 @@ async function gridify(sourceBuf, params) {
   const sampledW = cols * tileW
   const sampledH = rows * tileH
   const sampled = await sharp(sourceBuf)
-    .resize(sampledW, sampledH, { fit: 'cover', position: 'center' })
+    .resize(sampledW, sampledH, {
+      fit: 'contain',
+      position: 'center',
+      background: { r: 255, g: 255, b: 255 },
+    })
     .toBuffer()
   const composites = []
   for (let r = 0; r < rows; r++) {

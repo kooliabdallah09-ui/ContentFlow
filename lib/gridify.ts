@@ -25,18 +25,16 @@ export interface GridParams {
 // the next set of parameters — each pattern presents different fragmentation
 // to the safety scanner.
 //
-// Attempt 1 matches the reference grid the user validated: 7 columns × 10
-// rows of tall skinny tiles (~1:1.7 aspect) on a mostly-white canvas.
-// Subsequent attempts adjust column count and tile aspect while keeping the
-// tall-tile look — every pattern presents a different fragmentation to the
-// scanner, but the reconstruction quality stays close because tall tiles
-// preserve vertical body / hair structure.
+// Attempt 1 matches the reference grid the user validated: tall skinny
+// tiles with thick white gutters. Subsequent attempts adjust column count
+// and tile aspect while keeping the tall-tile look — every pattern
+// presents a different fragmentation to the scanner.
 export const GRID_RETRIES: GridParams[] = [
-  { cols: 7,  rows: 10, gap: 6,  tileW: 90,  tileH: 150 },
-  { cols: 8,  rows: 10, gap: 6,  tileW: 80,  tileH: 140 },
-  { cols: 6,  rows: 10, gap: 8,  tileW: 100, tileH: 160 },
-  { cols: 7,  rows: 12, gap: 5,  tileW: 90,  tileH: 130 },
-  { cols: 8,  rows: 11, gap: 5,  tileW: 80,  tileH: 130 },
+  { cols: 7,  rows: 10, gap: 14, tileW: 90,  tileH: 150 },
+  { cols: 8,  rows: 10, gap: 12, tileW: 80,  tileH: 140 },
+  { cols: 6,  rows: 10, gap: 16, tileW: 100, tileH: 160 },
+  { cols: 7,  rows: 12, gap: 12, tileW: 90,  tileH: 130 },
+  { cols: 8,  rows: 11, gap: 12, tileW: 80,  tileH: 130 },
 ]
 
 // Turn a portrait image into a mosaic grid on a white canvas.
@@ -49,14 +47,19 @@ export async function gridify(sourceBuf: Buffer, params: GridParams): Promise<Bu
   const canvasW = cols * tileW + (cols + 1) * gap
   const canvasH = rows * tileH + (rows + 1) * gap
 
-  // Sample the source image at grid resolution so we know what each tile
-  // should render. We resize the source to (cols * tileW) x (rows * tileH)
-  // first, then crop each tile from that resized version — the cheapest way
-  // to get uniform tiles without per-tile extract math getting weird.
+  // Sample the source image at grid resolution. `fit: 'contain'` with a
+  // white background preserves the full source (no crop) — if the source
+  // aspect ratio doesn't match the sampled area exactly we get white bars
+  // on the sides / top instead of losing pixels. Those white padding areas
+  // become white tiles at the edges, which blend naturally with the gaps.
   const sampledW = cols * tileW
   const sampledH = rows * tileH
   const sampled = await sharp(sourceBuf)
-    .resize(sampledW, sampledH, { fit: 'cover', position: 'center' })
+    .resize(sampledW, sampledH, {
+      fit: 'contain',
+      position: 'center',
+      background: { r: 255, g: 255, b: 255 },
+    })
     .toBuffer()
 
   // Build every tile as an independent sharp buffer + composite entry.
