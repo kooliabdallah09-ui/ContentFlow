@@ -24,11 +24,11 @@ const OUT_DIR = path.join(ROOT, 'output', 'gridify')
 // Inline copy of the retry ladder + gridify() — kept in sync with lib/gridify.ts.
 // (Duplicated so this script has no ts / import build step.)
 const GRID_RETRIES = [
-  { cols: 7,  rows: 10, gap: 24 },
-  { cols: 8,  rows: 10, gap: 22 },
-  { cols: 6,  rows: 10, gap: 28 },
-  { cols: 7,  rows: 12, gap: 20 },
-  { cols: 8,  rows: 11, gap: 20 },
+  { cols: 7,  rows: 10, gap: 18 },
+  { cols: 8,  rows: 10, gap: 16 },
+  { cols: 6,  rows: 10, gap: 20 },
+  { cols: 7,  rows: 12, gap: 15 },
+  { cols: 8,  rows: 11, gap: 15 },
 ]
 
 async function gridify(sourceBuf, params) {

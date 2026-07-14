@@ -25,11 +25,11 @@ export interface GridParams {
 // dimensions (no crop, no resize) — only the number of bars and their
 // thickness changes.
 export const GRID_RETRIES: GridParams[] = [
-  { cols: 7,  rows: 10, gap: 24 },
-  { cols: 8,  rows: 10, gap: 22 },
-  { cols: 6,  rows: 10, gap: 28 },
-  { cols: 7,  rows: 12, gap: 20 },
-  { cols: 8,  rows: 11, gap: 20 },
+  { cols: 7,  rows: 10, gap: 18 },
+  { cols: 8,  rows: 10, gap: 16 },
+  { cols: 6,  rows: 10, gap: 20 },
+  { cols: 7,  rows: 12, gap: 15 },
+  { cols: 8,  rows: 11, gap: 15 },
 ]
 
 // Draw a white grid overlay on top of the source image, preserving the
