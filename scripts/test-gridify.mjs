@@ -24,50 +24,40 @@ const OUT_DIR = path.join(ROOT, 'output', 'gridify')
 // Inline copy of the retry ladder + gridify() — kept in sync with lib/gridify.ts.
 // (Duplicated so this script has no ts / import build step.)
 const GRID_RETRIES = [
-  { cols: 7,  rows: 10, gap: 14, tileW: 90,  tileH: 150 },
-  { cols: 8,  rows: 10, gap: 12, tileW: 80,  tileH: 140 },
-  { cols: 6,  rows: 10, gap: 16, tileW: 100, tileH: 160 },
-  { cols: 7,  rows: 12, gap: 12, tileW: 90,  tileH: 130 },
-  { cols: 8,  rows: 11, gap: 12, tileW: 80,  tileH: 130 },
+  { cols: 7,  rows: 10, gap: 14, tileW: 90,  tileH: 117 },
+  { cols: 8,  rows: 10, gap: 12, tileW: 80,  tileH: 116 },
+  { cols: 6,  rows: 10, gap: 16, tileW: 100, tileH: 121 },
+  { cols: 7,  rows: 12, gap: 12, tileW: 90,  tileH: 100 },
+  { cols: 8,  rows: 11, gap: 12, tileW: 80,  tileH: 108 },
 ]
 
 async function gridify(sourceBuf, params) {
   const { cols, rows, gap, tileW, tileH } = params
   const canvasW = cols * tileW + (cols + 1) * gap
   const canvasH = rows * tileH + (rows + 1) * gap
-  const sampledW = cols * tileW
-  const sampledH = rows * tileH
-  const sampled = await sharp(sourceBuf)
-    .resize(sampledW, sampledH, {
-      fit: 'contain',
-      position: 'center',
-      background: { r: 255, g: 255, b: 255 },
-    })
-    .toBuffer()
-  const composites = []
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      const tile = await sharp(sampled)
-        .extract({ left: c * tileW, top: r * tileH, width: tileW, height: tileH })
-        .toBuffer()
-      composites.push({
-        input: tile,
-        left: gap + c * (tileW + gap),
-        top:  gap + r * (tileH + gap),
-      })
-    }
-  }
-  return sharp({
-    create: {
-      width: canvasW,
-      height: canvasH,
-      channels: 3,
-      background: { r: 255, g: 255, b: 255 },
-    },
-  })
-    .composite(composites)
+
+  // 1) Full source image resized to fill the canvas (cover).
+  const base = await sharp(sourceBuf)
+    .resize(canvasW, canvasH, { fit: 'cover', position: 'center' })
     .png()
     .toBuffer()
+
+  // 2) White bars composited on top.
+  const overlays = []
+  const hBar = await sharp({
+    create: { width: canvasW, height: gap, channels: 3, background: { r: 255, g: 255, b: 255 } },
+  }).png().toBuffer()
+  for (let r = 0; r <= rows; r++) {
+    overlays.push({ input: hBar, left: 0, top: r * (tileH + gap) })
+  }
+  const vBar = await sharp({
+    create: { width: gap, height: canvasH, channels: 3, background: { r: 255, g: 255, b: 255 } },
+  }).png().toBuffer()
+  for (let c = 0; c <= cols; c++) {
+    overlays.push({ input: vBar, left: c * (tileW + gap), top: 0 })
+  }
+
+  return sharp(base).composite(overlays).png().toBuffer()
 }
 
 function paramLabel(p, idx) {
