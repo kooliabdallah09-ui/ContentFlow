@@ -12,7 +12,7 @@ interface VideoComponent {
   status: 'processing' | 'completed' | 'failed'
   estimatedDuration?: number
   duration?: number                           // TOTAL video duration (sum of all clips)
-  provider?: 'heygen' | 'sora-2' | 'kling-v3-omni'
+  provider?: 'heygen' | 'sora-2' | 'kling-v3-omni' | 'seedance-2'
   chainedIds?: string[]                       // Additional Kling prediction ids to poll alongside videoId
   error?: string  // Surfaced when the A-roll generation fails — content policy, billing, etc.
 }

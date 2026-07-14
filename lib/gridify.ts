@@ -78,3 +78,92 @@ export function isSensitivityFlag(err: unknown): boolean {
   const msg = (err instanceof Error ? err.message : String(err ?? '')).toLowerCase()
   return msg.includes('e005') || msg.includes('flagged as sensitive') || msg.includes('sensitive content')
 }
+
+// ── Grid usability validator ─────────────────────────────────────────────
+// After gridifying, Claude Haiku glances at the result and answers whether
+// the character is still readable. The bar is LOW — the grid should always
+// obscure some of the face, that's the whole point. This step only catches
+// catastrophic cases where the person is essentially unrecoverable (eyes
+// entirely hidden, less than a third of the face visible, wrong subject
+// entirely). Fail-soft: on any error we assume the grid is fine and let
+// the pipeline continue.
+
+import Anthropic from '@anthropic-ai/sdk'
+
+const anthropicSingleton = process.env.ANTHROPIC_API_KEY
+  ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  : null
+
+export interface GridValidation {
+  ok: boolean
+  reason: string
+}
+
+const VALIDATOR_SYSTEM = `You are a QA checker for a UGC video pipeline. You look at a gridded character reference image — a portrait photo with white grid bars drawn on top so that only strips of the person are visible. This is INTENDED behaviour, not a mistake — the grid must partially obscure the character.
+
+Your job: decide whether the grid is USABLE for downstream video generation. The bar is deliberately LOW. Say 'ok' unless the grid is catastrophically broken — for example:
+- The eyes are 100% hidden behind bars (both eyes fully covered).
+- Less than about a third of the face is visible in aggregate.
+- The image is not a person at all.
+
+Partial face coverage is fine. One eye visible is fine. Hair coverage is fine. The grid is SUPPOSED to fragment the face — don't reject for that.
+
+Return ONE line only, in exactly this shape:
+ok|<one-sentence reason>
+or
+unusable|<one-sentence reason>
+
+No preamble, no other content.`
+
+export async function validateGrid(gridBase64: string, gridMimeType = 'image/png'): Promise<GridValidation> {
+  if (!anthropicSingleton) return { ok: true, reason: 'no ANTHROPIC_API_KEY, skipping validation' }
+  try {
+    const msg = await anthropicSingleton.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 80,
+      system: VALIDATOR_SYSTEM,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: gridMimeType as 'image/png' | 'image/jpeg' | 'image/webp',
+              data: gridBase64,
+            },
+          },
+          { type: 'text', text: 'Is this grid usable?' },
+        ],
+      }],
+    })
+    const line = (msg.content[0] as { type: 'text'; text: string }).text.trim().split('\n')[0]
+    const [verdict, ...rest] = line.split('|')
+    const reason = rest.join('|').trim() || line
+    return { ok: verdict.trim().toLowerCase() === 'ok', reason }
+  } catch (err) {
+    // Never block the pipeline on a validator failure.
+    return { ok: true, reason: `validator error, skipping: ${err instanceof Error ? err.message : 'unknown'}` }
+  }
+}
+
+// End-to-end: gridify with the retry ladder AND Claude validation.
+// - Tries each GridParams in order.
+// - After each render, validateGrid decides if it's usable.
+// - Returns the first usable grid, or the last attempt if none pass
+//   (so the pipeline still has something to send to Seedance).
+export async function gridifyWithValidation(
+  sourceBuf: Buffer,
+): Promise<{ buf: Buffer; params: GridParams; attempt: number; validation: GridValidation }> {
+  let last: { buf: Buffer; params: GridParams; attempt: number; validation: GridValidation } | null = null
+  for (let i = 0; i < GRID_RETRIES.length; i++) {
+    const params = GRID_RETRIES[i]
+    const buf = await gridify(sourceBuf, params)
+    const b64 = buf.toString('base64')
+    const validation = await validateGrid(b64, 'image/png')
+    last = { buf, params, attempt: i + 1, validation }
+    if (validation.ok) return last
+  }
+  // No attempt passed — return the last one anyway so downstream has something.
+  return last!
+}

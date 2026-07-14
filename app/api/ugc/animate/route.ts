@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { deductCredits } from '@/lib/deduct-credits'
-import { submitKlingV3OmniJob, submitSeedanceJob } from '@/lib/replicate'
-import { buildKlingPrompt } from '@/lib/kling-prompt'
+import { submitSeedanceJob } from '@/lib/replicate'
 import { refineProductInFrame, renderCutawayFrame } from '@/lib/nanobanana'
 import { planCutaways, cutawayFramePrompt, cutawayMotionPrompt, inferProductCategory, type CutawaySlot } from '@/lib/multi-shot'
+import { gridifyWithValidation, GRID_RETRIES, gridify, isSensitivityFlag } from '@/lib/gridify'
+import { buildSeedanceUGCPrompt } from '@/lib/ugc-seedance-prompt'
 import { CREDIT_COSTS } from '@/lib/credits'
 import {
   DEFAULT_TIER,
@@ -56,8 +57,10 @@ export async function POST(request: NextRequest) {
       productImageBase64,
       productImageMimeType,
       multiShot: multiShotRaw,
+      videoDirection,
     } = body as Record<string, unknown>
     const multiShot = multiShotRaw !== false  // default on
+    const safeVideoDirection = typeof videoDirection === 'string' ? videoDirection.slice(0, 2000) : undefined
 
     if (!selectedFrameUrl || typeof selectedFrameUrl !== 'string' || !selectedFrameUrl.startsWith('http')) {
       return NextResponse.json({ error: 'Missing selectedFrameUrl' }, { status: 400 })
@@ -105,19 +108,13 @@ export async function POST(request: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const character = characterFromForm as any
 
-    // Kling motion prompt
+    // Extract the script's spoken lines + background context (kept for
+    // metadata + downstream analytics — Seedance builds its own dialogue
+    // from the video-direction prompt below).
     const spokenScript = extractSpokenLines(script)
     const bgMatch = script.match(/\[BACKGROUND:\s*([^\]]+)\]/i)
     const backgroundContext = bgMatch?.[1]?.trim() ?? 'casual indoor setting'
-    const klingPrompt = await buildKlingPrompt({
-      productName: safeProductName,
-      productDescription: safeProductDescription,
-      scene: backgroundContext,
-      script: spokenScript,
-      language: language.name,
-      customInstructions: safeCustomInstructions,
-      gender: (avatarGender === 'Male' || character?.gender === 'Male') ? 'Male' : 'Female',
-    })
+    void spokenScript; void safeCustomInstructions; void avatarGender; void character; void language
 
     // ── Pass 2: product-pixel refinement ─────────────────────────────────
     // If the user uploaded a product photo, run a second Nano Banana pass
@@ -169,25 +166,78 @@ export async function POST(request: NextRequest) {
     }
     // ─────────────────────────────────────────────────────────────────────
 
-    const klingSeconds = durationConfig.klingSeconds
-    const clipCount = durationConfig.klingClips
+    // ── Gridify + Seedance 2.0 anchor render ─────────────────────────────
+    // 1) Download the picked (or refined) frame.
+    // 2) gridifyWithValidation — Claude Haiku eyeballs each candidate grid
+    //    and picks the first one where the character stays readable.
+    // 3) Upload the winning grid to Supabase Storage → get a public URL.
+    // 4) Build the Seedance UGC prompt via Claude Sonnet vision on grid +
+    //    product photo, incorporating the user's video-direction note.
+    // 5) Submit Seedance. If it flags as sensitive we resubmit with the
+    //    next set of grid parameters — up to the retry ladder depth.
+    const anchorRes0 = await fetch(animateStartUrl)
+    if (!anchorRes0.ok) throw new Error(`Fetch anchor frame failed ${anchorRes0.status}`)
+    const anchorSourceBuf = Buffer.from(await anchorRes0.arrayBuffer())
 
-    const primary = await submitKlingV3OmniJob({
-      prompt: klingPrompt,
-      startImageUrl: animateStartUrl,
-      durationSeconds: klingSeconds,
-      aspectRatio: aspect.nanoBananaRatio,
+    const initialGrid = await gridifyWithValidation(anchorSourceBuf)
+    let currentGridBuf = initialGrid.buf
+    let currentGridParams = initialGrid.params
+    let currentGridAttemptIdx = GRID_RETRIES.findIndex(p =>
+      p.cols === currentGridParams.cols && p.rows === currentGridParams.rows && p.gap === currentGridParams.gap,
+    )
+    if (currentGridAttemptIdx < 0) currentGridAttemptIdx = 0
+
+    // Upload helper — writes the current grid to Supabase, returns a URL.
+    const uploadGrid = async (buf: Buffer): Promise<string> => {
+      const stamp = Date.now()
+      const filename = `hero-frames/${userId}-${stamp}-grid.png`
+      const { error: upErr } = await supabase.storage
+        .from('ugc-assets')
+        .upload(filename, buf, { contentType: 'image/png', upsert: false })
+      if (upErr) throw new Error(`Grid upload failed: ${upErr.message}`)
+      const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+      return publicUrl
+    }
+    let currentGridUrl = await uploadGrid(currentGridBuf)
+
+    // Build the Seedance prompt once (grid + product + user direction).
+    const seedancePrompt = await buildSeedanceUGCPrompt({
+      characterGridBase64: currentGridBuf.toString('base64'),
+      characterGridMimeType: 'image/png',
+      productBase64: typeof productImageBase64 === 'string' ? productImageBase64 : undefined,
+      productMimeType: typeof productImageMimeType === 'string' ? productImageMimeType : undefined,
+      productName: safeProductName,
+      videoDirection: safeVideoDirection,
     })
 
-    let secondary: { predictionId: string } | undefined
-    if (clipCount >= 2) {
-      secondary = await submitKlingV3OmniJob({
-        prompt: klingPrompt,
-        startImageUrl: animateStartUrl,
-        durationSeconds: klingSeconds,
-        aspectRatio: aspect.nanoBananaRatio,
-      })
+    // Seedance submission with sensitivity retry across the grid ladder.
+    let primary: { predictionId: string } | undefined
+    let sensitivityRetries: Array<{ attempt: number; error: string }> = []
+    for (let i = currentGridAttemptIdx; i < GRID_RETRIES.length; i++) {
+      try {
+        primary = await submitSeedanceJob({
+          prompt: seedancePrompt,
+          durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
+          aspectRatio: aspect.nanoBananaRatio,
+          startImageUrl: currentGridUrl,
+          resolution: '1080p',
+          enableAudio: true,
+        })
+        break
+      } catch (err) {
+        if (!isSensitivityFlag(err) || i === GRID_RETRIES.length - 1) throw err
+        sensitivityRetries.push({ attempt: i + 1, error: err instanceof Error ? err.message : 'unknown' })
+        // Regridify with the next parameter set and re-upload.
+        const nextParams = GRID_RETRIES[i + 1]
+        currentGridBuf = await gridify(anchorSourceBuf, nextParams)
+        currentGridParams = nextParams
+        currentGridUrl = await uploadGrid(currentGridBuf)
+      }
     }
+    if (!primary) throw new Error('Seedance submission failed across every grid retry')
+    // Legacy multi-clip chaining removed — Seedance covers the full duration in one clip.
+    const secondary: { predictionId: string } | undefined = undefined
+    void secondary
 
     // ── Multi-shot cutaways ──────────────────────────────────────────────
     // Kick off silent Seedance 2.0 b-roll cutaways in parallel with the
@@ -288,13 +338,18 @@ export async function POST(request: NextRequest) {
       video: {
         videoId: primary.predictionId,
         status: 'processing',
-        provider: 'kling-v3-omni',
+        provider: 'seedance-2',
         duration,
         estimatedDuration: duration,
-        chainedIds: secondary ? [secondary.predictionId] : undefined,
       },
       cutaways: cutawayJobs.length ? cutawayJobs : undefined,
       multiShot: cutawayJobs.length > 0,
+      grid: {
+        attempt: currentGridAttemptIdx + 1,
+        params: currentGridParams,
+        url: currentGridUrl,
+        sensitivityRetries: sensitivityRetries.length ? sensitivityRetries : undefined,
+      },
     }
 
     await supabase.from('ugc_content').insert({

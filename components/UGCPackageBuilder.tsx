@@ -419,10 +419,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           productImageBase64: productImage?.base64,
           productImageMimeType: productImage?.mimeType,
           multiShot,
+          // videoDirection is the freeform "how should this ad feel"
+          // note the Seedance prompt builder ingests. Reuse the existing
+          // Custom Instructions textarea for this — same intent.
+          videoDirection: customInstructions.trim() || undefined,
         }),
       })
       const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Kling submission failed')
+      if (!res.ok) throw new Error(data.error || 'Seedance submission failed')
 
       // Delegate to the parent's onGenerate. We pass a special sentinel
       // (`__animateResponse`) so the parent knows the pipeline already ran
