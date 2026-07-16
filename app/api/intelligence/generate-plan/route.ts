@@ -79,25 +79,28 @@ export async function POST(request: NextRequest) {
       }))
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const prompt = `You are a content strategist specializing in UGC marketing for small brands and solo founders.
+    const prompt = `You are a UGC expert who has produced thousands of short-form ads that hit for small brands and solo founders on TikTok, Reels, and Shorts. You know that formulaic influencer language dies on the feed and that the best-performing UGC ads land ONE specific idea per video — a real moment, a concrete before/after, a genuine reaction, a niche pain point that the target audience feels in their bones.
 
-Given this user profile, real-time market data, and Gemini's analysis of the top-performing short-form videos in this niche, do 3 things:
+Given the user's profile, live market data, and analysis of top-performing short-form videos in this niche, do 3 things:
 
-1. SCORE each UGC format from 0-100 for this specific niche.
+1. SCORE each UGC format from 0-100 for THIS specific niche.
    Available formats: grwm, before_after, hot_take, unboxing, review, tutorial, pov, storytime
-   Base scoring on the trend data. If trend data is null/sparse, use your own knowledge of the niche.
+   Base scoring on the trend data + your own expertise. If trend data is null/sparse, use your knowledge of what already works.
 
 2. GENERATE 5 hooks for each of the top 3 formats.
-   Hooks must be first sentences that grab attention in 3 seconds.
-   Pull inspiration from Reddit pain points and rising Google queries when available.
+   Hooks are the first sentence of the video — spoken by a real-person creator, casual and specific. NO 'game changer', NO 'you need this', NO 'obsessed'. Pull specific numbers, real objections, honest reactions, or curiosity gaps from Reddit pain points and rising Google queries when available.
 
 3. BUILD a 30-day calendar in 4 weekly themes:
-   Week 1: Brand discovery
-   Week 2: Education
-   Week 3: Social proof
-   Week 4: Conversion
-   3-4 posts per week (12-16 total, NOT one per day).
-   Each entry: format, hook, hashtags (3-5), best posting time (24h HH:MM), platform.
+   Week 1: Brand discovery · Week 2: Education · Week 3: Social proof · Week 4: Conversion
+   3-4 posts per week (12-16 total, NOT one per day — give the creator recovery days).
+
+**Every calendar entry MUST include a clear "main_idea" — one sentence describing the concrete video concept the creator would film, NOT just the hook.** The main_idea explains: what the creator SHOWS on camera, what the payoff is, and why THIS video (not a generic ad) makes sense for that specific day in the arc. Think like a director briefing a creator. Examples of GOOD main_ideas:
+- "Creator opens the product on their bathroom counter, uses it once, then shows the before/after in the mirror 10 minutes later — visual proof, no claims."
+- "Creator sits in their car parked at Target and vents about the 5 skincare products they returned last month, then shows this one as the finally-worked answer."
+- "Split-screen: creator's messy morning routine on the left, same routine with this product on the right — 3 seconds each side."
+Avoid vague main_ideas like "share how the product helped them" or "highlight the benefits" — those are useless. Be specific about the scene, the action, and the beat.
+
+For each entry also provide: format, hook (verbatim first spoken line), hashtags (3-5), best posting time (24h HH:MM), platform.
 
 User profile:
 ${JSON.stringify(profile, null, 2)}
@@ -105,10 +108,10 @@ ${JSON.stringify(profile, null, 2)}
 Market data (real-time snapshot):
 ${JSON.stringify(trends, null, 2)}
 
-Top-performing videos in this niche (Gemini's frame-by-frame analysis).
-When suggesting formats and hooks, borrow structure and hook style from
-these — they already have traction. If a hook here maps to the user's
-product, echo its rhythm and specificity:
+Top-performing videos in this niche (frame-by-frame analysis).
+When choosing formats and drafting hooks, borrow rhythm and specificity from
+these — they already have traction. If a hook here maps to the user's product,
+echo its cadence:
 ${analyzedVideos.length ? JSON.stringify(analyzedVideos, null, 2) : '(no top-video data available — infer from the niche itself)'}
 
 Respond ONLY with valid JSON, no preamble, no markdown:
@@ -128,7 +131,8 @@ Respond ONLY with valid JSON, no preamble, no markdown:
       "week": 1,
       "week_theme": "Brand discovery",
       "format": "unboxing",
-      "hook": "the exact first sentence",
+      "hook": "the exact first spoken sentence",
+      "main_idea": "the concrete video concept — director's brief, one sentence, specific scene + action + payoff",
       "hashtags": ["#tag1","#tag2","#tag3"],
       "best_time": "19:00",
       "platform": "tiktok"

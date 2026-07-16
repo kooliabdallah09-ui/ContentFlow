@@ -15,6 +15,7 @@ interface CalendarEntry {
   week_theme: string
   format: string
   hook: string
+  main_idea?: string
   hashtags: string[]
   best_time: string
   platform: string
@@ -71,9 +72,11 @@ export default function ContentPlanSection() {
   // production-ready prompt for the specific generator first.
   async function goGenerate(e: CalendarEntry) {
     const contentType = formatToContentType(e.format, productType)
-    // Kick off routing right after we savePrefill; enhance runs first but with
-    // a tight 8s budget so we don't stall the user forever.
-    let enhancedPrompt = e.hook
+    // main_idea is the director's brief; hook is the spoken first line.
+    // We prefer main_idea as the seed for the video-direction prompt so the
+    // generator sees the concrete scene concept, not just the opening line.
+    const seed = (e.main_idea && e.main_idea.trim()) || e.hook
+    let enhancedPrompt = seed
     try {
       const supabase = getSupabase()
       const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
@@ -85,10 +88,7 @@ export default function ContentPlanSection() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
-            // Default UGC duration is 10s — matches the UGC builder's
-            // DEFAULT_DURATION. Enhance-prompt uses this to scale the
-            // beat budget.
-            hook: e.hook, format: e.format, target: contentType, platform: e.platform, duration: 10,
+            hook: seed, format: e.format, target: contentType, platform: e.platform, duration: 10,
           }),
           signal: controller.signal,
         })
@@ -98,7 +98,7 @@ export default function ContentPlanSection() {
           if (data.prompt) enhancedPrompt = data.prompt
         }
       }
-    } catch { /* fall back to the raw hook */ }
+    } catch { /* fall back to the raw seed */ }
 
     savePrefill({
       date: '',
@@ -232,8 +232,15 @@ export default function ContentPlanSection() {
                 background: 'var(--surface-2)', color: 'var(--ink-2)',
                 padding: '3px 8px', borderRadius: 5, textAlign: 'center',
               }}>{e.format.replace(/_/g, ' ')}</div>
-              <div style={{ fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {e.hook}
+              <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, gap: 2 }}>
+                <div style={{ fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {e.hook}
+                </div>
+                {e.main_idea && (
+                  <div title={e.main_idea} style={{ fontSize: 11.5, color: 'var(--ink-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {e.main_idea}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => goGenerate(e)}

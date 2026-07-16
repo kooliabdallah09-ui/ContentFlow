@@ -114,12 +114,18 @@ export async function GET(request: NextRequest) {
       const entry: any = postByDate.get(iso)
       if (entry) {
         const format = String(entry.format ?? 'ugc')
+        // main_idea is the director's brief; hook is the spoken first line.
+        // Description surfaces the main_idea when present so the downstream
+        // enhance-prompt call (which reads description as the video-
+        // direction seed) sees the concrete concept, not just the hook.
+        const hook = String(entry.hook ?? '').trim()
+        const mainIdea = String(entry.main_idea ?? '').trim()
         converted.push({
           date: iso,
           day: dayLabel,
           contentType: formatToContentType(format, productType),
-          title: String(entry.hook ?? '').slice(0, 120),
-          description: String(entry.hook ?? ''),
+          title: hook.slice(0, 120) || mainIdea.slice(0, 120),
+          description: mainIdea || hook,
           icon: '◉',
           platforms: entry.platform ? [String(entry.platform)] : ['tiktok'],
           suggestedTime: String(entry.best_time ?? '18:00'),
