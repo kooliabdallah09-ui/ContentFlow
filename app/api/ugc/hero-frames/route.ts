@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
-import { generateCharacterWithProduct, ugcifyPortrait, generateCharacterInFrontOfUI, generateTextToImage } from '@/lib/nanobanana'
-import { buildCharacterPrompt, type CharacterProfile } from '@/lib/character'
+import { generateCharacterWithProduct, generateTextToImage } from '@/lib/nanobanana'
+import type { CharacterProfile } from '@/lib/character'
+import { buildCharacterPrompt as buildCharacterImagePrompt } from '@/lib/ugc-character-prompt'
+import { inferProductCategory } from '@/lib/multi-shot'
 
 export const maxDuration = 180
 
@@ -30,15 +32,10 @@ export async function POST(request: NextRequest) {
       productDescription,
       productImageBase64,
       productImageMimeType,
-      productType,
       character: characterFromForm,
-      avatarGender,
-      actorId,
-      customPhotoBase64,
-      customPhotoMimeType,
       aspectId,
-      customInstructions,
-      script,
+      customInstructions,   // freeform "video direction" (unbox / clean ad / morning routine)
+      videoDirection,       // alias
     } = body as Record<string, unknown>
 
     // Resolve aspect for output dimensions.
@@ -46,99 +43,50 @@ export async function POST(request: NextRequest) {
     const aspect = getAspect(typeof aspectId === 'string' ? aspectId : undefined)
 
     const safeProductName = String(productName || 'the topic').trim() || 'the topic'
-    const safeProductDescription = String(productDescription || 'general talking-head content').trim() || 'general talking-head content'
-    const safeCustomInstructions = typeof customInstructions === 'string'
-      ? customInstructions.slice(0, 1500).trim() || undefined
-      : undefined
-
-    // Load the actor portrait if a library actor is chosen; else use custom photo.
-    let actorPortraitBase64: string | undefined
-    let actorPortraitMimeType: string | undefined
-    if (actorId && typeof actorId === 'string') {
-      try {
-        const { default: fs } = await import('fs/promises')
-        const { default: path } = await import('path')
-        const portraitPath = path.join(process.cwd(), 'public', 'actors', `${actorId}.jpg`)
-        const buf = await fs.readFile(portraitPath)
-        actorPortraitBase64 = buf.toString('base64')
-        actorPortraitMimeType = 'image/jpeg'
-      } catch { /* fall through */ }
-    } else if (typeof customPhotoBase64 === 'string' && typeof customPhotoMimeType === 'string') {
-      actorPortraitBase64 = customPhotoBase64
-      actorPortraitMimeType = customPhotoMimeType
-    }
+    const safeProductDescription = String(productDescription || '').trim()
+    const safeVideoDirection = typeof videoDirection === 'string'
+      ? videoDirection.slice(0, 500).trim()
+      : (typeof customInstructions === 'string' ? customInstructions.slice(0, 500).trim() : '')
 
     const hasProduct = !!(productImageBase64 && productImageMimeType)
-    const hasActorPhoto = !!(actorPortraitBase64 && actorPortraitMimeType)
-    // A custom persona with at least a gender is enough for Nano Banana to
-    // generate the character from text alone — no portrait required.
-    const cfCandidate = characterFromForm as CharacterProfile | undefined
-    const hasCustomCharacter = !!(cfCandidate && cfCandidate.gender)
+    const customPersona = characterFromForm as CharacterProfile | undefined
 
-    if (!hasProduct && !hasActorPhoto && !hasCustomCharacter) {
-      return NextResponse.json(
-        { error: 'Add a product photo or pick / build a character (Actor library or Custom persona).' },
-        { status: 400 },
-      )
-    }
+    // Two-model character chain: Haiku turns the product + video-direction
+    // into a character idea, Sonnet turns the idea + optional locked persona
+    // fields into a full Nano Banana Pro image prompt.
+    const productCategory = hasProduct
+      ? await inferProductCategory({ productName: safeProductName, productDescription: safeProductDescription })
+      : undefined
 
-    const character = characterFromForm as CharacterProfile | undefined
-    const characterPrompt = character && character.gender
-      ? buildCharacterPrompt(character)
-      : avatarGender === 'Male'
-        ? 'late 20s man, candid expression, real skin texture with pores and slight imperfections, natural hair with flyaways, casual outfit appropriate to the scene'
-        : 'late 20s woman, candid expression, real skin texture with pores and slight imperfections, natural hair with flyaways, casual outfit appropriate to the scene'
+    const { characterIdea, imagePrompt } = await buildCharacterImagePrompt({
+      productName: safeProductName,
+      productDescription: safeProductDescription,
+      productCategory,
+      videoDirection: safeVideoDirection || undefined,
+      customPersona,
+      hasProductImage: hasProduct,
+    })
 
-    // Scene: prefer the character's own scene override; otherwise pull the
-    // [BACKGROUND: ...] hint out of the script.
-    const bgMatch = typeof script === 'string' ? script.match(/\[BACKGROUND:\s*([^\]]+)\]/i) : null
-    const backgroundContext = bgMatch?.[1]?.trim() ?? 'casual indoor setting'
-    const heroScene = character?.scene?.trim() ? character.scene.toLowerCase() : backgroundContext
-
-    // Generate one hero frame. This mirrors the branch logic in orchestrate.
+    // Generate one hero frame from the Sonnet-drafted prompt. When a
+    // physical product is provided we attach its image as reference so
+    // packaging + label stay accurate.
     async function generateOne(): Promise<{ base64: string; mimeType: string }> {
-      if (hasProduct && productType === 'software') {
-        const f = await generateCharacterInFrontOfUI(
-          productImageBase64 as string,
-          productImageMimeType as string,
-          characterPrompt,
-          aspect.nanoBananaRatio,
-          actorPortraitBase64,
-          actorPortraitMimeType,
-        )
-        return { base64: f.imageBase64, mimeType: f.mimeType }
-      }
       if (hasProduct) {
         const f = await generateCharacterWithProduct(
           productImageBase64 as string,
           productImageMimeType as string,
           safeProductName,
-          characterPrompt,
-          heroScene,
-          safeCustomInstructions,
+          imagePrompt,
+          '',                 // scene is baked into imagePrompt
+          undefined,          // no legacy custom-instructions inject
           aspect.nanoBananaRatio,
-          actorPortraitBase64,
-          actorPortraitMimeType,
+          undefined,          // no actor portrait — Nano Banana Pro generates fresh
+          undefined,
         )
         return { base64: f.imageBase64, mimeType: f.mimeType }
       }
-      // No product AND we have an actor portrait — ugcify it into the scene.
-      if (hasActorPhoto) {
-        const f = await ugcifyPortrait(
-          actorPortraitBase64 as string,
-          actorPortraitMimeType as string,
-          heroScene,
-          characterPrompt,
-          aspect.nanoBananaRatio,
-        )
-        return { base64: f.imageBase64, mimeType: f.mimeType }
-      }
-      // No product, no portrait — text-only from the custom-persona description.
-      // Nano Banana generates the character + scene from words alone. This is
-      // the fix for the "Invalid base64" crash where the previous branch
-      // tried to feed `undefined` as a reference image.
-      const textPrompt = `${characterPrompt}. Setting: ${heroScene}. Vertical 9:16 phone-camera framing, candid UGC vibe, soft natural light, real skin texture with pores and small imperfections, no beauty filter, no captions, no watermark.`
-      const f = await generateTextToImage(textPrompt)
+      // No product — text-only from the Sonnet image prompt.
+      const f = await generateTextToImage(imagePrompt)
       return { base64: f.imageBase64, mimeType: f.mimeType }
     }
 
@@ -174,7 +122,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Failed to upload any hero frames.' }, { status: 500 })
     }
 
-    return NextResponse.json({ frames })
+    return NextResponse.json({
+      frames,
+      characterIdea,
+      // imagePrompt is used later by /api/ugc/save-actor to reuse the exact
+      // character seed on future generations.
+      characterImagePrompt: imagePrompt,
+    })
   } catch (err) {
     console.error('ugc/hero-frames error:', err)
     return NextResponse.json(
