@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessPovStudio, canAccessScheduling, canAccessReelAnalyzer, canAccessFormats } from '@/lib/pov-access'
+import { canAccessScheduling, canAccessReelAnalyzer, canAccessFormats } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -23,7 +23,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
 
   const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
 
-  const [povAccess, setPovAccess] = useState(false)
   const [schedAccess, setSchedAccess] = useState(false)
   const [analyzerAccess, setAnalyzerAccess] = useState(false)
   const [formatsAccess, setFormatsAccess] = useState(false)
@@ -33,7 +32,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       if (!supabase) return
       const { data: sess } = await supabase.auth.getSession()
       const email = sess?.session?.user?.email
-      setPovAccess(canAccessPovStudio(email))
       setSchedAccess(canAccessScheduling(email))
       setAnalyzerAccess(canAccessReelAnalyzer(email))
       setFormatsAccess(canAccessFormats(email))
@@ -82,11 +80,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <Icon.Video />
           <span style={{ flex: 1 }}>UGC Package</span>
           <span className="flagship-badge">Flagship</span>
-        </Link>
-        <Link href="/generate/pov" className={`nav-item ${isActive('/generate/pov') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Video />
-          <span style={{ flex: 1 }}>POV Studio</span>
-          <span className={povAccess ? 'flagship-badge' : 'soon-badge'}>{povAccess ? 'New' : 'Soon'}</span>
         </Link>
         {analyzerAccess && (
           <Link href="/generate/analyzer" className={`nav-item ${isActive('/generate/analyzer') ? 'active' : ''}`} onClick={handleNavClick}>

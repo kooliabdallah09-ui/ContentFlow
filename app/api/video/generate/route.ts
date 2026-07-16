@@ -1,5 +1,5 @@
 import { deductCredits } from '@/lib/deduct-credits'
-import { submitKlingV3OmniJob, submitSeedanceJob } from '@/lib/replicate'
+import { submitSeedanceJob } from '@/lib/replicate'
 import { generateTextToImage } from '@/lib/nanobanana'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -7,10 +7,9 @@ import sharp from 'sharp'
 
 export const maxDuration = 120
 
-// Non-Seedance flat cost table (kept for kling-v3 backward compat).
-const FLAT_COSTS: Record<string, Record<number, number>> = {
-  'kling-v3': { 5: 80, 10: 160, 15: 240 },
-}
+// Seedance-only now; keep an empty flat-cost object so the resolver falls
+// through cleanly for any future non-Seedance model.
+const FLAT_COSTS: Record<string, Record<number, number>> = {}
 
 // Seedance 2.0 non_video_in pricing per second, in credits (1.8× markup on
 // Replicate's raw cost). Must stay in lockstep with SEEDANCE_CR_PER_SECOND
@@ -108,8 +107,9 @@ export async function POST(request: NextRequest) {
     const prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 4000).trim() : ''
     if (!prompt) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
 
-    const model: 'seedance-2' | 'kling-v3' =
-      body.model === 'kling-v3' ? 'kling-v3' : 'seedance-2'
+    // Seedance is the only supported model now that Kling has been removed.
+    const model: 'seedance-2' = 'seedance-2'
+    void body.model
     const duration = Number(body.duration ?? 5)
     const resolution: '480p' | '720p' | '1080p' | '4k' =
       body.resolution === '480p' || body.resolution === '1080p' || body.resolution === '4k'
@@ -153,67 +153,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let predictionId: string
-    let provider: string
-
-    if (model === 'seedance-2') {
-      // Seedance 2.0 — image-to-video. If a reference image is provided we
-      // upload it and use image-to-video mode; else falls back to text-to-video.
-      let startImageUrl: string | undefined
-      if (refImageBase64 && refImageMimeType) {
-        const buf = await sharp(Buffer.from(refImageBase64, 'base64'))
-          .resize(720, 1280, { fit: 'cover', position: 'center' })
-          .png()
-          .toBuffer()
-        const filename = `video-ref/${userId}-${Date.now()}.png`
-        await supabase.storage.from('ugc-assets').upload(filename, buf, { contentType: 'image/png', upsert: false })
-        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-        startImageUrl = publicUrl
-      }
-      const seedanceJob = await submitSeedanceJob({
-        prompt,
-        durationSeconds: duration,
-        aspectRatio,
-        startImageUrl,
-        resolution,
-        enableAudio: withAudio,
-      })
-      predictionId = seedanceJob.predictionId
-      provider = 'seedance-2'
-    } else {
-      // Kling v3 — also needs a start image
-      let startImageUrl: string
-      if (refImageBase64 && refImageMimeType) {
-        const buf = await sharp(Buffer.from(refImageBase64, 'base64'))
-          .resize(720, 1280, { fit: 'cover', position: 'center' })
-          .png()
-          .toBuffer()
-        const filename = `video-ref/${userId}-${Date.now()}.png`
-        await supabase.storage.from('ugc-assets').upload(filename, buf, { contentType: 'image/png', upsert: false })
-        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-        startImageUrl = publicUrl
-      } else {
-        const generated = await generateTextToImage(prompt)
-        const buf = await sharp(Buffer.from(generated.imageBase64, 'base64'))
-          .resize(720, 1280, { fit: 'cover', position: 'center' })
-          .png()
-          .toBuffer()
-        const filename = `video-ref/${userId}-${Date.now()}.png`
-        await supabase.storage.from('ugc-assets').upload(filename, buf, { contentType: 'image/png', upsert: false })
-        const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
-        startImageUrl = publicUrl
-      }
-
-      const klingJob = await submitKlingV3OmniJob({
-        prompt,
-        startImageUrl,
-        durationSeconds: Math.min(duration, 15) as 5 | 10 | 15,
-        aspectRatio,
-        mode: 'standard',
-      })
-      predictionId = klingJob.predictionId
-      provider = 'kling-v3'
+    // Seedance 2.0 — image-to-video. If a reference image is provided we
+    // upload it and use image-to-video mode; else falls back to text-to-video.
+    // (Kling v3 branch removed — Seedance handles every model now.)
+    void model
+    let startImageUrl: string | undefined
+    if (refImageBase64 && refImageMimeType) {
+      const buf = await sharp(Buffer.from(refImageBase64, 'base64'))
+        .resize(720, 1280, { fit: 'cover', position: 'center' })
+        .png()
+        .toBuffer()
+      const filename = `video-ref/${userId}-${Date.now()}.png`
+      await supabase.storage.from('ugc-assets').upload(filename, buf, { contentType: 'image/png', upsert: false })
+      const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
+      startImageUrl = publicUrl
     }
+    const seedanceJob = await submitSeedanceJob({
+      prompt,
+      durationSeconds: duration,
+      aspectRatio,
+      startImageUrl,
+      resolution,
+      enableAudio: withAudio,
+    })
+    const predictionId = seedanceJob.predictionId
+    const provider = 'seedance-2'
 
     // Save to library as processing, deduct credits
     const { data: contentRow } = await supabase.from('ugc_content').insert({

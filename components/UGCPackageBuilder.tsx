@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import ActorPicker from '@/components/ActorPicker'
+import CharacterBuilder from '@/components/CharacterBuilder'
 import { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
 import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
 import { ASPECTS, DEFAULT_ASPECT, type UGCAspect } from '@/lib/aspects'
@@ -114,8 +114,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
-  const [actorId, setActorId] = useState<string | undefined>()
-  const [customPhoto, setCustomPhoto] = useState<{ base64: string; mimeType: string } | undefined>()
+  // actorId / customPhoto retained as dead state slots for compatibility
+  // with the parent onGenerate signature — always undefined now that the
+  // actor library + custom-photo upload path have been removed.
+  const actorId = undefined as string | undefined
+  const customPhoto = undefined as { base64: string; mimeType: string } | undefined
+  void actorId; void customPhoto
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const productType = 'physical'
 
@@ -1252,16 +1256,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
 
           <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.5 }}>
-            Pick a pre-built actor from the library or build a custom character — we&apos;ll generate them holding your real product and speaking your script with a synced native voice.
+            Skip everything and let AI build a character to fit your product, or lock in specific fields (gender, age, hair, wardrobe…) and we&apos;ll respect them exactly.
           </p>
 
-          <ActorPicker
+          <CharacterBuilder
             value={character}
-            onChange={(profile, id, photo) => {
-              setCharacter(profile)
-              setActorId(id)
-              setCustomPhoto(photo)
-            }}
+            onChange={profile => setCharacter(profile)}
             disabled={isLoading}
           />
 

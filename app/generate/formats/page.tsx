@@ -243,7 +243,6 @@ export default function FormatsPage() {
               <Link
                 href={
                   selected.id === 'app-demo-composite' ? '/generate/formats/app-demo' :
-                  selected.pipeline === 'pov' ? '/generate/pov' :
                   selected.pipeline === 'editor-only' ? '/editor' :
                   '/generate/ugc'
                 }

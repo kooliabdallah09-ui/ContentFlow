@@ -1,6 +1,6 @@
 import { getVideoStatus } from '@/lib/heygen'
 import { getSoraStatus, downloadSoraVideo } from '@/lib/sora'
-import { getKlingV3OmniStatus, getSora2ReplicateStatus, getSeedanceStatus } from '@/lib/replicate'
+import { getSora2ReplicateStatus, getSeedanceStatus } from '@/lib/replicate'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -43,31 +43,7 @@ export async function GET(request: NextRequest) {
   try {
     const result: Record<string, unknown> = {}
 
-    if (provider === 'kling-v3-omni') {
-      // Kling v3 omni outputs a public Replicate-hosted URL — no rehost needed.
-      const primary = await getKlingV3OmniStatus(videoId)
-      const extras = chainedIds
-        ? await Promise.all(chainedIds.split(',').filter(Boolean).map(id =>
-            getKlingV3OmniStatus(id).catch(() => ({ status: 'failed' as const, error: 'poll failed', videoUrl: undefined as string | undefined })),
-          ))
-        : []
-
-      // Aggregate status: still processing if any clip is incomplete.
-      const allClips = [primary, ...extras]
-      const anyFailed = allClips.some(c => c.status === 'failed')
-      const allDone = allClips.every(c => c.status === 'completed' && c.videoUrl)
-
-      const status = anyFailed ? 'failed' : allDone ? 'completed' : 'processing'
-      const videoUrls = allClips.map(c => c.videoUrl).filter((u): u is string => !!u)
-
-      result.video = {
-        status,
-        videoUrl: videoUrls[0],   // primary clip URL
-        videoUrls,                // all clips in order (for chained durations)
-        clipStatuses: allClips.map(c => c.status),
-        error: anyFailed ? allClips.find(c => c.status === 'failed')?.error : undefined,
-      }
-    } else if (provider === 'seedance' || provider === 'seedance-2') {
+    if (provider === 'seedance' || provider === 'seedance-2') {
       // Seedance outputs a public Replicate-hosted URL — no rehost needed.
       const status = await getSeedanceStatus(videoId)
       result.video = status

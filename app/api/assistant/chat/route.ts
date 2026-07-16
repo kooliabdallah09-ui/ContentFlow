@@ -79,7 +79,6 @@ const TOOL_DEFS: Record<string, Anthropic.Tool> = {
           type: 'string',
           enum: [
             '/generate/ugc',
-            '/generate/pov',
             '/generate/image',
             '/generate/video',
             '/generate/social',
