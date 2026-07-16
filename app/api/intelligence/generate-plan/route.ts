@@ -8,28 +8,41 @@ export const maxDuration = 300
 // Content Intelligence — Step 3: score UGC formats + generate hooks +
 // build a 30-day calendar tailored to this specific user's niche.
 export async function POST(request: NextRequest) {
+  console.log('[gen-plan] START')
   try {
     const authHeader = request.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
+      console.log('[gen-plan] no auth header')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.error('[gen-plan] ANTHROPIC_API_KEY missing in runtime env')
+      return NextResponse.json({ error: 'ANTHROPIC_API_KEY missing' }, { status: 500 })
     }
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
     const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
-    if (!userData.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (!userData.user) {
+      console.log('[gen-plan] auth.getUser returned no user')
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
     const userId = userData.user.id
+    console.log('[gen-plan] userId', userId)
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileErr } = await supabase
       .from('user_intelligence')
       .select('*')
       .eq('user_id', userId)
       .maybeSingle()
+    if (profileErr) console.error('[gen-plan] profile fetch error', profileErr)
 
     if (!profile) {
+      console.log('[gen-plan] no profile — user needs to complete onboarding')
       return NextResponse.json({ error: 'Complete onboarding first' }, { status: 400 })
     }
+    console.log('[gen-plan] profile loaded, niche=', profile.niche)
 
     // Get trends: try cache first, else fetch inline.
     const platform = (profile.preferred_platforms?.[0] as string) || 'tiktok'
@@ -43,19 +56,27 @@ export async function POST(request: NextRequest) {
     let trends
     if (cached && new Date(cached.expires_at) > new Date()) {
       trends = cached.data
+      console.log('[gen-plan] using cached trends')
     } else {
-      trends = await gatherTrends({
-        keywords: profile.trend_keywords ?? [],
-        subreddits: profile.niche_subreddits ?? [],
-      })
-      await supabase
-        .from('trend_cache')
-        .upsert({
-          cache_key: cacheKey,
-          data: trends,
-          expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
-          cached_at: new Date().toISOString(),
-        }, { onConflict: 'cache_key' })
+      console.log('[gen-plan] fetching fresh trends')
+      try {
+        trends = await gatherTrends({
+          keywords: profile.trend_keywords ?? [],
+          subreddits: profile.niche_subreddits ?? [],
+        })
+        console.log('[gen-plan] gatherTrends done')
+        await supabase
+          .from('trend_cache')
+          .upsert({
+            cache_key: cacheKey,
+            data: trends,
+            expires_at: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+            cached_at: new Date().toISOString(),
+          }, { onConflict: 'cache_key' })
+      } catch (trendErr) {
+        console.error('[gen-plan] gatherTrends failed, using empty trends:', trendErr)
+        trends = { tiktok: null, google: null, reddit: null, gatheredAt: new Date().toISOString() }
+      }
     }
 
     // Pass only the profile fields Sonnet needs, not the whole row.
@@ -128,18 +149,29 @@ Respond ONLY with valid JSON, no preamble, no markdown:
   "trending_hashtags": ["#tag1","#tag2","#tag3","#tag4","#tag5"]
 }`
 
-    const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 2800,
-      messages: [{ role: 'user', content: prompt }],
-    })
+    console.log('[gen-plan] calling Sonnet, prompt chars=', prompt.length)
+    const t0 = Date.now()
+    let msg
+    try {
+      msg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 2800,
+        messages: [{ role: 'user', content: prompt }],
+      })
+    } catch (anthropicErr) {
+      console.error('[gen-plan] Anthropic call threw:', anthropicErr instanceof Error ? anthropicErr.message : anthropicErr)
+      return NextResponse.json({ error: `Anthropic call failed: ${anthropicErr instanceof Error ? anthropicErr.message : 'unknown'}` }, { status: 500 })
+    }
+    console.log('[gen-plan] Sonnet returned in', Date.now() - t0, 'ms')
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
     const cleaned = raw.replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let plan: any
     try { plan = JSON.parse(cleaned) } catch {
+      console.error('[gen-plan] JSON parse failed. Raw start:', cleaned.slice(0, 300))
       return NextResponse.json({ error: 'Plan parse failed', raw: cleaned.slice(0, 500) }, { status: 500 })
     }
+    console.log('[gen-plan] parsed plan, calendar entries=', Array.isArray(plan.calendar) ? plan.calendar.length : 'not-array')
 
     const row = {
       user_id: userId,
@@ -157,14 +189,19 @@ Respond ONLY with valid JSON, no preamble, no markdown:
       updated_at: new Date().toISOString(),
     }
 
+    console.log('[gen-plan] upserting content_plans row')
     const { error } = await supabase
       .from('content_plans')
       .upsert(row, { onConflict: 'user_id' })
-    if (error) throw error
+    if (error) {
+      console.error('[gen-plan] content_plans upsert failed:', error)
+      throw error
+    }
+    console.log('[gen-plan] DONE ok')
 
     return NextResponse.json({ success: true, plan: row })
   } catch (err) {
-    console.error('intelligence/generate-plan error:', err)
+    console.error('[gen-plan] outer catch:', err instanceof Error ? err.stack || err.message : err)
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Plan generation failed' },
       { status: 500 },
