@@ -5,6 +5,39 @@ import { gatherTrends } from '@/lib/intelligence/trends'
 
 export const maxDuration = 300
 
+// Sonnet occasionally truncates mid-calendar when max_tokens caps out.
+// Salvage the largest prefix that still parses: cut at the last complete
+// `}` inside the calendar array, then close the array + outer object.
+// Returns null if we can't recover any complete calendar entry.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function salvageTruncatedPlan(raw: string): any | null {
+  const calStart = raw.indexOf('"calendar"')
+  if (calStart < 0) return null
+  const arrOpen = raw.indexOf('[', calStart)
+  if (arrOpen < 0) return null
+  // Walk the string tracking brace depth so we can find the last
+  // complete `}` at depth 1 (i.e. a completed calendar entry).
+  let depth = 0
+  let inStr = false
+  let esc = false
+  let lastCompleteEntryEnd = -1
+  for (let i = arrOpen + 1; i < raw.length; i++) {
+    const ch = raw[i]
+    if (esc) { esc = false; continue }
+    if (ch === '\\') { esc = true; continue }
+    if (ch === '"') { inStr = !inStr; continue }
+    if (inStr) continue
+    if (ch === '{') depth++
+    else if (ch === '}') {
+      depth--
+      if (depth === 0) lastCompleteEntryEnd = i
+    }
+  }
+  if (lastCompleteEntryEnd < 0) return null
+  const patched = raw.slice(0, lastCompleteEntryEnd + 1) + ']}'
+  try { return JSON.parse(patched) } catch { return null }
+}
+
 // Content Intelligence — Step 3: score UGC formats + generate hooks +
 // build a 30-day calendar tailored to this specific user's niche.
 export async function POST(request: NextRequest) {
@@ -155,21 +188,35 @@ Respond ONLY with valid JSON, no preamble, no markdown:
     try {
       msg = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
-        max_tokens: 2800,
+        // 30-day calendar with hook + main_idea + hashtags per entry +
+        // top_formats + hooks-per-format regularly blows past 3k tokens.
+        // 6000 gives Sonnet room to actually close the JSON.
+        max_tokens: 6000,
         messages: [{ role: 'user', content: prompt }],
       })
     } catch (anthropicErr) {
       console.error('[gen-plan] Anthropic call threw:', anthropicErr instanceof Error ? anthropicErr.message : anthropicErr)
       return NextResponse.json({ error: `Anthropic call failed: ${anthropicErr instanceof Error ? anthropicErr.message : 'unknown'}` }, { status: 500 })
     }
-    console.log('[gen-plan] Sonnet returned in', Date.now() - t0, 'ms')
+    console.log('[gen-plan] Sonnet returned in', Date.now() - t0, 'ms, stop_reason=', msg.stop_reason)
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
     const cleaned = raw.replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let plan: any
-    try { plan = JSON.parse(cleaned) } catch {
-      console.error('[gen-plan] JSON parse failed. Raw start:', cleaned.slice(0, 300))
-      return NextResponse.json({ error: 'Plan parse failed', raw: cleaned.slice(0, 500) }, { status: 500 })
+    try {
+      plan = JSON.parse(cleaned)
+    } catch {
+      // Sonnet ran out of tokens mid-JSON. Try to salvage by closing the
+      // JSON at the last complete `}` inside the calendar array, then
+      // closing the outer array + object. Better than tanking the whole
+      // onboarding for a truncated tail.
+      console.warn('[gen-plan] JSON parse failed, attempting salvage. Length=', cleaned.length, 'stop_reason=', msg.stop_reason)
+      plan = salvageTruncatedPlan(cleaned)
+      if (!plan) {
+        console.error('[gen-plan] salvage failed. Raw start:', cleaned.slice(0, 300))
+        return NextResponse.json({ error: 'Plan parse failed', raw: cleaned.slice(0, 500) }, { status: 500 })
+      }
+      console.log('[gen-plan] salvage succeeded, calendar entries=', Array.isArray(plan.calendar) ? plan.calendar.length : 0)
     }
     console.log('[gen-plan] parsed plan, calendar entries=', Array.isArray(plan.calendar) ? plan.calendar.length : 'not-array')
 
