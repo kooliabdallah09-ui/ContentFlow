@@ -678,7 +678,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             </h3>
           </div>
           <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>
-            We rendered {(frames ?? []).length} options. Kling will animate whichever one you pick — click your favorite to continue.
+            We rendered {(frames ?? []).length} options. We&apos;ll animate whichever one you pick — click your favorite to continue.
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
@@ -725,7 +725,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
           {animating && (
             <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0 }}>
-              Submitting your pick to Kling — this takes 60–120 seconds. You&apos;ll see the video in your Library when it&apos;s ready.
+              Submitting your pick — this takes about 2 minutes. You&apos;ll see the video in your Library when it&apos;s ready.
             </p>
           )}
         </section>
@@ -1246,7 +1246,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
 
           <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.5 }}>
-            Pick a pre-built actor from the library or build a custom character — Kling v3 will generate them holding your real product and speaking your script with a synced native voice.
+            Pick a pre-built actor from the library or build a custom character — we&apos;ll generate them holding your real product and speaking your script with a synced native voice.
           </p>
 
           <ActorPicker
