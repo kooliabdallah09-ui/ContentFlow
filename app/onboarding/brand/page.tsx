@@ -12,7 +12,6 @@ const FORMAT_OPTIONS: { id: keyof FormatPreferences; label: string; desc: string
   { id: 'video',       label: 'AI Video',       desc: 'Short clips, reels & Sora generations' },
   { id: 'image',       label: 'AI Image',       desc: 'AI-generated visuals & graphics' },
   { id: 'social',      label: 'Social Post',    desc: 'Captions, hashtags & image carousels' },
-  { id: 'voice',       label: 'Voice / Audio',  desc: 'ElevenLabs voiceovers & audio clips' },
   { id: 'screen-demo', label: 'Screen Demo',    desc: 'Software demo & walkthrough videos' },
 ]
 
@@ -125,7 +124,7 @@ export default function OnboardingBrandPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
   const [frequency, setFrequency] = useState('moderate')
   const [formatPrefs, setFormatPrefs] = useState<FormatPreferences>({
-    ugc: 2, video: 2, image: 2, social: 3, voice: 1, 'screen-demo': 1,
+    ugc: 2, video: 2, image: 2, social: 3, 'screen-demo': 1,
   })
 
   // Step 3: Generated plan
