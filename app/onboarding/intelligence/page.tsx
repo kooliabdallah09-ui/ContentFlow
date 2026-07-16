@@ -23,7 +23,7 @@ export default function IntelligenceOnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState({ product: '', audience: '', goal: '' })
-  const [phase, setPhase] = useState<'form' | 'profiling' | 'scanning' | 'planning'>('form')
+  const [phase, setPhase] = useState<'form' | 'profiling' | 'planning'>('form')
   const [aiFilling, setAiFilling] = useState(false)
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function IntelligenceOnboardingPage() {
   // Skip the rest of intelligence onboarding. Since the profile row + plan
   // both depend on all three answers being present, skipping any step means
   // we can't safely generate a calendar — so we route straight to the
-  // dashboard without calling onboard / analyze-top-videos / generate-plan.
+  // dashboard without calling onboard / generate-plan.
   // The dashboard's ContentPlanSection already shows the "Start onboarding"
   // CTA when there's no profile, so the user gets a clean re-entry path.
   function skipIntelligence() {
@@ -109,25 +109,6 @@ export default function IntelligenceOnboardingPage() {
       if (!onb.ok) {
         const err = await onb.json()
         throw new Error(err.error || 'Onboarding failed')
-      }
-
-      // Fetch the top short-form video from each platform and let Gemini
-      // read them. Non-fatal if it fails — generate-plan falls back to
-      // Claude's own knowledge — but we log the debug info so we can see
-      // why the scrape didn't find anything.
-      setPhase('scanning')
-      try {
-        const scanRes = await fetch('/api/intelligence/analyze-top-videos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({}),
-        })
-        const scanData = await scanRes.json().catch(() => null)
-        if (scanData) {
-          console.log('[intelligence] top-video scan:', scanData)
-        }
-      } catch (e) {
-        console.warn('[intelligence] top-video scan failed:', e)
       }
 
       setPhase('planning')
@@ -168,12 +149,10 @@ export default function IntelligenceOnboardingPage() {
         <Loader2 size={32} className="animate-spin" style={{ marginBottom: 20 }} />
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 400, margin: '0 0 8px' }}>
           {phase === 'profiling' && 'Reading your niche…'}
-          {phase === 'scanning' && 'Studying the top videos…'}
           {phase === 'planning' && 'Building your 30-day plan…'}
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', maxWidth: 460, margin: '0 auto', lineHeight: 1.6 }}>
           {phase === 'profiling' && 'Extracting your product profile and pulling real-time trend data from Google + Reddit.'}
-          {phase === 'scanning' && 'Pulling the #1 short-form video from TikTok and Instagram Reels and reading them for hook, format, and pacing.'}
           {phase === 'planning' && 'Scoring UGC formats, generating hooks, and structuring 30 days of content around what already works in your niche.'}
         </p>
       </main>

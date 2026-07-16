@@ -58,25 +58,6 @@ export async function POST(request: NextRequest) {
         }, { onConflict: 'cache_key' })
     }
 
-    const topVideos = Array.isArray(profile.top_video_analyses) ? profile.top_video_analyses : []
-    // Cap at 3 videos and only keep the fields Sonnet actually reasons on.
-    // Keeping the full gemini blob (keyMoments arrays, raw transcripts, etc.)
-    // ballooned the prompt to 20k+ tokens and pushed generation past the
-    // Vercel runtime, so we tighten input tokens hard to keep gen under 30s.
-    const analyzedVideos = topVideos
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((v: any) => v?.gemini)
-      .slice(0, 3)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((v: any) => ({
-        platform: v.platform,
-        hook: typeof v.gemini.hook === 'string' ? v.gemini.hook.slice(0, 200) : undefined,
-        format: v.gemini.format,
-        pacing: typeof v.gemini.pacing === 'string' ? v.gemini.pacing.slice(0, 120) : undefined,
-        hookVisual: typeof v.gemini.hookVisual === 'string' ? v.gemini.hookVisual.slice(0, 160) : undefined,
-        cta: typeof v.gemini.cta === 'string' ? v.gemini.cta.slice(0, 100) : undefined,
-      }))
-
     // Pass only the profile fields Sonnet needs, not the whole row.
     const leanProfile = {
       niche: profile.niche,
@@ -119,12 +100,6 @@ ${JSON.stringify(leanProfile, null, 2)}
 
 Market data (real-time snapshot):
 ${JSON.stringify(trends, null, 2)}
-
-Top-performing videos in this niche (frame-by-frame analysis).
-When choosing formats and drafting hooks, borrow rhythm and specificity from
-these — they already have traction. If a hook here maps to the user's product,
-echo its cadence:
-${analyzedVideos.length ? JSON.stringify(analyzedVideos, null, 2) : '(no top-video data available — infer from the niche itself)'}
 
 Respond ONLY with valid JSON, no preamble, no markdown:
 {
