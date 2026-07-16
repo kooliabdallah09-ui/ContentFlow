@@ -59,24 +59,36 @@ export async function POST(request: NextRequest) {
     }
 
     const topVideos = Array.isArray(profile.top_video_analyses) ? profile.top_video_analyses : []
+    // Cap at 3 videos and only keep the fields Sonnet actually reasons on.
+    // Keeping the full gemini blob (keyMoments arrays, raw transcripts, etc.)
+    // ballooned the prompt to 20k+ tokens and pushed generation past the
+    // Vercel runtime, so we tighten input tokens hard to keep gen under 30s.
     const analyzedVideos = topVideos
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((v: any) => v?.gemini)
+      .slice(0, 3)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((v: any) => ({
         platform: v.platform,
-        sourceUrl: v.sourceUrl,
-        views: v.views,
-        likes: v.likes,
-        authorHandle: v.authorHandle,
-        hook: v.gemini.hook,
+        hook: typeof v.gemini.hook === 'string' ? v.gemini.hook.slice(0, 200) : undefined,
         format: v.gemini.format,
-        pacing: v.gemini.pacing,
-        hookVisual: v.gemini.hookVisual,
-        cta: v.gemini.cta,
-        captionStyle: v.gemini.captionStyle,
-        keyMoments: v.gemini.keyMoments,
+        pacing: typeof v.gemini.pacing === 'string' ? v.gemini.pacing.slice(0, 120) : undefined,
+        hookVisual: typeof v.gemini.hookVisual === 'string' ? v.gemini.hookVisual.slice(0, 160) : undefined,
+        cta: typeof v.gemini.cta === 'string' ? v.gemini.cta.slice(0, 100) : undefined,
       }))
+
+    // Pass only the profile fields Sonnet needs, not the whole row.
+    const leanProfile = {
+      niche: profile.niche,
+      product_type: profile.product_type,
+      product_description: profile.product_description,
+      goal: profile.goal,
+      audience_profile: profile.audience_profile,
+      preferred_platforms: profile.preferred_platforms,
+      trend_keywords: profile.trend_keywords,
+      posting_frequency: profile.posting_frequency,
+      format_preferences: profile.format_preferences,
+    }
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const prompt = `You are a UGC expert who has produced thousands of short-form ads that hit for small brands and solo founders on TikTok, Reels, and Shorts. You know that formulaic influencer language dies on the feed and that the best-performing UGC ads land ONE specific idea per video — a real moment, a concrete before/after, a genuine reaction, a niche pain point that the target audience feels in their bones.
@@ -103,7 +115,7 @@ Avoid vague main_ideas like "share how the product helped them" or "highlight th
 For each entry also provide: format, hook (verbatim first spoken line), hashtags (3-5), best posting time (24h HH:MM), platform.
 
 User profile:
-${JSON.stringify(profile, null, 2)}
+${JSON.stringify(leanProfile, null, 2)}
 
 Market data (real-time snapshot):
 ${JSON.stringify(trends, null, 2)}
@@ -143,7 +155,7 @@ Respond ONLY with valid JSON, no preamble, no markdown:
 
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4000,
+      max_tokens: 2800,
       messages: [{ role: 'user', content: prompt }],
     })
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
