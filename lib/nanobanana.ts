@@ -1,5 +1,8 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
-const NANO_BANANA_MODEL = 'google/nano-banana-2'
+// Nano Banana Pro — the premium image model on Replicate. Better identity
+// preservation + label fidelity than nano-banana-2, at ~2-3x the cost per
+// image. Used for hero frames + product refinement + cutaway frames.
+const NANO_BANANA_MODEL = 'google/nano-banana-pro'
 
 interface NanoBananaResult {
   imageBase64: string
