@@ -685,7 +685,7 @@ export default function OnboardingBrandPage() {
                   className="btn btn-primary"
                   style={{ flex: 1, padding: '12px 16px', fontSize: '14px', opacity: loading || selectedPlatforms.length === 0 ? 0.5 : 1 }}
                 >
-                  {loading ? 'Generating...' : 'Generate My Plan →'}
+                  {loading ? 'Loading...' : 'Continue →'}
                 </button>
               </div>
             </div>
