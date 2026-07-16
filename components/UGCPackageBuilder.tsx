@@ -20,6 +20,7 @@ import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { compressImageFile } from '@/lib/image-compress'
+import { ugcPackageCost } from '@/lib/ugc-pricing'
 
 interface HookVariant {
   id: string
@@ -328,8 +329,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
   // UGC always renders the full pipeline. Single tier now (Kling v3 omni handles voice natively).
   const includesVideo = true
-  const videoCredits = calculateVideoCredits(tier, duration)
+  // Full package cost — Seedance rate at the chosen resolution + fixed
+  // Nano Banana Pro / Claude overhead. Shared source of truth in
+  // lib/ugc-pricing so the client display never drifts from the server
+  // deduction.
+  const videoCredits = ugcPackageCost(duration, resolution)
   const totalCredits = videoCredits
+  void calculateVideoCredits
   const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && benefits.trim()
 
   // Downscale + re-encode uploaded product photos before storing them in
@@ -876,7 +882,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             {DURATION_OPTIONS.map(sec => {
               const dCfg = DURATION_CONFIGS[sec]
               const active = duration === sec
-              const cost = calculateVideoCredits(tier, sec)
+              const cost = ugcPackageCost(sec, resolution)
               const usd = creditsToUSD(cost)
               const locked = !dCfg.available
               const chained = dCfg.klingClips >= 2

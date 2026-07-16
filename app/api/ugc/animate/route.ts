@@ -86,15 +86,14 @@ export async function POST(request: NextRequest) {
 
     const tier: UGCTier = DEFAULT_TIER
 
-    // Cost — Seedance 2.0 per-second pricing by resolution (1.8x markup on
-    // Replicate's raw cost). Kept in lockstep with the /generate/video
-    // rate card + the client UGC builder's price display.
-    // Non-video-in Seedance 2.0 pricing (Replicate) × 1.8 markup, rounded up.
-    const SEEDANCE_CR_PER_SECOND: Record<string, number> = { '480p': 6, '720p': 13, '1080p': 33, '4k': 72 }
-    const perSec = SEEDANCE_CR_PER_SECOND[resolution] ?? SEEDANCE_CR_PER_SECOND['1080p']
+    // Cost — full UGC package price via the shared pricing module. Includes
+    // fixed overhead for the ~5 Nano Banana Pro calls + Claude prompt calls,
+    // plus per-second Seedance 2.0 rate at the chosen resolution. Kept in
+    // lockstep with the client UGC builder's cost card via lib/ugc-pricing.
+    const { ugcPackageCost } = await import('@/lib/ugc-pricing')
     let totalCost = 0
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
-    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += Math.max(1, Math.ceil(duration * perSec))
+    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += ugcPackageCost(duration, resolution)
     // tier is retained for compatibility with existing callers; not used here.
     void calculateVideoCredits; void tier
 
