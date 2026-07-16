@@ -84,7 +84,12 @@ Avoid: overly cinematic commercial lighting, studio backgrounds, glossy ad-style
 
 Character block: introduce the CHARACTER block referencing <<<image_1>>>. Do not describe the grid. Do not put age numbers ('24-year-old' etc.) anywhere.
 
-Output ONLY the finished prompt — no preamble, no notes, no strategy, no multiple options. Detailed enough to guide the video, loose enough to allow natural variation between renders.`
+Output ONLY the finished prompt — no preamble, no notes, no strategy, no multiple options. Detailed enough to guide the video, loose enough to allow natural variation between renders.
+
+HARD LENGTH LIMIT — read carefully:
+- The finished prompt MUST be at most 3800 characters (Seedance 2.0 caps at 4000 total and we append a ~180-char negative-prompt footer). Anything over 3800 will be silently truncated by the client, which means the closing scene disappears and the ad ends mid-beat. That is catastrophic — never let it happen.
+- For 3-10 second clips aim for 400-900 characters. 11-20s aim 800-1600. 21-40s aim 1400-2600. 41-60s aim 2000-3600. Stay well below 3800 even on the longest clips.
+- If you feel yourself running long, cut adjective density in the visuals and shorten the dialogue lines — do NOT drop scenes or shorten the closing beat.`
 
 export async function buildSeedanceUGCPrompt(input: BuildSeedancePromptInput): Promise<string> {
   const parts: Anthropic.ContentBlockParam[] = []
@@ -173,8 +178,13 @@ export function cleanPrompt(text: string): string {
   const HARD_CAP = 4000
   const NEGATIVE = 'negative: no jitter, no identity drift, no plastic skin, no floating limbs, no over-smoothing, no warped packaging, no text morphing'
   const negativeLen = NEGATIVE.length + 2
-  if (out.length + negativeLen > HARD_CAP) {
-    out = out.slice(0, HARD_CAP - negativeLen).trim()
+  const budget = HARD_CAP - negativeLen
+  if (out.length > budget) {
+    // Sonnet blew past the hard cap despite the instruction — log so we
+    // can catch this in production and tighten the system prompt further
+    // if it starts happening consistently.
+    console.warn(`[ugc-seedance-prompt] Sonnet output ${out.length} chars > budget ${budget}; truncating. Last scene may be lost.`)
+    out = out.slice(0, budget).trim()
   }
   return `${out}\n\n${NEGATIVE}`
 }
