@@ -6,16 +6,7 @@ import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import type { DailySuggestion } from '@/lib/planner'
 import { savePrefill } from '@/lib/calendar-prefill'
-import { Loader2, RefreshCcw, ArrowRight, ExternalLink, Trash2 } from 'lucide-react'
-
-function YTIcon({ size = 14, color }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color ?? 'currentColor'}>
-      <path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
-    </svg>
-  )
-}
-import ScheduleYouTubeModal, { type ScheduledJob } from '@/components/ScheduleYouTubeModal'
+import { Loader2, RefreshCcw, ArrowRight } from 'lucide-react'
 
 const CONTENT_ICONS: Record<string, string> = {
   ugc:         '◉',
@@ -36,13 +27,6 @@ const CONTENT_HREF: Record<string, string> = {
   'screen-demo': '/generate/screen-demo',
 }
 
-const STATUS_BADGE: Record<string, { label: string; bg: string; color: string }> = {
-  queued:    { label: '⏳ Queued',     bg: 'rgba(100,100,100,0.1)',    color: 'var(--ink-2)' },
-  uploading: { label: '⬆ Uploading',  bg: 'rgba(59,130,246,0.12)',    color: '#3b82f6' },
-  published: { label: '✓ Published',  bg: 'rgba(47,122,78,0.12)',     color: 'var(--good)' },
-  failed:    { label: '✗ Failed',     bg: 'rgba(184,58,53,0.1)',      color: 'var(--danger)' },
-}
-
 export default function CalendarPage() {
   const router = useRouter()
   const [loading, setLoading]         = useState(true)
@@ -51,16 +35,10 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<DailySuggestion | null>(null)
   const [error, setError]             = useState<string | null>(null)
 
-  // YouTube queue state
-  const [ytJobs, setYtJobs]           = useState<ScheduledJob[]>([])
-  const [showYtModal, setShowYtModal] = useState(false)
-  const [cancellingId, setCancellingId] = useState<string | null>(null)
-
   const now = useMemo(() => new Date(), [])
   const monthLabel = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
 
   useEffect(() => { loadPlan() }, [])
-  useEffect(() => { loadYtQueue() }, [])
 
   async function getToken() {
     const supabase = getSupabase()
@@ -103,39 +81,9 @@ export default function CalendarPage() {
     }
   }
 
-  async function loadYtQueue() {
-    try {
-      const token = await getToken()
-      if (!token) return
-      const res = await fetch('/api/youtube/queue', { headers: { Authorization: `Bearer ${token}` } })
-      if (!res.ok) return
-      const data = await res.json()
-      setYtJobs(data.jobs ?? [])
-    } catch {}
-  }
-
   function findTodayOrFirst(days: DailySuggestion[]): DailySuggestion | null {
     const todayStr = new Date().toISOString().slice(0, 10)
     return days.find(d => d.date === todayStr) ?? days[0] ?? null
-  }
-
-  function jobForDay(date: string): ScheduledJob | undefined {
-    return ytJobs.find(j => j.calendar_date === date)
-  }
-
-  async function cancelJob(id: string) {
-    setCancellingId(id)
-    try {
-      const token = await getToken()
-      if (!token) return
-      await fetch(`/api/youtube/queue?id=${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      setYtJobs(prev => prev.filter(j => j.id !== id))
-    } finally {
-      setCancellingId(null)
-    }
   }
 
   async function regenerate() {
@@ -254,8 +202,6 @@ export default function CalendarPage() {
   const cells: (DailySuggestion | null)[] = Array(startWeekday).fill(null).concat(plan as (DailySuggestion | null)[])
   while (cells.length % 7 !== 0) cells.push(null)
 
-  const selectedJob = selectedDay ? jobForDay(selectedDay.date) : undefined
-
   return (
     <main className="content" style={{ maxWidth: 1180 }}>
       <div className="page-meta">{monthLabel.toUpperCase()}</div>
@@ -300,7 +246,6 @@ export default function CalendarPage() {
               const dayNum = dateObj.getDate()
               const isToday = cell.date === new Date().toISOString().slice(0, 10)
               const icon = CONTENT_ICONS[cell.contentType] ?? '◯'
-              const job = jobForDay(cell.date)
 
               return (
                 <button
@@ -325,11 +270,6 @@ export default function CalendarPage() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                       {cell.completed && (
                         <span style={{ fontSize: 11, color: active ? 'var(--on-ink-dim)' : 'var(--good)' }}>✓</span>
-                      )}
-                      {job && (
-                        <span title={`YouTube: ${job.status}`} style={{ fontSize: 9, lineHeight: 1 }}>
-                          {job.status === 'published' ? '🔴' : job.status === 'failed' ? '⚠️' : '📅'}
-                        </span>
                       )}
                     </div>
                   </div>
@@ -422,93 +362,6 @@ export default function CalendarPage() {
                 </button>
               )}
 
-              {/* YouTube scheduling section */}
-              {selectedJob ? (
-                <div style={{
-                  borderRadius: 11, border: '1px solid var(--border)',
-                  background: 'var(--surface-2)', overflow: 'hidden',
-                }}>
-                  {/* Status bar */}
-                  <div style={{
-                    padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 8,
-                    borderBottom: selectedJob.status !== 'published' ? '1px solid var(--border-soft)' : undefined,
-                  }}>
-                    <YTIcon size={14} color="#FF0000" />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {selectedJob.title}
-                      </div>
-                      <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 1 }}>
-                        {new Date(selectedJob.scheduled_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                      </div>
-                    </div>
-                    {(() => {
-                      const b = STATUS_BADGE[selectedJob.status]
-                      return (
-                        <span style={{
-                          fontSize: 10.5, fontWeight: 600, padding: '2px 8px',
-                          borderRadius: 99, background: b.bg, color: b.color,
-                          whiteSpace: 'nowrap',
-                        }}>{b.label}</span>
-                      )
-                    })()}
-                  </div>
-
-                  {/* Published link */}
-                  {selectedJob.status === 'published' && selectedJob.yt_video_url && (
-                    <a href={selectedJob.yt_video_url} target="_blank" rel="noopener noreferrer"
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '8px 14px', fontSize: 12, color: '#FF0000',
-                        textDecoration: 'none', fontWeight: 600,
-                      }}>
-                      <ExternalLink size={12} />
-                      Watch on YouTube
-                    </a>
-                  )}
-
-                  {/* Cancel button for queued jobs */}
-                  {selectedJob.status === 'queued' && (
-                    <button
-                      onClick={() => cancelJob(selectedJob.id)}
-                      disabled={cancellingId === selectedJob.id}
-                      style={{
-                        width: '100%', padding: '8px 14px',
-                        background: 'none', border: 'none', cursor: 'pointer',
-                        display: 'flex', alignItems: 'center', gap: 6,
-                        fontSize: 12, color: 'var(--ink-mute)',
-                      }}>
-                      {cancellingId === selectedJob.id
-                        ? <><Loader2 size={11} className="animate-spin" /> Cancelling…</>
-                        : <><Trash2 size={11} /> Cancel schedule</>}
-                    </button>
-                  )}
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowYtModal(true)}
-                  style={{
-                    width: '100%', padding: '11px 0', borderRadius: 11,
-                    background: 'transparent',
-                    border: '1.5px dashed var(--border-strong)',
-                    color: 'var(--ink-2)', fontSize: 13, fontWeight: 600,
-                    cursor: 'pointer', display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', gap: 7,
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={e => {
-                    e.currentTarget.style.borderColor = '#FF0000'
-                    e.currentTarget.style.color = '#FF0000'
-                  }}
-                  onMouseLeave={e => {
-                    e.currentTarget.style.borderColor = 'var(--border-strong)'
-                    e.currentTarget.style.color = 'var(--ink-2)'
-                  }}
-                >
-                  <YTIcon size={14} />
-                  Schedule to YouTube
-                </button>
-              )}
             </div>
           ) : (
             <div className="card" style={{ padding: 22, color: 'var(--ink-mute)', fontSize: 13 }}>
@@ -517,23 +370,6 @@ export default function CalendarPage() {
           )}
         </aside>
       </div>
-
-      {/* YouTube schedule modal */}
-      {showYtModal && selectedDay && (
-        <ScheduleYouTubeModal
-          prefill={{
-            title: selectedDay.title,
-            description: selectedDay.description,
-            calendarDate: selectedDay.date,
-            suggestedTime: selectedDay.suggestedTime || '9:00 AM',
-          }}
-          onClose={() => setShowYtModal(false)}
-          onScheduled={job => {
-            setYtJobs(prev => [...prev.filter(j => j.calendar_date !== job.calendar_date), job])
-            setShowYtModal(false)
-          }}
-        />
-      )}
 
       <style>{`
         @media (max-width: 900px) {

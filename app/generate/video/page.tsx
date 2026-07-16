@@ -7,7 +7,6 @@ import { readChatPrefill } from '@/lib/chat-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Play, Upload, X } from 'lucide-react'
-import PublishToYouTube from '@/components/PublishToYouTube'
 
 type Model = 'seedance-2' | 'kling-v3'
 type Resolution = '480p' | '720p' | '1080p' | '4k'
@@ -840,9 +839,6 @@ export default function VideoGeneratorPage() {
                   <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
                     <Play size={14} /> Open in tab
                   </a>
-                </div>
-                <div style={{ marginTop: 10 }}>
-                  <PublishToYouTube videoUrl={video.videoUrl!} defaultTitle="AI Generated Video" />
                 </div>
                 <div style={{ textAlign: 'center', marginTop: 10 }}>
                   <a href="/library" style={{ fontSize: 12.5, color: 'var(--ink-dim)', textDecoration: 'none', fontWeight: 500 }}>

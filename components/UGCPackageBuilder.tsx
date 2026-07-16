@@ -153,14 +153,19 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [framesLoading, setFramesLoading] = useState(false)
   const [animating, setAnimating] = useState(false)
 
-  // Progressive-reveal state. unlockedStep starts at 1; each section 2-5
-  // fades in when it becomes ≤ unlockedStep. Step 1 auto-advances once the
-  // user has interacted with both Duration and Aspect. Steps 2-4 unlock via
-  // a Continue button at the bottom of each. Once a step is unlocked it
-  // stays visible.
-  const [unlockedStep, setUnlockedStep] = useState(1)
-  const [durationTouched, setDurationTouched] = useState(false)
-  const [aspectTouched, setAspectTouched] = useState(false)
+  // Progressive-reveal state. unlockedStep starts at 1 for cold visits; each
+  // section 2-5 fades in when it becomes ≤ unlockedStep. Step 1 auto-advances
+  // once the user has interacted with both Duration and Aspect. Steps 2-4
+  // unlock via a Continue button at the bottom of each.
+  //
+  // When the user arrives from the dashboard/calendar with a prefill, we
+  // skip the whole reveal animation — every section is unlocked on first
+  // paint. Same for the "touched" flags so the highlighted-active look is
+  // applied to the default duration + aspect immediately.
+  const initiallyUnlocked = initialPrefill ? 5 : 1
+  const [unlockedStep, setUnlockedStep] = useState(initiallyUnlocked)
+  const [durationTouched, setDurationTouched] = useState(!!initialPrefill)
+  const [aspectTouched, setAspectTouched] = useState(!!initialPrefill)
   const step2Ref = useRef<HTMLElement | null>(null)
   const step3Ref = useRef<HTMLElement | null>(null)
   const step4Ref = useRef<HTMLElement | null>(null)
