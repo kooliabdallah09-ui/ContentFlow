@@ -219,6 +219,25 @@ export async function POST(request: NextRequest) {
     }
     let currentGridUrl = await uploadGrid(currentGridBuf)
 
+    // Persist the raw product photo to storage so the async sensitivity
+    // retry (video-status detects E005 mid-render) can re-attach it to a
+    // regridified anchor without needing the base64 payload again.
+    let productRefUrl: string | undefined
+    if (typeof productImageBase64 === 'string' && productImageBase64.length > 100) {
+      try {
+        const prodFilename = `hero-frames/${userId}-${Date.now()}-productref.jpg`
+        const prodJpeg = await sharp(Buffer.from(productImageBase64, 'base64')).jpeg({ quality: 90 }).toBuffer()
+        const { error: prodUpErr } = await supabase.storage
+          .from('ugc-assets')
+          .upload(prodFilename, prodJpeg, { contentType: 'image/jpeg', upsert: false })
+        if (!prodUpErr) {
+          productRefUrl = supabase.storage.from('ugc-assets').getPublicUrl(prodFilename).data.publicUrl
+        }
+      } catch (err) {
+        console.warn('[ugc/animate] product ref upload failed:', err instanceof Error ? err.message : err)
+      }
+    }
+
     // Build the Seedance prompt once (grid + product + user direction).
     const productCategoryForPrompt = typeof productImageBase64 === 'string' && productImageBase64.length > 100
       ? await inferProductCategory({ productName: safeProductName, productDescription: safeProductDescription })
@@ -331,6 +350,17 @@ export async function POST(request: NextRequest) {
         params: currentGridParams,
         url: currentGridUrl,
         sensitivityRetries: sensitivityRetries.length ? sensitivityRetries : undefined,
+      },
+      // Everything the async sensitivity-retry endpoint needs to regridify
+      // and resubmit if Seedance flags E005 mid-render (after accepting
+      // the job — the submit-time ladder can't catch those).
+      retryContext: {
+        anchorFrameUrl: animateStartUrl,
+        productRefUrl,
+        prompt: seedancePrompt,
+        resolution,
+        aspectRatio: aspect.nanoBananaRatio,
+        durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
       },
     }
 

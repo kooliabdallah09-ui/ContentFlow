@@ -37,13 +37,20 @@ export const GRID_RETRIES: GridParams[] = [
 // `gap` = white bar thickness in pixels. The source is never resized or
 // cropped — the same original pixels are visible in the tile windows.
 export async function gridify(sourceBuf: Buffer, params: GridParams): Promise<Buffer> {
-  const { cols, rows, gap } = params
+  const { cols, rows } = params
 
   // Read the source's real dimensions and use them as the output canvas.
   const meta = await sharp(sourceBuf).metadata()
   const canvasW = meta.width ?? 0
   const canvasH = meta.height ?? 0
   if (!canvasW || !canvasH) throw new Error('gridify: could not read source dimensions')
+
+  // The ladder's gap values were calibrated on 720px-wide hero frames. Gap
+  // is absolute pixels, so on higher-res sources the bars looked
+  // proportionally thinner — weakening the face obfuscation and triggering
+  // Seedance's sensitivity scanner. Scale the gap with source width so the
+  // relative bar thickness matches the calibrated look at any resolution.
+  const gap = Math.max(8, Math.round(params.gap * canvasW / 720))
 
   // Distribute the remaining space evenly across visible tiles.
   // (cols+1) vertical bars, (rows+1) horizontal bars.

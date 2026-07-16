@@ -70,6 +70,9 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
   const [audioOverlayUrl, setAudioOverlayUrl] = useState<string | undefined>(undefined)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  // Prediction ids we've already auto-retried for an async E005 flag —
+  // prevents double-firing the retry endpoint from overlapping polls.
+  const retriedIdsRef = useRef<Set<string>>(new Set())
   const stitchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const stitchStartedRef = useRef(false)
 
@@ -140,6 +143,33 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
 
         if (data.video) {
           const v = data.video
+          // Async sensitivity flag (E005): Seedance accepted the job then
+          // flagged it mid-render. Auto-retry with the next grid from the
+          // ladder — the server regridifies + resubmits, no extra charge.
+          const isSensitive = v.status === 'failed'
+            && /e005|flagged as sensitive|sensitive content/i.test(String(v.error ?? ''))
+          if (isSensitive && video?.videoId && !retriedIdsRef.current.has(video.videoId)) {
+            retriedIdsRef.current.add(video.videoId)
+            try {
+              const { getSupabase } = await import('@/lib/auth')
+              const supabase = getSupabase()
+              const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+              const token = sess?.session?.access_token
+              if (token) {
+                const retryRes = await fetch('/api/ugc/animate/retry', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                  body: JSON.stringify({ failedPredictionId: video.videoId }),
+                })
+                const retryData = await retryRes.json().catch(() => ({}))
+                if (retryRes.ok && retryData.videoId) {
+                  // Swap to the new prediction and keep polling.
+                  setVideo(prev => prev ? { ...prev, videoId: retryData.videoId, status: 'processing', error: undefined } : prev)
+                  return
+                }
+              }
+            } catch { /* fall through to failed state */ }
+          }
           if (v.status === 'completed' || v.status === 'failed') {
             setVideo(prev => prev ? {
               ...prev,
