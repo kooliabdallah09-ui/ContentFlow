@@ -341,6 +341,8 @@ export default function CalendarPage() {
                             format: (selectedDay.reason ?? '').split(':')[1]?.trim() ?? selectedDay.contentType,
                             target: selectedDay.contentType,
                             platform: selectedDay.platforms?.[0],
+                            // Default UGC duration is 10s.
+                            duration: 10,
                           }),
                           signal: controller.signal,
                         })

@@ -85,7 +85,10 @@ export default function ContentPlanSection() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify({
-            hook: e.hook, format: e.format, target: contentType, platform: e.platform,
+            // Default UGC duration is 10s — matches the UGC builder's
+            // DEFAULT_DURATION. Enhance-prompt uses this to scale the
+            // beat budget.
+            hook: e.hook, format: e.format, target: contentType, platform: e.platform, duration: 10,
           }),
           signal: controller.signal,
         })

@@ -68,14 +68,14 @@ export async function POST(request: NextRequest) {
   the seconds can physically hold; never waste seconds on a single tiny gesture.
 
 Keep it a single dense paragraph, 60-140 words. No captions, no on-screen text, no watermark, no logos.`,
-      ugc: `TARGET: UGC talking-head generator (Kling v3 lipsync). Describe:
-- Character on camera: age, ethnicity, hair, one accessory, wardrobe vibe
+      ugc: `TARGET: UGC talking-head generator (Seedance 2.0). This lands in the "Custom Instructions" field of an existing form — the CHARACTER is picked separately from an actor library / persona builder, so DO NOT describe the character (age, ethnicity, hair, wardrobe, or physical features). Only describe:
 - Setting: bedroom / kitchen / desk / bathroom / car — cozy, phone-camera framing
-- What they say verbatim as the FIRST sentence (use the hook)
-- Delivery: casual, one take, no rehearsed feel
-- One gesture or product placement per beat
+- What they say verbatim as the FIRST sentence (use the hook, in quotes)
+- Delivery notes: casual, one take, low-key energy, no rehearsed feel
+- Scene beats: one gesture or product placement per beat, paced to fit exactly ${duration}s (${beatBudget})
+- Any prop / camera cues that matter (phone propped, mirror, held-in-hand product)
 
-Keep it 40-90 words. Reads like a director's blocking note. Their exact opening line matters.`,
+Keep it 40-90 words. Reads like a director's blocking note. Never start with "A [age] [ethnicity] [gender]…" — start with the setting or the opening line.`,
       image: `TARGET: image generator (Nano Banana). Describe:
 - Composition: hero shot / flat lay / lifestyle / close-up macro
 - Lighting: soft window / golden hour / studio / clean e-comm
