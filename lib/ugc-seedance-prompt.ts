@@ -33,6 +33,23 @@ export interface BuildSeedancePromptInput {
 
   // The target clip length in seconds. Strictly enforced in the prompt.
   durationSeconds: number
+
+  // Brand + onboarding context — loaded from brand_profiles +
+  // user_intelligence in the animate route. Threaded verbatim into the
+  // user message so Sonnet honors the creator's tone, audience, niche,
+  // pain points, and any hard preferences captured during onboarding.
+  brandContext?: {
+    companyName?: string
+    productDescription?: string
+    productType?: string
+    uniqueValueProp?: string
+    targetAudience?: string
+    toneOfVoice?: string
+    customerPainPoints?: string
+    niche?: string
+    preferredFormat?: string        // top-scoring UGC format from intelligence
+    audienceProfile?: string
+  }
 }
 
 const SYSTEM = `You are an expert UGC ad director, TikTok scriptwriter, direct-response marketer, and Seedance 2.0 prompt engineer.
@@ -117,7 +134,22 @@ export async function buildSeedanceUGCPrompt(input: BuildSeedancePromptInput): P
   }
 
   const directionBlock = input.videoDirection?.trim()
-    ? `\n\nAdditional direction from the user for this specific video:\n${input.videoDirection.trim()}`
+    ? `\n\nAdditional direction from the user for this specific video (this is a short intent hint — YOU write the actual scenes/dialogue around it, don't quote it verbatim):\n${input.videoDirection.trim()}`
+    : ''
+
+  const bc = input.brandContext
+  const brandLines: string[] = []
+  if (bc?.companyName) brandLines.push(`- Brand: ${bc.companyName}`)
+  if (bc?.productDescription) brandLines.push(`- Product: ${bc.productDescription}${bc.productType ? ` (${bc.productType})` : ''}`)
+  if (bc?.uniqueValueProp) brandLines.push(`- Why it matters: ${bc.uniqueValueProp}`)
+  if (bc?.targetAudience) brandLines.push(`- Audience: ${bc.targetAudience}`)
+  if (bc?.audienceProfile) brandLines.push(`- Audience detail: ${bc.audienceProfile}`)
+  if (bc?.niche) brandLines.push(`- Niche: ${bc.niche}`)
+  if (bc?.toneOfVoice) brandLines.push(`- Tone the creator uses: ${bc.toneOfVoice}`)
+  if (bc?.customerPainPoints) brandLines.push(`- Pain points to speak to: ${bc.customerPainPoints}`)
+  if (bc?.preferredFormat) brandLines.push(`- Top-performing format for this niche: ${bc.preferredFormat} — bias the arc toward this shape when it fits.`)
+  const brandBlock = brandLines.length
+    ? `\n\nBrand + audience context from the creator's onboarding — honor these when writing dialogue and choosing the scene beats (do NOT name the brand in dialogue unless it fits naturally):\n${brandLines.join('\n')}`
     : ''
 
   const productBlock = input.productName?.trim()
@@ -138,7 +170,7 @@ export async function buildSeedanceUGCPrompt(input: BuildSeedancePromptInput): P
   parts.push({
     type: 'text',
     text: `Attached: the character grid (image_1)${input.productBase64 ? ' and the product photo (image_2)' : ''}.
-${productBlock}${productCategoryLine}${directionBlock}
+${productBlock}${productCategoryLine}${brandBlock}${directionBlock}
 
 TARGET DURATION: EXACTLY ${clampedDuration} seconds. STRICT — never go over, never leave time unused.
 Beat budget: ${beatBudget}. The last scene's end timestamp must equal ${String(Math.floor(clampedDuration / 60)).padStart(2, '0')}:${String(clampedDuration % 60).padStart(2, '0')}.

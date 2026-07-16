@@ -223,6 +223,38 @@ export async function POST(request: NextRequest) {
     const productCategoryForPrompt = typeof productImageBase64 === 'string' && productImageBase64.length > 100
       ? await inferProductCategory({ productName: safeProductName, productDescription: safeProductDescription })
       : undefined
+
+    // Load onboarding context so the UGC-expert AI writes a script that
+    // matches the creator's brand tone, audience, niche, and top-scoring
+    // format. Fail-soft — an unbrand-ed animate should still work.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let brandContext: any = undefined
+    try {
+      const [{ data: brand }, { data: intel }, { data: plan }] = await Promise.all([
+        supabase.from('brand_profiles').select('company_name, description, product_type, unique_value_prop, target_audience, tone_of_voice, customer_pain_points').eq('user_id', userId).maybeSingle(),
+        supabase.from('user_intelligence').select('niche, audience_profile').eq('user_id', userId).maybeSingle(),
+        supabase.from('content_plans').select('top_formats').eq('user_id', userId).maybeSingle(),
+      ])
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const topFmt = Array.isArray(plan?.top_formats) && plan!.top_formats.length ? (plan!.top_formats[0] as any).format : undefined
+      brandContext = {
+        companyName: brand?.company_name ?? undefined,
+        productDescription: brand?.description ?? undefined,
+        productType: brand?.product_type ?? undefined,
+        uniqueValueProp: brand?.unique_value_prop ?? undefined,
+        targetAudience: brand?.target_audience ?? undefined,
+        toneOfVoice: brand?.tone_of_voice ?? undefined,
+        customerPainPoints: brand?.customer_pain_points ?? undefined,
+        niche: intel?.niche ?? undefined,
+        audienceProfile: intel?.audience_profile && typeof intel.audience_profile === 'object'
+          ? JSON.stringify(intel.audience_profile).slice(0, 600)
+          : (typeof intel?.audience_profile === 'string' ? intel!.audience_profile : undefined),
+        preferredFormat: typeof topFmt === 'string' ? topFmt : undefined,
+      }
+    } catch (err) {
+      console.warn('[ugc/animate] brand context load failed:', err instanceof Error ? err.message : err)
+    }
+
     const seedancePrompt = await buildSeedanceUGCPrompt({
       characterGridBase64: initialGrid.buf.toString('base64'),      // uncomposited grid for Claude vision
       characterGridMimeType: 'image/png',
@@ -232,6 +264,7 @@ export async function POST(request: NextRequest) {
       productCategory: productCategoryForPrompt,
       videoDirection: safeVideoDirection,
       durationSeconds: duration,
+      brandContext,
     })
 
     // Seedance submission with sensitivity retry across the grid ladder.

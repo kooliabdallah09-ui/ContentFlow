@@ -68,14 +68,22 @@ export async function POST(request: NextRequest) {
   the seconds can physically hold; never waste seconds on a single tiny gesture.
 
 Keep it a single dense paragraph, 60-140 words. No captions, no on-screen text, no watermark, no logos.`,
-      ugc: `TARGET: UGC talking-head generator (Seedance 2.0). This lands in the "Custom Instructions" field of an existing form — the CHARACTER is picked separately from an actor library / persona builder, so DO NOT describe the character (age, ethnicity, hair, wardrobe, or physical features). Only describe:
-- Setting: bedroom / kitchen / desk / bathroom / car — cozy, phone-camera framing
-- What they say verbatim as the FIRST sentence (use the hook, in quotes)
-- Delivery notes: casual, one take, low-key energy, no rehearsed feel
-- Scene beats: one gesture or product placement per beat, paced to fit exactly ${duration}s (${beatBudget})
-- Any prop / camera cues that matter (phone propped, mirror, held-in-hand product)
+      ugc: `TARGET: the "Video direction" one-liner field on the UGC generator (200-char limit). This is NOT a script — a downstream UGC-expert AI writes the full timestamped Seedance script from this hint plus the user's brand/onboarding data. Your job is to distill the concept into ONE short natural-language sentence describing the video's angle.
 
-Keep it 40-90 words. Reads like a director's blocking note. Never start with "A [age] [ethnicity] [gender]…" — start with the setting or the opening line.`,
+Output rules — read carefully:
+- ONE sentence, at most ~120 characters. Never more than 200.
+- NO "SETTING:", "OPENING LINE:", "DIALOGUE:" labels. NO scene breakdowns. NO verbatim quotes.
+- NO character description (age, ethnicity, wardrobe) — the character is chosen elsewhere.
+- Write it like a creator briefing themselves in plain English.
+
+Good examples:
+- "unboxing of the product on a kitchen counter, showing first reaction"
+- "before/after in a bathroom mirror after one use"
+- "quick demo of how the product actually works, hands-on"
+- "why someone would switch to this from the drugstore version"
+Bad examples (do NOT output anything like these):
+- "SETTING: bright bathroom, phone propped… OPENING LINE: '…'"
+- Any multi-sentence script or shot list.`,
       image: `TARGET: image generator (Nano Banana). Describe:
 - Composition: hero shot / flat lay / lifestyle / close-up macro
 - Lighting: soft window / golden hour / studio / clean e-comm
@@ -122,10 +130,13 @@ Output ONLY the finished prompt. No preamble. No 'Here is…'. No markdown.`
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
-      max_tokens: 500,
+      max_tokens: target === 'ugc' ? 120 : 500,
       messages: [{ role: 'user', content: prompt }],
     })
-    const enhanced = (msg.content[0] as { type: 'text'; text: string }).text.trim()
+    let enhanced = (msg.content[0] as { type: 'text'; text: string }).text.trim()
+    if (target === 'ugc') {
+      enhanced = enhanced.replace(/^["'`]+|["'`]+$/g, '').replace(/\s+/g, ' ').slice(0, 200).trim()
+    }
     return NextResponse.json({ prompt: enhanced || hook, source: enhanced ? 'claude' : 'fallback' })
   } catch (err) {
     // Never block generation on an enhancer failure — return the raw hook.
