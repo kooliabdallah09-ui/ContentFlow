@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessScheduling, canAccessReelAnalyzer, canAccessFormats } from '@/lib/pov-access'
+import { canAccessScheduling, canAccessReelAnalyzer, canAccessFormats, canAccessInfluencerStudio } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -26,6 +26,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
   const [schedAccess, setSchedAccess] = useState(false)
   const [analyzerAccess, setAnalyzerAccess] = useState(false)
   const [formatsAccess, setFormatsAccess] = useState(false)
+  const [influencerAccess, setInfluencerAccess] = useState(false)
   useEffect(() => {
     (async () => {
       const supabase = getSupabase()
@@ -35,6 +36,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       setSchedAccess(canAccessScheduling(email))
       setAnalyzerAccess(canAccessReelAnalyzer(email))
       setFormatsAccess(canAccessFormats(email))
+      setInfluencerAccess(canAccessInfluencerStudio(email))
     })()
   }, [])
 
@@ -81,6 +83,13 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>UGC Package</span>
           <span className="flagship-badge">Flagship</span>
         </Link>
+        {influencerAccess && (
+          <Link href="/influencers" className={`nav-item ${isActive('/influencers') ? 'active' : ''}`} onClick={handleNavClick}>
+            <Icon.Brand />
+            <span style={{ flex: 1 }}>Influencers</span>
+            <span className="flagship-badge">Beta</span>
+          </Link>
+        )}
         {analyzerAccess && (
           <Link href="/generate/analyzer" className={`nav-item ${isActive('/generate/analyzer') ? 'active' : ''}`} onClick={handleNavClick}>
             <Icon.Video />
