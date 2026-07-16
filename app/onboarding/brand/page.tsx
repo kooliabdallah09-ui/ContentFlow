@@ -668,6 +668,17 @@ export default function OnboardingBrandPage() {
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
                 <button onClick={() => setStep(1)} className="btn btn-ghost" style={{ flex: 1, padding: '12px 16px', fontSize: '14px' }}>← Back</button>
+                {/* Skip: user bails on plan generation. We route straight to
+                    the dashboard without calling any plan-gen endpoint, so
+                    no calendar is built. They can come back and generate
+                    later from the dashboard's Refresh trends button. */}
+                <button
+                  onClick={() => router.push('/dashboard?intel=skipped')}
+                  className="btn btn-ghost"
+                  style={{ flex: 1, padding: '12px 16px', fontSize: '14px' }}
+                >
+                  Skip
+                </button>
                 <button
                   onClick={handleGeneratePlan}
                   disabled={loading || selectedPlatforms.length === 0}

@@ -76,6 +76,16 @@ export default function IntelligenceOnboardingPage() {
     else submit()
   }
 
+  // Skip the rest of intelligence onboarding. Since the profile row + plan
+  // both depend on all three answers being present, skipping any step means
+  // we can't safely generate a calendar — so we route straight to the
+  // dashboard without calling onboard / analyze-top-videos / generate-plan.
+  // The dashboard's ContentPlanSection already shows the "Start onboarding"
+  // CTA when there's no profile, so the user gets a clean re-entry path.
+  function skipIntelligence() {
+    router.push('/dashboard?intel=skipped')
+  }
+
   async function submit() {
     try {
       const supabase = getSupabase()!
@@ -240,7 +250,7 @@ export default function IntelligenceOnboardingPage() {
         />
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center' }}>
         {step > 0 ? (
           <button
             onClick={() => setStep(s => s - 1)}
@@ -253,19 +263,35 @@ export default function IntelligenceOnboardingPage() {
             Back
           </button>
         ) : <div />}
-        <button
-          onClick={next}
-          disabled={!canProceed}
-          style={{
-            padding: '12px 28px', borderRadius: 11,
-            background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
-            fontSize: 14, fontWeight: 600, cursor: canProceed ? 'pointer' : 'not-allowed',
-            opacity: canProceed ? 1 : 0.4,
-          }}
-        >
-          {step === STEPS.length - 1 ? 'Generate my content plan →' : 'Continue →'}
-        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <button
+            onClick={skipIntelligence}
+            style={{
+              padding: '12px 16px', borderRadius: 11,
+              background: 'transparent', border: 'none',
+              color: 'var(--ink-dim)', fontSize: 13.5, cursor: 'pointer',
+              textDecoration: 'underline', textUnderlineOffset: 3,
+            }}
+          >
+            Skip for now
+          </button>
+          <button
+            onClick={next}
+            disabled={!canProceed}
+            style={{
+              padding: '12px 28px', borderRadius: 11,
+              background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
+              fontSize: 14, fontWeight: 600, cursor: canProceed ? 'pointer' : 'not-allowed',
+              opacity: canProceed ? 1 : 0.4,
+            }}
+          >
+            {step === STEPS.length - 1 ? 'Generate my content plan →' : 'Continue →'}
+          </button>
+        </div>
       </div>
+      <p style={{ marginTop: 16, fontSize: 12, color: 'var(--ink-mute)', textAlign: 'center' }}>
+        Skipping means we can&apos;t build your 30-day content plan yet — you can come back and finish this from the dashboard whenever you&apos;re ready.
+      </p>
     </main>
   )
 }
