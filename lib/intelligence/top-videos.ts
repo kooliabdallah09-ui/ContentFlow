@@ -21,6 +21,23 @@ function normaliseActorId(id: string): string {
   return id.replace('/', '~').trim()
 }
 
+// Instagram hashtag scraper rejects hashtags containing spaces, commas,
+// dashes, or punctuation. Split multi-word keywords into individual words,
+// keep only [a-zA-Z0-9_] chunks, drop empties, dedupe, cap at N.
+function sanitiseHashtags(keywords: string[], max: number): string[] {
+  const out = new Set<string>()
+  for (const k of keywords) {
+    const words = String(k).toLowerCase().replace(/[^a-z0-9_ ]+/g, ' ').split(/\s+/)
+    for (const w of words) {
+      const clean = w.trim().replace(/[^a-z0-9_]/g, '')
+      if (clean.length >= 3) out.add(clean)
+      if (out.size >= max) break
+    }
+    if (out.size >= max) break
+  }
+  return [...out]
+}
+
 // ---------- TikTok via Apify actor ----------
 async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCandidate | null; reason?: string }> {
   const token = process.env.APIFY_TOKEN
@@ -29,9 +46,13 @@ async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCan
   if (!token) return { result: null, reason: 'APIFY_TOKEN not set' }
   if (!actorId) return { result: null, reason: 'APIFY_TIKTOK_ACTOR_ID not set' }
   if (!keywords.length) return { result: null, reason: 'no keywords' }
+  const tiktokHashtags = sanitiseHashtags(keywords, 3)
+  if (!tiktokHashtags.length) return { result: null, reason: 'no valid hashtags after sanitising' }
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 25_000)
+    // TikTok scrapers routinely need 40-60s to scrape + download videos.
+    // We're inside a 180s route so 90s here still leaves room for Gemini.
+    const timeout = setTimeout(() => controller.abort(), 90_000)
     const res = await fetch(
       `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${token}`,
       {
@@ -39,7 +60,7 @@ async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCan
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
-          hashtags: keywords.slice(0, 3),
+          hashtags: tiktokHashtags,
           resultsPerHashtag: 5,
           // Force the actor to include a downloadable video URL. Without
           // this flag the scraper only returns metadata + cover image, so
@@ -105,9 +126,12 @@ async function fetchTopReels(keywords: string[]): Promise<{ result: TopVideoCand
   if (!token) return { result: null, reason: 'APIFY_TOKEN not set' }
   if (!actorId) return { result: null, reason: 'APIFY_INSTAGRAM_ACTOR_ID not set' }
   if (!keywords.length) return { result: null, reason: 'no keywords' }
+  const reelHashtags = sanitiseHashtags(keywords, 3)
+  if (!reelHashtags.length) return { result: null, reason: 'no valid hashtags after sanitising' }
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 25_000)
+    // Reels scraper is faster than TikTok but still needs generous headroom.
+    const timeout = setTimeout(() => controller.abort(), 60_000)
     const res = await fetch(
       `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${token}`,
       {
@@ -115,10 +139,10 @@ async function fetchTopReels(keywords: string[]): Promise<{ result: TopVideoCand
         headers: { 'Content-Type': 'application/json' },
         signal: controller.signal,
         body: JSON.stringify({
-          // apify/instagram-hashtag-scraper wants raw hashtag strings (no #)
-          // in `hashtags` + `resultsType: "reels"` to get videos rather than
-          // static posts. `searchType` isn't a valid field on this actor.
-          hashtags: keywords.slice(0, 3).map(k => k.replace(/^#/, '')),
+          // apify/instagram-hashtag-scraper rejects hashtags containing
+          // spaces, commas, hyphens, or punctuation with HTTP 400. We
+          // pre-sanitise to [a-z0-9_] single words at the top of this fn.
+          hashtags: reelHashtags,
           resultsType: 'reels',
           resultsLimit: 5,
         }),
