@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { gatherTrends } from '@/lib/intelligence/trends'
 
-export const maxDuration = 60
+export const maxDuration = 300
 
 // Content Intelligence — Step 3: score UGC formats + generate hooks +
 // build a 30-day calendar tailored to this specific user's niche.

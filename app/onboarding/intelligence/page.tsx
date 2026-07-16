@@ -121,14 +121,29 @@ export default function IntelligenceOnboardingPage() {
       }
 
       setPhase('planning')
-      const plan = await fetch('/api/intelligence/generate-plan', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({}),
-      })
-      if (!plan.ok) {
-        const err = await plan.json()
-        throw new Error(err.error || 'Plan generation failed')
+      // Plan generation is the slow step (Sonnet + trends can push past 60s).
+      // If it fails, don't dump the user back to Step 3 — the brand +
+      // intelligence rows are already saved, so send them to the dashboard
+      // where the "Refresh trends" button retries plan gen without
+      // re-answering the questionnaire.
+      try {
+        const plan = await fetch('/api/intelligence/generate-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({}),
+        })
+        if (!plan.ok) {
+          const err = await plan.json().catch(() => ({}))
+          console.warn('[intelligence] plan generation failed, routing to dashboard for retry:', err)
+          showError('Almost there', 'Your profile was saved but the plan generation took too long. Hit "Refresh trends" on the dashboard to try again.')
+          router.push('/dashboard?plan=pending&onboarded=1')
+          return
+        }
+      } catch (planErr) {
+        console.warn('[intelligence] plan generation threw, routing to dashboard for retry:', planErr)
+        showError('Almost there', 'Your profile was saved but the plan generation timed out. Hit "Refresh trends" on the dashboard to try again.')
+        router.push('/dashboard?plan=pending&onboarded=1')
+        return
       }
       router.push('/dashboard?plan=ready&onboarded=1')
     } catch (err) {
