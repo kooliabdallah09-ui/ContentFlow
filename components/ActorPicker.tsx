@@ -184,24 +184,38 @@ export default function ActorPicker({ value, onChange, disabled }: ActorPickerPr
                     accept="image/jpeg,image/png,image/webp"
                     disabled={disabled}
                     style={{ display: 'none' }}
-                    onChange={e => {
+                    onChange={async e => {
                       const file = e.target.files?.[0]
                       if (!file) return
-                      const reader = new FileReader()
-                      reader.onload = ev => {
-                        const dataUrl = ev.target?.result as string
-                        const [header, b64] = dataUrl.split(',')
-                        const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg'
-                        const photo = { base64: b64, mimeType: mime, previewUrl: dataUrl }
+                      try {
+                        const { compressImageFile } = await import('@/lib/image-compress')
+                        const c = await compressImageFile(file)
+                        const photo = { base64: c.base64, mimeType: c.mimeType, previewUrl: c.preview }
                         setCustomPhoto(photo)
                         setSelectedId('__custom__')
                         onChange(
                           { ...EMPTY_CHARACTER, gender: customProfile.gender, scene: customProfile.scene },
                           undefined,
-                          { base64: b64, mimeType: mime },
+                          { base64: c.base64, mimeType: c.mimeType },
                         )
+                      } catch {
+                        // Fallback to raw base64 if the browser can't decode.
+                        const reader = new FileReader()
+                        reader.onload = ev => {
+                          const dataUrl = ev.target?.result as string
+                          const [header, b64] = dataUrl.split(',')
+                          const mime = header.match(/:(.*?);/)?.[1] || 'image/jpeg'
+                          const photo = { base64: b64, mimeType: mime, previewUrl: dataUrl }
+                          setCustomPhoto(photo)
+                          setSelectedId('__custom__')
+                          onChange(
+                            { ...EMPTY_CHARACTER, gender: customProfile.gender, scene: customProfile.scene },
+                            undefined,
+                            { base64: b64, mimeType: mime },
+                          )
+                        }
+                        reader.readAsDataURL(file)
                       }
-                      reader.readAsDataURL(file)
                     }}
                   />
                 </label>

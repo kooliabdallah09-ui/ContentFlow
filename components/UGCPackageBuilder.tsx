@@ -19,6 +19,7 @@ import {
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { readPrefill } from '@/lib/calendar-prefill'
+import { compressImageFile } from '@/lib/image-compress'
 
 interface HookVariant {
   id: string
@@ -331,17 +332,29 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const totalCredits = videoCredits
   const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && benefits.trim()
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Downscale + re-encode uploaded product photos before storing them in
+  // state. Raw phone-camera JPEGs are 5-15 MB — over Vercel's 4.5 MB
+  // request-body limit for the downstream generate calls. Shared helper
+  // in @/lib/image-compress caps to 1600px long edge at JPEG q0.85, which
+  // almost always lands under 600 KB.
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      const dataUrl = reader.result as string
-      const [header, base64] = dataUrl.split(',')
-      const mimeType = header.match(/data:(.*);base64/)?.[1] ?? 'image/jpeg'
-      setProductImage({ base64, mimeType, preview: dataUrl })
+    try {
+      const compressed = await compressImageFile(file)
+      setProductImage(compressed)
+    } catch (err) {
+      // Fallback to raw base64 if the browser can't decode the file.
+      console.warn('[UGC] product image compression failed, sending raw:', err)
+      const reader = new FileReader()
+      reader.onload = () => {
+        const dataUrl = reader.result as string
+        const [header, base64] = dataUrl.split(',')
+        const mimeType = header.match(/data:(.*);base64/)?.[1] ?? 'image/jpeg'
+        setProductImage({ base64, mimeType, preview: dataUrl })
+      }
+      reader.readAsDataURL(file)
     }
-    reader.readAsDataURL(file)
   }
 
   const resetForm = () => {
