@@ -66,6 +66,15 @@ async function fetchTopTikTok(keywords: string[]): Promise<{ result: TopVideoCan
     }>
     if (!items.length) return { result: null, reason: 'Apify TikTok returned 0 items' }
     const top = items.slice().sort((a, b) => (b.playCount ?? 0) - (a.playCount ?? 0))[0]
+    // Log the actual field shape from the actor so we can adapt to actor
+    // version drift — Apify actors regularly rename fields between versions.
+    console.log('[top-videos:tiktok] top item keys:', Object.keys(top).join(','))
+    console.log('[top-videos:tiktok] video-ish fields:', JSON.stringify({
+      mediaUrls: top.mediaUrls?.slice(0, 1),
+      videoUrl: top.videoUrl,
+      videoMeta_downloadAddr: top.videoMeta?.downloadAddr,
+      videoMeta_playAddr: top.videoMeta?.playAddr,
+    }))
     // clockworks/tiktok-scraper exposes the direct mp4 in one of several
     // fields depending on the actor version + input flags — probe all of them.
     const directVideo =
@@ -132,10 +141,19 @@ async function fetchTopReels(keywords: string[]): Promise<{ result: TopVideoCand
       isVideo?: boolean
     }>
     const reels = items.filter(x => x.isVideo || x.productType === 'clips' || x.videoUrl)
-    if (!reels.length) return { result: null, reason: 'Apify Reels returned 0 video items' }
+    if (!reels.length) {
+      console.log('[top-videos:reels] Apify returned', items.length, 'items but 0 were video. First item keys:', items[0] ? Object.keys(items[0]).join(',') : '(empty)')
+      return { result: null, reason: `Apify Reels returned 0 video items (${items.length} total items)` }
+    }
     const top = reels.sort((a, b) => (b.videoViewCount ?? b.likesCount ?? 0) - (a.videoViewCount ?? a.likesCount ?? 0))[0]
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const anyTop = top as any
+    console.log('[top-videos:reels] top item keys:', Object.keys(top).join(','))
+    console.log('[top-videos:reels] video-ish fields:', JSON.stringify({
+      videoUrl: anyTop.videoUrl,
+      videoUrlBackup: anyTop.videoUrlBackup,
+      displayUrl: anyTop.displayUrl,
+    }))
     const directVideo = anyTop.videoUrl ?? anyTop.videoUrlBackup ?? anyTop.displayUrl
     return {
       result: {

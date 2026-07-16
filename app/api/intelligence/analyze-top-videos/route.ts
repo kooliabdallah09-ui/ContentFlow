@@ -37,12 +37,17 @@ export async function POST(request: NextRequest) {
 
     const { candidates, debug } = await fetchTopVideosAcrossPlatforms({ keywords })
     console.log('[analyze-top-videos] scrape debug:', JSON.stringify(debug))
+    console.log('[analyze-top-videos] candidates:', candidates.length, candidates.map(c => ({ platform: c.platform, hasVideoUrl: !!c.videoUrl })))
 
     // Analyze each candidate with Gemini in parallel. Fail-soft: if analysis
     // fails or the fetch itself returned nothing, we save what we have.
     const analyses = await Promise.all(
       candidates.map(async c => {
-        if (!c.videoUrl) return { ...c, gemini: null, skipReason: 'no direct video URL from scraper' }
+        if (!c.videoUrl) {
+          console.log(`[analyze-top-videos] skipping ${c.platform}: no direct videoUrl from scraper`)
+          return { ...c, gemini: null, skipReason: 'no direct video URL from scraper' }
+        }
+        console.log(`[analyze-top-videos] sending ${c.platform} to Gemini: ${c.videoUrl.slice(0, 80)}…`)
         const analysis = await analyzeVideoWithGemini({
           platform: c.platform,
           sourceUrl: c.sourceUrl,
@@ -50,9 +55,12 @@ export async function POST(request: NextRequest) {
           caption: c.caption,
           hashtags: c.hashtags,
         })
+        console.log(`[analyze-top-videos] Gemini ${c.platform} result:`, analysis ? 'ok' : 'null')
         return { ...c, gemini: analysis, skipReason: analysis ? undefined : 'gemini returned null' }
       }),
     )
+    const geminiHits = analyses.filter(a => a.gemini).length
+    console.log(`[analyze-top-videos] final: ${analyses.length} candidates, ${geminiHits} reached Gemini successfully`)
 
     const { error } = await supabase
       .from('user_intelligence')
