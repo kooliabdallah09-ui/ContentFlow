@@ -17,7 +17,7 @@ import {
   type UGCDuration,
 } from '@/lib/tiers'
 import { getSupabase } from '@/lib/auth'
-import { showError } from '@/lib/notifications'
+import { showError, showSuccess } from '@/lib/notifications'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { compressImageFile } from '@/lib/image-compress'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
@@ -159,6 +159,21 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [framesLoading, setFramesLoading] = useState(false)
   const [animating, setAnimating] = useState(false)
 
+  // Character prompts + saved actors state
+  const [characterImagePrompt, setCharacterImagePrompt] = useState<string>('')
+  const [characterIdea, setCharacterIdea] = useState<string>('')
+  const [savedActorId, setSavedActorId] = useState<string | undefined>(undefined)
+  interface SavedActor {
+    id: string
+    name: string
+    hero_frame_url: string
+    character_idea: string | null
+    last_used_at: string
+  }
+  const [savedActors, setSavedActors] = useState<SavedActor[]>([])
+  const [saveActorName, setSaveActorName] = useState('')
+  const [savingActor, setSavingActor] = useState(false)
+
   // Progressive-reveal state. unlockedStep starts at 1 for cold visits; each
   // section 2-5 fades in when it becomes ≤ unlockedStep. Step 1 auto-advances
   // once the user has interacted with both Duration and Aspect. Steps 2-4
@@ -241,10 +256,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         const token = sess?.session?.access_token
         if (!token) return
 
-        const [brandRes, productsRes] = await Promise.all([
+        const [brandRes, productsRes, actorsRes] = await Promise.all([
           fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/ugc/saved-actors', { headers: { Authorization: `Bearer ${token}` } }),
         ])
+        try {
+          const actorsData = await actorsRes.json()
+          if (!cancelled && Array.isArray(actorsData?.actors)) setSavedActors(actorsData.actors)
+        } catch { /* actors load is best-effort */ }
         const brandData = await brandRes.json()
         const productsData = await productsRes.json()
         if (cancelled) return
@@ -394,17 +414,19 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           productType,
           character,
           avatarGender: character?.gender ?? 'Female',
-          actorId,
-          customPhotoBase64: customPhoto?.base64,
-          customPhotoMimeType: customPhoto?.mimeType,
           aspectId: aspect,
-          customInstructions: customInstructions.trim() || undefined,
+          videoDirection: customInstructions.trim() || undefined,
           script: finalScript,
+          savedActorId,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to render hero frames')
       setFrames(data.frames)
+      // Cache the character prompts returned by /api/ugc/hero-frames so
+      // the user can save this identity as a reusable actor after picking.
+      setCharacterImagePrompt(String(data.characterImagePrompt ?? ''))
+      setCharacterIdea(String(data.characterIdea ?? ''))
       setStep('frames')
     } catch (err) {
       showError('Frames failed', err instanceof Error ? err.message : 'Try again')
@@ -422,6 +444,35 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       const { data: sess } = await supabase.auth.getSession()
       const token = sess?.session?.access_token
       if (!token) throw new Error('Not signed in')
+
+      // Fire-and-forget: if the user typed a nickname, save this pick as a
+      // reusable actor before we ship them off to the animate stage.
+      const trimmedName = saveActorName.trim()
+      if (trimmedName && characterImagePrompt && !savedActorId) {
+        setSavingActor(true)
+        try {
+          const saveRes = await fetch('/api/ugc/saved-actors', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              name: trimmedName,
+              heroFrameUrl: selectedFrameUrl,
+              characterImagePrompt,
+              characterIdea,
+              personaLocks: character ?? {},
+            }),
+          })
+          if (saveRes.ok) {
+            const saveData = await saveRes.json()
+            if (saveData?.actor) {
+              setSavedActors(prev => [saveData.actor, ...prev])
+              showSuccess('Actor saved', `${trimmedName} is now reusable.`)
+            }
+          }
+        } catch { /* non-blocking */ }
+        setSavingActor(false)
+      }
+
       const res = await fetch('/api/ugc/animate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -732,6 +783,33 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           >
             {framesLoading ? 'Regenerating…' : 'Regenerate frames'}
           </button>
+
+          {/* Save-as-reusable-actor bar — shows only when we have a Sonnet
+              image prompt from this generation. Clicking a frame picks it
+              AND saves it under the name typed here. */}
+          {characterImagePrompt && !savedActorId && frames && frames.length > 0 && (
+            <div style={{ marginTop: 8, padding: 12, borderRadius: 12, border: '1px dashed var(--border-strong, var(--border))', background: 'var(--surface-2, var(--surface))' }}>
+              <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>
+                Save this actor for reuse <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>· optional</span>
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.5, marginBottom: 10 }}>
+                Give this character a nickname and we&apos;ll keep the exact identity for future ads. When you pick a frame below, it will be saved with that name.
+              </div>
+              <input
+                type="text"
+                value={saveActorName}
+                onChange={e => setSaveActorName(e.target.value.slice(0, 80))}
+                disabled={savingActor || animating}
+                placeholder='e.g. "Mia the everyday skincare girl"'
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  padding: '8px 10px', borderRadius: 8,
+                  border: '1px solid var(--border)', background: 'var(--bg)',
+                  color: 'var(--ink)', fontSize: 13, fontFamily: 'inherit',
+                }}
+              />
+            </div>
+          )}
 
           {animating && (
             <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0 }}>
@@ -1256,13 +1334,55 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
 
           <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.5 }}>
-            Skip everything and let AI build a character to fit your product, or lock in specific fields (gender, age, hair, wardrobe…) and we&apos;ll respect them exactly.
+            Skip everything and let AI build a character to fit your product, or lock in specific fields (gender, age, hair, wardrobe…) and we&apos;ll respect them exactly. Or reuse an actor you&apos;ve saved before for identity consistency.
           </p>
+
+          {savedActors.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                Your saved actors
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
+                {savedActors.map(a => {
+                  const active = savedActorId === a.id
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => setSavedActorId(active ? undefined : a.id)}
+                      disabled={isLoading}
+                      style={{
+                        padding: 6, borderRadius: 10, textAlign: 'left',
+                        border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                        background: active ? 'var(--surface-2)' : 'var(--surface)',
+                        cursor: isLoading ? 'not-allowed' : 'pointer',
+                        display: 'flex', flexDirection: 'column', gap: 6,
+                      }}
+                    >
+                      <img
+                        src={a.hero_frame_url}
+                        alt={a.name}
+                        style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', borderRadius: 7, display: 'block' }}
+                      />
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {a.name}
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+              {savedActorId && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', marginTop: 8, fontStyle: 'italic' }}>
+                  Reusing a saved actor — the persona fields below are ignored on this generation.
+                </div>
+              )}
+            </div>
+          )}
 
           <CharacterBuilder
             value={character}
             onChange={profile => setCharacter(profile)}
-            disabled={isLoading}
+            disabled={isLoading || !!savedActorId}
           />
 
           {unlockedStep < 4 && (
@@ -1299,19 +1419,19 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </div>
 
         <div className="form-row">
-          <label className="form-label">Custom instructions <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional)</span></label>
-          <p className="help">Paste your own script, set a tone, mention an offer, target an audience. The AI obeys.</p>
-          <textarea
-            className="textarea"
+          <label className="form-label">Video direction <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional)</span></label>
+          <p className="help">One line telling the AI the vibe. It writes the script + shot list for you. Keep it short.</p>
+          <input
+            type="text"
+            className="input"
             value={customInstructions}
-            onChange={e => setCustomInstructions(e.target.value.slice(0, 1500))}
+            onChange={e => setCustomInstructions(e.target.value.slice(0, 200))}
             disabled={isLoading}
-            rows={4}
-            placeholder={'• Use this script: "Three drops, every morning."\n• Make it sound like a college student\n• Mention the 30% launch discount'}
-            style={{ minHeight: 84 }}
+            placeholder='e.g. "clean UGC ad", "unbox", "morning routine", "pain-point storytime"'
+            style={{ width: '100%', boxSizing: 'border-box' }}
           />
           <p style={{ fontSize: 10.5, color: 'var(--ink-fade)', textAlign: 'right', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
-            {customInstructions.length} / 1500
+            {customInstructions.length} / 200
           </p>
         </div>
 

@@ -8,7 +8,7 @@ import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Play, Upload, X } from 'lucide-react'
 
-type Model = 'seedance-2' | 'kling-v3'
+type Model = 'seedance-2'
 type Resolution = '480p' | '720p' | '1080p' | '4k'
 
 interface ShopifyProduct {
@@ -48,27 +48,11 @@ const MODELS: {
     // interface compatibility; real cost computed with getSeedanceCost().
     credits: { 5: 0, 10: 0, 15: 0, 30: 0, 60: 0 },
   },
-  {
-    id: 'kling-v3',
-    name: 'Talking Head',
-    badge: '',
-    tagline: 'Talking heads & native audio',
-    excels: [
-      'Lip-sync & expressive faces out of the box',
-      'Native audio — voice, ambient sound, music',
-      'Fast generation: ~60–90 seconds',
-      'UGC-style realism: handheld feel, skin texture',
-    ],
-    caveat: 'Max 15s per clip · best for faces & audio',
-    durations: [5, 10, 15],
-    // Kling v3 omni standard-audio: $0.224/s → 8.96 cr/s at cost → 16 cr/s at 1.8×
-    credits: { 5: 80, 10: 160, 15: 240 },
-  },
 ]
 
 interface VideoState {
   predictionId: string
-  provider: 'kling-v3' | 'seedance-2'
+  provider: 'seedance-2'
   status: 'processing' | 'completed' | 'failed'
   videoUrl?: string
   error?: string
@@ -324,7 +308,7 @@ export default function VideoGeneratorPage() {
 
       setVideo({
         predictionId: data.predictionId,
-        provider: model === 'kling-v3' ? 'kling-v3' : 'seedance-2',
+        provider: 'seedance-2',
         status: 'processing',
       })
       refreshCredits()
@@ -351,50 +335,18 @@ export default function VideoGeneratorPage() {
         </p>
       </header>
 
-      {/* Model picker */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 28 }}>
-        {MODELS.map(m => {
-          const active = model === m.id
-          return (
-            <button
-              key={m.id}
-              type="button"
-              onClick={() => setModel(m.id)}
-              style={{
-                textAlign: 'left',
-                padding: '20px 22px',
-                borderRadius: 14,
-                border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                background: active ? 'var(--surface)' : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.15s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{m.name}</span>
-                <span style={{
-                  fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                  padding: '2px 7px', borderRadius: 999,
-                  background: active ? 'var(--ink)' : 'var(--border)',
-                  color: active ? 'var(--on-ink)' : 'var(--ink-dim)',
-                }}>{m.badge}</span>
-                {active && (
-                  <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-dim)', fontWeight: 600 }}>✓ Selected</span>
-                )}
-              </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-dim)', fontWeight: 500, marginBottom: 12 }}>{m.tagline}</div>
-              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                {m.excels.map((e, i) => (
-                  <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 12.5, color: 'var(--ink)' }}>
-                    <span style={{ color: 'var(--good, #10b981)', flexShrink: 0, marginTop: 1 }}>✓</span>
-                    {e}
-                  </li>
-                ))}
-              </ul>
-              <div style={{ marginTop: 12, fontSize: 11.5, color: 'var(--ink-dim)', fontStyle: 'italic' }}>{m.caveat}</div>
-            </button>
-          )
-        })}
+      {/* Model — Seedance 2.0 is the only path now, so the multi-chip
+          picker has been collapsed. Kept setModel around so any future
+          model add-ons plug straight in without a refactor. */}
+      <div style={{ marginBottom: 24, padding: '14px 18px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--good, #10b981)' }} />
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Seedance 2.0</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{cfg.tagline}</div>
+        </div>
+        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-fade)' }}>
+          Cinematic · native audio
+        </div>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

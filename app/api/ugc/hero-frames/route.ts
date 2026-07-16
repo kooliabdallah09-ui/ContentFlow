@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       aspectId,
       customInstructions,   // freeform "video direction" (unbox / clean ad / morning routine)
       videoDirection,       // alias
+      savedActorId,         // uuid of a user_saved_actors row — skips Haiku/Sonnet
     } = body as Record<string, unknown>
 
     // Resolve aspect for output dimensions.
@@ -51,21 +52,44 @@ export async function POST(request: NextRequest) {
     const hasProduct = !!(productImageBase64 && productImageMimeType)
     const customPersona = characterFromForm as CharacterProfile | undefined
 
-    // Two-model character chain: Haiku turns the product + video-direction
-    // into a character idea, Sonnet turns the idea + optional locked persona
-    // fields into a full Nano Banana Pro image prompt.
-    const productCategory = hasProduct
-      ? await inferProductCategory({ productName: safeProductName, productDescription: safeProductDescription })
-      : undefined
-
-    const { characterIdea, imagePrompt } = await buildCharacterImagePrompt({
-      productName: safeProductName,
-      productDescription: safeProductDescription,
-      productCategory,
-      videoDirection: safeVideoDirection || undefined,
-      customPersona,
-      hasProductImage: hasProduct,
-    })
+    // If the user picked a saved actor, load its stored image prompt and
+    // use it verbatim — that's what keeps the character identical across
+    // sessions. Otherwise run the Haiku + Sonnet chain from scratch.
+    let characterIdea: string
+    let imagePrompt: string
+    if (typeof savedActorId === 'string' && savedActorId.length > 0) {
+      const { data: saved, error: savedErr } = await supabase
+        .from('user_saved_actors')
+        .select('character_idea, character_image_prompt')
+        .eq('id', savedActorId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (savedErr || !saved) {
+        return NextResponse.json({ error: 'Saved actor not found' }, { status: 404 })
+      }
+      characterIdea = String(saved.character_idea ?? 'reusable saved character')
+      imagePrompt = String(saved.character_image_prompt ?? '')
+      // Refresh the actor's last_used_at so it floats to the top of the list.
+      await supabase
+        .from('user_saved_actors')
+        .update({ last_used_at: new Date().toISOString() })
+        .eq('id', savedActorId)
+        .eq('user_id', userId)
+    } else {
+      const productCategory = hasProduct
+        ? await inferProductCategory({ productName: safeProductName, productDescription: safeProductDescription })
+        : undefined
+      const built = await buildCharacterImagePrompt({
+        productName: safeProductName,
+        productDescription: safeProductDescription,
+        productCategory,
+        videoDirection: safeVideoDirection || undefined,
+        customPersona,
+        hasProductImage: hasProduct,
+      })
+      characterIdea = built.characterIdea
+      imagePrompt = built.imagePrompt
+    }
 
     // Generate one hero frame from the Sonnet-drafted prompt. When a
     // physical product is provided we attach its image as reference so
