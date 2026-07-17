@@ -95,12 +95,13 @@ export async function POST(request: NextRequest) {
       styles: Array.isArray(body?.styles) ? body.styles.map(String).slice(0, 5) : [],
       hairColor: typeof body?.hairColor === 'string' ? body.hairColor.slice(0, 30) : '',
       eyeColor: typeof body?.eyeColor === 'string' ? body.eyeColor.slice(0, 30) : '',
+      ethnicity: typeof body?.ethnicity === 'string' ? body.ethnicity.slice(0, 40) : '',
       hairstyle: typeof body?.hairstyle === 'string' ? body.hairstyle.slice(0, 40) : '',
       faceFeatures: Array.isArray(body?.faceFeatures) ? body.faceFeatures.map(String).slice(0, 6) : [],
     }
     const model: 'pro' | 'nb2' = body?.model === 'nb2' ? 'nb2' : 'pro'
     const createCost = model === 'nb2' ? INFLUENCER_CREATE_NB2_CR : INFLUENCER_CREATE_CR
-    const hasTraits = !!(traits.gender || traits.ageRange || traits.styles.length || traits.hairColor || traits.eyeColor || traits.hairstyle || traits.faceFeatures.length)
+    const hasTraits = !!(traits.gender || traits.ageRange || traits.styles.length || traits.hairColor || traits.eyeColor || traits.hairstyle || traits.faceFeatures.length || traits.ethnicity)
     if (description.length < 10 && !hasTraits) {
       return NextResponse.json({ error: 'Pick some traits or describe your influencer' }, { status: 400 })
     }
@@ -140,6 +141,7 @@ export async function POST(request: NextRequest) {
     const traitLines: string[] = []
     if (traits.name) traitLines.push(`- Name: "${traits.name}" — use this EXACT name`)
     if (traits.gender) traitLines.push(`- Gender: ${traits.gender}`)
+    if (traits.ethnicity) traitLines.push(`- Ethnicity: ${traits.ethnicity}`)
     if (traits.ageRange) traitLines.push(`- Age range: ${traits.ageRange} (express as a life-stage vibe in the appearance_prompt — never numeric ages)`)
     if (traits.styles.length) traitLines.push(`- Style & aesthetic: ${traits.styles.join(', ')}`)
     if (traits.hairColor) traitLines.push(`- Hair color: ${traits.hairColor}`)

@@ -86,6 +86,9 @@ export default function InfluencersPage() {
   const [traitHair, setTraitHair] = useState('')
   const [traitEyes, setTraitEyes] = useState('')
   const [traitHairstyle, setTraitHairstyle] = useState('')
+  const [traitEthnicity, setTraitEthnicity] = useState('')
+  // 'traits' = structured pickers; 'describe' = the original freeform-only box
+  const [createMode, setCreateMode] = useState<'traits' | 'describe'>('traits')
   const [traitFeatures, setTraitFeatures] = useState<string[]>([])
   const [createModel, setCreateModel] = useState<'pro' | 'nb2'>('pro')
 
@@ -130,9 +133,9 @@ export default function InfluencersPage() {
   }
 
   async function create() {
-    const hasTraits = !!(traitGender || traitAge || traitStyles.length || traitHair || traitEyes || traitHairstyle || traitFeatures.length)
+    const hasTraits = createMode === 'traits' && !!(traitGender || traitAge || traitStyles.length || traitHair || traitEyes || traitHairstyle || traitFeatures.length || traitEthnicity)
     if (description.trim().length < 10 && !hasTraits) {
-      showError('Nothing to work with', 'Pick some traits or describe your influencer')
+      showError('Nothing to work with', createMode === 'traits' ? 'Pick some traits or add details' : 'Describe your influencer in at least a sentence')
       return
     }
     setCreating(true)
@@ -145,13 +148,14 @@ export default function InfluencersPage() {
         body: JSON.stringify({
           description: description.trim(),
           name: traitName.trim() || undefined,
-          gender: traitGender || undefined,
-          ageRange: traitAge || undefined,
-          styles: traitStyles,
-          hairColor: traitHair || undefined,
-          eyeColor: traitEyes || undefined,
-          hairstyle: traitHairstyle || undefined,
-          faceFeatures: traitFeatures,
+          gender: createMode === 'traits' ? (traitGender || undefined) : undefined,
+          ageRange: createMode === 'traits' ? (traitAge || undefined) : undefined,
+          styles: createMode === 'traits' ? traitStyles : [],
+          hairColor: createMode === 'traits' ? (traitHair || undefined) : undefined,
+          eyeColor: createMode === 'traits' ? (traitEyes || undefined) : undefined,
+          ethnicity: createMode === 'traits' ? (traitEthnicity || undefined) : undefined,
+          hairstyle: createMode === 'traits' ? (traitHairstyle || undefined) : undefined,
+          faceFeatures: createMode === 'traits' ? traitFeatures : [],
           model: createModel,
           referenceImages: refImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
         }),
@@ -161,7 +165,7 @@ export default function InfluencersPage() {
       setList(prev => [data.influencer, ...prev])
       setDescription('')
       setRefImages([])
-      setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([])
+      setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([]); setTraitEthnicity('')
       showSuccess('Influencer created', `${data.influencer.name} is ready.`)
       openDetail(data.influencer)
     } catch (err) {
@@ -470,6 +474,13 @@ export default function InfluencersPage() {
           <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: 2 }}>Define your AI persona&apos;s identity and visual style — every pick is locked in exactly.</div>
         </div>
 
+        {/* Mode toggle: structured pickers vs the original freeform box */}
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button onClick={() => setCreateMode('traits')} style={chip(createMode === 'traits')}>Build with options</button>
+          <button onClick={() => setCreateMode('describe')} style={chip(createMode === 'describe')}>Just describe them</button>
+        </div>
+
+        {createMode === 'traits' && (<>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div>
             <div style={traitLabel}>Name <span style={{ fontWeight: 400, color: 'var(--ink-mute)', textTransform: 'none', letterSpacing: 0 }}>· optional, AI invents one otherwise</span></div>
@@ -536,6 +547,15 @@ export default function InfluencersPage() {
         </div>
 
         <div>
+          <div style={traitLabel}>Ethnicity</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['White / Caucasian', 'Black / African', 'Latina / Hispanic', 'East Asian', 'South Asian', 'Southeast Asian', 'Middle Eastern', 'Native American', 'Pacific Islander', 'Mixed'].map(e => (
+              <button key={e} onClick={() => setTraitEthnicity(traitEthnicity === e ? '' : e)} style={chip(traitEthnicity === e)}>{e}</button>
+            ))}
+          </div>
+        </div>
+
+        <div>
           <div style={traitLabel}>Hairstyle</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {['Long straight', 'Long wavy', 'Curly', 'Coily', 'Bob', 'Pixie cut', 'Shoulder-length', 'Ponytail', 'Messy bun', 'Braids', 'Slicked back', 'Buzz cut', 'Short textured', 'Man bun'].map(h => (
@@ -556,6 +576,8 @@ export default function InfluencersPage() {
           </div>
         </div>
 
+        </>)}
+
         <div>
           <div style={traitLabel}>Image model</div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -571,13 +593,15 @@ export default function InfluencersPage() {
         </div>
 
         <div>
-          <div style={traitLabel}>Additional details</div>
+          <div style={traitLabel}>{createMode === 'traits' ? 'Additional details' : 'Describe your influencer'}</div>
           <textarea
             className="textarea"
-            rows={3}
+            rows={createMode === 'traits' ? 3 : 4}
             value={description}
             onChange={e => setDescription(e.target.value)}
-            placeholder="Add any extra details: clothing, accessories, tattoos, makeup, vibe, what they post about…"
+            placeholder={createMode === 'traits'
+              ? 'Add any extra details: clothing, accessories, tattoos, makeup, vibe, what they post about…'
+              : 'e.g. A laid-back surfer with sun-bleached curly hair and freckles who posts about sustainable skincare. Warm, a little sarcastic, always golden-hour lighting.'}
             style={{ fontSize: 14, margin: 0 }}
           />
         </div>
