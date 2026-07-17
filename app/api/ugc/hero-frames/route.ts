@@ -103,6 +103,44 @@ export async function POST(request: NextRequest) {
       imagePrompt = built.imagePrompt
     }
 
+    // Scene relevance — when reusing a saved actor / influencer, their
+    // stored prompt + reference photos carry the ORIGINAL location (e.g.
+    // penthouse portrait). If this video's script needs a specific place
+    // (car, mountain, gym…), the hero frame must show the character IN
+    // that place or Seedance opens the video in the wrong location.
+    // Haiku decides; generic talking-head scripts reuse the look as-is.
+    let requiredScene: string | null = null
+    const reusingIdentity = (typeof savedActorId === 'string' && savedActorId.length > 0)
+      || (typeof influencerId === 'string' && influencerId.length > 0)
+    if (reusingIdentity) {
+      try {
+        const Anthropic = (await import('@anthropic-ai/sdk')).default
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+        const scriptText = typeof body.script === 'string' ? body.script.slice(0, 2000) : ''
+        const msg = await anthropic.messages.create({
+          model: 'claude-haiku-4-5-20251001',
+          max_tokens: 120,
+          system: `You read a UGC ad script + direction and decide whether a SPECIFIC on-camera location or activity setting is required. Reply ONLY JSON: {"important": true|false, "scene": "one-line description of the required setting"}.
+important=true when the script/direction clearly implies a place or activity environment (in a car, on a mountain trail, at the gym, cooking in a kitchen, at the beach, unboxing at a desk…).
+important=false when it is a generic talking-head that could be filmed anywhere.`,
+          messages: [{ role: 'user', content: `SCRIPT:\n${scriptText || '(none)'}\n\nDIRECTION:\n${safeVideoDirection || '(none)'}` }],
+        })
+        const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim().replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
+        const parsed = JSON.parse(raw) as { important?: boolean; scene?: string }
+        if (parsed.important && typeof parsed.scene === 'string' && parsed.scene.trim()) {
+          requiredScene = parsed.scene.trim().slice(0, 200)
+          console.log('[hero-frames] scene matters:', requiredScene)
+        } else {
+          console.log('[hero-frames] scene not important — reusing stored look')
+        }
+      } catch (err) {
+        console.warn('[hero-frames] scene analysis failed, reusing stored look:', err instanceof Error ? err.message : err)
+      }
+    }
+    if (requiredScene) {
+      imagePrompt = `${imagePrompt}\n\nSCENE OVERRIDE — CRITICAL: the character is physically IN this location right now: ${requiredScene}. The ENTIRE background and environment must read as this scene. IGNORE any location, room, or background implied by the text above or by the reference photos — keep ONLY the person's face, hair, and identity from them, not their surroundings.`
+    }
+
     // Influencer identity references. When the character came from the
     // Influencer Studio, the frames should be anchored to their actual
     // photos, not regenerated from the text prompt alone (text-only
@@ -150,7 +188,7 @@ export async function POST(request: NextRequest) {
           productImageMimeType as string,
           safeProductName,
           imagePrompt,
-          '',                 // scene is baked into imagePrompt
+          requiredScene ?? '',   // explicit scene override when the script needs a place
           undefined,          // no legacy custom-instructions inject
           aspect.nanoBananaRatio,
           identityRefs[0]?.base64,     // influencer identity anchor (if any)
