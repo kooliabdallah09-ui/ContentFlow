@@ -65,6 +65,7 @@ export default function InfluencersPage() {
   const [scene, setScene] = useState('')
   const [sceneImages, setSceneImages] = useState<CompressedImage[]>([])
   const [shotCount, setShotCount] = useState(2)
+  const [ratio, setRatio] = useState<'9:16' | '4:5' | '1:1' | '16:9'>('4:5')
   const [shooting, setShooting] = useState(false)
   const [bridging, setBridging] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -177,6 +178,7 @@ export default function InfluencersPage() {
         body: JSON.stringify({
           scene: scene.trim(),
           count: shotCount,
+          ratio,
           sceneImages: sceneImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
       })
@@ -239,104 +241,99 @@ export default function InfluencersPage() {
 
   // ── Detail view ──────────────────────────────────────────────────────
   if (selected) {
+    const RATIOS = [
+      { id: '9:16' as const, w: 12, h: 21 },
+      { id: '4:5'  as const, w: 16, h: 20 },
+      { id: '1:1'  as const, w: 18, h: 18 },
+      { id: '16:9' as const, w: 24, h: 13.5 },
+    ]
     return (
-      <main style={{ maxWidth: 980, margin: '0 auto', padding: '48px 32px' }}>
-        <button onClick={() => setSelected(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ink-dim)', fontSize: 13.5, cursor: 'pointer', marginBottom: 24, padding: 0 }}>
+      <main style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 32px 24px', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 60px)' }}>
+        <button onClick={() => setSelected(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ink-dim)', fontSize: 13.5, cursor: 'pointer', marginBottom: 20, padding: 0, alignSelf: 'flex-start' }}>
           <ArrowLeft size={14} /> All influencers
         </button>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: 32, alignItems: 'start' }}>
-          {/* Identity card */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', background: 'var(--surface)' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={selected.portrait_url} alt={selected.name} style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }} />
-            <div style={{ padding: 16 }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22 }}>{selected.name}</div>
-              {selected.handle && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--ink-dim)', marginTop: 2 }}>{selected.handle}</div>}
-              {selected.niche && <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 8, textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{selected.niche}</div>}
-              {selected.bio && <p style={{ fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1.55, margin: '10px 0 0' }}>{selected.bio}</p>}
-              {selected.personality && <p style={{ fontSize: 12.5, color: 'var(--ink-mute)', lineHeight: 1.5, margin: '8px 0 0', fontStyle: 'italic' }}>{selected.personality}</p>}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
-                <button onClick={useInUgc} disabled={bridging} className="btn btn-primary" style={{ padding: '10px 14px', fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  {bridging ? <Loader2 size={14} className="animate-spin" /> : <Clapperboard size={14} />} Use in UGC
-                </button>
-                <button onClick={remove} disabled={deleting} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                  <Trash2 size={13} /> Delete
-                </button>
-              </div>
+        {/* Identity card — horizontal 16:9-ish banner across the top */}
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', marginBottom: 20 }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={selected.portrait_url} alt={selected.name} style={{ width: 220, minHeight: 250, objectFit: 'cover', display: 'block', flexShrink: 0 }} />
+          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26 }}>{selected.name}</span>
+              {selected.handle && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--ink-dim)' }}>{selected.handle}</span>}
             </div>
-          </div>
-
-          {/* Photoshoot + gallery */}
-          <div>
-            {/* Character sheet — the multi-angle identity anchor */}
-            <div style={{ marginBottom: 24 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400, margin: 0 }}>Character sheet</h2>
-                <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>multi-angle reference — makes every photo of them more accurate</span>
-              </div>
+            {selected.niche && <div style={{ fontSize: 11.5, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{selected.niche}</div>}
+            {selected.bio && <p style={{ fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1.55, margin: '4px 0 0' }}>{selected.bio}</p>}
+            {selected.personality && <p style={{ fontSize: 12.5, color: 'var(--ink-mute)', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>{selected.personality}</p>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+              <button onClick={useInUgc} disabled={bridging} className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                {bridging ? <Loader2 size={14} className="animate-spin" /> : <Clapperboard size={14} />} Use in UGC
+              </button>
               {selected.character_sheet_url ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  <a href={selected.character_sheet_url} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={selected.character_sheet_url} alt="Character sheet" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
+                <>
+                  <a href={selected.character_sheet_url} target="_blank" rel="noreferrer" style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, border: '1px solid var(--border)', color: 'var(--ink-2)', textDecoration: 'none' }}>
+                    View character sheet
                   </a>
-                  <button onClick={generateSheet} disabled={sheetLoading} style={{ alignSelf: 'flex-start', padding: '7px 14px', fontSize: 12, borderRadius: 8, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-dim)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  <button onClick={generateSheet} disabled={sheetLoading} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet · 10 cr
                   </button>
-                </div>
+                </>
               ) : (
-                <div style={{ padding: 16, borderRadius: 12, border: '1px dashed var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, flex: 1, lineHeight: 1.5 }}>
-                    No character sheet yet. Generate a full-body + head turnaround (front, profile, back) — photoshoots and UGC frames anchor to it for much better identity accuracy.
-                  </p>
-                  <button onClick={generateSheet} disabled={sheetLoading} className="btn btn-primary" style={{ padding: '10px 16px', fontSize: 13, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {sheetLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} Generate · 10 cr
-                  </button>
-                </div>
+                <button onClick={generateSheet} disabled={sheetLoading} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                  {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Generate character sheet · 10 cr
+                </button>
               )}
+              <button onClick={remove} disabled={deleting} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                <Trash2 size={13} /> Delete
+              </button>
             </div>
+          </div>
+        </div>
 
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400, margin: '0 0 14px' }}>Photoshoot</h2>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-              {SCENE_PRESETS.map(p => (
-                <button key={p} onClick={() => setScene(p)} style={{
-                  padding: '6px 12px', borderRadius: 999, fontSize: 12, cursor: 'pointer',
-                  border: `1px solid ${scene === p ? 'var(--ink)' : 'var(--border)'}`,
-                  background: scene === p ? 'var(--surface-2)' : 'var(--surface)',
-                  color: 'var(--ink-2)',
-                }}>{p}</button>
+        {/* Gallery — center stage, bigger tiles */}
+        <div style={{ flex: 1, marginBottom: 20 }}>
+          {photos.length > 0 ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+              {photos.map(p => (
+                <a key={p.id} href={p.image_url} target="_blank" rel="noreferrer" title={p.scene} style={{ display: 'block', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.image_url} alt={p.scene} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+                </a>
               ))}
             </div>
-            <textarea
-              className="textarea"
-              rows={2}
-              value={scene}
-              onChange={e => setScene(e.target.value)}
-              placeholder="…or describe any scene: 'walking through Tokyo in the rain with a clear umbrella'"
-              style={{ fontSize: 13.5, marginBottom: 10 }}
-            />
+          ) : (
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13.5, border: '1px dashed var(--border)', borderRadius: 14 }}>
+              No photos yet — describe a scene below and hit Shoot.
+            </div>
+          )}
+        </div>
 
-            {/* Scene / outfit / prop reference attachments */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+        {/* Composer — pinned at the bottom like a chat input */}
+        <div style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+            {SCENE_PRESETS.map(p => (
+              <button key={p} onClick={() => setScene(p)} style={{
+                padding: '5px 11px', borderRadius: 999, fontSize: 11.5, cursor: 'pointer',
+                border: `1px solid ${scene === p ? 'var(--ink)' : 'var(--border)'}`,
+                background: scene === p ? 'var(--surface-2)' : 'var(--surface)',
+                color: 'var(--ink-2)',
+              }}>{p}</button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+            {/* Attach */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
               {sceneImages.map((img, i) => (
-                <div key={i} style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                <div key={i} style={{ position: 'relative', width: 44, height: 44, borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)', flexShrink: 0 }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={img.preview} alt={`scene ref ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  <button
-                    onClick={() => setSceneImages(prev => prev.filter((_, j) => j !== i))}
-                    style={{ position: 'absolute', top: 1, right: 1, width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0 }}
-                  >×</button>
+                  <img src={img.preview} alt={`ref ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => setSceneImages(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: 1, right: 1, width: 15, height: 15, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 9, lineHeight: 1, padding: 0 }}>×</button>
                 </div>
               ))}
               {sceneImages.length < 2 && (
                 <>
-                  <input
-                    id="sceneRefInput"
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    style={{ display: 'none' }}
+                  <input id="sceneRefInput" type="file" accept="image/*" multiple style={{ display: 'none' }}
                     onChange={async e => {
                       const files = Array.from(e.target.files ?? []).slice(0, 2 - sceneImages.length)
                       e.target.value = ''
@@ -348,49 +345,62 @@ export default function InfluencersPage() {
                       }
                     }}
                   />
-                  <button
-                    onClick={() => document.getElementById('sceneRefInput')?.click()}
-                    style={{ width: 48, height: 48, borderRadius: 8, border: '1.5px dashed var(--border)', background: 'var(--surface)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                    title="Attach a scene, outfit, or product photo the shots should incorporate"
-                  >
+                  <button onClick={() => document.getElementById('sceneRefInput')?.click()}
+                    title="Attach an outfit, product, or location photo to include in the shots"
+                    style={{ width: 44, height: 44, borderRadius: 9, border: '1.5px dashed var(--border)', background: 'var(--surface-2, var(--surface))', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                     <ImagePlus size={16} />
                   </button>
                 </>
               )}
-              <span style={{ fontSize: 11, color: 'var(--ink-mute)', maxWidth: 280, lineHeight: 1.4 }}>
-                Optional: attach an outfit, product, or location photo to include in the shots.
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                {[1, 2, 3, 4].map(n => (
-                  <button key={n} onClick={() => setShotCount(n)} style={{
-                    width: 34, height: 34, borderRadius: 9, fontSize: 13, cursor: 'pointer',
-                    border: `1px solid ${shotCount === n ? 'var(--ink)' : 'var(--border)'}`,
-                    background: shotCount === n ? 'var(--ink)' : 'var(--surface)',
-                    color: shotCount === n ? 'var(--on-ink)' : 'var(--ink-2)',
-                    fontWeight: 600,
-                  }}>{n}</button>
-                ))}
-              </div>
-              <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{shotCount * 8} cr</span>
-              <button onClick={photoshoot} disabled={shooting} className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, marginLeft: 'auto' }}>
-                {shooting ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />} Shoot
-              </button>
             </div>
 
-            {photos.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
-                {photos.map(p => (
-                  <a key={p.id} href={p.image_url} target="_blank" rel="noreferrer" title={p.scene} style={{ display: 'block', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={p.image_url} alt={p.scene} style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }} />
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <p style={{ fontSize: 13, color: 'var(--ink-mute)' }}>No photos yet — pick a scene and hit Shoot.</p>
-            )}
+            {/* Scene input */}
+            <textarea
+              className="textarea"
+              rows={2}
+              value={scene}
+              onChange={e => setScene(e.target.value)}
+              placeholder="Describe any scene: 'walking through Tokyo in the rain with a clear umbrella'"
+              style={{ fontSize: 13.5, flex: 1, resize: 'none', margin: 0 }}
+            />
+
+            {/* Shoot */}
+            <button onClick={photoshoot} disabled={shooting} className="btn btn-primary" style={{ padding: '13px 20px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+              {shooting ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />} Shoot
+            </button>
+          </div>
+
+          {/* Format + count row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {RATIOS.map(r => {
+                const active = ratio === r.id
+                return (
+                  <button key={r.id} onClick={() => setRatio(r.id)} title={r.id} style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '6px 11px', borderRadius: 9, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                    border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                    background: active ? 'var(--ink)' : 'var(--surface)',
+                    color: active ? 'var(--on-ink)' : 'var(--ink-2)',
+                  }}>
+                    <span style={{ width: r.w, height: r.h, borderRadius: 2.5, border: `1.5px solid ${active ? 'var(--on-ink)' : 'var(--ink-mute)'}`, display: 'block' }} />
+                    {r.id}
+                  </button>
+                )
+              })}
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              {[1, 2, 3, 4].map(n => (
+                <button key={n} onClick={() => setShotCount(n)} style={{
+                  width: 30, height: 30, borderRadius: 8, fontSize: 12.5, cursor: 'pointer',
+                  border: `1px solid ${shotCount === n ? 'var(--ink)' : 'var(--border)'}`,
+                  background: shotCount === n ? 'var(--ink)' : 'var(--surface)',
+                  color: shotCount === n ? 'var(--on-ink)' : 'var(--ink-2)',
+                  fontWeight: 600,
+                }}>{n}</button>
+              ))}
+              <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{shotCount * 8} cr</span>
+            </div>
           </div>
         </div>
       </main>

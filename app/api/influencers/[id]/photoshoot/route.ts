@@ -45,6 +45,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const body = await request.json()
     const scene = String(body?.scene ?? '').trim().slice(0, 500)
     const count = Math.min(4, Math.max(1, Number(body?.count) || 1))
+    const ratio: '9:16' | '16:9' | '1:1' | '4:5' =
+      body?.ratio === '9:16' || body?.ratio === '16:9' || body?.ratio === '1:1' ? body.ratio : '4:5'
     if (scene.length < 3) return NextResponse.json({ error: 'Describe the scene' }, { status: 400 })
     // Optional attachments: scene / outfit / prop reference photos the
     // shots should incorporate (e.g. a specific jacket, a product, a
@@ -112,7 +114,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       Array.from({ length: count }, (_, i) =>
         generateNanoBananaImage(basePrompt(SHOT_VARIATIONS[i % SHOT_VARIATIONS.length]), {
           style: 'realistic',
-          ratio: '4:5',
+          ratio,
           referenceImages: [...identityRefs, ...sceneRefs],
           referenceHint: sceneRefs.length
             ? 'The FIRST reference image(s) define this exact person — same face, hair, skin tone, build. The LAST image(s) show a scene/outfit/object to incorporate faithfully. Apply the prompt as framing around them.'
