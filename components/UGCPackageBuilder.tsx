@@ -212,6 +212,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     portrait_url: string
   }
   const [influencers, setInfluencers] = useState<InfluencerCard[]>([])
+  // Product Studio products — importable into this form with all angles.
+  const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; description?: string | null; photo_urls: string[] }>>([])
+  const [studioProductId, setStudioProductId] = useState<string | undefined>(undefined)
   const [selectedInfluencerId, setSelectedInfluencerId] = useState<string | undefined>(undefined)
   const [bridgingInfluencer, setBridgingInfluencer] = useState(false)
   // Gallery of the selected influencer: portrait + photoshoot photos. The
@@ -308,6 +311,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           fetch('/api/ugc/saved-actors', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/influencers', { headers: { Authorization: `Bearer ${token}` } }),
         ])
+        try {
+          const spRes = await fetch('/api/products-studio', { headers: { Authorization: `Bearer ${token}` } })
+          if (spRes.ok) {
+            const spData = await spRes.json()
+            if (!cancelled && Array.isArray(spData?.products)) setStudioProducts(spData.products)
+          }
+        } catch { /* best-effort */ }
         try {
           const actorsData = await actorsRes.json()
           if (!cancelled && Array.isArray(actorsData?.actors)) setSavedActors(actorsData.actors)
@@ -1230,6 +1240,57 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <span className="step-circle">2</span>
           <h3>Your product</h3>
         </div>
+
+        {/* Product Studio import — one click fills name, description, and
+            all reference angles (main photo + extras). */}
+        {studioProducts.length > 0 && (
+          <div style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>From Product Studio</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-mute)', marginLeft: 'auto' }}>fills everything incl. photos</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {studioProducts.map(sp => {
+                const active = studioProductId === sp.id
+                return (
+                  <button
+                    key={sp.id}
+                    type="button"
+                    disabled={isLoading}
+                    onClick={async () => {
+                      if (active) { setStudioProductId(undefined); return }
+                      setStudioProductId(sp.id)
+                      setProductName(sp.name)
+                      if (sp.description) setProductDescription(sp.description)
+                      const urls = Array.isArray(sp.photo_urls) ? sp.photo_urls : []
+                      if (urls[0]) {
+                        const main = await loadBrandImage(urls[0])
+                        if (main) setProductImage(main)
+                      }
+                      const extras: Array<{ base64: string; mimeType: string; preview: string }> = []
+                      for (const u of urls.slice(1, 3)) {
+                        const img = await loadBrandImage(u)
+                        if (img) extras.push(img)
+                      }
+                      setExtraProductImages(extras)
+                      showSuccess('Product imported', `${sp.name} — ${Math.min(urls.length, 3)} photo${urls.length > 1 ? 's' : ''} loaded.`)
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 8, padding: 6, paddingRight: 12,
+                      borderRadius: 10, cursor: 'pointer',
+                      border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                      background: active ? 'var(--surface)' : 'var(--bg)',
+                    }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: 36, height: 36, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{sp.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Shopify Product Picker */}
         <div style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>

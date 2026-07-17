@@ -50,8 +50,34 @@ export default function ProductStudio() {
   // Create
   const [showCreate, setShowCreate] = useState(false)
   const [createName, setCreateName] = useState('')
-  const [createPhotos, setCreatePhotos] = useState<CompressedImage[]>([])
+  const [createWhatItIs, setCreateWhatItIs] = useState('')
+  const [createPhotos, setCreatePhotos] = useState<Array<CompressedImage & { angle?: string }>>([])
   const [creating, setCreating] = useState(false)
+  const [aiFilling, setAiFilling] = useState(false)
+
+  async function aiFill() {
+    setAiFilling(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch('/api/products-studio/ai-fill', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          quick: createWhatItIs.trim() || undefined,
+          photo: createPhotos[0] ? { base64: createPhotos[0].base64, mimeType: createPhotos[0].mimeType } : undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'AI fill failed')
+      if (data.name) setCreateName(data.name)
+      if (data.whatItIs) setCreateWhatItIs(data.whatItIs)
+    } catch (err) {
+      showError('AI fill failed', err instanceof Error ? err.message : 'Add a photo or a quick description first')
+    } finally {
+      setAiFilling(false)
+    }
+  }
 
   // Detail
   const [selected, setSelected] = useState<StudioProduct | null>(null)
@@ -114,13 +140,15 @@ export default function ProductStudio() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           name: createName.trim() || undefined,
-          photos: createPhotos.map(p => ({ base64: p.base64, mimeType: p.mimeType })),
+          whatItIs: createWhatItIs.trim() || undefined,
+          photos: createPhotos.map(p => ({ base64: p.base64, mimeType: p.mimeType, angle: p.angle })),
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Creation failed')
       setList(prev => [data.product, ...prev])
       setCreateName('')
+      setCreateWhatItIs('')
       setCreatePhotos([])
       setShowCreate(false)
       showSuccess('Product added', `${data.product.name} is ready for photoshoots.`)
@@ -364,20 +392,47 @@ export default function ProductStudio() {
             <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 4 }}><X size={18} /></button>
           </div>
 
-          <input
-            type="text"
-            value={createName}
-            onChange={e => setCreateName(e.target.value)}
-            placeholder="Product name (optional — AI reads it off the packaging)"
-            style={{ width: '100%', boxSizing: 'border-box', padding: '10px 13px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <input
+              type="text"
+              value={createName}
+              onChange={e => setCreateName(e.target.value)}
+              placeholder="Product name"
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 13px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+            />
+            <button
+              onClick={aiFill}
+              disabled={aiFilling}
+              style={{ padding: '10px 14px', borderRadius: 10, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+            >
+              {aiFilling ? <Loader2 size={13} className="animate-spin" /> : '✨'} {aiFilling ? 'Filling…' : 'Fill with AI (from a photo or quick note)'}
+            </button>
+          </div>
+          <textarea
+            className="textarea"
+            rows={2}
+            value={createWhatItIs}
+            onChange={e => setCreateWhatItIs(e.target.value)}
+            placeholder="What is the product? e.g. 'organic matcha powder in a green tin, for home lattes' — or type a rough note and hit Fill with AI"
+            style={{ fontSize: 13.5, margin: 0 }}
           />
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             {createPhotos.map((img, i) => (
-              <div key={i} style={{ position: 'relative', width: 74, height: 74, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={img.preview} alt={`angle ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <button onClick={() => setCreatePhotos(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: 2, right: 2, width: 17, height: 17, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0 }}>×</button>
+              <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center' }}>
+                <div style={{ position: 'relative', width: 74, height: 74, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.preview} alt={`angle ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button onClick={() => setCreatePhotos(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: 2, right: 2, width: 17, height: 17, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0 }}>×</button>
+                </div>
+                <select
+                  value={img.angle ?? ''}
+                  onChange={e => setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, angle: e.target.value || undefined } : p))}
+                  style={{ width: 74, fontSize: 10.5, padding: '3px 4px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink-2)' }}
+                >
+                  <option value="">side?</option>
+                  {['front', 'back', 'side', 'top', 'contents', 'detail'].map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
               </div>
             ))}
             {createPhotos.length < 5 && (

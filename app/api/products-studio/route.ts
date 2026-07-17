@@ -62,7 +62,7 @@ export async function POST(request: NextRequest) {
     const supabase = supa()
 
     const body = await request.json()
-    const photos: Array<{ base64: string; mimeType: string }> = Array.isArray(body?.photos)
+    const photos: Array<{ base64: string; mimeType: string; angle?: string }> = Array.isArray(body?.photos)
       ? body.photos
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .filter((p: any) => typeof p?.base64 === 'string' && p.base64.length > 100 && typeof p?.mimeType === 'string')
@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       : []
     if (!photos.length) return NextResponse.json({ error: 'Upload at least one product photo' }, { status: 400 })
     const userName = typeof body?.name === 'string' ? body.name.trim().slice(0, 80) : ''
+    const whatItIs = typeof body?.whatItIs === 'string' ? body.whatItIs.trim().slice(0, 300) : ''
 
     const { data: credits } = await supabase
       .from('user_credits')
@@ -90,7 +91,18 @@ export async function POST(request: NextRequest) {
         data: p.base64,
       },
     }))
-    content.push({ type: 'text', text: userName ? `The product is called "${userName}" — use this exact name.` : 'Build the product sheet.' })
+    const angleNotes = photos
+      .map((p, i) => p.angle ? `Photo ${i + 1} shows the ${p.angle}.` : null)
+      .filter(Boolean).join(' ')
+    content.push({
+      type: 'text',
+      text: [
+        userName ? `The product is called "${userName}" — use this exact name.` : null,
+        whatItIs ? `The user says: "${whatItIs}" — trust this over guesses.` : null,
+        angleNotes || null,
+        'Build the product sheet.',
+      ].filter(Boolean).join('\n'),
+    })
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 700,
