@@ -150,6 +150,10 @@ export default function SocialPage() {
   const [slideCount, setSlideCount] = useState(5)
   const [carTone, setCarTone]       = useState('bold')
   const [illustrationDesc, setIllustrationDesc] = useState('')
+  // Feature one of the user's AI influencers on the slides (admin feature —
+  // the fetch 401s for everyone else and the picker simply doesn't render).
+  const [influencers, setInfluencers] = useState<Array<{ id: string; name: string; portrait_url: string }>>([])
+  const [carInfluencerId, setCarInfluencerId] = useState<string | undefined>(undefined)
   const [reference, setReference]   = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [carLoading, setCarLoading] = useState(false)
   const [slides, setSlides]         = useState<CarouselSlide[]>([])
@@ -163,6 +167,22 @@ export default function SocialPage() {
   const isSquare    = false // Only Instagram now (4:5)
 
   const canCaption  = capTopic.trim().length >= 3 && selPlatforms.length > 0 && balance >= capCost && !capLoading
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = getSupabase()
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+        const token = sess?.session?.access_token
+        if (!token) return
+        const res = await fetch('/api/influencers', { headers: { Authorization: `Bearer ${token}` } })
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data?.influencers)) setInfluencers(data.influencers)
+        }
+      } catch { /* non-admin or offline — hide picker */ }
+    })()
+  }, [])
+
   const canCarousel = carTopic.trim().length >= 3 && balance >= carCost && !carLoading
 
   function togglePlatform(id: string) {
@@ -281,6 +301,7 @@ export default function SocialPage() {
           slideCount,
           tone: carTone,
           illustrationDesc: illustrationDesc.trim() || null,
+          influencerId: carInfluencerId ?? null,
           referenceImageBase64: reference?.base64 ?? null,
           referenceImageMimeType: reference?.mimeType ?? null,
         }),
@@ -733,6 +754,43 @@ export default function SocialPage() {
                 })}
               </div>
             </div>
+
+            {/* Feature an influencer on the slides */}
+            {influencers.length > 0 && (
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                  Feature an influencer <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-faint)' }}>(optional — every slide shows them)</span>
+                </label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setCarInfluencerId(undefined)}
+                    disabled={carLoading}
+                    style={{ width: 62, height: 82, borderRadius: 10, fontSize: 10.5, fontWeight: 600, lineHeight: 1.3, cursor: 'pointer', padding: 4,
+                      border: `1.5px solid ${!carInfluencerId ? 'var(--ink)' : 'var(--border)'}`,
+                      background: !carInfluencerId ? 'var(--ink)' : 'var(--surface)',
+                      color: !carInfluencerId ? 'var(--on-ink)' : 'var(--ink-2)' }}
+                  >
+                    No person
+                  </button>
+                  {influencers.map(inf => {
+                    const active = carInfluencerId === inf.id
+                    return (
+                      <button
+                        key={inf.id}
+                        onClick={() => setCarInfluencerId(active ? undefined : inf.id)}
+                        disabled={carLoading}
+                        title={inf.name}
+                        style={{ width: 62, height: 82, borderRadius: 10, overflow: 'hidden', padding: 0, cursor: 'pointer',
+                          border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={inf.portrait_url} alt={inf.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Illustration description */}
             <div>
