@@ -29,8 +29,20 @@ export const SEEDANCE_CR_PER_SECOND: Record<UGCResolution, number> = {
 // → $0.80 × 1.8 margin ≈ $1.44 → 60 credits (round up).
 export const UGC_FIXED_OVERHEAD_CR = 60
 
+// Volume discount on the video portion — longer clips get a proportionally
+// cheaper per-second rate. Margin at the deepest tier is still 1.8 × 0.75 =
+// 1.35× over raw Seedance cost.
+export function durationDiscount(durationSeconds: number): number {
+  if (durationSeconds <= 5) return 1.0
+  if (durationSeconds <= 10) return 0.95
+  if (durationSeconds <= 15) return 0.9
+  if (durationSeconds <= 20) return 0.85
+  if (durationSeconds <= 30) return 0.8
+  return 0.75
+}
+
 export function ugcPackageCost(durationSeconds: number, resolution: UGCResolution): number {
   const perSec = SEEDANCE_CR_PER_SECOND[resolution] ?? SEEDANCE_CR_PER_SECOND['1080p']
-  const videoCost = Math.max(1, Math.ceil(durationSeconds * perSec))
+  const videoCost = Math.max(1, Math.ceil(durationSeconds * perSec * durationDiscount(durationSeconds)))
   return UGC_FIXED_OVERHEAD_CR + videoCost
 }
