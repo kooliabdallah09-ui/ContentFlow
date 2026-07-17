@@ -24,10 +24,10 @@ function supa() {
 // Per-shot variation so a 4-photo batch reads like a real shoot, not
 // four near-identical renders.
 const SHOT_VARIATIONS = [
-  'Medium shot, subject looking at the camera with a relaxed smile.',
-  'Candid moment — subject mid-laugh or looking slightly off-camera, caught naturally.',
-  'Closer crop, golden warm tones, soft depth of field behind the subject.',
-  'Wider environmental shot showing more of the location around the subject.',
+  'Three-quarter shot framed from head to mid-thigh, subject looking at the camera with a relaxed smile, one arm naturally extended or resting.',
+  'Candid three-quarter moment — subject mid-laugh or looking slightly off-camera, caught naturally, framed head to mid-thigh.',
+  'Three-quarter framing head to mid-thigh, golden warm tones, soft depth of field behind the subject.',
+  'Wider environmental shot showing the subject from head to knees with the location visible around them.',
 ]
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // controls) on top of the image. Describe the photographic QUALITIES
     // instead, and explicitly forbid interface elements.
     const basePrompt = (variation: string) =>
-      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\nThe person in the attached reference image IS this exact character — preserve their face, hair, and identity precisely. Hyper-realistic candid photograph: natural light appropriate to the scene, real skin texture with pores and small imperfections, slight handheld softness, believable social-media energy, no beauty filter.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
+      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\nThe person in the attached reference image IS this exact character — preserve their face, hair, and identity precisely. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid photograph: natural light appropriate to the scene, real skin texture with pores and small imperfections, slight handheld softness, believable social-media energy, no beauty filter.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
     const results = await Promise.allSettled(
       Array.from({ length: count }, (_, i) =>
