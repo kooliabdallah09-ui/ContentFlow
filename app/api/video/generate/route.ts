@@ -3,6 +3,7 @@ import { submitSeedanceJob } from '@/lib/replicate'
 import { generateTextToImage } from '@/lib/nanobanana'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import Anthropic from '@anthropic-ai/sdk'
 import sharp from 'sharp'
 
 export const maxDuration = 120
@@ -111,8 +112,9 @@ export async function POST(request: NextRequest) {
     const userId = userData.user.id
 
     const body = await request.json()
-    const prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 4000).trim() : ''
-    if (!prompt) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
+    let prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 4000).trim() : ''
+    const hyperMotion = body.mode === 'hypermotion'
+    if (!prompt && !hyperMotion) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
 
     // Seedance 2.0 (default) or Seedance Mini (~half price, 720p cap).
     const model: 'seedance-2' | 'seedance-mini' = body.model === 'seedance-mini' ? 'seedance-mini' : 'seedance-2'
@@ -145,6 +147,56 @@ export async function POST(request: NextRequest) {
       : (typeof body.referenceImageBase64 === 'string' ? [{ base64: body.referenceImageBase64, mimeType: body.referenceImageMimeType ?? 'image/jpeg' }] : [])
     const refImageBase64 = referenceImages[0]?.base64
     const refImageMimeType = referenceImages[0]?.mimeType
+
+    // ── HyperMotion: pure-CGI product commercial. The user only supplies a
+    // product photo (+ optional vibe note) — Sonnet studies the product and
+    // writes the full physics-driven, no-humans, no-voiceover Seedance
+    // prompt (Apple-reveal style camera choreography). ──
+    if (hyperMotion) {
+      if (!refImageBase64 || !refImageMimeType) {
+        return NextResponse.json({ error: 'HyperMotion needs a product photo' }, { status: 400 })
+      }
+      const hyperNote = typeof body.hyperNote === 'string' ? body.hyperNote.slice(0, 400).trim() : ''
+      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+      const HYPER_SYSTEM = `You are a world-class CGI commercial director and Seedance 2.0 prompt engineer. You create Apple-reveal-style product films: pure CGI, the physical product is the ONLY hero.
+
+Study the attached product photo carefully — packaging, materials, label text, colours, proportions — and write ONE polished, timestamped Seedance 2.0 prompt for a premium product commercial.
+
+HARD RULES:
+- NO humans, NO hands, NO faces, NO voiceover, NO dialogue, NO on-screen text, NO captions, NO logos other than what is printed on the product itself.
+- The product must appear EXACTLY as photographed — never redesign packaging, labels, or colours.
+- Physics-driven VFX around the product: floating assembly/disassembly, particle bursts, liquid splashes, powder plumes, fabric ribbons, light rays, slow-motion shatter/merge — pick what fits THIS product's category.
+- Premium 3D-studio environments: seamless gradient voids, wet obsidian slabs, brushed metal platforms, silk drapes, water surfaces, volumetric god rays — moody, expensive, controlled lighting (rim light, soft key, specular kicks).
+- Cinematic camera choreography that never sits still: macro slide along the label, sweeping orbital, whip-to-lock hero framing, push-in on the reveal, speed-ramps. Every scene names its shot type and camera move.
+- Sound: ambient whooshes, deep sub-bass hits, tactile foley synced to the physics — no music with vocals, no narration.
+- Timestamped scene blocks (SCENE N [MM:SS – MM:SS], Visual: …). Scene count by duration: <=5s 1 · 6-10s 2 · 11-20s 3 · 21-40s 4-5 · 41-60s 5-7. Final scene ends EXACTLY at the target duration with a locked hero shot of the product.
+- Stay under 3400 characters. Output ONLY the finished prompt.`
+      const msg = await anthropic.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1500,
+        system: HYPER_SYSTEM,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image',
+              source: {
+                type: 'base64',
+                media_type: refImageMimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
+                data: refImageBase64,
+              },
+            },
+            {
+              type: 'text',
+              text: `TARGET DURATION: exactly ${Number(body.duration ?? 5)} seconds. ASPECT: ${body.aspect === 'landscape' ? '16:9' : body.aspect === 'square' ? '1:1' : '9:16 vertical'}.${hyperNote ? `\nCreative direction from the user (honor it): ${hyperNote}` : ''}\n\nDirect the commercial now.`,
+            },
+          ],
+        }],
+      })
+      prompt = (msg.content[0] as { type: 'text'; text: string }).text.trim().slice(0, 3600)
+      if (!prompt) return NextResponse.json({ error: 'HyperMotion direction failed — try again' }, { status: 500 })
+      console.log('[video/generate] hypermotion prompt chars=', prompt.length)
+    }
 
     const totalCost = getCost(model, duration, resolution, withAudio)
     const { data: userCredits } = await supabase

@@ -113,6 +113,10 @@ export default function VideoGeneratorPage() {
   const [directing, setDirecting] = useState(false)
   const [storyboard, setStoryboard] = useState<string[]>([])
   const [useKeyframe, setUseKeyframe] = useState(true)
+  // HyperMotion: pure-CGI product commercial — product photo in, Sonnet
+  // writes the whole physics-driven prompt server-side.
+  const [hyperMotion, setHyperMotion] = useState(false)
+  const [hyperNote, setHyperNote] = useState('')
   const [duration, setDuration] = useState(5)
   const [resolution, setResolution] = useState<Resolution>('720p')
   const [withAudio, setWithAudio] = useState(true)
@@ -140,7 +144,7 @@ export default function VideoGeneratorPage() {
   // Seedance pricing depends on resolution × duration. Other models keep
   // the flat per-duration table.
   const cost = getSeedanceCost(duration, resolution, withAudio, model)
-  const canGenerate = prompt.trim().length >= 5 && creditBalance >= cost
+  const canGenerate = (hyperMotion ? refImages.length > 0 : prompt.trim().length >= 5) && creditBalance >= cost
 
   // Reset duration when switching models if current duration isn't valid
   useEffect(() => {
@@ -328,6 +332,8 @@ export default function VideoGeneratorPage() {
           aspect,
           referenceImages: refImages.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
           startImageUrl: useKeyframe && storyboard[0] ? storyboard[0] : undefined,
+          mode: hyperMotion ? 'hypermotion' : undefined,
+          hyperNote: hyperMotion ? (hyperNote.trim() || undefined) : undefined,
         }),
       })
       const data = await res.json()
@@ -528,6 +534,50 @@ export default function VideoGeneratorPage() {
               )
             })}
           </div>
+        </div>
+
+        {/* HyperMotion */}
+        <div style={{ background: hyperMotion ? 'var(--ink)' : 'var(--surface)', border: `1.5px solid ${hyperMotion ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 14, padding: 20, color: hyperMotion ? 'var(--on-ink)' : 'var(--ink)', transition: 'all 0.2s' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14.5, fontWeight: 700 }}>⚡ HyperMotion</span>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 999, background: hyperMotion ? 'var(--on-ink)' : 'var(--surface-2)', color: hyperMotion ? 'var(--ink)' : 'var(--ink-dim)' }}>CGI ad</span>
+              </div>
+              <div style={{ fontSize: 12, opacity: 0.8, marginTop: 3 }}>
+                Apple-reveal-style product commercial — no actors, no voiceover. Drop your product photo below, we direct everything: physics VFX, premium lighting, cinematic camera.
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setHyperMotion(v => !v)}
+              disabled={generating}
+              style={{
+                padding: '9px 18px', borderRadius: 999, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+                border: `1.5px solid ${hyperMotion ? 'var(--on-ink)' : 'var(--ink)'}`,
+                background: hyperMotion ? 'var(--on-ink)' : 'transparent',
+                color: hyperMotion ? 'var(--ink)' : 'var(--ink)',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {hyperMotion ? 'On' : 'Turn on'}
+            </button>
+          </div>
+          {hyperMotion && (
+            <div style={{ marginTop: 12 }}>
+              <input
+                type="text"
+                value={hyperNote}
+                onChange={e => setHyperNote(e.target.value)}
+                disabled={generating}
+                placeholder='Optional vibe: "dark obsidian set, candy exploding in slow motion" — leave empty and AI decides'
+                style={{ width: '100%', boxSizing: 'border-box', padding: '10px 13px', borderRadius: 10, border: '1px solid rgba(255,255,255,0.25)', background: 'rgba(255,255,255,0.08)', color: 'var(--on-ink)', fontSize: 13, fontFamily: 'inherit', outline: 'none' }}
+              />
+              <div style={{ fontSize: 11.5, opacity: 0.7, marginTop: 6 }}>
+                {refImages.length > 0 ? '✓ Product photo attached — hit Generate and the AI handles the rest.' : 'Add your product photo in the reference images below, then hit Generate.'}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Director mode */}
