@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
       productImageMimeType,
       videoDirection,
       resolution: resolutionRaw,
+      engine: engineRaw,
       extraProductImages,
     } = body as Record<string, unknown>
     const extraProductRefs: Array<{ base64: string; mimeType: string }> = Array.isArray(extraProductImages)
@@ -69,8 +70,11 @@ export async function POST(request: NextRequest) {
           .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
       : []
     const safeVideoDirection = typeof videoDirection === 'string' ? videoDirection.slice(0, 2000) : undefined
-    const resolution: '480p' | '720p' | '1080p' | '4k' =
+    const engine: 'seedance-2' | 'seedance-mini' = engineRaw === 'seedance-mini' ? 'seedance-mini' : 'seedance-2'
+    let resolution: '480p' | '720p' | '1080p' | '4k' =
       resolutionRaw === '480p' || resolutionRaw === '720p' || resolutionRaw === '4k' ? resolutionRaw : '1080p'
+    // Mini caps at 720p — clamp both the render and the charge.
+    if (engine === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) resolution = '720p'
 
     if (!selectedFrameUrl || typeof selectedFrameUrl !== 'string' || !selectedFrameUrl.startsWith('http')) {
       return NextResponse.json({ error: 'Missing selectedFrameUrl' }, { status: 400 })
@@ -102,7 +106,7 @@ export async function POST(request: NextRequest) {
     const { ugcPackageCost } = await import('@/lib/ugc-pricing')
     let totalCost = 0
     if (ugcType === 'image-with-voiceover' || ugcType === 'all') totalCost += CREDIT_COSTS.image
-    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += ugcPackageCost(duration, resolution)
+    if (ugcType === 'video-with-voiceover' || ugcType === 'all') totalCost += ugcPackageCost(duration, resolution, engine)
     // tier is retained for compatibility with existing callers; not used here.
     void calculateVideoCredits; void tier
 
@@ -309,6 +313,7 @@ export async function POST(request: NextRequest) {
           startImageUrl: currentGridUrl,
           resolution,
           enableAudio: true,
+          engine,
         })
         break
       } catch (err) {
@@ -370,6 +375,7 @@ export async function POST(request: NextRequest) {
         productRefUrl,
         prompt: seedancePrompt,
         resolution,
+        engine,
         aspectRatio: aspect.nanoBananaRatio,
         durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
       },

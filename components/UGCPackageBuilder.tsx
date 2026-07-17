@@ -111,6 +111,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // Resolution — Seedance 2.0 supports 480p / 720p / 1080p / 4k. Different
   // per-second credit prices. Default 1080p.
   const [resolution, setResolution] = useState<'480p' | '720p' | '1080p' | '4k'>('1080p')
+  // Seedance 2.0 (default, up to 4K) vs Seedance Mini (~half price, 720p cap).
+  const [engine, setEngine] = useState<'seedance-2' | 'seedance-mini'>('seedance-2')
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
@@ -409,7 +411,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // Nano Banana Pro / Claude overhead. Shared source of truth in
   // lib/ugc-pricing so the client display never drifts from the server
   // deduction.
-  const videoCredits = ugcPackageCost(duration, resolution)
+  const videoCredits = ugcPackageCost(duration, resolution, engine)
   const totalCredits = videoCredits
   void calculateVideoCredits
   const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && benefits.trim()
@@ -552,6 +554,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           productImageMimeType: productImage?.mimeType,
           extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
           resolution,
+          engine,
           // videoDirection is the freeform "how should this ad feel"
           // note the Seedance prompt builder ingests. Reuse the existing
           // Custom Instructions textarea for this — same intent.
@@ -1057,7 +1060,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             {DURATION_OPTIONS.map(sec => {
               const dCfg = DURATION_CONFIGS[sec]
               const active = duration === sec
-              const cost = ugcPackageCost(sec, resolution)
+              const cost = ugcPackageCost(sec, resolution, engine)
               void creditsToUSD
               const locked = !dCfg.available
               const chained = dCfg.klingClips >= 2
@@ -1134,17 +1137,64 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
              with per-second credit pricing. Multi-shot cutaways removed —
              the Seedance prompt is scene-timestamped and produces its own
              multi-shot output in one continuous render. */}
+          {/* Engine — full Seedance vs the low-budget Mini variant */}
+          <div style={{ marginTop: 18 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 8 }}>
+              Engine
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {([
+                { id: 'seedance-2' as const,    label: 'Seedance 2.0',  note: 'best quality · up to 4K' },
+                { id: 'seedance-mini' as const, label: 'Seedance Mini', note: 'low budget · ~½ price · up to 720p' },
+              ]).map(e => {
+                const active = engine === e.id
+                return (
+                  <button
+                    key={e.id}
+                    type="button"
+                    onClick={() => {
+                      setEngine(e.id)
+                      // Mini caps at 720p — snap higher selections down.
+                      if (e.id === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) setResolution('720p')
+                    }}
+                    disabled={isLoading}
+                    style={{
+                      flex: 1, padding: '12px 10px', borderRadius: 10, textAlign: 'center',
+                      border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                      background: active ? 'var(--ink)' : 'var(--surface)',
+                      color: active ? 'var(--on-ink)' : 'var(--ink)',
+                      cursor: isLoading ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.15s',
+                      display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center',
+                    }}
+                  >
+                    <span style={{ fontSize: 14.5, fontWeight: 700 }}>{e.label}</span>
+                    <span style={{ fontSize: 10.5, opacity: active ? 0.75 : 1, color: active ? 'var(--on-ink)' : 'var(--ink-dim)', fontWeight: 500 }}>
+                      {e.note}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
           <div style={{ marginTop: 18 }}>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 8 }}>
               Resolution <span style={{ fontWeight: 400, color: 'var(--ink-mute)' }}>· lower is cheaper</span>
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              {([
-                { id: '480p',  label: '480p',  perSec: 6,  note: 'draft' },
-                { id: '720p',  label: '720p',  perSec: 13, note: 'social' },
-                { id: '1080p', label: '1080p', perSec: 33, note: 'default' },
-                { id: '4k',    label: '4K',    perSec: 72, note: 'premium' },
-              ] as const).map(r => {
+              {(engine === 'seedance-mini'
+                ? [
+                    { id: '480p' as const, label: '480p', perSec: 3, note: 'draft' },
+                    { id: '720p' as const, label: '720p', perSec: 7, note: 'social' },
+                  ]
+                : [
+                    { id: '480p' as const,  label: '480p',  perSec: 6,  note: 'draft' },
+                    { id: '720p' as const,  label: '720p',  perSec: 13, note: 'social' },
+                    { id: '1080p' as const, label: '1080p', perSec: 33, note: 'default' },
+                    { id: '4k' as const,    label: '4K',    perSec: 72, note: 'premium' },
+                  ]
+              ).map(r => {
                 const active = resolution === r.id
                 return (
                   <button

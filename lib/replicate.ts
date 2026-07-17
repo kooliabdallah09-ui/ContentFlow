@@ -97,6 +97,7 @@ export async function submitSeedanceJob(params: {
   startImageUrl?: string
   resolution?: '480p' | '720p' | '1080p' | '4k'
   enableAudio?: boolean       // native voice + ambient + music, default off
+  engine?: 'seedance-2' | 'seedance-mini'   // Mini: ~half price, caps at 720p
 }): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
@@ -122,7 +123,13 @@ export async function submitSeedanceJob(params: {
   }
   if (params.startImageUrl) input.image = params.startImageUrl
 
-  const res = await fetch(`${REPLICATE_BASE}/models/${SEEDANCE_MODEL}/predictions`, {
+  // Mini only outputs up to 720p — clamp defensively.
+  const model = params.engine === 'seedance-mini' ? 'bytedance/seedance-2.0-mini' : SEEDANCE_MODEL
+  if (params.engine === 'seedance-mini' && (input.resolution === '1080p' || input.resolution === '4k')) {
+    input.resolution = '720p'
+  }
+
+  const res = await fetch(`${REPLICATE_BASE}/models/${model}/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
