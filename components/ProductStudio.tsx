@@ -65,11 +65,27 @@ export default function ProductStudio() {
   const [shooting, setShooting] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
+  // Feature an influencer in the shots (401s harmlessly for non-admin).
+  const [influencers, setInfluencers] = useState<Array<{ id: string; name: string; portrait_url: string }>>([])
+  const [shootInfluencerId, setShootInfluencerId] = useState<string | undefined>(undefined)
   const [lightboxZoom, setLightboxZoom] = useState(false)
 
   const CR = { nb2: 5, pro: 10, '4k': 18 } as const
 
-  useEffect(() => { load() }, [])
+  useEffect(() => {
+    load()
+    ;(async () => {
+      try {
+        const token = await getToken()
+        if (!token) return
+        const res = await fetch('/api/influencers', { headers: { Authorization: `Bearer ${token}` } })
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data?.influencers)) setInfluencers(data.influencers)
+        }
+      } catch { /* hidden for non-admin */ }
+    })()
+  }, [])
 
   async function load() {
     setLoading(true)
@@ -139,7 +155,7 @@ export default function ProductStudio() {
       const res = await fetch(`/api/products-studio/${selected.id}/photoshoot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ direction: direction.trim() || undefined, count: shotCount, ratio, quality }),
+        body: JSON.stringify({ direction: direction.trim() || undefined, count: shotCount, ratio, quality, influencerId: shootInfluencerId }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Photoshoot failed')
@@ -225,6 +241,31 @@ export default function ProductStudio() {
 
         {/* Composer */}
         <div style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+          {influencers.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature</span>
+              <button
+                onClick={() => setShootInfluencerId(undefined)}
+                style={{ ...chip(!shootInfluencerId), padding: '6px 12px' }}
+              >
+                Product only
+              </button>
+              {influencers.map(inf => {
+                const active = shootInfluencerId === inf.id
+                return (
+                  <button
+                    key={inf.id}
+                    onClick={() => setShootInfluencerId(active ? undefined : inf.id)}
+                    title={inf.name}
+                    style={{ width: 40, height: 52, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', flexShrink: 0 }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={inf.portrait_url} alt={inf.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             <textarea
               className="textarea"

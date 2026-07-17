@@ -30,7 +30,7 @@ Rules:
 - Every shot in the batch must be a DIFFERENT format (never two of the same idea: if one is a stacked tower, the next is a splash or a flat spread or a hands-pour…).
 - NEVER reuse any concept from the AVOID list — those were already shot.
 - Concepts must physically suit THIS product's category (drinks splash and pour; candy stacks and scatters; skincare smears and drips; apparel drapes and floats).
-- Clean aesthetic: seamless pastel or stone backdrops, controlled studio light or hard sun, negative space, premium but playful. No people's faces (hands are fine), no text overlays, no props that steal focus.
+- Clean aesthetic: seamless pastel or stone backdrops, controlled studio light or hard sun, negative space, premium but playful. No people's faces (hands are fine) UNLESS the brief includes a recurring creator — then they appear candidly using the product as instructed. No text overlays, no props that steal focus.
 - Do not describe the product's own appearance — the image model receives its photos separately.`
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -52,6 +52,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const ratio: '1:1' | '4:5' | '9:16' | '16:9' =
       body?.ratio === '1:1' || body?.ratio === '9:16' || body?.ratio === '16:9' ? body.ratio : '4:5'
     const quality: 'nb2' | 'pro' | '4k' = body?.quality === 'nb2' ? 'nb2' : body?.quality === '4k' ? '4k' : 'pro'
+    const influencerId = typeof body?.influencerId === 'string' && body.influencerId.length > 0 ? body.influencerId : null
     const model: 'pro' | 'nb2' = quality === 'nb2' ? 'nb2' : 'pro'
     const totalCost = CR[quality] * count
 
@@ -62,6 +63,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .eq('user_id', userId)
       .maybeSingle()
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
+
+    // Optional: one of the user's AI influencers features in the shots —
+    // wearing / holding / using the product, candid.
+    let influencer: { name: string; appearance_prompt: string; portrait_url: string; character_sheet_url?: string | null } | null = null
+    let identityRefs: Array<{ base64: string; mimeType: string }> = []
+    if (influencerId) {
+      const { data: inf } = await supabase
+        .from('user_influencers')
+        .select('name, appearance_prompt, portrait_url, character_sheet_url')
+        .eq('id', influencerId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (inf) {
+        influencer = inf
+        const refUrls = [inf.character_sheet_url, inf.portrait_url].filter(
+          (u): u is string => typeof u === 'string' && u.startsWith('http'),
+        )
+        identityRefs = (await Promise.all(refUrls.map(async url => {
+          try {
+            const r = await fetch(url)
+            if (!r.ok) return null
+            return {
+              base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
+              mimeType: r.headers.get('content-type') || 'image/png',
+            }
+          } catch { return null }
+        }))).filter((x): x is { base64: string; mimeType: string } => !!x)
+      }
+    }
 
     const { data: credits } = await supabase
       .from('user_credits')
@@ -89,7 +119,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       system: CONCEPT_SYSTEM,
       messages: [{
         role: 'user',
-        content: `PRODUCT SHEET:\nName: ${product.name}\nCategory: ${product.category ?? 'unknown'}\nDescription: ${product.description ?? ''}\n\nSHOTS NEEDED: ${count}\nAVOID (already shot): ${avoid.length ? avoid.join(' · ') : '(nothing yet)'}\n${direction ? `\nUSER DIRECTION — every concept must build on this while staying distinct from each other: "${direction}"` : ''}`,
+        content: `PRODUCT SHEET:\nName: ${product.name}\nCategory: ${product.category ?? 'unknown'}\nDescription: ${product.description ?? ''}\n\nSHOTS NEEDED: ${count}\nAVOID (already shot): ${avoid.length ? avoid.join(' · ') : '(nothing yet)'}\n${influencer ? `\nA RECURRING CREATOR features in every shot: they are candidly USING the product — wearing it if it's apparel/footwear, holding/pouring/applying otherwise. Mid-action, natural, NOT posing at the camera, doesn't have to be centered. Do not describe their appearance (the image model receives their photos).` : ''}${direction ? `\nUSER DIRECTION — every concept must build on this while staying distinct from each other: "${direction}"` : ''}`,
       }],
     })
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
@@ -123,14 +153,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // 2) Render each concept.
     const results = await Promise.allSettled(shots.map(sh =>
       generateNanoBananaImage(
-        `${sh.prompt}\n\nEditorial product photograph, hyper-real materials and lighting, clean aesthetic, no text overlays, no watermarks, no camera interface, no human faces.`,
+        influencer
+          ? `${influencer.appearance_prompt}\n\nShot: ${sh.prompt}\n\nThe person is candidly mid-action with the product — natural face, no plastic face, no AI-smooth skin, not posing at the camera, doesn't have to be centered. Editorial photograph, hyper-real materials and lighting, clean aesthetic, no text overlays, no watermarks, no camera interface.`
+          : `${sh.prompt}\n\nEditorial product photograph, hyper-real materials and lighting, clean aesthetic, no text overlays, no watermarks, no camera interface, no human faces.`,
         {
-          style: 'professional',
+          style: influencer ? 'realistic' : 'professional',
           ratio,
           model,
           resolution: quality === '4k' ? '4K' : undefined,
-          referenceImages: productRefs,
-          referenceHint: 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape, materials and proportions perfectly. Apply the prompt as the scene, arrangement, and styling around it; never redesign the product.',
+          referenceImages: influencer ? [...identityRefs, ...productRefs] : productRefs,
+          referenceHint: influencer
+            ? `The FIRST reference image(s) define the exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt${(product.category === 'apparel' || product.category === 'footwear') ? ' (they WEAR the product)' : ''}. The LAST image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it.`
+            : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape, materials and proportions perfectly. Apply the prompt as the scene, arrangement, and styling around it; never redesign the product.',
         },
       ),
     ))
