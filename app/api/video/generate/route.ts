@@ -165,7 +165,13 @@ export async function POST(request: NextRequest) {
     // (Kling v3 branch removed — Seedance handles every model now.)
     void model
     let startImageUrl: string | undefined
-    if (refImageBase64 && refImageMimeType) {
+    // Director mode passes an already-hosted storyboard keyframe as the
+    // start frame. Whitelisted to our own storage so this can't point
+    // Seedance at arbitrary URLs.
+    if (typeof body.startImageUrl === 'string'
+        && body.startImageUrl.startsWith(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/`)) {
+      startImageUrl = body.startImageUrl
+    } else if (refImageBase64 && refImageMimeType) {
       const buf = await sharp(Buffer.from(refImageBase64, 'base64'))
         .resize(720, 1280, { fit: 'cover', position: 'center' })
         .png()

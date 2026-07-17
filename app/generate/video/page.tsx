@@ -107,6 +107,12 @@ export default function VideoGeneratorPage() {
   const [model, setModel] = useState<Model>('seedance-2')
   const [prompt, setPrompt] = useState('')
   const [rewriting, setRewriting] = useState(false)
+  // Director mode: one-line intent -> Sonnet-directed Seedance prompt +
+  // a 3-frame Nano Banana storyboard preview before spending video credits.
+  const [intent, setIntent] = useState('')
+  const [directing, setDirecting] = useState(false)
+  const [storyboard, setStoryboard] = useState<string[]>([])
+  const [useKeyframe, setUseKeyframe] = useState(true)
   const [duration, setDuration] = useState(5)
   const [resolution, setResolution] = useState<Resolution>('720p')
   const [withAudio, setWithAudio] = useState(true)
@@ -321,6 +327,7 @@ export default function VideoGeneratorPage() {
           withAudio,
           aspect,
           referenceImages: refImages.map(img => ({ base64: img.base64, mimeType: img.mimeType })),
+          startImageUrl: useKeyframe && storyboard[0] ? storyboard[0] : undefined,
         }),
       })
       const data = await res.json()
@@ -521,6 +528,82 @@ export default function VideoGeneratorPage() {
               )
             })}
           </div>
+        </div>
+
+        {/* Director mode */}
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+            <label style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)' }}>
+              Director mode
+            </label>
+            <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>tell it the idea — AI writes the full shot list + storyboard</span>
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <input
+              type="text"
+              value={intent}
+              onChange={e => setIntent(e.target.value)}
+              disabled={directing || generating}
+              placeholder='e.g. "Skittles bag bursting open in slow motion, candy raining, luxury vibe"'
+              style={{ flex: 1, padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+            />
+            <button
+              type="button"
+              disabled={directing || generating || intent.trim().length < 5}
+              onClick={async () => {
+                setDirecting(true)
+                setStoryboard([])
+                try {
+                  const supabase = getSupabase()
+                  if (!supabase) throw new Error('Not signed in')
+                  const { data: sess } = await supabase.auth.getSession()
+                  const token = sess?.session?.access_token
+                  if (!token) throw new Error('Not signed in')
+                  const res = await fetch('/api/video/direct', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ intent: intent.trim(), durationSeconds: duration, aspect }),
+                  })
+                  const data = await res.json()
+                  if (!res.ok) throw new Error(data.error || 'Direction failed')
+                  setPrompt(String(data.prompt).slice(0, 4000))
+                  setStoryboard(Array.isArray(data.keyframes) ? data.keyframes : [])
+                  showSuccess('Directed', 'Storyboard ready — review it, tweak the prompt if you like, then generate.')
+                } catch (err) {
+                  showError('Direction failed', err instanceof Error ? err.message : 'Try again')
+                } finally {
+                  setDirecting(false)
+                }
+              }}
+              className="btn btn-primary"
+              style={{ padding: '11px 18px', fontSize: 13, borderRadius: 10, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              {directing ? 'Directing…' : 'Direct my video · 10 cr'}
+            </button>
+          </div>
+
+          {storyboard.length > 0 && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                Storyboard preview — opening · midpoint · final
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {storyboard.map((url, i) => (
+                  <a key={url} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 10, overflow: 'hidden', border: `2px solid ${i === 0 && useKeyframe ? 'var(--ink)' : 'var(--border)'}` }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={url} alt={`Keyframe ${i + 1}`} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+                  </a>
+                ))}
+              </div>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 12.5, color: 'var(--ink-dim)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={useKeyframe} onChange={e => setUseKeyframe(e.target.checked)} style={{ accentColor: 'var(--ink)' }} />
+                Use the opening frame as the video&apos;s first frame (image-to-video)
+              </label>
+              <div style={{ fontSize: 12, color: 'var(--ink-mute)', marginTop: 4 }}>
+                The full shot list landed in the prompt box below — edit anything, then hit Generate.
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Prompt */}
