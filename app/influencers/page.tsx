@@ -100,7 +100,7 @@ export default function InfluencersPage() {
   const [sceneImages, setSceneImages] = useState<CompressedImage[]>([])
   const [shotCount, setShotCount] = useState(2)
   const [ratio, setRatio] = useState<'9:16' | '4:5' | '1:1' | '16:9'>('4:5')
-  const [shootModel, setShootModel] = useState<'pro' | 'nb2'>('pro')
+  const [shootModel, setShootModel] = useState<'pro' | 'nb2' | '4k'>('pro')
   const [shooting, setShooting] = useState(false)
   const [bridging, setBridging] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -230,7 +230,7 @@ export default function InfluencersPage() {
           scene: scene.trim(),
           count: shotCount,
           ratio,
-          model: shootModel,
+          quality: shootModel,
           sceneImages: sceneImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
       })
@@ -451,11 +451,12 @@ export default function InfluencersPage() {
                   fontWeight: 600,
                 }}>{n}</button>
               ))}
-              <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{shotCount * (shootModel === 'nb2' ? 4 : 8)} cr</span>
+              <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{shotCount * (shootModel === 'nb2' ? 4 : shootModel === '4k' ? 14 : 8)} cr</span>
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button onClick={() => setShootModel('pro')} title="Best identity fidelity" style={chip(shootModel === 'pro')}>Pro · 8 cr</button>
               <button onClick={() => setShootModel('nb2')} title="Cheaper — not as faithful to the face, can make small mistakes" style={chip(shootModel === 'nb2')}>NB2 · 4 cr · less accurate</button>
+              <button onClick={() => setShootModel('pro')} title="Best identity fidelity" style={chip(shootModel === 'pro')}>Pro · 8 cr</button>
+              <button onClick={() => setShootModel('4k')} title="Nano Banana Pro at 4K output — maximum detail" style={chip(shootModel === '4k')}>4K · 14 cr</button>
             </div>
           </div>
         </div>

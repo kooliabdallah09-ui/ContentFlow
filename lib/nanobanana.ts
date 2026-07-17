@@ -17,12 +17,15 @@ async function callNanoBanana(
   referenceImages?: Array<{ base64: string; mimeType: string }>,
   aspectRatio?: '1:1' | '4:3' | '3:4' | '16:9' | '9:16',
   model: 'pro' | 'nb2' = 'pro',
+  resolution?: '1K' | '2K' | '4K',
 ): Promise<NanoBananaResult> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
   const input: Record<string, unknown> = { prompt, output_format: 'png' }
   if (aspectRatio) input.aspect_ratio = aspectRatio
+  // 4K only exists on NB Pro ($0.24/img raw vs $0.139 at 1K/2K).
+  if (resolution && model === 'pro') input.resolution = resolution
   if (referenceImages?.length) {
     input.image_input = referenceImages.map(r => `data:${r.mimeType};base64,${r.base64}`)
   }
@@ -109,6 +112,8 @@ export async function generateNanoBananaImage(
     // 'pro' (default) = Nano Banana Pro; 'nb2' = Nano Banana 2 — about half
     // the cost, weaker identity fidelity, more prone to small mistakes.
     model?: 'pro' | 'nb2'
+    // NB Pro output resolution — '4K' costs ~1.7x the 1K/2K rate.
+    resolution?: '1K' | '2K' | '4K'
   } = {},
 ): Promise<NanoBananaResult> {
   const styleHint =
@@ -139,7 +144,7 @@ export async function generateNanoBananaImage(
     : (options.referenceImageBase64 && options.referenceImageMimeType
         ? [{ base64: options.referenceImageBase64, mimeType: options.referenceImageMimeType }]
         : undefined)
-  return callNanoBanana(composed, refs, nbRatio, options.model ?? 'pro')
+  return callNanoBanana(composed, refs, nbRatio, options.model ?? 'pro', options.resolution)
 }
 
 // Generate a B-roll action frame showing a SPECIFIC application action mid-motion.

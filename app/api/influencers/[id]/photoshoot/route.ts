@@ -14,6 +14,7 @@ export const maxDuration = 120
 
 export const PHOTOSHOOT_CR_PER_IMAGE = 8       // NB Pro w/ reference ≈ $0.15 → 1.8× markup
 export const PHOTOSHOOT_NB2_CR_PER_IMAGE = 4   // Nano Banana 2 — cheaper, less faithful
+export const PHOTOSHOOT_4K_CR_PER_IMAGE = 14   // NB Pro 4K: $0.24 raw × 1.4 markup ≈ 14 cr
 
 function supa() {
   return createClient(
@@ -48,8 +49,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const count = Math.min(4, Math.max(1, Number(body?.count) || 1))
     const ratio: '9:16' | '16:9' | '1:1' | '4:5' =
       body?.ratio === '9:16' || body?.ratio === '16:9' || body?.ratio === '1:1' ? body.ratio : '4:5'
-    const model: 'pro' | 'nb2' = body?.model === 'nb2' ? 'nb2' : 'pro'
-    const crPerImage = model === 'nb2' ? PHOTOSHOOT_NB2_CR_PER_IMAGE : PHOTOSHOOT_CR_PER_IMAGE
+    // Quality: 'nb2' (budget) · 'pro' (default) · '4k' (NB Pro at 4K output).
+    const quality: 'nb2' | 'pro' | '4k' = body?.quality === 'nb2' || body?.model === 'nb2' ? 'nb2'
+      : body?.quality === '4k' ? '4k' : 'pro'
+    const model: 'pro' | 'nb2' = quality === 'nb2' ? 'nb2' : 'pro'
+    const crPerImage = quality === 'nb2' ? PHOTOSHOOT_NB2_CR_PER_IMAGE
+      : quality === '4k' ? PHOTOSHOOT_4K_CR_PER_IMAGE : PHOTOSHOOT_CR_PER_IMAGE
     if (scene.length < 3) return NextResponse.json({ error: 'Describe the scene' }, { status: 400 })
     // Optional attachments: scene / outfit / prop reference photos the
     // shots should incorporate (e.g. a specific jacket, a product, a
@@ -119,6 +124,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           style: 'realistic',
           ratio,
           model,
+          resolution: quality === '4k' ? '4K' : undefined,
           referenceImages: [...identityRefs, ...sceneRefs],
           referenceHint: sceneRefs.length
             ? 'The FIRST reference image(s) define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. The LAST image(s) show a scene/outfit/object to incorporate faithfully. Apply the prompt as framing around them.'
