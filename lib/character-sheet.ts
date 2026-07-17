@@ -10,15 +10,17 @@ import { SupabaseClient } from '@supabase/supabase-js'
 
 const SHEET_PROMPT = (appearancePrompt: string) => `Character reference turnaround sheet of ONE single person, laid out as a clean 2-row grid on a seamless light-grey studio background with soft even lighting:
 
-TOP ROW (6 panels, full body head-to-toe, standing relaxed, arms at sides): front view, three-quarter front view, left profile, right profile, three-quarter back view, back view.
-BOTTOM ROW (6 panels, head-and-shoulders close-ups at the same angles): front, three-quarter front, left profile, right profile, three-quarter back, back of head.
+TOP ROW (6 panels): FULL BODY from the very top of the head to the FEET — the entire person is visible in each panel: head, torso, waist, hips, legs, and shoes all inside the frame, standing relaxed with arms at sides, camera pulled back far enough that there is visible floor beneath their shoes. Angles: front view, three-quarter front view, left profile, right profile, three-quarter back view, back view.
+BOTTOM ROW (6 panels): head-and-shoulders close-ups at the same angles: front, three-quarter front, left profile, right profile, three-quarter back, back of head.
 
 THE PERSON: ${appearancePrompt}
+They wear the same complete casual outfit in every panel INCLUDING visible pants/skirt and shoes — describe-appropriate bottoms and footwear must be rendered, never cropped out.
 
 CRITICAL RULES:
-- It is the SAME person in every panel — identical face, hair, skin tone, build, and the exact same casual outfit in all 12 panels.
+- TOP ROW IS STRICTLY HEAD-TO-TOE. A panel that cuts off at the waist, hips, or knees is WRONG — the feet and shoes must be fully visible with floor space below them, like a fashion e-commerce model turnaround.
+- It is the SAME person in every panel — identical face, hair, skin tone, build, and the exact same outfit in all 12 panels.
 - Neutral relaxed expression, natural posture, photorealistic — real skin texture, no beauty filter, no illustration or 3D-render look.
-- Panels separated by thin white gutters, equal sizes, nothing cropped.
+- Panels separated by thin white gutters, equal sizes.
 - No text, no labels, no watermarks, no camera interface, no logos.`
 
 export async function generateCharacterSheet(input: {
