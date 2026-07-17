@@ -161,6 +161,29 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [frames, setFrames] = useState<string[] | null>(null)
   const [framesLoading, setFramesLoading] = useState(false)
   const [animating, setAnimating] = useState(false)
+  // Which frame the user clicked — drives the picked highlight + overlay.
+  const [pickedFrameUrl, setPickedFrameUrl] = useState<string | null>(null)
+  // Staged status messages while the animate pipeline runs (~60-90s of
+  // gridify + validation + Sonnet directing + Seedance submission). Without
+  // this the screen looks frozen after the click.
+  const [animateStageIdx, setAnimateStageIdx] = useState(0)
+  const ANIMATE_STAGES = [
+    'Preparing your frame…',
+    'Applying the privacy grid…',
+    'Validating the character stays readable…',
+    'Directing the scenes + writing camera notes…',
+    'Attaching your product reference…',
+    'Submitting to the video engine…',
+    'Almost there — finalizing the render job…',
+  ]
+  useEffect(() => {
+    if (!animating) { setAnimateStageIdx(0); return }
+    const t = setInterval(() => {
+      setAnimateStageIdx(i => Math.min(i + 1, ANIMATE_STAGES.length - 1))
+    }, 12000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [animating])
 
   // Character prompts + saved actors state
   const [characterImagePrompt, setCharacterImagePrompt] = useState<string>('')
@@ -775,21 +798,25 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             We rendered {(frames ?? []).length} options. We&apos;ll animate whichever one you pick — click your favorite to continue.
           </p>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
-            {(frames ?? []).map((url, i) => (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, position: 'relative' }}>
+            {(frames ?? []).map((url, i) => {
+              const picked = pickedFrameUrl === url
+              return (
               <button
                 key={url}
                 type="button"
-                onClick={() => runAnimate(url, editedScript || generatedScript || '')}
+                onClick={() => { setPickedFrameUrl(url); runAnimate(url, editedScript || generatedScript || '') }}
                 disabled={animating}
                 style={{
-                  padding: 0, border: '2px solid var(--border)', borderRadius: 12,
+                  padding: 0, borderRadius: 12,
+                  border: `2px solid ${picked && animating ? 'var(--ink)' : 'var(--border)'}`,
                   background: 'var(--surface)', cursor: animating ? 'wait' : 'pointer',
                   overflow: 'hidden', position: 'relative',
                   transition: 'all 0.15s',
+                  opacity: animating && !picked ? 0.35 : 1,
                 }}
                 onMouseEnter={e => { if (!animating) e.currentTarget.style.borderColor = 'var(--ink)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                onMouseLeave={e => { if (!(picked && animating)) e.currentTarget.style.borderColor = 'var(--border)' }}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt={`Frame ${i + 1}`} style={{ display: 'block', width: '100%', height: 'auto' }} />
@@ -799,9 +826,47 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   background: 'rgba(0,0,0,0.65)', color: '#fff',
                   padding: '3px 6px', borderRadius: 4, letterSpacing: '0.06em',
                 }}>OPTION {i + 1}</div>
+                {picked && animating && (
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'rgba(0,0,0,0.45)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  }}>
+                    <span style={{
+                      width: 34, height: 34, borderRadius: '50%',
+                      border: '3px solid rgba(255,255,255,0.35)', borderTopColor: '#fff',
+                      animation: 'cf-spin 0.8s linear infinite', display: 'block',
+                    }} />
+                    <span style={{ color: '#fff', fontSize: 12.5, fontWeight: 600 }}>Animating this one</span>
+                  </div>
+                )}
               </button>
-            ))}
+              )
+            })}
           </div>
+
+          {animating && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 12,
+              padding: '14px 16px', borderRadius: 12,
+              border: '1px solid var(--border)', background: 'var(--surface-2, var(--surface))',
+            }}>
+              <span style={{
+                width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
+                border: '2.5px solid var(--border)', borderTopColor: 'var(--ink)',
+                animation: 'cf-spin 0.8s linear infinite', display: 'block',
+              }} />
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>
+                  {ANIMATE_STAGES[animateStageIdx]}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--ink-dim)', marginTop: 2 }}>
+                  This takes 1-2 minutes — don&apos;t close the tab. The video lands in your Library when it&apos;s ready.
+                </div>
+              </div>
+            </div>
+          )}
+          <style>{`@keyframes cf-spin { to { transform: rotate(360deg); } }`}</style>
 
           <button
             type="button"
@@ -844,11 +909,6 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             </div>
           )}
 
-          {animating && (
-            <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0 }}>
-              Submitting your pick — this takes about 2 minutes. You&apos;ll see the video in your Library when it&apos;s ready.
-            </p>
-          )}
         </section>
       </div>
     )
