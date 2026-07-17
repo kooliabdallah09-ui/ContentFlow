@@ -1,6 +1,12 @@
 import { Resend } from 'resend'
 
-const resend = new Resend(process.env.RESEND_API_KEY)
+// Lazy singleton — instantiating at module level crashes `next build`'s
+// page-data collection when RESEND_API_KEY isn't present in the build env.
+let _resend: Resend | null = null
+function getResend(): Resend {
+  if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
+  return _resend
+}
 const FROM = 'ContentFlow <hello@contentflow.app>'
 
 // ─── Welcome ─────────────────────────────────────────────────────────────────
@@ -8,7 +14,7 @@ const FROM = 'ContentFlow <hello@contentflow.app>'
 export async function sendWelcomeEmail(email: string, name: string) {
   if (!process.env.RESEND_API_KEY) return
   const first = name.split(' ')[0]
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: email,
     subject: 'Your ContentFlow account is ready',
@@ -77,7 +83,7 @@ export async function sendSubscriptionEmail(email: string, name: string, plan: s
   if (!process.env.RESEND_API_KEY) return
   const first = name?.split(' ')[0] || 'there'
   const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: email,
     subject: `You're on the ${planLabel} plan 🎉`,
@@ -141,7 +147,7 @@ export async function sendSubscriptionEmail(email: string, name: string, plan: s
 export async function sendCreditPackEmail(email: string, name: string, credits: number) {
   if (!process.env.RESEND_API_KEY) return
   const first = name?.split(' ')[0] || 'there'
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: email,
     subject: `${credits.toLocaleString()} credits added to your account`,
@@ -196,7 +202,7 @@ export async function sendCreditsRenewedEmail(email: string, name: string, credi
   if (!process.env.RESEND_API_KEY) return
   const first = name?.split(' ')[0] || 'there'
   const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
-  await resend.emails.send({
+  await getResend().emails.send({
     from: FROM,
     to: email,
     subject: `Your ${credits.toLocaleString()} credits just renewed`,
