@@ -357,12 +357,31 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const hasRVFC = typeof (vid as any).requestVideoFrameCallback === 'function'
 
+        // CRITICAL: rVFC only fires when a NEW frame is decoded. When the
+        // video reaches its natural end (trimEnd == duration), playback
+        // stops, no more frames decode, and the tick callback never runs
+        // again — so the end-check inside it never fires and the export
+        // hangs at 99% forever. Finalize must therefore also be reachable
+        // from vid.onended and a watchdog interval, not just from tick.
+        let finished = false
+        const finalize = () => {
+          if (finished) return
+          finished = true
+          clearInterval(watchdog)
+          vid.pause()
+          try { recorder.stop() } catch { /* already stopped */ }
+          resolve()
+        }
+        vid.onended = finalize
+        const watchdog = setInterval(() => {
+          if (vid.ended || vid.currentTime >= trimEnd - 0.05) finalize()
+        }, 250)
+
         const tick = () => {
+          if (finished) return
           const t = vid.currentTime
           if (t >= trimEnd || vid.ended) {
-            vid.pause()
-            recorder.stop()
-            resolve()
+            finalize()
             return
           }
 
@@ -431,7 +450,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             requestAnimationFrame(tick)
           }
         }
-        vid.onerror = reject
+        vid.onerror = e => { clearInterval(watchdog); reject(e) }
         if (hasRVFC) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (vid as any).requestVideoFrameCallback(tick)
