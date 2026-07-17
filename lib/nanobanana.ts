@@ -114,6 +114,9 @@ export async function generateNanoBananaImage(
     model?: 'pro' | 'nb2'
     // NB Pro output resolution — '4K' costs ~1.7x the 1K/2K rate.
     resolution?: '1K' | '2K' | '4K'
+    // Raw mode: send the prompt verbatim — no style/ratio/reference hint
+    // wrapping. Aspect ratio + resolution still go as API params.
+    raw?: boolean
   } = {},
 ): Promise<NanoBananaResult> {
   const styleHint =
@@ -138,7 +141,7 @@ export async function generateNanoBananaImage(
   const nbRatio: '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | undefined =
     options.ratio === '4:5' ? '3:4' : options.ratio
 
-  const composed = `${prompt}\n\n${styleHint} ${ratioHint}${refHint}`
+  const composed = options.raw ? prompt : `${prompt}\n\n${styleHint} ${ratioHint}${refHint}`
   const refs = options.referenceImages?.length
     ? options.referenceImages
     : (options.referenceImageBase64 && options.referenceImageMimeType

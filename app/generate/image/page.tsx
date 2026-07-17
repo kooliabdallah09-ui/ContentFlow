@@ -14,10 +14,15 @@ import { showError, showSuccess } from '@/lib/notifications'
 // as images render. Hits the existing /api/content/generate/image route.
 
 const STYLES = [
-  { id: 'realistic',    label: 'Product photo' },
-  { id: 'artistic',     label: 'Lifestyle' },
-  { id: 'professional', label: 'Studio' },
-  { id: 'minimalist',   label: 'Flat lay' },
+  { id: 'realistic', label: 'Product photo' },
+  // Raw mode: the prompt goes to Nano Banana verbatim — no style wrapping,
+  // no AI preprocessing. Full manual control.
+  { id: 'raw',       label: 'Direct prompt' },
+]
+
+const IMAGE_MODELS = [
+  { id: 'pro' as const, label: 'NB Pro', note: 'best quality' },
+  { id: 'nb2' as const, label: 'NB2',    note: 'cheaper · less accurate' },
 ]
 
 const RATIOS = [
@@ -29,13 +34,17 @@ const RATIOS = [
 
 const COUNTS = [1, 2, 4]
 
-// 5cr per image. Nano Banana 2 costs $0.075/image raw; at $0.025/cr, 5cr = $0.125
-// sold → $0.05 margin (~40%). Was 3cr but that broke even after Supabase egress.
-const CREDIT_PER_IMAGE = 5
+// NB2 \$0.075 raw → 5cr · Pro 2K \$0.139 → 10cr · Pro 4K \$0.24 → 18cr (1.8×).
+function perImageCr(model: 'pro' | 'nb2', resolution: '2K' | '4K'): number {
+  if (model === 'nb2') return 5
+  return resolution === '4K' ? 18 : 10
+}
 
 export default function ImageGeneratorPage() {
   const [prompt, setPrompt] = useState('')
   const [style, setStyle] = useState(STYLES[0].id)
+  const [imgModel, setImgModel] = useState<'pro' | 'nb2'>('pro')
+  const [imgResolution, setImgResolution] = useState<'2K' | '4K'>('2K')
   const [ratio, setRatio] = useState(RATIOS[1].id) // default 4:5 to match the design
   const [count, setCount] = useState<number>(4)
   const [images, setImages] = useState<string[]>([])
@@ -69,7 +78,7 @@ export default function ImageGeneratorPage() {
     reader.readAsDataURL(file)
   }
 
-  const totalCost = count * CREDIT_PER_IMAGE
+  const totalCost = count * perImageCr(imgModel, imgResolution)
   const canGenerate = prompt.trim().length >= 5 && creditBalance >= totalCost
 
   async function generate() {
@@ -92,6 +101,8 @@ export default function ImageGeneratorPage() {
         body: JSON.stringify({
           prompt: prompt.trim(),
           style,
+          model: imgModel,
+          resolution: imgResolution,
           ratio,
           size,
           quantity: count,
@@ -216,6 +227,53 @@ export default function ImageGeneratorPage() {
               </button>
             )
           })}
+
+          <span style={{ width: 1, alignSelf: 'stretch', background: 'var(--border)', margin: '0 4px' }} />
+
+          {/* Model */}
+          {IMAGE_MODELS.map(m => {
+            const active = imgModel === m.id
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setImgModel(m.id)}
+                disabled={loading}
+                title={m.note}
+                style={{
+                  padding: '9px 16px', borderRadius: 999,
+                  background: active ? 'var(--ink)' : 'var(--surface)',
+                  border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                  color: active ? 'var(--on-ink)' : 'var(--ink-2)',
+                  fontSize: 12.5, fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                }}>
+                {m.label} <span style={{ fontWeight: 400, opacity: 0.7 }}>· {m.note}</span>
+              </button>
+            )
+          })}
+
+          {/* Resolution — NB Pro only */}
+          {imgModel === 'pro' && (['2K', '4K'] as const).map(r => {
+            const active = imgResolution === r
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setImgResolution(r)}
+                disabled={loading}
+                style={{
+                  padding: '9px 14px', borderRadius: 999,
+                  background: active ? 'var(--ink)' : 'var(--surface)',
+                  border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                  color: active ? 'var(--on-ink)' : 'var(--ink-2)',
+                  fontSize: 12.5, fontWeight: 600,
+                  cursor: loading ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
+                }}>
+                {r}{r === '4K' ? ' · 18 cr' : ''}
+              </button>
+            )
+          })}
         </div>
 
         {/* Ratio + count + Generate */}
@@ -286,7 +344,7 @@ export default function ImageGeneratorPage() {
 
         {/* Cost line */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink-mute)', paddingTop: 4, borderTop: '1px solid var(--border-soft)' }}>
-          <span>{totalCost} credits · {count} × {CREDIT_PER_IMAGE} cr</span>
+          <span>{totalCost} credits · {count} × {perImageCr(imgModel, imgResolution)} cr</span>
           <span>Balance: <strong style={{ color: creditBalance >= totalCost ? 'var(--good)' : 'var(--danger)' }}>{creditBalance}</strong></span>
         </div>
       </div>

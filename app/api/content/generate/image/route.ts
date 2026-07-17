@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
     const {
       prompt,
       style = 'realistic',
+      model: modelRaw,
+      resolution: resolutionRaw,
       size = '1024x1024',
       quantity = 1,
       ratio,
@@ -57,6 +59,9 @@ export async function POST(request: NextRequest) {
 
     // Sanity cap quantity to prevent abuse / cost runaway.
     const safeQuantity = Math.max(1, Math.min(4, Number(quantity) || 1))
+    const model: 'pro' | 'nb2' = modelRaw === 'nb2' ? 'nb2' : 'pro'
+    const resolution: '2K' | '4K' = resolutionRaw === '4K' && model === 'pro' ? '4K' : '2K'
+    const rawMode = style === 'raw'
     const safeStyle = (['realistic', 'artistic', 'professional', 'minimalist'] as const).includes(style)
       ? (style as 'realistic' | 'artistic' | 'professional' | 'minimalist')
       : 'realistic'
@@ -85,8 +90,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Calculate credit cost
-    const creditCost = CREDIT_COSTS.image * safeQuantity
+    // Per-image pricing: NB2 5cr · Pro 2K 10cr · Pro 4K 18cr (1.8× markup
+    // on $0.075 / $0.139 / $0.24 raw).
+    const perImage = model === 'nb2' ? CREDIT_COSTS.image : resolution === '4K' ? 18 : 10
+    const creditCost = perImage * safeQuantity
 
     // Check user credits (resilient to missing pack_credits column)
     let userCredits: { balance: number; pack_credits: number } | null = null
@@ -133,6 +140,9 @@ export async function POST(request: NextRequest) {
         generateNanoBananaImage(prompt, {
           style: safeStyle,
           ratio: safeRatio,
+          model,
+          resolution: model === 'pro' ? resolution : undefined,
+          raw: rawMode,
           referenceImageBase64: safeRefBase64,
           referenceImageMimeType: safeRefMime,
         }),
