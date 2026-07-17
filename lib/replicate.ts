@@ -93,7 +93,7 @@ export async function getBackgroundRemovalStatus(predictionId: string): Promise<
 export async function submitSeedanceJob(params: {
   prompt: string
   durationSeconds: number    // Seedance 2.0 supports 3-60 seconds
-  aspectRatio?: '9:16' | '16:9' | '1:1'
+  aspectRatio?: '9:16' | '16:9' | '1:1' | '3:4'
   startImageUrl?: string
   resolution?: '480p' | '720p' | '1080p' | '4k'
   enableAudio?: boolean       // native voice + ambient + music, default off
@@ -181,7 +181,7 @@ export async function getSeedanceStatus(predictionId: string): Promise<{
 export async function submitSora2ViaReplicate(params: {
   prompt: string
   durationSeconds: 4 | 8 | 12
-  aspectRatio?: '9:16' | '16:9' | '1:1'
+  aspectRatio?: '9:16' | '16:9' | '1:1' | '3:4'
   referenceImageUrl?: string
 }): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN

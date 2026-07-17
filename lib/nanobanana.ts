@@ -148,7 +148,7 @@ export async function generateActionFrame(
   actionDescription: string,
   scene: string,
   customInstructions?: string,
-  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  aspectRatio: '9:16' | '1:1' | '16:9' | '3:4' = '9:16',
 ): Promise<NanoBananaResult> {
   const prompt = `Using the attached reference image as the exact product (preserve packaging, label text, colours, shape, and proportions exactly as shown — do not redesign or restyle), generate a hyper-realistic phone-camera photograph for a UGC ad B-roll frame.
 
@@ -190,7 +190,7 @@ export async function generateProductOnlyFrame(
   scene: string,
   kind: 'product' | 'lifestyle',
   customInstructions?: string,
-  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  aspectRatio: '9:16' | '1:1' | '16:9' | '3:4' = '9:16',
 ): Promise<NanoBananaResult> {
   const placementBlock = kind === 'product'
     ? `Hero shot composition — the subject is dominant in frame at a slight angle, on a clean surface (marble / wood / linen / counter top) appropriate for the subject type. No character, no hands, no other objects competing for attention.`
@@ -268,7 +268,7 @@ export async function generateCharacterWithProduct(
   characterPrompt: string,
   scene: string,
   customInstructions?: string,
-  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  aspectRatio: '9:16' | '1:1' | '16:9' | '3:4' = '9:16',
   actorPortraitBase64?: string,
   actorPortraitMimeType?: string,
   // Additional photos of the SAME product (e.g. candy: package + the
@@ -353,7 +353,7 @@ export async function generateCharacterInFrontOfUI(
   uiScreenshotBase64: string,
   uiScreenshotMimeType: string,
   characterPrompt: string,
-  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  aspectRatio: '9:16' | '1:1' | '16:9' | '3:4' = '9:16',
   actorPortraitBase64?: string,
   actorPortraitMimeType?: string,
 ): Promise<NanoBananaResult> {
@@ -404,7 +404,7 @@ export async function ugcifyPortrait(
   portraitMimeType: string,
   scene: string,
   characterPrompt: string,
-  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  aspectRatio: '9:16' | '1:1' | '16:9' | '3:4' = '9:16',
 ): Promise<NanoBananaResult> {
   const prompt = `Using the attached photo as a character reference, generate a hyper-realistic UGC selfie portrait.
 
@@ -440,7 +440,7 @@ export async function renderCutawayFrame(
   productBase64: string,
   productMimeType: string,
   prompt: string,
-  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  aspectRatio: '9:16' | '1:1' | '16:9' | '3:4' = '9:16',
 ): Promise<NanoBananaResult> {
   return callNanoBanana(
     prompt,
@@ -467,7 +467,7 @@ export async function refineProductInFrame(
   productBase64: string,
   productMimeType: string,
   productName: string,
-  aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
+  aspectRatio: '9:16' | '1:1' | '16:9' | '3:4' = '9:16',
 ): Promise<NanoBananaResult> {
   const prompt = `Two images are attached.
 - Image 1 (SCENE): a first-frame photograph of a person holding or displaying a product. Preserve EVERYTHING in this image — the person's face, skin, hair, hands, wardrobe, background, lighting, mood, camera framing, and depth of field — with pixel-level fidelity. Do NOT redesign the person, background, or scene. Do NOT alter their expression or pose.

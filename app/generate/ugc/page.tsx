@@ -160,7 +160,7 @@ export default function UGCGeneratorPage() {
     character?: import('@/components/CharacterBuilder').CharacterProfile
     customInstructions?: string
     language?: string
-    aspect?: 'portrait' | 'square' | 'landscape'
+    aspect?: 'portrait' | 'tall45' | 'square' | 'landscape'
     prewrittenScript?: string
   }) => {
     setLoading(true)
