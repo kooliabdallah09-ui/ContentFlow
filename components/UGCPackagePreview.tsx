@@ -73,6 +73,36 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   // Prediction ids we've already auto-retried for an async E005 flag —
   // prevents double-firing the retry endpoint from overlapping polls.
   const retriedIdsRef = useRef<Set<string>>(new Set())
+  // Prediction ids we've already sent to /api/ugc/preserve (Drive backup).
+  const preservedIdsRef = useRef<Set<string>>(new Set())
+
+  // Replicate deletes render outputs within hours — push the mp4 to the
+  // user's Google Drive the moment it completes so the Library copy is
+  // permanent. Fire-and-forget; warns if Drive isn't connected.
+  const preserveToDrive = async (predictionId: string, videoUrl: string) => {
+    if (preservedIdsRef.current.has(predictionId)) return
+    preservedIdsRef.current.add(predictionId)
+    try {
+      const { getSupabase } = await import('@/lib/auth')
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+      const token = sess?.session?.access_token
+      if (!token) return
+      const res = await fetch('/api/ugc/preserve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ predictionId, videoUrl }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (data.needsDrive) {
+        const { showError } = await import('@/lib/notifications')
+        showError('Video not backed up', 'Connect Google Drive in Settings → Integrations to keep your videos — this file expires within hours. Download it now to be safe.')
+      } else if (res.ok && data.fileId && !data.alreadyPreserved) {
+        const { showSuccess } = await import('@/lib/notifications')
+        showSuccess('Saved to Drive', 'Your video is safely stored in your ContentFlow folder.')
+      }
+    } catch { /* best-effort — the user can still download manually */ }
+  }
   const stitchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const stitchStartedRef = useRef(false)
 
@@ -171,6 +201,10 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
             } catch { /* fall through to failed state */ }
           }
           if (v.status === 'completed' || v.status === 'failed') {
+            if (v.status === 'completed' && v.videoUrl && video?.videoId) {
+              // Back the render up to Drive before Replicate expires it.
+              void preserveToDrive(video.videoId, v.videoUrl)
+            }
             setVideo(prev => prev ? {
               ...prev,
               status: v.status,

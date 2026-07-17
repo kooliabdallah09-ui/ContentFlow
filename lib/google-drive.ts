@@ -113,6 +113,49 @@ export async function listDriveFiles(accessToken: string, folderId: string) {
   return (data.files ?? []) as DriveFile[]
 }
 
+// Multipart-upload a buffer into the ContentFlow folder. Returns the Drive
+// file id + view link.
+export async function uploadBufferToDrive(input: {
+  accessToken: string
+  folderId: string
+  buffer: Uint8Array
+  filename: string
+  mimeType: string
+  appProperties?: Record<string, string>
+}): Promise<{ id: string; webViewLink?: string }> {
+  const boundary = 'CFBoundary' + Date.now()
+  const meta = JSON.stringify({
+    name: input.filename,
+    parents: [input.folderId],
+    appProperties: input.appProperties ?? {},
+  })
+  const enc = new TextEncoder()
+  const metaPart = enc.encode(
+    `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: ${input.mimeType}\r\n\r\n`,
+  )
+  const closing = enc.encode(`\r\n--${boundary}--`)
+  const body = new Uint8Array(metaPart.length + input.buffer.length + closing.length)
+  body.set(metaPart, 0)
+  body.set(input.buffer, metaPart.length)
+  body.set(closing, metaPart.length + input.buffer.length)
+
+  const res = await fetch(
+    'https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,webViewLink,name',
+    {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${input.accessToken}`,
+        'Content-Type': `multipart/related; boundary=${boundary}`,
+      },
+      body,
+    },
+  )
+  if (!res.ok) {
+    throw new Error(`Drive upload failed (${res.status}): ${(await res.text()).slice(0, 300)}`)
+  }
+  return res.json()
+}
+
 export interface DriveFile {
   id: string
   name: string
