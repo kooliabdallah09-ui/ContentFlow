@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
+import ProductStudio from '@/components/ProductStudio'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { readChatPrefill } from '@/lib/chat-prefill'
 import { useCredits } from '@/lib/useCredits'
@@ -41,6 +42,7 @@ function perImageCr(model: 'pro' | 'nb2', resolution: '2K' | '4K'): number {
 }
 
 export default function ImageGeneratorPage() {
+  const [tab, setTab] = useState<'products' | 'quick'>('products')
   const [prompt, setPrompt] = useState('')
   const [style, setStyle] = useState(STYLES[0].id)
   const [imgModel, setImgModel] = useState<'pro' | 'nb2'>('pro')
@@ -140,10 +142,31 @@ export default function ImageGeneratorPage() {
           Image
         </h1>
         <p style={{ fontSize: 15.5, color: 'var(--ink-dim)', margin: '14px 0 0', maxWidth: 520, lineHeight: 1.55 }}>
-          AI product photos and creative imagery. Describe the shot you want.
+          {tab === 'products'
+            ? 'Add your product once from every angle — then shoot it in endless aesthetic styles.'
+            : 'AI product photos and creative imagery. Describe the shot you want.'}
         </p>
       </header>
 
+      {/* Tabs: Product Studio (persistent products) vs one-off quick generation */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        <button onClick={() => setTab('products')} style={{
+          padding: '9px 18px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          border: `1.5px solid ${tab === 'products' ? 'var(--ink)' : 'var(--border)'}`,
+          background: tab === 'products' ? 'var(--ink)' : 'var(--surface)',
+          color: tab === 'products' ? 'var(--on-ink)' : 'var(--ink-2)',
+        }}>My products</button>
+        <button onClick={() => setTab('quick')} style={{
+          padding: '9px 18px', borderRadius: 999, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+          border: `1.5px solid ${tab === 'quick' ? 'var(--ink)' : 'var(--border)'}`,
+          background: tab === 'quick' ? 'var(--ink)' : 'var(--surface)',
+          color: tab === 'quick' ? 'var(--on-ink)' : 'var(--ink-2)',
+        }}>Quick generate</button>
+      </div>
+
+      {tab === 'products' && <ProductStudio />}
+
+      {tab === 'quick' && (<>
       {/* Composer */}
       <div style={{
         background: 'var(--surface)', border: '1px solid var(--border)',
@@ -419,6 +442,7 @@ export default function ImageGeneratorPage() {
           .img-grid { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
+      </>)}
     </main>
   )
 }

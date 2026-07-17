@@ -31,12 +31,16 @@ async function callNanoBanana(
   }
 
   const modelPath = model === 'nb2' ? 'google/nano-banana-2' : NANO_BANANA_MODEL
+  // Async submit + own polling. `Prefer: wait` capped out around ~60s at the
+  // gateway — renders that legitimately took 55-60s (NB Pro with several
+  // reference images) completed on Replicate but the sync response died,
+  // silently dropping images from multi-shot batches.
   const res = await fetch(`${REPLICATE_BASE}/models/${modelPath}/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      Prefer: 'wait', // sync mode — block until completion (typically 5-8s)
+      Prefer: 'respond-async',
     },
     body: JSON.stringify({ input }),
   })
@@ -47,18 +51,16 @@ async function callNanoBanana(
   }
 
   const data = await res.json()
-
-  // Replicate may return either a completed prediction (Prefer: wait succeeded) or a still-
-  // processing one (Prefer: wait timed out). Handle both.
   if (data.status === 'failed' || data.error) {
     throw new Error(`Replicate Nano Banana failed: ${data.error || JSON.stringify(data).slice(0, 300)}`)
   }
 
   let output = data.output
   if (data.status !== 'succeeded') {
-    // Fallback: poll until done if Prefer: wait didn't get there
     const id = data.id
-    for (let i = 0; i < 30; i++) {
+    if (!id) throw new Error('Replicate Nano Banana: no prediction id returned')
+    // Poll up to ~110s — NB Pro at 4K with multiple refs can run 60-90s.
+    for (let i = 0; i < 55; i++) {
       await new Promise(r => setTimeout(r, 2000))
       const poll = await fetch(`${REPLICATE_BASE}/predictions/${id}`, { headers: { Authorization: `Bearer ${apiKey}` } })
       const pollData = await poll.json()
@@ -67,7 +69,7 @@ async function callNanoBanana(
         throw new Error(`Replicate Nano Banana failed during poll: ${JSON.stringify(pollData).slice(0, 300)}`)
       }
     }
-    if (!output) throw new Error('Replicate Nano Banana did not complete within 60s')
+    if (!output) throw new Error('Replicate Nano Banana did not complete within 110s')
   }
 
   // Output is either a single URL string or an array — normalize to the first URL

@@ -345,11 +345,14 @@ export default function InfluencersPage() {
         {/* Gallery — center stage, bigger tiles */}
         <div style={{ flex: 1, marginBottom: 20 }}>
           {photos.length > 0 ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+            /* Masonry via CSS columns — mixed aspect ratios (4:5 next to
+               9:16) each keep their natural height and fill the column
+               width, no letterboxing. */
+            <div style={{ columns: '3 280px', columnGap: 14 }}>
               {photos.map(p => (
-                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
+                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', marginBottom: 14, breakInside: 'avoid', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.image_url} alt={p.scene} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
+                  <img src={p.image_url} alt={p.scene} style={{ width: '100%', display: 'block' }} />
                 </button>
               ))}
             </div>
