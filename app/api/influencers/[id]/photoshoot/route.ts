@@ -12,7 +12,8 @@ import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 export const maxDuration = 120
 
-export const PHOTOSHOOT_CR_PER_IMAGE = 8   // NB Pro w/ reference ≈ $0.15 → 1.8× markup
+export const PHOTOSHOOT_CR_PER_IMAGE = 8       // NB Pro w/ reference ≈ $0.15 → 1.8× markup
+export const PHOTOSHOOT_NB2_CR_PER_IMAGE = 4   // Nano Banana 2 — cheaper, less faithful
 
 function supa() {
   return createClient(
@@ -47,6 +48,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const count = Math.min(4, Math.max(1, Number(body?.count) || 1))
     const ratio: '9:16' | '16:9' | '1:1' | '4:5' =
       body?.ratio === '9:16' || body?.ratio === '16:9' || body?.ratio === '1:1' ? body.ratio : '4:5'
+    const model: 'pro' | 'nb2' = body?.model === 'nb2' ? 'nb2' : 'pro'
+    const crPerImage = model === 'nb2' ? PHOTOSHOOT_NB2_CR_PER_IMAGE : PHOTOSHOOT_CR_PER_IMAGE
     if (scene.length < 3) return NextResponse.json({ error: 'Describe the scene' }, { status: 400 })
     // Optional attachments: scene / outfit / prop reference photos the
     // shots should incorporate (e.g. a specific jacket, a product, a
@@ -68,7 +71,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .maybeSingle()
     if (!influencer) return NextResponse.json({ error: 'Influencer not found' }, { status: 404 })
 
-    const totalCost = PHOTOSHOOT_CR_PER_IMAGE * count
+    const totalCost = crPerImage * count
     const { data: credits } = await supabase
       .from('user_credits')
       .select('balance, pack_credits')
@@ -108,13 +111,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       refDescription += `. The LAST ${sceneRefs.length} attached image${sceneRefs.length > 1 ? 's are' : ' is'} NOT the person — ${sceneRefs.length > 1 ? 'they show' : 'it shows'} a scene, outfit, or object the photo must incorporate faithfully (exact clothing/product/location as pictured)`
     }
     const basePrompt = (variation: string) =>
-      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, and identity precisely. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid photograph: natural light appropriate to the scene, real skin texture with pores and small imperfections, slight handheld softness, believable social-media energy, no beauty filter.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
+      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, and identity precisely. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid photograph: natural light appropriate to the scene, real skin texture with pores and small imperfections, natural face, no plastic face, no AI-smooth skin, slight handheld softness, believable social-media energy, no beauty filter.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
     const results = await Promise.allSettled(
       Array.from({ length: count }, (_, i) =>
         generateNanoBananaImage(basePrompt(SHOT_VARIATIONS[i % SHOT_VARIATIONS.length]), {
           style: 'realistic',
           ratio,
+          model,
           referenceImages: [...identityRefs, ...sceneRefs],
           referenceHint: sceneRefs.length
             ? 'The FIRST reference image(s) define this exact person — same face, hair, skin tone, build. The LAST image(s) show a scene/outfit/object to incorporate faithfully. Apply the prompt as framing around them.'
@@ -144,7 +148,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     // Charge only for the photos that succeeded.
-    const charged = PHOTOSHOOT_CR_PER_IMAGE * photos.length
+    const charged = crPerImage * photos.length
     const { newBalance, newPackCredits } = await deductCredits(
       supabase, userId, charged, credits.balance, credits.pack_credits ?? 0,
     )

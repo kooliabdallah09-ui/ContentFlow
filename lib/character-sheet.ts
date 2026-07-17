@@ -19,7 +19,7 @@ They wear the same complete casual outfit in every panel INCLUDING visible pants
 CRITICAL RULES:
 - TOP ROW IS STRICTLY HEAD-TO-TOE. A panel that cuts off at the waist, hips, or knees is WRONG — the feet and shoes must be fully visible with floor space below them, like a fashion e-commerce model turnaround.
 - It is the SAME person in every panel — identical face, hair, skin tone, build, and the exact same outfit in all 12 panels.
-- Neutral relaxed expression, natural posture, photorealistic — real skin texture, no beauty filter, no illustration or 3D-render look.
+- Neutral relaxed expression, natural posture, photorealistic — real skin texture, natural face, no plastic face, no AI-smooth skin, no beauty filter, no illustration or 3D-render look.
 - Panels separated by thin white gutters, equal sizes.
 - No text, no labels, no watermarks, no camera interface, no logos.`
 
@@ -29,6 +29,7 @@ export async function generateCharacterSheet(input: {
   influencerId: string
   appearancePrompt: string
   portraitUrl?: string          // identity anchor for the sheet itself
+  model?: 'pro' | 'nb2'
 }): Promise<string> {
   let refs: Array<{ base64: string; mimeType: string }> | undefined
   if (input.portraitUrl) {
@@ -46,6 +47,7 @@ export async function generateCharacterSheet(input: {
   const sheet = await generateNanoBananaImage(SHEET_PROMPT(input.appearancePrompt), {
     style: 'realistic',
     ratio: '16:9',
+    model: input.model ?? 'pro',
     referenceImages: refs,
     referenceHint: refs
       ? 'The person in the attached reference photo IS this character — every panel of the sheet must show THIS exact person: same face, hair, skin tone, and features.'

@@ -85,6 +85,9 @@ export default function InfluencersPage() {
   const [traitStyles, setTraitStyles] = useState<string[]>([])
   const [traitHair, setTraitHair] = useState('')
   const [traitEyes, setTraitEyes] = useState('')
+  const [traitHairstyle, setTraitHairstyle] = useState('')
+  const [traitFeatures, setTraitFeatures] = useState<string[]>([])
+  const [createModel, setCreateModel] = useState<'pro' | 'nb2'>('pro')
 
   // Detail
   const [selected, setSelected] = useState<Influencer | null>(null)
@@ -93,6 +96,7 @@ export default function InfluencersPage() {
   const [sceneImages, setSceneImages] = useState<CompressedImage[]>([])
   const [shotCount, setShotCount] = useState(2)
   const [ratio, setRatio] = useState<'9:16' | '4:5' | '1:1' | '16:9'>('4:5')
+  const [shootModel, setShootModel] = useState<'pro' | 'nb2'>('pro')
   const [shooting, setShooting] = useState(false)
   const [bridging, setBridging] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -126,7 +130,7 @@ export default function InfluencersPage() {
   }
 
   async function create() {
-    const hasTraits = !!(traitGender || traitAge || traitStyles.length || traitHair || traitEyes)
+    const hasTraits = !!(traitGender || traitAge || traitStyles.length || traitHair || traitEyes || traitHairstyle || traitFeatures.length)
     if (description.trim().length < 10 && !hasTraits) {
       showError('Nothing to work with', 'Pick some traits or describe your influencer')
       return
@@ -146,6 +150,9 @@ export default function InfluencersPage() {
           styles: traitStyles,
           hairColor: traitHair || undefined,
           eyeColor: traitEyes || undefined,
+          hairstyle: traitHairstyle || undefined,
+          faceFeatures: traitFeatures,
+          model: createModel,
           referenceImages: refImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
         }),
       })
@@ -154,7 +161,7 @@ export default function InfluencersPage() {
       setList(prev => [data.influencer, ...prev])
       setDescription('')
       setRefImages([])
-      setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes('')
+      setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([])
       showSuccess('Influencer created', `${data.influencer.name} is ready.`)
       openDetail(data.influencer)
     } catch (err) {
@@ -214,6 +221,7 @@ export default function InfluencersPage() {
           scene: scene.trim(),
           count: shotCount,
           ratio,
+          model: shootModel,
           sceneImages: sceneImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
       })
@@ -434,7 +442,11 @@ export default function InfluencersPage() {
                   fontWeight: 600,
                 }}>{n}</button>
               ))}
-              <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{shotCount * 8} cr</span>
+              <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{shotCount * (shootModel === 'nb2' ? 4 : 8)} cr</span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button onClick={() => setShootModel('pro')} title="Best identity fidelity" style={chip(shootModel === 'pro')}>Pro · 8 cr</button>
+              <button onClick={() => setShootModel('nb2')} title="Cheaper — not as faithful to the face, can make small mistakes" style={chip(shootModel === 'nb2')}>NB2 · 4 cr · less accurate</button>
             </div>
           </div>
         </div>
@@ -524,6 +536,41 @@ export default function InfluencersPage() {
         </div>
 
         <div>
+          <div style={traitLabel}>Hairstyle</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['Long straight', 'Long wavy', 'Curly', 'Coily', 'Bob', 'Pixie cut', 'Shoulder-length', 'Ponytail', 'Messy bun', 'Braids', 'Slicked back', 'Buzz cut', 'Short textured', 'Man bun'].map(h => (
+              <button key={h} onClick={() => setTraitHairstyle(traitHairstyle === h ? '' : h)} style={chip(traitHairstyle === h)}>{h}</button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={traitLabel}>Face features <span style={{ fontWeight: 400, color: 'var(--ink-mute)', textTransform: 'none', letterSpacing: 0 }}>· pick any</span></div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['Freckles', 'Dimples', 'Beauty mark', 'Rosy cheeks', 'High cheekbones', 'Strong jawline', 'Full lips', 'Glasses', 'Light stubble', 'Full beard', 'Gap teeth', 'Monolid eyes'].map(f => {
+              const on = traitFeatures.includes(f)
+              return (
+                <button key={f} onClick={() => setTraitFeatures(prev => on ? prev.filter(x => x !== f) : (prev.length < 6 ? [...prev, f] : prev))} style={chip(on)}>{f}</button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div style={traitLabel}>Image model</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setCreateModel('pro')} style={{ ...chip(createModel === 'pro'), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 12, padding: '10px 14px' }}>
+              <span style={{ fontWeight: 700 }}>Nano Banana Pro</span>
+              <span style={{ fontSize: 11, opacity: 0.8 }}>best identity fidelity · 20 cr</span>
+            </button>
+            <button onClick={() => setCreateModel('nb2')} style={{ ...chip(createModel === 'nb2'), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 12, padding: '10px 14px' }}>
+              <span style={{ fontWeight: 700 }}>Nano Banana 2</span>
+              <span style={{ fontSize: 11, opacity: 0.8 }}>cheaper · 12 cr · not as sharp, can make mistakes</span>
+            </button>
+          </div>
+        </div>
+
+        <div>
           <div style={traitLabel}>Additional details</div>
           <textarea
             className="textarea"
@@ -583,7 +630,7 @@ export default function InfluencersPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>12 cr — identity sheet + portrait</span>
+          <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{createModel === 'nb2' ? '12' : '20'} cr — identity sheet + portrait + turnaround</span>
           <button onClick={create} disabled={creating} className="btn btn-primary" style={{ padding: '11px 22px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, marginLeft: 'auto' }}>
             {creating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {creating ? 'Casting…' : 'Create influencer'}
           </button>

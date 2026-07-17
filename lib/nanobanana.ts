@@ -16,6 +16,7 @@ async function callNanoBanana(
   prompt: string,
   referenceImages?: Array<{ base64: string; mimeType: string }>,
   aspectRatio?: '1:1' | '4:3' | '3:4' | '16:9' | '9:16',
+  model: 'pro' | 'nb2' = 'pro',
 ): Promise<NanoBananaResult> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
@@ -26,7 +27,8 @@ async function callNanoBanana(
     input.image_input = referenceImages.map(r => `data:${r.mimeType};base64,${r.base64}`)
   }
 
-  const res = await fetch(`${REPLICATE_BASE}/models/${NANO_BANANA_MODEL}/predictions`, {
+  const modelPath = model === 'nb2' ? 'google/nano-banana-2' : NANO_BANANA_MODEL
+  const res = await fetch(`${REPLICATE_BASE}/models/${modelPath}/predictions`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${apiKey}`,
@@ -104,6 +106,9 @@ export async function generateNanoBananaImage(
     referenceImages?: Array<{ base64: string; mimeType: string }>
     // Override the product-preservation ref hint (e.g. identity refs for people).
     referenceHint?: string
+    // 'pro' (default) = Nano Banana Pro; 'nb2' = Nano Banana 2 — about half
+    // the cost, weaker identity fidelity, more prone to small mistakes.
+    model?: 'pro' | 'nb2'
   } = {},
 ): Promise<NanoBananaResult> {
   const styleHint =
@@ -134,7 +139,7 @@ export async function generateNanoBananaImage(
     : (options.referenceImageBase64 && options.referenceImageMimeType
         ? [{ base64: options.referenceImageBase64, mimeType: options.referenceImageMimeType }]
         : undefined)
-  return callNanoBanana(composed, refs, nbRatio)
+  return callNanoBanana(composed, refs, nbRatio, options.model ?? 'pro')
 }
 
 // Generate a B-roll action frame showing a SPECIFIC application action mid-motion.

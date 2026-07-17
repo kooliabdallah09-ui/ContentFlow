@@ -18,7 +18,8 @@ import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 export const maxDuration = 120
 
-export const INFLUENCER_CREATE_CR = 20   // Sonnet + NB Pro portrait + turnaround character sheet
+export const INFLUENCER_CREATE_CR = 20        // Sonnet + NB Pro portrait + turnaround sheet
+export const INFLUENCER_CREATE_NB2_CR = 12    // same flow on Nano Banana 2 (cheaper, less faithful)
 
 function supa() {
   return createClient(
@@ -71,7 +72,7 @@ appearance_prompt rules:
 - Adult in their early-to-mid 20s, attractive and photogenic — but a REAL-person kind of attractive, not a retouched model
 - Describe: gender presentation, ethnicity, hair (color/length/texture), eye color, distinctive features (freckles, dimples, glasses…), build, one signature style element
 - Head-and-shoulders portrait, looking directly at the camera lens, natural expression with warmth
-- Hyper-realistic candid photograph: natural window light, real skin texture with pores and small imperfections, no beauty filter, no studio gloss
+- Hyper-realistic candid photograph: natural window light, real skin texture with pores and small imperfections, no beauty filter, no studio gloss\n- The appearance_prompt MUST include the phrase 'natural face, no plastic face, no AI-smooth skin' — the face has to read as a real human with asymmetries and texture, never doll-like or retouched
 - The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot' — they cause camera-app UI to render into the image
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
@@ -94,8 +95,12 @@ export async function POST(request: NextRequest) {
       styles: Array.isArray(body?.styles) ? body.styles.map(String).slice(0, 5) : [],
       hairColor: typeof body?.hairColor === 'string' ? body.hairColor.slice(0, 30) : '',
       eyeColor: typeof body?.eyeColor === 'string' ? body.eyeColor.slice(0, 30) : '',
+      hairstyle: typeof body?.hairstyle === 'string' ? body.hairstyle.slice(0, 40) : '',
+      faceFeatures: Array.isArray(body?.faceFeatures) ? body.faceFeatures.map(String).slice(0, 6) : [],
     }
-    const hasTraits = !!(traits.gender || traits.ageRange || traits.styles.length || traits.hairColor || traits.eyeColor)
+    const model: 'pro' | 'nb2' = body?.model === 'nb2' ? 'nb2' : 'pro'
+    const createCost = model === 'nb2' ? INFLUENCER_CREATE_NB2_CR : INFLUENCER_CREATE_CR
+    const hasTraits = !!(traits.gender || traits.ageRange || traits.styles.length || traits.hairColor || traits.eyeColor || traits.hairstyle || traits.faceFeatures.length)
     if (description.length < 10 && !hasTraits) {
       return NextResponse.json({ error: 'Pick some traits or describe your influencer' }, { status: 400 })
     }
@@ -116,8 +121,8 @@ export async function POST(request: NextRequest) {
       .select('balance, pack_credits')
       .eq('user_id', auth.userId)
       .maybeSingle()
-    if (!credits || credits.balance < INFLUENCER_CREATE_CR) {
-      return NextResponse.json({ error: `Insufficient credits. Need ${INFLUENCER_CREATE_CR}.` }, { status: 402 })
+    if (!credits || credits.balance < createCost) {
+      return NextResponse.json({ error: `Insufficient credits. Need ${createCost}.` }, { status: 402 })
     }
 
     // 1) Sonnet expands the description into an identity sheet. If the
@@ -139,6 +144,8 @@ export async function POST(request: NextRequest) {
     if (traits.styles.length) traitLines.push(`- Style & aesthetic: ${traits.styles.join(', ')}`)
     if (traits.hairColor) traitLines.push(`- Hair color: ${traits.hairColor}`)
     if (traits.eyeColor) traitLines.push(`- Eye color: ${traits.eyeColor}`)
+    if (traits.hairstyle) traitLines.push(`- Hairstyle: ${traits.hairstyle}`)
+    if (traits.faceFeatures.length) traitLines.push(`- Face features: ${traits.faceFeatures.join(', ')} — all must be visible in the appearance_prompt`)
     const traitsBlock = traitLines.length
       ? `\n\nLOCKED TRAITS — the client explicitly selected these; honor every one exactly in the identity sheet and appearance_prompt:\n${traitLines.join('\n')}`
       : ''
@@ -171,6 +178,7 @@ export async function POST(request: NextRequest) {
     const portrait = await generateNanoBananaImage(sheet.appearance_prompt, {
       style: 'realistic',
       ratio: '4:5',
+      model,
       referenceImages: referenceImages.length ? referenceImages : undefined,
       referenceHint: referenceImages.length
         ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + lighting around them; do NOT invent a different person.'
@@ -212,6 +220,7 @@ export async function POST(request: NextRequest) {
         influencerId: influencer.id,
         appearancePrompt: influencer.appearance_prompt,
         portraitUrl,
+        model,
       })
       influencer.character_sheet_url = sheetUrl
     } catch (sheetErr) {
@@ -220,13 +229,13 @@ export async function POST(request: NextRequest) {
 
     // 5) Charge.
     const { newBalance, newPackCredits } = await deductCredits(
-      supabase, auth.userId, INFLUENCER_CREATE_CR, credits.balance, credits.pack_credits ?? 0,
+      supabase, auth.userId, createCost, credits.balance, credits.pack_credits ?? 0,
     )
     await supabase.from('user_credits')
       .update({ balance: newBalance, pack_credits: newPackCredits })
       .eq('user_id', auth.userId)
 
-    return NextResponse.json({ influencer, creditsCharged: INFLUENCER_CREATE_CR }, { status: 201 })
+    return NextResponse.json({ influencer, creditsCharged: createCost }, { status: 201 })
   } catch (err) {
     console.error('[influencers] create failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
