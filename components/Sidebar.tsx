@@ -90,6 +90,11 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
             <span className="flagship-badge">Beta</span>
           </Link>
         )}
+        <Link href="/generate/products" className={`nav-item ${isActive('/generate/products') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Package />
+          <span style={{ flex: 1 }}>Product Studio</span>
+          <span className="flagship-badge">Beta</span>
+        </Link>
         {analyzerAccess && (
           <Link href="/generate/analyzer" className={`nav-item ${isActive('/generate/analyzer') ? 'active' : ''}`} onClick={handleNavClick}>
             <Icon.Video />

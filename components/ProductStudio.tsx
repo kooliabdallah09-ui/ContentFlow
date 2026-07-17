@@ -59,7 +59,9 @@ export default function ProductStudio() {
   const [direction, setDirection] = useState('')
   const [shotCount, setShotCount] = useState(2)
   const [ratio, setRatio] = useState<'1:1' | '4:5' | '9:16' | '16:9'>('4:5')
-  const [quality, setQuality] = useState<'nb2' | 'pro' | '4k'>('pro')
+  const [shootModel, setShootModel] = useState<'pro' | 'nb2'>('pro')
+  const [shootRes, setShootRes] = useState<'2K' | '4K'>('2K')
+  const quality: 'nb2' | 'pro' | '4k' = shootModel === 'nb2' ? 'nb2' : shootRes === '4K' ? '4k' : 'pro'
   const [shooting, setShooting] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
@@ -248,9 +250,14 @@ export default function ProductStudio() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button onClick={() => setQuality('nb2')} title="Cheaper — less accurate, can make mistakes" style={chip(quality === 'nb2')}>NB2 · 5 cr</button>
-              <button onClick={() => setQuality('pro')} title="Best fidelity" style={chip(quality === 'pro')}>Pro · 10 cr</button>
-              <button onClick={() => setQuality('4k')} title="Nano Banana Pro at 4K output" style={chip(quality === '4k')}>4K · 18 cr</button>
+              <button onClick={() => setShootModel('nb2')} title="Cheaper — less accurate, can make mistakes" style={chip(shootModel === 'nb2')}>NB2 · 5 cr · less accurate</button>
+              <button onClick={() => setShootModel('pro')} title="Best fidelity" style={chip(shootModel === 'pro')}>NB Pro</button>
+              {shootModel === 'pro' && (
+                <>
+                  <button onClick={() => setShootRes('2K')} style={chip(shootRes === '2K')}>2K · 10 cr</button>
+                  <button onClick={() => setShootRes('4K')} style={chip(shootRes === '4K')}>4K · 18 cr</button>
+                </>
+              )}
             </div>
             <span style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginLeft: 'auto' }}>{shotCount * CR[quality]} cr</span>
           </div>
