@@ -8,7 +8,8 @@ import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
 import { showError, showSuccess } from '@/lib/notifications'
-import { Loader2, Trash2, Camera, Clapperboard, Sparkles, ArrowLeft } from 'lucide-react'
+import { Loader2, Trash2, Camera, Clapperboard, Sparkles, ArrowLeft, ImagePlus, X } from 'lucide-react'
+import { compressImageFile, type CompressedImage } from '@/lib/image-compress'
 
 interface Influencer {
   id: string
@@ -55,6 +56,7 @@ export default function InfluencersPage() {
   // Create form
   const [description, setDescription] = useState('')
   const [creating, setCreating] = useState(false)
+  const [refImages, setRefImages] = useState<CompressedImage[]>([])
 
   // Detail
   const [selected, setSelected] = useState<Influencer | null>(null)
@@ -104,12 +106,16 @@ export default function InfluencersPage() {
       const res = await fetch('/api/influencers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ description: description.trim() }),
+        body: JSON.stringify({
+          description: description.trim(),
+          referenceImages: refImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Creation failed')
       setList(prev => [data.influencer, ...prev])
       setDescription('')
+      setRefImages([])
       showSuccess('Influencer created', `${data.influencer.name} is ready.`)
       openDetail(data.influencer)
     } catch (err) {
@@ -306,6 +312,54 @@ export default function InfluencersPage() {
           placeholder="e.g. A laid-back surfer with sun-bleached curly hair and freckles who posts about sustainable skincare. Warm, a little sarcastic, always golden-hour lighting."
           style={{ fontSize: 14, marginBottom: 12 }}
         />
+
+        {/* Reference images — the influencer's look is anchored to these */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          {refImages.map((img, i) => (
+            <div key={i} style={{ position: 'relative', width: 56, height: 56, borderRadius: 10, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={img.preview} alt={`ref ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <button
+                onClick={() => setRefImages(prev => prev.filter((_, j) => j !== i))}
+                style={{ position: 'absolute', top: 2, right: 2, width: 18, height: 18, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+              >
+                <X size={11} />
+              </button>
+            </div>
+          ))}
+          {refImages.length < 3 && (
+            <>
+              <input
+                id="influencerRefInput"
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={async e => {
+                  const files = Array.from(e.target.files ?? []).slice(0, 3 - refImages.length)
+                  e.target.value = ''
+                  for (const f of files) {
+                    try {
+                      const compressed = await compressImageFile(f, 1200, 0.85)
+                      setRefImages(prev => prev.length < 3 ? [...prev, compressed] : prev)
+                    } catch { showError('Image failed', `Could not read ${f.name}`) }
+                  }
+                }}
+              />
+              <button
+                onClick={() => document.getElementById('influencerRefInput')?.click()}
+                style={{ width: 56, height: 56, borderRadius: 10, border: '1.5px dashed var(--border)', background: 'var(--surface-2)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                title="Add reference photos (up to 3) — the influencer's face and look will be based on them"
+              >
+                <ImagePlus size={18} />
+              </button>
+            </>
+          )}
+          <span style={{ fontSize: 11.5, color: 'var(--ink-mute)', maxWidth: 260, lineHeight: 1.4 }}>
+            Optional: up to 3 reference photos — the face + look will be based on them.
+          </span>
+        </div>
+
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>12 cr — identity sheet + portrait</span>
           <button onClick={create} disabled={creating} className="btn btn-primary" style={{ padding: '11px 22px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, marginLeft: 'auto' }}>

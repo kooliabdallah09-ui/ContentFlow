@@ -85,6 +85,16 @@ export async function POST(request: NextRequest) {
     if (description.length < 10) {
       return NextResponse.json({ error: 'Describe your influencer in at least a sentence' }, { status: 400 })
     }
+    // Optional reference images: real photos whose look the influencer
+    // should be based on. Capped at 3 to stay under request-size limits.
+    const referenceImages: Array<{ base64: string; mimeType: string }> = Array.isArray(body?.referenceImages)
+      ? body.referenceImages
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((r: any) => typeof r?.base64 === 'string' && r.base64.length > 100 && typeof r?.mimeType === 'string')
+          .slice(0, 3)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
+      : []
 
     // Credits check
     const { data: credits } = await supabase
@@ -96,13 +106,29 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: `Insufficient credits. Need ${INFLUENCER_CREATE_CR}.` }, { status: 402 })
     }
 
-    // 1) Sonnet expands the description into an identity sheet.
+    // 1) Sonnet expands the description into an identity sheet. If the
+    // client attached reference photos, Sonnet sees them and writes the
+    // appearance_prompt to match the person/look in those photos.
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    const userContent: Anthropic.ContentBlockParam[] = referenceImages.map(r => ({
+      type: 'image' as const,
+      source: {
+        type: 'base64' as const,
+        media_type: r.mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
+        data: r.base64,
+      },
+    }))
+    userContent.push({
+      type: 'text',
+      text: referenceImages.length
+        ? `Client description of the influencer:\n${description}\n\nThe attached photo${referenceImages.length > 1 ? 's show' : ' shows'} the exact look the influencer should be based on — write the appearance_prompt to describe THIS person's face, hair, features, and style faithfully (adult, no age numbers).`
+        : `Client description of the influencer:\n${description}`,
+    })
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 800,
       system: IDENTITY_SYSTEM,
-      messages: [{ role: 'user', content: `Client description of the influencer:\n${description}` }],
+      messages: [{ role: 'user', content: userContent }],
     })
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
       .replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
@@ -114,8 +140,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Identity sheet incomplete, try again' }, { status: 500 })
     }
 
-    // 2) Nano Banana Pro renders the canonical portrait.
-    const portrait = await generateNanoBananaImage(sheet.appearance_prompt, { style: 'realistic', ratio: '4:5' })
+    // 2) Nano Banana Pro renders the canonical portrait — with the client's
+    // reference photos as identity anchors when provided.
+    const portrait = await generateNanoBananaImage(sheet.appearance_prompt, {
+      style: 'realistic',
+      ratio: '4:5',
+      referenceImages: referenceImages.length ? referenceImages : undefined,
+      referenceHint: referenceImages.length
+        ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + lighting around them; do NOT invent a different person.'
+        : undefined,
+    })
 
     // 3) Upload portrait to storage.
     const filename = `influencers/${auth.userId}-${Date.now()}-portrait.png`

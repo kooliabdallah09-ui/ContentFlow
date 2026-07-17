@@ -100,6 +100,10 @@ export async function generateNanoBananaImage(
     ratio?: '1:1' | '4:5' | '9:16' | '16:9'
     referenceImageBase64?: string
     referenceImageMimeType?: string
+    // Multiple references (takes precedence over the single-ref fields).
+    referenceImages?: Array<{ base64: string; mimeType: string }>
+    // Override the product-preservation ref hint (e.g. identity refs for people).
+    referenceHint?: string
   } = {},
 ): Promise<NanoBananaResult> {
   const styleHint =
@@ -114,8 +118,9 @@ export async function generateNanoBananaImage(
     options.ratio === '16:9' ? 'Wide 16:9 framing.' :
                                'Square 1:1 framing.'
 
-  const refHint = options.referenceImageBase64
-    ? '\n\nUse the attached reference image as the EXACT subject — preserve packaging, label text, colours, shape and proportions exactly. Apply the prompt as the scene + styling around the subject; do NOT redesign the subject itself.'
+  const hasRefs = (options.referenceImages?.length ?? 0) > 0 || !!options.referenceImageBase64
+  const refHint = hasRefs
+    ? `\n\n${options.referenceHint ?? 'Use the attached reference image as the EXACT subject — preserve packaging, label text, colours, shape and proportions exactly. Apply the prompt as the scene + styling around the subject; do NOT redesign the subject itself.'}`
     : ''
 
   // Nano Banana 2 accepts 1:1, 4:3, 3:4, 16:9, 9:16. Our UI offers 4:5 too
@@ -124,9 +129,11 @@ export async function generateNanoBananaImage(
     options.ratio === '4:5' ? '3:4' : options.ratio
 
   const composed = `${prompt}\n\n${styleHint} ${ratioHint}${refHint}`
-  const refs = options.referenceImageBase64 && options.referenceImageMimeType
-    ? [{ base64: options.referenceImageBase64, mimeType: options.referenceImageMimeType }]
-    : undefined
+  const refs = options.referenceImages?.length
+    ? options.referenceImages
+    : (options.referenceImageBase64 && options.referenceImageMimeType
+        ? [{ base64: options.referenceImageBase64, mimeType: options.referenceImageMimeType }]
+        : undefined)
   return callNanoBanana(composed, refs, nbRatio)
 }
 
