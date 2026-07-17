@@ -35,6 +35,9 @@ export default function CalendarPage() {
   const [formatPrefs, setFormatPrefs] = useState<Record<string, number>>({ ugc: 2, video: 2, image: 2, social: 3, 'screen-demo': 1 })
   const [plan, setPlan]               = useState<DailySuggestion[] | null>(null)
   const [selectedDay, setSelectedDay] = useState<DailySuggestion | null>(null)
+  // Plans can contain duplicate date strings (buffer days, legacy rows), so
+  // the selected cell is tracked by grid index, not by date comparison.
+  const [selectedIdx, setSelectedIdx] = useState<number | null>(null)
   const [error, setError]             = useState<string | null>(null)
 
   const now = useMemo(() => new Date(), [])
@@ -71,9 +74,15 @@ export default function CalendarPage() {
       if (days.length === 0) {
         setPlan([])
         setSelectedDay(null)
+        setSelectedIdx(null)
       } else {
         setPlan(days)
-        setSelectedDay(findTodayOrFirst(days))
+        {
+          const pick = findTodayOrFirst(days)
+          setSelectedDay(pick)
+          const startWd = days.length ? ((new Date(days[0].date).getDay() + 6) % 7) : 0
+          setSelectedIdx(pick ? startWd + days.indexOf(pick) : null)
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load plan')
@@ -183,7 +192,12 @@ export default function CalendarPage() {
 
       try { sessionStorage.setItem('generatedPlan', JSON.stringify(newPlan)) } catch {}
       setPlan(newPlan)
-      setSelectedDay(findTodayOrFirst(newPlan))
+      {
+        const pick = findTodayOrFirst(newPlan)
+        setSelectedDay(pick)
+        const startWd = newPlan.length ? ((new Date(newPlan[0].date).getDay() + 6) % 7) : 0
+        setSelectedIdx(pick ? startWd + newPlan.indexOf(pick) : null)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Regenerate failed')
     } finally {
@@ -272,7 +286,7 @@ export default function CalendarPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 6 }}>
             {cells.map((cell, i) => {
               if (!cell) return <div key={`empty-${i}`} style={{ aspectRatio: '1', borderRadius: 11, background: 'transparent' }} />
-              const active = selectedDay?.date === cell.date
+              const active = selectedIdx === i
               const dateObj = new Date(cell.date)
               const dayNum = dateObj.getDate()
               const isToday = cell.date === new Date().toISOString().slice(0, 10)
@@ -280,9 +294,9 @@ export default function CalendarPage() {
 
               return (
                 <button
-                  key={cell.date}
+                  key={`${cell.date}-${i}`}
                   type="button"
-                  onClick={() => setSelectedDay(cell)}
+                  onClick={() => { setSelectedDay(cell); setSelectedIdx(i) }}
                   style={{
                     aspectRatio: '1', textAlign: 'left',
                     padding: 10, borderRadius: 11,
