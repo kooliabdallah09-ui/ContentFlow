@@ -21,7 +21,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { description } = await req.json()
+    const { description, durationSeconds } = await req.json()
+    const dur = Number(durationSeconds)
+    const hasDur = isFinite(dur) && dur >= 3 && dur <= 600
+    // Natural VO pace ≈ 2.3 words/sec; leave ~10% breathing room.
+    const wordBudget = hasDur ? Math.max(15, Math.round(dur * 2.3 * 0.9)) : null
     if (!description || typeof description !== 'string' || description.trim().length < 5) {
       return NextResponse.json({ error: 'Description is required' }, { status: 400 })
     }
@@ -32,7 +36,10 @@ export async function POST(req: NextRequest) {
       max_tokens: 400,
       messages: [{
         role: 'user',
-        content: `Write a punchy 20–30 second voiceover script for a screen recording demo ad.
+        content: `Write a punchy voiceover script for a screen recording demo ad.
+${hasDur
+  ? `\nCRITICAL LENGTH: the recording is EXACTLY ${Math.round(dur)} seconds long. At natural speaking pace the script must be ~${wordBudget} words — NEVER more (the voiceover would get cut off mid-sentence), and not far under (dead air). Count your words. Land the CTA right at the end.`
+  : '\nTarget 20–30 seconds spoken (under 200 words).'}
 
 App/product: ${description.trim()}
 
@@ -42,7 +49,6 @@ Rules:
 - Show 2–3 key benefits visible in a typical screen recording
 - End with a clear CTA (try it, sign up, download, etc.)
 - NO stage directions, NO [pause], NO (music), just the spoken words
-- Under 200 words
 
 Return ONLY the script text, nothing else.`,
       }],

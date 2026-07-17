@@ -8,7 +8,7 @@ import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Play, Upload, X } from 'lucide-react'
 
-type Model = 'seedance-2'
+type Model = 'seedance-2' | 'seedance-mini'
 type Resolution = '480p' | '720p' | '1080p' | '4k'
 
 interface ShopifyProduct {
@@ -48,6 +48,21 @@ const MODELS: {
     // interface compatibility; real cost computed with getSeedanceCost().
     credits: { 5: 0, 10: 0, 15: 0, 30: 0, 60: 0 },
   },
+  {
+    id: 'seedance-mini',
+    name: 'Mini',
+    badge: 'Low budget',
+    tagline: 'Seedance 2.0 Mini — same engine at ~½ the price, up to 720p',
+    excels: [
+      'About half the per-second cost',
+      'Same multimodal inputs + native audio',
+      'Great for drafts + high-volume output',
+      'Up to 60 seconds per clip',
+    ],
+    caveat: 'Caps at 720p — quality below full Seedance, fine for social drafts',
+    durations: [5, 10, 15, 30, 60],
+    credits: { 5: 0, 10: 0, 15: 0, 30: 0, 60: 0 },
+  },
 ]
 
 interface VideoState {
@@ -69,14 +84,23 @@ const SEEDANCE_CR_PER_SECOND: Record<Resolution, number> = {
 // Disabling native audio drops the compute meaningfully — we pass 15% of
 // the savings back to the user (nice round discount, still profitable).
 const NO_AUDIO_MULTIPLIER = 0.85
-function getSeedanceCost(duration: number, resolution: Resolution, withAudio: boolean): number {
-  const base = duration * SEEDANCE_CR_PER_SECOND[resolution]
+const SEEDANCE_MINI_CR_PER_SECOND: Record<'480p' | '720p', number> = {
+  '480p': 3,   // $0.04/s
+  '720p': 7,   // $0.09/s
+}
+function perSecondFor(model: Model, resolution: Resolution): number {
+  if (model === 'seedance-mini') {
+    return SEEDANCE_MINI_CR_PER_SECOND[resolution === '480p' ? '480p' : '720p']
+  }
+  return SEEDANCE_CR_PER_SECOND[resolution]
+}
+function getSeedanceCost(duration: number, resolution: Resolution, withAudio: boolean, model: Model = 'seedance-2'): number {
+  const base = duration * perSecondFor(model, resolution)
   return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER))
 }
-function getSeedancePerSecond(resolution: Resolution, withAudio: boolean): number {
-  return withAudio
-    ? SEEDANCE_CR_PER_SECOND[resolution]
-    : Math.ceil(SEEDANCE_CR_PER_SECOND[resolution] * NO_AUDIO_MULTIPLIER)
+function getSeedancePerSecond(resolution: Resolution, withAudio: boolean, model: Model = 'seedance-2'): number {
+  const per = perSecondFor(model, resolution)
+  return withAudio ? per : Math.ceil(per * NO_AUDIO_MULTIPLIER)
 }
 
 export default function VideoGeneratorPage() {
@@ -109,9 +133,7 @@ export default function VideoGeneratorPage() {
   const cfg = MODELS.find(m => m.id === model)!
   // Seedance pricing depends on resolution × duration. Other models keep
   // the flat per-duration table.
-  const cost = model === 'seedance-2'
-    ? getSeedanceCost(duration, resolution, withAudio)
-    : (cfg.credits[duration] ?? 60)
+  const cost = getSeedanceCost(duration, resolution, withAudio, model)
   const canGenerate = prompt.trim().length >= 5 && creditBalance >= cost
 
   // Reset duration when switching models if current duration isn't valid
@@ -335,18 +357,35 @@ export default function VideoGeneratorPage() {
         </p>
       </header>
 
-      {/* Model — Seedance 2.0 is the only path now, so the multi-chip
-          picker has been collapsed. Kept setModel around so any future
-          model add-ons plug straight in without a refactor. */}
-      <div style={{ marginBottom: 24, padding: '14px 18px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div style={{ width: 8, height: 8, borderRadius: 999, background: 'var(--good, #10b981)' }} />
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Seedance 2.0</div>
-          <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{cfg.tagline}</div>
-        </div>
-        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-fade)' }}>
-          Cinematic · native audio
-        </div>
+      {/* Model picker — Seedance 2.0 (default) vs Mini (low budget). */}
+      <div style={{ marginBottom: 24, display: 'flex', gap: 10 }}>
+        {MODELS.map(m => {
+          const active = model === m.id
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => {
+                setModel(m.id)
+                if (m.id === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) setResolution('720p')
+              }}
+              style={{
+                flex: 1, textAlign: 'left', padding: '14px 18px', borderRadius: 14, cursor: 'pointer',
+                border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                background: active ? 'var(--ink)' : 'var(--surface)',
+                color: active ? 'var(--on-ink)' : 'var(--ink)',
+                display: 'flex', flexDirection: 'column', gap: 3,
+                transition: 'all 0.15s',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{m.id === 'seedance-mini' ? 'Seedance Mini' : 'Seedance 2.0'}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 999, background: active ? 'var(--on-ink)' : 'var(--surface-2)', color: active ? 'var(--ink)' : 'var(--ink-dim)' }}>{m.badge}</span>
+              </div>
+              <div style={{ fontSize: 11.5, opacity: 0.8 }}>{m.tagline}</div>
+            </button>
+          )
+        })}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -355,7 +394,7 @@ export default function VideoGeneratorPage() {
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 14 }}>Duration</div>
           <div style={{ display: 'flex', gap: 10 }}>
             {cfg.durations.map(sec => {
-              const cr = model === 'seedance-2' ? getSeedanceCost(sec, resolution, withAudio) : cfg.credits[sec]
+              const cr = getSeedanceCost(sec, resolution, withAudio, model)
               const active = duration === sec
               return (
                 <button
@@ -381,15 +420,15 @@ export default function VideoGeneratorPage() {
           </div>
 
           {/* Resolution — Seedance only */}
-          {model === 'seedance-2' && (
+          {(model === 'seedance-2' || model === 'seedance-mini') && (
             <>
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginTop: 24, marginBottom: 14 }}>
                 Resolution <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-mute)', fontFamily: 'inherit' }}>· lower is cheaper</span>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                {(['480p', '720p', '1080p', '4k'] as Resolution[]).map(r => {
+                {((model === 'seedance-mini' ? ['480p', '720p'] : ['480p', '720p', '1080p', '4k']) as Resolution[]).map(r => {
                   const active = resolution === r
-                  const perSec = getSeedancePerSecond(r, withAudio)
+                  const perSec = getSeedancePerSecond(r, withAudio, model)
                   return (
                     <button
                       key={r}

@@ -20,13 +20,20 @@ const SEEDANCE_CR_PER_SECOND: Record<string, number> = {
   '1080p': 33,   // $0.45/s
   '4k':    72,   // $1.00/s
 }
+// Seedance 2.0 Mini — about half price, caps at 720p.
+const SEEDANCE_MINI_CR_PER_SECOND: Record<string, number> = {
+  '480p': 3,     // $0.04/s
+  '720p': 7,     // $0.09/s
+}
 // Silent renders skip audio synthesis compute — we pass 15% back to the
 // user. Keep this in sync with NO_AUDIO_MULTIPLIER on the client.
 const NO_AUDIO_MULTIPLIER = 0.85
 
 function getCost(model: string, duration: number, resolution?: string, withAudio: boolean = true): number {
-  if (model === 'seedance-2') {
-    const per = SEEDANCE_CR_PER_SECOND[resolution ?? '720p'] ?? SEEDANCE_CR_PER_SECOND['720p']
+  if (model === 'seedance-2' || model === 'seedance-mini') {
+    const table = model === 'seedance-mini' ? SEEDANCE_MINI_CR_PER_SECOND : SEEDANCE_CR_PER_SECOND
+    const res = model === 'seedance-mini' && resolution !== '480p' ? '720p' : (resolution ?? '720p')
+    const per = table[res] ?? table['720p']
     const base = duration * per
     return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER))
   }
@@ -107,16 +114,16 @@ export async function POST(request: NextRequest) {
     const prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 4000).trim() : ''
     if (!prompt) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
 
-    // Seedance is the only supported model now that Kling has been removed.
-    const model: 'seedance-2' = 'seedance-2'
-    void body.model
+    // Seedance 2.0 (default) or Seedance Mini (~half price, 720p cap).
+    const model: 'seedance-2' | 'seedance-mini' = body.model === 'seedance-mini' ? 'seedance-mini' : 'seedance-2'
     const duration = Number(body.duration ?? 5)
-    const resolution: '480p' | '720p' | '1080p' | '4k' =
+    let resolution: '480p' | '720p' | '1080p' | '4k' =
       body.resolution === '480p' || body.resolution === '1080p' || body.resolution === '4k'
         ? body.resolution
         : '720p'
+    if (model === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) resolution = '720p'
     const withAudio: boolean = body.withAudio !== false  // default true
-    if (model === 'seedance-2') {
+    if (model === 'seedance-2' || model === 'seedance-mini') {
       if (!Number.isFinite(duration) || duration < 3 || duration > 60) {
         return NextResponse.json({ error: 'Seedance duration must be between 3 and 60 seconds' }, { status: 400 })
       }
@@ -175,6 +182,7 @@ export async function POST(request: NextRequest) {
       startImageUrl,
       resolution,
       enableAudio: withAudio,
+      engine: model,
     })
     const predictionId = seedanceJob.predictionId
     const provider = 'seedance-2'

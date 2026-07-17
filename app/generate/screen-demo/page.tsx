@@ -37,9 +37,29 @@ type RenderStatus = 'idle' | 'uploading' | 'rendering' | 'done' | 'failed'
 
 export default function ScreenDemoPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null)
+  const [videoDuration, setVideoDuration] = useState<number | null>(null)
   const [description, setDescription] = useState('')
   const [script, setScript] = useState('')
   const [voiceId, setVoiceId] = useState('Rachel')
+  // Pre-generated preview MP3s (one per voice, stored in public storage —
+  // playing one costs nothing).
+  const [playingVoice, setPlayingVoice] = useState<string | null>(null)
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null)
+  function toggleVoicePreview(id: string) {
+    if (playingVoice === id) {
+      previewAudioRef.current?.pause()
+      setPlayingVoice(null)
+      return
+    }
+    previewAudioRef.current?.pause()
+    // Lazily generated once per voice server-side, then cached in storage.
+    const audio = new Audio(`/api/voice-preview?voice=${encodeURIComponent(id)}`)
+    audio.onended = () => setPlayingVoice(null)
+    audio.onerror = () => setPlayingVoice(null)
+    previewAudioRef.current = audio
+    setPlayingVoice(id)
+    audio.play().catch(() => setPlayingVoice(null))
+  }
   const [aspect, setAspect] = useState<'landscape' | 'portrait' | 'square'>('landscape')
   const [status, setStatus] = useState<RenderStatus>('idle')
   const [resultUrl, setResultUrl] = useState<string | null>(null)
@@ -64,6 +84,17 @@ export default function ScreenDemoPage() {
   const canGenerate = !!videoFile && charCount >= 10 && charCount <= MAX_CHARS && creditBalance >= cost && !busy
 
   function handleFile(file: File) {
+    // Read the recording's duration so the script generator can budget
+    // words to fit the actual video length.
+    try {
+      const probe = document.createElement('video')
+      probe.preload = 'metadata'
+      probe.onloadedmetadata = () => {
+        if (isFinite(probe.duration) && probe.duration > 0) setVideoDuration(probe.duration)
+        URL.revokeObjectURL(probe.src)
+      }
+      probe.src = URL.createObjectURL(file)
+    } catch { /* best-effort */ }
     if (!file.type.startsWith('video/')) { showError('Please upload a video file'); return }
     if (file.size > MAX_VIDEO_MB * 1024 * 1024) { showError(`Video must be under ${MAX_VIDEO_MB} MB`); return }
     setVideoFile(file)
@@ -88,7 +119,7 @@ export default function ScreenDemoPage() {
       const res = await fetch('/api/screen-demo/script', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ description: description.trim() }),
+        body: JSON.stringify({ description: description.trim(), durationSeconds: videoDuration ?? undefined }),
       })
       const data = await res.json()
       if (!res.ok) { showError(data.error || 'Script generation failed'); return }
@@ -334,8 +365,26 @@ export default function ScreenDemoPage() {
                     color: active ? 'var(--on-ink)' : 'var(--ink)',
                     cursor: busy ? 'not-allowed' : 'pointer',
                     transition: 'all 0.12s',
+                    position: 'relative',
                   }}>
-                  <div style={{ fontSize: 13, fontWeight: 700 }}>{v.label}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700 }}>{v.label}</div>
+                    <span
+                      role="button"
+                      title={playingVoice === v.id ? 'Stop preview' : 'Play a sample'}
+                      onClick={e => { e.stopPropagation(); toggleVoicePreview(v.id) }}
+                      style={{
+                        width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        border: `1px solid ${active ? 'var(--on-ink)' : 'var(--border)'}`,
+                        background: playingVoice === v.id ? (active ? 'var(--on-ink)' : 'var(--ink)') : 'transparent',
+                        color: playingVoice === v.id ? (active ? 'var(--ink)' : 'var(--on-ink)') : 'inherit',
+                        fontSize: 10, lineHeight: 1, cursor: 'pointer',
+                      }}
+                    >
+                      {playingVoice === v.id ? '■' : '▶'}
+                    </span>
+                  </div>
                   <div style={{ fontSize: 11, opacity: 0.65, marginTop: 2 }}>{v.sub}</div>
                 </button>
               )
