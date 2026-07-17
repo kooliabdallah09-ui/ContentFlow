@@ -436,8 +436,60 @@ export default function ProductStudio() {
               </div>
             </button>
           ))}
+          {/* Ghost tile keeps the grid feeling alive with few products */}
+          <button onClick={() => setShowCreate(true)} style={{ border: '1.5px dashed var(--border)', borderRadius: 14, background: 'transparent', cursor: 'pointer', minHeight: 230, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
+            <ImagePlus size={22} />
+            <span style={{ fontSize: 12.5, fontWeight: 600 }}>Add another product</span>
+          </button>
         </div>
       )}
+
+      {/* How it works */}
+      <div style={{ marginTop: 36 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>How it works</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12 }}>
+          {[
+            ['1', 'Upload every angle', 'Front, back, side, contents — the AI reads the packaging and builds a product sheet it can render faithfully.'],
+            ['2', 'Hit Shoot', 'The AI art-directs each shot: stacked heroes, mid-air splashes, texture spreads… it never repeats a format.'],
+            ['3', 'Direct it (optional)', 'Type a vibe — "pastel pink set", "splashing into iced coffee" — or feature one of your influencers using it.'],
+          ].map(([n, title, desc]) => (
+            <div key={n} style={{ padding: '16px 18px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+              <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--ink)', color: 'var(--on-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>{n}</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{title}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.55 }}>{desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Shot inspiration — clicking one opens your product with the direction prefilled */}
+      <div style={{ marginTop: 28 }}>
+        <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Shot inspiration</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
+          {[
+            ['🗼', 'Stacked hero tower', 'products piled into a bold sculptural tower, hard light'],
+            ['💦', 'Mid-air splash', 'product frozen mid-splash, droplets suspended'],
+            ['🫳', 'Hands in frame', 'anonymous hands pouring, holding, unwrapping'],
+            ['🪨', 'Texture spread', 'contents scattered across stone or travertine'],
+            ['🌅', 'Hard-sun shadows', 'harsh directional sunlight, long graphic shadows'],
+            ['🎨', 'Monochrome set', 'backdrop and props matched to the packaging colour'],
+          ].map(([emoji, title, dir]) => (
+            <button
+              key={title}
+              onClick={() => {
+                if (!list.length) { setShowCreate(true); return }
+                openDetail(list[0])
+                setDirection(String(dir))
+              }}
+              style={{ textAlign: 'left', padding: '14px 16px', borderRadius: 13, border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
+            >
+              <span style={{ fontSize: 20 }}>{emoji}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{title}</span>
+              <span style={{ fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.45 }}>{dir}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
