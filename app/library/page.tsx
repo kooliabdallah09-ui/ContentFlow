@@ -19,6 +19,20 @@ interface LibraryItem {
   drive_view_link?: string
 }
 
+// Turn raw filenames into human titles: 'contentflow-edit-2026-07-17.webm'
+// -> 'Editor export', 'ugc-2026-07-17-6wnt086k.mp4' -> 'UGC video'.
+function prettifyName(raw?: string): string | null {
+  if (!raw) return null
+  const base = raw.replace(/\.[a-z0-9]{2,5}$/i, '')
+  if (/^contentflow-edit/i.test(base)) return 'Editor export'
+  if (/^ugc-/i.test(base)) return 'UGC video'
+  if (/^screen-demo/i.test(base)) return 'Screen demo'
+  if (/^voiceover/i.test(base)) return 'Voiceover'
+  // Strip trailing dates + hash junk from anything else.
+  const cleaned = base.replace(/[-_]\d{4}-\d{2}-\d{2}.*$/, '').replace(/[-_]+/g, ' ').trim()
+  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : null
+}
+
 export default function LibraryPage() {
   const [items, setItems] = useState<LibraryItem[]>([])
   const [loading, setLoading] = useState(true)
@@ -274,8 +288,14 @@ export default function LibraryPage() {
                   />
                 ) : item.content_type === 'video' ? (
                   <video
-                    src={item.storage_url}
+                    src={`${item.storage_url}${item.storage_url.includes('#') ? '' : '#t=0.1'}`}
+                    preload="metadata"
+                    muted
+                    loop
+                    playsInline
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onMouseEnter={e => { e.currentTarget.play().catch(() => {}) }}
+                    onMouseLeave={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0.1 }}
                   />
                 ) : item.content_type === 'voice' ? (
                   <div className="lib-thumb-label">Audio</div>
@@ -359,9 +379,11 @@ export default function LibraryPage() {
                   <span className="tag" style={{ padding: '4px 8px', fontSize: '11px' }}>
                     {getTypeLabel(item.content_type)}
                   </span>
-                  <span style={{ fontSize: '12px', color: 'var(--accent)' }}>
-                    {item.credit_cost} credits
-                  </span>
+                  {item.credit_cost > 0 && (
+                    <span style={{ fontSize: '12px', color: 'var(--accent)' }}>
+                      {item.credit_cost} cr
+                    </span>
+                  )}
                 </div>
 
                 <p className="lib-title">
@@ -369,7 +391,7 @@ export default function LibraryPage() {
                     item.metadata?.text ||
                     item.metadata?.script ||
                     item.metadata?.productName ||
-                    item.name ||
+                    prettifyName(item.name) ||
                     'Generated content'}
                 </p>
 
