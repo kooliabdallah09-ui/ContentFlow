@@ -46,7 +46,8 @@ const CAROUSEL_TONES = [
 
 const SLIDE_COUNTS = [3, 5, 7, 10]
 const CAPTION_COST = 5
-const CAROUSEL_CREDIT_PER_SLIDE = 5
+const CAROUSEL_CREDIT_PER_SLIDE = 5      // Nano Banana Pro
+const CAROUSEL_CREDIT_PER_SLIDE_NB2 = 3  // Nano Banana 2
 
 type ContentType = 'caption' | 'carousel'
 
@@ -154,6 +155,7 @@ export default function SocialPage() {
   // the fetch 401s for everyone else and the picker simply doesn't render).
   const [influencers, setInfluencers] = useState<Array<{ id: string; name: string; portrait_url: string }>>([])
   const [carInfluencerId, setCarInfluencerId] = useState<string | undefined>(undefined)
+  const [carModel, setCarModel] = useState<'pro' | 'nb2'>('pro')
   const [reference, setReference]   = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [carLoading, setCarLoading] = useState(false)
   const [slides, setSlides]         = useState<CarouselSlide[]>([])
@@ -163,7 +165,7 @@ export default function SocialPage() {
   const IMAGE_COST  = 3
   const includeImage = postType === 'image'
   const capCost     = CAPTION_COST + (includeImage ? IMAGE_COST : 0)
-  const carCost     = slideCount * CAROUSEL_CREDIT_PER_SLIDE
+  const carCost     = slideCount * (carModel === 'nb2' ? CAROUSEL_CREDIT_PER_SLIDE_NB2 : CAROUSEL_CREDIT_PER_SLIDE)
   const isSquare    = false // Only Instagram now (4:5)
 
   const canCaption  = capTopic.trim().length >= 3 && selPlatforms.length > 0 && balance >= capCost && !capLoading
@@ -302,6 +304,7 @@ export default function SocialPage() {
           tone: carTone,
           illustrationDesc: illustrationDesc.trim() || null,
           influencerId: carInfluencerId ?? null,
+          model: carModel,
           referenceImageBase64: reference?.base64 ?? null,
           referenceImageMimeType: reference?.mimeType ?? null,
         }),
@@ -749,6 +752,38 @@ export default function SocialPage() {
                     <button key={t.id} type="button" onClick={() => setCarTone(t.id)} disabled={carLoading}
                       style={{ padding: '8px 16px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {t.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Image model */}
+            <div>
+              <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                Image model
+              </label>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {([
+                  ['pro', 'Nano Banana Pro', `best quality · ${CAROUSEL_CREDIT_PER_SLIDE} cr/slide`],
+                  ['nb2', 'Nano Banana 2', `cheaper · ${CAROUSEL_CREDIT_PER_SLIDE_NB2} cr/slide · not as accurate, can make mistakes`],
+                ] as const).map(([id, label, note]) => {
+                  const active = carModel === id
+                  return (
+                    <button
+                      key={id}
+                      onClick={() => setCarModel(id)}
+                      disabled={carLoading}
+                      style={{
+                        flex: 1, textAlign: 'left', padding: '10px 14px', borderRadius: 11, cursor: 'pointer',
+                        border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                        background: active ? 'var(--ink)' : 'var(--surface)',
+                        color: active ? 'var(--on-ink)' : 'var(--ink)',
+                        display: 'flex', flexDirection: 'column', gap: 2,
+                      }}
+                    >
+                      <span style={{ fontSize: 13.5, fontWeight: 700 }}>{label}</span>
+                      <span style={{ fontSize: 11, opacity: 0.8 }}>{note}</span>
                     </button>
                   )
                 })}

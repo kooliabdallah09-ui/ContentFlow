@@ -7,7 +7,8 @@ import { loadBrandContext, formatBrandPrompt } from '@/lib/brand-context'
 
 export const maxDuration = 300
 
-const CREDIT_PER_SLIDE = 5
+const CREDIT_PER_SLIDE = 5        // Nano Banana Pro
+const CREDIT_PER_SLIDE_NB2 = 3    // Nano Banana 2 — cheaper, less accurate
 
 interface SlideSpec {
   headline: string
@@ -47,14 +48,16 @@ export async function POST(request: NextRequest) {
     referenceImageBase64,
     referenceImageMimeType,
     influencerId,
+    model: modelRaw,
   } = await request.json()
+  const model: 'pro' | 'nb2' = modelRaw === 'nb2' ? 'nb2' : 'pro'
 
   if (!topic?.trim()) {
     return NextResponse.json({ error: 'Topic is required' }, { status: 400 })
   }
 
   const safeSlideCount = Math.max(3, Math.min(10, Number(slideCount) || 5))
-  const totalCost = safeSlideCount * CREDIT_PER_SLIDE
+  const totalCost = safeSlideCount * (model === 'nb2' ? CREDIT_PER_SLIDE_NB2 : CREDIT_PER_SLIDE)
 
   let balance = 0
   let packCredits = 0
@@ -194,6 +197,7 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
         ? [{ base64: referenceImageBase64 as string, mimeType: referenceImageMimeType as string }]
         : []
       return generateNanoBananaImage(finalPrompt, {
+        model,
         style: influencer ? 'realistic' : 'professional',
         ratio: platform === 'tiktok' ? '9:16' : platform === 'linkedin' ? '1:1' : '4:5',
         referenceImages: influencerRefs.length ? [...influencerRefs, ...extraRefs] : undefined,
