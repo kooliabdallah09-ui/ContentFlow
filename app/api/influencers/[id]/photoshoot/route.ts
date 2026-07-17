@@ -71,8 +71,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const portraitB64 = Buffer.from(await portraitRes.arrayBuffer()).toString('base64')
     const portraitMime = portraitRes.headers.get('content-type') || 'image/png'
 
+    // Note: never say 'phone-camera photo' or 'selfie' — that phrasing primes
+    // Nano Banana to render an iPhone camera UI overlay (shutter button,
+    // controls) on top of the image. Describe the photographic QUALITIES
+    // instead, and explicitly forbid interface elements.
     const basePrompt = (variation: string) =>
-      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\nThe person in the attached reference image IS this exact character — preserve their face, hair, and identity precisely. Hyper-realistic phone-camera photo, natural light appropriate to the scene, real skin texture, no beauty filter, believable candid social-media energy.`
+      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\nThe person in the attached reference image IS this exact character — preserve their face, hair, and identity precisely. Hyper-realistic candid photograph: natural light appropriate to the scene, real skin texture with pores and small imperfections, slight handheld softness, believable social-media energy, no beauty filter.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
     const results = await Promise.allSettled(
       Array.from({ length: count }, (_, i) =>

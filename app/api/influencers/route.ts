@@ -70,7 +70,9 @@ appearance_prompt rules:
 - Adult in their early-to-mid 20s, attractive and photogenic — but a REAL-person kind of attractive, not a retouched model
 - Describe: gender presentation, ethnicity, hair (color/length/texture), eye color, distinctive features (freckles, dimples, glasses…), build, one signature style element
 - Head-and-shoulders portrait, looking directly at the camera lens, natural expression with warmth
-- Hyper-realistic phone-camera photo: natural window light, real skin texture with pores and small imperfections, no beauty filter, no studio gloss
+- Hyper-realistic candid photograph: natural window light, real skin texture with pores and small imperfections, no beauty filter, no studio gloss
+- The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
+- NEVER use the words 'phone camera', 'selfie', or 'screenshot' — they cause camera-app UI to render into the image
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
 - Honor every physical trait the client explicitly asked for`
 
