@@ -1058,7 +1058,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               const dCfg = DURATION_CONFIGS[sec]
               const active = duration === sec
               const cost = ugcPackageCost(sec, resolution)
-              const usd = creditsToUSD(cost)
+              void creditsToUSD
               const locked = !dCfg.available
               const chained = dCfg.klingClips >= 2
               return (
@@ -1080,7 +1080,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     display: 'flex', flexDirection: 'column', gap: 2,
                   }}>
                   <span style={{ fontSize: 14.5, fontWeight: 600 }}>{sec}s</span>
-                  <span style={{ fontSize: 10.5, opacity: 0.75, fontFamily: 'var(--font-mono)' }}>{cost} cr · ${usd.toFixed(2)}</span>
+                  <span style={{ fontSize: 10.5, opacity: 0.75, fontFamily: 'var(--font-mono)' }}>{cost} cr</span>
                 </button>
               )
             })}

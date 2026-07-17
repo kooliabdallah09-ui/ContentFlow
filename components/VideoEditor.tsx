@@ -264,8 +264,30 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       if (spec.videoUrl.startsWith('blob:')) {
         vid.src = spec.videoUrl
       } else {
-        const r = await fetch(spec.videoUrl)
-        vid.src = URL.createObjectURL(await r.blob())
+        // Direct fetch first; hosts like replicate.delivery don't send CORS
+        // headers for fetch (the <video> preview works, fetch doesn't), so
+        // fall back to our same-origin proxy.
+        let blob: Blob | null = null
+        try {
+          const r = await fetch(spec.videoUrl)
+          if (r.ok) blob = await r.blob()
+        } catch { /* CORS/network — try proxy */ }
+        if (!blob) {
+          const { getSupabase } = await import('@/lib/auth')
+          const sb = getSupabase()
+          const { data: sess } = sb ? await sb.auth.getSession() : { data: { session: null } }
+          const token = sess?.session?.access_token
+          if (!token) throw new Error('Not signed in')
+          const pr = await fetch(`/api/proxy-video?url=${encodeURIComponent(spec.videoUrl)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          if (!pr.ok) {
+            const err = await pr.json().catch(() => ({}))
+            throw new Error(err.error || `Could not download the source video (${pr.status})`)
+          }
+          blob = await pr.blob()
+        }
+        vid.src = URL.createObjectURL(blob)
       }
       await new Promise<void>((res, rej) => { vid.onloadedmetadata = () => res(); vid.onerror = rej; vid.load() })
 
