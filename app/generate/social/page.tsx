@@ -155,6 +155,10 @@ export default function SocialPage() {
   // the fetch 401s for everyone else and the picker simply doesn't render).
   const [influencers, setInfluencers] = useState<Array<{ id: string; name: string; portrait_url: string }>>([])
   const [carInfluencerId, setCarInfluencerId] = useState<string | undefined>(undefined)
+  const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; photo_urls: string[] }>>([])
+  const [carProductId, setCarProductId] = useState<string | undefined>(undefined)
+  const [postInfluencerId, setPostInfluencerId] = useState<string | undefined>(undefined)
+  const [postProductId, setPostProductId] = useState<string | undefined>(undefined)
   const [carModel, setCarModel] = useState<'pro' | 'nb2'>('pro')
   const [reference, setReference]   = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [carLoading, setCarLoading] = useState(false)
@@ -180,6 +184,11 @@ export default function SocialPage() {
         if (res.ok) {
           const data = await res.json()
           if (Array.isArray(data?.influencers)) setInfluencers(data.influencers)
+        }
+        const pRes = await fetch('/api/products-studio', { headers: { Authorization: `Bearer ${token}` } })
+        if (pRes.ok) {
+          const pData = await pRes.json()
+          if (Array.isArray(pData?.products)) setStudioProducts(pData.products)
         }
       } catch { /* non-admin or offline — hide picker */ }
     })()
@@ -243,6 +252,8 @@ export default function SocialPage() {
               style: 'realistic',
               ratio: '4:5',
               quantity: 1,
+              influencerId: postInfluencerId ?? undefined,
+              studioProductId: postProductId ?? undefined,
             }),
           })
           const imgData = await imgRes.json()
@@ -304,6 +315,7 @@ export default function SocialPage() {
           tone: carTone,
           illustrationDesc: illustrationDesc.trim() || null,
           influencerId: carInfluencerId ?? null,
+          studioProductId: carProductId ?? null,
           model: carModel,
           referenceImageBase64: reference?.base64 ?? null,
           referenceImageMimeType: reference?.mimeType ?? null,
@@ -568,6 +580,40 @@ export default function SocialPage() {
             {/* Image description (only when Text + image selected) */}
             {includeImage && (
               <div>
+              {(influencers.length > 0 || studioProducts.length > 0) && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 14 }}>
+                  {studioProducts.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.05em', width: 92 }}>Product</span>
+                      <button onClick={() => setPostProductId(undefined)} disabled={capLoading} style={{ padding: '6px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${!postProductId ? 'var(--ink)' : 'var(--border)'}`, background: !postProductId ? 'var(--ink)' : 'var(--surface)', color: !postProductId ? 'var(--on-ink)' : 'var(--ink-2)' }}>None</button>
+                      {studioProducts.map(sp => {
+                        const active = postProductId === sp.id
+                        return (
+                          <button key={sp.id} onClick={() => setPostProductId(active ? undefined : sp.id)} disabled={capLoading} title={sp.name} style={{ width: 40, height: 40, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                  {influencers.length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.05em', width: 92 }}>Influencer</span>
+                      <button onClick={() => setPostInfluencerId(undefined)} disabled={capLoading} style={{ padding: '6px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${!postInfluencerId ? 'var(--ink)' : 'var(--border)'}`, background: !postInfluencerId ? 'var(--ink)' : 'var(--surface)', color: !postInfluencerId ? 'var(--on-ink)' : 'var(--ink-2)' }}>None</button>
+                      {influencers.map(inf => {
+                        const active = postInfluencerId === inf.id
+                        return (
+                          <button key={inf.id} onClick={() => setPostInfluencerId(active ? undefined : inf.id)} disabled={capLoading} title={inf.name} style={{ width: 40, height: 52, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={inf.portrait_url} alt={inf.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
                   Image style / mood <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-faint)' }}>(optional)</span>
                 </label>
@@ -789,6 +835,43 @@ export default function SocialPage() {
                 })}
               </div>
             </div>
+
+            {/* Feature a Product Studio product on the slides */}
+            {studioProducts.length > 0 && (
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                  Feature a product <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-faint)' }}>(optional — appears on every slide)</span>
+                </label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setCarProductId(undefined)}
+                    disabled={carLoading}
+                    style={{ width: 62, height: 62, borderRadius: 10, fontSize: 10.5, fontWeight: 600, lineHeight: 1.3, cursor: 'pointer', padding: 4,
+                      border: `1.5px solid ${!carProductId ? 'var(--ink)' : 'var(--border)'}`,
+                      background: !carProductId ? 'var(--ink)' : 'var(--surface)',
+                      color: !carProductId ? 'var(--on-ink)' : 'var(--ink-2)' }}
+                  >
+                    No product
+                  </button>
+                  {studioProducts.map(sp => {
+                    const active = carProductId === sp.id
+                    return (
+                      <button
+                        key={sp.id}
+                        onClick={() => setCarProductId(active ? undefined : sp.id)}
+                        disabled={carLoading}
+                        title={sp.name}
+                        style={{ width: 62, height: 62, borderRadius: 10, overflow: 'hidden', padding: 0, cursor: 'pointer',
+                          border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Feature an influencer on the slides */}
             {influencers.length > 0 && (

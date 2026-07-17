@@ -43,6 +43,8 @@ export async function POST(request: NextRequest) {
       style = 'realistic',
       model: modelRaw,
       resolution: resolutionRaw,
+      influencerId,
+      studioProductId,
       size = '1024x1024',
       quantity = 1,
       ratio,
@@ -131,20 +133,70 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Optional feature refs: an AI influencer (identity) and/or a Product
+    // Studio product (exact packaging).
+    const featureRefs: Array<{ base64: string; mimeType: string }> = []
+    let identityCount = 0
+    let featureHint = ''
+    let promptPrefix = ''
+    const fetchRef = async (url: string) => {
+      try {
+        const r = await fetch(url)
+        if (!r.ok) return null
+        return { base64: Buffer.from(await r.arrayBuffer()).toString('base64'), mimeType: r.headers.get('content-type') || 'image/png' }
+      } catch { return null }
+    }
+    if (typeof influencerId === 'string' && influencerId.length > 0) {
+      const { data: inf } = await supabase
+        .from('user_influencers')
+        .select('appearance_prompt, portrait_url, character_sheet_url')
+        .eq('id', influencerId).eq('user_id', userId).maybeSingle()
+      if (inf) {
+        for (const u of [inf.character_sheet_url, inf.portrait_url]) {
+          if (typeof u === 'string' && u.startsWith('http')) {
+            const ref = await fetchRef(u)
+            if (ref) { featureRefs.push(ref); identityCount++ }
+          }
+        }
+        promptPrefix += `${inf.appearance_prompt}\n\nThe person appears candidly in the visual — mid-action, natural face, no plastic face, no AI-smooth skin, not posing at the camera, not necessarily centered.\n\n`
+      }
+    }
+    if (typeof studioProductId === 'string' && studioProductId.length > 0) {
+      const { data: prod } = await supabase
+        .from('user_studio_products')
+        .select('name, photo_urls')
+        .eq('id', studioProductId).eq('user_id', userId).maybeSingle()
+      if (prod) {
+        const urls: string[] = Array.isArray(prod.photo_urls) ? prod.photo_urls.slice(0, 2) : []
+        for (const u of urls) {
+          const ref = await fetchRef(u)
+          if (ref) featureRefs.push(ref)
+        }
+        promptPrefix += `The product "${prod.name}" is featured prominently in the visual.\n\n`
+      }
+    }
+    if (featureRefs.length) {
+      featureHint = identityCount > 0
+        ? `The FIRST ${identityCount} reference image(s) define an exact person — face, hair, skin tone, build ONLY; clothing may change per the prompt.${featureRefs.length > identityCount ? ' The remaining image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it.' : ''} Apply the prompt as scene + styling around them.`
+        : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it. Apply the prompt as the scene and styling around it.'
+    }
+
     // Generate N images in parallel via Nano Banana 2 (image-to-image when a
     // reference is provided, text-to-image otherwise). Each output is a base64
     // PNG — upload to Supabase Storage so the client gets a real public URL.
     const generationId = `nb-${Date.now()}`
     const generated = await Promise.all(
       Array.from({ length: safeQuantity }).map(() =>
-        generateNanoBananaImage(prompt, {
+        generateNanoBananaImage(promptPrefix ? `${promptPrefix}${prompt}` : prompt, {
           style: safeStyle,
           ratio: safeRatio,
           model,
           resolution: model === 'pro' ? resolution : undefined,
           raw: rawMode,
-          referenceImageBase64: safeRefBase64,
-          referenceImageMimeType: safeRefMime,
+          referenceImages: featureRefs.length ? featureRefs : undefined,
+          referenceHint: featureHint || undefined,
+          referenceImageBase64: featureRefs.length ? undefined : safeRefBase64,
+          referenceImageMimeType: featureRefs.length ? undefined : safeRefMime,
         }),
       ),
     )

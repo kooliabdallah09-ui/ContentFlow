@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
     referenceImageBase64,
     referenceImageMimeType,
     influencerId,
+    studioProductId,
     model: modelRaw,
   } = await request.json()
   const model: 'pro' | 'nb2' = modelRaw === 'nb2' ? 'nb2' : 'pro'
@@ -104,6 +105,28 @@ export async function POST(request: NextRequest) {
   const brandCtx = await loadBrandContext(supabase, userId)
   const brandBlock = formatBrandPrompt(brandCtx)
 
+  // Optional: feature a Product Studio product on the slides — its angle
+  // photos become packaging-fidelity refs.
+  let studioProduct: { name: string } | null = null
+  let productRefs: Array<{ base64: string; mimeType: string }> = []
+  if (typeof studioProductId === 'string' && studioProductId.length > 0) {
+    const { data: prod } = await supabase
+      .from('user_studio_products')
+      .select('name, photo_urls')
+      .eq('id', studioProductId).eq('user_id', userId).maybeSingle()
+    if (prod) {
+      studioProduct = { name: prod.name }
+      const urls: string[] = Array.isArray(prod.photo_urls) ? prod.photo_urls.slice(0, 2) : []
+      productRefs = (await Promise.all(urls.map(async (u: string) => {
+        try {
+          const r = await fetch(u)
+          if (!r.ok) return null
+          return { base64: Buffer.from(await r.arrayBuffer()).toString('base64'), mimeType: r.headers.get('content-type') || 'image/png' }
+        } catch { return null }
+      }))).filter((x): x is { base64: string; mimeType: string } => !!x)
+    }
+  }
+
   // Optional: feature one of the user's AI influencers on the slides.
   // Their character sheet + portrait become Nano Banana identity refs and
   // Haiku is told to write imagePrompts around a recurring on-camera person.
@@ -140,9 +163,12 @@ export async function POST(request: NextRequest) {
   const influencerBlock = influencer
     ? `\nRECURRING PERSON: the slides feature the same creator throughout. Write every imagePrompt as a scene featuring THIS person doing something relevant to the slide's point (holding, using, reacting, demonstrating) — lifestyle photography of the creator, not abstract graphics. Do not describe their physical appearance in the imagePrompt (the image model receives their photos separately).\n`
     : ''
+  const productSlideBlock = studioProduct
+    ? `\nFEATURED PRODUCT: "${studioProduct.name}" appears in every slide's visual — held, used, arranged, or hero-framed as fits the slide. Do not describe its packaging in the imagePrompt (the image model receives its photos separately).\n`
+    : ''
 
   const copyPrompt = `You are an expert social media carousel creator for ${platform}.
-${brandBlock}${illustrationBlock}${influencerBlock}
+${brandBlock}${illustrationBlock}${influencerBlock}${productSlideBlock}
 Topic: ${topic}
 Tone: ${toneGuide}
 Platform: ${platformGuide}
@@ -193,19 +219,23 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
       if (influencer) {
         finalPrompt = `${influencer.appearance_prompt}\n\nScene for this slide: ${slide.imagePrompt}\n\nHyper-realistic candid snapshot of this exact person — natural face, no plastic face, no AI-smooth skin, real skin texture, bright even light, no camera interface, no watermark.`
       }
-      const extraRefs = referenceImageBase64 && referenceImageMimeType
-        ? [{ base64: referenceImageBase64 as string, mimeType: referenceImageMimeType as string }]
-        : []
+      const extraRefs = [
+        ...productRefs,
+        ...(referenceImageBase64 && referenceImageMimeType
+          ? [{ base64: referenceImageBase64 as string, mimeType: referenceImageMimeType as string }]
+          : []),
+      ]
+      const allRefs = [...influencerRefs, ...extraRefs]
       return generateNanoBananaImage(finalPrompt, {
         model,
         style: influencer ? 'realistic' : 'professional',
         ratio: platform === 'tiktok' ? '9:16' : platform === 'linkedin' ? '1:1' : '4:5',
-        referenceImages: influencerRefs.length ? [...influencerRefs, ...extraRefs] : undefined,
-        referenceHint: influencerRefs.length
-          ? `The FIRST reference image(s) define this exact person — same face, hair, skin tone, build in the output.${extraRefs.length ? ' The LAST image shows a product/object to incorporate faithfully.' : ''} Apply the prompt as scene + framing around them.`
+        referenceImages: allRefs.length ? allRefs : undefined,
+        referenceHint: allRefs.length
+          ? `${influencerRefs.length ? `The FIRST ${influencerRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; clothing may change per the prompt. ` : ''}${extraRefs.length ? 'The remaining image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it. ' : ''}Apply the prompt as scene + framing around them.`
           : undefined,
-        referenceImageBase64: influencerRefs.length ? undefined : (referenceImageBase64 || undefined),
-        referenceImageMimeType: influencerRefs.length ? undefined : (referenceImageMimeType || undefined),
+        referenceImageBase64: undefined,
+        referenceImageMimeType: undefined,
       })
     })
   )
