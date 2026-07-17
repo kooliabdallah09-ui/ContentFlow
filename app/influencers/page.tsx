@@ -104,6 +104,8 @@ export default function InfluencersPage() {
   const [bridging, setBridging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [sheetLoading, setSheetLoading] = useState(false)
+  // In-app lightbox for viewing photos (no more raw-URL tabs).
+  const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
 
   useEffect(() => {
     (async () => {
@@ -318,9 +320,9 @@ export default function InfluencersPage() {
               </button>
               {selected.character_sheet_url ? (
                 <>
-                  <a href={selected.character_sheet_url} target="_blank" rel="noreferrer" style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, border: '1px solid var(--border)', color: 'var(--ink-2)', textDecoration: 'none' }}>
+                  <button onClick={() => setLightbox({ url: selected.character_sheet_url!, label: 'Character sheet' })} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-2)', cursor: 'pointer' }}>
                     View character sheet
-                  </a>
+                  </button>
                   <button onClick={generateSheet} disabled={sheetLoading} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                     {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet · 10 cr
                   </button>
@@ -342,10 +344,10 @@ export default function InfluencersPage() {
           {photos.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
               {photos.map(p => (
-                <a key={p.id} href={p.image_url} target="_blank" rel="noreferrer" title={p.scene} style={{ display: 'block', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                <button key={p.id} onClick={() => setLightbox({ url: p.image_url, label: p.scene })} title={p.scene} style={{ display: 'block', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image_url} alt={p.scene} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
-                </a>
+                </button>
               ))}
             </div>
           ) : (
@@ -454,6 +456,45 @@ export default function InfluencersPage() {
             </div>
           </div>
         </div>
+
+        {/* Lightbox */}
+        {lightbox && (
+          <div
+            onClick={() => setLightbox(null)}
+            style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, cursor: 'zoom-out' }}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={lightbox.url}
+              alt={lightbox.label ?? 'photo'}
+              onClick={e => e.stopPropagation()}
+              style={{ maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 12, cursor: 'default' }}
+            />
+            <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, cursor: 'default' }}>
+              {lightbox.label && <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>{lightbox.label}</span>}
+              <button
+                onClick={async () => {
+                  try {
+                    const blob = await fetch(lightbox.url).then(r => r.blob())
+                    const a = document.createElement('a')
+                    a.href = URL.createObjectURL(blob)
+                    a.download = (lightbox.label ?? 'photo').replace(/[^a-zA-Z0-9-_ ]/g, '').slice(0, 60) + '.png'
+                    a.click()
+                  } catch { window.open(lightbox.url, '_blank') }
+                }}
+                style={{ padding: '8px 16px', borderRadius: 9, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Download
+              </button>
+              <button
+                onClick={() => setLightbox(null)}
+                style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)', fontSize: 12.5, cursor: 'pointer' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
       </main>
     )
   }
