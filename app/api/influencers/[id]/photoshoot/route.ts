@@ -26,10 +26,10 @@ function supa() {
 // Per-shot variation so a 4-photo batch reads like a real shoot, not
 // four near-identical renders.
 const SHOT_VARIATIONS = [
-  'Three-quarter shot framed from head to mid-thigh, subject looking at the camera with a relaxed smile, one arm naturally extended or resting.',
-  'Candid three-quarter moment — subject mid-laugh or looking slightly off-camera, caught naturally, framed head to mid-thigh.',
-  'Three-quarter framing head to mid-thigh, golden warm tones, soft depth of field behind the subject.',
-  'Wider environmental shot showing the subject from head to knees with the location visible around them.',
+  'Caught fully mid-action, eyes on their task (NOT the camera), body angled naturally into the activity, framed head to mid-thigh, subject placed off-center on a rule-of-thirds line.',
+  'Documentary-style candid — mid-motion, reaching/handling/doing, looking at what their hands are doing, three-quarter body visible, environment filling the rest of the frame.',
+  'One brief glance toward the camera mid-activity, like a friend called their name while they were busy — hands still engaged with the task, head-to-knees framing, slightly off-center.',
+  'Wider environmental shot from behind or the side, subject head-to-toe but small-ish in the frame, absorbed in the activity, scene doing most of the talking.',
 ]
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -116,7 +116,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       refDescription += `. The LAST ${sceneRefs.length} attached image${sceneRefs.length > 1 ? 's are' : ' is'} NOT the person — ${sceneRefs.length > 1 ? 'they show' : 'it shows'} a scene, outfit, or object the photo must incorporate faithfully (exact clothing/product/location as pictured)`
     }
     const basePrompt = (variation: string) =>
-      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, skin tone, and identity precisely. OUTFIT IS NOT LOCKED: the clothing worn in the reference images is just what they had on that day — dress the character appropriately for THIS scene, and if the scene description mentions clothing or style, that wins over whatever the references show. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid snapshot: natural light appropriate to the scene, real skin texture with pores and small imperfections, natural face, no plastic face, no AI-smooth skin, believable social-media energy, no beauty filter. The look of a casual smartphone photo taken by a friend: bright even exposure, deep focus with the background nearly as sharp as the subject (NO shallow depth of field, NO bokeh), mild consumer-camera HDR, true-to-life neutral colors, slightly imperfect framing. NOT an editorial or fashion photoshoot: no cinematic color grade, no dramatic rim lighting, no posed model energy, no magazine retouching.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
+      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, skin tone, and identity precisely.
+
+CANDID, NOT POSED — CRITICAL: the person is genuinely DOING the scene's activity (picking produce, lifting a weight, sipping the drink, walking) — hands physically engaged with real objects, weight mid-shift, eyes on their task. NO standing square to camera, NO posed smile at the lens, NO model energy — it should look like someone photographed them without warning. Only make eye contact with the camera if the scene text explicitly asks for it.
+
+COMPOSITION: the subject does NOT have to be centered — use rule-of-thirds placement, let the environment breathe around them, allow foreground elements to partially overlap. OUTFIT IS NOT LOCKED: the clothing worn in the reference images is just what they had on that day — dress the character appropriately for THIS scene, and if the scene description mentions clothing or style, that wins over whatever the references show. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid snapshot: natural light appropriate to the scene, real skin texture with pores and small imperfections, natural face, no plastic face, no AI-smooth skin, believable social-media energy, no beauty filter. The look of a casual smartphone photo taken by a friend: bright even exposure, deep focus with the background nearly as sharp as the subject (NO shallow depth of field, NO bokeh), mild consumer-camera HDR, true-to-life neutral colors, slightly imperfect framing. NOT an editorial or fashion photoshoot: no cinematic color grade, no dramatic rim lighting, no posed model energy, no magazine retouching.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
     const results = await Promise.allSettled(
       Array.from({ length: count }, (_, i) =>
