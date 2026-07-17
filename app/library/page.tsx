@@ -361,6 +361,36 @@ export default function LibraryPage() {
                     <Icon.Arrow style={{ width: 16, height: 16 }} />
                   </a>
                   <button
+                    title="Rename"
+                    onClick={async (e) => {
+                      e.stopPropagation()
+                      const current = item.name?.replace(/\.[a-z0-9]{2,5}$/i, '') ?? ''
+                      const next = window.prompt('Rename this item:', current)
+                      if (!next || !next.trim() || next.trim() === current) return
+                      const ext = item.name?.match(/\.[a-z0-9]{2,5}$/i)?.[0] ?? ''
+                      const newName = `${next.trim()}${ext}`
+                      try {
+                        const supabase = getSupabase()
+                        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+                        const token = sess?.session?.access_token
+                        if (!token) throw new Error('Not signed in')
+                        const res = await fetch(`/api/library/${item.id}`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ name: newName }),
+                        })
+                        if (!res.ok) throw new Error((await res.json()).error || 'Rename failed')
+                        setItems(prev => prev.map(it => it.id === item.id ? { ...it, name: newName } : it))
+                      } catch (err) {
+                        alert(err instanceof Error ? err.message : 'Rename failed')
+                      }
+                    }}
+                    className="icon-btn"
+                    style={{ padding: '8px', background: 'rgba(255,255,255,0.15)' }}
+                  >
+                    <Icon.Scissors style={{ width: 16, height: 16 }} />
+                  </button>
+                  <button
                     onClick={(e) => {
                       e.stopPropagation()
                       handleDelete(item.id)

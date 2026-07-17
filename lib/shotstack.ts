@@ -437,3 +437,106 @@ export async function getStitchStatus(renderId: string): Promise<{
 
   return { status: mapped, url, error }
 }
+
+// ── Editor server-side render ────────────────────────────────────────────
+// Replaces the browser MediaRecorder export (realtime canvas capture drops
+// frames under encoder load — "low fps" exports). Shotstack renders the
+// same edit in the cloud at a locked 30fps and returns a proper MP4.
+export async function submitEditorRender(input: {
+  videoUrl: string
+  trimStart: number
+  trimEnd: number
+  speed?: number
+  fadeIn?: boolean
+  fadeOut?: boolean
+  overlays?: Array<{ text: string; start: number; duration: number; y?: number; size?: number; color?: string }>
+  music?: { url: string; volume?: number }
+  aspectRatio?: '9:16' | '1:1' | '16:9'
+}): Promise<{ renderId: string }> {
+  const apiKey = process.env.SHOTSTACK_API_KEY
+  if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
+
+  const speed = input.speed && input.speed > 0 ? input.speed : 1
+  const srcLength = Math.max(0.5, input.trimEnd - input.trimStart)
+  const outLength = srcLength / speed
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const videoAsset: Record<string, any> = {
+    type: 'video',
+    src: input.videoUrl,
+    trim: Math.max(0, input.trimStart),
+    volume: 1,
+  }
+  if (speed !== 1) videoAsset.speed = speed
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const videoClip: Record<string, any> = {
+    asset: videoAsset,
+    start: 0,
+    length: outLength,
+    fit: 'cover',
+  }
+  if (input.fadeIn || input.fadeOut) {
+    videoClip.transition = {
+      ...(input.fadeIn ? { in: 'fade' } : {}),
+      ...(input.fadeOut ? { out: 'fade' } : {}),
+    }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const tracks: Array<{ clips: Record<string, any>[] }> = []
+
+  // Text overlays (top track).
+  const overlayClips = (input.overlays ?? []).map(ov => ({
+    asset: {
+      type: 'html',
+      html: `<p>${ov.text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</p>`,
+      css: `p { font-family: 'Montserrat ExtraBold', sans-serif; font-size: ${ov.size ?? 30}px; color: ${ov.color ?? '#ffffff'}; text-align: center; text-shadow: 0 2px 12px rgba(0,0,0,0.75); }`,
+      width: 900,
+      height: 200,
+    },
+    start: Math.max(0, ov.start),
+    length: Math.max(0.3, ov.duration),
+    position: 'center',
+    // Map 0..1 (top..bottom) to Shotstack offset (+0.5..-0.5).
+    offset: { y: typeof ov.y === 'number' ? Math.max(-0.5, Math.min(0.5, 0.5 - ov.y)) : -0.3 },
+  }))
+  if (overlayClips.length) tracks.push({ clips: overlayClips })
+
+  tracks.push({ clips: [videoClip] })
+
+  if (input.music?.url) {
+    tracks.push({
+      clips: [{
+        asset: { type: 'audio', src: input.music.url, volume: input.music.volume ?? 0.5 },
+        start: 0,
+        length: outLength,
+      }],
+    })
+  }
+
+  const size =
+    input.aspectRatio === '16:9' ? { width: 1920, height: 1080 } :
+    input.aspectRatio === '1:1'  ? { width: 1080, height: 1080 } :
+                                   { width: 1080, height: 1920 }
+
+  const body = {
+    timeline: { background: '#000000', tracks },
+    output: { format: 'mp4', fps: 30, size },
+  }
+
+  const res = await fetch(`${SHOTSTACK_BASE}/render`, {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '')
+    console.error('[shotstack] editor render rejected', { status: res.status, detail: detail.slice(0, 400) })
+    throw new Error(`Shotstack render rejected (${res.status})`)
+  }
+  const data = await res.json()
+  const renderId = data?.response?.id ?? data?.id
+  if (!renderId) throw new Error('Shotstack: no render id returned')
+  return { renderId }
+}

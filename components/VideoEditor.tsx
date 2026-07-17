@@ -106,6 +106,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [isPlaying, setIsPlaying] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [exportUrl, setExportUrl] = useState<string | null>(null)
+  const [exportName, setExportName] = useState(`contentflow-${new Date().toISOString().slice(0, 10)}`)
+  const exportExtRef = useRef<'mp4' | 'webm'>('webm')
   const [exportStatus, setExportStatus] = useState('')
   const [aiInput, setAiInput] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
@@ -238,7 +240,90 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     if (file?.type.startsWith('video/')) loadVideoFile(file)
   }, [])
 
+  // Server-first export: Shotstack renders the edit in the cloud at a locked
+  // 30fps MP4 — the browser MediaRecorder path (realtime canvas capture)
+  // drops frames under encoder load and produced choppy exports. Local
+  // renderer kept as fallback for blob: sources / Shotstack failures.
   async function handleExport() {
+    if (!spec.videoUrl) return
+    if (!spec.videoUrl.startsWith('https://')) {
+      return handleLocalExport()   // local file uploads can't be fetched by Shotstack
+    }
+    setExporting(true)
+    setExportUrl(null)
+    setExportProgress(0)
+    setExportStatus('Submitting cloud render…')
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+
+      const res = await fetch('/api/editor/render', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          videoUrl: spec.videoUrl,
+          trimStart: spec.trimStart ?? 0,
+          trimEnd: spec.trimEnd > 0 ? spec.trimEnd : spec.duration,
+          speed: spec.speed ?? 1,
+          fadeIn: !!spec.fadeIn,
+          fadeOut: !!spec.fadeOut,
+          aspectRatio: spec.aspectRatio,
+          overlays: spec.overlays.map(ov => ({
+            text: ov.text,
+            start: ov.start,
+            duration: ov.duration,
+            y: typeof ov.y === 'number' ? ov.y : (ov.position === 'top' ? 0.15 : ov.position === 'center' ? 0.5 : 0.82),
+            size: ov.fontSize === 'sm' ? 24 : ov.fontSize === 'lg' ? 40 : ov.fontSize === 'xl' ? 52 : 30,
+            color: ov.color,
+          })),
+          music: spec.music ? { url: spec.music.url, volume: spec.music.volume } : undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok || !data.renderId) throw new Error(data.error || 'Render submit failed')
+
+      // Poll until the render lands (~10-60s).
+      let finalUrl: string | null = null
+      for (let i = 0; i < 100; i++) {
+        await new Promise(r => setTimeout(r, 3000))
+        const st = await fetch(`/api/editor/render?renderId=${data.renderId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(r => r.json()).catch(() => null)
+        if (!st) continue
+        if (st.status === 'succeeded' && st.url) { finalUrl = st.url; break }
+        if (st.status === 'failed') throw new Error(st.error || 'Cloud render failed')
+        setExportStatus(st.status === 'rendering' ? 'Rendering in the cloud…' : 'Queued…')
+        setExportProgress(Math.min(90, 10 + i * 3))
+      }
+      if (!finalUrl) throw new Error('Cloud render timed out')
+
+      // Pull the MP4 down so download + Save to Library reuse the blob flow.
+      setExportStatus('Downloading result…')
+      const mp4 = await fetch(finalUrl).then(r => r.blob())
+      exportBlobRef.current = mp4
+      exportExtRef.current = 'mp4'
+      const url = URL.createObjectURL(mp4)
+      setExportUrl(url)
+      setExportProgress(100)
+      setSavedToLibrary(false)
+      setExportStatus(`Done — ${(mp4.size / 1024 / 1024).toFixed(1)} MB · 30fps MP4`)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${(exportName.trim() || 'contentflow-export').replace(/[^a-zA-Z0-9-_ ]/g, '')}.mp4`
+      a.click()
+      setExporting(false)
+      return
+    } catch (err) {
+      console.warn('[editor] cloud render failed, falling back to local:', err)
+      setExporting(false)
+    }
+    // Fallback — browser-side renderer.
+    return handleLocalExport()
+  }
+
+  async function handleLocalExport() {
     if (!spec.videoUrl) return
     setExporting(true)
     setExportUrl(null)
@@ -514,9 +599,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       setExportStatus(`Done — ${durSec}s · ${sizeMB} MB`)
 
       // Auto-download
+      exportExtRef.current = 'webm'
       const a = document.createElement('a')
       a.href = url
-      a.download = `contentflow-${Date.now()}.webm`
+      a.download = `${(exportName.trim() || 'contentflow-export').replace(/[^a-zA-Z0-9-_ ]/g, '')}.webm`
       a.click()
 
     } catch (e) {
@@ -2818,8 +2904,19 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                   ))}
                 </div>
 
+                <div>
+                  <div style={{ ...S.sectionLabel, marginTop: 4 }}>File name</div>
+                  <input
+                    type="text"
+                    value={exportName}
+                    onChange={e => setExportName(e.target.value)}
+                    placeholder="my-skittles-ad"
+                    style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, fontFamily: 'inherit' }}
+                  />
+                </div>
+
                 <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-mute)', lineHeight: 1.6 }}>
-                  Rendered locally in your browser — no upload needed. Output is WebM (plays everywhere).
+                  Rendered in the cloud at full 30fps — output is MP4. Local uploads render in-browser as WebM.
                 </div>
 
                 <button
@@ -2878,17 +2975,18 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                           const token = session?.session?.access_token
                           if (!token) throw new Error('Not signed in')
 
-                          const filename = `contentflow-edit-${new Date().toISOString().slice(0, 10)}.webm`
+                          const ext = exportExtRef.current
+                          const filename = `${(exportName.trim() || `contentflow-edit-${new Date().toISOString().slice(0, 10)}`).replace(/[^a-zA-Z0-9-_ ]/g, '')}.${ext}`
 
                           // Step 1: upload blob to Supabase temp storage (client → Supabase, no CORS issues)
                           const urlRes = await fetch('/api/upload-url', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                            body: JSON.stringify({ folder: 'drive-tmp', ext: 'webm' }),
+                            body: JSON.stringify({ folder: 'drive-tmp', ext }),
                           })
                           const { signedUrl, storagePath, error: urlErr } = await urlRes.json()
                           if (urlErr) throw new Error(urlErr)
-                          const putRes = await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': 'video/webm' }, body: blob })
+                          const putRes = await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': ext === 'mp4' ? 'video/mp4' : 'video/webm' }, body: blob })
                           if (!putRes.ok) throw new Error(`Temp upload failed: ${putRes.status}`)
 
                           // Step 2: server fetches from Supabase and pushes to Drive (no CORS, no body limit)
