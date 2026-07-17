@@ -46,6 +46,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const scene = String(body?.scene ?? '').trim().slice(0, 500)
     const count = Math.min(4, Math.max(1, Number(body?.count) || 1))
     if (scene.length < 3) return NextResponse.json({ error: 'Describe the scene' }, { status: 400 })
+    // Optional attachments: scene / outfit / prop reference photos the
+    // shots should incorporate (e.g. a specific jacket, a product, a
+    // location photo). Capped at 2 to stay under body-size limits.
+    const sceneRefs: Array<{ base64: string; mimeType: string }> = Array.isArray(body?.sceneImages)
+      ? body.sceneImages
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((r: any) => typeof r?.base64 === 'string' && r.base64.length > 100 && typeof r?.mimeType === 'string')
+          .slice(0, 2)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
+      : []
 
     const { data: influencer } = await supabase
       .from('user_influencers')
@@ -88,9 +99,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Nano Banana to render an iPhone camera UI overlay (shutter button,
     // controls) on top of the image. Describe the photographic QUALITIES
     // instead, and explicitly forbid interface elements.
-    const refDescription = influencer.character_sheet_url
+    let refDescription = influencer.character_sheet_url
       ? 'The attached references show this exact character: a multi-angle turnaround sheet (full-body + head from every angle) and a face close-up. Every generated photo must be THIS person'
       : 'The person in the attached reference image IS this exact character'
+    if (sceneRefs.length) {
+      refDescription += `. The LAST ${sceneRefs.length} attached image${sceneRefs.length > 1 ? 's are' : ' is'} NOT the person — ${sceneRefs.length > 1 ? 'they show' : 'it shows'} a scene, outfit, or object the photo must incorporate faithfully (exact clothing/product/location as pictured)`
+    }
     const basePrompt = (variation: string) =>
       `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, and identity precisely. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid photograph: natural light appropriate to the scene, real skin texture with pores and small imperfections, slight handheld softness, believable social-media energy, no beauty filter.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
@@ -99,8 +113,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         generateNanoBananaImage(basePrompt(SHOT_VARIATIONS[i % SHOT_VARIATIONS.length]), {
           style: 'realistic',
           ratio: '4:5',
-          referenceImages: identityRefs,
-          referenceHint: 'The attached reference images define this exact person — same face, hair, skin tone, build in the output. Apply the prompt as scene + framing around them.',
+          referenceImages: [...identityRefs, ...sceneRefs],
+          referenceHint: sceneRefs.length
+            ? 'The FIRST reference image(s) define this exact person — same face, hair, skin tone, build. The LAST image(s) show a scene/outfit/object to incorporate faithfully. Apply the prompt as framing around them.'
+            : 'The attached reference images define this exact person — same face, hair, skin tone, build in the output. Apply the prompt as scene + framing around them.',
         }),
       ),
     )

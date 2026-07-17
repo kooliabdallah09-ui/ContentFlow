@@ -95,6 +95,7 @@ export function isSensitivityFlag(err: unknown): boolean {
 export async function attachProductReference(
   gridBuf: Buffer,
   productBuf: Buffer,
+  extraProductBuf?: Buffer,     // second photo of the same product (contents…)
 ): Promise<Buffer> {
   const gridMeta = await sharp(gridBuf).metadata()
   const gW = gridMeta.width ?? 720
@@ -106,16 +107,20 @@ export async function attachProductReference(
   const canvasW = gW + prodPanelW
   const canvasH = gH
 
-  // Fit the product photo inside the product panel, keeping aspect and
-  // padding with white.
-  const productFitted = await sharp(productBuf)
-    .resize(prodPanelW, prodPanelH, {
+  // Fit the product photo(s) inside the product panel, keeping aspect and
+  // padding with white. With a second photo the panel splits vertically:
+  // package on top, contents below.
+  const slotH = extraProductBuf ? Math.floor(prodPanelH / 2) : prodPanelH
+  const fitOne = (buf: Buffer) => sharp(buf)
+    .resize(prodPanelW, slotH, {
       fit: 'contain',
       position: 'center',
       background: { r: 255, g: 255, b: 255 },
     })
     .png()
     .toBuffer()
+  const productFitted = await fitOne(productBuf)
+  const extraFitted = extraProductBuf ? await fitOne(extraProductBuf) : null
 
   return sharp({
     create: {
@@ -128,6 +133,7 @@ export async function attachProductReference(
     .composite([
       { input: gridBuf, left: 0, top: 0 },
       { input: productFitted, left: gW, top: 0 },
+      ...(extraFitted ? [{ input: extraFitted, left: gW, top: slotH }] : []),
     ])
     .png()
     .toBuffer()

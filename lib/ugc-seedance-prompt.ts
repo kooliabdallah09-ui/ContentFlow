@@ -24,6 +24,9 @@ export interface BuildSeedancePromptInput {
   // can preserve the exact packaging.
   productBase64?: string
   productMimeType?: string
+  // Additional photos of the SAME product (package + contents, another
+  // angle…). Passed as image_3..n.
+  extraProductImages?: Array<{ base64: string; mimeType: string }>
   productName?: string
   productCategory?: string      // e.g. 'apparel', 'skincare' — informs how the product is used
 
@@ -133,6 +136,18 @@ export async function buildSeedanceUGCPrompt(input: BuildSeedancePromptInput): P
     })
   }
 
+  // image_3..n — additional photos of the SAME product (package + contents…)
+  for (const extra of input.extraProductImages ?? []) {
+    parts.push({
+      type: 'image',
+      source: {
+        type: 'base64',
+        media_type: extra.mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
+        data: extra.base64,
+      },
+    })
+  }
+
   const directionBlock = input.videoDirection?.trim()
     ? `\n\nAdditional direction from the user for this specific video (this is a short intent hint — YOU write the actual scenes/dialogue around it, don't quote it verbatim):\n${input.videoDirection.trim()}`
     : ''
@@ -152,9 +167,13 @@ export async function buildSeedanceUGCPrompt(input: BuildSeedancePromptInput): P
     ? `\n\nBrand + audience context from the creator's onboarding — honor these when writing dialogue and choosing the scene beats (do NOT name the brand in dialogue unless it fits naturally):\n${brandLines.join('\n')}`
     : ''
 
+  const extraCount = input.extraProductImages?.length ?? 0
+  const productImagesNote = extraCount > 0
+    ? ` and ${extraCount} additional photo${extraCount > 1 ? 's' : ''} of the SAME product (image_3${extraCount > 1 ? `..image_${2 + extraCount}` : ''}) — e.g. the sealed package AND what's inside. Together they are the source of truth: packaging exact from the package photo, contents/texture exact from the other photo${extraCount > 1 ? 's' : ''}. Write scenes that can show BOTH states (opening the package, revealing the contents) when it fits the ad.`
+    : ''
   const productBlock = input.productName?.trim()
-    ? `The product name is "${input.productName.trim()}". The product image ${input.productBase64 ? '(image_2)' : ''} is the source of truth for its exact appearance.`
-    : (input.productBase64 ? 'The product image (image_2) is the source of truth for its exact appearance.' : 'No product image was provided — build the ad around the character in a believable everyday moment.')
+    ? `The product name is "${input.productName.trim()}". The product image ${input.productBase64 ? '(image_2)' : ''} is the source of truth for its exact appearance.${productImagesNote}`
+    : (input.productBase64 ? `The product image (image_2) is the source of truth for its exact appearance.${productImagesNote}` : 'No product image was provided — build the ad around the character in a believable everyday moment.')
 
   const clampedDuration = Math.max(3, Math.min(60, Math.round(input.durationSeconds)))
   const beatBudget =

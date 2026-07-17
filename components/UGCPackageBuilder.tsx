@@ -121,6 +121,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const customPhoto = undefined as { base64: string; mimeType: string } | undefined
   void actorId; void customPhoto
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
+  // Additional photos of the SAME product (e.g. candy: sealed package +
+  // the candies inside). Up to 2. Sent alongside productImage everywhere.
+  const [extraProductImages, setExtraProductImages] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
   const productType = 'physical'
 
   // Shopify product picker
@@ -446,6 +449,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           savedActorId,
           influencerId: selectedInfluencerId,
           influencerPhotoUrl,
+          extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
       })
       const data = await res.json()
@@ -523,6 +527,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           // fails soft — if refinement errors we keep the raw frame.
           productImageBase64: productImage?.base64,
           productImageMimeType: productImage?.mimeType,
+          extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
           resolution,
           // videoDirection is the freeform "how should this ad feel"
           // note the Seedance prompt builder ingests. Reuse the existing
@@ -1338,6 +1343,55 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               </>
             )}
           </label>
+
+          {/* Extra photos of the SAME product — e.g. the package AND what's
+              inside. Both feed Nano Banana + Seedance as combined refs. */}
+          {productImage && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+              {extraProductImages.map((img, i) => (
+                <div key={i} style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <img src={img.preview} alt={`extra product ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    type="button"
+                    onClick={() => setExtraProductImages(prev => prev.filter((_, j) => j !== i))}
+                    disabled={isLoading}
+                    style={{ position: 'absolute', top: 1, right: 1, width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0 }}
+                  >×</button>
+                </div>
+              ))}
+              {extraProductImages.length < 2 && (
+                <>
+                  <input
+                    id="extraProductInput"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={async e => {
+                      const files = Array.from(e.target.files ?? []).slice(0, 2 - extraProductImages.length)
+                      e.target.value = ''
+                      for (const f of files) {
+                        try {
+                          const compressed = await compressImageFile(f)
+                          setExtraProductImages(prev => prev.length < 2 ? [...prev, compressed] : prev)
+                        } catch { showError('Image failed', `Could not read ${f.name}`) }
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => document.getElementById('extraProductInput')?.click()}
+                    disabled={isLoading}
+                    style={{ width: 48, height: 48, borderRadius: 8, border: '1.5px dashed var(--border)', background: 'var(--surface)', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}
+                    title="Add another photo of the same product — e.g. the package AND what's inside"
+                  >+</button>
+                </>
+              )}
+              <span style={{ fontSize: 11, color: 'var(--ink-mute)', maxWidth: 300, lineHeight: 1.4 }}>
+                Optional: more photos of the same product — e.g. the package and what&apos;s inside. The AI uses all of them.
+              </span>
+            </div>
+          )}
         </div>
 
         {unlockedStep < 3 && (

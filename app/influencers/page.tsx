@@ -63,6 +63,7 @@ export default function InfluencersPage() {
   const [selected, setSelected] = useState<Influencer | null>(null)
   const [photos, setPhotos] = useState<Photo[]>([])
   const [scene, setScene] = useState('')
+  const [sceneImages, setSceneImages] = useState<CompressedImage[]>([])
   const [shotCount, setShotCount] = useState(2)
   const [shooting, setShooting] = useState(false)
   const [bridging, setBridging] = useState(false)
@@ -173,7 +174,11 @@ export default function InfluencersPage() {
       const res = await fetch(`/api/influencers/${selected.id}/photoshoot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ scene: scene.trim(), count: shotCount }),
+        body: JSON.stringify({
+          scene: scene.trim(),
+          count: shotCount,
+          sceneImages: sceneImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Photoshoot failed')
@@ -311,6 +316,51 @@ export default function InfluencersPage() {
               placeholder="…or describe any scene: 'walking through Tokyo in the rain with a clear umbrella'"
               style={{ fontSize: 13.5, marginBottom: 10 }}
             />
+
+            {/* Scene / outfit / prop reference attachments */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
+              {sceneImages.map((img, i) => (
+                <div key={i} style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={img.preview} alt={`scene ref ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    onClick={() => setSceneImages(prev => prev.filter((_, j) => j !== i))}
+                    style={{ position: 'absolute', top: 1, right: 1, width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0 }}
+                  >×</button>
+                </div>
+              ))}
+              {sceneImages.length < 2 && (
+                <>
+                  <input
+                    id="sceneRefInput"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={async e => {
+                      const files = Array.from(e.target.files ?? []).slice(0, 2 - sceneImages.length)
+                      e.target.value = ''
+                      for (const f of files) {
+                        try {
+                          const compressed = await compressImageFile(f, 1200, 0.85)
+                          setSceneImages(prev => prev.length < 2 ? [...prev, compressed] : prev)
+                        } catch { showError('Image failed', `Could not read ${f.name}`) }
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => document.getElementById('sceneRefInput')?.click()}
+                    style={{ width: 48, height: 48, borderRadius: 8, border: '1.5px dashed var(--border)', background: 'var(--surface)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    title="Attach a scene, outfit, or product photo the shots should incorporate"
+                  >
+                    <ImagePlus size={16} />
+                  </button>
+                </>
+              )}
+              <span style={{ fontSize: 11, color: 'var(--ink-mute)', maxWidth: 280, lineHeight: 1.4 }}>
+                Optional: attach an outfit, product, or location photo to include in the shots.
+              </span>
+            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
               <div style={{ display: 'flex', gap: 6 }}>
                 {[1, 2, 3, 4].map(n => (

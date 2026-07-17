@@ -58,7 +58,16 @@ export async function POST(request: NextRequest) {
       productImageMimeType,
       videoDirection,
       resolution: resolutionRaw,
+      extraProductImages,
     } = body as Record<string, unknown>
+    const extraProductRefs: Array<{ base64: string; mimeType: string }> = Array.isArray(extraProductImages)
+      ? extraProductImages
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((r: any) => typeof r?.base64 === 'string' && r.base64.length > 100 && typeof r?.mimeType === 'string')
+          .slice(0, 2)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
+      : []
     const safeVideoDirection = typeof videoDirection === 'string' ? videoDirection.slice(0, 2000) : undefined
     const resolution: '480p' | '720p' | '1080p' | '4k' =
       resolutionRaw === '480p' || resolutionRaw === '720p' || resolutionRaw === '4k' ? resolutionRaw : '1080p'
@@ -195,7 +204,8 @@ export async function POST(request: NextRequest) {
     if (typeof productImageBase64 === 'string' && productImageBase64.length > 100) {
       try {
         const prodBuf = Buffer.from(productImageBase64, 'base64')
-        currentGridBuf = await attachProductReference(currentGridBuf, prodBuf)
+        const extraBuf = extraProductRefs[0] ? Buffer.from(extraProductRefs[0].base64, 'base64') : undefined
+        currentGridBuf = await attachProductReference(currentGridBuf, prodBuf, extraBuf)
       } catch (err) {
         console.warn('[ugc/animate] attachProductReference failed, using grid-only:', err instanceof Error ? err.message : err)
       }
@@ -284,6 +294,7 @@ export async function POST(request: NextRequest) {
       videoDirection: safeVideoDirection,
       durationSeconds: duration,
       brandContext,
+      extraProductImages: extraProductRefs.length ? extraProductRefs : undefined,
     })
 
     // Seedance submission with sensitivity retry across the grid ladder.

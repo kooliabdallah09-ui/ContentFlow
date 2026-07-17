@@ -39,7 +39,17 @@ export async function POST(request: NextRequest) {
       savedActorId,         // uuid of a user_saved_actors row — skips Haiku/Sonnet
       influencerId,         // uuid of a user_influencers row — pull gallery refs
       influencerPhotoUrl,   // user explicitly chose this gallery photo as the identity ref
+      extraProductImages,   // additional photos of the SAME product (package + contents…)
     } = body as Record<string, unknown>
+
+    const extraProductRefs: Array<{ base64: string; mimeType: string }> = Array.isArray(extraProductImages)
+      ? extraProductImages
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .filter((r: any) => typeof r?.base64 === 'string' && r.base64.length > 100 && typeof r?.mimeType === 'string')
+          .slice(0, 2)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
+      : []
 
     // Resolve aspect for output dimensions.
     const { getAspect } = await import('@/lib/aspects')
@@ -145,6 +155,7 @@ export async function POST(request: NextRequest) {
           aspect.nanoBananaRatio,
           identityRefs[0]?.base64,     // influencer identity anchor (if any)
           identityRefs[0]?.mimeType,
+          extraProductRefs.length ? extraProductRefs : undefined,
         )
         return { base64: f.imageBase64, mimeType: f.mimeType }
       }

@@ -271,6 +271,9 @@ export async function generateCharacterWithProduct(
   aspectRatio: '9:16' | '1:1' | '16:9' = '9:16',
   actorPortraitBase64?: string,
   actorPortraitMimeType?: string,
+  // Additional photos of the SAME product (e.g. candy: package + the
+  // candies themselves). Appended as extra references with a prompt note.
+  extraProductRefs?: Array<{ base64: string; mimeType: string }>,
 ): Promise<NanoBananaResult> {
   // Adaptive product placement — the reference image can be either a physical product
   // (skincare bottle, perfume) OR a screenshot of a software UI / app. Telling Nano
@@ -334,7 +337,12 @@ Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER I
         { base64: productImageBase64, mimeType: productMimeType },
       ]
     : [{ base64: productImageBase64, mimeType: productMimeType }]
-  return callNanoBanana(prompt, refs, aspectRatio)
+  let finalPrompt = prompt
+  if (extraProductRefs?.length) {
+    refs.push(...extraProductRefs)
+    finalPrompt += `\n\nMULTIPLE PRODUCT PHOTOS: the last ${extraProductRefs.length + 1} reference image(s) all show the SAME product from different sides or states (e.g. the sealed package AND the contents inside). Use them together to render the product faithfully — packaging exact from the package photo, contents exact from the contents photo. They are ONE product, not several.`
+  }
+  return callNanoBanana(finalPrompt, refs, aspectRatio)
 }
 
 // Generate a character in front of a large screen displaying the app/software UI.
