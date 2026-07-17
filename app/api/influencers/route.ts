@@ -12,12 +12,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
+import { generateCharacterSheet } from '@/lib/character-sheet'
 import { deductCredits } from '@/lib/deduct-credits'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 export const maxDuration = 120
 
-export const INFLUENCER_CREATE_CR = 12   // Sonnet + 1 NB Pro portrait
+export const INFLUENCER_CREATE_CR = 20   // Sonnet + NB Pro portrait + turnaround character sheet
 
 function supa() {
   return createClient(
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supa()
       .from('user_influencers')
-      .select('id, name, handle, bio, personality, niche, portrait_url, created_at, last_used_at')
+      .select('id, name, handle, bio, personality, niche, portrait_url, character_sheet_url, created_at, last_used_at')
       .eq('user_id', auth.userId)
       .order('last_used_at', { ascending: false })
       .limit(100)
@@ -177,6 +178,22 @@ export async function POST(request: NextRequest) {
       .select('*')
       .single()
     if (insErr) throw insErr
+
+    // 4b) Character turnaround sheet — multi-angle grid used as the primary
+    // identity anchor for photoshoots + UGC frames. Fail-soft: the
+    // influencer is still usable with just the portrait.
+    let sheetUrl: string | null = null
+    try {
+      sheetUrl = await generateCharacterSheet({
+        supabase, userId: auth.userId,
+        influencerId: influencer.id,
+        appearancePrompt: influencer.appearance_prompt,
+        portraitUrl,
+      })
+      influencer.character_sheet_url = sheetUrl
+    } catch (sheetErr) {
+      console.warn('[influencers] character sheet failed:', sheetErr instanceof Error ? sheetErr.message : sheetErr)
+    }
 
     // 5) Charge.
     const { newBalance, newPackCredits } = await deductCredits(

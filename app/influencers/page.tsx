@@ -19,6 +19,7 @@ interface Influencer {
   personality?: string | null
   niche?: string | null
   portrait_url: string
+  character_sheet_url?: string | null
   created_at: string
 }
 
@@ -66,6 +67,7 @@ export default function InfluencersPage() {
   const [shooting, setShooting] = useState(false)
   const [bridging, setBridging] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [sheetLoading, setSheetLoading] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -132,7 +134,31 @@ export default function InfluencersPage() {
     if (!token) return
     const res = await fetch(`/api/influencers/${inf.id}`, { headers: { Authorization: `Bearer ${token}` } })
     const data = await res.json()
-    if (res.ok) setPhotos(data.photos ?? [])
+    if (res.ok) {
+      setPhotos(data.photos ?? [])
+      if (data.influencer) setSelected(data.influencer)
+    }
+  }
+
+  async function generateSheet() {
+    if (!selected) return
+    setSheetLoading(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`/api/influencers/${selected.id}/character-sheet`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Sheet generation failed')
+      setSelected(prev => prev ? { ...prev, character_sheet_url: data.characterSheetUrl } : prev)
+      showSuccess('Character sheet ready', `Multi-angle reference generated · ${data.creditsCharged} cr`)
+    } catch (err) {
+      showError('Sheet failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setSheetLoading(false)
+    }
   }
 
   async function photoshoot() {
@@ -238,6 +264,34 @@ export default function InfluencersPage() {
 
           {/* Photoshoot + gallery */}
           <div>
+            {/* Character sheet — the multi-angle identity anchor */}
+            <div style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400, margin: 0 }}>Character sheet</h2>
+                <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>multi-angle reference — makes every photo of them more accurate</span>
+              </div>
+              {selected.character_sheet_url ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <a href={selected.character_sheet_url} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={selected.character_sheet_url} alt="Character sheet" style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', display: 'block' }} />
+                  </a>
+                  <button onClick={generateSheet} disabled={sheetLoading} style={{ alignSelf: 'flex-start', padding: '7px 14px', fontSize: 12, borderRadius: 8, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-dim)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet · 10 cr
+                  </button>
+                </div>
+              ) : (
+                <div style={{ padding: 16, borderRadius: 12, border: '1px dashed var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, flex: 1, lineHeight: 1.5 }}>
+                    No character sheet yet. Generate a full-body + head turnaround (front, profile, back) — photoshoots and UGC frames anchor to it for much better identity accuracy.
+                  </p>
+                  <button onClick={generateSheet} disabled={sheetLoading} className="btn btn-primary" style={{ padding: '10px 16px', fontSize: 13, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    {sheetLoading ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />} Generate · 10 cr
+                  </button>
+                </div>
+              )}
+            </div>
+
             <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400, margin: '0 0 14px' }}>Photoshoot</h2>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
               {SCENE_PRESETS.map(p => (

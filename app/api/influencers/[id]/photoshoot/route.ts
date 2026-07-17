@@ -65,26 +65,42 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: `Insufficient credits. Need ${totalCost}.` }, { status: 402 })
     }
 
-    // Fetch the canonical portrait once as the identity reference.
-    const portraitRes = await fetch(influencer.portrait_url)
-    if (!portraitRes.ok) throw new Error('Could not load portrait reference')
-    const portraitB64 = Buffer.from(await portraitRes.arrayBuffer()).toString('base64')
-    const portraitMime = portraitRes.headers.get('content-type') || 'image/png'
+    // Identity references: the multi-angle character sheet (when present)
+    // is the primary anchor — it shows the face and body from every angle,
+    // which keeps Nano Banana far more accurate than a single portrait.
+    // The portrait rides along as a face close-up.
+    const refUrls = [influencer.character_sheet_url, influencer.portrait_url].filter(
+      (u): u is string => typeof u === 'string' && u.startsWith('http'),
+    )
+    const identityRefs = (await Promise.all(refUrls.map(async url => {
+      try {
+        const r = await fetch(url)
+        if (!r.ok) return null
+        return {
+          base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
+          mimeType: r.headers.get('content-type') || 'image/png',
+        }
+      } catch { return null }
+    }))).filter((x): x is { base64: string; mimeType: string } => !!x)
+    if (!identityRefs.length) throw new Error('Could not load identity references')
 
     // Note: never say 'phone-camera photo' or 'selfie' — that phrasing primes
     // Nano Banana to render an iPhone camera UI overlay (shutter button,
     // controls) on top of the image. Describe the photographic QUALITIES
     // instead, and explicitly forbid interface elements.
+    const refDescription = influencer.character_sheet_url
+      ? 'The attached references show this exact character: a multi-angle turnaround sheet (full-body + head from every angle) and a face close-up. Every generated photo must be THIS person'
+      : 'The person in the attached reference image IS this exact character'
     const basePrompt = (variation: string) =>
-      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\nThe person in the attached reference image IS this exact character — preserve their face, hair, and identity precisely. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid photograph: natural light appropriate to the scene, real skin texture with pores and small imperfections, slight handheld softness, believable social-media energy, no beauty filter.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
+      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, and identity precisely. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid photograph: natural light appropriate to the scene, real skin texture with pores and small imperfections, slight handheld softness, believable social-media energy, no beauty filter.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
     const results = await Promise.allSettled(
       Array.from({ length: count }, (_, i) =>
         generateNanoBananaImage(basePrompt(SHOT_VARIATIONS[i % SHOT_VARIATIONS.length]), {
           style: 'realistic',
           ratio: '4:5',
-          referenceImageBase64: portraitB64,
-          referenceImageMimeType: portraitMime,
+          referenceImages: identityRefs,
+          referenceHint: 'The attached reference images define this exact person — same face, hair, skin tone, build in the output. Apply the prompt as scene + framing around them.',
         }),
       ),
     )

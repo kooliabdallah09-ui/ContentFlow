@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
-import { generateCharacterWithProduct, generateTextToImage } from '@/lib/nanobanana'
+import { generateCharacterWithProduct, generateTextToImage, generateNanoBananaImage } from '@/lib/nanobanana'
 import type { CharacterProfile } from '@/lib/character'
 import { buildCharacterPrompt as buildCharacterImagePrompt } from '@/lib/ugc-character-prompt'
 import { inferProductCategory } from '@/lib/multi-shot'
@@ -37,6 +37,8 @@ export async function POST(request: NextRequest) {
       customInstructions,   // freeform "video direction" (unbox / clean ad / morning routine)
       videoDirection,       // alias
       savedActorId,         // uuid of a user_saved_actors row — skips Haiku/Sonnet
+      influencerId,         // uuid of a user_influencers row — pull gallery refs
+      influencerPhotoUrl,   // user explicitly chose this gallery photo as the identity ref
     } = body as Record<string, unknown>
 
     // Resolve aspect for output dimensions.
@@ -91,6 +93,43 @@ export async function POST(request: NextRequest) {
       imagePrompt = built.imagePrompt
     }
 
+    // Influencer identity references. When the character came from the
+    // Influencer Studio, the frames should be anchored to their actual
+    // photos, not regenerated from the text prompt alone (text-only
+    // regeneration drifts the face between sessions).
+    //  - influencerPhotoUrl set → the user hand-picked one gallery photo.
+    //  - else → "AI uses the gallery": canonical portrait + up to 2 most
+    //    recent photoshoot photos as combined identity references.
+    let identityRefs: Array<{ base64: string; mimeType: string }> = []
+    if (typeof influencerId === 'string' && influencerId.length > 0) {
+      try {
+        const refUrls: string[] = []
+        if (typeof influencerPhotoUrl === 'string' && influencerPhotoUrl.startsWith('http')) {
+          refUrls.push(influencerPhotoUrl)
+        } else {
+          const [{ data: inf }, { data: pics }] = await Promise.all([
+            supabase.from('user_influencers').select('portrait_url, character_sheet_url').eq('id', influencerId).eq('user_id', userId).maybeSingle(),
+            supabase.from('user_influencer_photos').select('image_url').eq('influencer_id', influencerId).eq('user_id', userId)
+              .order('created_at', { ascending: false }).limit(2),
+          ])
+          // The turnaround sheet is the strongest identity anchor — first.
+          if (inf?.character_sheet_url) refUrls.push(inf.character_sheet_url)
+          if (inf?.portrait_url) refUrls.push(inf.portrait_url)
+          for (const p of pics ?? []) refUrls.push(p.image_url)
+        }
+        identityRefs = (await Promise.all(refUrls.slice(0, 3).map(async url => {
+          const r = await fetch(url)
+          if (!r.ok) return null
+          return {
+            base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
+            mimeType: r.headers.get('content-type') || 'image/png',
+          }
+        }))).filter((x): x is { base64: string; mimeType: string } => !!x)
+      } catch (err) {
+        console.warn('[hero-frames] influencer refs load failed, text-only identity:', err instanceof Error ? err.message : err)
+      }
+    }
+
     // Generate one hero frame from the Sonnet-drafted prompt. When a
     // physical product is provided we attach its image as reference so
     // packaging + label stay accurate.
@@ -104,12 +143,23 @@ export async function POST(request: NextRequest) {
           '',                 // scene is baked into imagePrompt
           undefined,          // no legacy custom-instructions inject
           aspect.nanoBananaRatio,
-          undefined,          // no actor portrait — Nano Banana Pro generates fresh
-          undefined,
+          identityRefs[0]?.base64,     // influencer identity anchor (if any)
+          identityRefs[0]?.mimeType,
         )
         return { base64: f.imageBase64, mimeType: f.mimeType }
       }
-      // No product — text-only from the Sonnet image prompt.
+      if (identityRefs.length) {
+        // No product but we have identity refs — image-to-image so the
+        // frames ARE this influencer, not a lookalike.
+        const f = await generateNanoBananaImage(imagePrompt, {
+          style: 'realistic',
+          ratio: aspect.nanoBananaRatio === '1:1' ? '1:1' : aspect.nanoBananaRatio === '16:9' ? '16:9' : '9:16',
+          referenceImages: identityRefs,
+          referenceHint: 'The person in the attached reference photo(s) IS this exact character — preserve their face, hair, skin tone, and identity precisely. Apply the prompt as scene + framing around them.',
+        })
+        return { base64: f.imageBase64, mimeType: f.mimeType }
+      }
+      // No product, no refs — text-only from the Sonnet image prompt.
       const f = await generateTextToImage(imagePrompt)
       return { base64: f.imageBase64, mimeType: f.mimeType }
     }

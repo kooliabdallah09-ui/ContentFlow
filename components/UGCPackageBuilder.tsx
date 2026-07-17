@@ -186,6 +186,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [influencers, setInfluencers] = useState<InfluencerCard[]>([])
   const [selectedInfluencerId, setSelectedInfluencerId] = useState<string | undefined>(undefined)
   const [bridgingInfluencer, setBridgingInfluencer] = useState(false)
+  // Gallery of the selected influencer: portrait + photoshoot photos. The
+  // user either lets the AI use the gallery as identity references
+  // (default) or hand-picks one photo as THE reference.
+  const [influencerGallery, setInfluencerGallery] = useState<Array<{ id: string; image_url: string; scene?: string }>>([])
+  const [influencerPhotoUrl, setInfluencerPhotoUrl] = useState<string | undefined>(undefined)
 
   // Progressive-reveal state. unlockedStep starts at 1 for cold visits; each
   // section 2-5 fades in when it becomes ≤ unlockedStep. Step 1 auto-advances
@@ -439,6 +444,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           videoDirection: customInstructions.trim() || undefined,
           script: finalScript,
           savedActorId,
+          influencerId: selectedInfluencerId,
+          influencerPhotoUrl,
         }),
       })
       const data = await res.json()
@@ -1375,6 +1382,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                         if (active) {
                           setSelectedInfluencerId(undefined)
                           setSavedActorId(undefined)
+                          setInfluencerGallery([])
+                          setInfluencerPhotoUrl(undefined)
                           return
                         }
                         // Bridge the influencer into saved actors (idempotent)
@@ -1393,9 +1402,23 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                           if (!res.ok || !data.actor?.id) throw new Error(data.error || 'Failed to load influencer')
                           setSelectedInfluencerId(inf.id)
                           setSavedActorId(data.actor.id)
+                          setInfluencerPhotoUrl(undefined)
                           setSavedActors(prev => prev.some(a => a.id === data.actor.id)
                             ? prev
                             : [{ id: data.actor.id, name: data.actor.name, hero_frame_url: data.actor.hero_frame_url, character_idea: null, last_used_at: new Date().toISOString() }, ...prev])
+                          // Load their gallery so the user can optionally
+                          // hand-pick the identity reference photo.
+                          try {
+                            const gRes = await fetch(`/api/influencers/${inf.id}`, { headers: { Authorization: `Bearer ${token}` } })
+                            const gData = await gRes.json()
+                            if (gRes.ok) {
+                              const pics = Array.isArray(gData.photos) ? gData.photos : []
+                              setInfluencerGallery([
+                                { id: 'portrait', image_url: gData.influencer?.portrait_url, scene: 'Canonical portrait' },
+                                ...pics,
+                              ].filter(p => typeof p.image_url === 'string'))
+                            }
+                          } catch { /* gallery is optional */ }
                         } catch (err) {
                           showError('Influencer failed', err instanceof Error ? err.message : 'Try again')
                         } finally {
@@ -1431,6 +1454,54 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               {selectedInfluencerId && (
                 <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', marginTop: 8, fontStyle: 'italic' }}>
                   Using this influencer — the persona fields below are ignored on this generation.
+                </div>
+              )}
+
+              {/* Identity reference picker: AI uses the whole gallery by
+                  default, or the user locks one specific photo. */}
+              {selectedInfluencerId && influencerGallery.length > 0 && (
+                <div style={{ marginTop: 12, padding: 12, borderRadius: 12, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>
+                    Which photo should anchor their look?
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.5, marginBottom: 10 }}>
+                    By default the AI uses their whole gallery. Or click one photo to lock it as the exact reference (useful to keep a specific outfit or setting).
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                    <button
+                      type="button"
+                      onClick={() => setInfluencerPhotoUrl(undefined)}
+                      disabled={isLoading}
+                      style={{
+                        width: 74, height: 98, borderRadius: 9, fontSize: 10.5, fontWeight: 600, lineHeight: 1.35,
+                        border: `1.5px solid ${!influencerPhotoUrl ? 'var(--ink)' : 'var(--border)'}`,
+                        background: !influencerPhotoUrl ? 'var(--ink)' : 'var(--surface)',
+                        color: !influencerPhotoUrl ? 'var(--on-ink)' : 'var(--ink-2)',
+                        cursor: 'pointer', padding: 6,
+                      }}
+                    >
+                      ✨ Let AI use the gallery
+                    </button>
+                    {influencerGallery.map(p => {
+                      const chosen = influencerPhotoUrl === p.image_url
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          title={p.scene}
+                          onClick={() => setInfluencerPhotoUrl(chosen ? undefined : p.image_url)}
+                          disabled={isLoading}
+                          style={{
+                            width: 74, height: 98, borderRadius: 9, overflow: 'hidden', padding: 0,
+                            border: `2px solid ${chosen ? 'var(--ink)' : 'var(--border)'}`,
+                            cursor: 'pointer', background: 'var(--surface)',
+                          }}
+                        >
+                          <img src={p.image_url} alt={p.scene ?? 'gallery photo'} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', opacity: chosen ? 1 : 0.92 }} />
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
             </div>
