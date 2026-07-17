@@ -31,6 +31,8 @@ export default function CalendarPage() {
   const router = useRouter()
   const [loading, setLoading]         = useState(true)
   const [refreshing, setRefreshing]   = useState(false)
+  const [showMixModal, setShowMixModal] = useState(false)
+  const [formatPrefs, setFormatPrefs] = useState<Record<string, number>>({ ugc: 2, video: 2, image: 2, social: 3, 'screen-demo': 1 })
   const [plan, setPlan]               = useState<DailySuggestion[] | null>(null)
   const [selectedDay, setSelectedDay] = useState<DailySuggestion | null>(null)
   const [error, setError]             = useState<string | null>(null)
@@ -86,8 +88,29 @@ export default function CalendarPage() {
     return days.find(d => d.date === todayStr) ?? days[0] ?? null
   }
 
+  // Step 1: open the format-mix panel (prefilled from user_intelligence).
   async function regenerate() {
-    if (!confirm('Regenerate this month\'s plan? Your current schedule will be replaced.')) return
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+      const userId = sess?.session?.user?.id
+      if (supabase && userId) {
+        const { data: intel } = await supabase
+          .from('user_intelligence')
+          .select('format_preferences')
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (intel?.format_preferences && typeof intel.format_preferences === 'object') {
+          setFormatPrefs(prev => ({ ...prev, ...(intel.format_preferences as Record<string, number>) }))
+        }
+      }
+    } catch { /* defaults are fine */ }
+    setShowMixModal(true)
+  }
+
+  // Step 2: actually regenerate with the chosen mix.
+  async function doRegenerate() {
+    setShowMixModal(false)
     setRefreshing(true)
     setError(null)
     try {
@@ -121,6 +144,7 @@ export default function CalendarPage() {
           industry: brand.product_type || 'general',
           platforms,
           frequency,
+          formatPreferences: formatPrefs,
           brandContext: {
             name: brand.company_name,
             description: brand.description,
@@ -149,6 +173,13 @@ export default function CalendarPage() {
       })
       const saveData = await saveRes.json()
       if (!saveRes.ok) throw new Error(saveData.error || 'Failed to save plan')
+
+      // Persist the chosen mix so intelligence-based regenerations honor it too.
+      try {
+        await supabase.from('user_intelligence')
+          .update({ format_preferences: formatPrefs, updated_at: new Date().toISOString() })
+          .eq('user_id', user.id)
+      } catch { /* non-blocking */ }
 
       try { sessionStorage.setItem('generatedPlan', JSON.stringify(newPlan)) } catch {}
       setPlan(newPlan)
@@ -372,6 +403,59 @@ export default function CalendarPage() {
           )}
         </aside>
       </div>
+
+      {/* Format-mix panel shown before regenerating */}
+      {showMixModal && (
+        <div
+          onClick={() => setShowMixModal(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}
+        >
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 22, width: 'min(560px, 100%)', maxHeight: '85vh', overflowY: 'auto' }}>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Content format mix</div>
+            <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: '0 0 16px', lineHeight: 1.5 }}>
+              How often should each format appear in the regenerated plan? This replaces your current schedule.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {([
+                ['ugc', 'UGC Video'],
+                ['video', 'AI Video'],
+                ['image', 'AI Image'],
+                ['social', 'Social Post'],
+                ['screen-demo', 'Screen Demo'],
+              ] as const).map(([id, label]) => (
+                <div key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{label}</span>
+                  <div style={{ display: 'flex', gap: 5 }}>
+                    {([[0, 'Never'], [1, 'Light'], [2, 'Regular'], [3, 'Heavy']] as const).map(([val, vLabel]) => {
+                      const active = (formatPrefs[id] ?? 0) === val
+                      return (
+                        <button
+                          key={val}
+                          onClick={() => setFormatPrefs(prev => ({ ...prev, [id]: val }))}
+                          style={{
+                            padding: '4px 10px', borderRadius: 999, fontSize: 11.5, fontWeight: 500, cursor: 'pointer',
+                            border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                            background: active ? 'var(--ink)' : 'var(--surface)',
+                            color: active ? 'var(--on-ink)' : 'var(--ink-2)',
+                          }}
+                        >{vLabel}</button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+              <button onClick={() => setShowMixModal(false)} style={{ flex: 1, padding: '11px 16px', borderRadius: 10, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 13.5, cursor: 'pointer' }}>
+                Cancel
+              </button>
+              <button onClick={doRegenerate} className="btn btn-primary" style={{ flex: 2, padding: '11px 16px', fontSize: 13.5, borderRadius: 10, cursor: 'pointer', border: 'none' }}>
+                Regenerate plan →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 900px) {
