@@ -62,7 +62,8 @@ export async function POST(request: NextRequest) {
     if (!heroFrameUrl.startsWith('http')) return NextResponse.json({ error: 'Missing heroFrameUrl' }, { status: 400 })
     if (!characterImagePrompt) return NextResponse.json({ error: 'Missing characterImagePrompt' }, { status: 400 })
 
-    const { data, error } = await supabase()
+    const db = supabase()
+    const { data, error } = await db
       .from('user_saved_actors')
       .insert({
         user_id: userId,
@@ -75,6 +76,34 @@ export async function POST(request: NextRequest) {
       .select('id, name, hero_frame_url, character_idea, persona_locks, created_at, last_used_at')
       .single()
     if (error) throw error
+
+    // Mirror into the Influencer Studio so saved characters show up there
+    // with their picture. Upsert-by-name so re-saving the same character
+    // refreshes the portrait instead of duplicating. Fail-soft — actor
+    // saving must never break on the mirror.
+    try {
+      const { data: existing } = await db
+        .from('user_influencers')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('name', name)
+        .maybeSingle()
+      const infRow = {
+        user_id: userId,
+        name,
+        appearance_prompt: characterImagePrompt,
+        portrait_url: heroFrameUrl,
+        niche: characterIdea,
+        last_used_at: new Date().toISOString(),
+      }
+      if (existing) {
+        await db.from('user_influencers').update(infRow).eq('id', existing.id)
+      } else {
+        await db.from('user_influencers').insert(infRow)
+      }
+    } catch (mirrorErr) {
+      console.warn('[saved-actors] influencer mirror failed:', mirrorErr instanceof Error ? mirrorErr.message : mirrorErr)
+    }
 
     return NextResponse.json({ actor: data }, { status: 201 })
   } catch (err) {

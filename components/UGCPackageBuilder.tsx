@@ -174,6 +174,19 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [saveActorName, setSaveActorName] = useState('')
   const [savingActor, setSavingActor] = useState(false)
 
+  // Influencer Studio characters (admin-gated feature — the fetch 401s for
+  // everyone else and the section simply doesn't render).
+  interface InfluencerCard {
+    id: string
+    name: string
+    handle?: string | null
+    niche?: string | null
+    portrait_url: string
+  }
+  const [influencers, setInfluencers] = useState<InfluencerCard[]>([])
+  const [selectedInfluencerId, setSelectedInfluencerId] = useState<string | undefined>(undefined)
+  const [bridgingInfluencer, setBridgingInfluencer] = useState(false)
+
   // Progressive-reveal state. unlockedStep starts at 1 for cold visits; each
   // section 2-5 fades in when it becomes ≤ unlockedStep. Step 1 auto-advances
   // once the user has interacted with both Duration and Aspect. Steps 2-4
@@ -256,15 +269,23 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         const token = sess?.session?.access_token
         if (!token) return
 
-        const [brandRes, productsRes, actorsRes] = await Promise.all([
+        const [brandRes, productsRes, actorsRes, influencersRes] = await Promise.all([
           fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } }),
           fetch('/api/ugc/saved-actors', { headers: { Authorization: `Bearer ${token}` } }),
+          fetch('/api/influencers', { headers: { Authorization: `Bearer ${token}` } }),
         ])
         try {
           const actorsData = await actorsRes.json()
           if (!cancelled && Array.isArray(actorsData?.actors)) setSavedActors(actorsData.actors)
         } catch { /* actors load is best-effort */ }
+        try {
+          // 401 for non-admin accounts — the section just won't render.
+          if (influencersRes.ok) {
+            const infData = await influencersRes.json()
+            if (!cancelled && Array.isArray(infData?.influencers)) setInfluencers(infData.influencers)
+          }
+        } catch { /* influencers load is best-effort */ }
         const brandData = await brandRes.json()
         const productsData = await productsRes.json()
         if (cancelled) return
@@ -1337,6 +1358,84 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             Skip everything and let AI build a character to fit your product, or lock in specific fields (gender, age, hair, wardrobe…) and we&apos;ll respect them exactly. Or reuse an actor you&apos;ve saved before for identity consistency.
           </p>
 
+          {influencers.length > 0 && (
+            <div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                My influencers
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
+                {influencers.map(inf => {
+                  const active = selectedInfluencerId === inf.id
+                  return (
+                    <button
+                      key={inf.id}
+                      type="button"
+                      disabled={isLoading || bridgingInfluencer}
+                      onClick={async () => {
+                        if (active) {
+                          setSelectedInfluencerId(undefined)
+                          setSavedActorId(undefined)
+                          return
+                        }
+                        // Bridge the influencer into saved actors (idempotent)
+                        // and reuse the existing savedActorId pipeline.
+                        setBridgingInfluencer(true)
+                        try {
+                          const supabase = getSupabase()
+                          const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+                          const token = sess?.session?.access_token
+                          if (!token) throw new Error('Not signed in')
+                          const res = await fetch(`/api/influencers/${inf.id}/use-in-ugc`, {
+                            method: 'POST',
+                            headers: { Authorization: `Bearer ${token}` },
+                          })
+                          const data = await res.json()
+                          if (!res.ok || !data.actor?.id) throw new Error(data.error || 'Failed to load influencer')
+                          setSelectedInfluencerId(inf.id)
+                          setSavedActorId(data.actor.id)
+                          setSavedActors(prev => prev.some(a => a.id === data.actor.id)
+                            ? prev
+                            : [{ id: data.actor.id, name: data.actor.name, hero_frame_url: data.actor.hero_frame_url, character_idea: null, last_used_at: new Date().toISOString() }, ...prev])
+                        } catch (err) {
+                          showError('Influencer failed', err instanceof Error ? err.message : 'Try again')
+                        } finally {
+                          setBridgingInfluencer(false)
+                        }
+                      }}
+                      style={{
+                        padding: 6, borderRadius: 10, textAlign: 'left',
+                        border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                        background: active ? 'var(--surface-2)' : 'var(--surface)',
+                        cursor: isLoading || bridgingInfluencer ? 'not-allowed' : 'pointer',
+                        display: 'flex', flexDirection: 'column', gap: 6,
+                        opacity: bridgingInfluencer && !active ? 0.6 : 1,
+                      }}
+                    >
+                      <img
+                        src={inf.portrait_url}
+                        alt={inf.name}
+                        style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', borderRadius: 7, display: 'block' }}
+                      />
+                      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {inf.name}
+                      </div>
+                      {inf.niche && (
+                        <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {inf.niche}
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              {selectedInfluencerId && (
+                <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', marginTop: 8, fontStyle: 'italic' }}>
+                  Using this influencer — the persona fields below are ignored on this generation.
+                </div>
+              )}
+            </div>
+          )}
+
           {savedActors.length > 0 && (
             <div>
               <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
@@ -1349,7 +1448,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     <button
                       key={a.id}
                       type="button"
-                      onClick={() => setSavedActorId(active ? undefined : a.id)}
+                      onClick={() => { setSavedActorId(active ? undefined : a.id); setSelectedInfluencerId(undefined) }}
                       disabled={isLoading}
                       style={{
                         padding: 6, borderRadius: 10, textAlign: 'left',
@@ -1383,6 +1482,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             value={character}
             onChange={profile => setCharacter(profile)}
             disabled={isLoading || !!savedActorId}
+            saveName={saveActorName}
+            onSaveNameChange={name => setSaveActorName(name.slice(0, 80))}
           />
 
           {unlockedStep < 4 && (

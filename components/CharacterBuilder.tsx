@@ -1,36 +1,30 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { useState } from 'react'
 import { type CharacterProfile, EMPTY_CHARACTER, buildCharacterPrompt, CHARACTER_OPTIONS } from '@/lib/character'
 
 export { type CharacterProfile, EMPTY_CHARACTER, buildCharacterPrompt }
-
-export interface SavedPersona extends CharacterProfile {
-  id: string
-  name: string
-  savedAt: string
-}
 
 // Option sets per question. Each field also supports an "Other (specify)" free-text input
 // for cases the dropdown doesn't cover. Gender intentionally has no "Other" select option —
 // it's just 3 choices; non-binary / custom users pick "Other" → text input.
 const OPTIONS = CHARACTER_OPTIONS
 
-const PERSONA_STORAGE_KEY = 'contentflow_personas_v1'
-
 interface CharacterBuilderProps {
   value: CharacterProfile
   onChange: (value: CharacterProfile) => void
   disabled?: boolean
+  // When provided, renders the "name this character" save box. The name is
+  // held by the parent (UGCPackageBuilder) so the actual save happens once
+  // the hero frame exists — the character then lands in My influencers with
+  // its picture, not as a faceless field-set.
+  saveName?: string
+  onSaveNameChange?: (name: string) => void
 }
 
 const OTHER_SENTINEL = '__OTHER__'
 
-export default function CharacterBuilder({ value, onChange, disabled }: CharacterBuilderProps) {
-  const [personas, setPersonas] = useState<SavedPersona[]>([])
-  const [saveAs, setSaveAs] = useState('')
-  const [selectedPersonaId, setSelectedPersonaId] = useState('')
+export default function CharacterBuilder({ value, onChange, disabled, saveName, onSaveNameChange }: CharacterBuilderProps) {
   // Tracks which fields the user explicitly switched into "Other" mode this session.
   // We also detect "Other" implicitly if the saved value isn't in the predefined options.
   const [otherMode, setOtherMode] = useState<Record<string, boolean>>({})
@@ -41,55 +35,8 @@ export default function CharacterBuilder({ value, onChange, disabled }: Characte
     return !!v && !(OPTIONS[field] as readonly string[]).includes(v)
   }
 
-  // Load saved personas from localStorage on mount
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem(PERSONA_STORAGE_KEY)
-      if (raw) setPersonas(JSON.parse(raw))
-    } catch {}
-  }, [])
-
-  const persistPersonas = (next: SavedPersona[]) => {
-    setPersonas(next)
-    try { localStorage.setItem(PERSONA_STORAGE_KEY, JSON.stringify(next)) } catch {}
-  }
-
-  const loadPersona = (id: string) => {
-    setSelectedPersonaId(id)
-    if (!id) return
-    const p = personas.find(p => p.id === id)
-    if (!p) return
-    const { id: _id, name: _name, savedAt: _savedAt, ...character } = p
-    void _id; void _name; void _savedAt
-    onChange(character)
-  }
-
-  const savePersona = () => {
-    const name = saveAs.trim()
-    if (!name) return
-    const requiredAnswered = value.gender && value.age && value.ethnicity && value.hair
-    if (!requiredAnswered) return
-    const newPersona: SavedPersona = {
-      ...value,
-      id: `p_${Date.now()}`,
-      name,
-      savedAt: new Date().toISOString(),
-    }
-    persistPersonas([newPersona, ...personas])
-    setSaveAs('')
-    setSelectedPersonaId(newPersona.id)
-  }
-
-  const deletePersona = (id: string) => {
-    if (!confirm('Delete this persona?')) return
-    persistPersonas(personas.filter(p => p.id !== id))
-    if (selectedPersonaId === id) setSelectedPersonaId('')
-  }
-
   const setField = (k: keyof CharacterProfile, v: string) => {
     onChange({ ...value, [k]: v })
-    // Modifying after loading a saved persona — clear the selection so the user knows they're editing
-    if (selectedPersonaId) setSelectedPersonaId('')
   }
 
   const fieldStyle: React.CSSProperties = {
@@ -115,49 +62,6 @@ export default function CharacterBuilder({ value, onChange, disabled }: Characte
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Saved personas picker */}
-      {personas.length > 0 && (
-        <div style={{
-          padding: '12px',
-          background: 'var(--bg)',
-          borderRadius: 'var(--r-md)',
-          border: '1px solid var(--border)',
-        }}>
-          <label style={labelStyle}>Saved Personas</label>
-          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <select
-              value={selectedPersonaId}
-              onChange={e => loadPersona(e.target.value)}
-              disabled={disabled}
-              style={{ ...fieldStyle, flex: 1 }}
-            >
-              <option value="">— Build new character below —</option>
-              {personas.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
-            {selectedPersonaId && (
-              <button
-                type="button"
-                onClick={() => deletePersona(selectedPersonaId)}
-                disabled={disabled}
-                title="Delete this persona"
-                style={{
-                  padding: '8px',
-                  borderRadius: '8px',
-                  background: 'transparent',
-                  border: '1px solid var(--border)',
-                  cursor: 'pointer',
-                  color: 'var(--bad)',
-                }}
-              >
-                <Trash2 style={{ width: 14, height: 14 }} />
-              </button>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* The 9 character questions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {(Object.keys(OPTIONS) as Array<keyof typeof OPTIONS>).map(field => {
@@ -229,32 +133,31 @@ export default function CharacterBuilder({ value, onChange, disabled }: Characte
         })}
       </div>
 
-      {/* Save as persona */}
-      <div style={{
-        display: 'flex', gap: '8px', alignItems: 'center',
-        padding: '10px 12px',
-        background: 'var(--bg)',
-        borderRadius: 'var(--r-md)',
-        border: '1px dashed var(--border)',
-      }}>
-        <input
-          type="text"
-          placeholder="Name this persona to save…"
-          value={saveAs}
-          onChange={e => setSaveAs(e.target.value)}
-          disabled={disabled}
-          style={{ ...fieldStyle, flex: 1, cursor: 'text' }}
-        />
-        <button
-          type="button"
-          onClick={savePersona}
-          disabled={disabled || !saveAs.trim() || !value.gender || !value.age || !value.ethnicity || !value.hair}
-          className="btn btn-ghost"
-          style={{ fontSize: '12px', padding: '8px 14px' }}
-        >
-          Save
-        </button>
-      </div>
+      {/* Save as influencer — the name is held by the parent and the save
+          fires once the hero frame is picked, so the character lands in
+          My influencers WITH their picture. */}
+      {onSaveNameChange && (
+        <div style={{
+          padding: '10px 12px',
+          background: 'var(--bg)',
+          borderRadius: 'var(--r-md)',
+          border: '1px dashed var(--border)',
+        }}>
+          <input
+            type="text"
+            placeholder="Name this character to save them to My influencers…"
+            value={saveName ?? ''}
+            onChange={e => onSaveNameChange(e.target.value)}
+            disabled={disabled}
+            style={{ ...fieldStyle, width: '100%', cursor: 'text' }}
+          />
+          {(saveName ?? '').trim() && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', marginTop: 6, fontStyle: 'italic' }}>
+              They&apos;ll be saved with their photo once you pick a frame and generate.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
