@@ -30,6 +30,7 @@ Rules:
 - Every shot in the batch must be a DIFFERENT format (never two of the same idea: if one is a stacked tower, the next is a splash or a flat spread or a hands-pour…).
 - NEVER reuse any concept from the AVOID list — those were already shot.
 - Concepts must physically suit THIS product's category (drinks splash and pour; candy stacks and scatters; skincare smears and drips; apparel drapes and floats).
+- NATURAL HANDLING ONLY: hands interact with the product the way a real person gently would — holding a garment up by the shoulder seams, on a wooden hanger, laid flat, cradling a bottle. NEVER stretching, pinching, crumpling, squeezing or otherwise deforming the product; it must keep its natural shape so the design stays readable. No awkward grips, no contorted fingers.
 - Clean aesthetic: seamless pastel or stone backdrops, controlled studio light or hard sun, negative space, premium but playful. No people's faces (hands are fine) UNLESS the brief includes a recurring creator — then they appear candidly using the product as instructed. No text overlays, no props that steal focus.
 - Do not describe the product's own appearance — the image model receives its photos separately.`
 
@@ -154,8 +155,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const results = await Promise.allSettled(shots.map(sh =>
       generateNanoBananaImage(
         influencer
-          ? `${influencer.appearance_prompt}\n\nShot: ${sh.prompt}\n\nThe person is candidly mid-action with the product — natural face, no plastic face, no AI-smooth skin, not posing at the camera, doesn't have to be centered. Editorial photograph, hyper-real materials and lighting, clean aesthetic, no text overlays, no watermarks, no camera interface.`
-          : `${sh.prompt}\n\nEditorial product photograph, hyper-real materials and lighting, clean aesthetic, no text overlays, no watermarks, no camera interface, no human faces.`,
+          ? `${influencer.appearance_prompt}\n\nShot: ${sh.prompt}\n\nThe person is candidly mid-action with the product — natural face, no plastic face, no AI-smooth skin, not posing at the camera, doesn't have to be centered. Editorial photograph, hyper-real materials and lighting, clean aesthetic, natural relaxed anatomically-correct hands, the product keeps its natural undistorted shape, no text overlays, no watermarks, no camera interface.`
+          : `${sh.prompt}\n\nEditorial product photograph, hyper-real materials and lighting, clean aesthetic, any hands are relaxed and anatomically correct, the product keeps its natural undistorted shape, no text overlays, no watermarks, no camera interface, no human faces.`,
         {
           style: influencer ? 'realistic' : 'professional',
           ratio,
