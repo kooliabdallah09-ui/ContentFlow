@@ -3,7 +3,7 @@
 // Influencer Studio — create persistent AI characters, shoot photos of
 // them anywhere, and send them into the UGC pipeline. Admin-gated.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
@@ -41,6 +41,25 @@ const SCENE_PRESETS = [
   'hiking trail with mountain views',
 ]
 
+const traitLabel: CSSProperties = {
+  fontSize: 11.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em',
+  color: 'var(--ink-2)', marginBottom: 8,
+}
+const traitInput: CSSProperties = {
+  width: '100%', padding: '9px 12px', borderRadius: 9,
+  border: '1px solid var(--border)', background: 'var(--bg)',
+  color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none',
+  boxSizing: 'border-box',
+}
+const chip = (active: boolean): CSSProperties => ({
+  display: 'inline-flex', alignItems: 'center',
+  padding: '7px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
+  border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+  background: active ? 'var(--ink)' : 'var(--surface)',
+  color: active ? 'var(--on-ink)' : 'var(--ink-2)',
+  transition: 'all 0.12s',
+})
+
 async function getToken(): Promise<string | null> {
   const supabase = getSupabase()
   if (!supabase) return null
@@ -58,6 +77,14 @@ export default function InfluencersPage() {
   const [description, setDescription] = useState('')
   const [creating, setCreating] = useState(false)
   const [refImages, setRefImages] = useState<CompressedImage[]>([])
+  // Structured identity traits — every selected one is a hard lock the AI
+  // must honor. All optional; description covers anything not chippable.
+  const [traitName, setTraitName] = useState('')
+  const [traitGender, setTraitGender] = useState('')
+  const [traitAge, setTraitAge] = useState('')
+  const [traitStyles, setTraitStyles] = useState<string[]>([])
+  const [traitHair, setTraitHair] = useState('')
+  const [traitEyes, setTraitEyes] = useState('')
 
   // Detail
   const [selected, setSelected] = useState<Influencer | null>(null)
@@ -99,8 +126,9 @@ export default function InfluencersPage() {
   }
 
   async function create() {
-    if (description.trim().length < 10) {
-      showError('Too short', 'Describe your influencer in at least a sentence')
+    const hasTraits = !!(traitGender || traitAge || traitStyles.length || traitHair || traitEyes)
+    if (description.trim().length < 10 && !hasTraits) {
+      showError('Nothing to work with', 'Pick some traits or describe your influencer')
       return
     }
     setCreating(true)
@@ -112,6 +140,12 @@ export default function InfluencersPage() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           description: description.trim(),
+          name: traitName.trim() || undefined,
+          gender: traitGender || undefined,
+          ageRange: traitAge || undefined,
+          styles: traitStyles,
+          hairColor: traitHair || undefined,
+          eyeColor: traitEyes || undefined,
           referenceImages: refImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
         }),
       })
@@ -120,6 +154,7 @@ export default function InfluencersPage() {
       setList(prev => [data.influencer, ...prev])
       setDescription('')
       setRefImages([])
+      setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes('')
       showSuccess('Influencer created', `${data.influencer.name} is ready.`)
       openDetail(data.influencer)
     } catch (err) {
@@ -416,16 +451,89 @@ export default function InfluencersPage() {
         Describe a character once — get a persistent AI influencer with a face, a handle, and a personality. Shoot photos of them anywhere, or drop them into a UGC ad.
       </p>
 
-      {/* Create box */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', padding: 20, marginBottom: 32 }}>
-        <textarea
-          className="textarea"
-          rows={3}
-          value={description}
-          onChange={e => setDescription(e.target.value)}
-          placeholder="e.g. A laid-back surfer with sun-bleached curly hair and freckles who posts about sustainable skincare. Warm, a little sarcastic, always golden-hour lighting."
-          style={{ fontSize: 14, marginBottom: 12 }}
-        />
+      {/* Create box — structured identity picker */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', padding: 22, marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div>
+          <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Create new influencer</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: 2 }}>Define your AI persona&apos;s identity and visual style — every pick is locked in exactly.</div>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+          <div>
+            <div style={traitLabel}>Name <span style={{ fontWeight: 400, color: 'var(--ink-mute)', textTransform: 'none', letterSpacing: 0 }}>· optional, AI invents one otherwise</span></div>
+            <input type="text" value={traitName} onChange={e => setTraitName(e.target.value)} placeholder="e.g. Victor" style={traitInput} />
+          </div>
+          <div>
+            <div style={traitLabel}>Gender</div>
+            <div style={{ display: 'flex', gap: 6 }}>
+              {['Female', 'Male', 'Non-binary'].map(g => (
+                <button key={g} onClick={() => setTraitGender(traitGender === g ? '' : g)} style={chip(traitGender === g)}>{g}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style={traitLabel}>Age range</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['18-24', '25-30', '31-37', '38-45', '46-55', '56-65', '66-75', '76-85'].map(a => (
+              <button key={a} onClick={() => setTraitAge(traitAge === a ? '' : a)} style={chip(traitAge === a)}>{a}</button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={traitLabel}>Style &amp; aesthetic <span style={{ fontWeight: 400, color: 'var(--ink-mute)', textTransform: 'none', letterSpacing: 0 }}>· pick any</span></div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {['Luxury', 'Lifestyle', 'Fitness', 'Casual', 'Streetwear', 'Artistic', 'Corporate', 'Soft Girl', 'Edgy', 'Minimalist'].map(st => {
+              const on = traitStyles.includes(st)
+              return (
+                <button key={st} onClick={() => setTraitStyles(prev => on ? prev.filter(x => x !== st) : [...prev, st])} style={chip(on)}>{st}</button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div>
+          <div style={traitLabel}>Hair color</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {([
+              ['Black', '#1a1a1a'], ['Dark Brown', '#4a3220'], ['Light Brown', '#8b6b47'], ['Blonde', '#d9b380'],
+              ['Platinum Blonde', '#e8ddc8'], ['Red', '#a83c1e'], ['Auburn', '#7a3b22'], ['Ginger', '#c26a34'],
+              ['Grey', '#9a9a9a'], ['White', '#eeeeee'], ['Pink', '#e08bb0'], ['Blue', '#4a6fb5'],
+            ] as const).map(([label, dot]) => (
+              <button key={label} onClick={() => setTraitHair(traitHair === label ? '' : label)} style={chip(traitHair === label)}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: dot, display: 'inline-block', marginRight: 6, border: '1px solid rgba(0,0,0,0.15)' }} />{label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={traitLabel}>Eye color</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {([
+              ['Brown', '#5c4023'], ['Dark Brown', '#3a2a18'], ['Hazel', '#8e7037'], ['Green', '#5a7d4f'],
+              ['Blue', '#5b84b8'], ['Grey', '#8b939c'], ['Amber', '#c98d2e'], ['Black', '#191919'],
+            ] as const).map(([label, dot]) => (
+              <button key={label} onClick={() => setTraitEyes(traitEyes === label ? '' : label)} style={chip(traitEyes === label)}>
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: dot, display: 'inline-block', marginRight: 6, border: '1px solid rgba(0,0,0,0.15)' }} />{label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <div style={traitLabel}>Additional details</div>
+          <textarea
+            className="textarea"
+            rows={3}
+            value={description}
+            onChange={e => setDescription(e.target.value)}
+            placeholder="Add any extra details: clothing, accessories, tattoos, makeup, vibe, what they post about…"
+            style={{ fontSize: 14, margin: 0 }}
+          />
+        </div>
 
         {/* Reference images — the influencer's look is anchored to these */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>

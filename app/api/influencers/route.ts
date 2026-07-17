@@ -85,8 +85,19 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const description = String(body?.description ?? '').trim().slice(0, 1500)
-    if (description.length < 10) {
-      return NextResponse.json({ error: 'Describe your influencer in at least a sentence' }, { status: 400 })
+    // Structured traits from the create form. Every provided trait is a hard
+    // lock that Sonnet must honor in the identity sheet.
+    const traits = {
+      name: typeof body?.name === 'string' ? body.name.trim().slice(0, 60) : '',
+      gender: typeof body?.gender === 'string' ? body.gender.slice(0, 30) : '',
+      ageRange: typeof body?.ageRange === 'string' ? body.ageRange.slice(0, 12) : '',
+      styles: Array.isArray(body?.styles) ? body.styles.map(String).slice(0, 5) : [],
+      hairColor: typeof body?.hairColor === 'string' ? body.hairColor.slice(0, 30) : '',
+      eyeColor: typeof body?.eyeColor === 'string' ? body.eyeColor.slice(0, 30) : '',
+    }
+    const hasTraits = !!(traits.gender || traits.ageRange || traits.styles.length || traits.hairColor || traits.eyeColor)
+    if (description.length < 10 && !hasTraits) {
+      return NextResponse.json({ error: 'Pick some traits or describe your influencer' }, { status: 400 })
     }
     // Optional reference images: real photos whose look the influencer
     // should be based on. Capped at 3 to stay under request-size limits.
@@ -121,11 +132,21 @@ export async function POST(request: NextRequest) {
         data: r.base64,
       },
     }))
+    const traitLines: string[] = []
+    if (traits.name) traitLines.push(`- Name: "${traits.name}" — use this EXACT name`)
+    if (traits.gender) traitLines.push(`- Gender: ${traits.gender}`)
+    if (traits.ageRange) traitLines.push(`- Age range: ${traits.ageRange} (express as a life-stage vibe in the appearance_prompt — never numeric ages)`)
+    if (traits.styles.length) traitLines.push(`- Style & aesthetic: ${traits.styles.join(', ')}`)
+    if (traits.hairColor) traitLines.push(`- Hair color: ${traits.hairColor}`)
+    if (traits.eyeColor) traitLines.push(`- Eye color: ${traits.eyeColor}`)
+    const traitsBlock = traitLines.length
+      ? `\n\nLOCKED TRAITS — the client explicitly selected these; honor every one exactly in the identity sheet and appearance_prompt:\n${traitLines.join('\n')}`
+      : ''
     userContent.push({
       type: 'text',
-      text: referenceImages.length
-        ? `Client description of the influencer:\n${description}\n\nThe attached photo${referenceImages.length > 1 ? 's show' : ' shows'} the exact look the influencer should be based on — write the appearance_prompt to describe THIS person's face, hair, features, and style faithfully (adult, no age numbers).`
-        : `Client description of the influencer:\n${description}`,
+      text: (referenceImages.length
+        ? `Client description of the influencer:\n${description || '(traits only)'}\n\nThe attached photo${referenceImages.length > 1 ? 's show' : ' shows'} the exact look the influencer should be based on — write the appearance_prompt to describe THIS person's face, hair, features, and style faithfully (adult, no age numbers).`
+        : `Client description of the influencer:\n${description || '(traits only — build the character from the locked traits below)'}`) + traitsBlock,
     })
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
@@ -142,6 +163,8 @@ export async function POST(request: NextRequest) {
     if (!sheet.appearance_prompt || !sheet.name) {
       return NextResponse.json({ error: 'Identity sheet incomplete, try again' }, { status: 500 })
     }
+    // Client-picked name always wins over Sonnet's invention.
+    if (traits.name) sheet.name = traits.name
 
     // 2) Nano Banana Pro renders the canonical portrait — with the client's
     // reference photos as identity anchors when provided.
