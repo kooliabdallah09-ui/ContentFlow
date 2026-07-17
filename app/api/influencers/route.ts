@@ -72,7 +72,7 @@ appearance_prompt rules:
 - Adult in their early-to-mid 20s, attractive and photogenic — but a REAL-person kind of attractive, not a retouched model
 - Describe: gender presentation, ethnicity, hair (color/length/texture), eye color, distinctive features (freckles, dimples, glasses…), build, one signature style element
 - Head-and-shoulders portrait, looking directly at the camera lens, natural expression with warmth
-- Hyper-realistic candid photograph: natural window light, real skin texture with pores and small imperfections, no beauty filter, no studio gloss\n- The appearance_prompt MUST include the phrase 'natural face, no plastic face, no AI-smooth skin' — the face has to read as a real human with asymmetries and texture, never doll-like or retouched
+- Hyper-realistic candid snapshot with the look of a casual smartphone photo: bright even natural window light, deep focus (no bokeh, no shallow depth of field), true-to-life colors, real skin texture with pores and small imperfections, no beauty filter, no studio gloss, no cinematic grade, no editorial/fashion-shoot styling\n- The appearance_prompt MUST include the phrase 'natural face, no plastic face, no AI-smooth skin' — the face has to read as a real human with asymmetries and texture, never doll-like or retouched
 - The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot' — they cause camera-app UI to render into the image
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
