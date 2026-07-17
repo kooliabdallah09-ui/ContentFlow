@@ -428,7 +428,18 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
           if (spec.crop) {
             ctx.drawImage(vid, spec.crop.x * outW, spec.crop.y * outH, spec.crop.w * outW, spec.crop.h * outH, 0, 0, outW, outH)
           } else {
-            ctx.drawImage(vid, 0, 0, outW, outH)
+            {
+              // Aspect-preserving cover draw. Seedance outputs aren't always
+              // exactly 9:16 (e.g. 704x1248) — stretching them to the canvas
+              // (drawImage 0,0,outW,outH) subtly widened faces. Scale to
+              // cover and center-crop instead, like CSS object-fit: cover.
+              const vw = vid.videoWidth || outW
+              const vh = vid.videoHeight || outH
+              const cover = Math.max(outW / vw, outH / vh)
+              const dw = vw * cover
+              const dh = vh * cover
+              ctx.drawImage(vid, (outW - dw) / 2, (outH - dh) / 2, dw, dh)
+            }
           }
           ctx.filter = 'none'
           ctx.restore()
