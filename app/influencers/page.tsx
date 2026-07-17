@@ -107,6 +107,7 @@ export default function InfluencersPage() {
   const [sheetLoading, setSheetLoading] = useState(false)
   // In-app lightbox for viewing photos (no more raw-URL tabs).
   const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
+  const [lightboxZoom, setLightboxZoom] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -322,7 +323,7 @@ export default function InfluencersPage() {
               </button>
               {selected.character_sheet_url ? (
                 <>
-                  <button onClick={() => setLightbox({ url: selected.character_sheet_url!, label: 'Character sheet' })} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-2)', cursor: 'pointer' }}>
+                  <button onClick={() => { setLightbox({ url: selected.character_sheet_url!, label: 'Character sheet' }); setLightboxZoom(false) }} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-2)', cursor: 'pointer' }}>
                     View character sheet
                   </button>
                   <button onClick={generateSheet} disabled={sheetLoading} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
@@ -346,7 +347,7 @@ export default function InfluencersPage() {
           {photos.length > 0 ? (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
               {photos.map(p => (
-                <button key={p.id} onClick={() => setLightbox({ url: p.image_url, label: p.scene })} title={p.scene} style={{ display: 'block', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
+                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image_url} alt={p.scene} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
                 </button>
@@ -465,15 +466,26 @@ export default function InfluencersPage() {
             onClick={() => setLightbox(null)}
             style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, cursor: 'zoom-out' }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={lightbox.url}
-              alt={lightbox.label ?? 'photo'}
+            {/* Click the image to zoom to full resolution (scroll to pan). */}
+            <div
               onClick={e => e.stopPropagation()}
-              style={{ maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 12, cursor: 'default' }}
-            />
+              style={lightboxZoom
+                ? { maxWidth: '92vw', maxHeight: '82vh', overflow: 'auto', borderRadius: 12, cursor: 'zoom-out' }
+                : { display: 'contents' }}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={lightbox.url}
+                alt={lightbox.label ?? 'photo'}
+                onClick={e => { e.stopPropagation(); setLightboxZoom(z => !z) }}
+                style={lightboxZoom
+                  ? { display: 'block', maxWidth: 'none', maxHeight: 'none', width: 'auto', cursor: 'zoom-out' }
+                  : { maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 12, cursor: 'zoom-in' }}
+              />
+            </div>
             <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, cursor: 'default' }}>
               {lightbox.label && <span style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>{lightbox.label}</span>}
+              <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12 }}>{lightboxZoom ? 'click image to zoom out' : 'click image to zoom'}</span>
               <button
                 onClick={async () => {
                   try {
