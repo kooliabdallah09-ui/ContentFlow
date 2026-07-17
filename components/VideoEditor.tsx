@@ -2,6 +2,11 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import { EditSpec, TextOverlay, ImageOverlay, EMPTY_EDIT_SPEC, MUSIC_LIBRARY, DEFAULT_FILTERS } from '@/lib/edit-spec'
+import {
+  Input, ALL_FORMATS, BlobSource,
+  Output, Mp4OutputFormat, BufferTarget, CanvasSource, AudioBufferSource,
+  VideoSampleSink, AudioBufferSink,
+} from 'mediabunny'
 import { getSupabase } from '@/lib/auth'
 
 interface VideoEditorProps {
@@ -240,86 +245,245 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     if (file?.type.startsWith('video/')) loadVideoFile(file)
   }, [])
 
-  // Server-first export: Shotstack renders the edit in the cloud at a locked
-  // 30fps MP4 — the browser MediaRecorder path (realtime canvas capture)
-  // drops frames under encoder load and produced choppy exports. Local
-  // renderer kept as fallback for blob: sources / Shotstack failures.
-  async function handleExport() {
-    if (!spec.videoUrl) return
-    if (!spec.videoUrl.startsWith('https://')) {
-      return handleLocalExport()   // local file uploads can't be fetched by Shotstack
+  // Fetch the source video as a Blob (direct, proxy fallback for hosts
+  // without CORS like replicate.delivery, stored File for local uploads).
+  async function getSourceBlob(): Promise<Blob> {
+    if (spec.videoUrl.startsWith('blob:')) {
+      if (uploadedFileRef.current) return uploadedFileRef.current
+      return fetch(spec.videoUrl).then(r => r.blob())
     }
+    try {
+      const r = await fetch(spec.videoUrl)
+      if (r.ok) return await r.blob()
+    } catch { /* CORS — proxy */ }
+    const supabase = getSupabase()
+    const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+    const token = sess?.session?.access_token
+    if (!token) throw new Error('Not signed in')
+    const pr = await fetch(`/api/proxy-video?url=${encodeURIComponent(spec.videoUrl)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+    if (!pr.ok) throw new Error('Could not download the source video — it may have expired.')
+    return pr.blob()
+  }
+
+  // WebCodecs export (primary path) — decodes the source frame by frame,
+  // draws the edit onto a canvas, and encodes each frame explicitly via
+  // hardware-accelerated VideoEncoder (mediabunny handles demux/mux).
+  // Unlike MediaRecorder this is NOT realtime capture: every frame is
+  // guaranteed present, output is full-framerate H.264 MP4, and it runs
+  // as fast as the machine allows. Free — no cloud render.
+  async function handleWebCodecsExport() {
     setExporting(true)
     setExportUrl(null)
     setExportProgress(0)
-    setExportStatus('Submitting cloud render…')
+    setExportStatus('Preparing source…')
     try {
-      const supabase = getSupabase()
-      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
-      const token = sess?.session?.access_token
-      if (!token) throw new Error('Not signed in')
+      const [outW, outH] =
+        spec.aspectRatio === '16:9' ? [1920, 1080] :
+        spec.aspectRatio === '1:1'  ? [1080, 1080] :
+                                      [1080, 1920]
+      const trimStart = spec.trimStart ?? 0
+      const trimEnd   = spec.trimEnd > 0 ? spec.trimEnd : spec.duration
+      const speed     = spec.speed ?? 1
+      const outDur    = Math.max(0.2, (trimEnd - trimStart) / speed)
 
-      const res = await fetch('/api/editor/render', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          videoUrl: spec.videoUrl,
-          trimStart: spec.trimStart ?? 0,
-          trimEnd: spec.trimEnd > 0 ? spec.trimEnd : spec.duration,
-          speed: spec.speed ?? 1,
-          fadeIn: !!spec.fadeIn,
-          fadeOut: !!spec.fadeOut,
-          aspectRatio: spec.aspectRatio,
-          overlays: spec.overlays.map(ov => ({
-            text: ov.text,
-            start: ov.start,
-            duration: ov.duration,
-            y: typeof ov.y === 'number' ? ov.y : (ov.position === 'top' ? 0.15 : ov.position === 'center' ? 0.5 : 0.82),
-            size: ov.fontSize === 'sm' ? 24 : ov.fontSize === 'lg' ? 40 : ov.fontSize === 'xl' ? 52 : 30,
-            color: ov.color,
-          })),
-          music: spec.music ? { url: spec.music.url, volume: spec.music.volume } : undefined,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok || !data.renderId) throw new Error(data.error || 'Render submit failed')
+      const srcBlob = await getSourceBlob()
+      const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(srcBlob) })
+      const vTrack = await input.getPrimaryVideoTrack()
+      if (!vTrack) throw new Error('No video track in source')
+      const vw = vTrack.displayWidth
+      const vh = vTrack.displayHeight
 
-      // Poll until the render lands (~10-60s).
-      let finalUrl: string | null = null
-      for (let i = 0; i < 100; i++) {
-        await new Promise(r => setTimeout(r, 3000))
-        const st = await fetch(`/api/editor/render?renderId=${data.renderId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }).then(r => r.json()).catch(() => null)
-        if (!st) continue
-        if (st.status === 'succeeded' && st.url) { finalUrl = st.url; break }
-        if (st.status === 'failed') throw new Error(st.error || 'Cloud render failed')
-        setExportStatus(st.status === 'rendering' ? 'Rendering in the cloud…' : 'Queued…')
-        setExportProgress(Math.min(90, 10 + i * 3))
+      // Preload image overlays.
+      const imgEls = new Map<string, HTMLImageElement>()
+      for (const img of (spec.imageOverlays ?? [])) {
+        const el = new Image()
+        el.crossOrigin = 'anonymous'
+        el.src = img.src
+        await new Promise<void>(r => { el.onload = () => r(); el.onerror = () => r() })
+        imgEls.set(img.id, el)
       }
-      if (!finalUrl) throw new Error('Cloud render timed out')
 
-      // Pull the MP4 down so download + Save to Library reuse the blob flow.
-      setExportStatus('Downloading result…')
-      const mp4 = await fetch(finalUrl).then(r => r.blob())
+      const canvas = document.createElement('canvas')
+      canvas.width = outW
+      canvas.height = outH
+      const ctx = canvas.getContext('2d')!
+
+      const f = spec.filters
+      const filterStr = f
+        ? [
+            f.brightness !== 1 ? `brightness(${f.brightness})` : '',
+            f.contrast   !== 1 ? `contrast(${f.contrast})`     : '',
+            f.saturation !== 1 ? `saturate(${f.saturation})`   : '',
+          ].filter(Boolean).join(' ')
+        : ''
+
+      // ── Audio: decode source (decodeAudioData first, mediabunny fallback),
+      // mix with music offline, feed as one AudioBuffer. ──
+      setExportStatus('Mixing audio…')
+      let srcAudio: AudioBuffer | null = null
+      try {
+        const ac = new AudioContext()
+        srcAudio = await ac.decodeAudioData(await srcBlob.arrayBuffer())
+        void ac.close()
+      } catch { /* container not decodable — try mediabunny below */ }
+      const sampleRate = 48000
+      const oac = new OfflineAudioContext(2, Math.max(1, Math.ceil(outDur * sampleRate)), sampleRate)
+      let haveAudio = false
+      if (srcAudio) {
+        const node = oac.createBufferSource()
+        node.buffer = srcAudio
+        node.playbackRate.value = speed
+        node.connect(oac.destination)
+        node.start(0, trimStart, trimEnd - trimStart)
+        haveAudio = true
+      } else {
+        const aTrack = await input.getPrimaryAudioTrack().catch(() => null)
+        if (aTrack) {
+          const aSink = new AudioBufferSink(aTrack)
+          for await (const wrapped of aSink.buffers(trimStart, trimEnd)) {
+            const node = oac.createBufferSource()
+            node.buffer = wrapped.buffer
+            node.playbackRate.value = speed
+            node.connect(oac.destination)
+            node.start(Math.max(0, (wrapped.timestamp - trimStart) / speed))
+            haveAudio = true
+          }
+        }
+      }
+      if (spec.music?.url) {
+        try {
+          const mac = new AudioContext()
+          const mBuf = await mac.decodeAudioData(await fetch(spec.music.url).then(r => r.arrayBuffer()))
+          void mac.close()
+          const m = oac.createBufferSource()
+          m.buffer = mBuf
+          m.loop = true
+          const g = oac.createGain()
+          g.gain.value = spec.music.volume ?? 0.5
+          m.connect(g)
+          g.connect(oac.destination)
+          m.start(0, spec.music.startOffset ?? 0)
+          haveAudio = true
+        } catch { /* music fetch/decode failed — video-only */ }
+      }
+      const mixed = haveAudio ? await oac.startRendering() : null
+
+      // ── Output pipeline ──
+      const target = new BufferTarget()
+      const output = new Output({ format: new Mp4OutputFormat(), target })
+      const canvasSource = new CanvasSource(canvas, { codec: 'avc', bitrate: 8_000_000 })
+      output.addVideoTrack(canvasSource)
+      let audioSource: AudioBufferSource | null = null
+      if (mixed) {
+        audioSource = new AudioBufferSource({ codec: 'aac', bitrate: 192_000 })
+        output.addAudioTrack(audioSource)
+      }
+      await output.start()
+      if (audioSource && mixed) await audioSource.add(mixed)
+
+      // ── Frame loop ──
+      setExportStatus('Rendering frames…')
+      const sink = new VideoSampleSink(vTrack)
+      let lastOutT = -1
+      for await (const sample of sink.samples(trimStart, trimEnd)) {
+        const t = sample.timestamp
+        const outT = Math.max(0, (t - trimStart) / speed)
+        // Draw composed frame (mirrors the preview pipeline).
+        ctx.save()
+        ctx.imageSmoothingEnabled = true
+        ctx.imageSmoothingQuality = 'high'
+        if (filterStr) ctx.filter = filterStr
+        if (spec.zoom) {
+          const progress = (t - trimStart) / Math.max(0.001, trimEnd - trimStart)
+          const scale = spec.zoom.fromScale + (spec.zoom.toScale - spec.zoom.fromScale) * progress
+          const px = (spec.zoom.fromX + (spec.zoom.toX - spec.zoom.fromX) * progress) * outW
+          const py = (spec.zoom.fromY + (spec.zoom.toY - spec.zoom.fromY) * progress) * outH
+          ctx.translate(px, py)
+          ctx.scale(scale, scale)
+          ctx.translate(-px, -py)
+        }
+        if (spec.crop) {
+          sample.draw(ctx, spec.crop.x * outW, spec.crop.y * outH, spec.crop.w * outW, spec.crop.h * outH)
+        } else {
+          const cover = Math.max(outW / vw, outH / vh)
+          const dw = vw * cover
+          const dh = vh * cover
+          sample.draw(ctx, (outW - dw) / 2, (outH - dh) / 2, dw, dh)
+        }
+        ctx.filter = 'none'
+        ctx.restore()
+        if (spec.fadeIn && t - trimStart < 0.5) {
+          ctx.fillStyle = `rgba(0,0,0,${1 - (t - trimStart) / 0.5})`
+          ctx.fillRect(0, 0, outW, outH)
+        }
+        if (spec.fadeOut && trimEnd - t < 0.5) {
+          ctx.fillStyle = `rgba(0,0,0,${1 - (trimEnd - t) / 0.5})`
+          ctx.fillRect(0, 0, outW, outH)
+        }
+        for (const img of (spec.imageOverlays ?? [])) {
+          if (t >= img.start && t < img.start + img.duration) {
+            const el = imgEls.get(img.id)
+            if (el && el.naturalWidth > 0) {
+              ctx.save()
+              ctx.globalAlpha = img.opacity ?? 1
+              const w = outW * (img.scale ?? 0.3)
+              const h = (el.naturalHeight / el.naturalWidth) * w
+              ctx.drawImage(el, (img.x ?? 0.5) * outW - w / 2, (img.y ?? 0.5) * outH - h / 2, w, h)
+              ctx.restore()
+            }
+          }
+        }
+        for (const ov of spec.overlays) {
+          if (t >= ov.start && t < ov.start + ov.duration) {
+            drawTextOnCanvas(ctx, ov, outW, outH, t)
+          }
+        }
+
+        const frameDur = Math.max(0.001, (sample.duration || 1 / 30) / speed)
+        // Guard against out-of-order/duplicate timestamps.
+        const safeT = outT <= lastOutT ? lastOutT + 0.001 : outT
+        lastOutT = safeT
+        await canvasSource.add(safeT, frameDur)
+        sample.close()
+        const pct = Math.min(99, Math.round(((t - trimStart) / Math.max(0.001, trimEnd - trimStart)) * 100))
+        setExportProgress(pct)
+        setExportStatus(`Rendering frames… ${pct}%`)
+      }
+
+      setExportStatus('Finalizing MP4…')
+      await output.finalize()
+      const buf = target.buffer
+      if (!buf) throw new Error('Encoder produced no output')
+      const mp4 = new Blob([buf], { type: 'video/mp4' })
       exportBlobRef.current = mp4
       exportExtRef.current = 'mp4'
       const url = URL.createObjectURL(mp4)
       setExportUrl(url)
       setExportProgress(100)
       setSavedToLibrary(false)
-      setExportStatus(`Done — ${(mp4.size / 1024 / 1024).toFixed(1)} MB · 30fps MP4`)
+      setExportStatus(`Done — ${((trimEnd - trimStart) / speed).toFixed(1)}s · ${(mp4.size / 1024 / 1024).toFixed(1)} MB MP4`)
       const a = document.createElement('a')
       a.href = url
       a.download = `${(exportName.trim() || 'contentflow-export').replace(/[^a-zA-Z0-9-_ ]/g, '')}.mp4`
       a.click()
-      setExporting(false)
-      return
-    } catch (err) {
-      console.warn('[editor] cloud render failed, falling back to local:', err)
+    } finally {
       setExporting(false)
     }
-    // Fallback — browser-side renderer.
+  }
+
+  // Export order: WebCodecs (free, frame-perfect MP4) → MediaRecorder
+  // (realtime WebM, last resort for browsers without WebCodecs).
+  async function handleExport() {
+    if (!spec.videoUrl) return
+    if (typeof window !== 'undefined' && 'VideoEncoder' in window) {
+      try {
+        return await handleWebCodecsExport()
+      } catch (err) {
+        console.warn('[editor] WebCodecs export failed, falling back to realtime renderer:', err)
+      }
+    }
     return handleLocalExport()
   }
 
@@ -2916,7 +3080,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                 </div>
 
                 <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-mute)', lineHeight: 1.6 }}>
-                  Rendered in the cloud at full 30fps — output is MP4. Local uploads render in-browser as WebM.
+                  Rendered on your device frame-by-frame — full framerate, MP4 output, no upload needed.
                 </div>
 
                 <button
