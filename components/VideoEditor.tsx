@@ -335,17 +335,20 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         musicGain.connect(audioCtx.destination)
       }
 
-      // MediaRecorder captures canvas + audio
-      // Use 60fps capture so fast motion stays sharp; VP9 at 20Mbps for archival quality
-      const capStream = canvas.captureStream(60)
+      // MediaRecorder captures canvas + audio.
+      // 30fps + VP8 + 10Mbps: VP9 at 60fps/20Mbps overwhelmed the software
+      // encoder at 1080x1920 — the video track stalled ~3s in (frozen frames,
+      // audio continuing) while the encoder queue drowned. VP8 encodes several
+      // times faster and 10Mbps is visually transparent for this content.
+      const capStream = canvas.captureStream(30)
       for (const t of audioDest.stream.getAudioTracks()) capStream.addTrack(t)
 
       const mimeType =
-        MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' :
         MediaRecorder.isTypeSupported('video/webm;codecs=vp8,opus') ? 'video/webm;codecs=vp8,opus' :
+        MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus') ? 'video/webm;codecs=vp9,opus' :
         'video/webm'
 
-      const recorder = new MediaRecorder(capStream, { mimeType, videoBitsPerSecond: 20_000_000 })
+      const recorder = new MediaRecorder(capStream, { mimeType, videoBitsPerSecond: 10_000_000 })
       const chunks: BlobPart[] = []
       recorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data) }
 
@@ -406,6 +409,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             finalize()
             return
           }
+          try {
 
           const pct = Math.round(((t - trimStart) / (trimEnd - trimStart)) * 100)
           setExportStatus(`Rendering ${pct}%`)
@@ -476,6 +480,10 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
             }
           }
 
+          } catch (drawErr) {
+            // A single bad frame must not kill the export — log and keep going.
+            console.warn('[editor export] draw error, continuing:', drawErr)
+          }
           if (hasRVFC) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             (vid as any).requestVideoFrameCallback(tick)
