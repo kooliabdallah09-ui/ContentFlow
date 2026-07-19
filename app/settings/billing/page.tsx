@@ -419,57 +419,56 @@ export default function BillingPage() {
         ))}
       </div>
 
-      {/* Credit Packs */}
-      <div style={{ marginBottom: '48px' }}>
-        <div className="section-head" style={{ marginBottom: '24px' }}>
-          <h2 className="section-title">Credit <em>Packs</em></h2>
-          <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginTop: '8px' }}>One-time purchase — no subscription required</p>
+      {/* Credit Packs — pay-as-you-go card, same design as the pricing page */}
+      <div style={{
+        marginBottom: '48px',
+        border: '1px solid var(--border)', borderRadius: 18,
+        background: 'var(--surface)', padding: '30px 32px',
+      }}>
+        <div>
+          <h2 style={{
+            fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400,
+            margin: 0, letterSpacing: '-0.01em', color: 'var(--ink)',
+          }}>
+            Prefer to <span style={{ fontStyle: 'italic' }}>pay as you go?</span>
+          </h2>
+          <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: '7px 0 0' }}>
+            One-off credit packs. No subscription, never expire.
+          </p>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '16px' }}>
+        <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 22 }}>
           {creditPacks.map((pack) => (
-            <div
-              key={pack.credits}
-              style={{
-                background: 'var(--surface)',
-                border: pack.popular ? '2px solid var(--accent)' : '1px solid var(--border)',
-                borderRadius: 'var(--r-lg)',
-                padding: '24px',
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-              }}
-            >
-              {pack.popular && (
-                <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--accent)', color: 'var(--bg)', fontSize: '11px', fontWeight: 600, padding: '4px 12px', borderRadius: 'var(--r-sm)' }}>
-                  Best Value
-                </div>
-              )}
-              <h4 style={{ fontSize: '24px', fontWeight: 700, color: 'var(--accent)', marginBottom: '4px' }}>
-                {pack.credits}
-              </h4>
-              <p className="eyebrow" style={{ color: 'var(--ink-dim)', marginBottom: '12px' }}>credits</p>
-              <div style={{ marginBottom: '16px' }}>
-                <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--ink)' }}>
-                  {pack.price}
-                </div>
-                <p className="eyebrow" style={{ color: 'var(--ink-mute)' }}>{pack.pricePerCredit}</p>
-                {pack.discount && (
-                  <p className="eyebrow" style={{ color: 'var(--good)', marginTop: '4px' }}>
-                    {pack.discount} vs 200cr
-                  </p>
-                )}
+            <div key={pack.credits} style={{
+              border: '1px solid var(--border)', borderRadius: 13,
+              padding: '18px 20px', background: 'var(--bg-elev)',
+              display: 'flex', flexDirection: 'column', gap: 6,
+            }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em', color: 'var(--ink)' }}>
+                {pack.credits.toLocaleString()} <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>cr</span>
+              </div>
+              <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>{pack.price}</span>
+                <span style={{ marginLeft: 6, color: 'var(--ink-mute)' }}>· {pack.pricePerCredit}</span>
               </div>
               <button
-                className="btn btn-primary"
-                style={{ width: '100%', opacity: upgradeLoading === pack.priceId ? 0.6 : 1 }}
                 onClick={() => pack.priceId && handleUpgrade(pack.priceId, 'payment')}
                 disabled={upgradeLoading === pack.priceId}
+                style={{
+                  marginTop: 4, display: 'block', textAlign: 'center', width: '100%',
+                  padding: '9px 14px', borderRadius: 9,
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer',
+                  opacity: upgradeLoading === pack.priceId ? 0.6 : 1,
+                }}
               >
-                {upgradeLoading === pack.priceId ? 'Redirecting…' : 'Buy Pack'}
+                {upgradeLoading === pack.priceId ? 'Redirecting…' : 'Buy credits'}
               </button>
             </div>
           ))}
         </div>
+        <style>{`
+          @media (max-width: 760px) { .billing-pack-grid { grid-template-columns: 1fr !important; } }
+        `}</style>
       </div>
 
       {/* FAQ */}
