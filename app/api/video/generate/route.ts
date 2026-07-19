@@ -226,8 +226,13 @@ HARD RULES:
         && body.startImageUrl.startsWith(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/`)) {
       startImageUrl = body.startImageUrl
     } else if (refImageBase64 && refImageMimeType) {
+      // Preserve the reference's own aspect — force-covering to 9:16 was
+      // center-cropping product photos (chopped sleeves) and upscaling
+      // small images into blur, and that broken frame anchored the whole
+      // render. Cap the long edge, never enlarge, never crop; Seedance
+      // reconciles the start frame with the requested aspect itself.
       const buf = await sharp(Buffer.from(refImageBase64, 'base64'))
-        .resize(720, 1280, { fit: 'cover', position: 'center' })
+        .resize(1280, 1280, { fit: 'inside', withoutEnlargement: true })
         .png()
         .toBuffer()
       const filename = `video-ref/${userId}-${Date.now()}.png`
