@@ -262,19 +262,19 @@ export default function BillingPage() {
         <p className="eyebrow" style={{ marginBottom: '16px' }}>Current Balance</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
           <div>
-            <div style={{ fontSize: '32px', fontWeight: 600, color: 'var(--accent)', marginBottom: '4px' }}>
-              {creditsInfo?.balance || 0}
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: '4px' }}>
+              {(creditsInfo?.balance || 0).toLocaleString()}
             </div>
             <p className="eyebrow">Available Credits</p>
           </div>
           <div>
-            <div style={{ fontSize: '32px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
-              {creditsInfo?.monthlyCredits || 0}
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: '4px' }}>
+              {(creditsInfo?.monthlyCredits || 0).toLocaleString()}
             </div>
             <p className="eyebrow">Monthly Allocation</p>
           </div>
           <div>
-            <div style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, lineHeight: 1.6, color: 'var(--ink)', marginBottom: '4px' }}>
               {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString() : '–'}
             </div>
             <p className="eyebrow">Reset Date</p>
