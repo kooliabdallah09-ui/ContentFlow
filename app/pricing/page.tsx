@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/lib/auth'
+import { PADDLE_PRICES } from '@/lib/paddle'
+import { openPaddleCheckout } from '@/lib/paddle-client'
 
 const PLANS = [
   {
@@ -26,8 +28,8 @@ const PLANS = [
     annualTotal: '$190/yr',
     unit: '/month',
     credits: '800 credits/month',
-    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
-    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? '',
+    monthlyPriceId: PADDLE_PRICES.starter,
+    annualPriceId: PADDLE_PRICES.starterAnnual,
     features: ['~8 UGC videos/mo at 5s · ~4 at 10s · ~3 at 15s', '~160 product images or voiceovers', '~13 standalone videos (8s)', 'No watermark · Actor library', 'Video editor · Priority support'],
     cta: 'Get Starter',
     href: '/auth/signup?plan=starter',
@@ -40,8 +42,8 @@ const PLANS = [
     annualTotal: '$490/yr',
     unit: '/month',
     credits: '2,000 credits/month',
-    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
-    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '',
+    monthlyPriceId: PADDLE_PRICES.pro,
+    annualPriceId: PADDLE_PRICES.proAnnual,
     features: ['~22 UGC videos/mo at 5s · ~11 at 10s · ~7 at 15s', '~400 product images or voiceovers', '~34 standalone videos (8s)', 'Everything in Starter', 'Shopify product import'],
     cta: 'Get Pro',
     href: '/auth/signup?plan=pro',
@@ -53,8 +55,8 @@ const PLANS = [
     annualTotal: '$1,490/yr',
     unit: '/month',
     credits: '6,500 credits/month',
-    monthlyPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
-    annualPriceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? '',
+    monthlyPriceId: PADDLE_PRICES.agency,
+    annualPriceId: PADDLE_PRICES.agencyAnnual,
     features: ['~71 UGC videos/mo at 5s · ~38 at 10s · ~25 at 15s', '~1,300 product images or voiceovers', '~112 standalone videos (8s)', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
     cta: 'Get Agency',
     href: '/auth/signup?plan=agency',
@@ -62,9 +64,9 @@ const PLANS = [
 ]
 
 const PACKS = [
-  { credits: 500, price: 15, perCredit: 0.030, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '' },
-  { credits: 1500, price: 45, perCredit: 0.030, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '' },
-  { credits: 5000, price: 120, perCredit: 0.024, priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '' },
+  { credits: 500, price: 15, perCredit: 0.030, priceId: PADDLE_PRICES.pack500 },
+  { credits: 1500, price: 45, perCredit: 0.030, priceId: PADDLE_PRICES.pack1500 },
+  { credits: 5000, price: 120, perCredit: 0.024, priceId: PADDLE_PRICES.pack5000 },
 ]
 
 export default function PricingPage() {
@@ -78,21 +80,14 @@ export default function PricingPage() {
     })
   }, [])
 
-  async function handleCheckout(priceId: string, mode: 'subscription' | 'payment') {
+  async function handleCheckout(priceId: string, _mode: 'subscription' | 'payment') {
     if (!priceId) { window.location.href = '/auth/signup'; return }
     setUpgradeLoading(priceId)
     try {
       const { data } = await getSupabase()!.auth.getSession()
-      const token = data?.session?.access_token
-      if (!token) { window.location.href = '/auth/signup'; return }
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ priceId, mode }),
-      })
-      const { url, error } = await res.json()
-      if (error) throw new Error(error)
-      window.location.href = url
+      const user = data?.session?.user
+      if (!user) { window.location.href = '/auth/signup'; return }
+      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {

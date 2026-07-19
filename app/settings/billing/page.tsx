@@ -2,19 +2,21 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
+import { PADDLE_PRICES } from '@/lib/paddle'
+import { openPaddleCheckout } from '@/lib/paddle-client'
 import { Icon } from '@/components/Icons'
 import Link from 'next/link'
 
 const PRICE_IDS = {
-  starter: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
-  starter_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? '',
-  pro: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
-  pro_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '',
-  agency: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
-  agency_annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? '',
-  pack_500: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '',
-  pack_1500: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '',
-  pack_5000: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '',
+  starter: PADDLE_PRICES.starter,
+  starter_annual: PADDLE_PRICES.starterAnnual,
+  pro: PADDLE_PRICES.pro,
+  pro_annual: PADDLE_PRICES.proAnnual,
+  agency: PADDLE_PRICES.agency,
+  agency_annual: PADDLE_PRICES.agencyAnnual,
+  pack_500: PADDLE_PRICES.pack500,
+  pack_1500: PADDLE_PRICES.pack1500,
+  pack_5000: PADDLE_PRICES.pack5000,
 }
 
 interface CreditsInfo {
@@ -47,19 +49,15 @@ export default function BillingPage() {
     return data?.session?.access_token ?? null
   }
 
-  async function handleUpgrade(priceId: string, mode: 'subscription' | 'payment') {
+  async function handleUpgrade(priceId: string, _mode: 'subscription' | 'payment') {
     if (!priceId) { alert('Annual pricing coming soon — switch to monthly to upgrade now.'); return }
     setUpgradeLoading(priceId)
     try {
-      const token = await getToken()
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ priceId, mode }),
-      })
-      const { url, error } = await res.json()
-      if (error) throw new Error(error)
-      window.location.href = url
+      const supabase = getSupabase()
+      const { data } = await supabase!.auth.getSession()
+      const user = data?.session?.user
+      if (!user) { window.location.href = '/auth/login'; return }
+      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {
@@ -71,7 +69,7 @@ export default function BillingPage() {
     setUpgradeLoading('portal')
     try {
       const token = await getToken()
-      const res = await fetch('/api/stripe/portal', {
+      const res = await fetch('/api/paddle/portal', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
