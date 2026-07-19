@@ -98,6 +98,9 @@ export async function submitSeedanceJob(params: {
   resolution?: '480p' | '720p' | '1080p' | '4k'
   enableAudio?: boolean       // native voice + ambient + music, default off
   engine?: 'seedance-2' | 'seedance-mini'   // Mini: ~half price, caps at 720p
+  // Appearance anchors that are NOT the first frame — Seedance binds them
+  // via [Image1]/[Image2] mentions in the prompt. Up to 9 supported.
+  referenceImageUrls?: string[]
 }): Promise<{ predictionId: string }> {
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
@@ -122,6 +125,7 @@ export async function submitSeedanceJob(params: {
     negative_prompt: 'nudity, undressed, underwear, bare skin, suggestive pose, sexual content, minors, children, bedroom bed, undressing, intimate framing, blurry face, distorted hands, extra fingers, deformed face, text overlays, captions, watermarks, logos',
   }
   if (params.startImageUrl) input.image = params.startImageUrl
+  if (params.referenceImageUrls?.length) input.reference_images = params.referenceImageUrls.slice(0, 9)
 
   // Mini only outputs up to 720p — clamp defensively.
   const model = params.engine === 'seedance-mini' ? 'bytedance/seedance-2.0-mini' : SEEDANCE_MODEL

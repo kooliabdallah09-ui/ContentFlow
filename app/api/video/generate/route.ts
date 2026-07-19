@@ -172,6 +172,7 @@ HARD RULES:
 - MATERIALS & LIGHT: describe how light interacts with real materials — cotton weave catching rim light, condensation micro-droplets, dust motes in volumetric beams, soft key + hard kicker. Fabric must read as real cloth with weight and weave, never plastic or CGI-smooth.
 - Cinematic camera choreography that never sits still: macro slide along the print, sweeping orbital, whip-to-lock hero framing, push-in on the reveal, speed-ramps. Every scene names its shot type and camera move.
 - Sound: ambient whooshes, deep sub-bass hits, tactile foley synced to the physics — no music with vocals, no narration.
+- The product photos are passed to the video model as reference images: refer to the product in your prompt as [Image1] (add [Image2], [Image3] for the other angles when provided) so the model binds the exact appearance. The video does NOT start on the raw photo — Scene 1 opens already inside the designed environment.
 - Timestamped scene blocks (SCENE N [MM:SS – MM:SS], Visual: …). Scene count by duration: <=5s 1 · 6-10s 2 · 11-20s 3 · 21-40s 4-5 · 41-60s 5-7. Final scene ends EXACTLY at the target duration with a locked hero shot of the product.
 - Stay under 3400 characters. Output ONLY the finished prompt.`
       const msg = await anthropic.messages.create({
@@ -226,7 +227,7 @@ HARD RULES:
     if (typeof body.startImageUrl === 'string'
         && body.startImageUrl.startsWith(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/`)) {
       startImageUrl = body.startImageUrl
-    } else if (refImageBase64 && refImageMimeType) {
+    } else if (refImageBase64 && refImageMimeType && !hyperMotion) {
       // Preserve the reference's own aspect — force-covering to 9:16 was
       // center-cropping product photos (chopped sleeves) and upscaling
       // small images into blur, and that broken frame anchored the whole
@@ -241,6 +242,26 @@ HARD RULES:
       const { data: { publicUrl } } = supabase.storage.from('ugc-assets').getPublicUrl(filename)
       startImageUrl = publicUrl
     }
+    // HyperMotion: product photos become Seedance reference_images
+    // (appearance anchors, NOT the first frame) — the video opens on the
+    // directed scene instead of the raw catalog photo.
+    let referenceImageUrls: string[] | undefined
+    if (hyperMotion && referenceImages.length) {
+      referenceImageUrls = []
+      for (const img of referenceImages.slice(0, 3)) {
+        const buf = await sharp(Buffer.from(img.base64, 'base64'))
+          .resize(1280, 1280, { fit: 'inside', withoutEnlargement: true })
+          .png()
+          .toBuffer()
+        const filename = `video-ref/${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`
+        const { error: upErr } = await supabase.storage
+          .from('ugc-assets')
+          .upload(filename, buf, { contentType: 'image/png', upsert: false })
+        if (!upErr) referenceImageUrls.push(supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl)
+      }
+      startImageUrl = undefined
+    }
+
     const seedanceJob = await submitSeedanceJob({
       prompt,
       durationSeconds: duration,
@@ -249,6 +270,7 @@ HARD RULES:
       resolution,
       enableAudio: withAudio,
       engine: model,
+      referenceImageUrls,
     })
     const predictionId = seedanceJob.predictionId
     const provider = 'seedance-2'
