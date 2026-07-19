@@ -164,10 +164,12 @@ Study the attached product photo carefully — packaging, materials, label text,
 
 HARD RULES:
 - NO humans, NO hands, NO faces, NO voiceover, NO dialogue, NO on-screen text, NO captions, NO logos other than what is printed on the product itself.
-- The product must appear EXACTLY as photographed — never redesign packaging, labels, or colours.
-- Physics-driven VFX around the product: floating assembly/disassembly, particle bursts, liquid splashes, powder plumes, fabric ribbons, light rays, slow-motion shatter/merge — pick what fits THIS product's category.
-- Premium 3D-studio environments: seamless gradient voids, wet obsidian slabs, brushed metal platforms, silk drapes, water surfaces, volumetric god rays — moody, expensive, controlled lighting (rim light, soft key, specular kicks).
-- Cinematic camera choreography that never sits still: macro slide along the label, sweeping orbital, whip-to-lock hero framing, push-in on the reveal, speed-ramps. Every scene names its shot type and camera move.
+- PRODUCT FIDELITY IS SACRED: the product appears EXACTLY as photographed — same print, same label colours, same materials. NEVER invent gold/metallic embellishments, glow-up the logo, change the typography, or restyle the design in any way. If the print is flat black ink, it stays flat black ink.
+- Physics-driven VFX around the product: floating assembly/disassembly, particle bursts, liquid splashes, powder plumes, fabric ribbons, cloth simulation, slow-motion shatter/merge — pick what fits THIS product's category and keep the physics plausible (real weight, real drag).
+- ENVIRONMENT: design a SPECIFIC set that fits the product's world — NOT the generic 'black void + single spotlight' cliché. Options: sun-bleached concrete plaza with harsh noon shadows, terracotta canyon at dusk, flooded marble hall with ankle-deep reflective water, monochrome color-drenched studio matched to the brand palette, brutalist stone plinths in fog, wind-swept dunes, glass pavilion in rain. Choose ONE coherent world and commit to it across all scenes.
+- COLOR & GRADE: name a deliberate cinematic grade in the prompt (e.g. 'warm Kodak-film grade with lifted blacks', 'cool steel-blue with amber accents', 'high-key cream and sand palette') that flatters the product's colours. Rich contrast, deep but detailed shadows, highlight rolloff — never flat, never washed out.
+- MATERIALS & LIGHT: describe how light interacts with real materials — cotton weave catching rim light, condensation micro-droplets, dust motes in volumetric beams, soft key + hard kicker. Fabric must read as real cloth with weight and weave, never plastic or CGI-smooth.
+- Cinematic camera choreography that never sits still: macro slide along the print, sweeping orbital, whip-to-lock hero framing, push-in on the reveal, speed-ramps. Every scene names its shot type and camera move.
 - Sound: ambient whooshes, deep sub-bass hits, tactile foley synced to the physics — no music with vocals, no narration.
 - Timestamped scene blocks (SCENE N [MM:SS – MM:SS], Visual: …). Scene count by duration: <=5s 1 · 6-10s 2 · 11-20s 3 · 21-40s 4-5 · 41-60s 5-7. Final scene ends EXACTLY at the target duration with a locked hero shot of the product.
 - Stay under 3400 characters. Output ONLY the finished prompt.`

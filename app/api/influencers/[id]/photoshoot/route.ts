@@ -140,8 +140,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (sceneRefs.length) {
       refDescription += `. The LAST ${sceneRefs.length} attached image${sceneRefs.length > 1 ? 's are' : ' is'} NOT the person — ${sceneRefs.length > 1 ? 'they show' : 'it shows'} a scene, outfit, or object the photo must incorporate faithfully (exact clothing/product/location as pictured)`
     }
+    const wearable = studioProduct && (studioProduct.category === 'apparel' || studioProduct.category === 'footwear')
     const productLine = studioProduct
-      ? `\nTHE PRODUCT: they are ${(studioProduct.category === 'apparel' || studioProduct.category === 'footwear') ? `WEARING "${studioProduct.name}"` : `naturally using/holding "${studioProduct.name}"`} in this scene — hands engaged with it as part of the activity, product undistorted and clearly visible.`
+      ? (wearable
+          ? `\nTHE PRODUCT — HIGHEST PRIORITY: they are WEARING "${studioProduct.name}" (the exact garment from the product reference images) AS THEIR OUTFIT in this scene. IGNORE any clothing described above and IGNORE whatever they wear in their own reference photos — the product garment replaces it, with its print/label reproduced exactly.`
+          : `\nTHE PRODUCT — HIGHEST PRIORITY: they are naturally using/holding "${studioProduct.name}" (the exact item from the product reference images) in this scene — hands engaged with it as part of the activity, product undistorted, clearly visible, packaging exact.`)
       : ''
     const basePrompt = (variation: string) =>
       `${influencer.appearance_prompt}${productLine}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, skin tone, and identity precisely.
@@ -150,6 +153,16 @@ CANDID, NOT POSED — CRITICAL: the person is genuinely DOING the scene's activi
 
 COMPOSITION: the subject does NOT have to be centered — use rule-of-thirds placement, let the environment breathe around them, allow foreground elements to partially overlap. OUTFIT IS NOT LOCKED: the clothing worn in the reference images is just what they had on that day — dress the character appropriately for THIS scene, and if the scene description mentions clothing or style, that wins over whatever the references show. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid snapshot: natural light appropriate to the scene, real skin texture with pores and small imperfections, natural face, no plastic face, no AI-smooth skin, believable social-media energy, no beauty filter. The look of a casual smartphone photo taken by a friend: bright even exposure, deep focus with the background nearly as sharp as the subject (NO shallow depth of field, NO bokeh), mild consumer-camera HDR, true-to-life neutral colors, slightly imperfect framing. NOT an editorial or fashion photoshoot: no cinematic color grade, no dramatic rim lighting, no posed model energy, no magazine retouching.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
+    // NB2 handles few reference images — with the full set (12-panel sheet
+    // + portrait + product angles) it ignored the product entirely. On NB2,
+    // slim to portrait + first product angle. Pro keeps everything.
+    let effIdentityRefs = identityRefs
+    let effProductRefs = productRefs
+    if (model === 'nb2' && productRefs.length) {
+      effIdentityRefs = identityRefs.slice(-1)   // portrait (last pushed) over the sheet
+      effProductRefs = productRefs.slice(0, 1)
+    }
+
     const results = await Promise.allSettled(
       Array.from({ length: count }, (_, i) =>
         generateNanoBananaImage(basePrompt(SHOT_VARIATIONS[i % SHOT_VARIATIONS.length]), {
@@ -157,9 +170,9 @@ COMPOSITION: the subject does NOT have to be centered — use rule-of-thirds pla
           ratio,
           model,
           resolution: quality === '4k' ? '4K' : undefined,
-          referenceImages: [...identityRefs, ...productRefs, ...sceneRefs],
-          referenceHint: (productRefs.length || sceneRefs.length)
-            ? `The FIRST ${identityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt.${productRefs.length ? ` The next ${productRefs.length} image(s) show the EXACT product — preserve its packaging/print, label text, colours, shape and proportions perfectly; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
+          referenceImages: [...effIdentityRefs, ...effProductRefs, ...sceneRefs],
+          referenceHint: (effProductRefs.length || sceneRefs.length)
+            ? `The FIRST ${effIdentityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; their clothing MUST change per the prompt.${effProductRefs.length ? ` The next ${effProductRefs.length} image(s) show the EXACT product${wearable ? ' — the person WEARS this garment in the output, print and label reproduced exactly' : ' — preserve its packaging/print, label text, colours, shape and proportions perfectly'}; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
             : 'The attached reference images define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. Apply the prompt as scene + framing around them.',
         }),
       ),
