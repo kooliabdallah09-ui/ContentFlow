@@ -13,11 +13,10 @@ import { showError, showSuccess } from '@/lib/notifications'
 // + Generate, followed by a grid of 4 result placeholders that fill in
 // as images render. Hits the existing /api/content/generate/image route.
 
+// Raw mode only: the prompt goes to Nano Banana verbatim — no style
+// wrapping, no AI preprocessing. Full manual control.
 const STYLES = [
-  { id: 'realistic', label: 'Product photo' },
-  // Raw mode: the prompt goes to Nano Banana verbatim — no style wrapping,
-  // no AI preprocessing. Full manual control.
-  { id: 'raw',       label: 'Direct prompt' },
+  { id: 'raw', label: 'Direct prompt' },
 ]
 
 const IMAGE_MODELS = [
@@ -42,7 +41,7 @@ function perImageCr(model: 'pro' | 'nb2', resolution: '2K' | '4K'): number {
 
 export default function ImageGeneratorPage() {
   const [prompt, setPrompt] = useState('')
-  const [style, setStyle] = useState(STYLES[0].id)
+  const [style, setStyle] = useState('raw')
   const [imgModel, setImgModel] = useState<'pro' | 'nb2'>('pro')
   const [imgResolution, setImgResolution] = useState<'2K' | '4K'>('2K')
   const [ratio, setRatio] = useState(RATIOS[1].id) // default 4:5 to match the design
