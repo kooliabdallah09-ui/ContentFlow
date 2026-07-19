@@ -138,6 +138,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [selectedImgId, setSelectedImgId] = useState<string | null>(null)
   const [exportProgress, setExportProgress] = useState(0)
   const [savingToLibrary, setSavingToLibrary] = useState(false)
+  const [saveProgress, setSaveProgress] = useState(0)   // 0-100 upload phase, 100 = pushing to Drive
   const [savedToLibrary, setSavedToLibrary] = useState(false)
   const exportBlobRef = useRef<Blob | null>(null)
   const [newAnimation, setNewAnimation] = useState<TextOverlay['animation']>('none')
@@ -3132,6 +3133,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                         const blob = exportBlobRef.current
                         if (!blob) return
                         setSavingToLibrary(true)
+                        setSaveProgress(0)
                         try {
                           const supabase = getSupabase()
                           if (!supabase) throw new Error('Not signed in')
@@ -3150,8 +3152,21 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                           })
                           const { signedUrl, storagePath, error: urlErr } = await urlRes.json()
                           if (urlErr) throw new Error(urlErr)
-                          const putRes = await fetch(signedUrl, { method: 'PUT', headers: { 'Content-Type': ext === 'mp4' ? 'video/mp4' : 'video/webm' }, body: blob })
-                          if (!putRes.ok) throw new Error(`Temp upload failed: ${putRes.status}`)
+                          // XHR instead of fetch so we get real upload progress.
+                          await new Promise<void>((resolve, reject) => {
+                            const xhr = new XMLHttpRequest()
+                            xhr.open('PUT', signedUrl)
+                            xhr.setRequestHeader('Content-Type', ext === 'mp4' ? 'video/mp4' : 'video/webm')
+                            xhr.upload.onprogress = e => {
+                              if (e.lengthComputable) setSaveProgress(Math.round((e.loaded / e.total) * 100))
+                            }
+                            xhr.onload = () => xhr.status >= 200 && xhr.status < 300
+                              ? resolve()
+                              : reject(new Error(`Temp upload failed: ${xhr.status}`))
+                            xhr.onerror = () => reject(new Error('Temp upload failed'))
+                            xhr.send(blob)
+                          })
+                          setSaveProgress(100)
 
                           // Step 2: server fetches from Supabase and pushes to Drive (no CORS, no body limit)
                           const driveRes = await fetch('/api/drive/upload', {
@@ -3171,7 +3186,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '10px', borderRadius: 8, background: savedToLibrary ? '#16a34a' : 'var(--ink)', border: 'none', color: 'var(--on-ink)', fontSize: 13, fontWeight: 700, cursor: savingToLibrary || savedToLibrary ? 'default' : 'pointer', opacity: savingToLibrary ? 0.7 : 1 }}
                     >
                       {savingToLibrary ? (
-                        <><span style={{ display: 'inline-block', width: 13, height: 13, borderRadius: '50%', border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', animation: 'spin 0.7s linear infinite' }} />Saving…</>
+                        <><span style={{ display: 'inline-block', width: 13, height: 13, borderRadius: '50%', border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', animation: 'spin 0.7s linear infinite' }} />{saveProgress < 100 ? `Uploading… ${saveProgress}%` : 'Sending to Drive…'}</>
                       ) : savedToLibrary ? '✓ Saved to Library' : (
                         <><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save to Library</>
                       )}
