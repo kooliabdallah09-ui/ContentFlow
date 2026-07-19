@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
       id: string
       origin?: string
       custom_data?: { supabase_user_id?: string }
-      items?: Array<{ price?: { id?: string } }>
+      items?: Array<{ price?: { id?: string }; quantity?: number }>
     }
   }
 
@@ -73,13 +73,13 @@ export async function POST(request: NextRequest) {
   try {
     switch (event.event_type) {
       case 'transaction.completed': {
-        const priceIds = (event.data.items ?? [])
-          .map(i => i.price?.id)
-          .filter((x): x is string => !!x)
+        const lineItems = (event.data.items ?? [])
+          .map(i => ({ priceId: i.price?.id, quantity: Math.max(1, Number(i.quantity) || 1) }))
+          .filter((x): x is { priceId: string; quantity: number } => !!x.priceId)
         const isRenewal = event.data.origin === 'subscription_recurring'
 
-        for (const priceId of priceIds) {
-          const packCreditsToAdd = PADDLE_PACK_CREDIT_MAP[priceId]
+        for (const { priceId, quantity } of lineItems) {
+          const packCreditsToAdd = (PADDLE_PACK_CREDIT_MAP[priceId] ?? 0) * quantity
           const planInfo = PADDLE_PLAN_PRICE_MAP[priceId]
 
           if (packCreditsToAdd) {
