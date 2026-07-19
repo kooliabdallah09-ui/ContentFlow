@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { useSearchParams } from 'next/navigation'
 import { readChatPrefill } from '@/lib/chat-prefill'
 import { getSupabase } from '@/lib/auth'
@@ -227,6 +228,7 @@ export default function UGCGeneratorPage() {
 
   return (
     <main style={{ maxWidth: 1140, margin: '0 auto', padding: '36px 40px 90px' }} className="ugc-page">
+      <DriveConnectBanner />
       <div style={{ marginBottom: 28 }}>
         <div style={{
           display: 'flex', alignItems: 'center', gap: 9,

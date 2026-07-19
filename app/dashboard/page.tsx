@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 import ContentPlanSection from '@/components/ContentPlanSection'
@@ -115,6 +116,7 @@ export default function DashboardPage() {
 
   return (
     <main className="content">
+      <DriveConnectBanner />
       <div className="page-meta">{dayStr} · {dateStr} · {yearStr}</div>
       <h1 className="page-title">
         {greeting}, {userName.charAt(0).toUpperCase() + userName.slice(1)}.<br/>
