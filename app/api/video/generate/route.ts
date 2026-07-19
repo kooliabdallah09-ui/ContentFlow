@@ -165,6 +165,7 @@ Study the attached product photo carefully — packaging, materials, label text,
 HARD RULES:
 - NO humans, NO hands, NO faces, NO voiceover, NO dialogue, NO on-screen text, NO captions, NO logos other than what is printed on the product itself.
 - PRODUCT FIDELITY IS SACRED: the product appears EXACTLY as photographed — same print, same label colours, same materials. NEVER invent gold/metallic embellishments, glow-up the logo, change the typography, or restyle the design in any way. If the print is flat black ink, it stays flat black ink.
+- UNSEEN SURFACES ARE PLAIN: only depict prints/graphics that are VISIBLE in the reference photos, on the exact surface where they appear. Any side of the product NOT shown in the photos is plain, blank, undecorated. In your prompt, explicitly state per visible side what it shows AND that all other sides are plain — e.g. 'front chest: small logo top-right + one line of script; back: completely plain white fabric, no print'. If the camera passes an unseen side, it shows blank material — NEVER invent text, patterns, or graphics there.
 - Physics-driven VFX around the product: floating assembly/disassembly, particle bursts, liquid splashes, powder plumes, fabric ribbons, cloth simulation, slow-motion shatter/merge — pick what fits THIS product's category and keep the physics plausible (real weight, real drag).
 - ENVIRONMENT: design a SPECIFIC set that fits the product's world — NOT the generic 'black void + single spotlight' cliché. Options: sun-bleached concrete plaza with harsh noon shadows, terracotta canyon at dusk, flooded marble hall with ankle-deep reflective water, monochrome color-drenched studio matched to the brand palette, brutalist stone plinths in fog, wind-swept dunes, glass pavilion in rain. Choose ONE coherent world and commit to it across all scenes.
 - COLOR & GRADE: name a deliberate cinematic grade in the prompt (e.g. 'warm Kodak-film grade with lifted blacks', 'cool steel-blue with amber accents', 'high-key cream and sand palette') that flatters the product's colours. Rich contrast, deep but detailed shadows, highlight rolloff — never flat, never washed out.
@@ -180,17 +181,17 @@ HARD RULES:
         messages: [{
           role: 'user',
           content: [
-            {
-              type: 'image',
+            ...referenceImages.slice(0, 3).map(img => ({
+              type: 'image' as const,
               source: {
-                type: 'base64',
-                media_type: refImageMimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
-                data: refImageBase64,
+                type: 'base64' as const,
+                media_type: img.mimeType as 'image/png' | 'image/jpeg' | 'image/webp' | 'image/gif',
+                data: img.base64,
               },
-            },
+            })),
             {
               type: 'text',
-              text: `TARGET DURATION: exactly ${Number(body.duration ?? 5)} seconds. ASPECT: ${body.aspect === 'landscape' ? '16:9' : body.aspect === 'square' ? '1:1' : '9:16 vertical'}.${hyperNote ? `\nCreative direction from the user (honor it): ${hyperNote}` : ''}\n\nDirect the commercial now.`,
+              text: `The ${referenceImages.length > 1 ? `${Math.min(referenceImages.length, 3)} attached photos show the SAME product from different angles — these are the ONLY decorated surfaces that exist` : 'attached photo is the ONLY view of the product — every other side is plain'}.\nTARGET DURATION: exactly ${Number(body.duration ?? 5)} seconds. ASPECT: ${body.aspect === 'landscape' ? '16:9' : body.aspect === 'square' ? '1:1' : '9:16 vertical'}.${hyperNote ? `\nCreative direction from the user (honor it): ${hyperNote}` : ''}\n\nDirect the commercial now.`,
             },
           ],
         }],
