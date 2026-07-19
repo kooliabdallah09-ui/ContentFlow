@@ -18,8 +18,8 @@ import { deductCredits } from '@/lib/deduct-credits'
 
 export const maxDuration = 180
 
-// Same tiers as the quick image generator: NB2 5 · Pro 2K 10 · Pro 4K 18.
-const CR = { nb2: 5, pro: 10, '4k': 18 } as const
+// Studio tiers at 1.4× markup: NB2 $0.075 · Pro 2K $0.139 · Pro 4K $0.24 raw.
+const CR = { nb2: 4, pro: 8, '4k': 14 } as const
 
 const CONCEPT_SYSTEM = `You are an award-winning product photographer and art director (think modern DTC brands: playful, clean, editorial — stacked hero towers, mid-air splashes, pours, texture spreads on stone, hands interacting, monochrome sets, hard-light shadows).
 

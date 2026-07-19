@@ -94,9 +94,12 @@ function perSecondFor(model: Model, resolution: Resolution): number {
   }
   return SEEDANCE_CR_PER_SECOND[resolution]
 }
-function getSeedanceCost(duration: number, resolution: Resolution, withAudio: boolean, model: Model = 'seedance-2'): number {
+// CineMotion adds Sonnet direction + the NB Pro opening frame. Sync with
+// CINEMOTION_CR on the server.
+const CINEMOTION_CR = 14
+function getSeedanceCost(duration: number, resolution: Resolution, withAudio: boolean, model: Model = 'seedance-2', cinemotion: boolean = false): number {
   const base = duration * perSecondFor(model, resolution)
-  return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER))
+  return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER)) + (cinemotion ? CINEMOTION_CR : 0)
 }
 function getSeedancePerSecond(resolution: Resolution, withAudio: boolean, model: Model = 'seedance-2'): number {
   const per = perSecondFor(model, resolution)
@@ -187,7 +190,7 @@ export default function VideoGeneratorPage() {
   const cfg = MODELS.find(m => m.id === model)!
   // Seedance pricing depends on resolution × duration. Other models keep
   // the flat per-duration table.
-  const cost = getSeedanceCost(duration, resolution, withAudio, model)
+  const cost = getSeedanceCost(duration, resolution, withAudio, model, hyperMotion)
   const canGenerate = (hyperMotion ? refImages.length > 0 : prompt.trim().length >= 5) && creditBalance >= cost
 
   // Reset duration when switching models if current duration isn't valid
@@ -700,7 +703,7 @@ export default function VideoGeneratorPage() {
               className="btn btn-primary"
               style={{ padding: '11px 18px', fontSize: 13, borderRadius: 10, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
-              {directing ? 'Directing…' : 'Direct my video · 10 cr'}
+              {directing ? 'Directing…' : 'Direct my video · 15 cr'}
             </button>
           </div>
 

@@ -12,7 +12,7 @@ import { deductCredits } from '@/lib/deduct-credits'
 
 export const maxDuration = 120
 
-export const PRODUCT_CREATE_CR = 5
+export const PRODUCT_CREATE_CR = 3   // Sonnet vision on ≤5 angles ≈ $0.05 raw × 1.4
 
 function supa() {
   return createClient(

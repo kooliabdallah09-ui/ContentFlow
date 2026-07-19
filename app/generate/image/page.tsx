@@ -47,6 +47,10 @@ export default function ImageGeneratorPage() {
   const [ratio, setRatio] = useState(RATIOS[1].id) // default 4:5 to match the design
   const [count, setCount] = useState<number>(4)
   const [images, setImages] = useState<string[]>([])
+  // Persistent gallery — every image ever generated here, like the studios.
+  const [gallery, setGallery] = useState<Array<{ url: string; prompt: string }>>([])
+  const [lightbox, setLightbox] = useState<string | null>(null)
+  const [zoomed, setZoomed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const { balance: rawBalance, refresh: refreshCredits } = useCredits()
@@ -63,6 +67,21 @@ export default function ImageGeneratorPage() {
     }
     const chat = readChatPrefill()
     if (chat) setPrompt(chat)
+  }, [])
+
+  useEffect(() => {
+    (async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      try {
+        const res = await fetch('/api/content/generate/image', { headers: { Authorization: `Bearer ${token}` } })
+        const data = await res.json()
+        if (res.ok && Array.isArray(data.images)) setGallery(data.images)
+      } catch { /* gallery is best-effort */ }
+    })()
   }, [])
 
   function pickReference(file: File | null) {
@@ -112,7 +131,9 @@ export default function ImageGeneratorPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Generation failed')
 
-      setImages(Array.isArray(data.images) ? data.images : [])
+      const fresh: string[] = Array.isArray(data.images) ? data.images : []
+      setImages(fresh)
+      setGallery(g => [...fresh.map(url => ({ url, prompt: prompt.trim() })), ...g])
       refreshCredits()
       showSuccess('Images ready', `${count} image${count > 1 ? 's' : ''} generated`)
     } catch (err) {
@@ -124,10 +145,6 @@ export default function ImageGeneratorPage() {
     }
   }
 
-  // Placeholder cells visualize the upcoming render slots so the page never
-  // feels empty before generation. They share the same diagonal-stripe pattern
-  // used on the dashboard recent thumbnails.
-  const slots = Math.max(count, images.length, 4)
 
   return (
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: '42px 40px 90px' }} className="img-page">
@@ -357,65 +374,77 @@ export default function ImageGeneratorPage() {
         }}>{error}</div>
       )}
 
-      {/* Result grid */}
-      <div style={{
-        marginTop: 24,
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 18,
-      }} className="img-grid">
-        {Array.from({ length: slots }).map((_, i) => {
-          const url = images[i]
-          if (url) {
-            return (
-              <div key={i} style={{
-                aspectRatio: '1', borderRadius: 13, overflow: 'hidden',
-                border: '1px solid var(--border)', background: 'var(--surface)',
-                position: 'relative',
+      {/* Persistent gallery — masonry, like the studios. New renders appear
+          on top; history survives reloads. */}
+      <div style={{ marginTop: 24, columns: '4 220px', columnGap: 14 }} className="img-grid">
+        {loading && Array.from({ length: count }).map((_, i) => (
+          <div key={`ph-${i}`} style={{
+            breakInside: 'avoid', marginBottom: 14, borderRadius: 13,
+            aspectRatio: ratio === '16:9' ? '16/9' : ratio === '1:1' ? '1' : ratio === '9:16' ? '9/16' : '4/5',
+            background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
+            border: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <Loader2 size={20} className="animate-spin" color="var(--ink-mute)" />
+          </div>
+        ))}
+        {gallery.map((img, i) => (
+          <div key={`${img.url}-${i}`} style={{
+            breakInside: 'avoid', marginBottom: 14, borderRadius: 13, overflow: 'hidden',
+            border: '1px solid var(--border)', background: 'var(--surface)', position: 'relative', cursor: 'zoom-in',
+          }} onClick={() => { setLightbox(img.url); setZoomed(false) }}>
+            <img src={img.url} alt={img.prompt || 'generated image'} loading="lazy"
+              style={{ width: '100%', display: 'block' }} />
+            <a href={img.url} download target="_blank" rel="noopener noreferrer"
+              onClick={e => e.stopPropagation()}
+              style={{
+                position: 'absolute', top: 8, right: 8,
+                width: 32, height: 32, borderRadius: 8,
+                background: 'rgba(20,18,12,0.75)', color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backdropFilter: 'blur(4px)',
               }}>
-                <img src={url} alt={`generation ${i + 1}`}
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                <a href={url} download={`image-${Date.now()}-${i}.png`} target="_blank" rel="noopener noreferrer"
-                  style={{
-                    position: 'absolute', top: 8, right: 8,
-                    width: 32, height: 32, borderRadius: 8,
-                    background: 'rgba(20,18,12,0.75)', color: '#fff',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    backdropFilter: 'blur(4px)',
-                  }}>
-                  <Download size={14} />
-                </a>
-              </div>
-            )
-          }
-          return (
-            <div key={i} style={{
-              aspectRatio: '1', borderRadius: 13,
-              background: loading
-                ? 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)'
-                : 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
-              border: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              position: 'relative',
-            }}>
-              {loading && i < count ? (
-                <Loader2 size={20} className="animate-spin" color="var(--ink-mute)" />
-              ) : (
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 11,
-                  letterSpacing: '0.14em', textTransform: 'uppercase',
-                  color: 'var(--ink-faint)',
-                }}>
-                  Product photo
-                </span>
-              )}
-            </div>
-          )
-        })}
+              <Download size={14} />
+            </a>
+          </div>
+        ))}
+        {!loading && !gallery.length && (
+          <div style={{
+            breakInside: 'avoid', borderRadius: 13, aspectRatio: '4/5',
+            border: '1px dashed var(--border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)', fontSize: 11,
+            letterSpacing: '0.14em', textTransform: 'uppercase',
+          }}>
+            Your images live here
+          </div>
+        )}
       </div>
+
+      {/* Lightbox with click-to-zoom */}
+      {lightbox && (
+        <div onClick={() => setLightbox(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(12,10,8,0.88)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          overflow: 'auto', padding: zoomed ? 0 : 32,
+        }}>
+          <button onClick={() => setLightbox(null)} style={{
+            position: 'fixed', top: 16, right: 16, width: 36, height: 36, borderRadius: 10,
+            background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 201,
+          }}><X size={18} /></button>
+          <img src={lightbox} alt="preview"
+            onClick={e => { e.stopPropagation(); setZoomed(z => !z) }}
+            style={zoomed
+              ? { width: 'auto', maxWidth: 'none', cursor: 'zoom-out', margin: 'auto' }
+              : { maxWidth: '92vw', maxHeight: '92vh', borderRadius: 12, cursor: 'zoom-in' }} />
+        </div>
+      )}
 
       <style>{`
         @media (max-width: 900px) {
           .img-page { padding: 24px 16px 90px !important; }
-          .img-grid { grid-template-columns: repeat(2, 1fr) !important; }
+          .img-grid { columns: 2 150px !important; }
         }
       `}</style>
     </main>

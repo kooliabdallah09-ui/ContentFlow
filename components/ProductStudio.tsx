@@ -319,12 +319,12 @@ export default function ProductStudio() {
               ))}
             </div>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button onClick={() => setShootModel('nb2')} title="Cheaper — less accurate, can make mistakes" style={chip(shootModel === 'nb2')}>NB2 · 5 cr · less accurate</button>
+              <button onClick={() => setShootModel('nb2')} title="Cheaper — less accurate, can make mistakes" style={chip(shootModel === 'nb2')}>NB2 · 4 cr · less accurate</button>
               <button onClick={() => setShootModel('pro')} title="Best fidelity" style={chip(shootModel === 'pro')}>NB Pro</button>
               {shootModel === 'pro' && (
                 <>
-                  <button onClick={() => setShootRes('2K')} style={chip(shootRes === '2K')}>2K · 10 cr</button>
-                  <button onClick={() => setShootRes('4K')} style={chip(shootRes === '4K')}>4K · 18 cr</button>
+                  <button onClick={() => setShootRes('2K')} style={chip(shootRes === '2K')}>2K · 8 cr</button>
+                  <button onClick={() => setShootRes('4K')} style={chip(shootRes === '4K')}>4K · 14 cr</button>
                 </>
               )}
             </div>
@@ -467,7 +467,7 @@ export default function ProductStudio() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>5 cr — AI product sheet</span>
+            <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>3 cr — AI product sheet</span>
             <button onClick={create} disabled={creating} className="btn btn-primary" style={{ padding: '11px 22px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, marginLeft: 'auto' }}>
               {creating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {creating ? 'Reading the product…' : 'Add product'}
             </button>

@@ -8,6 +8,43 @@ export const maxDuration = 120
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
+// History for the persistent gallery: every image URL this user has
+// generated here, newest first (batch rows flattened via metadata.urls).
+export async function GET(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
+    if (!userData.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    const { data } = await supabase
+      .from('ugc_content')
+      .select('storage_url, metadata, created_at')
+      .eq('user_id', userData.user.id)
+      .eq('content_type', 'image')
+      .eq('status', 'completed')
+      .order('created_at', { ascending: false })
+      .limit(60)
+
+    const images = (data ?? []).flatMap(row => {
+      const meta = (row.metadata ?? {}) as { urls?: string[]; prompt?: string }
+      const urls = Array.isArray(meta.urls) && meta.urls.length ? meta.urls : [row.storage_url]
+      return urls
+        .filter((u): u is string => typeof u === 'string' && u.startsWith('http'))
+        .map(url => ({ url, prompt: meta.prompt ?? '', created_at: row.created_at }))
+    })
+    return NextResponse.json({ images })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

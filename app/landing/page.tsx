@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Sun, Moon } from 'lucide-react'
+import { DEMO_VIDEOS } from '@/lib/demo-gallery'
 
 // Landing page — editorial design from the Claude Design export.
 // Hero + Features (6-up grid) + Pricing (3 cards) + closing CTA + Footer.
@@ -89,7 +90,8 @@ export default function LandingPage() {
         <div style={heroPreview} />
       </section>
 
-      {/* MADE WITH CONTENTFLOW — video showcase */}
+      {/* MADE WITH CONTENTFLOW — video showcase (hidden until curated demos exist) */}
+      {DEMO_VIDEOS.length > 0 && (
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px 100px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
           <h2 style={{ ...sectionH2, fontSize: 28, margin: 0 }}>Made with <em>ContentFlow</em></h2>
@@ -114,6 +116,7 @@ export default function LandingPage() {
           @media (max-width: 640px) { .ls-demo-grid { grid-template-columns: 1fr !important; } }
         `}</style>
       </section>
+      )}
 
       {/* FEATURES */}
       <section id="features" style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 20px' }}>
@@ -309,11 +312,6 @@ const FEATURES = [
   },
 ]
 
-const DEMO_VIDEOS = [
-  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-shopify.mp4', label: 'Shopify product ad', tag: 'UGC' },
-  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-talking-head.mp4', label: 'Talking-head UGC', tag: 'UGC' },
-  { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/video-pepsi.mp4', label: 'Sora 2 video', tag: 'VIDEO' },
-]
 
 // ---- Inline styles ----
 const navLink: React.CSSProperties = { padding: '9px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-mute)' }

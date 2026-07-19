@@ -339,12 +339,12 @@ export default function InfluencersPage() {
                     View character sheet
                   </button>
                   <button onClick={generateSheet} disabled={sheetLoading} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet · 10 cr
+                    {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet · 8 cr
                   </button>
                 </>
               ) : (
                 <button onClick={generateSheet} disabled={sheetLoading} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Generate character sheet · 10 cr
+                  {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Generate character sheet · 8 cr
                 </button>
               )}
               <button onClick={remove} disabled={deleting} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
@@ -696,11 +696,11 @@ export default function InfluencersPage() {
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => setCreateModel('pro')} style={{ ...chip(createModel === 'pro'), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 12, padding: '10px 14px' }}>
               <span style={{ fontWeight: 700 }}>Nano Banana Pro</span>
-              <span style={{ fontSize: 11, opacity: 0.8 }}>best identity fidelity · 20 cr</span>
+              <span style={{ fontSize: 11, opacity: 0.8 }}>best identity fidelity · 18 cr</span>
             </button>
             <button onClick={() => setCreateModel('nb2')} style={{ ...chip(createModel === 'nb2'), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 12, padding: '10px 14px' }}>
               <span style={{ fontWeight: 700 }}>Nano Banana 2</span>
-              <span style={{ fontSize: 11, opacity: 0.8 }}>cheaper · 12 cr · not as sharp, can make mistakes</span>
+              <span style={{ fontSize: 11, opacity: 0.8 }}>cheaper · 11 cr · not as sharp, can make mistakes</span>
             </button>
           </div>
         </div>

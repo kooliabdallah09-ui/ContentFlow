@@ -10,7 +10,7 @@ import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 export const maxDuration = 120
 
-export const SHEET_CR = 10
+export const SHEET_CR = 8   // 1× NB Pro turnaround ≈ $0.14 raw × 1.4
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

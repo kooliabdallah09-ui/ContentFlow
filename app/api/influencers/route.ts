@@ -18,8 +18,8 @@ import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 export const maxDuration = 120
 
-export const INFLUENCER_CREATE_CR = 20        // Sonnet + NB Pro portrait + turnaround sheet
-export const INFLUENCER_CREATE_NB2_CR = 12    // same flow on Nano Banana 2 (cheaper, less faithful)
+export const INFLUENCER_CREATE_CR = 18        // Sonnet + 2× NB Pro (portrait + sheet) ≈ $0.32 raw × 1.4
+export const INFLUENCER_CREATE_NB2_CR = 11    // same flow on Nano Banana 2 ≈ $0.19 raw × 1.4
 
 function supa() {
   return createClient(

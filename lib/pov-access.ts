@@ -30,7 +30,7 @@ export function canAccessFormats(email: string | null | undefined): boolean {
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
 
+// Public since launch — any signed-in user.
 export function canAccessInfluencerStudio(email: string | null | undefined): boolean {
-  if (!email) return false
-  return ADMIN_EMAILS.has(email.toLowerCase())
+  return !!email
 }

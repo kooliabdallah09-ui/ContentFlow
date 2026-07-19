@@ -16,7 +16,7 @@ import { deductCredits } from '@/lib/deduct-credits'
 
 export const maxDuration = 120
 
-export const DIRECT_CR = 10   // Sonnet direction + 3 NB2 storyboard frames
+export const DIRECT_CR = 15   // Sonnet direction + 3 NB2 frames ≈ $0.26 raw — 10cr was break-even
 
 const SYSTEM = `You are an expert commercial video director and Seedance 2.0 prompt engineer. You turn a one-line intent into ONE polished, timestamped Seedance 2.0 prompt for a cinematic short-form clip (TikTok/Reels/YouTube).
 

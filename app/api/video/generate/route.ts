@@ -29,14 +29,17 @@ const SEEDANCE_MINI_CR_PER_SECOND: Record<string, number> = {
 // Silent renders skip audio synthesis compute — we pass 15% back to the
 // user. Keep this in sync with NO_AUDIO_MULTIPLIER on the client.
 const NO_AUDIO_MULTIPLIER = 0.85
+// CineMotion direction: Sonnet vision + NB Pro opening frame ≈ $0.20 raw × 1.8.
+// Keep in sync with CINEMOTION_CR on the client.
+const CINEMOTION_CR = 14
 
-function getCost(model: string, duration: number, resolution?: string, withAudio: boolean = true): number {
+function getCost(model: string, duration: number, resolution?: string, withAudio: boolean = true, cinemotion: boolean = false): number {
   if (model === 'seedance-2' || model === 'seedance-mini') {
     const table = model === 'seedance-mini' ? SEEDANCE_MINI_CR_PER_SECOND : SEEDANCE_CR_PER_SECOND
     const res = model === 'seedance-mini' && resolution !== '480p' ? '720p' : (resolution ?? '720p')
     const per = table[res] ?? table['720p']
     const base = duration * per
-    return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER))
+    return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER)) + (cinemotion ? CINEMOTION_CR : 0)
   }
   return FLAT_COSTS[model]?.[duration] ?? 60
 }
@@ -215,7 +218,7 @@ OUTPUT: return ONLY valid JSON, no markdown:
       console.log('[video/generate] hypermotion prompt chars=', prompt.length, 'openingFrame=', !!hyperOpeningFrame)
     }
 
-    const totalCost = getCost(model, duration, resolution, withAudio)
+    const totalCost = getCost(model, duration, resolution, withAudio, hyperMotion)
     const { data: userCredits } = await supabase
       .from('user_credits')
       .select('balance, pack_credits')

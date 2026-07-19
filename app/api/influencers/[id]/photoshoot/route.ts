@@ -12,7 +12,7 @@ import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 export const maxDuration = 120
 
-export const PHOTOSHOOT_CR_PER_IMAGE = 8       // NB Pro w/ reference ≈ $0.15 → 1.8× markup
+export const PHOTOSHOOT_CR_PER_IMAGE = 8       // NB Pro w/ reference ≈ $0.15 raw × 1.4
 export const PHOTOSHOOT_NB2_CR_PER_IMAGE = 4   // Nano Banana 2 — cheaper, less faithful
 export const PHOTOSHOOT_4K_CR_PER_IMAGE = 14   // NB Pro 4K: $0.24 raw × 1.4 markup ≈ 14 cr
 
