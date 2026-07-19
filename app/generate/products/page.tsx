@@ -4,10 +4,12 @@
 // reference sheets and AI-directed aesthetic photoshoots.
 
 import ProductStudio from '@/components/ProductStudio'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 
 export default function ProductStudioPage() {
   return (
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: '42px 40px 90px' }}>
+      <DriveConnectBanner />
       <header style={{ marginBottom: 28 }}>
         <h1 style={{
           fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 54,

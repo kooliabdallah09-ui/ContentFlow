@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
@@ -452,6 +453,7 @@ export default function SocialPage() {
 
   return (
     <main style={{ maxWidth: 1100, margin: '0 auto', padding: '42px 40px 90px' }}>
+      <DriveConnectBanner />
       <header style={{ marginBottom: 32 }}>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 54, lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0 }}>
           Social

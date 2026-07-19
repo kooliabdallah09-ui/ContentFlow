@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { getSupabase } from '@/lib/auth'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { useCredits } from '@/lib/useCredits'
@@ -109,6 +110,7 @@ export default function VoicePage() {
 
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '42px 40px 90px' }} className="voice-page">
+      <DriveConnectBanner />
       <header style={{ marginBottom: 28 }}>
         <h1 style={{
           fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 54,

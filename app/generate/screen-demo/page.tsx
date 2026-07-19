@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { getSupabase } from '@/lib/auth'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { useCredits } from '@/lib/useCredits'
@@ -233,6 +234,7 @@ export default function ScreenDemoPage() {
 
   return (
     <main style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }}>
+      <DriveConnectBanner />
       <header style={{ marginBottom: 36 }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>
           Create

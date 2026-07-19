@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
@@ -208,6 +209,7 @@ export default function CalendarPage() {
   if (loading) {
     return (
       <main className="content">
+      <DriveConnectBanner />
         <div className="page-meta">{monthLabel}</div>
         <h1 className="page-title">Monthly <em>plan</em></h1>
         <p style={{ marginTop: 24, color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -220,6 +222,7 @@ export default function CalendarPage() {
   if (!plan || plan.length === 0) {
     return (
       <main className="content">
+      <DriveConnectBanner />
         <div className="page-meta">{monthLabel}</div>
         <h1 className="page-title">No plan <em>yet</em>.</h1>
         <p className="page-sub">
@@ -249,6 +252,7 @@ export default function CalendarPage() {
 
   return (
     <main className="content" style={{ maxWidth: 1180 }}>
+      <DriveConnectBanner />
       <div className="page-meta">{monthLabel.toUpperCase()}</div>
       <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <h1 className="page-title" style={{ marginBottom: 0 }}>Monthly <em>plan</em></h1>

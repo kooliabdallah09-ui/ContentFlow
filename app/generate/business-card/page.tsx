@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { showError, showSuccess } from '@/lib/notifications'
 
 const STYLES = [
@@ -239,6 +240,7 @@ export default function BusinessCardPage() {
 
   return (
     <main style={{ maxWidth: 1160, margin: '0 auto', padding: '42px 40px 90px' }} className="bc-page">
+      <DriveConnectBanner />
       <header style={{ marginBottom: 32 }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>
           Create

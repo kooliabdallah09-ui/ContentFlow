@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { getSupabase } from '@/lib/auth'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { readChatPrefill } from '@/lib/chat-prefill'
@@ -148,6 +149,7 @@ export default function ImageGeneratorPage() {
 
   return (
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: '42px 40px 90px' }} className="img-page">
+      <DriveConnectBanner />
       <header style={{ marginBottom: 28 }}>
         <h1 style={{
           fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 54,

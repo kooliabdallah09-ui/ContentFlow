@@ -33,21 +33,21 @@ export function DriveConnectBanner() {
     <div style={{
       display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
       margin: '0 0 20px', padding: '14px 18px',
-      background: 'linear-gradient(90deg, #fef3c7, #fff7ed)',
-      border: '1px solid #f59e0b', borderRadius: 12,
+      background: 'linear-gradient(90deg, #fef2f2, #fff1f0)',
+      border: '1px solid #f87171', borderRadius: 12,
     }}>
       <span style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
       <div style={{ flex: 1, minWidth: 240 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#92400e' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#991b1b' }}>
           Protect your videos — connect Google Drive
         </div>
-        <div style={{ fontSize: 12.5, color: '#78350f', marginTop: 2, lineHeight: 1.45 }}>
+        <div style={{ fontSize: 12.5, color: '#7f1d1d', marginTop: 2, lineHeight: 1.45 }}>
           Finished videos are hosted temporarily and can expire. Connecting your Drive backs up
           every render automatically to your own account — free, takes 30 seconds.
         </div>
       </div>
       <Link href="/settings/integrations" style={{
-        padding: '9px 16px', borderRadius: 9, background: '#92400e', color: '#fff',
+        padding: '9px 16px', borderRadius: 9, background: '#991b1b', color: '#fff',
         fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
       }}>
         Connect Google Drive
@@ -55,7 +55,7 @@ export function DriveConnectBanner() {
       <button
         onClick={() => { sessionStorage.setItem('cf-drive-banner-dismissed', '1'); setShow(false) }}
         aria-label="Dismiss"
-        style={{ background: 'none', border: 'none', color: '#92400e', fontSize: 16, cursor: 'pointer', padding: 4 }}
+        style={{ background: 'none', border: 'none', color: '#991b1b', fontSize: 16, cursor: 'pointer', padding: 4 }}
       >✕</button>
     </div>
   )

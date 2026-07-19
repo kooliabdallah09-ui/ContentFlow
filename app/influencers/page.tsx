@@ -4,6 +4,7 @@
 // them anywhere, and send them into the UGC pipeline. Admin-gated.
 
 import { useEffect, useState, type CSSProperties } from 'react'
+import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
@@ -313,6 +314,7 @@ export default function InfluencersPage() {
     ]
     return (
       <main style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 32px 24px', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 60px)' }}>
+      <DriveConnectBanner />
         <button onClick={() => setSelected(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', color: 'var(--ink-dim)', fontSize: 13.5, cursor: 'pointer', marginBottom: 20, padding: 0, alignSelf: 'flex-start' }}>
           <ArrowLeft size={14} /> All influencers
         </button>
@@ -557,6 +559,7 @@ export default function InfluencersPage() {
   // ── List + create view ───────────────────────────────────────────────
   return (
     <main style={{ maxWidth: 980, margin: '0 auto', padding: '48px 32px' }}>
+      <DriveConnectBanner />
       <div style={{ marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)' }}>ADMIN · BETA</div>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 34, fontWeight: 400, margin: '0 0 6px' }}>Influencer <em>studio</em></h1>
       <p style={{ fontSize: 14, color: 'var(--ink-dim)', margin: '0 0 28px', maxWidth: 560, lineHeight: 1.6 }}>
