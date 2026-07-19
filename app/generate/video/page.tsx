@@ -585,7 +585,7 @@ export default function VideoGeneratorPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 14.5, fontWeight: 700 }}>⚡ HyperMotion</span>
+                <span style={{ fontSize: 14.5, fontWeight: 700 }}>⚡ CineMotion</span>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 999, background: hyperMotion ? 'var(--on-ink)' : 'var(--surface-2)', color: hyperMotion ? 'var(--ink)' : 'var(--ink-dim)' }}>CGI ad</span>
               </div>
               <div style={{ fontSize: 12, opacity: 0.8, marginTop: 3 }}>
