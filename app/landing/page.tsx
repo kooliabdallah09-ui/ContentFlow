@@ -100,7 +100,11 @@ export default function LandingPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="ls-demo-grid">
           {DEMO_VIDEOS.map(v => (
             <div key={v.label} style={demoCard} className="ls-demo-card">
-              <video src={v.src} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              {v.type === 'video' ? (
+                <video src={v.src} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <img src={v.src} alt={v.label} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+              )}
               <div style={demoOverlay} />
               <div style={demoMeta}>
                 <span style={demoTag}>{v.tag}</span>
