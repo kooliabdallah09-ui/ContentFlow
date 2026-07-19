@@ -117,6 +117,50 @@ export default function VideoGeneratorPage() {
   // writes the whole physics-driven prompt server-side.
   const [hyperMotion, setHyperMotion] = useState(false)
   const [hyperNote, setHyperNote] = useState('')
+  // Product Studio products — one click loads their angle photos as refs.
+  const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; photo_urls: string[] }>>([])
+  const [videoProductId, setVideoProductId] = useState<string | undefined>(undefined)
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const supabase = getSupabase()
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+        const token = sess?.session?.access_token
+        if (!token) return
+        const res = await fetch('/api/products-studio', { headers: { Authorization: `Bearer ${token}` } })
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data?.products)) setStudioProducts(data.products)
+        }
+      } catch { /* optional */ }
+    })()
+  }, [])
+
+  async function importStudioProduct(sp: { id: string; name: string; photo_urls: string[] }) {
+    if (videoProductId === sp.id) { setVideoProductId(undefined); setRefImages([]); return }
+    setVideoProductId(sp.id)
+    const imgs: Array<{ base64: string; mimeType: string; preview: string }> = []
+    for (const url of (sp.photo_urls ?? []).slice(0, 2)) {
+      try {
+        const r = await fetch(url)
+        if (!r.ok) continue
+        const blob = await r.blob()
+        const buf = new Uint8Array(await blob.arrayBuffer())
+        let bin = ''
+        for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
+        const base64 = btoa(bin)
+        const mimeType = blob.type || 'image/png'
+        imgs.push({ base64, mimeType, preview: `data:${mimeType};base64,${base64}` })
+      } catch { /* skip */ }
+    }
+    if (imgs.length) {
+      setRefImages(imgs)
+      showSuccess('Product loaded', `${sp.name} — ${imgs.length} photo${imgs.length > 1 ? 's' : ''} set as reference.`)
+    } else {
+      showError('Load failed', 'Could not fetch the product photos')
+    }
+  }
   const [duration, setDuration] = useState(5)
   const [resolution, setResolution] = useState<Resolution>('720p')
   const [withAudio, setWithAudio] = useState(true)
@@ -565,6 +609,34 @@ export default function VideoGeneratorPage() {
           </div>
           {hyperMotion && (
             <div style={{ marginTop: 12 }}>
+              {studioProducts.length > 0 && (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', opacity: 0.8 }}>Your products</span>
+                  {studioProducts.map(sp => {
+                    const active = videoProductId === sp.id
+                    return (
+                      <button
+                        key={sp.id}
+                        type="button"
+                        disabled={generating}
+                        onClick={() => importStudioProduct(sp)}
+                        title={sp.name}
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 7, padding: 5, paddingRight: 11,
+                          borderRadius: 9, cursor: 'pointer',
+                          border: `1.5px solid ${active ? 'var(--on-ink)' : 'rgba(255,255,255,0.3)'}`,
+                          background: active ? 'var(--on-ink)' : 'rgba(255,255,255,0.08)',
+                          color: active ? 'var(--ink)' : 'var(--on-ink)',
+                        }}
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: 26, height: 26, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
+                        <span style={{ fontSize: 12, fontWeight: 600 }}>{sp.name}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
               <input
                 type="text"
                 value={hyperNote}
