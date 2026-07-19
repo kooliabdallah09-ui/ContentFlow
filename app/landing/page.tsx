@@ -241,8 +241,8 @@ export default function LandingPage() {
               <div style={footH}>Legal</div>
               <ul style={footList}>
                 <li><Link href="/privacy" style={footLink}>Privacy</Link></li>
-                <li><a href="#" style={footLink}>Terms</a></li>
-                <li><a href="#" style={footLink}>Cookies</a></li>
+                <li><Link href="/terms" style={footLink}>Terms</Link></li>
+                <li><Link href="/refunds" style={footLink}>Refund policy</Link></li>
               </ul>
             </div>
           </div>

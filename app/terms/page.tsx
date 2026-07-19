@@ -77,8 +77,13 @@ export default function TermsPage() {
             from packs roll over and persist until used.
           </li>
           <li>
-            <strong>No Refunds:</strong> All purchases (subscriptions and credit packs) are final and non-refundable,
-            except where required by applicable law. Credits already consumed cannot be refunded.
+            <strong>Payments:</strong> Payments are processed by our merchant of record, Paddle.com Market Ltd
+            (&quot;Paddle&quot;), which handles checkout, billing, taxes, and payment support.
+          </li>
+          <li>
+            <strong>Refunds:</strong> Refunds are governed by our{' '}
+            <Link href="/refunds" style={{ color: 'var(--ink)', textUnderlineOffset: 3 }}>Refund Policy</Link> — in
+            short, unused purchases can be refunded within 14 days; consumed credits cannot.
           </li>
           <li>
             <strong>Free Tier:</strong> Free accounts receive a one-time signup credit bonus subject to usage caps. Free
