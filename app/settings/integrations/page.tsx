@@ -181,19 +181,6 @@ export default function IntegrationsPage() {
           onDisconnect={() => disconnect('google-drive')}
         />
 
-        <IntegrationCard
-          platformKey="youtube"
-          title="YouTube"
-          description="Publish videos and UGC content directly to your YouTube channel without leaving ContentFlow."
-          badge="Publishing"
-          connected={!!integrations['youtube']}
-          accountName={integrations['youtube']?.account_name}
-          connectedAt={integrations['youtube']?.connected_at}
-          disconnecting={disconnecting === 'youtube'}
-          onConnect={() => { window.location.href = `/api/integrations/connect/youtube?userId=${userId}` }}
-          onDisconnect={() => disconnect('youtube')}
-        />
-
         {([
           { key: 'tiktok', title: 'TikTok', desc: 'Publish and schedule content directly to TikTok.' },
           { key: 'instagram', title: 'Instagram', desc: 'Publish Reels and posts directly to your Instagram account.' },
