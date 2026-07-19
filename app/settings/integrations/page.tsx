@@ -130,11 +130,15 @@ export default function IntegrationsPage() {
     try {
       const supabase = getSupabase()
       if (!supabase) return
-      await supabase
-        .from('integrations')
-        .update({ is_connected: false, access_token: null, refresh_token: null })
-        .eq('user_id', userId)
-        .eq('platform', platform)
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch('/api/integrations/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ platform }),
+      })
+      if (!res.ok) throw new Error('Disconnect failed')
       setIntegrations(prev => {
         const next = { ...prev }
         delete next[platform]
