@@ -315,7 +315,7 @@ export default function BillingPage() {
           </span>
         </div>
 
-        <div className="billing-plan-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, alignItems: 'start' }}>
+        <div className="billing-plan-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           {plans.map((plan) => {
             const activePriceId = annual ? plan.annualPriceId : plan.monthlyPriceId
             const displayPrice = annual ? plan.annualPrice : plan.monthlyPrice

@@ -162,7 +162,7 @@ export default function PricingPage() {
 
       <div className="pricing-grid" style={{
         display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16,
-        marginTop: 42, alignItems: 'start',
+        marginTop: 42,
       }}>
         {PLANS.map(plan => {
           const popular = !!plan.popular
