@@ -114,6 +114,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     let prompt = typeof body.prompt === 'string' ? body.prompt.slice(0, 4000).trim() : ''
     const hyperMotion = body.mode === 'hypermotion'
+    let hyperOpeningFrame: string | null = null
     if (!prompt && !hyperMotion) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
 
     // Seedance 2.0 (default) or Seedance Mini (~half price, 720p cap).
@@ -174,7 +175,10 @@ HARD RULES:
 - Sound: ambient whooshes, deep sub-bass hits, tactile foley synced to the physics — no music with vocals, no narration.
 - The product photos are passed to the video model as reference images: refer to the product in your prompt as [Image1] (add [Image2], [Image3] for the other angles when provided) so the model binds the exact appearance. The video does NOT start on the raw photo — Scene 1 opens already inside the designed environment.
 - Timestamped scene blocks (SCENE N [MM:SS – MM:SS], Visual: …). Scene count by duration: <=5s 1 · 6-10s 2 · 11-20s 3 · 21-40s 4-5 · 41-60s 5-7. Final scene ends EXACTLY at the target duration with a locked hero shot of the product.
-- Stay under 3400 characters. Output ONLY the finished prompt.`
+- Stay under 3400 characters for the video prompt.
+
+OUTPUT: return ONLY valid JSON, no markdown:
+{"prompt": "the full timestamped Seedance prompt", "openingFrame": "one dense sentence describing EXACTLY the first still of Scene 1 — the product placed in the designed environment, its position/angle, the lighting, the camera framing — consistent with Scene 1 of the prompt"}`
       const msg = await anthropic.messages.create({
         model: 'claude-sonnet-4-6',
         max_tokens: 1500,
@@ -197,9 +201,18 @@ HARD RULES:
           ],
         }],
       })
-      prompt = (msg.content[0] as { type: 'text'; text: string }).text.trim().slice(0, 3600)
+      const rawDirection = (msg.content[0] as { type: 'text'; text: string }).text.trim()
+        .replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
+      try {
+        const parsed = JSON.parse(rawDirection) as { prompt?: string; openingFrame?: string }
+        prompt = String(parsed.prompt ?? '').slice(0, 3600)
+        hyperOpeningFrame = typeof parsed.openingFrame === 'string' ? parsed.openingFrame.slice(0, 700) : null
+      } catch {
+        // Sonnet returned plain text — use it as the prompt, skip the frame.
+        prompt = rawDirection.slice(0, 3600)
+      }
       if (!prompt) return NextResponse.json({ error: 'HyperMotion direction failed — try again' }, { status: 500 })
-      console.log('[video/generate] hypermotion prompt chars=', prompt.length)
+      console.log('[video/generate] hypermotion prompt chars=', prompt.length, 'openingFrame=', !!hyperOpeningFrame)
     }
 
     const totalCost = getCost(model, duration, resolution, withAudio)
@@ -260,6 +273,37 @@ HARD RULES:
         if (!upErr) referenceImageUrls.push(supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl)
       }
       startImageUrl = undefined
+
+      // NB Pro composes Scene 1's exact first still — the product already
+      // inside the designed environment, packaging anchored by the photos.
+      // Seedance then animates from a beautiful frame instead of starting
+      // cold (or worse, on the raw catalog photo). Fail-soft: without the
+      // frame, reference_images alone still carry fidelity.
+      if (hyperOpeningFrame) {
+        try {
+          const { generateNanoBananaImage } = await import('@/lib/nanobanana')
+          const frame = await generateNanoBananaImage(
+            `${hyperOpeningFrame}\n\nCinematic film still, hyper-real materials and lighting, rich contrast, no text overlays, no watermark, no camera interface, no humans, no hands.`,
+            {
+              model: 'pro',
+              style: 'realistic',
+              ratio: aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16',
+              referenceImages: referenceImages.slice(0, 3),
+              referenceHint: 'The attached reference photos show the EXACT product — preserve its print, label text, colours, shape, materials and proportions perfectly; surfaces not visible in the photos are plain. Apply the prompt as the environment, lighting and framing around it.',
+            },
+          )
+          const frameName = `video-ref/${userId}-${Date.now()}-hyperframe.png`
+          const { error: frameErr } = await supabase.storage
+            .from('ugc-assets')
+            .upload(frameName, Buffer.from(frame.imageBase64, 'base64'), { contentType: frame.mimeType, upsert: false })
+          if (!frameErr) {
+            startImageUrl = supabase.storage.from('ugc-assets').getPublicUrl(frameName).data.publicUrl
+            console.log('[video/generate] hypermotion opening frame ready')
+          }
+        } catch (frameErr) {
+          console.warn('[video/generate] opening frame failed, refs-only:', frameErr instanceof Error ? frameErr.message : frameErr)
+        }
+      }
     }
 
     const seedanceJob = await submitSeedanceJob({
