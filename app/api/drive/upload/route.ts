@@ -44,8 +44,19 @@ export async function POST(request: NextRequest) {
     const { error: uploadErr } = await supabase.storage
       .from('ugc-assets')
       .upload(permanentPath, new Uint8Array(arrayBuffer), { contentType: 'video/webm', upsert: true })
-    // Delete original temp file
+    // Delete original temp file, and sweep any drive-tmp orphans older than
+    // a day (left behind when a save flow failed between upload and push).
     supabase.storage.from('ugc-assets').remove([storagePath]).catch(() => {})
+    ;(async () => {
+      try {
+        const { data: tmpFiles } = await supabase.storage.from('ugc-assets').list('drive-tmp', { limit: 100 })
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000
+        const stale = (tmpFiles ?? [])
+          .filter(f => f.created_at && new Date(f.created_at).getTime() < cutoff)
+          .map(f => `drive-tmp/${f.name}`)
+        if (stale.length) await supabase.storage.from('ugc-assets').remove(stale)
+      } catch { /* best-effort sweep */ }
+    })()
 
     // Upload to Drive
     const accessToken = await getValidDriveToken(userId, supabase)
