@@ -315,71 +315,80 @@ export default function BillingPage() {
           </span>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px' }}>
+        <div className="billing-plan-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, alignItems: 'start' }}>
           {plans.map((plan) => {
             const activePriceId = annual ? plan.annualPriceId : plan.monthlyPriceId
             const displayPrice = annual ? plan.annualPrice : plan.monthlyPrice
+            const isLoading = upgradeLoading === activePriceId
             return (
               <div
                 key={plan.name}
                 style={{
-                  background: 'var(--surface)',
-                  border: plan.current ? '2px solid var(--accent)' : '1px solid var(--border)',
-                  borderRadius: 'var(--r-lg)',
-                  padding: '24px',
-                  display: 'flex',
-                  flexDirection: 'column',
                   position: 'relative',
+                  background: 'var(--surface)',
+                  border: plan.current ? '2px solid var(--ink)' : '1px solid var(--border)',
+                  borderRadius: 15,
+                  padding: 28,
                 }}
               >
                 {plan.current && (
-                  <div style={{ position: 'absolute', top: '12px', right: '12px', background: 'var(--accent)', color: 'var(--bg)', fontSize: '11px', fontWeight: 600, padding: '4px 8px', borderRadius: 'var(--r-sm)' }}>
-                    Current
-                  </div>
+                  <span style={{
+                    position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
+                    fontSize: 10.5, fontWeight: 600,
+                    letterSpacing: '0.04em', textTransform: 'uppercase',
+                    background: 'var(--ink)', color: '#fff',
+                    borderRadius: 999, padding: '4px 12px',
+                    whiteSpace: 'nowrap',
+                  }}>Current plan</span>
                 )}
-                <h3 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>
-                  {plan.name}
-                </h3>
-                <div style={{ marginBottom: '12px' }}>
-                  <div style={{ fontSize: '28px', fontWeight: 700, color: 'var(--accent)' }}>
-                    {displayPrice}
-                    {plan.name !== 'Free' && <span style={{ fontSize: 14, fontWeight: 400, color: 'var(--ink-mute)' }}>/mo</span>}
-                  </div>
-                  {annual && plan.annualTotal && (
-                    <p style={{ fontSize: '11.5px', color: 'var(--ink-mute)', margin: '2px 0 0' }}>billed {plan.annualTotal}</p>
-                  )}
-                  <p className="eyebrow" style={{ color: 'var(--ink-fade)', marginTop: 4 }}>{plan.credits}</p>
-                  {plan.bonus && <p className="eyebrow" style={{ color: 'var(--good)' }}>{plan.bonus}</p>}
-                  {plan.pricePerCredit && <p className="eyebrow" style={{ color: 'var(--ink-mute)', fontSize: '11px' }}>{plan.pricePerCredit}</p>}
+                <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}>{plan.name}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 10 }}>
+                  <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1 }}>{displayPrice}</span>
+                  <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>{plan.name === 'Free' ? 'forever' : '/mo'}</span>
                 </div>
-                <div style={{ flex: 1, marginBottom: '16px' }}>
-                  <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                    {plan.features.map((feature, i) => (
-                      <li key={i} style={{ fontSize: '13px', color: 'var(--ink-dim)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14, color: 'var(--good)', flexShrink: 0 }}>
-                          <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                        </svg>
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
+                {annual && plan.annualTotal ? (
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 3 }}>billed {plan.annualTotal}</div>
+                ) : null}
+                <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: annual && plan.annualTotal ? 4 : 8 }}>
+                  {plan.credits}{plan.bonus ? ` · ${plan.bonus}` : ''}{plan.pricePerCredit ? ` · ${plan.pricePerCredit}` : ''}
                 </div>
+
                 <button
-                  disabled={plan.ctaDisabled || upgradeLoading === activePriceId}
-                  className="btn btn-primary"
-                  style={{
-                    width: '100%',
-                    opacity: plan.ctaDisabled ? 0.5 : 1,
-                    cursor: plan.ctaDisabled ? 'default' : 'pointer',
-                  }}
+                  disabled={plan.ctaDisabled || isLoading}
                   onClick={() => !plan.ctaDisabled && handleUpgrade(activePriceId, 'subscription')}
+                  style={{
+                    display: 'block', textAlign: 'center', width: '100%',
+                    marginTop: 16, padding: 11, borderRadius: 9,
+                    background: plan.ctaDisabled ? 'var(--surface)' : 'var(--ink)',
+                    color: plan.ctaDisabled ? 'var(--ink-mute)' : '#fff',
+                    border: plan.ctaDisabled ? '1px solid var(--border)' : 'none',
+                    fontWeight: 600, fontSize: 13,
+                    cursor: plan.ctaDisabled ? 'default' : 'pointer',
+                    opacity: isLoading ? 0.6 : 1,
+                  }}
                 >
-                  {upgradeLoading === activePriceId ? 'Redirecting…' : plan.cta}
+                  {isLoading ? 'Redirecting…' : plan.cta}
                 </button>
+
+                <div style={{ height: 1, background: 'var(--border-soft)', margin: '18px 0' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  {plan.features.map((feature, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.4 }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }}>
+                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      <span>{feature}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )
           })}
         </div>
+        <style>{`
+          @media (max-width: 1100px) { .billing-plan-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+          @media (max-width: 640px) { .billing-plan-grid { grid-template-columns: 1fr !important; } }
+        `}</style>
       </div>
 
       {/* Credits policy */}
