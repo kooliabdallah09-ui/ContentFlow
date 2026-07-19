@@ -298,7 +298,10 @@ OUTPUT: return ONLY valid JSON, no markdown:
             .upload(frameName, Buffer.from(frame.imageBase64, 'base64'), { contentType: frame.mimeType, upsert: false })
           if (!frameErr) {
             startImageUrl = supabase.storage.from('ugc-assets').getPublicUrl(frameName).data.publicUrl
-            console.log('[video/generate] hypermotion opening frame ready')
+            // Seedance rejects reference_images combined with a first frame
+            // (E006) — the opening frame already embeds the product.
+            referenceImageUrls = undefined
+            console.log('[video/generate] cinemotion opening frame ready')
           }
         } catch (frameErr) {
           console.warn('[video/generate] opening frame failed, refs-only:', frameErr instanceof Error ? frameErr.message : frameErr)
