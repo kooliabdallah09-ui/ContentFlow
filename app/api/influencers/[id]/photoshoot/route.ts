@@ -53,6 +53,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const quality: 'nb2' | 'pro' | '4k' = body?.quality === 'nb2' || body?.model === 'nb2' ? 'nb2'
       : body?.quality === '4k' ? '4k' : 'pro'
     const model: 'pro' | 'nb2' = quality === 'nb2' ? 'nb2' : 'pro'
+    const studioProductId = typeof body?.studioProductId === 'string' && body.studioProductId.length > 0 ? body.studioProductId : null
     const crPerImage = quality === 'nb2' ? PHOTOSHOOT_NB2_CR_PER_IMAGE
       : quality === '4k' ? PHOTOSHOOT_4K_CR_PER_IMAGE : PHOTOSHOOT_CR_PER_IMAGE
     if (scene.length < 3) return NextResponse.json({ error: 'Describe the scene' }, { status: 400 })
@@ -75,6 +76,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .eq('user_id', userId)
       .maybeSingle()
     if (!influencer) return NextResponse.json({ error: 'Influencer not found' }, { status: 404 })
+
+    // Optional Product Studio product — the influencer uses/wears it in
+    // the shots; its angle photos become packaging-fidelity refs.
+    let studioProduct: { name: string; category?: string | null } | null = null
+    let productRefs: Array<{ base64: string; mimeType: string }> = []
+    if (studioProductId) {
+      const { data: prod } = await supabase
+        .from('user_studio_products')
+        .select('name, category, photo_urls')
+        .eq('id', studioProductId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (prod) {
+        studioProduct = { name: prod.name, category: prod.category }
+        const urls: string[] = Array.isArray(prod.photo_urls) ? prod.photo_urls.slice(0, 2) : []
+        productRefs = (await Promise.all(urls.map(async (u: string) => {
+          try {
+            const r = await fetch(u)
+            if (!r.ok) return null
+            return { base64: Buffer.from(await r.arrayBuffer()).toString('base64'), mimeType: r.headers.get('content-type') || 'image/png' }
+          } catch { return null }
+        }))).filter((x): x is { base64: string; mimeType: string } => !!x)
+      }
+    }
 
     const totalCost = crPerImage * count
     const { data: credits } = await supabase
@@ -115,8 +140,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (sceneRefs.length) {
       refDescription += `. The LAST ${sceneRefs.length} attached image${sceneRefs.length > 1 ? 's are' : ' is'} NOT the person — ${sceneRefs.length > 1 ? 'they show' : 'it shows'} a scene, outfit, or object the photo must incorporate faithfully (exact clothing/product/location as pictured)`
     }
+    const productLine = studioProduct
+      ? `\nTHE PRODUCT: they are ${(studioProduct.category === 'apparel' || studioProduct.category === 'footwear') ? `WEARING "${studioProduct.name}"` : `naturally using/holding "${studioProduct.name}"`} in this scene — hands engaged with it as part of the activity, product undistorted and clearly visible.`
+      : ''
     const basePrompt = (variation: string) =>
-      `${influencer.appearance_prompt}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, skin tone, and identity precisely.
+      `${influencer.appearance_prompt}${productLine}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, skin tone, and identity precisely.
 
 CANDID, NOT POSED — CRITICAL: the person is genuinely DOING the scene's activity (picking produce, lifting a weight, sipping the drink, walking) — hands physically engaged with real objects, weight mid-shift, eyes on their task. NO standing square to camera, NO posed smile at the lens, NO model energy — it should look like someone photographed them without warning. Only make eye contact with the camera if the scene text explicitly asks for it.
 
@@ -129,9 +157,9 @@ COMPOSITION: the subject does NOT have to be centered — use rule-of-thirds pla
           ratio,
           model,
           resolution: quality === '4k' ? '4K' : undefined,
-          referenceImages: [...identityRefs, ...sceneRefs],
-          referenceHint: sceneRefs.length
-            ? 'The FIRST reference image(s) define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. The LAST image(s) show a scene/outfit/object to incorporate faithfully. Apply the prompt as framing around them.'
+          referenceImages: [...identityRefs, ...productRefs, ...sceneRefs],
+          referenceHint: (productRefs.length || sceneRefs.length)
+            ? `The FIRST ${identityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt.${productRefs.length ? ` The next ${productRefs.length} image(s) show the EXACT product — preserve its packaging/print, label text, colours, shape and proportions perfectly; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
             : 'The attached reference images define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. Apply the prompt as scene + framing around them.',
         }),
       ),

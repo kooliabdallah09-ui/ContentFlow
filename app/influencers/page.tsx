@@ -105,6 +105,8 @@ export default function InfluencersPage() {
   const [bridging, setBridging] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [sheetLoading, setSheetLoading] = useState(false)
+  const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; photo_urls: string[] }>>([])
+  const [shootProductId, setShootProductId] = useState<string | undefined>(undefined)
   // In-app lightbox for viewing photos (no more raw-URL tabs).
   const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
   const [lightboxZoom, setLightboxZoom] = useState(false)
@@ -119,6 +121,16 @@ export default function InfluencersPage() {
       setAllowed(ok)
       if (!ok) { router.push('/dashboard'); return }
       await load()
+      try {
+        const token = await getToken()
+        if (token) {
+          const res = await fetch('/api/products-studio', { headers: { Authorization: `Bearer ${token}` } })
+          if (res.ok) {
+            const data = await res.json()
+            if (Array.isArray(data?.products)) setStudioProducts(data.products)
+          }
+        }
+      } catch { /* optional */ }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -365,6 +377,31 @@ export default function InfluencersPage() {
 
         {/* Composer — pinned at the bottom like a chat input */}
         <div style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+          {studioProducts.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>With product</span>
+              <button
+                onClick={() => setShootProductId(undefined)}
+                style={{ ...chip(!shootProductId), padding: '6px 12px' }}
+              >
+                None
+              </button>
+              {studioProducts.map(sp => {
+                const active = shootProductId === sp.id
+                return (
+                  <button
+                    key={sp.id}
+                    onClick={() => setShootProductId(active ? undefined : sp.id)}
+                    title={sp.name}
+                    style={{ width: 40, height: 40, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', flexShrink: 0 }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {SCENE_PRESETS.map(p => (
               <button key={p} onClick={() => setScene(p)} style={{
