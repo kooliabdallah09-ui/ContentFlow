@@ -90,34 +90,45 @@ export default function LandingPage() {
         <div style={heroPreview} />
       </section>
 
-      {/* MADE WITH CONTENTFLOW — video showcase (hidden until curated demos exist) */}
+      {/* MADE WITH CONTENTFLOW — auto-scrolling marquee (hidden until curated demos exist) */}
       {DEMO_VIDEOS.length > 0 && (
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px 100px' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
+      <section style={{ padding: '0 0 100px', overflow: 'hidden' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
           <h2 style={{ ...sectionH2, fontSize: 28, margin: 0 }}>Made with <em>ContentFlow</em></h2>
           <Link href="/auth/signup" style={{ fontSize: 13, color: 'var(--ink-mute)', fontWeight: 500 }}>Try it free →</Link>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="ls-demo-grid">
-          {DEMO_VIDEOS.map(v => (
-            <div key={v.label} style={demoCard} className="ls-demo-card">
-              {v.type === 'video' ? (
-                <video src={v.src} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-              ) : (
-                <img src={v.src} alt={v.label} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-              )}
-              <div style={demoOverlay} />
-              <div style={demoMeta}>
-                <span style={demoTag}>{v.tag}</span>
-                <span style={demoLabel}>{v.label}</span>
+        <div className="ls-marquee">
+          <div className="ls-marquee-track">
+            {[...DEMO_VIDEOS, ...DEMO_VIDEOS].map((v, i) => (
+              <div key={`${v.label}-${i}`} style={demoCard} className="ls-demo-card">
+                {v.type === 'video' ? (
+                  <video src={v.src} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <img src={v.src} alt={v.label} loading="lazy" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                )}
+                <div style={demoOverlay} />
+                <div style={demoMeta}>
+                  <span style={demoTag}>{v.tag}</span>
+                  <span style={demoLabel}>{v.label}</span>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
         <style>{`
-          .ls-demo-grid { }
-          .ls-demo-card { transition: transform 200ms, box-shadow 200ms; }
-          .ls-demo-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.14); }
-          @media (max-width: 640px) { .ls-demo-grid { grid-template-columns: 1fr !important; } }
+          .ls-marquee { width: 100%; overflow: hidden; }
+          .ls-marquee-track {
+            display: flex; gap: 18px; width: max-content;
+            animation: ls-scroll 70s linear infinite;
+            will-change: transform;
+          }
+          .ls-marquee:hover .ls-marquee-track { animation-play-state: paused; }
+          @keyframes ls-scroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+          .ls-demo-card { width: 240px; flex-shrink: 0; }
+          @media (max-width: 640px) { .ls-demo-card { width: 180px; } }
         `}</style>
       </section>
       )}
