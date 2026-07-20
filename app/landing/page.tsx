@@ -232,9 +232,9 @@ export default function LandingPage() {
             <div>
               <div style={footH}>Company</div>
               <ul style={footList}>
-                <li><a href="#" style={footLink}>About</a></li>
-                <li><a href="#" style={footLink}>Blog</a></li>
-                <li><a href="#" style={footLink}>Contact</a></li>
+                <li><Link href="/about" style={footLink}>About</Link></li>
+                <li><Link href="/blog" style={footLink}>Blog</Link></li>
+                <li><Link href="/contact" style={footLink}>Contact</Link></li>
               </ul>
             </div>
             <div>
@@ -243,6 +243,7 @@ export default function LandingPage() {
                 <li><Link href="/privacy" style={footLink}>Privacy</Link></li>
                 <li><Link href="/terms" style={footLink}>Terms</Link></li>
                 <li><Link href="/refunds" style={footLink}>Refund policy</Link></li>
+                <li><Link href="/cookies" style={footLink}>Cookies</Link></li>
               </ul>
             </div>
           </div>
@@ -276,8 +277,8 @@ export default function LandingPage() {
 // ---- Static content ----
 const FEATURES = [
   {
-    title: 'AI-powered scripts',
-    body: 'AI writes 3 scroll-stopping hooks per product — pick your angle, ship in seconds.',
+    title: 'UGC video packages',
+    body: 'One product photo in — a finished UGC ad out: script, character, voice, captions and b-roll, ready to post.',
     svg: <>
       <path d="M20 4c-4 0-10 4-12 16l3-1.5 1.5-3.5C15 12 18 8 20 4z"/>
       <path d="M8 20l2-6.5"/>
@@ -286,8 +287,8 @@ const FEATURES = [
     </>,
   },
   {
-    title: 'Talking-head video',
-    body: 'Our video engine renders your character with lifelike motion and native voice — one generation, done.',
+    title: 'AI influencers',
+    body: 'Create persistent AI creators with locked identities — shoot them in any scene, wearing your product, forever.',
     svg: <>
       <rect x="2" y="8" width="20" height="13" rx="2"/>
       <path d="M2 8l3-6h14l3 6"/>
@@ -295,31 +296,31 @@ const FEATURES = [
     </>,
   },
   {
-    title: 'Premium voices',
-    body: 'Premium AI narration that sounds like a real creator — warm, natural, and on-brand.',
+    title: 'Product Studio',
+    body: 'Upload a few phone photos and get editorial product shots — splashes, flat lays, hero stacks — art-directed by AI.',
     svg: <>
       <path d="M2 12h2M6 7v10M10 4v16M14 7v10M18 9v6M22 12h-2"/>
     </>,
   },
   {
-    title: 'Auto captions',
-    body: 'AI word-syncs every syllable. Captions burn directly into the video — no editor needed.',
+    title: 'CineMotion ads',
+    body: 'Cinematic CGI product commercials from your product photos — physics-driven motion, designed environments, native audio.',
     svg: <>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
       <path d="M8 10h8M8 14h5"/>
     </>,
   },
   {
-    title: 'B-roll cutaways',
-    body: 'Product-anchored b-roll drops in mid-video — keeps eyes on screen and backs every claim.',
+    title: 'Voices & captions',
+    body: 'Natural AI narration plus word-synced captions burned straight into the video — no external editor needed.',
     svg: <>
       <rect x="2" y="4" width="20" height="16" rx="2"/>
       <path d="M2 9h4M18 9h4M2 15h4M18 15h4M7 4v16M17 4v16"/>
     </>,
   },
   {
-    title: 'Brand kit',
-    body: 'Save your tone, product details, and actor once. Every generation inherits your brand automatically.',
+    title: 'Built-in editor & library',
+    body: 'Trim, caption, and score your clips in the browser — every render backs up automatically to your own Google Drive.',
     svg: <>
       <path d="M12 2L2 9l10 13 10-13L12 2z"/>
       <path d="M2 9h20M7 9L12 2M17 9L12 2M7 9l5 13M17 9l-5 13"/>

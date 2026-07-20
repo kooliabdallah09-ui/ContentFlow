@@ -27,6 +27,20 @@ export interface TextOverlay {
   fontFamily?: 'sans' | 'rounded' | 'mono' | 'serif'
 }
 
+// B-roll: a second video drawn over the main one for a timed window while
+// the main audio (voiceover) keeps playing. 'full' = cut-away covering the
+// whole frame, 'pip' = picture-in-picture corner card.
+export interface VideoOverlay {
+  id: string
+  src: string          // blob URL (uploaded) or remote URL
+  label: string
+  start: number        // seconds on the main timeline
+  duration: number     // seconds shown
+  clipOffset: number   // seconds into the b-roll source to start from
+  mode: 'full' | 'pip'
+  sourceDuration: number
+}
+
 export interface MusicTrack {
   url: string
   label: string
@@ -41,6 +55,7 @@ export interface EditSpec {
   trimEnd: number      // seconds from start to cut out (0 = use full duration)
   overlays: TextOverlay[]
   imageOverlays: ImageOverlay[]
+  videoOverlays?: VideoOverlay[]
   music?: MusicTrack
   aspectRatio: '9:16' | '1:1' | '16:9'
   volume?: number      // 0–1, original video audio (default 1)
