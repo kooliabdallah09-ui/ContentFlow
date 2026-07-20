@@ -233,13 +233,13 @@ export default function ScreenDemoPage() {
   }
 
   return (
-    <main style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }}>
+    <main className="sd-page" style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }}>
       <DriveConnectBanner />
       <header style={{ marginBottom: 36 }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>
           Create
         </div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 48, lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0 }}>
+        <h1 className="sd-h1" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 48, lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0 }}>
           Screen Demo
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: '10px 0 0', lineHeight: 1.55 }}>
@@ -298,7 +298,7 @@ export default function ScreenDemoPage() {
 
           {/* AI script generation */}
           <div style={{ marginBottom: 14 }}>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div className="sd-script-row" style={{ display: 'flex', gap: 8 }}>
               <input
                 type="text"
                 value={description}
@@ -355,7 +355,7 @@ export default function ScreenDemoPage() {
         {/* Voice */}
         <div style={sectionCard}>
           <div style={sectionLabel}>Voice</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
+          <div className="sd-voice-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
             {VOICES.map(v => {
               const active = voiceId === v.id
               return (
@@ -487,7 +487,18 @@ export default function ScreenDemoPage() {
         )}
       </div>
 
-      <style>{`@keyframes sd-spin { to { transform: rotate(360deg) } }`}</style>
+      <style>{`
+        @keyframes sd-spin { to { transform: rotate(360deg) } }
+        @media (max-width: 900px) {
+          .sd-voice-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+        @media (max-width: 640px) {
+          .sd-page { padding: 24px 16px 90px !important; }
+          .sd-h1 { font-size: 36px !important; }
+          .sd-script-row { flex-wrap: wrap !important; }
+          .sd-script-row > input { flex: 1 1 100% !important; }
+        }
+      `}</style>
     </main>
   )
 }

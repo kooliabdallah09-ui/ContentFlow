@@ -245,7 +245,7 @@ export default function BusinessCardPage() {
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>
           Create
         </div>
-        <h1 style={{
+        <h1 className="bc-h1" style={{
           fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 52,
           lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0,
         }}>
@@ -409,7 +409,7 @@ export default function BusinessCardPage() {
         {/* Right panel — live card */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 40 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 24 }}>Live Preview</div>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
+          <div className="bc-preview-wrap" style={{ display: 'flex', justifyContent: 'center' }}>
             <CardPreview form={form} styleId={styleId} accentHex={accentHex} logoSrc={logoSrc} previewRef={cardRef} />
           </div>
           <p style={{ fontSize: 12, color: 'var(--ink-dim)', textAlign: 'center', margin: '20px 0 0' }}>
@@ -423,6 +423,10 @@ export default function BusinessCardPage() {
         @media (max-width: 860px) {
           .bc-page { padding: 24px 16px 90px !important; }
           .bc-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 640px) {
+          .bc-h1 { font-size: 36px !important; }
+          .bc-preview-wrap { overflow-x: auto !important; -webkit-overflow-scrolling: touch; justify-content: flex-start !important; }
         }
       `}</style>
     </main>

@@ -151,7 +151,7 @@ export default function ImageGeneratorPage() {
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: '42px 40px 90px' }} className="img-page">
       <DriveConnectBanner />
       <header style={{ marginBottom: 28 }}>
-        <h1 style={{
+        <h1 className="img-h1" style={{
           fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 54,
           lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0,
         }}>
@@ -447,6 +447,9 @@ export default function ImageGeneratorPage() {
         @media (max-width: 900px) {
           .img-page { padding: 24px 16px 90px !important; }
           .img-grid { columns: 2 150px !important; }
+        }
+        @media (max-width: 640px) {
+          .img-h1 { font-size: 36px !important; }
         }
       `}</style>
     </main>

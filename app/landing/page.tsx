@@ -89,7 +89,7 @@ export default function LandingPage() {
         <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '100px 20px 120px', textAlign: 'center' }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             <div style={heroEyebrow}>The future of UGC</div>
-            <h1 style={heroH1}>
+            <h1 style={heroH1} className="ls-hero-h1">
               Turn any product into a <span style={{ fontStyle: 'italic' }}>scroll-stopping ad.</span>
             </h1>
             <p style={heroP}>One photo in. A finished UGC ad out — with script, character, voice, captions and B-roll. All in 2 minutes.</p>
@@ -292,6 +292,9 @@ export default function LandingPage() {
         @media (max-width: 640px) {
           h1 { font-size: 42px !important; }
           h2 { font-size: 36px !important; }
+          .ls-hero-h1 { font-size: 38px !important; }
+          .ls-pricing { grid-template-columns: 1fr !important; }
+          .ls-foot-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
     </div>

@@ -1311,3 +1311,38 @@ a { color: inherit; text-decoration: none; }
 }
 
 ::-webkit-scrollbar-track { background: transparent; }
+
+/* ─────────────────────────────────────────────
+   Global responsive rescue — mobile/tablet fixes
+   applied broadly via inline-style pages. Each rule
+   uses !important because most page styles live inline.
+   Desktop (>900px) is untouched.
+   ───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  /* Every top-level <main> in the app uses generous padding — squeeze it. */
+  main { padding-left: 16px !important; padding-right: 16px !important; }
+  /* Heading scale */
+  h1 { font-size: clamp(30px, 8vw, 44px) !important; line-height: 1.08 !important; }
+  h2 { font-size: clamp(22px, 5vw, 32px) !important; }
+  /* Any inline 4-col grid collapses to 2 */
+  .pricing-grid, .billing-plan-grid, .ls-features, .img-grid { grid-template-columns: repeat(2, 1fr) !important; }
+  /* Two-col forms/rows stack */
+  .settings-grid, .two-col, .row-2 { grid-template-columns: 1fr !important; }
+  /* Chip rows wrap by default */
+  .chip-row { flex-wrap: wrap !important; }
+  /* Anything wider than viewport clamps */
+  .card, .panel { max-width: 100% !important; }
+}
+
+@media (max-width: 640px) {
+  main { padding-left: 14px !important; padding-right: 14px !important; padding-top: 24px !important; }
+  h1 { font-size: clamp(26px, 8vw, 36px) !important; }
+  h2 { font-size: clamp(20px, 5.5vw, 26px) !important; }
+  .pricing-grid, .billing-plan-grid, .ls-features, .img-grid, .pack-grid, .billing-pack-grid { grid-template-columns: 1fr !important; }
+  /* Fixed multi-column stat grids commonly used */
+  .stat-row-3 { grid-template-columns: 1fr !important; }
+  /* Landing footer 4-column grid */
+  .ls-footer-cols { grid-template-columns: repeat(2, 1fr) !important; gap: 24px !important; }
+  /* Buttons in composer rows */
+  .composer-row { flex-wrap: wrap !important; }
+}

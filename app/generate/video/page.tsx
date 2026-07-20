@@ -411,7 +411,7 @@ export default function VideoGeneratorPage() {
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>
           Create
         </div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 48, lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0 }}>
+        <h1 className="vid-h1" style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 48, lineHeight: 1.05, letterSpacing: '-0.01em', margin: 0 }}>
           Video
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: '10px 0 0', lineHeight: 1.55 }}>
@@ -420,7 +420,7 @@ export default function VideoGeneratorPage() {
       </header>
 
       {/* Model picker — Seedance 2.0 (default) vs Mini (low budget). */}
-      <div style={{ marginBottom: 24, display: 'flex', gap: 10 }}>
+      <div className="vid-models" style={{ marginBottom: 24, display: 'flex', gap: 10 }}>
         {MODELS.map(m => {
           const active = model === m.id
           return (
@@ -454,7 +454,7 @@ export default function VideoGeneratorPage() {
         {/* Duration */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 14 }}>Duration</div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="vid-chiprow" style={{ display: 'flex', gap: 10 }}>
             {cfg.durations.map(sec => {
               const cr = getSeedanceCost(sec, resolution, withAudio, model)
               const active = duration === sec
@@ -487,7 +487,7 @@ export default function VideoGeneratorPage() {
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginTop: 24, marginBottom: 14 }}>
                 Resolution <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-mute)', fontFamily: 'inherit' }}>· lower is cheaper</span>
               </div>
-              <div style={{ display: 'flex', gap: 10 }}>
+              <div className="vid-chiprow" style={{ display: 'flex', gap: 10 }}>
                 {((model === 'seedance-mini' ? ['480p', '720p'] : ['480p', '720p', '1080p', '4k']) as Resolution[]).map(r => {
                   const active = resolution === r
                   const perSec = getSeedancePerSecond(r, withAudio, model)
@@ -665,7 +665,7 @@ export default function VideoGeneratorPage() {
             </label>
             <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>tell it the idea — AI writes the full shot list + storyboard</span>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
+          <div className="vid-director-row" style={{ display: 'flex', gap: 10 }}>
             <input
               type="text"
               value={intent}
@@ -1056,6 +1056,14 @@ export default function VideoGeneratorPage() {
         @keyframes vid-spin { to { transform: rotate(360deg); } }
         @media (max-width: 680px) {
           .vid-page { padding: 24px 16px 80px !important; }
+        }
+        @media (max-width: 640px) {
+          .vid-h1 { font-size: 36px !important; }
+          .vid-models { flex-direction: column !important; }
+          .vid-chiprow { flex-wrap: wrap !important; }
+          .vid-chiprow > button { flex: 1 1 30% !important; min-width: 88px !important; }
+          .vid-director-row { flex-wrap: wrap !important; }
+          .vid-director-row > input { flex: 1 1 100% !important; }
         }
       `}</style>
     </main>
