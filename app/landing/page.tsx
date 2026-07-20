@@ -74,20 +74,32 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* HERO */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 20px 120px', textAlign: 'center' }}>
-        <div style={{ maxWidth: 720, margin: '0 auto' }}>
-          <div style={heroEyebrow}>The future of UGC</div>
-          <h1 style={heroH1}>
-            Turn any product into a <span style={{ fontStyle: 'italic' }}>scroll-stopping ad.</span>
-          </h1>
-          <p style={heroP}>One photo in. A finished UGC ad out — with script, character, voice, captions and B-roll. All in 2 minutes.</p>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <Link href="/auth/signup" style={btnPrimaryLg}>Create your first ad</Link>
-            <a href="#features" style={btnSecondaryLg}>See how it works</a>
+      {/* HERO — Hokusai's Great Wave (public domain) as a soft backdrop */}
+      <section style={{ position: 'relative', overflow: 'hidden' }}>
+        <img src="/images/hero-wave.jpg" alt="" aria-hidden
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center 30%',
+            opacity: 0.16, filter: 'saturate(0.85)', pointerEvents: 'none',
+          }} />
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(to bottom, var(--bg) 0%, transparent 40%, transparent 62%, var(--bg) 100%)',
+        }} />
+        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '100px 20px 120px', textAlign: 'center' }}>
+          <div style={{ maxWidth: 720, margin: '0 auto' }}>
+            <div style={heroEyebrow}>The future of UGC</div>
+            <h1 style={heroH1}>
+              Turn any product into a <span style={{ fontStyle: 'italic' }}>scroll-stopping ad.</span>
+            </h1>
+            <p style={heroP}>One photo in. A finished UGC ad out — with script, character, voice, captions and B-roll. All in 2 minutes.</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
+              <Link href="/auth/signup" style={btnPrimaryLg}>Create your first ad</Link>
+              <a href="#features" style={btnSecondaryLg}>See how it works</a>
+            </div>
           </div>
+          <div style={heroPreview} />
         </div>
-        <div style={heroPreview} />
       </section>
 
       {/* MADE WITH CONTENTFLOW — auto-scrolling marquee (hidden until curated demos exist) */}
