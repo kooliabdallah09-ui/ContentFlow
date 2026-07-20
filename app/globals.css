@@ -1368,3 +1368,9 @@ a { color: inherit; text-decoration: none; }
     padding-left: 16px !important; padding-right: 16px !important; font-size: 14px !important;
   }
 }
+
+/* Prevent any accidental horizontal scroll on mobile — one rogue wide
+   element (svg viewBox, table, absolute image) would leak a dark stripe
+   on the right where the body bg stops. */
+html, body { overflow-x: hidden; max-width: 100%; }
+img, video, svg { max-width: 100%; }
