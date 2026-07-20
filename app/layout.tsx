@@ -117,7 +117,7 @@ export default function RootLayout({
   const isOnboarding = pathname.includes('/onboarding')
   const isPresentationPage = pathname === '/presentation'
   // Marketing / legal pages render bare — no app sidebar even when signed in.
-  const isStandalonePage = ['/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact'].some(p => pathname === p || pathname.startsWith(p + '/'))
+  const isStandalonePage = ['/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help'].some(p => pathname === p || pathname.startsWith(p + '/'))
   const showLayout = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage && !isStandalonePage
 
   if (loading) {
