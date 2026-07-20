@@ -182,20 +182,20 @@ export default function LandingPage() {
           <div style={priceCard}>
             <div style={priceName}>Starter</div>
             <div style={priceRow}><span style={priceAmt}>$19</span><span style={priceUnit}>/month</span></div>
-            <div style={priceMeta}>800 credits/month · ~8 UGC videos</div>
+            <div style={priceMeta}>800 credits/month · ~6 UGC videos</div>
             <Link href="/auth/signup?plan=starter" style={btnSecondaryFull}>Get Starter</Link>
           </div>
           <div style={{ ...priceCard, border: '2px solid var(--ink)', position: 'relative' }}>
             <span style={popularBadge}>Most popular</span>
             <div style={priceName}>Pro</div>
             <div style={priceRow}><span style={priceAmt}>$49</span><span style={priceUnit}>/month</span></div>
-            <div style={priceMeta}>2,000 credits/month · ~22 UGC videos</div>
+            <div style={priceMeta}>2,000 credits/month · ~16 UGC videos</div>
             <Link href="/auth/signup?plan=pro" style={btnPrimaryFull}>Get Pro</Link>
           </div>
           <div style={priceCard}>
             <div style={priceName}>Agency</div>
             <div style={priceRow}><span style={priceAmt}>$149</span><span style={priceUnit}>/month</span></div>
-            <div style={priceMeta}>6,500 credits/month · ~71 UGC videos</div>
+            <div style={priceMeta}>6,500 credits/month · ~52 UGC videos</div>
             <Link href="/auth/signup?plan=agency" style={btnSecondaryFull}>Get Agency</Link>
           </div>
         </div>
