@@ -1353,3 +1353,18 @@ a { color: inherit; text-decoration: none; }
     padding: 8px 12px !important; font-size: 13px !important;
   }
 }
+
+/* Tiny phones (≤360px) — iPhone SE 1st gen, older Androids. */
+@media (max-width: 360px) {
+  main { padding-left: 10px !important; padding-right: 10px !important; }
+  h1 { font-size: 26px !important; }
+  h2 { font-size: 22px !important; }
+  /* Landing header: shrink brand, drop wordmark padding */
+  a[href="/auth/login"], a[href="/auth/signup"] {
+    padding: 7px 10px !important; font-size: 12.5px !important;
+  }
+  /* Landing hero action buttons */
+  a[href="/auth/signup"][class], .btn-primary-lg {
+    padding-left: 16px !important; padding-right: 16px !important; font-size: 14px !important;
+  }
+}
