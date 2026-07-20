@@ -102,7 +102,7 @@ export default function RootLayout({
       clearTimeout(timeout)
       setUser(session?.user)
 
-      const publicPages = ['/', '/privacy', '/auth', '/presentation', '/landing']
+      const publicPages = ['/', '/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help', '/pricing', '/auth', '/presentation', '/landing']
       const isPublicPage = publicPages.some(page => pathname === page || pathname.startsWith(page + '/'))
 
       if (!session?.user && !isPublicPage) router.push('/auth/login')
@@ -116,7 +116,9 @@ export default function RootLayout({
   const isLandingPage = pathname === '/landing' || pathname === '/'
   const isOnboarding = pathname.includes('/onboarding')
   const isPresentationPage = pathname === '/presentation'
-  const showLayout = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage
+  // Marketing / legal pages render bare — no app sidebar even when signed in.
+  const isStandalonePage = ['/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact'].some(p => pathname === p || pathname.startsWith(p + '/'))
+  const showLayout = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage && !isStandalonePage
 
   if (loading) {
     return (
