@@ -178,7 +178,18 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 20px' }}>
+      <section id="pricing" style={{ position: 'relative', overflow: 'hidden' }}>
+        <img src="/images/pricing-peaks.jpg" alt="" aria-hidden
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            objectFit: 'cover', objectPosition: 'center 25%',
+            opacity: 0.15, filter: 'saturate(0.85)', pointerEvents: 'none',
+          }} />
+        <div style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: 'linear-gradient(to bottom, var(--bg) 0%, transparent 35%, transparent 60%, var(--bg) 100%)',
+        }} />
+        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '100px 20px' }}>
         <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto 50px' }}>
           <h2 style={sectionH2}>Fair pricing.<br/><span style={{ fontStyle: 'italic', color: 'var(--ink-mute)' }}>For everyone.</span></h2>
           <p style={sectionP}>No hidden fees. No long contracts. Credits roll month to month.</p>
@@ -210,6 +221,7 @@ export default function LandingPage() {
             <div style={priceMeta}>6,500 credits/month · ~52 UGC videos</div>
             <Link href="/auth/signup?plan=agency" style={btnSecondaryFull}>Get Agency</Link>
           </div>
+        </div>
         </div>
       </section>
 
