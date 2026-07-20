@@ -1346,3 +1346,10 @@ a { color: inherit; text-decoration: none; }
   /* Buttons in composer rows */
   .composer-row { flex-wrap: wrap !important; }
 }
+
+@media (max-width: 640px) {
+  /* Landing header buttons must never wrap onto 2 lines. */
+  a[href="/auth/login"], a[href="/auth/signup"] {
+    padding: 8px 12px !important; font-size: 13px !important;
+  }
+}
