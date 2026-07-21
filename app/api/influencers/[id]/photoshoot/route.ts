@@ -147,11 +147,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           : `\nTHE PRODUCT — HIGHEST PRIORITY: they are naturally using/holding "${studioProduct.name}" (the exact item from the product reference images) in this scene — hands engaged with it as part of the activity, product undistorted, clearly visible, packaging exact.`)
       : ''
     const basePrompt = (variation: string) =>
-      `${influencer.appearance_prompt}${productLine}\n\nScene: ${scene}\n${variation}\n\n${refDescription} — preserve their face, hair, skin tone, and identity precisely.
+      // Order matters: SCENE + PRODUCT go first so the model treats them as
+      // the primary subject; identity + camera hints come after as constraints.
+      `SCENE — this is the whole photograph, do not substitute: ${scene}. ${variation}
+${productLine}
 
-CANDID, NOT POSED — CRITICAL: the person is genuinely DOING the scene's activity (picking produce, lifting a weight, sipping the drink, walking) — hands physically engaged with real objects, weight mid-shift, eyes on their task. NO standing square to camera, NO posed smile at the lens, NO model energy — it should look like someone photographed them without warning. Only make eye contact with the camera if the scene text explicitly asks for it.
+WHO: ${influencer.appearance_prompt}
+${refDescription} — preserve their face, hair, skin tone, and identity precisely.
 
-COMPOSITION: the subject does NOT have to be centered — use rule-of-thirds placement, let the environment breathe around them, allow foreground elements to partially overlap. OUTFIT IS NOT LOCKED: the clothing worn in the reference images is just what they had on that day — dress the character appropriately for THIS scene, and if the scene description mentions clothing or style, that wins over whatever the references show. FRAMING: never a tight head-and-shoulders crop — show the upper body AND part of the lower body (waist/hips/thighs), so their full outfit reads clearly, like a casual mirror or arm's-length social photo. Hyper-realistic candid snapshot: natural light appropriate to the scene, real skin texture with pores and small imperfections, natural face, no plastic face, no AI-smooth skin, believable social-media energy, no beauty filter. The look of a casual smartphone photo taken by a friend: bright even exposure, deep focus with the background nearly as sharp as the subject (NO shallow depth of field, NO bokeh), mild consumer-camera HDR, true-to-life neutral colors, slightly imperfect framing. NOT an editorial or fashion photoshoot: no cinematic color grade, no dramatic rim lighting, no posed model energy, no magazine retouching.\n\nThe output is the photograph itself, full-bleed. Absolutely NO camera interface elements: no shutter button, no camera controls, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
+CANDID, NOT POSED — the person is genuinely DOING the scene's activity — hands physically engaged with real objects, eyes on their task, walking / mid-motion. NO standing square to camera, NO posed smile at the lens, NO model energy. Only make eye contact with the camera if the scene text explicitly asks for it.
+
+COMPOSITION: subject placed by rule-of-thirds — NOT centered. Show the upper body AND part of the lower body (waist/hips/thighs) so their full outfit reads clearly. NEVER a tight head-and-shoulders crop.
+
+LIGHTING & LOOK: the lighting, colour palette, and time of day MUST match the SCENE above (a night neon street means DARK ambient with saturated neon rim/color spill on the subject; a sunny beach means warm daylight; an interior means whatever the scene describes). Never override the scene with generic daylight. Hyper-realistic candid smartphone photograph, real skin texture with pores and small imperfections, natural face, no plastic face, no AI-smooth skin, mild consumer-camera HDR. NO shallow depth of field, NO editorial bokeh, NO magazine retouching, NO cinematic colour grade beyond what the scene naturally has.
+
+The output is the photograph itself, full-bleed. Absolutely NO camera interface elements, no shutter button, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
     // NB2 handles few reference images — with the full set (12-panel sheet
     // + portrait + product angles) it ignored the product entirely. On NB2,
