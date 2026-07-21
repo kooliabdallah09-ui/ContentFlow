@@ -240,9 +240,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // behind a single 'More details' toggle so the default view is just
   // name + description + photo.
   const [showProductAdvanced, setShowProductAdvanced] = useState(false)
-  // Format pills are hidden by default — the picker's sensible defaults are
-  // Portrait 9:16 · 5s · 1080p · Seedance 2.0.
-  const [showFormatPills, setShowFormatPills] = useState(false)
+  // Format pills always visible — quick cycle-to-switch controls.
+  const [showFormatPills, setShowFormatPills] = useState(true)
   const [durationTouched, setDurationTouched] = useState(!!initialPrefill)
   const [aspectTouched, setAspectTouched] = useState(!!initialPrefill)
   const step1Ref = useRef<HTMLElement | null>(null)
@@ -1132,14 +1131,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </button>
       </div>
 
-      {!showFormatPills && (
-        <button type="button" onClick={() => setShowFormatPills(true)} style={{ fontSize: 12.5, color: 'var(--ink-mute)', textAlign: 'left', padding: '4px 2px', cursor: 'pointer', width: 'fit-content' }}>
-          Format options →
-        </button>
-      )}
-
       {/* Format pill row — each pill cycles its value on click; the arrow
-          opens the full Format editor. Hidden by default. */}
+          opens the full Format editor. */}
       {showFormatPills && (() => {
         const aspects = Object.keys(ASPECTS) as UGCAspect[]
         const durations = [...DURATION_OPTIONS]
@@ -1150,6 +1143,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           { label: `${duration}s`, onClick: () => { setDuration(cycle(durations, duration)); setDurationTouched(true) } },
           { label: resolution, onClick: () => setResolution(cycle(resolutions, resolution)) },
           { label: engine === 'seedance-mini' ? 'Seedance Mini' : 'Seedance 2.0', onClick: () => setEngine(engine === 'seedance-mini' ? 'seedance-2' : 'seedance-mini') },
+          { label: (LANGUAGES.find(l => l.code === language)?.name) ?? 'English', onClick: () => { const codes = LANGUAGES.map(l => l.code); const i = codes.indexOf(language); setLanguage(codes[(i + 1) % codes.length]) } },
         ]
         return (
           <div style={{
