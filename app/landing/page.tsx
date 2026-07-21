@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Sun, Moon } from 'lucide-react'
+import { Sun, Moon, Menu, X } from 'lucide-react'
 import { DEMO_VIDEOS } from '@/lib/demo-gallery'
 
 // Landing page — editorial design from the Claude Design export.
@@ -11,6 +11,7 @@ import { DEMO_VIDEOS } from '@/lib/demo-gallery'
 
 export default function LandingPage() {
   const [isDark, setIsDark] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     const saved = typeof window !== 'undefined' ? localStorage.getItem('cf-theme') : null
@@ -53,7 +54,7 @@ export default function LandingPage() {
             <a href="#pricing" style={navLink}>Pricing</a>
             <Link href="/help" style={navLink}>Docs</Link>
           </nav>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="ls-actions">
             <button
               onClick={toggleTheme}
               aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -68,10 +69,39 @@ export default function LandingPage() {
             >
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <Link href="/auth/login" style={btnSecondaryLink}>Sign in</Link>
+            <Link href="/auth/login" style={btnSecondaryLink} className="ls-signin">Sign in</Link>
             <Link href="/auth/signup" style={btnPrimaryLink}>Get started</Link>
           </div>
+          {/* Burger — shown ≤640px in place of Sign in + nav links */}
+          <button
+            className="ls-burger"
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            onClick={() => setMenuOpen(o => !o)}
+            style={{
+              display: 'none',
+              width: 40, height: 40, borderRadius: 10,
+              background: 'transparent', border: '1px solid var(--border)',
+              color: 'var(--ink)', cursor: 'pointer',
+              alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            {menuOpen ? <X size={18} /> : <Menu size={18} />}
+          </button>
         </div>
+        {/* Mobile drop-panel: shows the same nav + Sign in when the burger is open. */}
+        {menuOpen && (
+          <div className="ls-mobile-panel" style={{
+            display: 'none',
+            padding: '10px 20px 18px', borderTop: '1px solid var(--border)',
+            flexDirection: 'column', gap: 6,
+            background: 'var(--bg)',
+          }}>
+            <a href="#features" onClick={() => setMenuOpen(false)} style={{ padding: '10px 4px', fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>Features</a>
+            <a href="#pricing" onClick={() => setMenuOpen(false)} style={{ padding: '10px 4px', fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>Pricing</a>
+            <Link href="/help" onClick={() => setMenuOpen(false)} style={{ padding: '10px 4px', fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>Docs</Link>
+            <Link href="/auth/login" onClick={() => setMenuOpen(false)} style={{ padding: '10px 4px', fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>Sign in</Link>
+          </div>
+        )}
       </header>
 
       {/* HERO — Hokusai's Great Wave (public domain) as a soft backdrop */}

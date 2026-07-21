@@ -1374,3 +1374,12 @@ a { color: inherit; text-decoration: none; }
    on the right where the body bg stops. */
 html, body { overflow-x: hidden; max-width: 100%; }
 img, video, svg { max-width: 100%; }
+
+/* Landing header burger — activates at ≤640px.
+   Hides the desktop nav + Sign in; keeps theme toggle + Get started + burger. */
+@media (max-width: 640px) {
+  .ls-nav { display: none !important; }
+  .ls-signin { display: none !important; }
+  .ls-burger { display: inline-flex !important; }
+  .ls-mobile-panel { display: flex !important; }
+}
