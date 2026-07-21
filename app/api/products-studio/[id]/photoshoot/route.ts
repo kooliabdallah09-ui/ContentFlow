@@ -176,7 +176,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!productRefs.length) throw new Error('Could not load product reference photos')
 
     // 2) Render each concept — ad mode uses a punchy graphic-poster prompt.
-    const results = await Promise.allSettled(shots.map(sh => {
+    //    Nano Banana occasionally rejects a single shot with a transient
+    //    safety-guess or rate-limit error while its siblings render fine.
+    //    Retry each shot once so a batch of 2 doesn't come back as 1.
+    const renderShot = async (fn: () => Promise<{ imageBase64: string; mimeType: string }>) => {
+      try { return await fn() } catch (e1) {
+        console.warn('[products-studio/photoshoot] shot attempt 1 failed, retrying:', e1 instanceof Error ? e1.message : e1)
+        await new Promise(r => setTimeout(r, 600))
+        return await fn()
+      }
+    }
+    const results = await Promise.allSettled(shots.map(sh => renderShot(() => {
       const adPersonClause = influencer
         ? `\n\n★ PERSON IN THE AD — non-negotiable ★ The FIRST reference image(s) define the exact model appearing in this ad. Their face must be fully visible and correctly rendered — three-quarter or direct-look framing, matching their real features from the reference. NEVER crop the head off, NEVER let the product, headline text, or any element cover the face, NEVER render a headless torso. The person and the product co-exist in the composition (they hold, wear or stand beside it) alongside the typography.`
         : ''
@@ -202,7 +212,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             ? `The FIRST reference image(s) define the exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt${(product.category === 'apparel' || product.category === 'footwear') ? ' (they WEAR the product)' : ''}. The LAST image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it.`
             : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape, materials and proportions perfectly. Apply the prompt as the scene, arrangement, and styling around it; never redesign the product.'),
       })
-    }))
+    })))
+
+    // Log any rejections so the pattern shows up in Vercel logs.
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') console.error(`[products-studio/photoshoot] shot ${i} (${shots[i].concept}) failed:`, r.reason instanceof Error ? r.reason.message : r.reason)
+    })
 
     const photos: Array<{ id: string; concept: string; image_url: string; created_at: string }> = []
     for (let i = 0; i < results.length; i++) {
@@ -236,7 +251,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', id)
 
-    return NextResponse.json({ photos, creditsCharged: charged })
+    return NextResponse.json({ photos, creditsCharged: charged, requested: shots.length, rendered: photos.length })
   } catch (err) {
     console.error('[products-studio/photoshoot] failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })

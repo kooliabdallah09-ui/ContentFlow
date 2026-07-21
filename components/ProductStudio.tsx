@@ -190,7 +190,13 @@ export default function ProductStudio() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Photoshoot failed')
       setPhotos(prev => [...data.photos, ...prev])
-      showSuccess('Shoot done', `${data.photos.length} photo${data.photos.length > 1 ? 's' : ''} · ${data.creditsCharged} cr`)
+      const requested = typeof data.requested === 'number' ? data.requested : data.photos.length
+      const rendered = data.photos.length
+      if (rendered < requested) {
+        showError('Partial shoot', `${rendered}/${requested} shots came back — only charged ${data.creditsCharged} cr for what rendered. Re-run for the rest.`)
+      } else {
+        showSuccess('Shoot done', `${rendered} photo${rendered > 1 ? 's' : ''} · ${data.creditsCharged} cr`)
+      }
     } catch (err) {
       showError('Photoshoot failed', err instanceof Error ? err.message : 'Try again')
     } finally {
