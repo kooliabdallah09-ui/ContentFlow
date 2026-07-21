@@ -229,31 +229,35 @@ export default function UGCGeneratorPage() {
   return (
     <main style={{ maxWidth: 1140, margin: '0 auto', padding: '36px 40px 90px' }} className="ugc-page">
       <DriveConnectBanner />
-      <div style={{ marginBottom: 28 }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 9,
-          fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em',
-          textTransform: 'uppercase', color: 'var(--ink-fade)',
-        }}>
-          <span style={{
-            background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 5,
-            padding: '2px 7px', letterSpacing: '0.04em',
-          }}>Flagship</span>
-          UGC Package
+      <header style={{ marginBottom: 28, display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{
+            fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em',
+            textTransform: 'uppercase', color: 'var(--ink-fade)',
+          }}>Studio / UGC Package</div>
+          <h1 style={{
+            fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 44,
+            lineHeight: 1.02, letterSpacing: '-0.01em', margin: '10px 0 0',
+          }}>
+            Build a <span style={{ fontStyle: 'italic' }}>UGC ad</span>.
+          </h1>
+          <p style={{
+            fontSize: 14, color: 'var(--ink-dim)', margin: '10px 0 0',
+            maxWidth: 480, lineHeight: 1.55,
+          }}>
+            One photo in. Script, character, voice, captions and B-roll — out in about 2 minutes.
+          </p>
         </div>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 42,
-          lineHeight: 1.05, letterSpacing: '-0.01em', margin: '13px 0 0',
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8,
+          padding: '6px 12px', borderRadius: 999,
+          background: 'var(--ink)', color: 'var(--on-ink)',
+          fontSize: 11.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
         }}>
-          Build a <span style={{ fontStyle: 'italic' }}>UGC ad</span>.
-        </h1>
-        <p style={{
-          fontSize: 14.5, color: 'var(--ink-dim)', margin: '10px 0 0',
-          maxWidth: 520, lineHeight: 1.55,
-        }}>
-          One product photo in, a finished talking-head UGC ad out — script, character, and native synced voice, generated in about 2 minutes.
-        </p>
-      </div>
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 0 3px rgba(34,197,94,0.25)' }} />
+          Flagship
+        </div>
+      </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
