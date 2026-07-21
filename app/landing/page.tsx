@@ -10,12 +10,16 @@ import { DEMO_VIDEOS } from '@/lib/demo-gallery'
 // Every signup CTA routes to /auth/signup so the funnel is consistent.
 
 export default function LandingPage() {
-  const [isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(true)  // Landing defaults to dark
   const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
+    // Default dark on landing; respect an explicit user override.
     const saved = typeof window !== 'undefined' ? localStorage.getItem('cf-theme') : null
-    setIsDark(saved === 'dark')
+    const shouldDark = saved ? saved === 'dark' : true
+    setIsDark(shouldDark)
+    if (shouldDark) document.documentElement.setAttribute('data-theme', 'dark')
+    else document.documentElement.removeAttribute('data-theme')
   }, [])
 
   const toggleTheme = () => {
