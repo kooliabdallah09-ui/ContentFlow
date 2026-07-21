@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { showSuccess, showError } from '@/lib/notifications'
 import { DailySuggestion } from '@/lib/planner'
 import { FormatPreferences, FormatFrequency } from '@/lib/planConfig'
+import { recommendPlan } from '@/lib/plan-recommender'
 
 const FORMAT_OPTIONS: { id: keyof FormatPreferences; label: string; desc: string }[] = [
   { id: 'ugc',         label: 'UGC Video',     desc: 'AI talking-head brand videos' },
@@ -608,6 +609,53 @@ export default function OnboardingBrandPage() {
                     </div>
                   </div>
                 )}
+
+                {/* Recommendation — computes the plan (or pack) that fits
+                    the user's declared mix + frequency. Only appears when
+                    they've actually chosen something to base it on. */}
+                {(() => {
+                  const anyPref = Object.values(formatPrefs).some(v => v && v > 0)
+                  if (!anyPref) return null
+                  const rec = recommendPlan({ formatPrefs, frequency })
+                  return (
+                    <div style={{
+                      marginTop: 18, padding: '16px 18px',
+                      borderRadius: 12, border: '1px solid var(--border)',
+                      background: 'linear-gradient(180deg, var(--surface), var(--bg-elev))',
+                      display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
+                    }}>
+                      <div style={{
+                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                        background: 'var(--ink)', color: 'var(--on-ink)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 18,
+                      }}>✦</div>
+                      <div style={{ flex: 1, minWidth: 220 }}>
+                        <div style={{
+                          fontSize: 10.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em',
+                          textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 4,
+                        }}>Recommended for you</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
+                          {rec.planName} — {rec.planPrice}
+                        </div>
+                        <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: 4, lineHeight: 1.5 }}>
+                          {rec.reason}
+                        </div>
+                        {rec.suggestPack && (
+                          <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: 6 }}>
+                            + <strong style={{ color: 'var(--ink)' }}>{rec.suggestPack.credits.toLocaleString()} pack</strong> ({rec.suggestPack.price}) — {rec.suggestPack.reason}
+                          </div>
+                        )}
+                      </div>
+                      <div style={{
+                        fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)',
+                        textAlign: 'right',
+                      }}>
+                        ~{rec.monthlyCredits.toLocaleString()}<span style={{ fontSize: 11, marginLeft: 3, color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)', letterSpacing: '0.08em' }}>CR/MO</span>
+                      </div>
+                    </div>
+                  )
+                })()}
               </div>
 
               <div>
