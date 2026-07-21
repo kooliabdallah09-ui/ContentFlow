@@ -83,6 +83,8 @@ export default function ProductStudio() {
   const [selected, setSelected] = useState<StudioProduct | null>(null)
   const [photos, setPhotos] = useState<ProductPhoto[]>([])
   const [direction, setDirection] = useState('')
+  // aesthetic = editorial lifestyle photos; ad = bold typographic promo graphics
+  const [mode, setMode] = useState<'aesthetic' | 'ad'>('aesthetic')
   const [shotCount, setShotCount] = useState(2)
   const [ratio, setRatio] = useState<'1:1' | '4:5' | '9:16' | '16:9'>('4:5')
   const [shootModel, setShootModel] = useState<'pro' | 'nb2'>('pro')
@@ -183,7 +185,7 @@ export default function ProductStudio() {
       const res = await fetch(`/api/products-studio/${selected.id}/photoshoot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ direction: direction.trim() || undefined, count: shotCount, ratio, quality, influencerId: shootInfluencerId }),
+        body: JSON.stringify({ direction: direction.trim() || undefined, count: shotCount, ratio, quality, influencerId: shootInfluencerId, mode }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Photoshoot failed')
@@ -294,6 +296,29 @@ export default function ProductStudio() {
               })}
             </div>
           )}
+          {/* Mode toggle — Aesthetic photo vs typographic Ad graphic */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
+            <button
+              onClick={() => setMode('aesthetic')}
+              style={{
+                padding: '7px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
+                background: mode === 'aesthetic' ? 'var(--ink)' : 'var(--surface)',
+                color: mode === 'aesthetic' ? 'var(--on-ink)' : 'var(--ink)',
+                border: `1px solid ${mode === 'aesthetic' ? 'var(--ink)' : 'var(--border)'}`,
+                cursor: 'pointer',
+              }}
+            >📷 Aesthetic photo</button>
+            <button
+              onClick={() => setMode('ad')}
+              style={{
+                padding: '7px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
+                background: mode === 'ad' ? 'var(--ink)' : 'var(--surface)',
+                color: mode === 'ad' ? 'var(--on-ink)' : 'var(--ink)',
+                border: `1px solid ${mode === 'ad' ? 'var(--ink)' : 'var(--border)'}`,
+                cursor: 'pointer',
+              }}
+            >✨ Ad graphic</button>
+          </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             <textarea
               className="textarea"
