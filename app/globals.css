@@ -1383,3 +1383,15 @@ img, video, svg { max-width: 100%; }
   .ls-burger { display: inline-flex !important; }
   .ls-mobile-panel { display: flex !important; }
 }
+
+/* Landing burger — the smallest phones (≤360px):
+   Get started + theme toggle move from the header into the drop panel.
+   The last item in the mobile panel loses its bottom border. */
+@media (max-width: 640px) {
+  .ls-mobile-panel a:last-of-type { border-bottom: 0 !important; }
+}
+@media (max-width: 360px) {
+  /* Hide the desktop actions row entirely — only the burger stays in the header */
+  .ls-actions { display: none !important; }
+  .ls-mobile-actions { display: flex !important; }
+}

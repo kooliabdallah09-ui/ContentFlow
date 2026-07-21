@@ -92,14 +92,41 @@ export default function LandingPage() {
         {menuOpen && (
           <div className="ls-mobile-panel" style={{
             display: 'none',
-            padding: '10px 20px 18px', borderTop: '1px solid var(--border)',
-            flexDirection: 'column', gap: 6,
+            padding: '10px 20px 20px', borderTop: '1px solid var(--border)',
+            flexDirection: 'column', gap: 4,
             background: 'var(--bg)',
           }}>
-            <a href="#features" onClick={() => setMenuOpen(false)} style={{ padding: '10px 4px', fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>Features</a>
-            <a href="#pricing" onClick={() => setMenuOpen(false)} style={{ padding: '10px 4px', fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>Pricing</a>
-            <Link href="/help" onClick={() => setMenuOpen(false)} style={{ padding: '10px 4px', fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>Docs</Link>
-            <Link href="/auth/login" onClick={() => setMenuOpen(false)} style={{ padding: '10px 4px', fontSize: 15, color: 'var(--ink)', fontWeight: 500 }}>Sign in</Link>
+            <a href="#features" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Features</a>
+            <a href="#pricing" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Pricing</a>
+            <Link href="/help" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Docs</Link>
+            <Link href="/auth/login" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Sign in</Link>
+            {/* On the smallest phones, the theme toggle and Get started move
+                inside the burger to keep the header uncluttered. */}
+            <div className="ls-mobile-actions" style={{
+              display: 'none',
+              marginTop: 10, paddingTop: 14, borderTop: '1px solid var(--border-soft)',
+              gap: 10,
+            }}>
+              <button
+                onClick={() => { toggleTheme() }}
+                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+                style={{
+                  flex: '0 0 auto', width: 44, height: 44, borderRadius: 10,
+                  background: 'transparent', border: '1px solid var(--border)',
+                  color: 'var(--ink)', cursor: 'pointer',
+                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                }}
+              >
+                {isDark ? <Sun size={16} /> : <Moon size={16} />}
+              </button>
+              <Link href="/auth/signup" onClick={() => setMenuOpen(false)} style={{
+                flex: 1, textAlign: 'center', padding: '12px 16px', borderRadius: 10,
+                background: 'var(--ink)', color: 'var(--on-ink)',
+                fontSize: 14.5, fontWeight: 600, whiteSpace: 'nowrap',
+              }}>
+                Get started
+              </Link>
+            </div>
           </div>
         )}
       </header>
@@ -388,6 +415,7 @@ const FEATURES = [
 
 // ---- Inline styles ----
 const navLink: React.CSSProperties = { padding: '9px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-mute)' }
+const mobileNavItem: React.CSSProperties = { display: 'block', padding: '13px 4px', fontSize: 16, color: 'var(--ink)', fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid var(--border-soft)' }
 const btnPrimaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 14, fontWeight: 600, border: 0, whiteSpace: 'nowrap' }
 const btnSecondaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)', whiteSpace: 'nowrap' }
 
