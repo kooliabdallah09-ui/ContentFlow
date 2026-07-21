@@ -1372,7 +1372,7 @@ a { color: inherit; text-decoration: none; }
 /* Prevent any accidental horizontal scroll on mobile — one rogue wide
    element (svg viewBox, table, absolute image) would leak a dark stripe
    on the right where the body bg stops. */
-html, body { overflow-x: hidden; max-width: 100%; }
+html, body { overflow-x: clip; max-width: 100%; }
 img, video, svg { max-width: 100%; }
 
 /* Landing header burger — activates at ≤640px.
