@@ -1137,7 +1137,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         const resolutions: UGCResolution[] = engine === 'seedance-mini' ? ['480p', '720p'] : ['480p', '720p', '1080p', '4k']
         function cycle<T>(list: T[], current: T): T { const i = list.indexOf(current); return list[(i + 1) % list.length] }
         const pills: { label: string; onClick: () => void }[] = [
-          { label: ASPECTS[aspect].label.split(' ')[0], onClick: () => { setAspect(cycle(aspects, aspect)); setAspectTouched(true) } },
+          { label: ASPECTS[aspect].label, onClick: () => { setAspect(cycle(aspects, aspect)); setAspectTouched(true) } },
           { label: `${duration}s`, onClick: () => { setDuration(cycle(durations, duration)); setDurationTouched(true) } },
           { label: resolution, onClick: () => setResolution(cycle(resolutions, resolution)) },
           { label: engine === 'seedance-mini' ? 'Seedance Mini' : 'Seedance 2.0', onClick: () => setEngine(engine === 'seedance-mini' ? 'seedance-2' : 'seedance-mini') },
