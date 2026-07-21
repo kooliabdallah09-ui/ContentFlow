@@ -157,12 +157,31 @@ export async function POST(request: NextRequest) {
         ? `Client description of the influencer:\n${description || '(traits only)'}\n\nThe attached photo${referenceImages.length > 1 ? 's show' : ' shows'} the exact look the influencer should be based on — write the appearance_prompt to describe THIS person's face, hair, features, and style faithfully (adult, no age numbers).`
         : `Client description of the influencer:\n${description || '(traits only — build the character from the locked traits below)'}`) + traitsBlock,
     })
-    const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
-      max_tokens: 800,
-      system: IDENTITY_SYSTEM,
-      messages: [{ role: 'user', content: userContent }],
-    })
+    // Retry Sonnet on transient 5xx / overloaded — Anthropic occasionally returns
+    // api_error "Internal server error" and eating the credits + failing the
+    // whole create flow over a blip is a bad UX.
+    let msg: Awaited<ReturnType<typeof anthropic.messages.create>> | null = null
+    let sonnetErr: unknown = null
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        msg = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 800,
+          system: IDENTITY_SYSTEM,
+          messages: [{ role: 'user', content: userContent }],
+        })
+        break
+      } catch (e) {
+        sonnetErr = e
+        const status = (e as { status?: number })?.status
+        if (status && status < 500 && status !== 429) break
+        await new Promise(r => setTimeout(r, 800 * (attempt + 1)))
+      }
+    }
+    if (!msg) {
+      console.error('[influencers] Sonnet failed after retries:', sonnetErr)
+      return NextResponse.json({ error: 'Identity model is temporarily overloaded — try again in a moment.' }, { status: 503 })
+    }
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
       .replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
     let sheet: { name?: string; handle?: string; bio?: string; personality?: string; niche?: string; appearance_prompt?: string }

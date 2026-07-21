@@ -451,11 +451,12 @@ a { color: inherit; text-decoration: none; }
 
 .btn-primary {
   background: var(--ink);
-  color: #fff;
+  color: var(--on-ink);
   border-color: var(--ink);
 }
 
-.btn-primary:hover { opacity: 0.88; background: var(--ink); }
+.btn-primary:hover { opacity: 0.88; background: var(--ink); color: var(--on-ink); }
+.btn-primary:disabled { opacity: 0.55; cursor: not-allowed; color: var(--on-ink); }
 .btn-ghost { background: transparent; border-color: transparent; color: var(--ink-dim); }
 .btn-ghost:hover { color: var(--ink); background: var(--hover); }
 
