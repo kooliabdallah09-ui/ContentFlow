@@ -240,6 +240,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // behind a single 'More details' toggle so the default view is just
   // name + description + photo.
   const [showProductAdvanced, setShowProductAdvanced] = useState(false)
+  // Format pills are hidden by default — the picker's sensible defaults are
+  // Portrait 9:16 · 5s · 1080p · Seedance 2.0.
+  const [showFormatPills, setShowFormatPills] = useState(false)
   const [durationTouched, setDurationTouched] = useState(!!initialPrefill)
   const [aspectTouched, setAspectTouched] = useState(!!initialPrefill)
   const step1Ref = useRef<HTMLElement | null>(null)
@@ -1129,9 +1132,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </button>
       </div>
 
+      {!showFormatPills && (
+        <button type="button" onClick={() => setShowFormatPills(true)} style={{ fontSize: 12.5, color: 'var(--ink-mute)', textAlign: 'left', padding: '4px 2px', cursor: 'pointer', width: 'fit-content' }}>
+          Format options →
+        </button>
+      )}
+
       {/* Format pill row — each pill cycles its value on click; the arrow
-          opens the full Format editor. */}
-      {(() => {
+          opens the full Format editor. Hidden by default. */}
+      {showFormatPills && (() => {
         const aspects = Object.keys(ASPECTS) as UGCAspect[]
         const durations = [...DURATION_OPTIONS]
         const resolutions: UGCResolution[] = engine === 'seedance-mini' ? ['480p', '720p'] : ['480p', '720p', '1080p', '4k']

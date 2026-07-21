@@ -143,7 +143,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const wearable = studioProduct && (studioProduct.category === 'apparel' || studioProduct.category === 'footwear')
     const productLine = studioProduct
       ? (wearable
-          ? `\nTHE PRODUCT — HIGHEST PRIORITY: they are WEARING "${studioProduct.name}" (the exact garment from the product reference images) AS THEIR OUTFIT in this scene. IGNORE any clothing described above and IGNORE whatever they wear in their own reference photos — the product garment replaces it, with its print/label reproduced exactly.`
+          // Heavier wearable clause: name the garment explicitly, force it as
+          // the ONLY visible top layer, and pre-empt any competing outfit
+          // description from the identity block or reference photos.
+          ? `\n★ WEARING THE PRODUCT — non-negotiable, top priority ★
+The person is WEARING the "${studioProduct.name}" garment (shown in the product reference image) as their OUTFIT / TOP LAYER in this photograph. This exact garment — its colour, cut, print and label — replaces any other top or jacket the person might normally wear or be described as wearing. Do NOT layer another jacket, hoodie, coat or top over it. Do NOT invent a different shirt. If the reference identity photo shows them in a different top, IGNORE that top entirely; it is not part of this shoot.`
           : `\nTHE PRODUCT — HIGHEST PRIORITY: they are naturally using/holding "${studioProduct.name}" (the exact item from the product reference images) in this scene — hands engaged with it as part of the activity, product undistorted, clearly visible, packaging exact.`)
       : ''
     const basePrompt = (variation: string) =>
@@ -161,7 +165,7 @@ CANDID, NOT POSED — the person is genuinely DOING the scene's activity — han
 
 COMPOSITION: subject placed by rule-of-thirds — NOT centered. Show the upper body AND part of the lower body (waist/hips/thighs) so their full outfit reads clearly. NEVER a tight head-and-shoulders crop.
 
-LIGHTING & LOOK: the lighting, colour palette, and time of day MUST match the SCENE above (a night neon street means DARK ambient with saturated neon rim/color spill on the subject; a sunny beach means warm daylight; an interior means whatever the scene describes). Never override the scene with generic daylight. Hyper-realistic candid smartphone photograph, real skin texture with pores and small imperfections, natural face, no plastic face, no AI-smooth skin, mild consumer-camera HDR. NO shallow depth of field, NO editorial bokeh, NO magazine retouching, NO cinematic colour grade beyond what the scene naturally has.
+LIGHTING & LOOK: the lighting, colour palette, and time of day MUST match the SCENE above (a night neon street means DARK ambient with saturated neon rim/color spill on the subject; a sunny beach means warm daylight; an interior means whatever the scene describes). Never override the scene with generic daylight. Hyper-realistic candid smartphone photograph, natural skin texture (fine grain, not smoothed and not blemished), attractive natural features, no plastic face, no AI-smooth doll skin, no exaggerated acne / spots / rough patches, no beauty filter, mild consumer-camera HDR. NO shallow depth of field, NO editorial bokeh, NO magazine retouching, NO cinematic colour grade beyond what the scene naturally has.
 
 The output is the photograph itself, full-bleed. Absolutely NO camera interface elements, no shutter button, no viewfinder overlay, no on-screen text, no status bar, no app UI, no watermark, no borders.`
 
@@ -184,7 +188,7 @@ The output is the photograph itself, full-bleed. Absolutely NO camera interface 
           resolution: quality === '4k' ? '4K' : undefined,
           referenceImages: [...effIdentityRefs, ...effProductRefs, ...sceneRefs],
           referenceHint: (effProductRefs.length || sceneRefs.length)
-            ? `The FIRST ${effIdentityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; their clothing MUST change per the prompt.${effProductRefs.length ? ` The next ${effProductRefs.length} image(s) show the EXACT product${wearable ? ' — the person WEARS this garment in the output, print and label reproduced exactly' : ' — preserve its packaging/print, label text, colours, shape and proportions perfectly'}; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
+            ? `The FIRST ${effIdentityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; whatever top / shirt / jacket they wear in those reference photos is IRRELEVANT and must NOT appear in the output.${effProductRefs.length ? ` The next ${effProductRefs.length} image(s) show the EXACT product${wearable ? ` — the person is WEARING this exact garment as their outfit's top layer in the output, with print, label text and colours reproduced exactly; do NOT layer any other jacket/hoodie/coat over it and do NOT substitute a different top` : ' — preserve its packaging/print, label text, colours, shape and proportions perfectly'}; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
             : 'The attached reference images define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. Apply the prompt as scene + framing around them.',
         }),
       ),
