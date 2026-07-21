@@ -465,6 +465,7 @@ pre-computed cost. Writes an entry to `credit_transactions`.
 | Seedance 2.0 · 720p | $0.18/s | 13 cr/s |
 | Seedance 2.0 · 1080p | $0.45/s | 33 cr/s |
 | Seedance 2.0 · 4k | $1.00/s | 72 cr/s |
+| _(BytePlus direct — see `pricing/byteplus-seedance.md`: 63% cheaper at 4K, 58% at 1080p)_ | | |
 | Kling v3 omni | $0.224/s | 16 cr/s (flat, 5/10/15s) |
 | Nano Banana image | ~$0.03/img | ~5 cr |
 | ElevenLabs voice | ~$0.30/1k chars | ~1 cr / 50 chars |
