@@ -1125,20 +1125,31 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </button>
       </div>
 
-      {/* 1 — Format (tier + duration) */}
-      <section ref={step1Ref} className="card">
-        <div className="section-step-head" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setOpenStep(p => p === 1 ? null : 1)}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="step-circle">1</span>
-            <h3 style={{ margin: 0 }}>Format</h3>
-          </span>
-          <span style={{ fontSize: 12.5, color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: 'var(--font-mono)' }}>{ASPECTS[aspect].label} · {duration}s · {resolution} · {engine === 'seedance-mini' ? 'Mini' : '2.0'}</span>
-            <span style={{ fontSize: 16, transform: openStep === 1 ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>›</span>
-          </span>
-        </div>
+      {/* Format pill row — click any pill (or the row) to open the Format editor. */}
+      <button
+        type="button"
+        onClick={() => toggleStep(1, step1Ref)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+          padding: '10px 14px', borderRadius: 999,
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          cursor: 'pointer', textAlign: 'left', width: 'fit-content',
+        }}
+      >
+        {[ASPECTS[aspect].label.split(' ')[0], `${duration}s`, resolution, engine === 'seedance-mini' ? 'Seedance Mini' : 'Seedance 2.0'].map((s, i) => (
+          <span key={i} style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', padding: '4px 10px', borderRadius: 999, background: 'var(--bg-elev)' }}>{s}</span>
+        ))}
+      </button>
 
-        {openStep === 1 && (<>
+      {/* 1 — Format (tier + duration) — hidden until opened */}
+      {openStep === 1 && (
+      <section ref={step1Ref} className="card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>Format</h3>
+          <button type="button" onClick={() => setOpenStep(null)} style={{ fontSize: 13, color: 'var(--ink-mute)', cursor: 'pointer' }}>Done</button>
+        </div>
+        <div style={{ height: 12 }} />
+        <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 9, marginTop: 14 }}>
             <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)' }}>Duration</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-fade)' }}>
@@ -1311,24 +1322,18 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               })}
             </div>
           </div>
-        </>)}
+        </>
       </section>
+      )}
 
-      {/* 2 — Your product */}
-      {unlockedStep >= 2 && (
+      {/* 2 — Your product — hidden until opened */}
+      {openStep === 2 && unlockedStep >= 2 && (
       <section ref={step2Ref} className="card step-reveal" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-        <div className="section-step-head" style={{ marginBottom: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setOpenStep(p => p === 2 ? null : 2)}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="step-circle">2</span>
-            <h3 style={{ margin: 0 }}>Your product</h3>
-          </span>
-          <span style={{ fontSize: 12.5, color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
-            <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 260 }}>{productName?.trim() || 'Not set'}</span>
-            <span style={{ fontSize: 16, transform: openStep === 2 ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block', flexShrink: 0 }}>›</span>
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>Your product</h3>
+          <button type="button" onClick={() => setOpenStep(null)} style={{ fontSize: 13, color: 'var(--ink-mute)', cursor: 'pointer' }}>Done</button>
         </div>
-
-        {openStep === 2 && (<>
+        <>
         {/* Product Studio import — one click fills name, description, and
             all reference angles (main photo + extras). */}
         {studioProducts.length > 0 && (
@@ -1663,24 +1668,18 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             Continue →
           </button>
         )}
-        </>)}
+        </>
       </section>
       )}
 
-      {/* 3 — Character + voice */}
-      {unlockedStep >= 3 && (
+      {/* 3 — Character + voice — hidden until opened */}
+      {openStep === 3 && unlockedStep >= 3 && (
       <section ref={step3Ref} className="card step-reveal" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div className="section-step-head" style={{ marginBottom: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setOpenStep(p => p === 3 ? null : 3)}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="step-circle">3</span>
-            <h3 style={{ margin: 0 }}>Character &amp; setting</h3>
-          </span>
-          <span style={{ fontSize: 12.5, color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontFamily: 'var(--font-mono)' }}>{[character.gender, character.age].filter(Boolean).join(' · ') || 'AI-picked'}</span>
-            <span style={{ fontSize: 16, transform: openStep === 3 ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>›</span>
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>Character &amp; setting</h3>
+          <button type="button" onClick={() => setOpenStep(null)} style={{ fontSize: 13, color: 'var(--ink-mute)', cursor: 'pointer' }}>Done</button>
         </div>
-        {openStep === 3 && (<>
+        <>
 
           <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.5 }}>
             Skip everything and let AI build a character to fit your product, or lock in specific fields (gender, age, hair, wardrobe…) and we&apos;ll respect them exactly. Or reuse an actor you&apos;ve saved before for identity consistency.
@@ -1888,23 +1887,18 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               Continue →
             </button>
           )}
-        </>)}
+        </>
       </section>
       )}
 
-      {/* 4 — Customize */}
-      {unlockedStep >= 4 && (
+      {/* 4 — Customize — advanced, opened via link below */}
+      {openStep === 4 && unlockedStep >= 4 && (
       <section ref={step4Ref} className="card step-reveal" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        <div className="section-step-head" style={{ marginBottom: 0, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }} onClick={() => setOpenStep(p => p === 4 ? null : 4)}>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <span className="step-circle">4</span>
-            <h3 style={{ margin: 0 }}>Customize</h3>
-          </span>
-          <span style={{ fontSize: 12.5, color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16, transform: openStep === 4 ? 'rotate(90deg)' : 'none', transition: 'transform 0.15s', display: 'inline-block' }}>›</span>
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0 }}>Customize</h3>
+          <button type="button" onClick={() => setOpenStep(null)} style={{ fontSize: 13, color: 'var(--ink-mute)', cursor: 'pointer' }}>Done</button>
         </div>
-        {openStep === 4 && (<>
+        <>
 
         <div className="form-row">
           <label className="form-label">Language</label>
@@ -1945,8 +1939,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             Continue →
           </button>
         )}
-        </>)}
+        </>
       </section>
+      )}
+
+      {/* Small link to open advanced customization when needed */}
+      {openStep !== 4 && (
+        <button type="button" onClick={() => toggleStep(4, step4Ref)} style={{ fontSize: 12, color: 'var(--ink-mute)', textAlign: 'left', padding: '4px 2px', cursor: 'pointer', width: 'fit-content' }}>
+          Advanced customization →
+        </button>
       )}
 
       {/* 5 — Cost summary + generate */}
