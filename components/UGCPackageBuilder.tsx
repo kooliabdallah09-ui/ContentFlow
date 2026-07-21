@@ -242,6 +242,17 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [showProductAdvanced, setShowProductAdvanced] = useState(false)
   // Format pills always visible — quick cycle-to-switch controls.
   const [showFormatPills, setShowFormatPills] = useState(true)
+  // Admin-only: show USD equivalent next to every credit amount.
+  const [isAdmin, setIsAdmin] = useState(false)
+  useEffect(() => {
+    (async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data } = await supabase.auth.getSession()
+      const email = data?.session?.user?.email?.toLowerCase() ?? ''
+      setIsAdmin(email === 'abdallah.kooli@icloud.com' || email === 'abdallah@icloud.com')
+    })()
+  }, [])
   const [durationTouched, setDurationTouched] = useState(!!initialPrefill)
   const [aspectTouched, setAspectTouched] = useState(!!initialPrefill)
   const step1Ref = useRef<HTMLElement | null>(null)
@@ -440,7 +451,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const videoCredits = ugcPackageCost(duration, resolution, engine)
   const totalCredits = videoCredits
   void calculateVideoCredits
-  const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && benefits.trim()
+  // Require a picked creator (either a saved influencer or a saved actor)
+  // to hit Generate — no more AI-picked characters.
+  const hasCreator = !!(selectedInfluencerId || savedActorId)
+  const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && benefits.trim() && hasCreator
 
   // Downscale + re-encode uploaded product photos before storing them in
   // state. Raw phone-camera JPEGs are 5-15 MB — over Vercel's 4.5 MB
@@ -1107,11 +1121,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           onClick={() => toggleStep(3, step3Ref)}
           style={{
             textAlign: 'left', padding: 14, borderRadius: 12,
-            background: 'var(--surface)', border: '1px solid var(--border)',
+            background: 'var(--surface)',
+            border: hasCreator ? '1px solid var(--border)' : '1px solid var(--danger, #b83a35)',
             cursor: 'pointer', minWidth: 0, overflow: 'hidden',
           }}
         >
-          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>Creator</div>
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: hasCreator ? 'var(--ink-fade)' : 'var(--danger, #b83a35)', marginBottom: 8 }}>
+            Creator{!hasCreator ? ' · required' : ''}
+          </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{
               width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
@@ -1129,6 +1146,29 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             <span style={{ fontSize: 11, color: 'var(--ink-fade)' }}>›</span>
           </div>
         </button>
+      </div>
+
+      {/* Video direction — top-level card, always visible. Optional one-line
+          brief that shapes the script + shot list. */}
+      <div style={{
+        padding: '14px 16px', borderRadius: 12,
+        background: 'var(--surface)', border: '1px solid var(--border)',
+      }}>
+        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>
+          Direction <span style={{ color: 'var(--ink-fade)' }}>· optional</span>
+        </div>
+        <input
+          type="text"
+          value={customInstructions}
+          onChange={e => setCustomInstructions(e.target.value.slice(0, 200))}
+          disabled={isLoading}
+          placeholder='e.g. "clean UGC ad", "unbox", "morning routine", "pain-point storytime"'
+          style={{
+            width: '100%', boxSizing: 'border-box',
+            padding: '10px 4px', fontSize: 14.5, color: 'var(--ink)',
+            background: 'transparent', border: 'none', outline: 'none',
+          }}
+        />
       </div>
 
       {/* Format pill row — each pill cycles its value on click; the arrow
@@ -1227,7 +1267,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     display: 'flex', flexDirection: 'column', gap: 2,
                   }}>
                   <span style={{ fontSize: 14.5, fontWeight: 600 }}>{sec}s</span>
-                  <span style={{ fontSize: 10.5, opacity: 0.75, fontFamily: 'var(--font-mono)' }}>{cost} cr</span>
+                  <span style={{ fontSize: 10.5, opacity: 0.75, fontFamily: 'var(--font-mono)' }}>{cost} cr{isAdmin ? ` · $${creditsToUSD(cost).toFixed(2)}` : ''}</span>
                 </button>
               )
             })}
@@ -1358,7 +1398,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   >
                     <span style={{ fontSize: 15, fontWeight: 700 }}>{r.label}</span>
                     <span style={{ fontSize: 10.5, opacity: active ? 0.75 : 1, color: active ? 'var(--on-ink)' : 'var(--ink-dim)', fontWeight: 500 }}>
-                      {r.perSec} cr/s · {r.note}
+                      {r.perSec} cr/s{isAdmin ? ` · $${(r.perSec * 0.025).toFixed(3)}/s` : ''} · {r.note}
                     </span>
                   </button>
                 )
@@ -1973,22 +2013,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </select>
         </div>
 
-        <div className="form-row">
-          <label className="form-label">Video direction <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional)</span></label>
-          <p className="help">One line telling the AI the vibe. It writes the script + shot list for you. Keep it short.</p>
-          <input
-            type="text"
-            className="input"
-            value={customInstructions}
-            onChange={e => setCustomInstructions(e.target.value.slice(0, 200))}
-            disabled={isLoading}
-            placeholder='e.g. "clean UGC ad", "unbox", "morning routine", "pain-point storytime"'
-            style={{ width: '100%', boxSizing: 'border-box' }}
-          />
-          <p style={{ fontSize: 10.5, color: 'var(--ink-fade)', textAlign: 'right', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
-            {customInstructions.length} / 200
-          </p>
-        </div>
+        {/* Video direction lives at the top level now — not duplicated here. */}
 
         {unlockedStep < 5 && (
           <button
