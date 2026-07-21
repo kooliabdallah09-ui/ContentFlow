@@ -236,6 +236,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // the collapse system controls what's visible instead of progressive gates.
   const initiallyUnlocked = 5
   const [unlockedStep, setUnlockedStep] = useState(initiallyUnlocked)
+  // Product step: hide the rare fields (Shopify import, Key benefits, CTA)
+  // behind a single 'More details' toggle so the default view is just
+  // name + description + photo.
+  const [showProductAdvanced, setShowProductAdvanced] = useState(false)
   const [durationTouched, setDurationTouched] = useState(!!initialPrefill)
   const [aspectTouched, setAspectTouched] = useState(!!initialPrefill)
   const step1Ref = useRef<HTMLElement | null>(null)
@@ -1385,7 +1389,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </div>
         )}
 
-        {/* Shopify Product Picker */}
+        {/* Shopify Product Picker — hidden behind More details */}
+        {showProductAdvanced && (
         <div style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
@@ -1443,6 +1448,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             </div>
           )}
         </div>
+        )}
 
         {/* Brand profile toggle — only render when a brand profile actually exists.
             On = pre-fills the 4 fields from /settings/brand. Off = manual entry. */}
@@ -1542,6 +1548,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             placeholder="What it is and who it's for, in a sentence." disabled={isLoading} />
         </div>
 
+        {!showProductAdvanced && (
+          <button type="button" onClick={() => setShowProductAdvanced(true)} style={{ fontSize: 12.5, color: 'var(--ink-mute)', textAlign: 'left', padding: '4px 2px', cursor: 'pointer', width: 'fit-content' }}>
+            More details (benefits, CTA, Shopify import) →
+          </button>
+        )}
+
+        {showProductAdvanced && (<>
         <div className="form-row">
           <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             Key benefits
@@ -1563,6 +1576,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <input className="input" value={callToAction} onChange={e => { setCallToAction(e.target.value); if (useBrand) setUseBrand(false) }}
             placeholder="e.g. Try it free today" disabled={isLoading} />
         </div>
+        </>)}
 
 
         <div className="form-row">
