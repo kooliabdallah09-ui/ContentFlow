@@ -244,6 +244,7 @@ export default function InfluencersPage() {
           count: shotCount,
           ratio,
           quality: shootModel,
+          studioProductId: shootProductId,
           sceneImages: sceneImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
       })
