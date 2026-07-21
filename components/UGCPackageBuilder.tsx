@@ -20,7 +20,7 @@ import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { compressImageFile } from '@/lib/image-compress'
-import { ugcPackageCost } from '@/lib/ugc-pricing'
+import { ugcPackageCost, type UGCResolution } from '@/lib/ugc-pricing'
 
 interface HookVariant {
   id: string
@@ -1129,21 +1129,57 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </button>
       </div>
 
-      {/* Format pill row — click any pill (or the row) to open the Format editor. */}
-      <button
-        type="button"
-        onClick={() => toggleStep(1, step1Ref)}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-          padding: '10px 14px', borderRadius: 999,
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          cursor: 'pointer', textAlign: 'left', width: 'fit-content',
-        }}
-      >
-        {[ASPECTS[aspect].label.split(' ')[0], `${duration}s`, resolution, engine === 'seedance-mini' ? 'Seedance Mini' : 'Seedance 2.0'].map((s, i) => (
-          <span key={i} style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', padding: '4px 10px', borderRadius: 999, background: 'var(--bg-elev)' }}>{s}</span>
-        ))}
-      </button>
+      {/* Format pill row — each pill cycles its value on click; the arrow
+          opens the full Format editor. */}
+      {(() => {
+        const aspects = Object.keys(ASPECTS) as UGCAspect[]
+        const durations = [...DURATION_OPTIONS]
+        const resolutions: UGCResolution[] = engine === 'seedance-mini' ? ['480p', '720p'] : ['480p', '720p', '1080p', '4k']
+        function cycle<T>(list: T[], current: T): T { const i = list.indexOf(current); return list[(i + 1) % list.length] }
+        const pills: { label: string; onClick: () => void }[] = [
+          { label: ASPECTS[aspect].label.split(' ')[0], onClick: () => { setAspect(cycle(aspects, aspect)); setAspectTouched(true) } },
+          { label: `${duration}s`, onClick: () => { setDuration(cycle(durations, duration)); setDurationTouched(true) } },
+          { label: resolution, onClick: () => setResolution(cycle(resolutions, resolution)) },
+          { label: engine === 'seedance-mini' ? 'Seedance Mini' : 'Seedance 2.0', onClick: () => setEngine(engine === 'seedance-mini' ? 'seedance-2' : 'seedance-mini') },
+        ]
+        return (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            padding: '6px 6px 6px 10px', borderRadius: 999,
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            width: 'fit-content',
+          }}>
+            {pills.map((p, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={p.onClick}
+                title="Click to switch"
+                style={{
+                  fontSize: 12, fontWeight: 600, color: 'var(--ink)',
+                  padding: '5px 11px', borderRadius: 999,
+                  background: 'var(--bg-elev)', border: 'none', cursor: 'pointer',
+                  transition: 'background 0.12s',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover)')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'var(--bg-elev)')}
+              >{p.label}</button>
+            ))}
+            <button
+              type="button"
+              onClick={() => toggleStep(1, step1Ref)}
+              aria-label="Open format editor"
+              style={{
+                width: 30, height: 30, borderRadius: '50%',
+                background: 'var(--bg-elev)', border: '1px solid var(--border)',
+                color: 'var(--ink-mute)', cursor: 'pointer',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                marginLeft: 2,
+              }}
+            >›</button>
+          </div>
+        )
+      })()}
 
       {/* 1 — Format (tier + duration) — hidden until opened */}
       {openStep === 1 && (
@@ -1841,13 +1877,20 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             </div>
           )}
 
-          {savedActors.length > 0 && (
+          {/* Filter out saved actors that duplicate an influencer by name —
+              influencers auto-save as actors, so both lists showed the same
+              people. */}
+          {(() => {
+            const infNames = new Set(influencers.map(i => i.name?.toLowerCase().trim()).filter(Boolean))
+            const uniqueSavedActors = savedActors.filter(a => !infNames.has(a.name?.toLowerCase().trim()))
+            if (!uniqueSavedActors.length) return null
+            return (
             <div>
               <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
                 Your saved actors
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: 10 }}>
-                {savedActors.map(a => {
+                {uniqueSavedActors.map(a => {
                   const active = savedActorId === a.id
                   return (
                     <button
@@ -1881,7 +1924,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 </div>
               )}
             </div>
-          )}
+            )
+          })()}
 
           <CharacterBuilder
             value={character}
