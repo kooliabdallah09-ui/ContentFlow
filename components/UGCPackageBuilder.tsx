@@ -1056,7 +1056,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {/* Editorial summary strip — a compact overview of the current
           selections. Clicking a card scrolls to the matching step below. */}
       <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 4,
+        display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 12, marginBottom: 4,
       }} className="ugc-summary-grid">
         <button
           type="button"
@@ -1064,7 +1064,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           style={{
             textAlign: 'left', padding: 14, borderRadius: 12,
             background: 'var(--surface)', border: '1px solid var(--border)',
-            cursor: 'pointer',
+            cursor: 'pointer', minWidth: 0, overflow: 'hidden',
           }}
         >
           <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>Product</div>
@@ -1093,7 +1093,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           style={{
             textAlign: 'left', padding: 14, borderRadius: 12,
             background: 'var(--surface)', border: '1px solid var(--border)',
-            cursor: 'pointer',
+            cursor: 'pointer', minWidth: 0, overflow: 'hidden',
           }}
         >
           <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>Creator</div>
