@@ -232,7 +232,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // skip the whole reveal animation — every section is unlocked on first
   // paint. Same for the "touched" flags so the highlighted-active look is
   // applied to the default duration + aspect immediately.
-  const initiallyUnlocked = initialPrefill ? 5 : 1
+  // With the collapsible-step redesign every section renders from the start;
+  // the collapse system controls what's visible instead of progressive gates.
+  const initiallyUnlocked = 5
   const [unlockedStep, setUnlockedStep] = useState(initiallyUnlocked)
   const [durationTouched, setDurationTouched] = useState(!!initialPrefill)
   const [aspectTouched, setAspectTouched] = useState(!!initialPrefill)
