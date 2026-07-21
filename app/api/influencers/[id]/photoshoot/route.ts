@@ -152,7 +152,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       `SCENE — this is the whole photograph, do not substitute: ${scene}. ${variation}
 ${productLine}
 
-WHO: ${influencer.appearance_prompt}
+WHO — extract ONLY identity from the description below (face, hair, skin, build, features). IGNORE any location, background, environment, time of day, or lighting mentioned here — those describe how the reference portrait was originally shot and DO NOT belong in this photo. The SCENE above is the entire environment:
+${influencer.appearance_prompt}
+
 ${refDescription} — preserve their face, hair, skin tone, and identity precisely.
 
 CANDID, NOT POSED — the person is genuinely DOING the scene's activity — hands physically engaged with real objects, eyes on their task, walking / mid-motion. NO standing square to camera, NO posed smile at the lens, NO model energy. Only make eye contact with the camera if the scene text explicitly asks for it.
