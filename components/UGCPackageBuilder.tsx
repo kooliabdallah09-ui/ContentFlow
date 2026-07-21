@@ -236,6 +236,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [unlockedStep, setUnlockedStep] = useState(initiallyUnlocked)
   const [durationTouched, setDurationTouched] = useState(!!initialPrefill)
   const [aspectTouched, setAspectTouched] = useState(!!initialPrefill)
+  const step1Ref = useRef<HTMLElement | null>(null)
   const step2Ref = useRef<HTMLElement | null>(null)
   const step3Ref = useRef<HTMLElement | null>(null)
   const step4Ref = useRef<HTMLElement | null>(null)
@@ -1052,8 +1053,71 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
+      {/* Editorial summary strip — a compact overview of the current
+          selections. Clicking a card scrolls to the matching step below. */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 4,
+      }} className="ugc-summary-grid">
+        <button
+          type="button"
+          onClick={() => step2Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          style={{
+            textAlign: 'left', padding: 14, borderRadius: 12,
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>Product</div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{
+              width: 44, height: 54, borderRadius: 8, flexShrink: 0,
+              background: productImage?.preview ? `url(${productImage.preview}) center/cover` : 'linear-gradient(135deg,#f4f2ed,#e7e4de)',
+              border: '1px solid var(--border-soft)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'var(--ink-fade)', fontSize: 10, letterSpacing: '0.1em',
+            }}>{!productImage?.preview && 'NONE'}</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {productName?.trim() || 'Add your product'}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {productDescription?.trim() || 'Photo, name and description'}
+              </div>
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--ink-fade)' }}>›</span>
+          </div>
+        </button>
+        <button
+          type="button"
+          onClick={() => step3Ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          style={{
+            textAlign: 'left', padding: 14, borderRadius: 12,
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            cursor: 'pointer',
+          }}
+        >
+          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>Creator</div>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <div style={{
+              width: 44, height: 44, borderRadius: '50%', flexShrink: 0,
+              background: 'linear-gradient(135deg,#fde68a,#fca5a5)',
+              border: '1px solid var(--border-soft)',
+            }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {[character.gender, character.age].filter(Boolean).join(' · ') || 'Pick your creator'}
+              </div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 2 }}>
+                {ASPECTS[aspect].label} · {duration}s · {engine === 'seedance-mini' ? 'Seedance Mini' : 'Seedance 2.0'}
+              </div>
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--ink-fade)' }}>›</span>
+          </div>
+        </button>
+      </div>
+
       {/* 1 — Format (tier + duration) */}
-      <section className="card">
+      <section ref={step1Ref} className="card">
         <div className="section-step-head">
           <span className="step-circle">1</span>
           <h3>Format</h3>

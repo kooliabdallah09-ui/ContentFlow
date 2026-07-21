@@ -1395,3 +1395,7 @@ img, video, svg { max-width: 100%; }
   .ls-actions { display: none !important; }
   .ls-mobile-actions { display: flex !important; }
 }
+
+@media (max-width: 640px) {
+  .ugc-summary-grid { grid-template-columns: 1fr !important; }
+}
