@@ -155,7 +155,7 @@ export default function LandingPage() {
               <a href="#features" style={btnSecondaryLg}>See how it works</a>
             </div>
           </div>
-          <div style={heroPreview} />
+          <UGCMockup />
         </div>
       </section>
 
@@ -432,6 +432,154 @@ const heroPreview: React.CSSProperties = {
   background: '#111',
   overflow: 'hidden',
   position: 'relative',
+}
+
+// A miniature recreation of the actual UGC generator UI, used as the
+// hero preview until we have a real demo video to swap in.
+function UGCMockup() {
+  return (
+    <div className="ls-mockup" style={{
+      marginTop: 72, maxWidth: 940, marginLeft: 'auto', marginRight: 'auto',
+      borderRadius: 18, border: '1px solid var(--border)',
+      background: 'var(--surface)',
+      boxShadow: '0 30px 60px -20px rgba(20,18,12,0.18), 0 4px 12px rgba(20,18,12,0.06)',
+      overflow: 'hidden', textAlign: 'left',
+    }}>
+      {/* Browser chrome */}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 10,
+        padding: '11px 16px', borderBottom: '1px solid var(--border)',
+        background: 'var(--bg-elev)',
+      }}>
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f57' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#febc2e' }} />
+        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#28c840' }} />
+        <div style={{
+          flex: 1, textAlign: 'center', fontSize: 11.5,
+          color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)',
+        }}>contentflow-web.com/generate/ugc</div>
+      </div>
+      {/* App body: sidebar + main */}
+      <div className="ls-mockup-body" style={{ display: 'grid', gridTemplateColumns: '180px 1fr' }}>
+        {/* Sidebar */}
+        <div className="ls-mockup-side" style={{
+          padding: '18px 12px', borderRight: '1px solid var(--border)',
+          background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 10,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 12px' }}>
+            <span style={{ width: 20, height: 20, borderRadius: 6, background: 'var(--ink)' }} />
+            <span style={{ fontSize: 13, fontFamily: 'var(--font-serif)', color: 'var(--ink)' }}>Content<em>flow</em></span>
+          </div>
+          {['Dashboard', 'Library', 'Brand', 'Calendar'].map(l => (
+            <div key={l} style={{ padding: '6px 8px', fontSize: 11.5, color: 'var(--ink-mute)' }}>{l}</div>
+          ))}
+          <div style={{ height: 1, background: 'var(--border-soft)', margin: '6px 4px' }} />
+          {[
+            { l: 'UGC Package', active: true, badge: 'Flagship' },
+            { l: 'Influencers', active: false, badge: 'Beta' },
+            { l: 'Product Studio', active: false, badge: 'Beta' },
+            { l: 'Image', active: false },
+            { l: 'Video', active: false },
+          ].map(x => (
+            <div key={x.l} style={{
+              padding: '7px 8px', borderRadius: 7, fontSize: 11.5,
+              background: x.active ? 'var(--ink)' : 'transparent',
+              color: x.active ? 'var(--on-ink)' : 'var(--ink)',
+              display: 'flex', alignItems: 'center', gap: 6, fontWeight: x.active ? 600 : 500,
+            }}>
+              <span style={{ flex: 1 }}>{x.l}</span>
+              {x.badge && <span style={{
+                fontSize: 8.5, padding: '2px 5px', borderRadius: 4,
+                background: x.active ? 'rgba(255,255,255,0.18)' : 'var(--border-soft)',
+                color: x.active ? '#fff' : 'var(--ink-mute)', fontWeight: 700, letterSpacing: '0.03em',
+              }}>{x.badge.toUpperCase()}</span>}
+            </div>
+          ))}
+        </div>
+        {/* Main */}
+        <div style={{ padding: '22px 24px 24px' }}>
+          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', color: 'var(--ink-fade)', textTransform: 'uppercase' }}>STUDIO / UGC PACKAGE</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '10px 0 18px' }}>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, letterSpacing: '-0.01em', color: 'var(--ink)' }}>
+              Turn <em>Skittles</em> into an ad
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>~2 min</div>
+          </div>
+          {/* Two-column: product + character */}
+          <div className="ls-mockup-cols" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+            <div style={{ padding: 12, borderRadius: 10, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-fade)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Product</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ width: 44, height: 54, borderRadius: 6, background: 'linear-gradient(135deg,#e11d48,#f97316)' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>Skittles Original</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>Candy · rainbow pack</div>
+                </div>
+              </div>
+            </div>
+            <div style={{ padding: 12, borderRadius: 10, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
+              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-fade)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Creator</div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#fde68a,#fca5a5)' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>Ava · Gen-Z casual</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>Warm voice · 22 y/o</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Prompt */}
+          <div style={{ padding: 12, borderRadius: 10, background: 'var(--bg-elev)', border: '1px solid var(--border)', marginBottom: 12 }}>
+            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-fade)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Hook</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.5 }}>
+              &ldquo;I&apos;ve been eating Skittles wrong my whole life — here&apos;s the trick that changed everything.&rdquo;
+            </div>
+          </div>
+          {/* Options row */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+            {[
+              { l: '9:16', on: true },
+              { l: '5 s', on: false },
+              { l: '10 s', on: true },
+              { l: '720p', on: true },
+              { l: '+ Captions', on: true },
+              { l: '+ B-roll', on: true },
+            ].map(o => (
+              <span key={o.l} style={{
+                fontSize: 10.5, padding: '5px 9px', borderRadius: 999,
+                background: o.on ? 'var(--ink)' : 'var(--surface)',
+                color: o.on ? 'var(--on-ink)' : 'var(--ink-mute)',
+                border: o.on ? 'none' : '1px solid var(--border)', fontWeight: 600,
+              }}>{o.l}</span>
+            ))}
+          </div>
+          {/* Cost + Generate */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>
+              Cost: <strong style={{ color: 'var(--ink)' }}>184 cr</strong>
+              <span style={{ marginLeft: 8 }}>Balance: <strong style={{ color: 'var(--good, #16a34a)' }}>2,000</strong></span>
+            </div>
+            <div style={{
+              padding: '9px 16px', borderRadius: 9, background: 'var(--ink)',
+              color: 'var(--on-ink)', fontSize: 12.5, fontWeight: 600,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'ls-pulse 1.4s ease-in-out infinite' }} />
+              Generate UGC
+            </div>
+          </div>
+        </div>
+      </div>
+      <style>{`
+        @keyframes ls-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+        @media (max-width: 720px) {
+          .ls-mockup-body { grid-template-columns: 1fr !important; }
+          .ls-mockup-side { display: none !important; }
+          .ls-mockup-cols { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
+    </div>
+  )
 }
 const heroPreviewPlay: React.CSSProperties = {
   width: 56, height: 56, borderRadius: '50%',
