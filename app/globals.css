@@ -1436,11 +1436,50 @@ img, video, svg { max-width: 100%; }
   }
 }
 
-/* Sticky composer breathing room on phones — the sticky offset from the
-   bottom bumps content up above the on-screen browser UI. */
+/* Sticky composer breathing room on phones. */
 @media (max-width: 640px) {
   .studio-composer {
     padding: 12px !important;
     border-radius: 14px !important;
   }
+}
+
+/* The "⌄ Options" mobile toggle button. Always hidden on desktop —
+   there's no clutter to hide there — and pops on phones as a slim
+   summary chip. */
+.studio-options-toggle {
+  display: none;
+  width: 100%;
+  padding: 8px 10px;
+  margin: 4px 0 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-2, var(--surface));
+  color: var(--ink-2);
+  cursor: pointer;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  transition: background 120ms;
+}
+.studio-options-toggle:hover { background: var(--hover); }
+
+@media (max-width: 640px) {
+  /* Reveal the summary toggle. */
+  .studio-options-toggle { display: flex; }
+  /* Hide the wrapped controls + the bottom chip row while options is closed. */
+  .studio-composer[data-options-open="false"] .studio-options,
+  .studio-composer[data-options-open="false"] .ps-controls-row {
+    display: none !important;
+  }
+  /* Smooth fold-in when opening. */
+  .studio-composer[data-options-open="true"] .studio-options,
+  .studio-composer[data-options-open="true"] .ps-controls-row {
+    animation: studio-options-fade 180ms ease-out;
+  }
+}
+
+@keyframes studio-options-fade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
 }

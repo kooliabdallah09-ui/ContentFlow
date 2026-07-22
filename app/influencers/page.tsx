@@ -124,6 +124,7 @@ export default function InfluencersPage() {
     },
     disabled: sceneImages.length >= 2,
   })
+  const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false)
   const [shotCount, setShotCount] = useState(1)
   const [ratio, setRatio] = useState<'9:16' | '4:5' | '1:1' | '16:9'>('4:5')
   const [shootModel, setShootModel] = useState<'pro' | 'nb2' | '4k'>('pro')
@@ -407,7 +408,8 @@ export default function InfluencersPage() {
         </div>
 
         {/* Composer — pinned at the bottom like a chat input */}
-        <div style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+        <div className="studio-composer" data-options-open={mobileOptionsOpen ? 'true' : 'false'} style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+          <div className="studio-options">
           {studioProducts.length > 0 && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
               <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>With product</span>
@@ -472,6 +474,24 @@ export default function InfluencersPage() {
             ))}
           </div>
 
+          </div>
+          <button
+            type="button"
+            className="studio-options-toggle"
+            onClick={() => setMobileOptionsOpen(v => !v)}
+            aria-expanded={mobileOptionsOpen}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-mute)' }}>
+              <span>{mobileOptionsOpen ? 'Hide options' : 'Options'}</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-mute)', opacity: 0.85 }}>
+                {ratio} · {shotCount} shot{shotCount > 1 ? 's' : ''}
+                {guestInfluencerIds.length > 0 && ` · +${guestInfluencerIds.length} 👤`}
+                {shootProductId && ' · product'}
+                {sceneImages.length > 0 && ` · ${sceneImages.length} ref`}
+              </span>
+            </span>
+            <span style={{ fontSize: 14, transition: 'transform 180ms', transform: mobileOptionsOpen ? 'rotate(180deg)' : 'rotate(0)' }}>⌄</span>
+          </button>
           <div className="ps-composer-row" style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             {/* Attach */}
             <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>

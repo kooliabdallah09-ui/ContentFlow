@@ -102,6 +102,9 @@ export default function ProductStudio() {
   // (e.g. flat-lay of two SKUs, or an influencer holding two products).
   const [shootCoProductIds, setShootCoProductIds] = useState<string[]>([])
   const [lightboxZoom, setLightboxZoom] = useState(false)
+  // Phone UX: everything except textarea + Shoot is hidden behind a fold.
+  // Auto-open on desktop-width so the composer is fully visible there.
+  const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false)
   // Optional style-reference upload — user drops in an ad they want to
   // riff on and NB Pro rebuilds it with THEIR product. Base64 for the API.
   const [styleRef, setStyleRef] = useState<CompressedImage | null>(null)
@@ -319,7 +322,11 @@ export default function ProductStudio() {
         </div>
 
         {/* Composer */}
-        <div style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+        <div className="studio-composer" data-options-open={mobileOptionsOpen ? 'true' : 'false'} style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+          {/* All secondary controls (features, mode, style ref, ratio, count,
+              quality) collapse behind a fold on phones. On desktop they're
+              always visible via CSS. */}
+          <div className={`studio-options ${mobileOptionsOpen ? 'is-open' : ''}`}>
           {influencers.length > 0 && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
               <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature</span>
@@ -406,6 +413,26 @@ export default function ProductStudio() {
               }}
             >✨ Ad graphic</button>
           </div>
+          </div>
+          {/* Mobile toggle — shows only on phones. Summarises what's active so
+              the user doesn't have to open the fold to check state. */}
+          <button
+            type="button"
+            className="studio-options-toggle"
+            onClick={() => setMobileOptionsOpen(v => !v)}
+            aria-expanded={mobileOptionsOpen}
+          >
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-mute)' }}>
+              <span>{mobileOptionsOpen ? 'Hide options' : 'Options'}</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-mute)', opacity: 0.85 }}>
+                {mode === 'ad' ? '✨ Ad' : '📷 Photo'} · {ratio} · {shotCount} shot{shotCount > 1 ? 's' : ''} · {shotCount * CR[quality]} cr
+                {shootInfluencerIds.length > 0 && ` · ${shootInfluencerIds.length} 👤`}
+                {shootCoProductIds.length > 0 && ` · +${shootCoProductIds.length} 📦`}
+                {styleRef && ' · style ref'}
+              </span>
+            </span>
+            <span style={{ fontSize: 14, transition: 'transform 180ms', transform: mobileOptionsOpen ? 'rotate(180deg)' : 'rotate(0)' }}>⌄</span>
+          </button>
           <div className="ps-composer-row" style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             {/* Optional style reference — user's target ad; NB Pro copies its
                 composition/typography/palette but swaps in the user's product. */}
