@@ -87,6 +87,8 @@ export default function OnboardingBrandPage() {
   const [loading, setLoading] = useState(false)
   const [aiSeed, setAiSeed] = useState('')
   const [aiFilling, setAiFilling] = useState(false)
+  const [siteUrl, setSiteUrl] = useState('')
+  const [analyzingSite, setAnalyzingSite] = useState(false)
   const [generating, setGenerating] = useState(false)
   const [genProgress, setGenProgress] = useState(0)
   const [genStatus, setGenStatus] = useState('')
@@ -198,6 +200,54 @@ export default function OnboardingBrandPage() {
       showError('AI fill failed', err instanceof Error ? err.message : 'Try again')
     } finally {
       setAiFilling(false)
+    }
+  }
+
+  // Analyze the user's website URL — server-side fetch + Sonnet parse fills
+  // every brand field automatically and grabs the logo if it can find one.
+  const handleAnalyzeSite = async () => {
+    if (!siteUrl.trim()) return
+    try {
+      setAnalyzingSite(true)
+      const supabase = getSupabase()!
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session?.access_token) throw new Error('Please sign in')
+      const res = await fetch('/api/brand/analyze-site', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ url: siteUrl.trim() }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Site analysis failed')
+      const p = data.profile ?? {}
+      if (p.companyName) setCompanyName(p.companyName)
+      if (p.description) setDescription(p.description)
+      if (p.productType) setProductType(p.productType)
+      if (p.uniqueValue) setUniqueValue(p.uniqueValue)
+      if (p.brandMission) setBrandMission(p.brandMission)
+      if (p.targetAudience) setTargetAudience(p.targetAudience)
+      if (p.customerPainPoints) setCustomerPainPoints(p.customerPainPoints)
+      if (p.toneOfVoice) setToneOfVoice(p.toneOfVoice)
+      if (p.brandColors) setBrandColors(p.brandColors)
+      if (data.logoUrl) {
+        // Auto-populate the logo preview from the fetched icon.
+        try {
+          const r = await fetch(data.logoUrl)
+          if (r.ok) {
+            const blob = await r.blob()
+            const file = new File([blob], 'logo', { type: blob.type })
+            setLogoFile(file)
+            const reader = new FileReader()
+            reader.onload = ev => setLogoPreview(ev.target?.result as string)
+            reader.readAsDataURL(file)
+          }
+        } catch { /* logo is best-effort */ }
+      }
+      showSuccess('Site analyzed', 'Review the auto-filled fields — everything is editable.')
+    } catch (err) {
+      showError('Site analysis failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setAnalyzingSite(false)
     }
   }
 
@@ -341,6 +391,51 @@ export default function OnboardingBrandPage() {
           {/* ── STEP 1: Brand Info ── */}
           {step === 1 && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+
+              {/* Have a website? Analyze it and auto-fill every field. */}
+              <div style={{ padding: '18px 20px', border: '1px dashed var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
+                <label style={{ ...labelStyle, marginBottom: 8 }}>
+                  Have a website?{' '}
+                  <span style={{ color: 'var(--ink-mute)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontFamily: 'inherit' }}>
+                    — paste your URL and the AI reads your site to fill every field (including the logo)
+                  </span>
+                </label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  <input
+                    type="url"
+                    placeholder="https://yourbrand.com"
+                    value={siteUrl}
+                    onChange={e => setSiteUrl(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !analyzingSite && siteUrl.trim()) { e.preventDefault(); handleAnalyzeSite() } }}
+                    style={{ ...inputStyle, flex: '1 1 260px', fontFamily: 'inherit' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAnalyzeSite}
+                    disabled={analyzingSite || !siteUrl.trim()}
+                    style={{
+                      padding: '10px 18px', borderRadius: 10,
+                      background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
+                      fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
+                      cursor: analyzingSite || !siteUrl.trim() ? 'not-allowed' : 'pointer',
+                      opacity: analyzingSite || !siteUrl.trim() ? 0.55 : 1,
+                    }}
+                  >
+                    {analyzingSite ? 'Reading your site…' : '🔍 Analyze my site'}
+                  </button>
+                </div>
+                {analyzingSite && (
+                  <p style={{ margin: '10px 0 0', fontSize: 11.5, color: 'var(--ink-mute)', fontStyle: 'italic' }}>
+                    Fetching the page, reading your copy, sniffing the logo — usually 10–20 seconds.
+                  </p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink-mute)', fontSize: 11.5, letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
+                <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                <span>or</span>
+                <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+              </div>
 
               <div style={{ padding: '18px 20px', border: '1px dashed var(--border)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)' }}>
                 <label style={{ ...labelStyle, marginBottom: 8 }}>Skip the typing <span style={{ color: 'var(--ink-mute)', fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontFamily: 'inherit' }}>— describe your product and AI fills every field below</span></label>
