@@ -89,6 +89,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     //  'ad' = bold typographic promo graphics (Listicle / Social Proof / Feature Callout).
     const mode: 'aesthetic' | 'ad' = body?.mode === 'ad' ? 'ad' : 'aesthetic'
     const model: 'pro' | 'nb2' = quality === 'nb2' ? 'nb2' : 'pro'
+    // Optional style reference — an existing ad or layout the user wants NB Pro
+    // to recreate with THEIR product. Bypasses the archetype-mix rules and
+    // becomes the single visual brief for every shot in the batch.
+    const styleRefRaw = body?.styleReference
+    const styleReference = styleRefRaw && typeof styleRefRaw === 'object' && typeof styleRefRaw.base64 === 'string' && typeof styleRefRaw.mimeType === 'string'
+      ? { base64: styleRefRaw.base64, mimeType: styleRefRaw.mimeType }
+      : null
     const totalCost = CR[quality] * count
 
     const { data: product } = await supabase
@@ -146,9 +153,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .limit(10)
     const avoid = [...new Set((recent ?? []).map(r => String(r.concept)))].filter(Boolean)
 
-    // 1) Sonnet invents distinct concepts.
+    // 1) Concept generation.
+    //    Style-reference short-circuit: when the user attached an ad they
+    //    want us to riff on, skip Sonnet entirely — every shot is "match the
+    //    reference layout, palette, typography vibe, but with our product",
+    //    just with a small variation cue per index so the batch isn't a
+    //    dead-clone. NB Pro receives the reference as image 1 and the
+    //    product as image 2+, and does the actual visual work.
+    let shots: Array<{ concept: string; prompt: string }> = []
+    if (styleReference) {
+      const variations = [
+        'match the reference exactly',
+        'same layout and palette, slightly bolder headline scale',
+        'same feel but shift the palette one accent-colour hotter',
+        'same energy from a slightly different camera angle',
+      ]
+      const dirTail = direction ? ` User note: "${direction}".` : ''
+      shots = Array.from({ length: count }).map((_, i) => ({
+        concept: i === 0 ? 'Style match — reference' : `Style match — variant ${i + 1}`,
+        prompt: `Recreate the attached STYLE REFERENCE image as a campaign ad — same overall composition, same typographic hierarchy, same palette family, same lighting mood, same camera angle — but swap whatever product appears in it for OUR product (shown in the following reference images). ${variations[i] ?? variations[0]}.${dirTail}`,
+      }))
+    }
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const msg = await anthropic.messages.create({
+    const msg = shots.length ? null : await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       // Ad mode concepts are dense multi-clause sentences per shot — 900 tokens
       // truncated mid-JSON on 3-4 shot batches. Aesthetic mode fits comfortably.
@@ -162,19 +189,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ) : ''}${direction ? `\nUSER DIRECTION — every concept must build on this while staying distinct from each other: "${direction}"` : ''}`,
       }],
     })
-    let raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
-      .replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
+    // When we took the style-reference short-circuit, msg is null and shots is
+    // already populated — skip Sonnet parsing entirely.
+    let raw = msg ? (msg.content[0] as { type: 'text'; text: string }).text.trim()
+      .replace(/^```json?\n?/i, '').replace(/\n?```$/, '') : ''
     // Sonnet sometimes wraps JSON in prose or gets truncated mid-array. Try to
     // extract just the JSON object, and if the parser fails on trailing junk
     // repair the trailing comma / unterminated array so we salvage what fits.
-    let shots: Array<{ concept: string; prompt: string }> = []
     const tryParse = (text: string) => {
       const parsed = JSON.parse(text) as { shots?: Array<{ concept?: string; prompt?: string }> }
       return (parsed.shots ?? [])
         .filter(sh => sh?.prompt)
         .map(sh => ({ concept: String(sh.concept ?? 'shot').slice(0, 80), prompt: String(sh.prompt).slice(0, 600) }))
     }
-    try { shots = tryParse(raw) } catch {
+    if (msg) try { shots = tryParse(raw) } catch {
       // Slice from the first { to the matching last brace or the end of the array
       const start = raw.indexOf('{')
       const lastBrace = raw.lastIndexOf('}')
@@ -235,24 +263,40 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const adPrompt = `${sh.prompt}\n\nCampaign-grade brand advertisement in the style of the world's best agencies — Wieden+Kennedy, Mother, Droga5 — for brands like Nike, Aime Leon Dore, Jacquemus, Loewe, Fenty, Liquid Death, Poppi, Coca-Cola. This is EDITORIAL AD ENERGY, not e-commerce social tile. Follow the archetype called out in the concept (cinematic hero, magazine cover, splash/ingredient explosion, cropped-body graphic, surreal metaphor, or logo campaign).\n\nCOMPOSITION: dynamic, confident, off-centre. Low hero angle looking up, extreme wide with intentional negative space, dutch tilt, diagonal energy, subject cropped by the frame edge. Motion blur on limbs/hair/fabric/liquid/ingredients while the product itself stays razor sharp. Real environment texture — asphalt grain, wet street reflections, sunlit dust, sky at magic hour, painted-concrete gel wash, salt-flat noon. NOT a flat coloured photoshop background unless the concept is a pure graphic poster.\n\nTYPOGRAPHY as art-direction: real modern typeface (ultra-bold condensed sans, high-contrast serif, refined italic, hand-scrawled) sized like a real campaign headline. The type INTEGRATES with the scene — wraps around a body, gets cropped by a shoulder, sits BEHIND the human so a foot or hand overlaps the letterform, scales huge behind a small figure, breaks a magazine masthead like the model is on a Vogue cover. NEVER a headline floating dead-centre over a plain cutout. Copy is CAMPAIGN voice (2–5 words, poetic, confident) — NOT retail voice ("20% OFF"). Skip star bars and SHOP NOW pills unless the concept is explicitly a Deal Poster.\n\nHUMAN PRESENCE: bodies mid-motion, cropped body parts (hands gripping / lips near / wet forearms / feet mid-stride), silhouettes, out-of-focus figures in the deep background. When a full body isn't a fit for the product (drinks, skincare, food) then use LIVING MOTION instead — ingredients frozen mid-air, liquid splash, condensation drops, pour arcs, steam, ice, powder puffs — anything that reads as kinetic energy rather than a static float.\n\nPRODUCT: integrated into the pose or the elemental motion — held, gripped, poured, launched, cradled, worn — NOT a detached cutout pasted onto flat colour. Preserve packaging, labels, logos and colours exactly.\n\nRender the typography TACK-SHARP with correct spelling and real kerning; no gibberish, no lorem ipsum, no ghost letters. Editorial print-ad quality, not Instagram DTC tile quality.${adPersonClause}`
       const aestheticPromptWithInf = `${influencer?.appearance_prompt}\n\nShot: ${sh.prompt}\n\nCinematic editorial campaign photograph in the style of Vogue / Kinfolk / Aesop / Jacquemus. The person is candidly mid-action with the product — natural imperfect skin (real pores, no plastic AI-smooth face, no over-symmetry), relaxed anatomically-correct hands, unposed body language, doesn't have to be centered. Real light with real directional shadows, hyper-real materials and textures (skin, fabric, glass, liquid, stone), rich intentional colour palette per shot. The product keeps its exact natural undistorted shape and every label/logo stays legible. No text overlays, no watermarks, no camera UI, no lens flare artefacts, no floating debris unless the concept called for it.`
       const aestheticPrompt = `${sh.prompt}\n\nCinematic editorial product photograph in the style of a top DTC / heritage brand campaign (Aesop, Chanel, Loewe, Fenty, Poppi). Hyper-real materials with true surface textures (wet stone, silk, glass, water ripples, moss, marble, sand), real directional lighting with real shadows, rich intentional colour palette, magazine-cover level composition and negative space. The product keeps its exact natural undistorted shape and every label/logo stays crisp and legible. Any hands in frame are relaxed and anatomically correct. No text overlays, no watermarks, no camera UI, no human faces, no plastic-looking CG feel.`
-      const finalPrompt = mode === 'ad'
-        ? adPrompt
-        : (influencer ? aestheticPromptWithInf : aestheticPrompt)
+      // Style-reference mode overrides the mode prompt with a targeted
+      // "copy this layout, swap the product" brief so NB stays anchored on
+      // the reference image and doesn't drift into its own composition.
+      const styleRefPrompt = styleReference
+        ? `${sh.prompt}\n\nSTYLE REFERENCE MODE — the FIRST attached image is the target ad the user wants to recreate. Match its composition, layout, camera angle, palette, lighting mood, typography style, and overall vibe as closely as possible. Then REPLACE whatever product appears in the reference with OUR product (shown in the subsequent reference images) — same pose, same position in the frame, same scale relationship to any people or typography. Preserve OUR product's packaging, label text, colours, shape and proportions exactly. Any typography in the recreated ad should feel like a natural counterpart to what the reference shows — same weight, same case, same energy — but the copy can be new and appropriate for our product. Do not include any text overlays, watermarks, or logos that aren't in the spirit of the reference.`
+        : null
+      const finalPrompt = styleRefPrompt
+        ? styleRefPrompt
+        : (mode === 'ad'
+          ? adPrompt
+          : (influencer ? aestheticPromptWithInf : aestheticPrompt))
+      // Reference image order for NB Pro. When a style ref exists it goes
+      // FIRST so it anchors the composition, then identity, then product.
+      const refs = styleReference
+        ? [styleReference, ...(influencer ? identityRefs : []), ...productRefs]
+        : (mode === 'ad'
+            ? (influencer ? [...identityRefs, ...productRefs] : productRefs)
+            : (influencer ? [...identityRefs, ...productRefs] : productRefs))
+      const styleRefHint = styleReference
+        ? `Reference image order: (1) STYLE REFERENCE — copy its layout, palette, typography vibe and overall composition. ${influencer ? `(2..${identityRefs.length + 1}) PERSON — the model whose face must appear in the ad; render their face fully visible, never obscured. ` : ''}(${(influencer ? identityRefs.length + 2 : 2)}..) PRODUCT — the exact packaging/labels/colours/shape that must be preserved perfectly. The output should feel like the style reference but with our product swapped in.`
+        : null
       return generateNanoBananaImage(finalPrompt, {
         style: mode === 'ad' && !influencer ? 'professional' : (influencer ? 'realistic' : 'professional'),
         ratio,
         model,
         resolution: quality === '4k' ? '4K' : undefined,
-        referenceImages: mode === 'ad'
-          ? (influencer ? [...identityRefs, ...productRefs] : productRefs)
-          : (influencer ? [...identityRefs, ...productRefs] : productRefs),
-        referenceHint: mode === 'ad'
+        referenceImages: refs,
+        referenceHint: styleRefHint ?? (mode === 'ad'
           ? (influencer
             ? `The FIRST reference image(s) define the exact person appearing in the ad — face, hair, skin tone, build. Render their FACE FULLY VISIBLE and matching the reference; never crop the head, never let the product or typography cover the face. The LAST image(s) show the EXACT product — preserve packaging, labels, colours and proportions perfectly; never redesign it. Compose person + product + typography into a scroll-stopping campaign ad.`
             : 'The attached reference photos show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly. Use it as a clean cut-out inside a bold graphic poster; the typography and coloured background are the composition. Never redesign the product.')
           : (influencer
             ? `The FIRST reference image(s) define the exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt${(product.category === 'apparel' || product.category === 'footwear') ? ' (they WEAR the product)' : ''}. The LAST image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it.`
-            : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape, materials and proportions perfectly. Apply the prompt as the scene, arrangement, and styling around it; never redesign the product.'),
+            : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape, materials and proportions perfectly. Apply the prompt as the scene, arrangement, and styling around it; never redesign the product.')),
       })
     })))
 

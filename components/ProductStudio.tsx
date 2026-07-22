@@ -97,6 +97,9 @@ export default function ProductStudio() {
   const [influencers, setInfluencers] = useState<Array<{ id: string; name: string; portrait_url: string }>>([])
   const [shootInfluencerId, setShootInfluencerId] = useState<string | undefined>(undefined)
   const [lightboxZoom, setLightboxZoom] = useState(false)
+  // Optional style-reference upload — user drops in an ad they want to
+  // riff on and NB Pro rebuilds it with THEIR product. Base64 for the API.
+  const [styleRef, setStyleRef] = useState<CompressedImage | null>(null)
 
   const CR = { nb2: 5, pro: 10, '4k': 18 } as const
 
@@ -185,7 +188,15 @@ export default function ProductStudio() {
       const res = await fetch(`/api/products-studio/${selected.id}/photoshoot`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ direction: direction.trim() || undefined, count: shotCount, ratio, quality, influencerId: shootInfluencerId, mode }),
+        body: JSON.stringify({
+          direction: direction.trim() || undefined,
+          count: shotCount,
+          ratio,
+          quality,
+          influencerId: shootInfluencerId,
+          mode,
+          styleReference: styleRef ? { base64: styleRef.base64, mimeType: styleRef.mimeType } : undefined,
+        }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Photoshoot failed')
@@ -326,18 +337,70 @@ export default function ProductStudio() {
             >✨ Ad graphic</button>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+            {/* Optional style reference — user's target ad; NB Pro copies its
+                composition/typography/palette but swaps in the user's product. */}
+            {styleRef ? (
+              <div style={{ position: 'relative', width: 62, height: 62, flexShrink: 0 }}>
+                <img
+                  src={`data:${styleRef.mimeType};base64,${styleRef.base64}`}
+                  alt="Style reference"
+                  onClick={() => setLightbox({ url: `data:${styleRef.mimeType};base64,${styleRef.base64}`, label: 'Style reference' })}
+                  style={{ width: 62, height: 62, objectFit: 'cover', borderRadius: 10, border: '1.5px solid var(--ink)', cursor: 'zoom-in' }}
+                />
+                <button
+                  onClick={() => setStyleRef(null)}
+                  title="Remove style reference"
+                  style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', cursor: 'pointer', fontSize: 11, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={11} />
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  id="styleRefInput"
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={async e => {
+                    const f = e.target.files?.[0]
+                    e.currentTarget.value = ''
+                    if (!f) return
+                    try {
+                      const compressed = await compressImageFile(f, 1600, 0.9)
+                      setStyleRef(compressed)
+                    } catch { showError('Image failed', `Could not read ${f.name}`) }
+                  }}
+                />
+                <button
+                  onClick={() => document.getElementById('styleRefInput')?.click()}
+                  title="Attach a style reference — an existing ad or layout you want the AI to recreate with your product"
+                  style={{ width: 62, height: 62, borderRadius: 10, border: '1.5px dashed var(--border)', background: 'var(--surface-2)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, flexShrink: 0, fontSize: 10, lineHeight: 1.1 }}
+                >
+                  <ImagePlus size={16} />
+                  <span>Style</span>
+                </button>
+              </>
+            )}
             <textarea
               className="textarea"
               rows={2}
               value={direction}
               onChange={e => setDirection(e.target.value)}
-              placeholder="Optional direction: 'splashing into iced coffee', 'pastel pink set'… leave empty and the AI picks fresh concepts (never repeats a format)."
+              placeholder={styleRef
+                ? "Optional tweak: 'keep the layout but make it more dramatic'… or leave empty and the AI matches the reference exactly."
+                : "Optional direction: 'splashing into iced coffee', 'pastel pink set'… leave empty and the AI picks fresh concepts (never repeats a format)."}
               style={{ fontSize: 13.5, flex: 1, resize: 'none', margin: 0 }}
             />
             <button onClick={photoshoot} disabled={shooting} className="btn btn-primary" style={{ padding: '13px 20px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
               {shooting ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />} Shoot
             </button>
           </div>
+          {styleRef && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6 }}>
+              Style reference attached — the AI will match its composition, typography and palette while swapping in <em>{selected?.name}</em>.
+            </div>
+          )}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: 6 }}>
               {(['1:1', '4:5', '9:16', '16:9'] as const).map(r => (
