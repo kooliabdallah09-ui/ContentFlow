@@ -20,6 +20,20 @@ export const maxDuration = 120
 
 export const INFLUENCER_CREATE_CR = 18        // Sonnet + 2× NB Pro (portrait + sheet) ≈ $0.32 raw × 1.4
 export const INFLUENCER_CREATE_NB2_CR = 11    // same flow on Nano Banana 2 ≈ $0.19 raw × 1.4
+// 4-candidate picker flow: 4 portraits upfront, only chosen one keeps its
+// sheet render. ≈ 4 NB Pro + 1 sheet vs 1 portrait + 1 sheet in the old flow.
+export const INFLUENCER_CANDIDATES_CR = 34
+export const INFLUENCER_CANDIDATES_NB2_CR = 20
+
+// Four expression / vibe cues that give the user real choice between the
+// candidates instead of four identical direct-look portraits. Each is a
+// short additive clause tacked onto the Sonnet-generated appearance prompt.
+export const CANDIDATE_VIBES = [
+  { key: 'warm', cue: 'Expression: warm confident smile, direct eye contact with the camera, arms relaxed. Feels approachable and grounded.' },
+  { key: 'laughing', cue: 'Expression: caught mid-laugh, eyes crinkled, looking slightly off-camera as if reacting to a friend just out of frame. Feels candid, spontaneous, alive.' },
+  { key: 'pensive', cue: 'Expression: soft neutral pensive look, three-quarter turn away from camera, eyes gentle and thoughtful. Feels magazine-editorial and contemplative.' },
+  { key: 'playful', cue: 'Expression: playful smirk with a knowing look, one hand near the face or in the hair, head slightly tilted. Feels flirty and self-assured.' },
+] as const
 
 function supa() {
   return createClient(
@@ -100,7 +114,7 @@ export async function POST(request: NextRequest) {
       faceFeatures: Array.isArray(body?.faceFeatures) ? body.faceFeatures.map(String).slice(0, 6) : [],
     }
     const model: 'pro' | 'nb2' = body?.model === 'nb2' ? 'nb2' : 'pro'
-    const createCost = model === 'nb2' ? INFLUENCER_CREATE_NB2_CR : INFLUENCER_CREATE_CR
+    const createCost = model === 'nb2' ? INFLUENCER_CANDIDATES_NB2_CR : INFLUENCER_CANDIDATES_CR
     const hasTraits = !!(traits.gender || traits.ageRange || traits.styles.length || traits.hairColor || traits.eyeColor || traits.hairstyle || traits.faceFeatures.length || traits.ethnicity)
     if (description.length < 10 && !hasTraits) {
       return NextResponse.json({ error: 'Pick some traits or describe your influencer' }, { status: 400 })
@@ -194,27 +208,45 @@ export async function POST(request: NextRequest) {
     // Client-picked name always wins over Sonnet's invention.
     if (traits.name) sheet.name = traits.name
 
-    // 2) Nano Banana Pro renders the canonical portrait — with the client's
-    // reference photos as identity anchors when provided.
-    const portrait = await generateNanoBananaImage(sheet.appearance_prompt, {
-      style: 'realistic',
-      ratio: '4:5',
-      model,
-      referenceImages: referenceImages.length ? referenceImages : undefined,
-      referenceHint: referenceImages.length
-        ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + lighting around them; do NOT invent a different person.'
-        : undefined,
-    })
+    // 2) Nano Banana renders FOUR candidate portraits with distinct emotion
+    // cues so the user gets meaningful choice instead of four near-identical
+    // direct-look portraits. User picks one → /finalize renders the sheet
+    // from that pick and saves the influencer.
+    const portraitResults = await Promise.allSettled(
+      CANDIDATE_VIBES.map(v => generateNanoBananaImage(`${sheet.appearance_prompt}\n\n${v.cue}`, {
+        style: 'realistic',
+        ratio: '4:5',
+        model,
+        referenceImages: referenceImages.length ? referenceImages : undefined,
+        referenceHint: referenceImages.length
+          ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
+          : undefined,
+      })),
+    )
+    // Upload every successful candidate to storage in parallel.
+    const timestamp = Date.now()
+    const candidates: Array<{ url: string; vibe: string }> = []
+    for (let i = 0; i < portraitResults.length; i++) {
+      const r = portraitResults[i]
+      if (r.status !== 'fulfilled') {
+        console.warn('[influencers/candidates] portrait', i, 'failed:', r.reason instanceof Error ? r.reason.message : r.reason)
+        continue
+      }
+      const filename = `influencers/${auth.userId}-${timestamp}-candidate-${i}.png`
+      const { error: upErr } = await supabase.storage
+        .from('ugc-assets')
+        .upload(filename, Buffer.from(r.value.imageBase64, 'base64'), { contentType: r.value.mimeType, upsert: false })
+      if (upErr) continue
+      candidates.push({
+        url: supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl,
+        vibe: CANDIDATE_VIBES[i].key,
+      })
+    }
+    if (!candidates.length) {
+      return NextResponse.json({ error: 'All candidate portraits failed — try again.' }, { status: 500 })
+    }
 
-    // 3) Upload portrait to storage.
-    const filename = `influencers/${auth.userId}-${Date.now()}-portrait.png`
-    const { error: upErr } = await supabase.storage
-      .from('ugc-assets')
-      .upload(filename, Buffer.from(portrait.imageBase64, 'base64'), { contentType: portrait.mimeType, upsert: false })
-    if (upErr) throw new Error(`Portrait upload failed: ${upErr.message}`)
-    const portraitUrl = supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl
-
-    // 4) Persist the original user reference photos to storage so future
+    // 3) Persist the original user reference photos to storage so future
     // photoshoots can anchor to them directly (prevents drift over time).
     const referenceUrls: string[] = []
     for (let i = 0; i < Math.min(referenceImages.length, 3); i++) {
@@ -231,45 +263,8 @@ export async function POST(request: NextRequest) {
       referenceUrls.push(supabase.storage.from('ugc-assets').getPublicUrl(refPath).data.publicUrl)
     }
 
-    const { data: influencer, error: insErr } = await supabase
-      .from('user_influencers')
-      .insert({
-        user_id: auth.userId,
-        name: String(sheet.name).slice(0, 80),
-        handle: typeof sheet.handle === 'string' ? sheet.handle.slice(0, 40) : null,
-        bio: typeof sheet.bio === 'string' ? sheet.bio.slice(0, 400) : null,
-        personality: typeof sheet.personality === 'string' ? sheet.personality.slice(0, 600) : null,
-        niche: typeof sheet.niche === 'string' ? sheet.niche.slice(0, 120) : null,
-        appearance_prompt: String(sheet.appearance_prompt).slice(0, 2000),
-        portrait_url: portraitUrl,
-        reference_urls: referenceUrls.length ? referenceUrls : null,
-      })
-      .select('*')
-      .single()
-    if (insErr) throw insErr
-
-    // 4b) Character turnaround sheet — multi-angle grid used as the primary
-    // identity anchor for photoshoots + UGC frames. Fail-soft: the
-    // influencer is still usable with just the portrait.
-    let sheetUrl: string | null = null
-    try {
-      sheetUrl = await generateCharacterSheet({
-        supabase, userId: auth.userId,
-        influencerId: influencer.id,
-        appearancePrompt: influencer.appearance_prompt,
-        portraitUrl,
-        model,
-        // Pass the user's ORIGINAL upload through so the sheet is anchored to
-        // their real photo, not just our rendered portrait. Otherwise every
-        // downstream photoshoot inherits the portrait's drift.
-        userReferenceImages: referenceImages.length ? referenceImages : undefined,
-      })
-      influencer.character_sheet_url = sheetUrl
-    } catch (sheetErr) {
-      console.warn('[influencers] character sheet failed:', sheetErr instanceof Error ? sheetErr.message : sheetErr)
-    }
-
-    // 5) Charge.
+    // 4) Charge for the four candidates now. Sheet render is included in
+    // this cost — /finalize doesn't charge again.
     const { newBalance, newPackCredits } = await deductCredits(
       supabase, auth.userId, createCost, credits.balance, credits.pack_credits ?? 0,
     )
@@ -277,7 +272,24 @@ export async function POST(request: NextRequest) {
       .update({ balance: newBalance, pack_credits: newPackCredits })
       .eq('user_id', auth.userId)
 
-    return NextResponse.json({ influencer, creditsCharged: createCost }, { status: 201 })
+    // Return the identity draft + the 4 candidates. The client shows the
+    // grid; user picks one and POSTs to /api/influencers/finalize with the
+    // chosen candidate + this identity blob. That's when we render the
+    // character sheet and insert the user_influencers row.
+    return NextResponse.json({
+      identity: {
+        name: sheet.name,
+        handle: sheet.handle ?? null,
+        bio: sheet.bio ?? null,
+        personality: sheet.personality ?? null,
+        niche: sheet.niche ?? null,
+        appearance_prompt: sheet.appearance_prompt,
+      },
+      candidates,
+      referenceUrls,
+      model,
+      creditsCharged: createCost,
+    }, { status: 201 })
   } catch (err) {
     console.error('[influencers] create failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })

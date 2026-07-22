@@ -79,6 +79,14 @@ export default function InfluencersPage() {
   // Create form
   const [description, setDescription] = useState('')
   const [creating, setCreating] = useState(false)
+  // 4-candidate portrait picker: after the initial create, we hold the
+  // Sonnet identity draft + the four rendered candidates here, and only
+  // finalise once the user clicks one.
+  const [candidates, setCandidates] = useState<Array<{ url: string; vibe: string }>>([])
+  const [candidateIdentity, setCandidateIdentity] = useState<{ name?: string; handle?: string | null; bio?: string | null; personality?: string | null; niche?: string | null; appearance_prompt?: string } | null>(null)
+  const [candidateReferenceUrls, setCandidateReferenceUrls] = useState<string[]>([])
+  const [candidateModel, setCandidateModel] = useState<'pro' | 'nb2'>('pro')
+  const [pickingCandidate, setPickingCandidate] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [refImages, setRefImages] = useState<CompressedImage[]>([])
   // Structured identity traits — every selected one is a hard lock the AI
@@ -217,18 +225,62 @@ export default function InfluencersPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Creation failed')
-      setList(prev => [data.influencer, ...prev])
-      setDescription('')
-      setRefImages([])
-      setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([]); setTraitEthnicity('')
-      setShowCreate(false)
-      showSuccess('Influencer created', `${data.influencer.name} is ready.`)
-      openDetail(data.influencer)
+      // NEW two-step flow: server rendered 4 candidate portraits with
+      // different expressions/vibes and returned them. User picks one, then
+      // we call /finalize to render the sheet + save the row.
+      if (Array.isArray(data.candidates) && data.identity) {
+        setCandidates(data.candidates)
+        setCandidateIdentity(data.identity)
+        setCandidateReferenceUrls(Array.isArray(data.referenceUrls) ? data.referenceUrls : [])
+        setCandidateModel(data.model === 'nb2' ? 'nb2' : 'pro')
+        showSuccess('Pick your favorite', 'Four looks generated — click the one that feels right.')
+      }
     } catch (err) {
       showError('Creation failed', err instanceof Error ? err.message : 'Try again')
     } finally {
       setCreating(false)
     }
+  }
+
+  async function chooseCandidate(chosenUrl: string) {
+    if (!candidateIdentity) return
+    setPickingCandidate(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const unusedUrls = candidates.filter(c => c.url !== chosenUrl).map(c => c.url)
+      const res = await fetch('/api/influencers/finalize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          identity: candidateIdentity,
+          chosenUrl,
+          unusedUrls,
+          referenceUrls: candidateReferenceUrls,
+          model: candidateModel,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Finalize failed')
+      setList(prev => [data.influencer, ...prev])
+      // Wipe create form + candidate state.
+      setDescription(''); setRefImages([])
+      setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([]); setTraitEthnicity('')
+      setCandidates([]); setCandidateIdentity(null); setCandidateReferenceUrls([])
+      setShowCreate(false)
+      showSuccess('Influencer created', `${data.influencer.name} is ready.`)
+      openDetail(data.influencer)
+    } catch (err) {
+      showError('Finalize failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setPickingCandidate(false)
+    }
+  }
+
+  function cancelCandidates() {
+    // User bailed on the picker — client-side wipe. The rendered candidate
+    // uploads stay in storage; harmless small blobs.
+    setCandidates([]); setCandidateIdentity(null); setCandidateReferenceUrls([])
   }
 
   async function openDetail(inf: Influencer) {
@@ -707,6 +759,52 @@ export default function InfluencersPage() {
         >
           <Sparkles size={15} /> Create new influencer
         </button>
+      )}
+
+      {/* Candidate picker — after create returns 4 portraits with different
+          vibes, user picks the one they like most. */}
+      {candidates.length > 0 && candidateIdentity && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 980, width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
+              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26 }}>{candidateIdentity.name}</span>
+              {candidateIdentity.handle && <span style={{ fontSize: 12.5, color: 'var(--ink-mute)' }}>{candidateIdentity.handle}</span>}
+              <button
+                onClick={cancelCandidates}
+                disabled={pickingCandidate}
+                style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}
+              >Discard</button>
+            </div>
+            <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: '0 0 18px' }}>
+              Pick the look that feels most like your character. Only the chosen portrait will be saved; the others are discarded.
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+              {candidates.map(c => (
+                <button
+                  key={c.url}
+                  onClick={() => chooseCandidate(c.url)}
+                  disabled={pickingCandidate}
+                  title={`Pick this look (${c.vibe})`}
+                  style={{ padding: 0, background: 'var(--surface-2, var(--surface))', border: '2px solid var(--border)', borderRadius: 14, cursor: pickingCandidate ? 'wait' : 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'transform 120ms, border-color 120ms' }}
+                  onMouseEnter={e => { if (!pickingCandidate) { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.transform = 'translateY(-2px)' } }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={c.url} alt={c.vibe} style={{ width: '100%', aspectRatio: '4/5', objectFit: 'cover', display: 'block' }} />
+                  <span style={{ padding: '10px 12px', fontSize: 12, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600, textAlign: 'left' }}>
+                    {c.vibe}
+                  </span>
+                </button>
+              ))}
+            </div>
+            {pickingCandidate && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 20, color: 'var(--ink-mute)', fontSize: 13 }}>
+                <Loader2 size={16} className="animate-spin" />
+                <span>Building the character sheet — this takes ~20-30 seconds…</span>
+              </div>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Create box — structured identity picker */}
