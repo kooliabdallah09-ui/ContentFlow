@@ -95,6 +95,11 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>Product Studio</span>
           <span className="flagship-badge">Beta</span>
         </Link>
+        <Link href="/scenes" className={`nav-item ${isActive('/scenes') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Library />
+          <span style={{ flex: 1 }}>Scene Studio</span>
+          <span className="flagship-badge">New</span>
+        </Link>
         {analyzerAccess && (
           <Link href="/generate/analyzer" className={`nav-item ${isActive('/generate/analyzer') ? 'active' : ''}`} onClick={handleNavClick}>
             <Icon.Video />

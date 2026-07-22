@@ -134,6 +134,10 @@ export default function InfluencersPage() {
   const [sheetLoading, setSheetLoading] = useState(false)
   const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; photo_urls: string[] }>>([])
   const [shootProductId, setShootProductId] = useState<string | undefined>(undefined)
+  // Reusable Scenes — replaces the string presets with real environment
+  // anchors. Picking a Scene passes its hero image to NB as a location ref.
+  const [scenes, setScenes] = useState<Array<{ id: string; name: string; hero_image_url: string | null; scene_prompt: string }>>([])
+  const [shootSceneId, setShootSceneId] = useState<string | undefined>(undefined)
   // Additional influencers to co-star with the currently-selected one in the same shot.
   const [guestInfluencerIds, setGuestInfluencerIds] = useState<string[]>([])
   // In-app lightbox for viewing photos (no more raw-URL tabs).
@@ -157,6 +161,12 @@ export default function InfluencersPage() {
           if (res.ok) {
             const data = await res.json()
             if (Array.isArray(data?.products)) setStudioProducts(data.products)
+          }
+          // Scenes are optional too — 401s / 404s degrade to preset chips.
+          const sceneRes = await fetch('/api/scenes', { headers: { Authorization: `Bearer ${token}` } })
+          if (sceneRes.ok) {
+            const sceneData = await sceneRes.json()
+            if (Array.isArray(sceneData?.scenes)) setScenes(sceneData.scenes)
           }
         }
       } catch { /* optional */ }
@@ -273,6 +283,7 @@ export default function InfluencersPage() {
           ratio,
           quality: shootModel,
           studioProductId: shootProductId,
+          sceneId: shootSceneId,
           guestInfluencerIds,
           sceneImages: sceneImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
@@ -463,9 +474,39 @@ export default function InfluencersPage() {
               )}
             </div>
           )}
+          {/* Reusable Scene picker — user-created environments trump one-off
+              preset strings because they carry a real image anchor. */}
+          {scenes.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scene</span>
+              <button
+                onClick={() => setShootSceneId(undefined)}
+                style={{ ...chip(!shootSceneId), padding: '6px 12px' }}
+              >
+                Custom
+              </button>
+              {scenes.map(s => {
+                const active = shootSceneId === s.id
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setShootSceneId(active ? undefined : s.id)}
+                    title={s.name}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0, borderRadius: 10, overflow: 'hidden', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    {s.hero_image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.hero_image_url} alt={s.name} style={{ width: 46, height: 34, objectFit: 'cover', display: 'block' }} />
+                    )}
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', padding: '0 10px 0 0' }}>{s.name}</span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {SCENE_PRESETS.map(p => (
-              <button key={p} onClick={() => setScene(p)} style={{
+              <button key={p} onClick={() => { setScene(p); setShootSceneId(undefined) }} style={{
                 padding: '5px 11px', borderRadius: 999, fontSize: 11.5, cursor: 'pointer',
                 border: `1px solid ${scene === p ? 'var(--ink)' : 'var(--border)'}`,
                 background: scene === p ? 'var(--surface-2)' : 'var(--surface)',

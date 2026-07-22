@@ -54,6 +54,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       : body?.quality === '4k' ? '4k' : 'pro'
     const model: 'pro' | 'nb2' = quality === 'nb2' ? 'nb2' : 'pro'
     const studioProductId = typeof body?.studioProductId === 'string' && body.studioProductId.length > 0 ? body.studioProductId : null
+    const sceneId = typeof body?.sceneId === 'string' && body.sceneId.length > 0 ? body.sceneId : null
     // Guest influencers co-star with the primary influencer in the same shot.
     const guestIdsRaw: unknown = body?.guestInfluencerIds
     const guestInfluencerIds: string[] = Array.isArray(guestIdsRaw)
@@ -172,6 +173,43 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     const guestRefs: Array<{ base64: string; mimeType: string }> = guestDetails.map(g => g.ref)
 
+    // Optional Scene — a reusable environment the user built in Scene Studio.
+    // We fetch the hero (empty-scene render) and pass it as a location
+    // reference to NB. Its scene_prompt is also appended so Sonnet + NB
+    // know exactly which place they're populating.
+    let sceneDetail: { name: string; scene_prompt: string } | null = null
+    let sceneRef: { base64: string; mimeType: string } | null = null
+    if (sceneId) {
+      const { data: sceneRow } = await supabase
+        .from('user_scenes')
+        .select('id, name, scene_prompt, hero_image_url, reference_urls')
+        .eq('id', sceneId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (sceneRow) {
+        sceneDetail = { name: sceneRow.name, scene_prompt: sceneRow.scene_prompt }
+        // Prefer the user's original references if we have them (drift-free
+        // anchor to the real place), otherwise the hero render.
+        const originalRefs: string[] = Array.isArray(sceneRow.reference_urls)
+          ? (sceneRow.reference_urls as string[]).filter(u => typeof u === 'string' && u.startsWith('http'))
+          : []
+        const anchorUrl = originalRefs[0] ?? sceneRow.hero_image_url
+        if (anchorUrl && typeof anchorUrl === 'string' && anchorUrl.startsWith('http')) {
+          try {
+            const r = await fetch(anchorUrl)
+            if (r.ok) {
+              sceneRef = {
+                base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
+                mimeType: r.headers.get('content-type') || 'image/png',
+              }
+            }
+          } catch { /* soft fail — prompt still describes the scene */ }
+        }
+        // Bump last_used_at so the picker sorts recently-used scenes to top.
+        void supabase.from('user_scenes').update({ last_used_at: new Date().toISOString() }).eq('id', sceneId).eq('user_id', userId)
+      }
+    }
+
     // Note: never say 'phone-camera photo' or 'selfie' — that phrasing primes
     // Nano Banana to render an iPhone camera UI overlay (shutter button,
     // controls) on top of the image. Describe the photographic QUALITIES
@@ -195,10 +233,19 @@ The person is WEARING the "${studioProduct.name}" garment (shown in the product 
     const guestLine = guestDetails.length
       ? `\n★ ${guestDetails.length === 1 ? 'A CO-STAR' : `${guestDetails.length} CO-STARS`} IN THE SAME SHOT — non-negotiable ★ ${guestDetails.length === 1 ? 'A second person' : `${guestDetails.length} additional people`} share the frame with the primary subject. They interact naturally — walking together, mid-conversation, laughing, cheersing, one handing off to the other, arms around each other. It must feel like a real duo/trio, not solo portraits pasted together. ${guestDetails.map((g, i) => `Co-star ${i + 1} (identity anchor images at positions ${identityRefs.length + i + 1}): ${g.appearance_prompt.slice(0, 400)}`).join(' ')} All faces must be fully visible — never crop a head, never let the product or the primary subject cover a co-star's face.`
       : ''
+    // Merge Scene Studio prompt with the user's freeform scene textarea. The
+    // Scene sets the environment brief; the textarea layers the action ("she
+    // walks past a jukebox mid-sip") on top.
+    const composedScene = sceneDetail
+      ? `${sceneDetail.name} — ${sceneDetail.scene_prompt}${scene ? ` The specific moment / action within this scene: ${scene}` : ''}`
+      : scene
+    const sceneRefLine = sceneRef
+      ? `\n★ SCENE ANCHOR IMAGE — the LAST attached image is the EXACT environment (${sceneDetail?.name ?? 'this place'}) — the photograph must render inside this same location, matching its architecture, materials, decor, palette, and lighting faithfully. Never invent a different location.`
+      : ''
     const basePrompt = (variation: string) =>
       // Order matters: SCENE + PRODUCT go first so the model treats them as
       // the primary subject; identity + camera hints come after as constraints.
-      `SCENE — this is the whole photograph, do not substitute: ${scene}. ${variation}
+      `SCENE — this is the whole photograph, do not substitute: ${composedScene}. ${variation}${sceneRefLine}
 ${productLine}${guestLine}
 
 WHO — extract ONLY identity from the description below (face, hair, skin, build, features). IGNORE any location, background, environment, time of day, or lighting mentioned here — those describe how the reference portrait was originally shot and DO NOT belong in this photo. The SCENE above is the entire environment:
@@ -231,7 +278,7 @@ The output is the photograph itself, full-bleed. Absolutely NO camera interface 
           ratio,
           model,
           resolution: quality === '4k' ? '4K' : undefined,
-          referenceImages: [...effIdentityRefs, ...guestRefs, ...effProductRefs, ...sceneRefs],
+          referenceImages: [...effIdentityRefs, ...guestRefs, ...effProductRefs, ...sceneRefs, ...(sceneRef ? [sceneRef] : [])],
           referenceHint: (effProductRefs.length || sceneRefs.length)
             ? `The FIRST ${effIdentityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; whatever top / shirt / jacket they wear in those reference photos is IRRELEVANT and must NOT appear in the output.${effProductRefs.length ? ` The next ${effProductRefs.length} image(s) show the EXACT product${wearable ? ` — the person is WEARING this exact garment as their outfit's top layer in the output, with print, label text and colours reproduced exactly; do NOT layer any other jacket/hoodie/coat over it and do NOT substitute a different top` : ' — preserve its packaging/print, label text, colours, shape and proportions perfectly'}; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
             : 'The attached reference images define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. Apply the prompt as scene + framing around them.',
