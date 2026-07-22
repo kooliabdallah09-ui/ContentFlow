@@ -1,12 +1,74 @@
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
-// Nano Banana Pro — the premium image model on Replicate. Better identity
-// preservation + label fidelity than nano-banana-2, at ~2-3x the cost per
-// image. Used for hero frames + product refinement + cutaway frames.
+const GOOGLE_GENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+// Nano Banana Pro — the premium image model. Better identity preservation
+// + label fidelity than nano-banana-2. Used for hero frames + product
+// refinement + cutaway frames. Routed to Google direct when
+// GOOGLE_GENAI_API_KEY is set (cheaper + eats the $300 trial credit),
+// otherwise falls back to Replicate.
 const NANO_BANANA_MODEL = 'google/nano-banana-pro'
+// Gemini API model IDs — override via env if Google renames them.
+const GOOGLE_PRO_MODEL = process.env.GOOGLE_NANO_BANANA_PRO_MODEL || 'gemini-3-pro-image-preview'
+const GOOGLE_NB2_MODEL = process.env.GOOGLE_NANO_BANANA_MODEL || 'gemini-2.5-flash-image'
 
 interface NanoBananaResult {
   imageBase64: string
   mimeType: string
+}
+
+// Google Gemini API path — image generation via generateContent, IMAGE modality.
+// Same interface as the Replicate path so `callNanoBanana` can pick between them
+// with just an env-var check.
+async function callNanoBananaGoogle(
+  prompt: string,
+  referenceImages: Array<{ base64: string; mimeType: string }> | undefined,
+  aspectRatio: '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | undefined,
+  model: 'pro' | 'nb2',
+  resolution: '1K' | '2K' | '4K' | undefined,
+): Promise<NanoBananaResult> {
+  const apiKey = process.env.GOOGLE_GENAI_API_KEY!
+  const modelId = model === 'nb2' ? GOOGLE_NB2_MODEL : GOOGLE_PRO_MODEL
+
+  const parts: Array<Record<string, unknown>> = [{ text: prompt }]
+  if (referenceImages?.length) {
+    for (const r of referenceImages) {
+      parts.push({ inlineData: { mimeType: r.mimeType, data: r.base64 } })
+    }
+  }
+
+  const imageConfig: Record<string, unknown> = {}
+  if (aspectRatio) imageConfig.aspectRatio = aspectRatio
+  // Gemini API image resolution knob — 4K only supported on the Pro model.
+  if (resolution && model === 'pro') imageConfig.imageSize = resolution
+
+  const body = {
+    contents: [{ parts }],
+    generationConfig: {
+      responseModalities: ['IMAGE'],
+      ...(Object.keys(imageConfig).length ? { imageConfig } : {}),
+    },
+  }
+
+  const url = `${GOOGLE_GENAI_BASE}/models/${modelId}:generateContent?key=${encodeURIComponent(apiKey)}`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Google Nano Banana error ${res.status}: ${err.slice(0, 400)}`)
+  }
+  const data = await res.json()
+  const candidateParts = data?.candidates?.[0]?.content?.parts as Array<{ inlineData?: { data: string; mimeType: string } }> | undefined
+  const imgPart = candidateParts?.find(p => p.inlineData?.data)
+  if (!imgPart?.inlineData?.data) {
+    throw new Error(`Google Nano Banana returned no image: ${JSON.stringify(data).slice(0, 400)}`)
+  }
+  return {
+    imageBase64: imgPart.inlineData.data,
+    mimeType: imgPart.inlineData.mimeType || 'image/png',
+  }
 }
 
 // Submit Nano Banana sync (Prefer: wait) — image gen is fast (~5–8s), no need to poll.
@@ -19,6 +81,18 @@ async function callNanoBanana(
   model: 'pro' | 'nb2' = 'pro',
   resolution?: '1K' | '2K' | '4K',
 ): Promise<NanoBananaResult> {
+  // Prefer Google direct when the key is present — cheaper, and it eats the
+  // $300 Cloud trial credit before charging the card. Falls back to Replicate
+  // automatically if the Google call fails so a bad key or transient outage
+  // never blocks a render.
+  if (process.env.GOOGLE_GENAI_API_KEY) {
+    try {
+      return await callNanoBananaGoogle(prompt, referenceImages, aspectRatio, model, resolution)
+    } catch (e) {
+      console.warn('[nanobanana] Google path failed, falling back to Replicate:', e instanceof Error ? e.message : e)
+    }
+  }
+
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
