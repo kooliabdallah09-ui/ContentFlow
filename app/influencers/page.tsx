@@ -123,7 +123,7 @@ export default function InfluencersPage() {
     },
     disabled: sceneImages.length >= 2,
   })
-  const [shotCount, setShotCount] = useState(2)
+  const [shotCount, setShotCount] = useState(1)
   const [ratio, setRatio] = useState<'9:16' | '4:5' | '1:1' | '16:9'>('4:5')
   const [shootModel, setShootModel] = useState<'pro' | 'nb2' | '4k'>('pro')
   const [shooting, setShooting] = useState(false)

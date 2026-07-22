@@ -86,7 +86,7 @@ export default function ProductStudio() {
   const [direction, setDirection] = useState('')
   // aesthetic = editorial lifestyle photos; ad = bold typographic promo graphics
   const [mode, setMode] = useState<'aesthetic' | 'ad'>('aesthetic')
-  const [shotCount, setShotCount] = useState(2)
+  const [shotCount, setShotCount] = useState(1)
   const [ratio, setRatio] = useState<'1:1' | '4:5' | '9:16' | '16:9'>('4:5')
   const [shootModel, setShootModel] = useState<'pro' | 'nb2'>('pro')
   const [shootRes, setShootRes] = useState<'2K' | '4K'>('2K')
