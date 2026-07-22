@@ -94,9 +94,12 @@ export default function ProductStudio() {
   const [shooting, setShooting] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
-  // Feature an influencer in the shots (401s harmlessly for non-admin).
+  // Feature one or more influencers in the shots (401s harmlessly for non-admin).
   const [influencers, setInfluencers] = useState<Array<{ id: string; name: string; portrait_url: string }>>([])
-  const [shootInfluencerId, setShootInfluencerId] = useState<string | undefined>(undefined)
+  const [shootInfluencerIds, setShootInfluencerIds] = useState<string[]>([])
+  // Feature one or more of the user's OTHER products alongside the current one
+  // (e.g. flat-lay of two SKUs, or an influencer holding two products).
+  const [shootCoProductIds, setShootCoProductIds] = useState<string[]>([])
   const [lightboxZoom, setLightboxZoom] = useState(false)
   // Optional style-reference upload — user drops in an ad they want to
   // riff on and NB Pro rebuilds it with THEIR product. Base64 for the API.
@@ -217,7 +220,11 @@ export default function ProductStudio() {
           count: shotCount,
           ratio,
           quality,
-          influencerId: shootInfluencerId,
+          // Legacy single-influencer field kept for the server's backward-compat
+          // path, plus the new multi-select array.
+          influencerId: shootInfluencerIds[0],
+          influencerIds: shootInfluencerIds,
+          coProductIds: shootCoProductIds,
           mode,
           styleReference: styleRef ? { base64: styleRef.base64, mimeType: styleRef.mimeType } : undefined,
         }),
@@ -316,25 +323,63 @@ export default function ProductStudio() {
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
               <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Feature</span>
               <button
-                onClick={() => setShootInfluencerId(undefined)}
-                style={{ ...chip(!shootInfluencerId), padding: '6px 12px' }}
+                onClick={() => setShootInfluencerIds([])}
+                style={{ ...chip(shootInfluencerIds.length === 0), padding: '6px 12px' }}
               >
                 Product only
               </button>
               {influencers.map(inf => {
-                const active = shootInfluencerId === inf.id
+                const active = shootInfluencerIds.includes(inf.id)
                 return (
                   <button
                     key={inf.id}
-                    onClick={() => setShootInfluencerId(active ? undefined : inf.id)}
-                    title={inf.name}
-                    style={{ width: 40, height: 52, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', flexShrink: 0 }}
+                    onClick={() => setShootInfluencerIds(prev => prev.includes(inf.id) ? prev.filter(id => id !== inf.id) : [...prev, inf.id])}
+                    title={`${inf.name}${active ? ' (selected — click to remove)' : ' — click to add to the shot'}`}
+                    style={{ width: 40, height: 52, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', flexShrink: 0, position: 'relative' }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={inf.portrait_url} alt={inf.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    {active && (
+                      <span style={{ position: 'absolute', top: 2, right: 2, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 9, fontWeight: 700, width: 14, height: 14, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {shootInfluencerIds.indexOf(inf.id) + 1}
+                      </span>
+                    )}
                   </button>
                 )
               })}
+              {shootInfluencerIds.length > 1 && (
+                <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginLeft: 4 }}>{shootInfluencerIds.length} people in shot</span>
+              )}
+            </div>
+          )}
+          {list.length > 1 && selected && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>+ Also feature</span>
+              {list.filter(p => p.id !== selected.id).map(p => {
+                const active = shootCoProductIds.includes(p.id)
+                const thumb = p.photo_urls[0]
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => setShootCoProductIds(prev => prev.includes(p.id) ? prev.filter(id => id !== p.id) : [...prev, p.id])}
+                    title={`${p.name}${active ? ' (selected — click to remove)' : ' — click to add to the shot'}`}
+                    style={{ width: 40, height: 40, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', flexShrink: 0, position: 'relative' }}
+                  >
+                    {thumb && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={thumb} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    )}
+                    {active && (
+                      <span style={{ position: 'absolute', top: 2, right: 2, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 9, fontWeight: 700, width: 14, height: 14, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {shootCoProductIds.indexOf(p.id) + 1}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+              {shootCoProductIds.length > 0 && (
+                <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginLeft: 4 }}>+{shootCoProductIds.length} product{shootCoProductIds.length > 1 ? 's' : ''} in shot</span>
+              )}
             </div>
           )}
           {/* Mode toggle — Aesthetic photo vs typographic Ad graphic */}

@@ -54,6 +54,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       : body?.quality === '4k' ? '4k' : 'pro'
     const model: 'pro' | 'nb2' = quality === 'nb2' ? 'nb2' : 'pro'
     const studioProductId = typeof body?.studioProductId === 'string' && body.studioProductId.length > 0 ? body.studioProductId : null
+    // Guest influencers co-star with the primary influencer in the same shot.
+    const guestIdsRaw: unknown = body?.guestInfluencerIds
+    const guestInfluencerIds: string[] = Array.isArray(guestIdsRaw)
+      ? [...new Set(guestIdsRaw.filter((v): v is string => typeof v === 'string' && v.length > 0 && v !== id))].slice(0, 3)
+      : []
     const crPerImage = quality === 'nb2' ? PHOTOSHOOT_NB2_CR_PER_IMAGE
       : quality === '4k' ? PHOTOSHOOT_4K_CR_PER_IMAGE : PHOTOSHOOT_CR_PER_IMAGE
     if (scene.length < 3) return NextResponse.json({ error: 'Describe the scene' }, { status: 400 })
@@ -130,6 +135,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }))).filter((x): x is { base64: string; mimeType: string } => !!x)
     if (!identityRefs.length) throw new Error('Could not load identity references')
 
+    // Guest influencer identity refs — one image per guest (portrait preferred,
+    // character sheet as fallback) so we don't blow the NB reference budget.
+    let guestDetails: Array<{ name: string; appearance_prompt: string; ref: { base64: string; mimeType: string } }> = []
+    if (guestInfluencerIds.length) {
+      const { data: gs } = await supabase
+        .from('user_influencers')
+        .select('id, name, appearance_prompt, portrait_url, character_sheet_url')
+        .in('id', guestInfluencerIds)
+        .eq('user_id', userId)
+      const byId = new Map((gs ?? []).map(r => [String(r.id), r]))
+      const ordered = guestInfluencerIds.map(gid => byId.get(gid)).filter((x): x is { id: string; name: string; appearance_prompt: string; portrait_url: string; character_sheet_url: string | null } => !!x)
+      const loaded = await Promise.all(ordered.map(async g => {
+        const url = g.portrait_url && g.portrait_url.startsWith('http') ? g.portrait_url
+          : (g.character_sheet_url && g.character_sheet_url.startsWith('http') ? g.character_sheet_url : null)
+        if (!url) return null
+        try {
+          const r = await fetch(url)
+          if (!r.ok) return null
+          return {
+            name: g.name,
+            appearance_prompt: g.appearance_prompt,
+            ref: { base64: Buffer.from(await r.arrayBuffer()).toString('base64'), mimeType: r.headers.get('content-type') || 'image/png' },
+          }
+        } catch { return null }
+      }))
+      guestDetails = loaded.filter((x): x is { name: string; appearance_prompt: string; ref: { base64: string; mimeType: string } } => !!x)
+    }
+    const guestRefs: Array<{ base64: string; mimeType: string }> = guestDetails.map(g => g.ref)
+
     // Note: never say 'phone-camera photo' or 'selfie' — that phrasing primes
     // Nano Banana to render an iPhone camera UI overlay (shutter button,
     // controls) on top of the image. Describe the photographic QUALITIES
@@ -150,16 +184,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 The person is WEARING the "${studioProduct.name}" garment (shown in the product reference image) as their OUTFIT / TOP LAYER in this photograph. This exact garment — its colour, cut, print and label — replaces any other top or jacket the person might normally wear or be described as wearing. Do NOT layer another jacket, hoodie, coat or top over it. Do NOT invent a different shirt. If the reference identity photo shows them in a different top, IGNORE that top entirely; it is not part of this shoot.`
           : `\nTHE PRODUCT — HIGHEST PRIORITY: they are naturally using/holding "${studioProduct.name}" (the exact item from the product reference images) in this scene — hands engaged with it as part of the activity, product undistorted, clearly visible, packaging exact.`)
       : ''
+    const guestLine = guestDetails.length
+      ? `\n★ ${guestDetails.length === 1 ? 'A CO-STAR' : `${guestDetails.length} CO-STARS`} IN THE SAME SHOT — non-negotiable ★ ${guestDetails.length === 1 ? 'A second person' : `${guestDetails.length} additional people`} share the frame with the primary subject. They interact naturally — walking together, mid-conversation, laughing, cheersing, one handing off to the other, arms around each other. It must feel like a real duo/trio, not solo portraits pasted together. ${guestDetails.map((g, i) => `Co-star ${i + 1} (identity anchor images at positions ${identityRefs.length + i + 1}): ${g.appearance_prompt.slice(0, 400)}`).join(' ')} All faces must be fully visible — never crop a head, never let the product or the primary subject cover a co-star's face.`
+      : ''
     const basePrompt = (variation: string) =>
       // Order matters: SCENE + PRODUCT go first so the model treats them as
       // the primary subject; identity + camera hints come after as constraints.
       `SCENE — this is the whole photograph, do not substitute: ${scene}. ${variation}
-${productLine}
+${productLine}${guestLine}
 
 WHO — extract ONLY identity from the description below (face, hair, skin, build, features). IGNORE any location, background, environment, time of day, or lighting mentioned here — those describe how the reference portrait was originally shot and DO NOT belong in this photo. The SCENE above is the entire environment:
 ${influencer.appearance_prompt}
 
-${refDescription} — preserve their face, hair, skin tone, and identity precisely.
+${refDescription} — preserve their face, hair, skin tone, and identity precisely.${guestDetails.length ? ` The co-star identity reference${guestDetails.length > 1 ? 's are' : ' is'} the next ${guestDetails.length} attached image${guestDetails.length > 1 ? 's' : ''} — match each co-star's face to their reference exactly, all faces fully visible.` : ''}
 
 CANDID, NOT POSED — the person is genuinely DOING the scene's activity — hands physically engaged with real objects, eyes on their task, walking / mid-motion. NO standing square to camera, NO posed smile at the lens, NO model energy. Only make eye contact with the camera if the scene text explicitly asks for it.
 
@@ -186,7 +223,7 @@ The output is the photograph itself, full-bleed. Absolutely NO camera interface 
           ratio,
           model,
           resolution: quality === '4k' ? '4K' : undefined,
-          referenceImages: [...effIdentityRefs, ...effProductRefs, ...sceneRefs],
+          referenceImages: [...effIdentityRefs, ...guestRefs, ...effProductRefs, ...sceneRefs],
           referenceHint: (effProductRefs.length || sceneRefs.length)
             ? `The FIRST ${effIdentityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; whatever top / shirt / jacket they wear in those reference photos is IRRELEVANT and must NOT appear in the output.${effProductRefs.length ? ` The next ${effProductRefs.length} image(s) show the EXACT product${wearable ? ` — the person is WEARING this exact garment as their outfit's top layer in the output, with print, label text and colours reproduced exactly; do NOT layer any other jacket/hoodie/coat over it and do NOT substitute a different top` : ' — preserve its packaging/print, label text, colours, shape and proportions perfectly'}; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
             : 'The attached reference images define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. Apply the prompt as scene + framing around them.',

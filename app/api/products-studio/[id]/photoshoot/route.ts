@@ -84,6 +84,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       body?.ratio === '1:1' || body?.ratio === '9:16' || body?.ratio === '16:9' ? body.ratio : '4:5'
     const quality: 'nb2' | 'pro' | '4k' = body?.quality === 'nb2' ? 'nb2' : body?.quality === '4k' ? '4k' : 'pro'
     const influencerId = typeof body?.influencerId === 'string' && body.influencerId.length > 0 ? body.influencerId : null
+    // Multi-influencer + multi-product co-features. Both arrays deduped and
+    // capped so a rogue client can't blow up the reference-image budget.
+    const influencerIdsRaw: unknown = body?.influencerIds
+    const influencerIds: string[] = Array.isArray(influencerIdsRaw)
+      ? [...new Set(influencerIdsRaw.filter((v): v is string => typeof v === 'string' && v.length > 0))].slice(0, 4)
+      : (influencerId ? [influencerId] : [])
+    const coProductIdsRaw: unknown = body?.coProductIds
+    const coProductIds: string[] = Array.isArray(coProductIdsRaw)
+      ? [...new Set(coProductIdsRaw.filter((v): v is string => typeof v === 'string' && v.length > 0))].slice(0, 3)
+      : []
     // Mode picks which concept system + rendering prompt runs:
     //  'aesthetic' = editorial lifestyle product photos (default).
     //  'ad' = bold typographic promo graphics (Listicle / Social Proof / Feature Callout).
@@ -106,23 +116,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .maybeSingle()
     if (!product) return NextResponse.json({ error: 'Product not found' }, { status: 404 })
 
-    // Optional: one of the user's AI influencers features in the shots —
-    // wearing / holding / using the product, candid.
+    // Optional: one or more of the user's AI influencers feature in the shots —
+    // wearing / holding / using the product, candid. `influencer` (singular)
+    // still exists for legacy prompt paths that expect one appearance_prompt;
+    // `influencers` is the full array we render.
     let influencer: { name: string; appearance_prompt: string; portrait_url: string; character_sheet_url?: string | null } | null = null
+    let influencersDetail: Array<{ name: string; appearance_prompt: string; portrait_url: string; character_sheet_url?: string | null }> = []
     let identityRefs: Array<{ base64: string; mimeType: string }> = []
-    if (influencerId) {
-      const { data: inf } = await supabase
+    if (influencerIds.length) {
+      const { data: infs } = await supabase
         .from('user_influencers')
-        .select('name, appearance_prompt, portrait_url, character_sheet_url')
-        .eq('id', influencerId)
+        .select('id, name, appearance_prompt, portrait_url, character_sheet_url')
+        .in('id', influencerIds)
         .eq('user_id', userId)
-        .maybeSingle()
-      if (inf) {
-        influencer = inf
-        const refUrls = [inf.character_sheet_url, inf.portrait_url].filter(
-          (u): u is string => typeof u === 'string' && u.startsWith('http'),
-        )
-        identityRefs = (await Promise.all(refUrls.map(async url => {
+      // Preserve the client's selection order rather than DB row order.
+      const byId = new Map((infs ?? []).map(r => [String(r.id), r]))
+      influencersDetail = influencerIds
+        .map(id => byId.get(id))
+        .filter((x): x is NonNullable<typeof x> => !!x)
+        .map(r => ({ name: r.name, appearance_prompt: r.appearance_prompt, portrait_url: r.portrait_url, character_sheet_url: r.character_sheet_url }))
+      if (influencersDetail.length) {
+        influencer = influencersDetail[0]
+        // For each influencer we send BOTH the character sheet (multi-view
+        // reference) and the portrait so NB Pro has the strongest identity
+        // anchor. Cap total identity images at 6 so we don't overrun NB's
+        // reference budget when 3-4 influencers are selected.
+        const refUrls: string[] = []
+        for (const d of influencersDetail) {
+          if (typeof d.character_sheet_url === 'string' && d.character_sheet_url.startsWith('http')) refUrls.push(d.character_sheet_url)
+          if (typeof d.portrait_url === 'string' && d.portrait_url.startsWith('http')) refUrls.push(d.portrait_url)
+        }
+        identityRefs = (await Promise.all(refUrls.slice(0, 6).map(async url => {
           try {
             const r = await fetch(url)
             if (!r.ok) return null
@@ -152,6 +176,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .order('created_at', { ascending: false })
       .limit(10)
     const avoid = [...new Set((recent ?? []).map(r => String(r.concept)))].filter(Boolean)
+
+    // Load co-product metadata early — Sonnet's concept brief needs the names
+    // so it can invent shots that feature ALL products together. Reference
+    // images for NB Pro are loaded further down alongside the hero product.
+    let coProducts: Array<{ id: string; name: string; category?: string | null; photoUrl: string | null }> = []
+    if (coProductIds.length) {
+      const { data: cps } = await supabase
+        .from('user_studio_products')
+        .select('id, name, category, photo_urls')
+        .in('id', coProductIds)
+        .eq('user_id', userId)
+      const byId = new Map((cps ?? []).map(r => [String(r.id), r]))
+      coProducts = coProductIds
+        .map(pid => byId.get(pid))
+        .filter((x): x is { id: string; name: string; category: string | null; photo_urls: string[] } => !!x)
+        .map(cp => ({ id: cp.id, name: cp.name, category: cp.category, photoUrl: Array.isArray(cp.photo_urls) ? cp.photo_urls[0] ?? null : null }))
+        .filter(cp => cp.photoUrl)
+    }
 
     // 1) Concept generation.
     //    Style-reference short-circuit: when the user attached an ad they
@@ -183,9 +225,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       system: mode === 'ad' ? AD_CONCEPT_SYSTEM : CONCEPT_SYSTEM,
       messages: [{
         role: 'user',
-        content: `PRODUCT SHEET:\nName: ${product.name}\nCategory: ${product.category ?? 'unknown'}\nDescription: ${product.description ?? ''}\n\nSHOTS NEEDED: ${count}\nAVOID (already shot): ${avoid.length ? avoid.join(' · ') : '(nothing yet)'}\n${influencer ? (mode === 'ad'
-          ? `\nA RECURRING MODEL features in every ad: they appear clearly (face visible, not obscured, not headless) either holding/wearing/using the product, or as a portrait beside it. Do not describe their appearance — the image model receives their photos. In your concept prompts, tell the model exactly where the person sits in the composition relative to the headline copy and the product, and how their face is framed (three-quarter portrait, candid mid-motion, direct look to camera, side profile). Never crop the head off, never let the product cover the face.`
-          : `\nA RECURRING CREATOR features in every shot: they are candidly USING the product — wearing it if it's apparel/footwear, holding/pouring/applying otherwise. Mid-action, natural, NOT posing at the camera, doesn't have to be centered. Do not describe their appearance (the image model receives their photos).`
+        content: `PRODUCT SHEET:\nName: ${product.name}\nCategory: ${product.category ?? 'unknown'}\nDescription: ${product.description ?? ''}\n\nSHOTS NEEDED: ${count}\nAVOID (already shot): ${avoid.length ? avoid.join(' · ') : '(nothing yet)'}\n${coProducts.length ? `\nADDITIONAL PRODUCTS in the SAME shot (composed alongside the hero product, e.g. flat-lay of the range, held together, arranged as a set — treat them as the brand's related SKUs):\n${coProducts.map((cp, i) => `  ${i + 1}. ${cp.name}${cp.category ? ` (${cp.category})` : ''}`).join('\n')}\nEvery concept must feature ALL of these products together — never omit any. Do not describe their appearance; the image model receives their photos.` : ''}${influencersDetail.length ? (mode === 'ad'
+          ? `\n${influencersDetail.length === 1 ? 'A RECURRING MODEL features' : `${influencersDetail.length} MODELS feature TOGETHER`} in every ad: ${influencersDetail.length === 1 ? 'they appear' : 'they all appear together in the same frame'} clearly (${influencersDetail.length === 1 ? 'face' : 'every face'} visible, not obscured, not headless), holding/wearing/using the product${coProducts.length ? '(s)' : ''}, or posed together beside ${coProducts.length ? 'them' : 'it'}. ${influencersDetail.length > 1 ? 'They interact naturally with each other — a shared moment, a friend-group energy, a candid duo/trio, laughing, glancing at each other.' : ''} Do not describe their appearance — the image model receives their photos. Tell the model exactly where each person sits in the composition relative to the headline copy and the product, and how their faces are framed (three-quarter portrait, candid mid-motion, direct look to camera). Never crop a head off, never let the product cover a face.`
+          : `\n${influencersDetail.length === 1 ? 'A RECURRING CREATOR features' : `${influencersDetail.length} CREATORS feature TOGETHER`} in every shot: ${influencersDetail.length === 1 ? 'they are' : 'they are all'} candidly USING the product${coProducts.length ? '(s)' : ''} — wearing it if apparel/footwear, holding/pouring/applying otherwise. ${influencersDetail.length > 1 ? 'They share the moment naturally — cheers, mid-conversation, one handing off to the other, laughing together. It must feel like a real duo/trio, not two solo shots pasted together.' : 'Mid-action, natural, NOT posing at the camera, does not have to be centered.'} Do not describe their appearance (the image model receives their photos).`
         ) : ''}${direction ? `\nUSER DIRECTION — every concept must build on this while staying distinct from each other: "${direction}"` : ''}`,
       }],
     })
@@ -245,6 +287,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }))).filter((x): x is { base64: string; mimeType: string } => !!x)
     if (!productRefs.length) throw new Error('Could not load product reference photos')
 
+    // Co-product refs — one hero angle per additional product the user picked.
+    // Metadata already loaded above; here we just fetch the actual image bytes.
+    const coProductRefsRaw = await Promise.all(coProducts.map(async cp => {
+      if (!cp.photoUrl) return null
+      try {
+        const r = await fetch(cp.photoUrl)
+        if (!r.ok) return null
+        return {
+          base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
+          mimeType: r.headers.get('content-type') || 'image/png',
+        }
+      } catch { return null }
+    }))
+    const coProductsWithRefs = coProducts
+      .map((cp, i) => ({ ...cp, ref: coProductRefsRaw[i] }))
+      .filter((cp): cp is typeof cp & { ref: { base64: string; mimeType: string } } => !!cp.ref)
+    const coProductRefs: Array<{ base64: string; mimeType: string }> = coProductsWithRefs.map(cp => cp.ref)
+
     // 2) Render each concept — ad mode uses a punchy graphic-poster prompt.
     //    Nano Banana occasionally rejects a single shot with a transient
     //    safety-guess or rate-limit error while its siblings render fine.
@@ -257,8 +317,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
     const results = await Promise.allSettled(shots.map(sh => renderShot(() => {
-      const adPersonClause = influencer
-        ? `\n\n★ PERSON IN THE AD — non-negotiable ★ The FIRST reference image(s) define the exact model appearing in this ad. Their face must be fully visible and correctly rendered — three-quarter or direct-look framing, matching their real features from the reference. NEVER crop the head off, NEVER let the product, headline text, or any element cover the face, NEVER render a headless torso. The person and the product co-exist in the composition (they hold, wear or stand beside it) alongside the typography.`
+      const adPersonClause = influencersDetail.length
+        ? `\n\n★ ${influencersDetail.length === 1 ? 'PERSON' : `${influencersDetail.length} PEOPLE`} IN THE AD — non-negotiable ★ The FIRST reference images define the exact model${influencersDetail.length > 1 ? 's' : ''} appearing in this ad. ${influencersDetail.length === 1 ? 'Their face must be fully visible' : 'All faces must be fully visible'} and correctly rendered — matching real features from the references. NEVER crop a head off, NEVER let the product${coProducts.length ? '(s)' : ''}, headline text, or any element cover a face, NEVER render a headless torso.${influencersDetail.length > 1 ? ' The people interact naturally with each other and share the frame — a real duo/trio moment, not two solo shots pasted together.' : ''} The ${influencersDetail.length > 1 ? 'people' : 'person'} and the product${coProducts.length ? '(s)' : ''} co-exist in the composition (they hold, wear or stand beside them) alongside the typography.`
+        : ''
+      const coProductClause = coProductsWithRefs.length
+        ? `\n\n★ MULTIPLE PRODUCTS IN THE SAME SHOT — non-negotiable ★ The reference images include ${coProductsWithRefs.length + 1} distinct products that must ALL appear together in the composition: the hero (${product.name}${product.category ? `, ${product.category}` : ''}) plus ${coProductsWithRefs.map(cp => `${cp.name}${cp.category ? ` (${cp.category})` : ''}`).join(' + ')}. Compose them as a related set — flat-lay of the range, held together, arranged alongside each other on the same surface, or featured in the same person's hands / grip / lap. Preserve every product's exact packaging, label text, colours, shape and proportions. Never merge them into one product. Never omit any.`
         : ''
       const adPrompt = `${sh.prompt}\n\nCampaign-grade brand advertisement in the style of the world's best agencies — Wieden+Kennedy, Mother, Droga5 — for brands like Nike, Aime Leon Dore, Jacquemus, Loewe, Fenty, Liquid Death, Poppi, Coca-Cola. This is EDITORIAL AD ENERGY, not e-commerce social tile. Follow the archetype called out in the concept (cinematic hero, magazine cover, splash/ingredient explosion, cropped-body graphic, surreal metaphor, or logo campaign).\n\nCOMPOSITION: dynamic, confident, off-centre. Low hero angle looking up, extreme wide with intentional negative space, dutch tilt, diagonal energy, subject cropped by the frame edge. Motion blur on limbs/hair/fabric/liquid/ingredients while the product itself stays razor sharp. Real environment texture — asphalt grain, wet street reflections, sunlit dust, sky at magic hour, painted-concrete gel wash, salt-flat noon. NOT a flat coloured photoshop background unless the concept is a pure graphic poster.\n\nTYPOGRAPHY as art-direction: real modern typeface (ultra-bold condensed sans, high-contrast serif, refined italic, hand-scrawled) sized like a real campaign headline. The type INTEGRATES with the scene — wraps around a body, gets cropped by a shoulder, sits BEHIND the human so a foot or hand overlaps the letterform, scales huge behind a small figure, breaks a magazine masthead like the model is on a Vogue cover. NEVER a headline floating dead-centre over a plain cutout. Copy is CAMPAIGN voice (2–5 words, poetic, confident) — NOT retail voice ("20% OFF"). Skip star bars and SHOP NOW pills unless the concept is explicitly a Deal Poster.\n\nHUMAN PRESENCE: bodies mid-motion, cropped body parts (hands gripping / lips near / wet forearms / feet mid-stride), silhouettes, out-of-focus figures in the deep background. When a full body isn't a fit for the product (drinks, skincare, food) then use LIVING MOTION instead — ingredients frozen mid-air, liquid splash, condensation drops, pour arcs, steam, ice, powder puffs — anything that reads as kinetic energy rather than a static float.\n\nPRODUCT: integrated into the pose or the elemental motion — held, gripped, poured, launched, cradled, worn — NOT a detached cutout pasted onto flat colour. Preserve packaging, labels, logos and colours exactly.\n\nRender the typography TACK-SHARP with correct spelling and real kerning; no gibberish, no lorem ipsum, no ghost letters. Editorial print-ad quality, not Instagram DTC tile quality.${adPersonClause}`
       const aestheticPromptWithInf = `${influencer?.appearance_prompt}\n\nShot: ${sh.prompt}\n\nCinematic editorial campaign photograph in the style of Vogue / Kinfolk / Aesop / Jacquemus. The person is candidly mid-action with the product — natural imperfect skin (real pores, no plastic AI-smooth face, no over-symmetry), relaxed anatomically-correct hands, unposed body language, doesn't have to be centered. Real light with real directional shadows, hyper-real materials and textures (skin, fabric, glass, liquid, stone), rich intentional colour palette per shot. The product keeps its exact natural undistorted shape and every label/logo stays legible. No text overlays, no watermarks, no camera UI, no lens flare artefacts, no floating debris unless the concept called for it.`
@@ -269,34 +332,53 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const styleRefPrompt = styleReference
         ? `${sh.prompt}\n\nSTYLE REFERENCE MODE — the FIRST attached image is the target ad the user wants to recreate. Match its composition, layout, camera angle, palette, lighting mood, typography style, and overall vibe as closely as possible. Then REPLACE whatever product appears in the reference with OUR product (shown in the subsequent reference images) — same pose, same position in the frame, same scale relationship to any people or typography. Preserve OUR product's packaging, label text, colours, shape and proportions exactly. Any typography in the recreated ad should feel like a natural counterpart to what the reference shows — same weight, same case, same energy — but the copy can be new and appropriate for our product. Do not include any text overlays, watermarks, or logos that aren't in the spirit of the reference.`
         : null
-      const finalPrompt = styleRefPrompt
+      const finalPrompt = (styleRefPrompt
         ? styleRefPrompt
         : (mode === 'ad'
           ? adPrompt
-          : (influencer ? aestheticPromptWithInf : aestheticPrompt))
-      // Reference image order for NB Pro. When a style ref exists it goes
-      // FIRST so it anchors the composition, then identity, then product.
-      const refs = styleReference
-        ? [styleReference, ...(influencer ? identityRefs : []), ...productRefs]
-        : (mode === 'ad'
-            ? (influencer ? [...identityRefs, ...productRefs] : productRefs)
-            : (influencer ? [...identityRefs, ...productRefs] : productRefs))
-      const styleRefHint = styleReference
-        ? `Reference image order: (1) STYLE REFERENCE — copy its layout, palette, typography vibe and overall composition. ${influencer ? `(2..${identityRefs.length + 1}) PERSON — the model whose face must appear in the ad; render their face fully visible, never obscured. ` : ''}(${(influencer ? identityRefs.length + 2 : 2)}..) PRODUCT — the exact packaging/labels/colours/shape that must be preserved perfectly. The output should feel like the style reference but with our product swapped in.`
-        : null
+          : (influencer ? aestheticPromptWithInf : aestheticPrompt))) + coProductClause
+      // Reference image order for NB Pro:
+      //   1. Style reference (if provided, anchors composition)
+      //   2. Identity refs for each influencer
+      //   3. Hero product refs
+      //   4. Co-product refs (one hero angle per additional product)
+      const refs = [
+        ...(styleReference ? [styleReference] : []),
+        ...(influencersDetail.length ? identityRefs : []),
+        ...productRefs,
+        ...coProductRefs,
+      ]
+      // Build a precise reference hint with the actual image indices so NB Pro
+      // knows exactly which image is which — becomes especially important
+      // when several products or people are stacked in the refs list.
+      let idx = 0
+      const hintParts: string[] = []
+      if (styleReference) { idx++; hintParts.push(`Image 1: STYLE REFERENCE — copy its layout, palette, camera angle, typography vibe.`) }
+      if (influencersDetail.length) {
+        const start = idx + 1
+        const end = idx + identityRefs.length
+        hintParts.push(`Image${identityRefs.length > 1 ? 's' : ''} ${start}${end > start ? `–${end}` : ''}: ${influencersDetail.length === 1 ? 'PERSON' : `${influencersDetail.length} PEOPLE`} — the model${influencersDetail.length > 1 ? 's who all appear together in the same frame' : ' who appears in the ad'}. Render ${influencersDetail.length > 1 ? 'every face' : 'their face'} fully visible, matching the reference${influencersDetail.length > 1 ? 's' : ''}; never crop a head or let the product cover a face.`)
+        idx = end
+      }
+      const productStart = idx + 1
+      const productEnd = idx + productRefs.length
+      hintParts.push(`Image${productRefs.length > 1 ? 's' : ''} ${productStart}${productEnd > productStart ? `–${productEnd}` : ''}: HERO PRODUCT (${product.name}) — preserve packaging, label text, colours and shape exactly across all angles.`)
+      idx = productEnd
+      if (coProductsWithRefs.length) {
+        for (const cp of coProductsWithRefs) {
+          idx += 1
+          hintParts.push(`Image ${idx}: CO-PRODUCT ${cp.name} — also appears in the same shot alongside the hero product; preserve its packaging exactly.`)
+        }
+        hintParts.push(`ALL ${coProductsWithRefs.length + 1} products must appear together in the composition — as a flat-lay set, held together, or arranged side by side. Do not merge or omit any.`)
+      }
+      const referenceHint = hintParts.join(' ')
       return generateNanoBananaImage(finalPrompt, {
-        style: mode === 'ad' && !influencer ? 'professional' : (influencer ? 'realistic' : 'professional'),
+        style: mode === 'ad' && !influencersDetail.length ? 'professional' : (influencersDetail.length ? 'realistic' : 'professional'),
         ratio,
         model,
         resolution: quality === '4k' ? '4K' : undefined,
         referenceImages: refs,
-        referenceHint: styleRefHint ?? (mode === 'ad'
-          ? (influencer
-            ? `The FIRST reference image(s) define the exact person appearing in the ad — face, hair, skin tone, build. Render their FACE FULLY VISIBLE and matching the reference; never crop the head, never let the product or typography cover the face. The LAST image(s) show the EXACT product — preserve packaging, labels, colours and proportions perfectly; never redesign it. Compose person + product + typography into a scroll-stopping campaign ad.`
-            : 'The attached reference photos show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly. Use it as a clean cut-out inside a bold graphic poster; the typography and coloured background are the composition. Never redesign the product.')
-          : (influencer
-            ? `The FIRST reference image(s) define the exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt${(product.category === 'apparel' || product.category === 'footwear') ? ' (they WEAR the product)' : ''}. The LAST image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it.`
-            : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape, materials and proportions perfectly. Apply the prompt as the scene, arrangement, and styling around it; never redesign the product.')),
+        referenceHint,
       })
     })))
 

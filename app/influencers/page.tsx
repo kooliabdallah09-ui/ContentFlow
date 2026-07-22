@@ -132,6 +132,8 @@ export default function InfluencersPage() {
   const [sheetLoading, setSheetLoading] = useState(false)
   const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; photo_urls: string[] }>>([])
   const [shootProductId, setShootProductId] = useState<string | undefined>(undefined)
+  // Additional influencers to co-star with the currently-selected one in the same shot.
+  const [guestInfluencerIds, setGuestInfluencerIds] = useState<string[]>([])
   // In-app lightbox for viewing photos (no more raw-URL tabs).
   const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
   const [lightboxZoom, setLightboxZoom] = useState(false)
@@ -269,6 +271,7 @@ export default function InfluencersPage() {
           ratio,
           quality: shootModel,
           studioProductId: shootProductId,
+          guestInfluencerIds,
           sceneImages: sceneImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
       })
@@ -427,6 +430,34 @@ export default function InfluencersPage() {
                   </button>
                 )
               })}
+            </div>
+          )}
+          {/* Guest influencers — feature other saved influencers in the same shot. */}
+          {selected && list.filter(i => i.id !== selected.id).length > 0 && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>+ Guest</span>
+              {list.filter(i => i.id !== selected.id).map(g => {
+                const active = guestInfluencerIds.includes(g.id)
+                return (
+                  <button
+                    key={g.id}
+                    onClick={() => setGuestInfluencerIds(prev => prev.includes(g.id) ? prev.filter(id => id !== g.id) : [...prev, g.id])}
+                    title={`${g.name}${active ? ' (selected — click to remove)' : ' — click to co-star them in the shot'}`}
+                    style={{ width: 40, height: 52, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', flexShrink: 0, position: 'relative' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={g.portrait_url} alt={g.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    {active && (
+                      <span style={{ position: 'absolute', top: 2, right: 2, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 9, fontWeight: 700, width: 14, height: 14, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {guestInfluencerIds.indexOf(g.id) + 1}
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+              {guestInfluencerIds.length > 0 && (
+                <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginLeft: 4 }}>+{guestInfluencerIds.length} co-star{guestInfluencerIds.length > 1 ? 's' : ''}</span>
+              )}
             </div>
           )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
