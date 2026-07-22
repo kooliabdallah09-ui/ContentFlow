@@ -29,10 +29,10 @@ export const INFLUENCER_CANDIDATES_NB2_CR = 20
 // candidates instead of four identical direct-look portraits. Each is a
 // short additive clause tacked onto the Sonnet-generated appearance prompt.
 export const CANDIDATE_VIBES = [
-  { key: 'warm', cue: 'Expression: warm confident smile, direct eye contact with the camera, arms relaxed. Feels approachable and grounded.' },
-  { key: 'laughing', cue: 'Expression: caught mid-laugh, eyes crinkled, looking slightly off-camera as if reacting to a friend just out of frame. Feels candid, spontaneous, alive.' },
-  { key: 'pensive', cue: 'Expression: soft neutral pensive look, three-quarter turn away from camera, eyes gentle and thoughtful. Feels magazine-editorial and contemplative.' },
-  { key: 'playful', cue: 'Expression: playful smirk with a knowing look, one hand near the face or in the hair, head slightly tilted. Feels flirty and self-assured.' },
+  { key: 'warm', cue: 'Expression: warm slight smile, direct eye contact. Real individual face with distinctive features and slight asymmetries — NOT the generic plastic AI-influencer look. Real skin texture (faint pores, subtle unevenness).' },
+  { key: 'laughing', cue: 'Expression: caught mid-laugh, eyes crinkled at the corners, looking slightly off-camera as if reacting to someone just out of frame. Individual face with real character — teeth not perfectly straight, laugh lines showing. NOT the plastic AI-model laugh; a real spontaneous moment.' },
+  { key: 'pensive', cue: 'Expression: soft neutral pensive look, three-quarter turn away from camera, eyes soft and thoughtful, lips slightly parted. Distinctive features (specific nose shape, individual eye shape). NOT a blank generic beauty face.' },
+  { key: 'playful', cue: 'Expression: playful smirk with a knowing raised eyebrow, one hand near the face or in the hair, head slightly tilted. Real character in the face — asymmetric smile, individual quirks. NOT the generic AI-influencer glass-doll pose.' },
 ] as const
 
 function supa() {
@@ -86,7 +86,7 @@ appearance_prompt rules:
 - Adult in their early-to-mid 20s, attractive and photogenic — but a REAL-person kind of attractive, not a retouched model
 - Describe: gender presentation, ethnicity, hair (color/length/texture), eye color, distinctive features (freckles, dimples, glasses…), build, one signature style element
 - Head-and-shoulders portrait, looking directly at the camera lens, natural expression with warmth
-- Hyper-realistic candid snapshot with the look of a casual smartphone photo: bright even natural window light, deep focus (no bokeh, no shallow depth of field), true-to-life colours, healthy clear skin with a subtle natural sheen (magazine-worthy, not photoshopped-plastic), no visible acne / blemishes / rough patches, no beauty-filter over-smoothing either — the goal is genuinely attractive people who happen to look real, not "flawed for realism's sake"\n- The appearance_prompt MUST call the person out as GENUINELY ATTRACTIVE — good bone structure, clear healthy skin, symmetrical features, well-groomed. They should read as a real-person model who has their life together — think top-tier UGC creators / lifestyle influencers, not "average person on the street" and not "AI-doll perfect" either.
+- Hyper-realistic candid snapshot with the look of a casual smartphone photo: bright even natural window light, deep focus (no bokeh, no shallow depth of field), true-to-life colours, healthy skin without acne / active blemishes / rough patches. NOT beauty-filter over-smoothed either — real skin still has faint pores, tiny freckles, slight redness at the nose or cheeks, individual character. The goal is a REAL attractive person, not the generic AI-influencer face (plastic-glossy skin, dead-symmetrical features, over-styled hair, taffy-smooth complexion).\n- The appearance_prompt MUST make the person feel SPECIFIC AND INDIVIDUAL — describe distinctive features (a slightly crooked nose, one raised eyebrow, a small mole above the lip, sharp cheekbones, a wide-set gaze, a soft jaw). Real beauty carries asymmetry and personality. AVOID: dead-symmetrical faces, glass-doll skin, generic Instagram-model beauty, over-groomed hair, blank pretty faces without character. AIM FOR: a real attractive human who could actually exist — think a real friend who's genuinely good-looking, not a stock-photo influencer.
 - The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot' — they cause camera-app UI to render into the image
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'

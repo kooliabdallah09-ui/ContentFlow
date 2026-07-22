@@ -306,7 +306,7 @@ async function callNanoBanana(
 // Used by the standalone /generate/video page when the user doesn't upload a ref.
 // Output is a 9:16-friendly hyper-realistic still that Sora will animate forward.
 export async function generateTextToImage(prompt: string): Promise<NanoBananaResult> {
-  const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting, GENUINELY ATTRACTIVE person with clear healthy skin (magazine-worthy, no visible acne or blemishes), natural sheen not plastic-smooth, no beauty-filter over-processing. Should read as a candid moment captured on a real phone.`
+  const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting. Real attractive person — clear skin (no active acne, blemishes, or rough patches) but still with real texture (faint pores, tiny freckles, slight unevenness), individual features, subtle asymmetries. AVOID the generic AI-influencer look (plastic-glossy skin, dead-symmetrical face, over-groomed, cookie-cutter beauty). Should read as a candid moment captured on a real phone of a real attractive person, not a stock-model render.`
   return callNanoBanana(wrapped, undefined, '9:16')
 }
 
@@ -393,7 +393,7 @@ CAMERA: phone-camera close-up — hands, body parts (neck, jawline, wrist, lips,
 LIGHTING: single soft natural source, real shadow, no studio look, no rim light.
 
 REALISM ANCHORS:
-- Skin: clear healthy skin with a natural sheen, not plastic-smooth but NOT blemished either — genuinely attractive, magazine-worthy
+- Skin: no active acne / open blemishes / rough patches, but STILL has real texture — faint pores, tiny freckles, subtle unevenness, slight redness at the nose or cheeks. NOT glass-doll plastic. Individual face, not generic AI-influencer template.
 - Motion blur: subtle on the moving parts (hand, liquid, fabric) — proves it's a frozen second from a video
 - Product still locked to the reference image: same packaging, same label text, same colour
 
@@ -551,7 +551,7 @@ CAMERA: handheld selfie, slight tilt (2°), iPhone front camera framing — face
 EXPRESSION: caught mid-moment — not a finished pose. Mid-smile starting, eyes alive and focused on the camera, mouth just parting to speak. Specific micro-expression, never a polished portrait smile.
 
 REALISM ANCHORS — these must all be present:
-- Skin: clear healthy skin, well-rested, natural sheen (not plastic AI-doll perfect but not blemished either) — genuinely attractive person. Preserve ONLY features explicitly requested in the character description (e.g. freckles if asked for); do NOT invent acne, spots, or rough patches.
+- Skin: no active acne / open blemishes / rough patches, but STILL has real texture — faint pores, tiny freckles, subtle unevenness, natural micro-redness. Individual face with distinctive features and slight asymmetries, NOT the generic plastic AI-influencer template.
 - Eyes: asymmetric catchlight, warm iris detail, lid weight natural, slight asymmetry between left and right
 - Hair: flyaways, slight frizz, irregular part, baby hairs visible
 - Lighting: single soft natural source (window or overhead), not studio
@@ -606,7 +606,7 @@ FRAMING: handheld selfie framing, face to mid-chest visible, slightly off-centre
 EXPRESSION: caught mid-sentence — eyebrow slightly raised, eyes alive and looking directly at camera, mouth just opening to speak. Confident, knowing expression like sharing a shortcut.
 
 REALISM:
-- Skin: clear healthy skin with a natural sheen, genuinely attractive — magazine-worthy, no visible acne or blemishes, but not AI-plastic either
+- Skin: no active acne / blemishes / rough patches, but still has REAL texture (faint pores, tiny freckles, subtle unevenness) — NOT plastic-smooth AI-influencer skin. Individual features, slight asymmetries. Real attractive person, not a stock-photo template.
 - Hair: flyaways, slight frizz
 - Lighting: the screen's glow adds a soft blue/white fill light on the character from behind/above — this is realistic for someone standing in front of a lit screen
 - Background: the large screen behind them, soft depth-of-field so edges blur naturally
