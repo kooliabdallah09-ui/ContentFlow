@@ -116,13 +116,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: `Insufficient credits. Need ${totalCost}.` }, { status: 402 })
     }
 
-    // Identity references: the multi-angle character sheet (when present)
-    // is the primary anchor — it shows the face and body from every angle,
-    // which keeps Nano Banana far more accurate than a single portrait.
-    // The portrait rides along as a face close-up.
-    const refUrls = [influencer.character_sheet_url, influencer.portrait_url].filter(
-      (u): u is string => typeof u === 'string' && u.startsWith('http'),
-    )
+    // Identity references — order by identity fidelity strength:
+    //   1. User's ORIGINAL uploaded photos (up to 3) — the ground truth. NB
+    //      Pro treats the first image as the strongest anchor, so putting
+    //      real photos here prevents cumulative AI drift over time.
+    //   2. Multi-angle character sheet — the AI turnaround, useful for
+    //      body/wardrobe consistency even if faces have drifted slightly.
+    //   3. Portrait — face close-up backup.
+    const originalRefs: string[] = Array.isArray(influencer.reference_urls)
+      ? (influencer.reference_urls as string[]).filter(u => typeof u === 'string' && u.startsWith('http')).slice(0, 3)
+      : []
+    const refUrls = [
+      ...originalRefs,
+      influencer.character_sheet_url,
+      influencer.portrait_url,
+    ].filter((u): u is string => typeof u === 'string' && u.startsWith('http'))
     const identityRefs = (await Promise.all(refUrls.map(async url => {
       try {
         const r = await fetch(url)

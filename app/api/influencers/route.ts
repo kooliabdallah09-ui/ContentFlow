@@ -214,7 +214,23 @@ export async function POST(request: NextRequest) {
     if (upErr) throw new Error(`Portrait upload failed: ${upErr.message}`)
     const portraitUrl = supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl
 
-    // 4) Persist.
+    // 4) Persist the original user reference photos to storage so future
+    // photoshoots can anchor to them directly (prevents drift over time).
+    const referenceUrls: string[] = []
+    for (let i = 0; i < Math.min(referenceImages.length, 3); i++) {
+      const r = referenceImages[i]
+      const ext = r.mimeType.includes('png') ? 'png' : r.mimeType.includes('webp') ? 'webp' : 'jpg'
+      const refPath = `influencers/${auth.userId}-${Date.now()}-ref-${i}.${ext}`
+      const { error: refErr } = await supabase.storage
+        .from('ugc-assets')
+        .upload(refPath, Buffer.from(r.base64, 'base64'), { contentType: r.mimeType, upsert: false })
+      if (refErr) {
+        console.warn('[influencers] reference upload failed, skipping:', refErr.message)
+        continue
+      }
+      referenceUrls.push(supabase.storage.from('ugc-assets').getPublicUrl(refPath).data.publicUrl)
+    }
+
     const { data: influencer, error: insErr } = await supabase
       .from('user_influencers')
       .insert({
@@ -226,6 +242,7 @@ export async function POST(request: NextRequest) {
         niche: typeof sheet.niche === 'string' ? sheet.niche.slice(0, 120) : null,
         appearance_prompt: String(sheet.appearance_prompt).slice(0, 2000),
         portrait_url: portraitUrl,
+        reference_urls: referenceUrls.length ? referenceUrls : null,
       })
       .select('*')
       .single()
@@ -242,6 +259,10 @@ export async function POST(request: NextRequest) {
         appearancePrompt: influencer.appearance_prompt,
         portraitUrl,
         model,
+        // Pass the user's ORIGINAL upload through so the sheet is anchored to
+        // their real photo, not just our rendered portrait. Otherwise every
+        // downstream photoshoot inherits the portrait's drift.
+        userReferenceImages: referenceImages.length ? referenceImages : undefined,
       })
       influencer.character_sheet_url = sheetUrl
     } catch (sheetErr) {

@@ -28,18 +28,26 @@ export async function generateCharacterSheet(input: {
   userId: string
   influencerId: string
   appearancePrompt: string
-  portraitUrl?: string          // identity anchor for the sheet itself
+  portraitUrl?: string          // just-rendered NB portrait — added as an anchor when no user refs exist
   model?: 'pro' | 'nb2'
+  // Original user-uploaded reference photos. When present these become the
+  // PRIMARY identity anchor for the sheet — the user's real photos, not the
+  // AI's interpretation of them. Prevents cumulative drift across future
+  // photoshoots.
+  userReferenceImages?: Array<{ base64: string; mimeType: string }>
 }): Promise<string> {
-  let refs: Array<{ base64: string; mimeType: string }> | undefined
+  const refs: Array<{ base64: string; mimeType: string }> = []
+  if (input.userReferenceImages?.length) {
+    refs.push(...input.userReferenceImages.slice(0, 3))
+  }
   if (input.portraitUrl) {
     try {
       const r = await fetch(input.portraitUrl)
       if (r.ok) {
-        refs = [{
+        refs.push({
           base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
           mimeType: r.headers.get('content-type') || 'image/png',
-        }]
+        })
       }
     } catch { /* sheet still works text-only */ }
   }
@@ -48,9 +56,11 @@ export async function generateCharacterSheet(input: {
     style: 'realistic',
     ratio: '16:9',
     model: input.model ?? 'pro',
-    referenceImages: refs,
-    referenceHint: refs
-      ? 'The person in the attached reference photo IS this character — every panel of the sheet must show THIS exact person: same face, hair, skin tone, and features.'
+    referenceImages: refs.length ? refs : undefined,
+    referenceHint: refs.length
+      ? (input.userReferenceImages?.length
+          ? `The FIRST ${Math.min(input.userReferenceImages.length, 3)} attached reference photo(s) ARE this character — the user's original photos. Every panel of the sheet must show THIS exact person: same face, hair, skin tone, distinctive features. Any additional images after are just AI-rendered portraits for framing hints — always defer to the user's original photos for identity.`
+          : 'The person in the attached reference photo IS this character — every panel of the sheet must show THIS exact person: same face, hair, skin tone, and features.')
       : undefined,
   })
 
