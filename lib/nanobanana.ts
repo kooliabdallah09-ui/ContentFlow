@@ -106,7 +106,7 @@ async function callNanoBananaVertex(
   if (resolution && model === 'pro') imageConfig.imageSize = resolution
 
   const body = {
-    contents: [{ parts }],
+    contents: [{ role: 'user', parts }],
     generationConfig: {
       responseModalities: ['IMAGE'],
       ...(Object.keys(imageConfig).length ? { imageConfig } : {}),
@@ -162,7 +162,7 @@ async function callNanoBananaGoogle(
   if (resolution && model === 'pro') imageConfig.imageSize = resolution
 
   const body = {
-    contents: [{ parts }],
+    contents: [{ role: 'user', parts }],
     generationConfig: {
       responseModalities: ['IMAGE'],
       ...(Object.keys(imageConfig).length ? { imageConfig } : {}),
