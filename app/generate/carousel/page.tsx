@@ -5,6 +5,7 @@ import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
 import { Loader2, Download, ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
+import { useImageDrop } from '@/hooks/useImageDrop'
 
 const PLATFORMS = [
   { id: 'instagram', label: 'Instagram' },
@@ -85,6 +86,11 @@ export default function CarouselGeneratorPage() {
     }
     reader.readAsDataURL(file)
   }
+  const referenceDrop = useImageDrop({
+    multiple: false,
+    onFiles: files => pickReference(files[0]),
+    disabled: loading,
+  })
 
   async function generate() {
     if (!canGenerate) return
@@ -366,10 +372,12 @@ export default function CarouselGeneratorPage() {
           ) : (
             <label style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              borderRadius: 12, border: '1.5px dashed var(--border-strong)', background: 'var(--bg-elev)',
-              cursor: loading ? 'not-allowed' : 'pointer', color: 'var(--ink-mute)', fontSize: 13,
+              borderRadius: 12, border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
+              background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
+              cursor: loading ? 'not-allowed' : 'pointer', color: referenceDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13,
               alignSelf: 'flex-start',
-            }}>
+              transition: 'background 120ms, border-color 120ms, color 120ms',
+            }} {...referenceDrop.dropzoneProps}>
               <ImageIcon size={16} />
               <span>Add product / reference image <span style={{ color: 'var(--ink-faint)', fontSize: 11.5, marginLeft: 4 }}>(optional)</span></span>
               <input type="file" accept="image/jpeg,image/png,image/webp"

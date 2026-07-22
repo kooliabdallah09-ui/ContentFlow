@@ -10,6 +10,7 @@ import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
 import { compressImageFile, type CompressedImage } from '@/lib/image-compress'
 import { Loader2, Trash2, Camera, Sparkles, ArrowLeft, ImagePlus, X } from 'lucide-react'
+import { useImageDrop } from '@/hooks/useImageDrop'
 
 interface StudioProduct {
   id: string
@@ -100,6 +101,29 @@ export default function ProductStudio() {
   // Optional style-reference upload — user drops in an ad they want to
   // riff on and NB Pro rebuilds it with THEIR product. Base64 for the API.
   const [styleRef, setStyleRef] = useState<CompressedImage | null>(null)
+
+  // Drag-and-drop targets. Style ref accepts one image, product-create accepts up to 5.
+  const styleRefDrop = useImageDrop({
+    multiple: false,
+    onFiles: async files => {
+      const f = files[0]
+      try {
+        const compressed = await compressImageFile(f, 1600, 0.9)
+        setStyleRef(compressed)
+      } catch { showError('Image failed', `Could not read ${f.name}`) }
+    },
+  })
+  const productPhotosDrop = useImageDrop({
+    onFiles: async files => {
+      for (const f of files.slice(0, 5 - createPhotos.length)) {
+        try {
+          const compressed = await compressImageFile(f, 1400, 0.85)
+          setCreatePhotos(prev => prev.length < 5 ? [...prev, compressed] : prev)
+        } catch { showError('Image failed', `Could not read ${f.name}`) }
+      }
+    },
+    disabled: createPhotos.length >= 5,
+  })
 
   const CR = { nb2: 5, pro: 10, '4k': 18 } as const
 
@@ -374,8 +398,9 @@ export default function ProductStudio() {
                 />
                 <button
                   onClick={() => document.getElementById('styleRefInput')?.click()}
-                  title="Attach a style reference — an existing ad or layout you want the AI to recreate with your product"
-                  style={{ width: 62, height: 62, borderRadius: 10, border: '1.5px dashed var(--border)', background: 'var(--surface-2)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, flexShrink: 0, fontSize: 10, lineHeight: 1.1 }}
+                  title="Attach a style reference — an existing ad or layout you want the AI to recreate with your product. Drag & drop an image here too."
+                  {...styleRefDrop.dropzoneProps}
+                  style={{ width: 62, height: 62, borderRadius: 10, border: `1.5px dashed ${styleRefDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: styleRefDrop.isDragging ? 'var(--hover)' : 'var(--surface-2)', color: styleRefDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, flexShrink: 0, fontSize: 10, lineHeight: 1.1, transition: 'background 120ms, border-color 120ms, color 120ms' }}
                 >
                   <ImagePlus size={16} />
                   <span>Style</span>
@@ -550,8 +575,9 @@ export default function ProductStudio() {
                 />
                 <button
                   onClick={() => document.getElementById('productAngleInput')?.click()}
-                  style={{ width: 74, height: 74, borderRadius: 10, border: '1.5px dashed var(--border)', background: 'var(--surface-2, var(--surface))', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  title="Add product photos — up to 5 angles"
+                  {...productPhotosDrop.dropzoneProps}
+                  style={{ width: 74, height: 74, borderRadius: 10, border: `1.5px dashed ${productPhotosDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: productPhotosDrop.isDragging ? 'var(--hover)' : 'var(--surface-2, var(--surface))', color: productPhotosDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                  title="Add product photos — up to 5 angles. Drag & drop images here too."
                 >
                   <ImagePlus size={20} />
                 </button>

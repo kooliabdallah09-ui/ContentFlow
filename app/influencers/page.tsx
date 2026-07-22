@@ -11,6 +11,7 @@ import { canAccessInfluencerStudio } from '@/lib/pov-access'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Loader2, Trash2, Camera, Clapperboard, Sparkles, ArrowLeft, ImagePlus, X } from 'lucide-react'
 import { compressImageFile, type CompressedImage } from '@/lib/image-compress'
+import { useImageDrop } from '@/hooks/useImageDrop'
 
 interface Influencer {
   id: string
@@ -99,6 +100,29 @@ export default function InfluencersPage() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [scene, setScene] = useState('')
   const [sceneImages, setSceneImages] = useState<CompressedImage[]>([])
+  // Drag & drop for the two upload zones on this page.
+  const refImagesDrop = useImageDrop({
+    onFiles: async files => {
+      for (const f of files.slice(0, 3 - refImages.length)) {
+        try {
+          const compressed = await compressImageFile(f, 1200, 0.85)
+          setRefImages(prev => prev.length < 3 ? [...prev, compressed] : prev)
+        } catch { showError('Image failed', `Could not read ${f.name}`) }
+      }
+    },
+    disabled: refImages.length >= 3,
+  })
+  const sceneImagesDrop = useImageDrop({
+    onFiles: async files => {
+      for (const f of files.slice(0, 2 - sceneImages.length)) {
+        try {
+          const compressed = await compressImageFile(f, 1200, 0.85)
+          setSceneImages(prev => prev.length < 2 ? [...prev, compressed] : prev)
+        } catch { showError('Image failed', `Could not read ${f.name}`) }
+      }
+    },
+    disabled: sceneImages.length >= 2,
+  })
   const [shotCount, setShotCount] = useState(2)
   const [ratio, setRatio] = useState<'9:16' | '4:5' | '1:1' | '16:9'>('4:5')
   const [shootModel, setShootModel] = useState<'pro' | 'nb2' | '4k'>('pro')
@@ -441,8 +465,9 @@ export default function InfluencersPage() {
                     }}
                   />
                   <button onClick={() => document.getElementById('sceneRefInput')?.click()}
-                    title="Attach an outfit, product, or location photo to include in the shots"
-                    style={{ width: 44, height: 44, borderRadius: 9, border: '1.5px dashed var(--border)', background: 'var(--surface-2, var(--surface))', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    title="Attach an outfit, product, or location photo to include in the shots — drag & drop works too"
+                    {...sceneImagesDrop.dropzoneProps}
+                    style={{ width: 44, height: 44, borderRadius: 9, border: `1.5px dashed ${sceneImagesDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: sceneImagesDrop.isDragging ? 'var(--hover)' : 'var(--surface-2, var(--surface))', color: sceneImagesDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 120ms, border-color 120ms, color 120ms' }}>
                     <ImagePlus size={16} />
                   </button>
                 </>
@@ -758,8 +783,9 @@ export default function InfluencersPage() {
               />
               <button
                 onClick={() => document.getElementById('influencerRefInput')?.click()}
-                style={{ width: 56, height: 56, borderRadius: 10, border: '1.5px dashed var(--border)', background: 'var(--surface-2)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                title="Add reference photos (up to 3) — the influencer's face and look will be based on them"
+                {...refImagesDrop.dropzoneProps}
+                style={{ width: 56, height: 56, borderRadius: 10, border: `1.5px dashed ${refImagesDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: refImagesDrop.isDragging ? 'var(--hover)' : 'var(--surface-2)', color: refImagesDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                title="Add reference photos (up to 3) — drag & drop works too. The influencer's face and look will be based on them."
               >
                 <ImagePlus size={18} />
               </button>

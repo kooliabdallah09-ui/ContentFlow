@@ -20,6 +20,7 @@ import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { compressImageFile } from '@/lib/image-compress'
+import { useImageDrop } from '@/hooks/useImageDrop'
 import { ugcPackageCost, type UGCResolution } from '@/lib/ugc-pricing'
 
 interface HookVariant {
@@ -461,24 +462,42 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // request-body limit for the downstream generate calls. Shared helper
   // in @/lib/image-compress caps to 1600px long edge at JPEG q0.85, which
   // almost always lands under 600 KB.
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  // Shared handler so file-picker and drag-drop paths compress + set state the same way.
+  const acceptProductImage = async (file: File) => {
     try {
       const compressed = await compressImageFile(file)
       setProductImage(compressed)
     } catch (err) {
-      // Fallback to raw base64 if the browser can't decode the file.
-      console.warn('[UGC] product image compression failed, sending raw:', err)
+      console.warn('[UGCPackageBuilder] product image compress fallback:', err)
       const reader = new FileReader()
       reader.onload = () => {
         const dataUrl = reader.result as string
-        const [header, base64] = dataUrl.split(',')
-        const mimeType = header.match(/data:(.*);base64/)?.[1] ?? 'image/jpeg'
-        setProductImage({ base64, mimeType, preview: dataUrl })
+        const base64 = dataUrl.split(',')[1] ?? ''
+        setProductImage({ base64, mimeType: file.type, preview: dataUrl })
       }
       reader.readAsDataURL(file)
     }
+  }
+  const productDrop = useImageDrop({
+    multiple: false,
+    onFiles: files => acceptProductImage(files[0]),
+    disabled: isLoading,
+  })
+  const extraProductDrop = useImageDrop({
+    onFiles: async files => {
+      for (const f of files.slice(0, 2 - extraProductImages.length)) {
+        try {
+          const compressed = await compressImageFile(f)
+          setExtraProductImages(prev => prev.length < 2 ? [...prev, compressed] : prev)
+        } catch { showError('Image failed', `Could not read ${f.name}`) }
+      }
+    },
+    disabled: isLoading || extraProductImages.length >= 2,
+  })
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    await acceptProductImage(file)
   }
 
   const resetForm = () => {
@@ -1664,12 +1683,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(recommended)</span>
           </label>
           <p className="help">Our AI composites your real product into the video first frame. Skip it and we&apos;ll build a character-only ad.</p>
-          <label style={{
+          <label {...productDrop.dropzoneProps} style={{
             display: 'flex', alignItems: 'center', gap: '14px',
             padding: '12px 14px', borderRadius: 12,
-            border: '1.5px dashed var(--border-strong)', cursor: isLoading ? 'default' : 'pointer',
-            background: 'var(--bg-elev)',
-            transition: 'border-color 0.15s',
+            border: `1.5px dashed ${productDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
+            cursor: isLoading ? 'default' : 'pointer',
+            background: productDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
+            transition: 'border-color 0.15s, background 0.15s',
           }}>
             <input type="file" accept="image/jpeg,image/png,image/webp"
               onChange={handleImageChange} disabled={isLoading}
@@ -1739,8 +1759,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     type="button"
                     onClick={() => document.getElementById('extraProductInput')?.click()}
                     disabled={isLoading}
-                    style={{ width: 48, height: 48, borderRadius: 8, border: '1.5px dashed var(--border)', background: 'var(--surface)', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}
-                    title="Add another photo of the same product — e.g. the package AND what's inside"
+                    {...extraProductDrop.dropzoneProps}
+                    style={{ width: 48, height: 48, borderRadius: 8, border: `1.5px dashed ${extraProductDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: extraProductDrop.isDragging ? 'var(--hover)' : 'var(--surface)', color: extraProductDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', fontSize: 20, lineHeight: 1, transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                    title="Add another photo of the same product — drag & drop works too"
                   >+</button>
                 </>
               )}

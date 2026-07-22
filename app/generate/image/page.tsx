@@ -7,6 +7,7 @@ import { readPrefill } from '@/lib/calendar-prefill'
 import { readChatPrefill } from '@/lib/chat-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { Loader2, Download, Image as ImageIcon, X } from 'lucide-react'
+import { useImageDrop } from '@/hooks/useImageDrop'
 import { showError, showSuccess } from '@/lib/notifications'
 
 // Editorial image generator matching the Claude Design export.
@@ -96,6 +97,11 @@ export default function ImageGeneratorPage() {
     }
     reader.readAsDataURL(file)
   }
+  const referenceDrop = useImageDrop({
+    multiple: false,
+    onFiles: files => pickReference(files[0]),
+    disabled: loading,
+  })
 
   const totalCost = count * perImageCr(imgModel, imgResolution)
   const canGenerate = prompt.trim().length >= 5 && creditBalance >= totalCost
@@ -206,16 +212,18 @@ export default function ImageGeneratorPage() {
             </button>
           </div>
         ) : (
-          <label style={{
+          <label {...referenceDrop.dropzoneProps} style={{
             display: 'flex', alignItems: 'center', gap: 10,
             padding: '10px 14px', borderRadius: 12,
-            border: '1.5px dashed var(--border-strong)', background: 'var(--bg-elev)',
+            border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
+            background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
             cursor: loading ? 'not-allowed' : 'pointer',
-            color: 'var(--ink-mute)', fontSize: 13,
+            color: referenceDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13,
             alignSelf: 'flex-start',
+            transition: 'background 120ms, border-color 120ms, color 120ms',
           }}>
             <ImageIcon size={16} />
-            <span>Add a reference image <span style={{ color: 'var(--ink-faint)', fontSize: 11.5, marginLeft: 4 }}>(optional)</span></span>
+            <span>{referenceDrop.isDragging ? 'Drop to add reference' : <>Add a reference image <span style={{ color: 'var(--ink-faint)', fontSize: 11.5, marginLeft: 4 }}>(optional · drag & drop works)</span></>}</span>
             <input type="file" accept="image/jpeg,image/png,image/webp"
               onChange={e => pickReference(e.target.files?.[0] ?? null)}
               disabled={loading}

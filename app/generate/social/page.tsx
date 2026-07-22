@@ -8,6 +8,7 @@ import { useCredits } from '@/lib/useCredits'
 import { Loader2, Copy, Check, Download, ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Icon } from '@/components/Icons'
+import { useImageDrop } from '@/hooks/useImageDrop'
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
@@ -284,6 +285,11 @@ export default function SocialPage() {
   }
 
   // ── Carousel generate ──
+  const referenceDrop = useImageDrop({
+    multiple: false,
+    onFiles: files => pickReference(files[0]),
+    disabled: carLoading,
+  })
   function pickReference(file: File | null) {
     if (!file) { setReference(null); return }
     if (file.size > 5 * 1024 * 1024) { showError('Reference image must be under 5MB'); return }
@@ -949,7 +955,7 @@ export default function SocialPage() {
                 </button>
               </div>
             ) : (
-              <label style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, border: '1.5px dashed var(--border-strong)', background: 'var(--bg-elev)', cursor: carLoading ? 'not-allowed' : 'pointer', color: 'var(--ink-mute)', fontSize: 13, alignSelf: 'flex-start' }}>
+              <label {...referenceDrop.dropzoneProps} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`, background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)', cursor: carLoading ? 'not-allowed' : 'pointer', color: referenceDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13, alignSelf: 'flex-start', transition: 'background 120ms, border-color 120ms, color 120ms' }}>
                 <ImageIcon size={16} />
                 <span>Add product / reference image <span style={{ color: 'var(--ink-faint)', fontSize: 11.5, marginLeft: 4 }}>(optional)</span></span>
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => pickReference(e.target.files?.[0] ?? null)} disabled={carLoading} style={{ display: 'none' }} />

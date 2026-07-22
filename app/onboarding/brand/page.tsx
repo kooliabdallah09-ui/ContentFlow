@@ -7,6 +7,7 @@ import { showSuccess, showError } from '@/lib/notifications'
 import { DailySuggestion } from '@/lib/planner'
 import { FormatPreferences, FormatFrequency } from '@/lib/planConfig'
 import { recommendPlan } from '@/lib/plan-recommender'
+import { useImageDrop } from '@/hooks/useImageDrop'
 
 const FORMAT_OPTIONS: { id: keyof FormatPreferences; label: string; desc: string }[] = [
   { id: 'ugc',         label: 'UGC Video',     desc: 'AI talking-head brand videos' },
@@ -110,7 +111,7 @@ export default function OnboardingBrandPage() {
   const isSoftwareProduct = ['app', 'saas', 'software', 'platform', 'tool', 'website', 'web', 'mobile', 'extension', 'plugin']
     .some(kw => productType.toLowerCase().includes(kw))
 
-  const handleScreenshotAdd = (files: FileList) => {
+  const handleScreenshotAdd = (files: FileList | File[]) => {
     const newFiles = Array.from(files).slice(0, 8 - appScreenshots.length)
     newFiles.forEach(file => {
       const reader = new FileReader()
@@ -120,6 +121,14 @@ export default function OnboardingBrandPage() {
       reader.readAsDataURL(file)
     })
   }
+  const logoDrop = useImageDrop({
+    multiple: false,
+    onFiles: files => handleLogoChange(files[0]),
+  })
+  const screenshotDrop = useImageDrop({
+    onFiles: files => handleScreenshotAdd(files),
+    disabled: appScreenshots.length >= 8,
+  })
 
   // Step 2: Platforms, Format Preferences & Frequency
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
@@ -366,7 +375,8 @@ export default function OnboardingBrandPage() {
               <div>
                 <label style={labelStyle}>Brand Logo <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional)</span></label>
                 <div
-                  style={{ border: '2px dashed var(--border)', borderRadius: 'var(--r-md)', padding: '24px', textAlign: 'center', cursor: 'pointer', background: logoPreview ? 'var(--surface)' : 'transparent' }}
+                  {...logoDrop.dropzoneProps}
+                  style={{ border: `2px dashed ${logoDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', padding: '24px', textAlign: 'center', cursor: 'pointer', background: logoDrop.isDragging ? 'var(--hover)' : logoPreview ? 'var(--surface)' : 'transparent', transition: 'background 120ms, border-color 120ms' }}
                   onClick={() => document.getElementById('logoInput')?.click()}
                 >
                   <input id="logoInput" type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleLogoChange(e.target.files[0])} />
@@ -442,7 +452,8 @@ export default function OnboardingBrandPage() {
                       These help the AI suggest content that accurately shows your product.
                     </p>
                     <div
-                      style={{ border: '2px dashed var(--border)', borderRadius: 'var(--r-md)', padding: '20px', textAlign: 'center', cursor: 'pointer', background: 'transparent' }}
+                      {...screenshotDrop.dropzoneProps}
+                      style={{ border: `2px dashed ${screenshotDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', padding: '20px', textAlign: 'center', cursor: 'pointer', background: screenshotDrop.isDragging ? 'var(--hover)' : 'transparent', transition: 'background 120ms, border-color 120ms' }}
                       onClick={() => document.getElementById('screenshotInput')?.click()}
                     >
                       <input

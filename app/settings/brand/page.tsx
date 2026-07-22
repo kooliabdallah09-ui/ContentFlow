@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/lib/auth'
+import { useImageDrop } from '@/hooks/useImageDrop'
 
 export default function BrandSettingsPage() {
   const [loading, setLoading]     = useState(true)
@@ -87,6 +88,12 @@ export default function BrandSettingsPage() {
   function update<K extends keyof typeof form>(key: K, value: typeof form[K]) {
     setForm(prev => ({ ...prev, [key]: value }))
   }
+
+  const logoDrop = useImageDrop({
+    multiple: false,
+    onFiles: files => uploadLogo(files[0]),
+    disabled: uploading || saving,
+  })
 
   async function uploadLogo(file: File) {
     if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5MB'); return }
@@ -270,11 +277,13 @@ export default function BrandSettingsPage() {
           {/* Logo */}
           <div className="form-row">
             <label className="form-label">Brand logo <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional)</span></label>
-            <label style={{
+            <label {...logoDrop.dropzoneProps} style={{
               display: 'flex', alignItems: 'center', gap: 14,
               padding: '14px 16px', borderRadius: 11,
-              border: '1.5px dashed var(--border-strong)',
-              background: 'var(--bg-elev)', cursor: uploading ? 'wait' : 'pointer',
+              border: `1.5px dashed ${logoDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
+              background: logoDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
+              cursor: uploading ? 'wait' : 'pointer',
+              transition: 'background 120ms, border-color 120ms',
             }}>
               {form.logoUrl ? (
                 <img src={form.logoUrl} alt="logo" style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', flexShrink: 0 }} />
@@ -445,6 +454,12 @@ function AddProductButton({ onAdd, busy }: { onAdd: (file: File, name: string) =
   const [preview, setPreview]     = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  const pickDrop = useImageDrop({
+    multiple: false,
+    onFiles: files => pick(files[0]),
+    disabled: submitting,
+  })
+
   function pick(f: File | null) {
     setFile(f)
     if (f) {
@@ -487,11 +502,13 @@ function AddProductButton({ onAdd, busy }: { onAdd: (file: File, name: string) =
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, borderRadius: 12, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
       <input className="input" value={name} onChange={e => setName(e.target.value)}
         placeholder="Product name (e.g. Vintage Linen Tee)" disabled={submitting} />
-      <label style={{
+      <label {...pickDrop.dropzoneProps} style={{
         display: 'flex', alignItems: 'center', gap: 12,
         padding: '12px 14px', borderRadius: 10,
-        border: '1.5px dashed var(--border-strong)', background: 'var(--surface)',
+        border: `1.5px dashed ${pickDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
+        background: pickDrop.isDragging ? 'var(--hover)' : 'var(--surface)',
         cursor: submitting ? 'wait' : 'pointer',
+        transition: 'background 120ms, border-color 120ms',
       }}>
         {preview ? (
           <img src={preview} alt="preview" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
