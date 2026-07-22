@@ -2,7 +2,11 @@ import { createSign } from 'node:crypto'
 
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
 const GOOGLE_GENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
-const VERTEX_REGION = process.env.GOOGLE_VERTEX_REGION || 'us-central1'
+// Nano Banana Pro (gemini-3-pro-image, GA June 2026) is only served on
+// Vertex's global endpoint — no regional variant. Nano Banana 2 lives in
+// the standard regional endpoints, default us-central1.
+const VERTEX_REGION_PRO = process.env.GOOGLE_VERTEX_REGION_PRO || 'global'
+const VERTEX_REGION_NB2 = process.env.GOOGLE_VERTEX_REGION || 'us-central1'
 // Nano Banana Pro — the premium image model. Better identity preservation
 // + label fidelity than nano-banana-2. Used for hero frames + product
 // refinement + cutaway frames. Routed to Google direct when
@@ -10,7 +14,7 @@ const VERTEX_REGION = process.env.GOOGLE_VERTEX_REGION || 'us-central1'
 // otherwise falls back to Replicate.
 const NANO_BANANA_MODEL = 'google/nano-banana-pro'
 // Gemini API model IDs — override via env if Google renames them.
-const GOOGLE_PRO_MODEL = process.env.GOOGLE_NANO_BANANA_PRO_MODEL || 'gemini-3-pro-image-preview'
+const GOOGLE_PRO_MODEL = process.env.GOOGLE_NANO_BANANA_PRO_MODEL || 'gemini-3-pro-image'
 const GOOGLE_NB2_MODEL = process.env.GOOGLE_NANO_BANANA_MODEL || 'gemini-2.5-flash-image'
 
 interface NanoBananaResult {
@@ -114,7 +118,11 @@ async function callNanoBananaVertex(
   }
 
   const token = await getVertexAccessToken(sa)
-  const url = `https://${VERTEX_REGION}-aiplatform.googleapis.com/v1/projects/${sa.project_id}/locations/${VERTEX_REGION}/publishers/google/models/${modelId}:generateContent`
+  // Global endpoint drops the region prefix from the hostname; regional
+  // endpoints (us-central1 etc.) keep it. Nano Banana Pro is global-only.
+  const region = model === 'pro' ? VERTEX_REGION_PRO : VERTEX_REGION_NB2
+  const host = region === 'global' ? 'aiplatform.googleapis.com' : `${region}-aiplatform.googleapis.com`
+  const url = `https://${host}/v1/projects/${sa.project_id}/locations/${region}/publishers/google/models/${modelId}:generateContent`
   const res = await fetch(url, {
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
