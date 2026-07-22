@@ -406,7 +406,7 @@ export default function ProductStudio() {
               }}
             >✨ Ad graphic</button>
           </div>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <div className="ps-composer-row" style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             {/* Optional style reference — user's target ad; NB Pro copies its
                 composition/typography/palette but swaps in the user's product. */}
             {styleRef ? (
@@ -486,8 +486,8 @@ export default function ProductStudio() {
               Style reference attached — the AI will match its composition, typography and palette while swapping in <em>{selected?.name}</em>.
             </div>
           )}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: 6 }}>
+          <div className="ps-controls-row" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {(['1:1', '4:5', '9:16', '16:9'] as const).map(r => (
                 <button key={r} onClick={() => setRatio(r)} style={chip(ratio === r)}>{r}</button>
               ))}
@@ -497,8 +497,11 @@ export default function ProductStudio() {
                 <button key={n} onClick={() => setShotCount(n)} style={{ ...chip(shotCount === n), width: 32, justifyContent: 'center', padding: '7px 0' }}>{n}</button>
               ))}
             </div>
-            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <button onClick={() => setShootModel('nb2')} title="Cheaper — less accurate, can make mistakes" style={chip(shootModel === 'nb2')}>NB2 · 4 cr · less accurate</button>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button onClick={() => setShootModel('nb2')} title="Cheaper — less accurate, can make mistakes" style={chip(shootModel === 'nb2')}>
+                <span className="ps-quality-full">NB2 · 4 cr · less accurate</span>
+                <span className="ps-quality-short">NB2 · 4</span>
+              </button>
               <button onClick={() => setShootModel('pro')} title="Best fidelity" style={chip(shootModel === 'pro')}>NB Pro</button>
               {shootModel === 'pro' && (
                 <>

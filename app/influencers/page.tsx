@@ -472,7 +472,7 @@ export default function InfluencersPage() {
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
+          <div className="ps-composer-row" style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
             {/* Attach */}
             <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end' }}>
               {sceneImages.map((img, i) => (
@@ -536,7 +536,7 @@ export default function InfluencersPage() {
           </div>
 
           {/* Format + count row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 10, flexWrap: 'wrap' }}>
+          <div className="ps-controls-row" style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {RATIOS.map(r => {
                 const active = ratio === r.id

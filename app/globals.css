@@ -1400,3 +1400,47 @@ img, video, svg { max-width: 100%; }
 @media (max-width: 640px) {
   .ugc-summary-grid { grid-template-columns: 1fr !important; }
 }
+
+/* Long "less accurate" copy on the NB2 chip crashes into the layout at 320px.
+   Show a shorter label on phones. */
+.ps-quality-short { display: none; }
+@media (max-width: 640px) {
+  .ps-quality-full { display: none; }
+  .ps-quality-short { display: inline; }
+}
+
+/* Product/Influencer Studio composer — the primary textarea + shoot row.
+   On phones the flexbox row squeezes the textarea until words wrap
+   mid-character. Stack it vertically so each control gets full width. */
+@media (max-width: 640px) {
+  .ps-composer-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .ps-composer-row textarea {
+    width: 100% !important;
+  }
+  .ps-composer-row .btn-primary {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+  .ps-controls-row {
+    gap: 8px !important;
+  }
+  /* Push the credit-cost span onto its own line so it doesn't get orphaned. */
+  .ps-controls-row > span:last-child {
+    margin-left: 0 !important;
+    width: 100% !important;
+    text-align: right;
+  }
+}
+
+/* Sticky composer breathing room on phones — the sticky offset from the
+   bottom bumps content up above the on-screen browser UI. */
+@media (max-width: 640px) {
+  .studio-composer {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+}
