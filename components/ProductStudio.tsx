@@ -11,6 +11,7 @@ import { showError, showSuccess } from '@/lib/notifications'
 import { compressImageFile, type CompressedImage } from '@/lib/image-compress'
 import { Loader2, Trash2, Camera, Sparkles, ArrowLeft, ImagePlus, X } from 'lucide-react'
 import { useImageDrop } from '@/hooks/useImageDrop'
+import { ShootProgress, estimateShootSeconds } from '@/components/ShootProgress'
 
 interface StudioProduct {
   id: string
@@ -462,9 +463,23 @@ export default function ProductStudio() {
                 : "Optional direction: 'splashing into iced coffee', 'pastel pink set'… leave empty and the AI picks fresh concepts (never repeats a format)."}
               style={{ fontSize: 13.5, flex: 1, resize: 'none', margin: 0 }}
             />
-            <button onClick={photoshoot} disabled={shooting} className="btn btn-primary" style={{ padding: '13px 20px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-              {shooting ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />} Shoot
-            </button>
+            {shooting ? (
+              <ShootProgress
+                active
+                estimatedSeconds={estimateShootSeconds({
+                  count: shotCount,
+                  quality,
+                  hasStyleRef: !!styleRef,
+                  hasInfluencer: shootInfluencerIds.length > 0,
+                  coProductCount: shootCoProductIds.length,
+                })}
+                label={`Shooting ${shotCount > 1 ? `${shotCount} photos` : ''}`}
+              />
+            ) : (
+              <button onClick={photoshoot} className="btn btn-primary" style={{ padding: '13px 20px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+                <Camera size={15} /> Shoot
+              </button>
+            )}
           </div>
           {styleRef && (
             <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6 }}>

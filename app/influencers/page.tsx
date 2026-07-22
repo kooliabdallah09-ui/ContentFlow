@@ -12,6 +12,7 @@ import { showError, showSuccess } from '@/lib/notifications'
 import { Loader2, Trash2, Camera, Clapperboard, Sparkles, ArrowLeft, ImagePlus, X } from 'lucide-react'
 import { compressImageFile, type CompressedImage } from '@/lib/image-compress'
 import { useImageDrop } from '@/hooks/useImageDrop'
+import { ShootProgress, estimateShootSeconds } from '@/components/ShootProgress'
 
 interface Influencer {
   id: string
@@ -516,9 +517,22 @@ export default function InfluencersPage() {
             />
 
             {/* Shoot */}
-            <button onClick={photoshoot} disabled={shooting} className="btn btn-primary" style={{ padding: '13px 20px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
-              {shooting ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />} Shoot
-            </button>
+            {shooting ? (
+              <ShootProgress
+                active
+                estimatedSeconds={estimateShootSeconds({
+                  count: shotCount,
+                  quality: shootModel,
+                  hasInfluencer: true,
+                  coProductCount: shootProductId ? 1 : 0,
+                })}
+                label={`Shooting ${shotCount > 1 ? `${shotCount} photos` : ''}`}
+              />
+            ) : (
+              <button onClick={photoshoot} className="btn btn-primary" style={{ padding: '13px 20px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, flexShrink: 0 }}>
+                <Camera size={15} /> Shoot
+              </button>
+            )}
           </div>
 
           {/* Format + count row */}
