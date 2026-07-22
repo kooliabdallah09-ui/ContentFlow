@@ -11,6 +11,56 @@ export const maxDuration = 60
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36 ContentFlow/1.0'
 
+// Secondary pages to fetch alongside the homepage. Ordered by expected
+// value: /about (mission), /products (SKUs), /pricing (audience price
+// point), /faq (pain points). Each fetch is best-effort — 404s just drop.
+const SECONDARY_PATHS = ['/about', '/about-us', '/story', '/mission', '/products', '/shop', '/pricing', '/faq', '/how-it-works', '/why-us']
+
+// Best-effort fetch of a URL, returns HTML string or null. Timeouts fast so
+// a slow secondary page can't hold up the whole analysis.
+async function fetchHtml(url: string, timeoutMs: number): Promise<string | null> {
+  try {
+    const controller = new AbortController()
+    const t = setTimeout(() => controller.abort(), timeoutMs)
+    const r = await fetch(url, {
+      headers: { 'User-Agent': UA, Accept: 'text/html,application/xhtml+xml' },
+      signal: controller.signal,
+      redirect: 'follow',
+    })
+    clearTimeout(t)
+    if (!r.ok) return null
+    const ct = r.headers.get('content-type') ?? ''
+    if (!ct.includes('html')) return null
+    return await r.text()
+  } catch { return null }
+}
+
+// Given a chunk of homepage body text and a secondary page's body, return
+// just the parts of the secondary that don't heavily overlap the homepage.
+// Cheap deduplication: split into sentences, drop any that already appear
+// in the homepage. Prevents nav/footer copy from being fed to Sonnet twice.
+function subtractOverlap(homepage: string, other: string, maxChars: number): string {
+  if (!other) return ''
+  const seen = new Set<string>()
+  // Fingerprint homepage sentences (normalised, first 60 chars).
+  for (const s of homepage.split(/[.!?]\s+/)) {
+    const key = s.trim().toLowerCase().slice(0, 60)
+    if (key.length >= 20) seen.add(key)
+  }
+  const kept: string[] = []
+  let used = 0
+  for (const s of other.split(/[.!?]\s+/)) {
+    const key = s.trim().toLowerCase().slice(0, 60)
+    if (key.length < 12) continue
+    if (seen.has(key)) continue
+    seen.add(key)
+    kept.push(s.trim())
+    used += s.length
+    if (used >= maxChars) break
+  }
+  return kept.join('. ').slice(0, maxChars)
+}
+
 // Normalise any user-supplied URL — accept "example.com", "www.example.com",
 // or a full https URL — and reject anything that isn't a real hostname.
 function normaliseUrl(input: string): URL | null {
@@ -62,18 +112,26 @@ function distillHtml(html: string, base: URL) {
     if (headings.length >= 8) break
   }
 
-  // Visible body text — strip scripts, styles, and tags. Cheap but works.
+  // Visible body text — strip scripts, styles, nav, header, footer (they're
+  // usually boilerplate that leaks into every page and wastes tokens), then
+  // strip remaining tags. Cheap but works well for server-rendered marketing
+  // pages. Cap raised to 30k so we capture testimonials + FAQ that live
+  // below the hero — those are where target audience and pain points are
+  // most explicit.
   const body = html
     .replace(/<script[\s\S]*?<\/script>/gi, ' ')
     .replace(/<style[\s\S]*?<\/style>/gi, ' ')
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, ' ')
+    .replace(/<header[\s\S]*?<\/header>/gi, ' ')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, ' ')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ')
     .replace(/&amp;/g, '&')
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
     .replace(/\s+/g, ' ')
     .trim()
-    .slice(0, 8000)
+    .slice(0, 30000)
 
   // Icon / logo hunt — resolve the highest-priority icon href relative to base.
   const iconMatches = [...html.matchAll(/<link[^>]+rel=["'](?:apple-touch-icon|icon|shortcut icon)["'][^>]*href=["']([^"']+)["']/gi)]
@@ -141,6 +199,27 @@ export async function POST(request: NextRequest) {
 
     const distilled = distillHtml(html, url)
 
+    // Fetch a handful of secondary pages in parallel — mission, products,
+    // pricing, FAQ. Each with a tighter timeout so a stuck page can't hold
+    // up the analysis. Anything that 404s or returns non-HTML is just skipped.
+    // We only send Sonnet the UNIQUE text from each secondary (subtracting
+    // sentences that also appear on the homepage) so nav/footer boilerplate
+    // doesn't waste tokens.
+    const secondaryResults = await Promise.all(
+      SECONDARY_PATHS.map(async path => {
+        try {
+          const target = new URL(path, url).toString()
+          const secondaryHtml = await fetchHtml(target, 6000)
+          if (!secondaryHtml || secondaryHtml.length < 400) return null
+          const d = distillHtml(secondaryHtml, url)
+          const unique = subtractOverlap(distilled.body, d.body, 6000)
+          if (unique.length < 200) return null
+          return { path, headings: d.headings.slice(0, 4), text: unique }
+        } catch { return null }
+      }),
+    )
+    const secondaries = secondaryResults.filter((x): x is { path: string; headings: string[]; text: string } => !!x)
+
     // Ask Sonnet to turn the extracted content into the exact brand profile
     // shape the onboarding form already consumes. Same field names as the
     // /api/brand/ai-fill route so the client can reuse its handler.
@@ -160,8 +239,13 @@ SITE NAME: ${distilled.siteName ?? '(none)'}
 HEADINGS:
 ${distilled.headings.map(h => `- ${h}`).join('\n') || '(none)'}
 
-BODY (first ~8k chars, tags stripped):
+HOMEPAGE BODY (tags stripped):
 ${distilled.body}
+${secondaries.length ? `
+
+SECONDARY PAGES (unique content only, boilerplate removed):
+${secondaries.map(s => `--- ${s.path} ---
+${s.headings.length ? `Headings: ${s.headings.join(' · ')}\n` : ''}${s.text}`).join('\n\n')}` : ''}
 
 Return ONLY valid JSON (no markdown, no preamble) matching exactly this schema:
 {
