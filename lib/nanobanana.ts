@@ -1,5 +1,8 @@
+import { createSign } from 'node:crypto'
+
 const REPLICATE_BASE = 'https://api.replicate.com/v1'
 const GOOGLE_GENAI_BASE = 'https://generativelanguage.googleapis.com/v1beta'
+const VERTEX_REGION = process.env.GOOGLE_VERTEX_REGION || 'us-central1'
 // Nano Banana Pro — the premium image model. Better identity preservation
 // + label fidelity than nano-banana-2. Used for hero frames + product
 // refinement + cutaway frames. Routed to Google direct when
@@ -13,6 +16,124 @@ const GOOGLE_NB2_MODEL = process.env.GOOGLE_NANO_BANANA_MODEL || 'gemini-2.5-fla
 interface NanoBananaResult {
   imageBase64: string
   mimeType: string
+}
+
+// Vertex AI auth — mint an OAuth access token from the service-account JSON in
+// GOOGLE_VERTEX_SA_JSON. We sign a JWT with the SA private key and exchange it
+// at oauth2.googleapis.com/token. Tokens live for an hour, so cache in-module.
+interface VertexServiceAccount {
+  client_email: string
+  private_key: string
+  project_id: string
+}
+let vertexTokenCache: { token: string; expiresAt: number } | null = null
+let vertexSaCache: VertexServiceAccount | null = null
+
+function getVertexSA(): VertexServiceAccount | null {
+  if (vertexSaCache) return vertexSaCache
+  const raw = process.env.GOOGLE_VERTEX_SA_JSON
+  if (!raw) return null
+  try {
+    const parsed = JSON.parse(raw) as VertexServiceAccount
+    if (!parsed.client_email || !parsed.private_key || !parsed.project_id) return null
+    vertexSaCache = parsed
+    return parsed
+  } catch {
+    console.warn('[nanobanana] GOOGLE_VERTEX_SA_JSON is not valid JSON — falling back')
+    return null
+  }
+}
+
+function base64url(input: Buffer | string) {
+  return (typeof input === 'string' ? Buffer.from(input) : input)
+    .toString('base64').replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_')
+}
+
+async function getVertexAccessToken(sa: VertexServiceAccount): Promise<string> {
+  const now = Math.floor(Date.now() / 1000)
+  if (vertexTokenCache && vertexTokenCache.expiresAt > now + 60) return vertexTokenCache.token
+
+  const header = base64url(JSON.stringify({ alg: 'RS256', typ: 'JWT' }))
+  const claims = base64url(JSON.stringify({
+    iss: sa.client_email,
+    scope: 'https://www.googleapis.com/auth/cloud-platform',
+    aud: 'https://oauth2.googleapis.com/token',
+    iat: now,
+    exp: now + 3600,
+  }))
+  const signInput = `${header}.${claims}`
+  const signer = createSign('RSA-SHA256')
+  signer.update(signInput)
+  const signature = base64url(signer.sign(sa.private_key))
+  const jwt = `${signInput}.${signature}`
+
+  const res = await fetch('https://oauth2.googleapis.com/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+      assertion: jwt,
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Vertex token exchange failed ${res.status}: ${err.slice(0, 300)}`)
+  }
+  const data = await res.json() as { access_token: string; expires_in: number }
+  vertexTokenCache = { token: data.access_token, expiresAt: now + data.expires_in }
+  return data.access_token
+}
+
+// Vertex AI path — same models as AI Studio Gemini API, but billed against
+// the Cloud project so the $300 trial credit is actually consumed.
+async function callNanoBananaVertex(
+  prompt: string,
+  referenceImages: Array<{ base64: string; mimeType: string }> | undefined,
+  aspectRatio: '1:1' | '4:3' | '3:4' | '16:9' | '9:16' | undefined,
+  model: 'pro' | 'nb2',
+  resolution: '1K' | '2K' | '4K' | undefined,
+  sa: VertexServiceAccount,
+): Promise<NanoBananaResult> {
+  const modelId = model === 'nb2' ? GOOGLE_NB2_MODEL : GOOGLE_PRO_MODEL
+  const parts: Array<Record<string, unknown>> = [{ text: prompt }]
+  if (referenceImages?.length) {
+    for (const r of referenceImages) {
+      parts.push({ inlineData: { mimeType: r.mimeType, data: r.base64 } })
+    }
+  }
+  const imageConfig: Record<string, unknown> = {}
+  if (aspectRatio) imageConfig.aspectRatio = aspectRatio
+  if (resolution && model === 'pro') imageConfig.imageSize = resolution
+
+  const body = {
+    contents: [{ parts }],
+    generationConfig: {
+      responseModalities: ['IMAGE'],
+      ...(Object.keys(imageConfig).length ? { imageConfig } : {}),
+    },
+  }
+
+  const token = await getVertexAccessToken(sa)
+  const url = `https://${VERTEX_REGION}-aiplatform.googleapis.com/v1/projects/${sa.project_id}/locations/${VERTEX_REGION}/publishers/google/models/${modelId}:generateContent`
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    throw new Error(`Vertex Nano Banana error ${res.status}: ${err.slice(0, 400)}`)
+  }
+  const data = await res.json()
+  const candidateParts = data?.candidates?.[0]?.content?.parts as Array<{ inlineData?: { data: string; mimeType: string } }> | undefined
+  const imgPart = candidateParts?.find(p => p.inlineData?.data)
+  if (!imgPart?.inlineData?.data) {
+    throw new Error(`Vertex Nano Banana returned no image: ${JSON.stringify(data).slice(0, 400)}`)
+  }
+  return {
+    imageBase64: imgPart.inlineData.data,
+    mimeType: imgPart.inlineData.mimeType || 'image/png',
+  }
 }
 
 // Google Gemini API path — image generation via generateContent, IMAGE modality.
@@ -81,15 +202,27 @@ async function callNanoBanana(
   model: 'pro' | 'nb2' = 'pro',
   resolution?: '1K' | '2K' | '4K',
 ): Promise<NanoBananaResult> {
-  // Prefer Google direct when the key is present — cheaper, and it eats the
-  // $300 Cloud trial credit before charging the card. Falls back to Replicate
-  // automatically if the Google call fails so a bad key or transient outage
-  // never blocks a render.
+  // Provider priority:
+  //   1. Vertex AI (GOOGLE_VERTEX_SA_JSON) — same models, but the request
+  //      bills against the Cloud project so the $300 trial credit is
+  //      actually consumed. AI Studio keys don't get the credit anymore.
+  //   2. Gemini API / AI Studio (GOOGLE_GENAI_API_KEY) — cheaper than
+  //      Replicate but bills the card immediately (no trial credit).
+  //   3. Replicate — original fallback so a bad key or transient outage
+  //      never blocks a render.
+  const sa = getVertexSA()
+  if (sa) {
+    try {
+      return await callNanoBananaVertex(prompt, referenceImages, aspectRatio, model, resolution, sa)
+    } catch (e) {
+      console.warn('[nanobanana] Vertex path failed, trying next provider:', e instanceof Error ? e.message : e)
+    }
+  }
   if (process.env.GOOGLE_GENAI_API_KEY) {
     try {
       return await callNanoBananaGoogle(prompt, referenceImages, aspectRatio, model, resolution)
     } catch (e) {
-      console.warn('[nanobanana] Google path failed, falling back to Replicate:', e instanceof Error ? e.message : e)
+      console.warn('[nanobanana] AI Studio path failed, falling back to Replicate:', e instanceof Error ? e.message : e)
     }
   }
 
