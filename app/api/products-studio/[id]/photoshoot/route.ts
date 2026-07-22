@@ -150,7 +150,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 900,
+      // Ad mode concepts are dense multi-clause sentences per shot — 900 tokens
+      // truncated mid-JSON on 3-4 shot batches. Aesthetic mode fits comfortably.
+      max_tokens: mode === 'ad' ? 2000 : 1200,
       system: mode === 'ad' ? AD_CONCEPT_SYSTEM : CONCEPT_SYSTEM,
       messages: [{
         role: 'user',
@@ -160,19 +162,46 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ) : ''}${direction ? `\nUSER DIRECTION — every concept must build on this while staying distinct from each other: "${direction}"` : ''}`,
       }],
     })
-    const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
+    let raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
       .replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
-    let shots: Array<{ concept: string; prompt: string }>
-    try {
-      const parsed = JSON.parse(raw) as { shots?: Array<{ concept?: string; prompt?: string }> }
-      shots = (parsed.shots ?? [])
+    // Sonnet sometimes wraps JSON in prose or gets truncated mid-array. Try to
+    // extract just the JSON object, and if the parser fails on trailing junk
+    // repair the trailing comma / unterminated array so we salvage what fits.
+    let shots: Array<{ concept: string; prompt: string }> = []
+    const tryParse = (text: string) => {
+      const parsed = JSON.parse(text) as { shots?: Array<{ concept?: string; prompt?: string }> }
+      return (parsed.shots ?? [])
         .filter(sh => sh?.prompt)
         .map(sh => ({ concept: String(sh.concept ?? 'shot').slice(0, 80), prompt: String(sh.prompt).slice(0, 600) }))
-        .slice(0, count)
-    } catch {
-      return NextResponse.json({ error: 'Concept generation failed — try again' }, { status: 500 })
     }
-    if (!shots.length) return NextResponse.json({ error: 'No concepts generated — try again' }, { status: 500 })
+    try { shots = tryParse(raw) } catch {
+      // Slice from the first { to the matching last brace or the end of the array
+      const start = raw.indexOf('{')
+      const lastBrace = raw.lastIndexOf('}')
+      if (start >= 0 && lastBrace > start) {
+        try { shots = tryParse(raw.slice(start, lastBrace + 1)) } catch {}
+      }
+      // Fallback: try to close a truncated shots array
+      if (!shots.length) {
+        const shotsStart = raw.indexOf('"shots"')
+        if (shotsStart >= 0) {
+          const arrStart = raw.indexOf('[', shotsStart)
+          if (arrStart >= 0) {
+            // Grab up to the last complete object inside the array
+            const lastObjEnd = raw.lastIndexOf('}')
+            if (lastObjEnd > arrStart) {
+              const repaired = `{"shots":${raw.slice(arrStart, lastObjEnd + 1)}]}`
+              try { shots = tryParse(repaired) } catch {}
+            }
+          }
+        }
+      }
+    }
+    if (!shots.length) {
+      console.error('[products-studio/photoshoot] concept parse failed. Raw output:', raw.slice(0, 2000))
+      return NextResponse.json({ error: 'Concept generation failed — try again (fewer shots may help)' }, { status: 500 })
+    }
+    shots = shots.slice(0, count)
 
     // Product fidelity refs (up to 3 angles).
     const refUrls: string[] = Array.isArray(product.photo_urls) ? product.photo_urls.slice(0, 3) : []
