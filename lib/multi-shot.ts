@@ -314,7 +314,7 @@ ${characterClause}
 
 Realism rules — non-negotiable:
 - Soft natural light (window / bathroom / kitchen light), NEVER studio softbox or ring-light glare.
-- Real skin texture with pores and micro-imperfections. No beauty filter, no glass-skin gloss.
+- GENUINELY ATTRACTIVE person — clear healthy skin with a natural sheen (magazine-worthy, no visible acne / blemishes / rough patches), great bone structure, well-groomed. Real in the sense of not-AI-plastic; NOT "flawed for realism".
 - Handheld phone-camera feel — slight sensor grain, no over-sharpening. If the phone is propped (mirror shots), the camera is nearly static with tiny drift.
 - No captions, no text overlays, no watermarks, no logos other than the real product label.
 - If the shot uses a mirror, the reflection is the primary subject — the actor is captured through the mirror, not from behind.

@@ -48,7 +48,7 @@ Rules — non-negotiable:
 - Output ONE paragraph, 80-160 words. Plain prose. No lists, no headers, no fences.
 - Front-camera phone selfie feel — the character is looking directly at the camera, holding the phone at arm's length.
 - Environment: a believable everyday setting matching the character's niche (kitchen, bedroom, bathroom vanity, café, home office, park bench, etc.). Natural indoor daylight or golden hour outside. NO studio backdrops, NO ring lights, NO glass-skin gloss.
-- Real skin texture: pores, faint imperfections, no beauty filter. Natural hair with a few flyaways. Wardrobe should be casual and specific ("cream ribbed tank top", "oversized denim shirt"), not "trendy outfit".
+- GENUINELY ATTRACTIVE — clear healthy skin with a natural sheen (magazine-worthy, no visible acne, blemishes, or rough patches), great bone structure, well-groomed. Real in the sense of not-AI-plastic; NOT "imperfections for realism". Natural hair with a few flyaways. Wardrobe should be casual and specific ("cream ribbed tank top", "oversized denim shirt"), not "trendy outfit".
 - If the persona has any locked-in fields (gender, age band, ethnicity, hair, unique features, wardrobe, accessories, scene, mood), respect them EXACTLY. Do not swap them.
 - If a physical product is provided as a reference image, the character is holding it naturally in one hand at chest height, label angled slightly toward the camera. NEVER re-describe the product's packaging — write "the reference product" and let the image_input carry the exact appearance.
 - If no physical product exists, the character is just doing a natural selfie in their environment (still hero-frame framing, chest-up, camera-facing).
@@ -80,7 +80,7 @@ export async function buildCharacterPrompt(input: CharacterPromptInput): Promise
 
   // Fallback used when Anthropic is unavailable.
   const fallbackIdea = `a real everyday influencer who posts about ${input.productName}`
-  const fallbackImagePrompt = `Hyper-realistic phone selfie of an adult influencer, chest-up, warm natural daylight in a believable everyday setting, real skin texture with pores and small imperfections, casual specific wardrobe, looking directly at the camera at arm's length. ${input.hasProductImage ? 'Holding the reference product naturally in one hand at chest height with the label angled slightly toward the camera.' : ''} NO studio lighting, NO beauty filter, NO on-screen text, NO app UI.${personaBlock(input.customPersona)}`
+  const fallbackImagePrompt = `Hyper-realistic phone selfie of a GENUINELY ATTRACTIVE adult influencer with clear healthy skin (magazine-worthy, no acne or blemishes, but not AI-plastic either), chest-up, warm natural daylight in a believable everyday setting, casual specific wardrobe, looking directly at the camera at arm's length. ${input.hasProductImage ? 'Holding the reference product naturally in one hand at chest height with the label angled slightly toward the camera.' : ''} NO studio lighting, NO beauty filter over-processing, NO on-screen text, NO app UI.${personaBlock(input.customPersona)}`
 
   if (!anthropic) {
     return { characterIdea: fallbackIdea, imagePrompt: fallbackImagePrompt }

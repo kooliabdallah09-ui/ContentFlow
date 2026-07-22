@@ -65,7 +65,7 @@ Framing: vertical 9:16 phone portrait, shot from arm's length like a creator fil
 
 Lighting: soft natural window light from the side, warm golden tone, gently flattering on the face. Avoid harsh shadows.
 
-Quality: photorealistic phone camera output, real skin texture with pores preserved, natural micro-imperfections, no beauty filter, no studio polish, no plastic skin. Should look like a real Instagram creator's selfie — confident, warm, magnetic, looking the viewer in the eye.`
+Quality: photorealistic phone camera output. GENUINELY ATTRACTIVE person — clear healthy skin with a natural sheen (magazine-worthy, no acne / blemishes / rough patches), symmetrical features, well-groomed hair. Real in the sense of not-AI-plastic; NOT "imperfections for realism". Should look like a top-tier Instagram creator's selfie — confident, warm, magnetic, looking the viewer in the eye.`
 
     // Use the generic image generator so we can lock the aspect ratio to 9:16 —
     // generateTextToImage hardcoded this, but going through the generic path

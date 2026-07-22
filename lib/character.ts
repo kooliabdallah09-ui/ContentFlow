@@ -117,7 +117,7 @@ export function buildCharacterPrompt(profile: CharacterProfile): string {
   // UGC anchors — direct eye contact, warm engaging expression, naturally
   // attractive but real (skin texture preserved). This is what makes UGC feel
   // like a real creator talking to camera, not a bland candid snapshot.
-  const realismAnchors = 'looking directly at the camera with confident eye contact, warm slight smile, naturally attractive face with good bone structure, real skin texture with visible pores and subtle imperfections preserved, natural hair with slight flyaways, slightly flattering angle, expressive and engaging — like a real UGC creator mid-sentence, not a stiff portrait'
+  const realismAnchors = 'looking directly at the camera with confident eye contact, warm slight smile, GENUINELY ATTRACTIVE face with great bone structure and symmetrical features, clear healthy skin with a natural sheen (magazine-worthy — no visible acne, blemishes, or rough patches, but not AI-plastic either), well-groomed hair with a few natural flyaways, slightly flattering angle, expressive and engaging — like a top-tier UGC creator mid-sentence, not a stiff portrait and not an "average person for realism"'
 
   return `${intro}${details.length ? ', ' + details.join(', ') : ''}, ${realismAnchors}`
 }

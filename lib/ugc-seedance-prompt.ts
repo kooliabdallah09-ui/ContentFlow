@@ -94,7 +94,7 @@ The Seedance prompt must include:
 - handheld phone camera movement
 - natural framing and imperfect composition
 - realistic hand movement and product interaction
-- natural skin texture, pores, facial movement, small imperfections
+- clear healthy skin with a natural sheen (magazine-worthy, no visible acne / blemishes), natural facial movement, genuinely attractive
 - realistic facial expressions
 - exact product preservation from the reference image
 - ambient sound effects only, plus product-specific sound effects

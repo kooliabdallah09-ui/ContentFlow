@@ -306,7 +306,7 @@ async function callNanoBanana(
 // Used by the standalone /generate/video page when the user doesn't upload a ref.
 // Output is a 9:16-friendly hyper-realistic still that Sora will animate forward.
 export async function generateTextToImage(prompt: string): Promise<NanoBananaResult> {
-  const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting, real skin texture and imperfections, no beauty filter, no studio polish, no commercial gloss. Should read as a candid moment captured on a real phone.`
+  const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting, GENUINELY ATTRACTIVE person with clear healthy skin (magazine-worthy, no visible acne or blemishes), natural sheen not plastic-smooth, no beauty-filter over-processing. Should read as a candid moment captured on a real phone.`
   return callNanoBanana(wrapped, undefined, '9:16')
 }
 
@@ -393,7 +393,7 @@ CAMERA: phone-camera close-up — hands, body parts (neck, jawline, wrist, lips,
 LIGHTING: single soft natural source, real shadow, no studio look, no rim light.
 
 REALISM ANCHORS:
-- Skin texture: pores, hair, slight imperfections, no smoothing
+- Skin: clear healthy skin with a natural sheen, not plastic-smooth but NOT blemished either — genuinely attractive, magazine-worthy
 - Motion blur: subtle on the moving parts (hand, liquid, fabric) — proves it's a frozen second from a video
 - Product still locked to the reference image: same packaging, same label text, same colour
 
@@ -551,7 +551,7 @@ CAMERA: handheld selfie, slight tilt (2°), iPhone front camera framing — face
 EXPRESSION: caught mid-moment — not a finished pose. Mid-smile starting, eyes alive and focused on the camera, mouth just parting to speak. Specific micro-expression, never a polished portrait smile.
 
 REALISM ANCHORS — these must all be present:
-- Skin texture: pores, slight unevenness, any blemishes from the character description preserved, no smoothing
+- Skin: clear healthy skin, well-rested, natural sheen (not plastic AI-doll perfect but not blemished either) — genuinely attractive person. Preserve ONLY features explicitly requested in the character description (e.g. freckles if asked for); do NOT invent acne, spots, or rough patches.
 - Eyes: asymmetric catchlight, warm iris detail, lid weight natural, slight asymmetry between left and right
 - Hair: flyaways, slight frizz, irregular part, baby hairs visible
 - Lighting: single soft natural source (window or overhead), not studio
@@ -606,7 +606,7 @@ FRAMING: handheld selfie framing, face to mid-chest visible, slightly off-centre
 EXPRESSION: caught mid-sentence — eyebrow slightly raised, eyes alive and looking directly at camera, mouth just opening to speak. Confident, knowing expression like sharing a shortcut.
 
 REALISM:
-- Skin texture: pores, natural micro-imperfections, no beauty filter
+- Skin: clear healthy skin with a natural sheen, genuinely attractive — magazine-worthy, no visible acne or blemishes, but not AI-plastic either
 - Hair: flyaways, slight frizz
 - Lighting: the screen's glow adds a soft blue/white fill light on the character from behind/above — this is realistic for someone standing in front of a lit screen
 - Background: the large screen behind them, soft depth-of-field so edges blur naturally
