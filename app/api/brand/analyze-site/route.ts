@@ -247,17 +247,19 @@ SECONDARY PAGES (unique content only, boilerplate removed):
 ${secondaries.map(s => `--- ${s.path} ---
 ${s.headings.length ? `Headings: ${s.headings.join(' · ')}\n` : ''}${s.text}`).join('\n\n')}` : ''}
 
+CRITICAL: fill EVERY field with a concrete answer. Do NOT return empty strings unless the signal is completely absent. If content is thin, MAKE A REASONABLE INFERENCE from what you have — the category, the headline, the industry norm — instead of leaving fields blank. The user will edit anything wrong; an educated guess beats an empty box.
+
 Return ONLY valid JSON (no markdown, no preamble) matching exactly this schema:
 {
-  "companyName": "the brand name as they present themselves — pull from title/og:title/site_name, prefer the shorter marketing name over any long tagline",
-  "description": "2-3 sentences describing what the product is and who it's for, in the brand's own voice",
-  "productType": "one of: physical product, digital product, service, SaaS, app, course, coaching",
-  "uniqueValue": "one sentence — what makes this brand different from competitors, drawn from what they emphasise on the site",
-  "brandMission": "one sentence mission — what the brand is trying to change or enable for its customers",
-  "targetAudience": "one sentence — the specific customer they are speaking to (demographic + psychographic)",
-  "customerPainPoints": "3-4 specific pain points the site addresses, comma-separated",
-  "toneOfVoice": "one of: playful, authoritative, warm, edgy, minimal, luxurious, professional, conversational — inferred from the actual copy style",
-  "brandColors": "up to 3 hex codes comma-separated (e.g. '#0F172A, #F97316') if you can infer them from mentions of brand colours or obvious accent hues in the copy — otherwise empty string"
+  "companyName": "the brand name — pull from title/og:title/site_name, prefer the shorter marketing name over any long tagline",
+  "description": "2-3 sentences describing what the product is and who it's for, in the brand's own voice. If the site says almost nothing, infer from the product category and headlines.",
+  "productType": "free-text label like 'SaaS', 'DTC skincare', 'B2B consulting', 'mobile app', 'course', 'fitness apparel'. Pick the tightest match.",
+  "uniqueValue": "one sentence — what makes this brand different. If the site doesn't spell it out, infer from what they emphasise (speed, price, quality, exclusivity, ease).",
+  "brandMission": "one sentence mission — what the brand is trying to change or enable for its customers. Infer from tone and category if not explicit.",
+  "targetAudience": "one sentence — the specific customer (demographic + psychographic). Infer from the language, price point, and category if not explicit.",
+  "customerPainPoints": "3-4 specific pain points the product solves, comma-separated. If the site doesn't list them, infer the standard pain points for this category.",
+  "toneOfVoice": "EXACTLY ONE of these lowercase values (must match one of these strings): professional, friendly, humorous, inspirational, educational, luxury. Pick the closest fit from the actual copy style.",
+  "brandColors": "up to 3 hex codes comma-separated (e.g. '#0F172A, #F97316') if inferable from the copy — otherwise empty string is fine"
 }`,
       }],
     })
