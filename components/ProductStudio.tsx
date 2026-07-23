@@ -94,7 +94,8 @@ export default function ProductStudio() {
   const quality: 'nb2' | 'pro' | '4k' = shootModel === 'nb2' ? 'nb2' : shootRes === '4K' ? '4k' : 'pro'
   const [shooting, setShooting] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
+  const [lightbox, setLightbox] = useState<{ url: string; label?: string; photoId?: string } | null>(null)
+  const [removingPhoto, setRemovingPhoto] = useState(false)
   // Feature one or more influencers in the shots (401s harmlessly for non-admin).
   const [influencers, setInfluencers] = useState<Array<{ id: string; name: string; portrait_url: string }>>([])
   const [shootInfluencerIds, setShootInfluencerIds] = useState<string[]>([])
@@ -250,6 +251,28 @@ export default function ProductStudio() {
     }
   }
 
+  async function removePhoto(photoId: string) {
+    if (!selected) return
+    if (!confirm('Remove this photo? This cannot be undone.')) return
+    setRemovingPhoto(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`/api/products-studio/${selected.id}/photos/${photoId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error((await res.json()).error || 'Delete failed')
+      setPhotos(prev => prev.filter(p => p.id !== photoId))
+      setLightbox(null)
+      showSuccess('Photo removed', 'One down, keep the ones you love.')
+    } catch (err) {
+      showError('Delete failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setRemovingPhoto(false)
+    }
+  }
+
   async function remove() {
     if (!selected) return
     if (!confirm(`Delete ${selected.name} and all its photos?`)) return
@@ -307,7 +330,7 @@ export default function ProductStudio() {
           {photos.length > 0 ? (
             <div style={{ columns: '3 260px', columnGap: 12 }}>
               {photos.map(p => (
-                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.concept }); setLightboxZoom(false) }} title={p.concept} style={{ display: 'block', width: '100%', marginBottom: 12, breakInside: 'avoid', borderRadius: 13, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)', position: 'relative' }}>
+                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.concept, photoId: p.id }); setLightboxZoom(false) }} title={p.concept} style={{ display: 'block', width: '100%', marginBottom: 12, breakInside: 'avoid', borderRadius: 13, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)', position: 'relative' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image_url} alt={p.concept} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
                   <span style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 10.5, fontWeight: 600, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '3px 8px', borderRadius: 999 }}>{p.concept}</span>
@@ -572,6 +595,16 @@ export default function ProductStudio() {
               >
                 Download
               </button>
+              {lightbox.photoId && (
+                <button
+                  onClick={() => removePhoto(lightbox.photoId!)}
+                  disabled={removingPhoto}
+                  style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,120,120,0.55)', color: 'rgba(255,150,150,0.95)', fontSize: 12.5, fontWeight: 600, cursor: removingPhoto ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  title="Remove this photo permanently"
+                >
+                  <Trash2 size={13} /> {removingPhoto ? 'Removing…' : 'Remove'}
+                </button>
+              )}
               <button onClick={() => setLightbox(null)} style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)', fontSize: 12.5, cursor: 'pointer' }}>
                 Close
               </button>

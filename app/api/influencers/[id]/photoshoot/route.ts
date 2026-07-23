@@ -23,14 +23,25 @@ function supa() {
   )
 }
 
-// Per-shot variation so a 4-photo batch reads like a real shoot, not
-// four near-identical renders.
+// Per-shot FRAMING variation — pure camera/composition tweaks so a 4-photo
+// batch has visual variety, WITHOUT overriding what the user actually asked
+// for. Previous version dictated activity ("eyes on task NOT camera, mid-
+// action, hands doing something") which forced fake activities when the
+// user typed "a selfie" or "a portrait".
 const SHOT_VARIATIONS = [
-  'Caught fully mid-action, eyes on their task (NOT the camera), body angled naturally into the activity, framed head to mid-thigh, subject placed off-center on a rule-of-thirds line.',
-  'Documentary-style candid — mid-motion, reaching/handling/doing, looking at what their hands are doing, three-quarter body visible, environment filling the rest of the frame.',
-  'One brief glance toward the camera mid-activity, like a friend called their name while they were busy — hands still engaged with the task, head-to-knees framing, slightly off-center.',
-  'Wider environmental shot from behind or the side, subject head-to-toe but small-ish in the frame, absorbed in the activity, scene doing most of the talking.',
+  'Framing: chest-up crop, subject slightly off-centre.',
+  'Framing: three-quarter body (head to mid-thigh), rule-of-thirds composition.',
+  'Framing: wider environmental crop, subject full-body, scene visible around them.',
+  'Framing: tighter medium shot, head-to-waist, softly off-centre.',
 ]
+
+// The user's scene text sometimes explicitly asks for a portrait / selfie /
+// headshot. In those cases we DON'T want the "candid mid-action, eyes on
+// task" default — the user wants a posed camera-facing shot.
+function isSelfieIntent(scene: string): boolean {
+  const s = scene.toLowerCase()
+  return /(^|\s)(a\s+)?(selfie|portrait|headshot|close-?up|mirror shot|profile shot|posed shot|looking (at|into) (the )?camera)(\s|$|,|\.)/.test(s)
+}
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -242,10 +253,19 @@ The person is WEARING the "${studioProduct.name}" garment (shown in the product 
     const sceneRefLine = sceneRef
       ? `\n★ SCENE ANCHOR IMAGE — the LAST attached image is the EXACT environment (${sceneDetail?.name ?? 'this place'}) — the photograph must render inside this same location, matching its architecture, materials, decor, palette, and lighting faithfully. Never invent a different location.`
       : ''
+    // If the user asked for a selfie/portrait/headshot, respect that instead
+    // of forcing the "candid mid-action, don't look at camera" default.
+    const selfieMode = isSelfieIntent(scene)
+    const performanceClause = selfieMode
+      ? `SELFIE / PORTRAIT — the user explicitly asked for this. The person is facing the camera, phone at arm's length (front-camera framing), looking directly at the lens with a natural expression. Selfie framing is chest-up or head-and-shoulders. Their arm holding the phone can be visible at the frame edge — this is a REAL selfie, not a candid documentary shot. Ignore any "candid mid-action" defaults for this render.`
+      : `CANDID, NOT POSED — the person is genuinely DOING the scene's activity — hands physically engaged with real objects, eyes on their task, walking / mid-motion. NO standing square to camera, NO posed smile at the lens, NO model energy. Only make eye contact with the camera if the scene text explicitly asks for it.`
+    const compositionClause = selfieMode
+      ? `COMPOSITION: front-camera selfie framing — chest-up or head-and-shoulders. Subject centered or slightly off-centre. Their outfit reads clearly at the top. The phone / hand may be visible at the corner of the frame.`
+      : `COMPOSITION: subject placed by rule-of-thirds — NOT centered. Show the upper body AND part of the lower body (waist/hips/thighs) so their full outfit reads clearly. NEVER a tight head-and-shoulders crop.`
     const basePrompt = (variation: string) =>
       // Order matters: SCENE + PRODUCT go first so the model treats them as
       // the primary subject; identity + camera hints come after as constraints.
-      `SCENE — this is the whole photograph, do not substitute: ${composedScene}. ${variation}${sceneRefLine}
+      `SCENE — this is the whole photograph, do not substitute: ${composedScene}. ${selfieMode ? '' : variation}${sceneRefLine}
 ${productLine}${guestLine}
 
 WHO — extract ONLY identity from the description below (face, hair, skin, build, features). IGNORE any location, background, environment, time of day, or lighting mentioned here — those describe how the reference portrait was originally shot and DO NOT belong in this photo. The SCENE above is the entire environment:
@@ -253,9 +273,9 @@ ${influencer.appearance_prompt}
 
 ${refDescription} — preserve their face, hair, skin tone, and identity precisely.${guestDetails.length ? ` The co-star identity reference${guestDetails.length > 1 ? 's are' : ' is'} the next ${guestDetails.length} attached image${guestDetails.length > 1 ? 's' : ''} — match each co-star's face to their reference exactly, all faces fully visible.` : ''}
 
-CANDID, NOT POSED — the person is genuinely DOING the scene's activity — hands physically engaged with real objects, eyes on their task, walking / mid-motion. NO standing square to camera, NO posed smile at the lens, NO model energy. Only make eye contact with the camera if the scene text explicitly asks for it.
+${performanceClause}
 
-COMPOSITION: subject placed by rule-of-thirds — NOT centered. Show the upper body AND part of the lower body (waist/hips/thighs) so their full outfit reads clearly. NEVER a tight head-and-shoulders crop.
+${compositionClause}
 
 LIGHTING & LOOK: the lighting, colour palette, and time of day MUST match the SCENE above (a night neon street means DARK ambient with saturated neon rim/color spill on the subject; a sunny beach means warm daylight; an interior means whatever the scene describes). Never override the scene with generic daylight. Hyper-realistic candid smartphone photograph. REAL, individual person — no active acne / blemishes / rough patches, but the skin still has REAL texture (faint pores, tiny freckles, subtle unevenness, slight redness at the nose/ears/cheeks) so it doesn't read as plastic AI slop. Distinctive features and slight asymmetries (one eyebrow arches a little higher, a small mole, a particular nose shape) — NOT the generic AI-influencer face (dead-symmetrical, glass-doll skin, over-groomed, cookie-cutter Instagram beauty). Aim for a real attractive person you'd actually meet, not a stock model. NO shallow depth of field, NO editorial bokeh, NO magazine retouching, NO cinematic colour grade beyond what the scene naturally has.
 

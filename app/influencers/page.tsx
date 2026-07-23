@@ -149,7 +149,8 @@ export default function InfluencersPage() {
   // Additional influencers to co-star with the currently-selected one in the same shot.
   const [guestInfluencerIds, setGuestInfluencerIds] = useState<string[]>([])
   // In-app lightbox for viewing photos (no more raw-URL tabs).
-  const [lightbox, setLightbox] = useState<{ url: string; label?: string } | null>(null)
+  const [lightbox, setLightbox] = useState<{ url: string; label?: string; photoId?: string } | null>(null)
+  const [removingPhoto, setRemovingPhoto] = useState(false)
   const [lightboxZoom, setLightboxZoom] = useState(false)
 
   useEffect(() => {
@@ -372,6 +373,28 @@ export default function InfluencersPage() {
     }
   }
 
+  async function removePhoto(photoId: string) {
+    if (!selected) return
+    if (!confirm('Remove this photo? This cannot be undone.')) return
+    setRemovingPhoto(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`/api/influencers/${selected.id}/photos/${photoId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) throw new Error((await res.json()).error || 'Delete failed')
+      setPhotos(prev => prev.filter(p => p.id !== photoId))
+      setLightbox(null)
+      showSuccess('Photo removed', 'One down.')
+    } catch (err) {
+      showError('Delete failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setRemovingPhoto(false)
+    }
+  }
+
   async function remove() {
     if (!selected) return
     if (!confirm(`Delete ${selected.name} and all their photos?`)) return
@@ -457,7 +480,7 @@ export default function InfluencersPage() {
                width, no letterboxing. */
             <div style={{ columns: '3 280px', columnGap: 14 }}>
               {photos.map(p => (
-                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', marginBottom: 14, breakInside: 'avoid', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
+                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene, photoId: p.id }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', marginBottom: 14, breakInside: 'avoid', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image_url} alt={p.scene} style={{ width: '100%', display: 'block' }} />
                 </button>
@@ -727,6 +750,16 @@ export default function InfluencersPage() {
               >
                 Download
               </button>
+              {lightbox.photoId && (
+                <button
+                  onClick={() => removePhoto(lightbox.photoId!)}
+                  disabled={removingPhoto}
+                  style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,120,120,0.55)', color: 'rgba(255,150,150,0.95)', fontSize: 12.5, fontWeight: 600, cursor: removingPhoto ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  title="Remove this photo permanently"
+                >
+                  <Trash2 size={13} /> {removingPhoto ? 'Removing…' : 'Remove'}
+                </button>
+              )}
               <button
                 onClick={() => setLightbox(null)}
                 style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)', fontSize: 12.5, cursor: 'pointer' }}
