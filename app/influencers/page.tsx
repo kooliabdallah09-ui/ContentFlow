@@ -87,6 +87,11 @@ export default function InfluencersPage() {
   const [candidateReferenceUrls, setCandidateReferenceUrls] = useState<string[]>([])
   const [candidateModel, setCandidateModel] = useState<'pro' | 'nb2'>('pro')
   const [pickingCandidate, setPickingCandidate] = useState(false)
+  // Regenerate flow: when the candidates modal was triggered by clicking
+  // "Regenerate look" on an existing influencer, we carry the id so the
+  // finalize call updates that row instead of inserting a new one.
+  const [candidateUpdateId, setCandidateUpdateId] = useState<string | null>(null)
+  const [regenerating, setRegenerating] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [refImages, setRefImages] = useState<CompressedImage[]>([])
   // Structured identity traits — every selected one is a hard lock the AI
@@ -259,18 +264,26 @@ export default function InfluencersPage() {
           unusedUrls,
           referenceUrls: candidateReferenceUrls,
           model: candidateModel,
+          updateInfluencerId: candidateUpdateId ?? undefined,
         }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Finalize failed')
-      setList(prev => [data.influencer, ...prev])
-      // Wipe create form + candidate state.
-      setDescription(''); setRefImages([])
-      setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([]); setTraitEthnicity('')
-      setCandidates([]); setCandidateIdentity(null); setCandidateReferenceUrls([])
-      setShowCreate(false)
-      showSuccess('Influencer created', `${data.influencer.name} is ready.`)
-      openDetail(data.influencer)
+      if (candidateUpdateId) {
+        // Regen: replace in place in the roster + refresh the detail view.
+        setList(prev => prev.map(i => i.id === data.influencer.id ? data.influencer : i))
+        if (selected?.id === data.influencer.id) setSelected(data.influencer)
+        showSuccess('Look regenerated', `${data.influencer.name} has a fresh portrait.`)
+      } else {
+        setList(prev => [data.influencer, ...prev])
+        // Wipe create form on new-create only — regen preserves the composer.
+        setDescription(''); setRefImages([])
+        setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([]); setTraitEthnicity('')
+        setShowCreate(false)
+        showSuccess('Influencer created', `${data.influencer.name} is ready.`)
+        openDetail(data.influencer)
+      }
+      setCandidates([]); setCandidateIdentity(null); setCandidateReferenceUrls([]); setCandidateUpdateId(null)
     } catch (err) {
       showError('Finalize failed', err instanceof Error ? err.message : 'Try again')
     } finally {
@@ -281,7 +294,35 @@ export default function InfluencersPage() {
   function cancelCandidates() {
     // User bailed on the picker — client-side wipe. The rendered candidate
     // uploads stay in storage; harmless small blobs.
-    setCandidates([]); setCandidateIdentity(null); setCandidateReferenceUrls([])
+    setCandidates([]); setCandidateIdentity(null); setCandidateReferenceUrls([]); setCandidateUpdateId(null)
+  }
+
+  async function regenerateLook() {
+    if (!selected) return
+    if (!confirm(`Regenerate ${selected.name}'s look with the new visual guidelines? Costs 32 cr (Nano Banana Pro). Your existing photos and identity stay the same — only the portrait + character sheet get replaced.`)) return
+    setRegenerating(true)
+    try {
+      const token = await getToken()
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch(`/api/influencers/${selected.id}/regenerate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ model: 'pro' }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Regenerate failed')
+      if (!Array.isArray(data.candidates) || !data.identity) throw new Error('Malformed regenerate response')
+      setCandidates(data.candidates)
+      setCandidateIdentity(data.identity)
+      setCandidateReferenceUrls(Array.isArray(data.referenceUrls) ? data.referenceUrls : [])
+      setCandidateModel(data.model === 'nb2' ? 'nb2' : 'pro')
+      setCandidateUpdateId(typeof data.updateInfluencerId === 'string' ? data.updateInfluencerId : selected.id)
+      showSuccess('Pick your favorite', 'Four fresh looks — click the one that fits.')
+    } catch (err) {
+      showError('Regenerate failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setRegenerating(false)
+    }
   }
 
   async function openDetail(inf: Influencer) {
@@ -450,6 +491,14 @@ export default function InfluencersPage() {
             <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <button onClick={useInUgc} disabled={bridging} className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 {bridging ? <Loader2 size={14} className="animate-spin" /> : <Clapperboard size={14} />} Use in UGC
+              </button>
+              <button
+                onClick={regenerateLook}
+                disabled={regenerating}
+                title="Rewrite the appearance with the current visual guidelines and pick a fresh portrait (32 cr NB Pro)"
+                style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              >
+                {regenerating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Regenerate look
               </button>
               {selected.character_sheet_url ? (
                 <>

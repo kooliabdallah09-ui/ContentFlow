@@ -64,24 +64,62 @@ export async function POST(request: NextRequest) {
       ? body.referenceUrls.filter((u: unknown): u is string => typeof u === 'string' && u.startsWith('http'))
       : []
     const model: 'pro' | 'nb2' = body?.model === 'nb2' ? 'nb2' : 'pro'
+    // Regenerate flow: when this is set, UPDATE the existing row in place
+    // (new portrait + new appearance_prompt + new sheet) and delete the old
+    // portrait / sheet artefacts from storage. Row identity stays the same
+    // so downstream references (photoshoots, UGC bridges) don't break.
+    const updateInfluencerId = typeof body?.updateInfluencerId === 'string' && body.updateInfluencerId.length > 0
+      ? body.updateInfluencerId
+      : null
 
-    // 1) Insert the influencer row with the chosen portrait.
-    const { data: influencer, error: insErr } = await supabase
-      .from('user_influencers')
-      .insert({
-        user_id: userId,
-        name: String(identity.name).slice(0, 80),
-        handle: typeof identity.handle === 'string' ? identity.handle.slice(0, 40) : null,
-        bio: typeof identity.bio === 'string' ? identity.bio.slice(0, 400) : null,
-        personality: typeof identity.personality === 'string' ? identity.personality.slice(0, 600) : null,
-        niche: typeof identity.niche === 'string' ? identity.niche.slice(0, 120) : null,
-        appearance_prompt: String(identity.appearance_prompt).slice(0, 2000),
-        portrait_url: chosenUrl,
-        reference_urls: referenceUrls.length ? referenceUrls : null,
-      })
-      .select('*')
-      .single()
-    if (insErr) throw insErr
+    // Fetch the existing row when we're regenerating so we can wipe its
+    // old artefacts after the new ones land.
+    let oldPortraitUrl: string | null = null
+    let oldSheetUrl: string | null = null
+    if (updateInfluencerId) {
+      const { data: existing } = await supabase
+        .from('user_influencers')
+        .select('id, portrait_url, character_sheet_url')
+        .eq('id', updateInfluencerId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (!existing) return NextResponse.json({ error: 'Influencer not found for update' }, { status: 404 })
+      oldPortraitUrl = typeof existing.portrait_url === 'string' ? existing.portrait_url : null
+      oldSheetUrl = typeof existing.character_sheet_url === 'string' ? existing.character_sheet_url : null
+    }
+
+    // 1) Insert the new row OR update the existing one in place.
+    const rowPayload = {
+      user_id: userId,
+      name: String(identity.name).slice(0, 80),
+      handle: typeof identity.handle === 'string' ? identity.handle.slice(0, 40) : null,
+      bio: typeof identity.bio === 'string' ? identity.bio.slice(0, 400) : null,
+      personality: typeof identity.personality === 'string' ? identity.personality.slice(0, 600) : null,
+      niche: typeof identity.niche === 'string' ? identity.niche.slice(0, 120) : null,
+      appearance_prompt: String(identity.appearance_prompt).slice(0, 2000),
+      portrait_url: chosenUrl,
+      reference_urls: referenceUrls.length ? referenceUrls : null,
+    }
+    let influencer: Record<string, unknown> & { id: string; appearance_prompt: string; character_sheet_url?: string | null }
+    if (updateInfluencerId) {
+      const { data, error: updErr } = await supabase
+        .from('user_influencers')
+        .update({ ...rowPayload, character_sheet_url: null })
+        .eq('id', updateInfluencerId)
+        .eq('user_id', userId)
+        .select('*')
+        .single()
+      if (updErr) throw updErr
+      influencer = data
+    } else {
+      const { data, error: insErr } = await supabase
+        .from('user_influencers')
+        .insert(rowPayload)
+        .select('*')
+        .single()
+      if (insErr) throw insErr
+      influencer = data
+    }
 
     // 2) Character sheet — same drift-safe pattern as before: user's
     // original references anchor it first, chosen portrait rides along.
@@ -116,9 +154,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 3) Best-effort cleanup of the unused candidate uploads so we're not
-    // paying storage for renders the user rejected. Only wipes files under
-    // this user's own influencers/ prefix.
-    const cleanupPaths = unusedUrls
+    // paying storage for renders the user rejected. When regenerating we
+    // also wipe the previous portrait + sheet so the row's old artefacts
+    // don't linger. Only wipes files under this user's own influencers/
+    // prefix.
+    const cleanupPaths = [
+      ...unusedUrls,
+      ...(updateInfluencerId ? [oldPortraitUrl, oldSheetUrl] : []),
+    ]
       .map(pathFromPublicUrl)
       .filter((p): p is string => !!p && p.startsWith(`influencers/${userId}-`))
     if (cleanupPaths.length) {
