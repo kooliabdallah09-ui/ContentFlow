@@ -294,6 +294,20 @@ important=false when it is a generic talking-head that could be filmed anywhere.
       frames.push(pub.publicUrl)
     }
 
+    // When the hero frames were rendered against a saved influencer, also
+    // file them into that influencer's photo library so the user can reuse
+    // them later as reference photos or portraits.
+    if (typeof influencerId === 'string' && influencerId.length > 0 && frames.length > 0) {
+      const sceneLabel = (requiredScene ?? safeVideoDirection ?? 'UGC hero frame').toString().slice(0, 200)
+      try {
+        await supabase.from('user_influencer_photos').insert(
+          frames.map(url => ({ influencer_id: influencerId, user_id: userId, scene: sceneLabel, image_url: url })),
+        )
+      } catch (err) {
+        console.warn('[hero-frames] library insert failed:', err instanceof Error ? err.message : err)
+      }
+    }
+
     if (frames.length === 0) {
       return NextResponse.json({ error: 'Failed to upload any hero frames.' }, { status: 500 })
     }
