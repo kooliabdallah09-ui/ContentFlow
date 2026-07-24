@@ -217,6 +217,21 @@ export default function CampaignDetailPage() {
                 <strong style={{ color: 'var(--ink)' }}>Brief:</strong> {campaign.brief}
               </div>
             )}
+            {Array.isArray((campaign.meta as { trend_sources?: unknown }).trend_sources) && ((campaign.meta as { trend_sources: unknown[] }).trend_sources.length > 0) && (
+              <details style={{ marginTop: 12, maxWidth: 900 }}>
+                <summary style={{ fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', userSelect: 'none' }}>
+                  <strong style={{ color: 'var(--ink)' }}>Sources ({(campaign.meta as { trend_sources: unknown[] }).trend_sources.length})</strong> — auto-discovered trend + competitor references Sonnet used
+                </summary>
+                <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {((campaign.meta as { trend_sources: Array<{ url: string; title: string; query: string }> }).trend_sources).map((s, i) => (
+                    <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ink)', textDecoration: 'none', display: 'block' }}>
+                      <div style={{ fontWeight: 600 }}>{s.title || s.url}</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{s.query} → {new URL(s.url).host}</div>
+                    </a>
+                  ))}
+                </div>
+              </details>
+            )}
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <Link

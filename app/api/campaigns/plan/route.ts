@@ -4,8 +4,9 @@ import Anthropic from '@anthropic-ai/sdk'
 import { CAMPAIGN_FORMATS, CAMPAIGN_FORMAT_KEYS, getCampaignFormat } from '@/lib/campaign-formats'
 import { loadBrandContext } from '@/lib/brand-context'
 import { analyzeInspiration } from '@/lib/inspiration-fetch'
+import { autoDiscoverTrendSources, formatSourcesForPrompt } from '@/lib/trends/web-search'
 
-export const maxDuration = 90
+export const maxDuration = 120
 
 // Campaign Planner — one product + one brief → shot table.
 // Reads brand voice + product info + user brief, asks Sonnet to draft ~20-30
@@ -79,8 +80,20 @@ export async function POST(request: NextRequest) {
       const { urls, summary } = await analyzeInspiration(inspiration).catch(() => ({ urls: [], summary: '' }))
       const notes = inspiration.slice(0, 4000)
       const fetched = summary ? `\n\nFETCHED PAGE CONTENT from the URLs the user pasted (${urls.length} sources, use these to identify winning hooks, formats, tones — don't just quote, extract patterns):\n${summary}` : ''
-      inspirationSection = `\nINSPIRATION / COMPETITOR / TREND NOTES from the user — use these to anchor hooks and formats to what's actually working right now:\n${notes}${fetched}`
+      inspirationSection = `\nUSER INSPIRATION / COMPETITOR / TREND NOTES — use these to anchor hooks and formats to what's actually working right now:\n${notes}${fetched}`
     }
+
+    // ── Auto-discover trend sources via Tavily ────────────────────
+    // Runs in parallel background; failure is silent (planner still works).
+    const autoTrends = await autoDiscoverTrendSources({
+      brand: brand?.companyName,
+      productName: product?.name,
+      productDescription: product?.description,
+      category: brand?.productType,
+      goal: typeof goal === 'string' ? goal : undefined,
+      audience: brand?.targetAudience,
+    }).catch(() => ({ queries: [] as string[], sources: [] as Array<{ url: string; title: string; excerpt: string; query: string }> }))
+    const autoSourcesSection = formatSourcesForPrompt(autoTrends.sources)
 
     // ── Ask Sonnet for the shot list ──────────────────────────────
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -119,6 +132,7 @@ Goal: ${typeof goal === 'string' ? goal : 'awareness'}
 Duration: ${typeof durationLabel === 'string' ? durationLabel : '2 weeks'}
 Target shot count: ${wantCount}
 ${inspirationSection}
+${autoSourcesSection ? '\n' + autoSourcesSection : ''}
 
 Return the JSON shot list now.`
 
@@ -171,6 +185,8 @@ Return the JSON shot list now.`
           scene_id: typeof sceneId === 'string' ? sceneId : null,
           product_name: product?.name ?? null,
           product_image_url: product?.image_url ?? null,
+          trend_queries: autoTrends.queries,
+          trend_sources: autoTrends.sources.slice(0, 8).map(s => ({ url: s.url, title: s.title, query: s.query })),
         },
       })
       .select('id')
