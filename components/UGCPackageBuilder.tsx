@@ -216,6 +216,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // Product Studio products — importable into this form with all angles.
   const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; description?: string | null; photo_urls: string[] }>>([])
   const [studioProductId, setStudioProductId] = useState<string | undefined>(undefined)
+  // Scene Studio scenes — the environment the UGC happens in. Feeds Sonnet
+  // the location brief and feeds NB a hero anchor image so the shots render
+  // inside a real, consistent place instead of a generic AI room.
+  const [scenes, setScenes] = useState<Array<{ id: string; name: string; scene_prompt: string; hero_image_url: string | null }>>([])
+  const [sceneId, setSceneId] = useState<string | undefined>(undefined)
   const [selectedInfluencerId, setSelectedInfluencerId] = useState<string | undefined>(undefined)
   const [bridgingInfluencer, setBridgingInfluencer] = useState(false)
   // Gallery of the selected influencer: portrait + photoshoot photos. The
@@ -344,6 +349,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           if (spRes.ok) {
             const spData = await spRes.json()
             if (!cancelled && Array.isArray(spData?.products)) setStudioProducts(spData.products)
+          }
+        } catch { /* best-effort */ }
+        try {
+          const scRes = await fetch('/api/scenes', { headers: { Authorization: `Bearer ${token}` } })
+          if (scRes.ok) {
+            const scData = await scRes.json()
+            if (!cancelled && Array.isArray(scData?.scenes)) setScenes(scData.scenes)
           }
         } catch { /* best-effort */ }
         try {
@@ -533,6 +545,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           savedActorId,
           influencerId: selectedInfluencerId,
           influencerPhotoUrl,
+          sceneId,
           extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
       })
@@ -1799,6 +1812,56 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             Skip everything and let AI build a character to fit your product, or lock in specific fields (gender, age, hair, wardrobe…) and we&apos;ll respect them exactly. Or reuse an actor you&apos;ve saved before for identity consistency.
           </p>
 
+          {/* Scene Studio picker — sets the location the UGC happens in. */}
+          {scenes.length > 0 && (
+            <div style={{ marginBottom: 18 }}>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+                Scene
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <button
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => setSceneId(undefined)}
+                  style={{
+                    padding: '6px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
+                    background: !sceneId ? 'var(--ink)' : 'var(--surface)',
+                    color: !sceneId ? 'var(--on-ink)' : 'var(--ink-2)',
+                    border: `1.5px solid ${!sceneId ? 'var(--ink)' : 'var(--border)'}`,
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                  }}
+                >Auto</button>
+                {scenes.map(s => {
+                  const active = sceneId === s.id
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      disabled={isLoading}
+                      onClick={() => setSceneId(active ? undefined : s.id)}
+                      title={s.name}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0,
+                        borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+                        border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                        background: 'var(--surface)',
+                        cursor: isLoading ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {s.hero_image_url && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.hero_image_url} alt={s.name} style={{ width: 52, height: 36, objectFit: 'cover', display: 'block' }} />
+                      )}
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', padding: '0 10px 0 0' }}>{s.name}</span>
+                    </button>
+                  )
+                })}
+              </div>
+              <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '6px 0 0' }}>
+                Pick a Scene from your <em>Scene Studio</em> and the UGC renders inside that exact place. Leave on <b>Auto</b> and the AI picks a scene from your description.
+              </p>
+            </div>
+          )}
           {influencers.length > 0 && (
             <div>
               <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>

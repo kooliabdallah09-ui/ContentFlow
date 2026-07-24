@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       savedActorId,         // uuid of a user_saved_actors row — skips Haiku/Sonnet
       influencerId,         // uuid of a user_influencers row — pull gallery refs
       influencerPhotoUrl,   // user explicitly chose this gallery photo as the identity ref
+      sceneId,              // uuid of a user_scenes row — override the location with a stored scene
       extraProductImages,   // additional photos of the SAME product (package + contents…)
     } = body as Record<string, unknown>
 
@@ -110,9 +111,46 @@ export async function POST(request: NextRequest) {
     // that place or Seedance opens the video in the wrong location.
     // Haiku decides; generic talking-head scripts reuse the look as-is.
     let requiredScene: string | null = null
+    // Explicit Scene Studio selection — the user picked a saved environment.
+    // This wins over the Haiku auto-detection: if they picked "Brooklyn Café",
+    // that's the scene, no need to ask Haiku whether one matters.
+    let sceneAnchorRef: { base64: string; mimeType: string } | null = null
+    if (typeof sceneId === 'string' && sceneId.length > 0) {
+      try {
+        const { data: sceneRow } = await supabase
+          .from('user_scenes')
+          .select('id, name, scene_prompt, hero_image_url, reference_urls')
+          .eq('id', sceneId)
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (sceneRow) {
+          requiredScene = `${sceneRow.name} — ${sceneRow.scene_prompt}`.slice(0, 800)
+          const originals: string[] = Array.isArray(sceneRow.reference_urls)
+            ? (sceneRow.reference_urls as string[]).filter(u => typeof u === 'string' && u.startsWith('http'))
+            : []
+          const anchorUrl = originals[0] ?? sceneRow.hero_image_url
+          if (typeof anchorUrl === 'string' && anchorUrl.startsWith('http')) {
+            try {
+              const r = await fetch(anchorUrl)
+              if (r.ok) {
+                sceneAnchorRef = {
+                  base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
+                  mimeType: r.headers.get('content-type') || 'image/png',
+                }
+              }
+            } catch { /* soft fail — the scene_prompt still travels */ }
+          }
+          // Bump last_used_at so the picker sorts recently-used scenes to top.
+          void supabase.from('user_scenes').update({ last_used_at: new Date().toISOString() }).eq('id', sceneId).eq('user_id', userId)
+          console.log('[hero-frames] scene locked to:', sceneRow.name)
+        }
+      } catch (err) {
+        console.warn('[hero-frames] scene fetch failed:', err instanceof Error ? err.message : err)
+      }
+    }
     const reusingIdentity = (typeof savedActorId === 'string' && savedActorId.length > 0)
       || (typeof influencerId === 'string' && influencerId.length > 0)
-    if (reusingIdentity) {
+    if (reusingIdentity && !requiredScene) {
       try {
         const Anthropic = (await import('@anthropic-ai/sdk')).default
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -138,7 +176,7 @@ important=false when it is a generic talking-head that could be filmed anywhere.
       }
     }
     if (requiredScene) {
-      imagePrompt = `${imagePrompt}\n\nSCENE OVERRIDE — CRITICAL: the character is physically IN this location right now: ${requiredScene}. The ENTIRE background and environment must read as this scene. IGNORE any location, room, or background implied by the text above or by the reference photos — keep ONLY the person's face, hair, and identity from them, not their surroundings.`
+      imagePrompt = `${imagePrompt}\n\nSCENE OVERRIDE — CRITICAL: the character is physically IN this location right now: ${requiredScene}. The ENTIRE background and environment must read as this scene. IGNORE any location, room, or background implied by the text above or by the reference photos — keep ONLY the person's face, hair, and identity from them, not their surroundings.${sceneAnchorRef ? ' The LAST attached image is the EXACT scene — architecture, materials, decor, palette, and lighting must match it faithfully.' : ''}`
     }
 
     // Influencer identity references. When the character came from the
@@ -199,16 +237,31 @@ important=false when it is a generic talking-head that could be filmed anywhere.
       }
       if (identityRefs.length) {
         // No product but we have identity refs — image-to-image so the
-        // frames ARE this influencer, not a lookalike.
+        // frames ARE this influencer, not a lookalike. Append the scene
+        // anchor at the end when we have one so NB matches the location
+        // faithfully instead of inventing a room.
+        const combined = sceneAnchorRef ? [...identityRefs, sceneAnchorRef] : identityRefs
         const f = await generateNanoBananaImage(imagePrompt, {
           style: 'realistic',
           ratio: aspect.nanoBananaRatio === '1:1' ? '1:1' : aspect.nanoBananaRatio === '16:9' ? '16:9' : '9:16',
-          referenceImages: identityRefs,
-          referenceHint: 'The person in the attached reference photo(s) IS this exact character — preserve their face, hair, skin tone, and identity precisely. Apply the prompt as scene + framing around them.',
+          referenceImages: combined,
+          referenceHint: sceneAnchorRef
+            ? 'The FIRST reference image(s) define the exact person — preserve their face, hair, skin tone, and identity precisely. The LAST image is the EXACT scene — architecture, materials, decor, palette, and lighting must match it faithfully. Compose the person INSIDE this scene.'
+            : 'The person in the attached reference photo(s) IS this exact character — preserve their face, hair, skin tone, and identity precisely. Apply the prompt as scene + framing around them.',
         })
         return { base64: f.imageBase64, mimeType: f.mimeType }
       }
-      // No product, no refs — text-only from the Sonnet image prompt.
+      // No product, no identity refs — text-only from the Sonnet image
+      // prompt, plus the scene anchor when the user picked one.
+      if (sceneAnchorRef) {
+        const f = await generateNanoBananaImage(imagePrompt, {
+          style: 'realistic',
+          ratio: aspect.nanoBananaRatio === '1:1' ? '1:1' : aspect.nanoBananaRatio === '16:9' ? '16:9' : '9:16',
+          referenceImages: [sceneAnchorRef],
+          referenceHint: 'The attached image is the EXACT scene — architecture, materials, decor, palette, and lighting must match it faithfully. Compose the person INSIDE this scene from the prompt.',
+        })
+        return { base64: f.imageBase64, mimeType: f.mimeType }
+      }
       const f = await generateTextToImage(imagePrompt)
       return { base64: f.imageBase64, mimeType: f.mimeType }
     }
