@@ -52,10 +52,17 @@ export async function generateCharacterSheet(input: {
     } catch { /* sheet still works text-only */ }
   }
 
+  // Render at 4K on NB Pro. The sheet is 12 subdivided panels inside one
+  // image — at the default 2K each face close-up ends up ~320px wide, which
+  // is too soft to serve as an identity anchor and pixellates the download.
+  // 4K bumps each close-up to ~640px so the face detail actually reads.
+  // NB2 doesn't support 4K, so it falls back to its default.
+  const model = input.model ?? 'pro'
   const sheet = await generateNanoBananaImage(SHEET_PROMPT(input.appearancePrompt), {
     style: 'realistic',
     ratio: '16:9',
-    model: input.model ?? 'pro',
+    model,
+    resolution: model === 'pro' ? '4K' : undefined,
     referenceImages: refs.length ? refs : undefined,
     referenceHint: refs.length
       ? (input.userReferenceImages?.length
