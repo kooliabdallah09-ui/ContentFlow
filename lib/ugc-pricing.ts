@@ -15,7 +15,7 @@
 //   × 1.8 margin                             $9.54  → 398 credits
 
 export type UGCResolution = '480p' | '720p' | '1080p' | '4k'
-export type UGCEngine = 'seedance-2' | 'seedance-mini'
+export type UGCEngine = 'seedance-2' | 'seedance-mini' | 'omni-flash'
 
 // Seedance 2.0 non_video_in rates × 1.8 markup, rounded up, per second.
 export const SEEDANCE_CR_PER_SECOND: Record<UGCResolution, number> = {
@@ -30,6 +30,13 @@ export const SEEDANCE_CR_PER_SECOND: Record<UGCResolution, number> = {
 export const SEEDANCE_MINI_CR_PER_SECOND: Record<'480p' | '720p', number> = {
   '480p': 3,     // $0.04/s → $0.072 → 3 cr
   '720p': 7,     // $0.09/s → $0.162 → 6.75 → 7 cr
+}
+
+// Gemini Omni Flash on Vertex — admin-only. Priced in line with Veo 2's
+// $0.35/s at 720p and $0.60/s at 1080p, with our 1.8× markup applied.
+export const OMNI_FLASH_CR_PER_SECOND: Record<'720p' | '1080p', number> = {
+  '720p': 11,   // $0.35/s × 1.8 ≈ $0.63 → 11 cr
+  '1080p': 19,  // $0.60/s × 1.8 ≈ $1.08 → 19 cr
 }
 
 // Fixed overhead per package: Nano Banana Pro renders + Claude prompt calls.
@@ -59,6 +66,10 @@ export function ugcPackageCost(
     // Mini caps at 720p — higher resolutions bill (and render) as 720p.
     const res = resolution === '480p' ? '480p' : '720p'
     perSec = SEEDANCE_MINI_CR_PER_SECOND[res]
+  } else if (engine === 'omni-flash') {
+    // Omni Flash only offers 720p or 1080p — snap other resolutions.
+    const res = resolution === '1080p' ? '1080p' : '720p'
+    perSec = OMNI_FLASH_CR_PER_SECOND[res]
   } else {
     perSec = SEEDANCE_CR_PER_SECOND[resolution] ?? SEEDANCE_CR_PER_SECOND['1080p']
   }

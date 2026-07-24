@@ -17,6 +17,7 @@ import {
   type UGCDuration,
 } from '@/lib/tiers'
 import { getSupabase } from '@/lib/auth'
+import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { showError, showSuccess } from '@/lib/notifications'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { compressImageFile } from '@/lib/image-compress'
@@ -113,7 +114,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // per-second credit prices. Default 1080p.
   const [resolution, setResolution] = useState<'480p' | '720p' | '1080p' | '4k'>('1080p')
   // Seedance 2.0 (default, up to 4K) vs Seedance Mini (~half price, 720p cap).
-  const [engine, setEngine] = useState<'seedance-2' | 'seedance-mini'>('seedance-2')
+  const [engine, setEngine] = useState<'seedance-2' | 'seedance-mini' | 'omni-flash'>('seedance-2')
+  // Admin gate for the Omni Flash engine — hidden from non-admin users.
+  const [showOmniFlash, setShowOmniFlash] = useState(false)
   const [language, setLanguage] = useState<string>(DEFAULT_LANGUAGE_CODE)
   const [aspect, setAspect] = useState<UGCAspect>(DEFAULT_ASPECT)
   const [character, setCharacter] = useState<CharacterProfile>(EMPTY_CHARACTER)
@@ -187,6 +190,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [animating])
+
+  // Admin gate for Omni Flash — loaded once on mount from the session.
+  useEffect(() => {
+    const supabase = getSupabase()
+    if (!supabase) return
+    supabase.auth.getSession().then((res: { data: { session: { user?: { email?: string | null } } | null } }) => {
+      setShowOmniFlash(canAccessOmniFlashVideo(res.data.session?.user?.email ?? null))
+    })
+  }, [])
 
   // Character prompts + saved actors state
   const [characterImagePrompt, setCharacterImagePrompt] = useState<string>('')
@@ -1362,6 +1374,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               {([
                 { id: 'seedance-2' as const,    label: 'Seedance 2.0',  note: 'best quality · up to 4K' },
                 { id: 'seedance-mini' as const, label: 'Seedance Mini', note: 'low budget · ~½ price · up to 720p' },
+                ...(showOmniFlash ? [{ id: 'omni-flash' as const, label: 'Omni Flash · admin', note: 'temp · Vertex Veo · 5-8s · uses trial credit' }] : []),
               ]).map(e => {
                 const active = engine === e.id
                 return (
@@ -1372,6 +1385,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       setEngine(e.id)
                       // Mini caps at 720p — snap higher selections down.
                       if (e.id === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) setResolution('720p')
+                      // Omni Flash: 5-8s only + 720p/1080p only.
+                      if (e.id === 'omni-flash') {
+                        if (resolution === '480p' || resolution === '4k') setResolution('720p')
+                      }
                     }}
                     disabled={isLoading}
                     style={{

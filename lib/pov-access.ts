@@ -34,3 +34,11 @@ export function canAccessFormats(email: string | null | undefined): boolean {
 export function canAccessInfluencerStudio(email: string | null | undefined): boolean {
   return !!email
 }
+
+// Temporary admin-only alternative video engine (Gemini Omni Flash on Vertex)
+// while BytePlus direct-Seedance access is still being provisioned. Remove
+// this gate once BytePlus is live and we standardise on Seedance-direct.
+export function canAccessOmniFlashVideo(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}

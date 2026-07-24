@@ -7,9 +7,10 @@ import { readPrefill } from '@/lib/calendar-prefill'
 import { readChatPrefill } from '@/lib/chat-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
+import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { Download, Play, Upload, X } from 'lucide-react'
 
-type Model = 'seedance-2' | 'seedance-mini'
+type Model = 'seedance-2' | 'seedance-mini' | 'omni-flash'
 type Resolution = '480p' | '720p' | '1080p' | '4k'
 
 interface ShopifyProduct {
@@ -64,11 +65,26 @@ const MODELS: {
     durations: [5, 10, 15, 30, 60],
     credits: { 5: 0, 10: 0, 15: 0, 30: 0, 60: 0 },
   },
+  {
+    id: 'omni-flash',
+    name: 'Omni Flash',
+    badge: 'Admin · temp',
+    tagline: 'Gemini Omni Flash on Vertex — cheaper stopgap while BytePlus is being set up',
+    excels: [
+      'Runs on our existing Vertex $300 trial credit',
+      'Cheaper per second than Seedance at both 720p and 1080p',
+      'Solid natural motion for talking-head UGC',
+      '5-8 second clips',
+    ],
+    caveat: '5-8s clips only, admin-only until BytePlus lands',
+    durations: [5, 6, 8],
+    credits: { 5: 0, 6: 0, 8: 0 },
+  },
 ]
 
 interface VideoState {
   predictionId: string
-  provider: 'seedance-2'
+  provider: 'seedance-2' | 'omni-flash'
   status: 'processing' | 'completed' | 'failed'
   videoUrl?: string
   error?: string
@@ -89,9 +105,19 @@ const SEEDANCE_MINI_CR_PER_SECOND: Record<'480p' | '720p', number> = {
   '480p': 3,   // $0.04/s
   '720p': 7,   // $0.09/s
 }
+// Gemini Omni Flash on Vertex — admin-only. Priced in line with Veo 2's
+// $0.35/s at 720p and $0.60/s at 1080p, with our 1.8× markup. Kept below
+// Seedance so admins have an incentive to test-drive it.
+const OMNI_FLASH_CR_PER_SECOND: Record<'720p' | '1080p', number> = {
+  '720p': 11,
+  '1080p': 19,
+}
 function perSecondFor(model: Model, resolution: Resolution): number {
   if (model === 'seedance-mini') {
     return SEEDANCE_MINI_CR_PER_SECOND[resolution === '480p' ? '480p' : '720p']
+  }
+  if (model === 'omni-flash') {
+    return OMNI_FLASH_CR_PER_SECOND[resolution === '1080p' ? '1080p' : '720p']
   }
   return SEEDANCE_CR_PER_SECOND[resolution]
 }
@@ -109,6 +135,17 @@ function getSeedancePerSecond(resolution: Resolution, withAudio: boolean, model:
 
 export default function VideoGeneratorPage() {
   const [model, setModel] = useState<Model>('seedance-2')
+  // Admin gate for the temporary Omni Flash engine. Loaded from the current
+  // session — if the user isn't on the ADMIN_EMAILS list the chip isn't
+  // rendered and the server would ignore the flag anyway.
+  const [showOmniFlash, setShowOmniFlash] = useState(false)
+  useEffect(() => {
+    const supabase = getSupabase()
+    if (!supabase) return
+    supabase.auth.getSession().then((res: { data: { session: { user?: { email?: string | null } } | null } }) => {
+      setShowOmniFlash(canAccessOmniFlashVideo(res.data.session?.user?.email ?? null))
+    })
+  }, [])
   const [prompt, setPrompt] = useState('')
   const [rewriting, setRewriting] = useState(false)
   // Director mode: one-line intent -> Sonnet-directed Seedance prompt +
@@ -391,7 +428,7 @@ export default function VideoGeneratorPage() {
 
       setVideo({
         predictionId: data.predictionId,
-        provider: 'seedance-2',
+        provider: model === 'omni-flash' ? 'omni-flash' : 'seedance-2',
         status: 'processing',
       })
       refreshCredits()
@@ -419,9 +456,10 @@ export default function VideoGeneratorPage() {
         </p>
       </header>
 
-      {/* Model picker — Seedance 2.0 (default) vs Mini (low budget). */}
+      {/* Model picker — Seedance 2.0 (default) vs Mini (low budget) vs
+          admin-only Omni Flash while BytePlus is being set up. */}
       <div className="vid-models" style={{ marginBottom: 24, display: 'flex', gap: 10 }}>
-        {MODELS.map(m => {
+        {MODELS.filter(m => m.id !== 'omni-flash' || showOmniFlash).map(m => {
           const active = model === m.id
           return (
             <button
@@ -430,6 +468,7 @@ export default function VideoGeneratorPage() {
               onClick={() => {
                 setModel(m.id)
                 if (m.id === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) setResolution('720p')
+                if (m.id === 'omni-flash' && (resolution === '480p' || resolution === '4k')) setResolution('720p')
               }}
               style={{
                 flex: 1, textAlign: 'left', padding: '14px 18px', borderRadius: 14, cursor: 'pointer',
@@ -441,7 +480,7 @@ export default function VideoGeneratorPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 14, fontWeight: 700 }}>{m.id === 'seedance-mini' ? 'Seedance Mini' : 'Seedance 2.0'}</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{m.id === 'seedance-mini' ? 'Seedance Mini' : m.id === 'omni-flash' ? 'Omni Flash · admin' : 'Seedance 2.0'}</span>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 999, background: active ? 'var(--on-ink)' : 'var(--surface-2)', color: active ? 'var(--ink)' : 'var(--ink-dim)' }}>{m.badge}</span>
               </div>
               <div style={{ fontSize: 11.5, opacity: 0.8 }}>{m.tagline}</div>

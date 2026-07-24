@@ -1,5 +1,7 @@
 import { deductCredits } from '@/lib/deduct-credits'
 import { submitSeedanceJob } from '@/lib/replicate'
+import { submitOmniFlashJob } from '@/lib/vertex-video'
+import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { generateTextToImage } from '@/lib/nanobanana'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -33,11 +35,26 @@ const NO_AUDIO_MULTIPLIER = 0.85
 // Keep in sync with CINEMOTION_CR on the client.
 const CINEMOTION_CR = 14
 
+// Gemini Omni Flash on Vertex — admin-only. Priced roughly in line with
+// Vertex Veo 2's $0.35/s at 720p and $0.60/s at 1080p, with our 1.8×
+// markup applied. Kept below Seedance so admins have an incentive to
+// test-drive it while BytePlus setup wraps up.
+const OMNI_FLASH_CR_PER_SECOND: Record<string, number> = {
+  '720p': 11,   // ~$0.35/s raw × 1.8
+  '1080p': 19,  // ~$0.60/s raw × 1.8
+}
+
 function getCost(model: string, duration: number, resolution?: string, withAudio: boolean = true, cinemotion: boolean = false): number {
   if (model === 'seedance-2' || model === 'seedance-mini') {
     const table = model === 'seedance-mini' ? SEEDANCE_MINI_CR_PER_SECOND : SEEDANCE_CR_PER_SECOND
     const res = model === 'seedance-mini' && resolution !== '480p' ? '720p' : (resolution ?? '720p')
     const per = table[res] ?? table['720p']
+    const base = duration * per
+    return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER)) + (cinemotion ? CINEMOTION_CR : 0)
+  }
+  if (model === 'omni-flash') {
+    const res = resolution === '1080p' ? '1080p' : '720p'
+    const per = OMNI_FLASH_CR_PER_SECOND[res]
     const base = duration * per
     return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER)) + (cinemotion ? CINEMOTION_CR : 0)
   }
@@ -120,8 +137,14 @@ export async function POST(request: NextRequest) {
     let hyperOpeningFrame: string | null = null
     if (!prompt && !hyperMotion) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
 
-    // Seedance 2.0 (default) or Seedance Mini (~half price, 720p cap).
-    const model: 'seedance-2' | 'seedance-mini' = body.model === 'seedance-mini' ? 'seedance-mini' : 'seedance-2'
+    // Seedance 2.0 (default), Seedance Mini (~half price, 720p cap), or
+    // admin-only Gemini Omni Flash while BytePlus is being provisioned.
+    const requestedModel = body.model
+    const canUseOmniFlash = canAccessOmniFlashVideo(userData.user?.email)
+    const model: 'seedance-2' | 'seedance-mini' | 'omni-flash' =
+      requestedModel === 'omni-flash' && canUseOmniFlash ? 'omni-flash'
+      : requestedModel === 'seedance-mini' ? 'seedance-mini'
+      : 'seedance-2'
     const duration = Number(body.duration ?? 5)
     let resolution: '480p' | '720p' | '1080p' | '4k' =
       body.resolution === '480p' || body.resolution === '1080p' || body.resolution === '4k'
@@ -312,18 +335,48 @@ OUTPUT: return ONLY valid JSON, no markdown:
       }
     }
 
-    const seedanceJob = await submitSeedanceJob({
-      prompt,
-      durationSeconds: duration,
-      aspectRatio,
-      startImageUrl,
-      resolution,
-      enableAudio: withAudio,
-      engine: model,
-      referenceImageUrls,
-    })
-    const predictionId = seedanceJob.predictionId
-    const provider = 'seedance-2'
+    let predictionId: string
+    let provider: 'seedance-2' | 'omni-flash'
+    if (model === 'omni-flash') {
+      // Omni Flash is admin-only and lives on Vertex — no reference-only path,
+      // and the first frame needs to be inlined as base64 (Vertex doesn't
+      // fetch by URL). Skip the frame if it isn't a Supabase URL we can pull.
+      let startImageBase64: string | undefined
+      let startImageMimeType: string | undefined
+      if (startImageUrl) {
+        try {
+          const r = await fetch(startImageUrl)
+          if (r.ok) {
+            startImageBase64 = Buffer.from(await r.arrayBuffer()).toString('base64')
+            startImageMimeType = r.headers.get('content-type') || 'image/png'
+          }
+        } catch { /* soft fail — text-only render */ }
+      }
+      const omni = await submitOmniFlashJob({
+        prompt,
+        durationSeconds: duration,
+        aspectRatio,
+        resolution: resolution === '4k' || resolution === '480p' ? '1080p' : (resolution as '720p' | '1080p'),
+        enableAudio: withAudio,
+        startImageBase64,
+        startImageMimeType,
+      })
+      predictionId = omni.predictionId
+      provider = 'omni-flash'
+    } else {
+      const seedanceJob = await submitSeedanceJob({
+        prompt,
+        durationSeconds: duration,
+        aspectRatio,
+        startImageUrl,
+        resolution,
+        enableAudio: withAudio,
+        engine: model,
+        referenceImageUrls,
+      })
+      predictionId = seedanceJob.predictionId
+      provider = 'seedance-2'
+    }
 
     // Save to library as processing, deduct credits
     const { data: contentRow } = await supabase.from('ugc_content').insert({

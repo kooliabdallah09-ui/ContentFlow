@@ -3,6 +3,8 @@ import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { deductCredits } from '@/lib/deduct-credits'
 import { submitSeedanceJob } from '@/lib/replicate'
+import { submitOmniFlashJob } from '@/lib/vertex-video'
+import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { refineProductInFrame, renderCutawayFrame } from '@/lib/nanobanana'
 import { planCutaways, cutawayFramePrompt, cutawayMotionPrompt, inferProductCategory, type CutawaySlot } from '@/lib/multi-shot'
 import { gridifyWithValidation, GRID_RETRIES, gridify, isSensitivityFlag, attachProductReference } from '@/lib/gridify'
@@ -70,7 +72,14 @@ export async function POST(request: NextRequest) {
           .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
       : []
     const safeVideoDirection = typeof videoDirection === 'string' ? videoDirection.slice(0, 2000) : undefined
-    const engine: 'seedance-2' | 'seedance-mini' = engineRaw === 'seedance-mini' ? 'seedance-mini' : 'seedance-2'
+    // Admin-only Gemini Omni Flash (Vertex Veo) alternative to Seedance
+    // while BytePlus direct is being provisioned. Non-admins silently fall
+    // back to Seedance if they somehow send engine: 'omni-flash'.
+    const canUseOmniFlash = canAccessOmniFlashVideo(userData.user?.email)
+    const engine: 'seedance-2' | 'seedance-mini' | 'omni-flash' =
+      engineRaw === 'omni-flash' && canUseOmniFlash ? 'omni-flash'
+      : engineRaw === 'seedance-mini' ? 'seedance-mini'
+      : 'seedance-2'
     let resolution: '480p' | '720p' | '1080p' | '4k' =
       resolutionRaw === '480p' || resolutionRaw === '720p' || resolutionRaw === '4k' ? resolutionRaw : '1080p'
     // Mini caps at 720p — clamp both the render and the charge.
@@ -302,31 +311,55 @@ export async function POST(request: NextRequest) {
     })
 
     // Seedance submission with sensitivity retry across the grid ladder.
+    // Omni Flash is admin-only and skips the ladder — it goes through Vertex
+    // and doesn't share Seedance's E006 / reference-images edge cases.
     let primary: { predictionId: string } | undefined
     let sensitivityRetries: Array<{ attempt: number; error: string }> = []
-    for (let i = currentGridAttemptIdx; i < GRID_RETRIES.length; i++) {
+    if (engine === 'omni-flash') {
+      // Fetch the first frame as base64 since Vertex doesn't fetch by URL.
+      let startImageBase64: string | undefined
+      let startImageMimeType: string | undefined
       try {
-        primary = await submitSeedanceJob({
-          prompt: seedancePrompt,
-          durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
-          aspectRatio: aspect.nanoBananaRatio,
-          startImageUrl: currentGridUrl,
-          resolution,
-          enableAudio: true,
-          engine,
-        })
-        break
-      } catch (err) {
-        if (!isSensitivityFlag(err) || i === GRID_RETRIES.length - 1) throw err
-        sensitivityRetries.push({ attempt: i + 1, error: err instanceof Error ? err.message : 'unknown' })
-        // Regridify with the next parameter set and re-upload.
-        const nextParams = GRID_RETRIES[i + 1]
-        currentGridBuf = await gridify(anchorSourceBuf, nextParams)
-        currentGridParams = nextParams
-        currentGridUrl = await uploadGrid(currentGridBuf)
+        const r = await fetch(currentGridUrl)
+        if (r.ok) {
+          startImageBase64 = Buffer.from(await r.arrayBuffer()).toString('base64')
+          startImageMimeType = r.headers.get('content-type') || 'image/png'
+        }
+      } catch { /* soft fail — text-only render */ }
+      primary = await submitOmniFlashJob({
+        prompt: seedancePrompt,
+        durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
+        aspectRatio: aspect.nanoBananaRatio === '3:4' ? '9:16' : aspect.nanoBananaRatio,
+        resolution: resolution === '1080p' ? '1080p' : '720p',
+        enableAudio: true,
+        startImageBase64,
+        startImageMimeType,
+      })
+    } else {
+      for (let i = currentGridAttemptIdx; i < GRID_RETRIES.length; i++) {
+        try {
+          primary = await submitSeedanceJob({
+            prompt: seedancePrompt,
+            durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
+            aspectRatio: aspect.nanoBananaRatio,
+            startImageUrl: currentGridUrl,
+            resolution,
+            enableAudio: true,
+            engine,
+          })
+          break
+        } catch (err) {
+          if (!isSensitivityFlag(err) || i === GRID_RETRIES.length - 1) throw err
+          sensitivityRetries.push({ attempt: i + 1, error: err instanceof Error ? err.message : 'unknown' })
+          // Regridify with the next parameter set and re-upload.
+          const nextParams = GRID_RETRIES[i + 1]
+          currentGridBuf = await gridify(anchorSourceBuf, nextParams)
+          currentGridParams = nextParams
+          currentGridUrl = await uploadGrid(currentGridBuf)
+        }
       }
     }
-    if (!primary) throw new Error('Seedance submission failed across every grid retry')
+    if (!primary) throw new Error(`${engine === 'omni-flash' ? 'Omni Flash' : 'Seedance'} submission failed`)
     // Legacy multi-clip chaining removed — Seedance covers the full duration in one clip.
     const secondary: { predictionId: string } | undefined = undefined
     void secondary
