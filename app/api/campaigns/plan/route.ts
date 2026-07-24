@@ -15,8 +15,11 @@ interface PlannedShot {
   position: number
   format_key: string
   hook: string
+  script: string
+  cta: string
   caption: string
   setting: string
+  visual_notes?: string
   aspect?: string
   duration?: number
   notes?: string
@@ -77,8 +80,14 @@ export async function POST(request: NextRequest) {
 CRITICAL RULES:
 1. Every shot's "format_key" MUST be one of the exact keys from the catalog below. Never invent a key.
 2. Aim for balance: ~60% video shots, ~25% photo shots, ~15% experimental / two-person. Vary hooks, settings, aspects.
-3. Every hook = one specific line (not "generic hook"). Every caption = the on-post copy including relevant emojis if the brand voice fits. Every setting = a concrete place ("Brooklyn café at 9am", not "urban environment").
-4. Return STRICT JSON with shape: {"shots":[{"position":1,"format_key":"...","hook":"...","caption":"...","setting":"...","aspect":"9:16","duration":15,"notes":"optional 1-liner"} ...]}
+3. Every field is CONCRETE, not generic:
+   - hook = one specific opening line (spoken or text overlay).
+   - script = the FULL spoken/on-screen dialogue, beat by beat, matching the duration. Split with line breaks if there are multiple beats. For no-dialogue formats (aesthetic-broll, unboxing-asmr, hyper-motion, product-showcase), write the text overlays / ASMR sound cues instead.
+   - cta = the closing call to action (one line — "Link in bio", "Try HiGG today", "Grab yours before it drops", etc.).
+   - setting = a concrete place ("Brooklyn café at 9am", not "urban environment").
+   - visual_notes = 1-2 sentences on camera moves + key visual beats ("cold open on hand grabbing bottle → cut to sip → slow zoom on smile").
+   - caption = the on-post copy including relevant emojis + hashtags if the brand voice fits.
+4. Return STRICT JSON with shape: {"shots":[{"position":1,"format_key":"...","hook":"...","script":"...","cta":"...","setting":"...","visual_notes":"...","caption":"...","aspect":"9:16","duration":15,"notes":"optional 1-liner"} ...]}
 5. No preamble, no code fences. Just the JSON object.
 
 FORMAT CATALOG (use these keys):
@@ -170,8 +179,11 @@ Return the JSON shot list now.`
         pipeline: fmt.pipeline,
         spec: {
           hook: (s.hook ?? '').toString().slice(0, 500),
+          script: (s.script ?? '').toString().slice(0, 1600),
+          cta: (s.cta ?? '').toString().slice(0, 200),
           caption: (s.caption ?? '').toString().slice(0, 800),
           setting: (s.setting ?? '').toString().slice(0, 400),
+          visual_notes: (s.visual_notes ?? '').toString().slice(0, 500),
           aspect: (s.aspect as string) ?? fmt.defaultAspect,
           duration: typeof s.duration === 'number' ? s.duration : fmt.defaultDuration,
           notes: (s.notes ?? '').toString().slice(0, 400),

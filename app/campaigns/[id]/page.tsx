@@ -34,8 +34,11 @@ interface Shot {
   pipeline: string
   spec: {
     hook?: string
+    script?: string
+    cta?: string
     caption?: string
     setting?: string
+    visual_notes?: string
     aspect?: string
     duration?: number
     notes?: string
@@ -132,6 +135,16 @@ export default function CampaignDetailPage() {
   }
 
   async function commitSpec(shot: Shot, key: keyof Shot['spec'], value: string | number) {
+    // Duration changes rescale credits proportionally.
+    if (key === 'duration' && typeof value === 'number') {
+      const fmt = getCampaignFormat(shot.format_key)
+      if (fmt && fmt.defaultDuration > 0) {
+        const newCredits = Math.max(1, Math.round(fmt.creditHint * value / fmt.defaultDuration))
+        setShots(prev => prev.map(s => s.id === shot.id ? { ...s, credit_hint: newCredits } : s))
+        await patchShot(shot.id, { spec: { [key]: value }, credit_hint: newCredits })
+        return
+      }
+    }
     await patchShot(shot.id, { spec: { [key]: value } })
   }
 
@@ -222,116 +235,158 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
-      {/* Table */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: 'var(--surface-2)', borderBottom: '1px solid var(--border)', textAlign: 'left', color: 'var(--ink-2)', fontSize: 11.5, letterSpacing: 0.4, textTransform: 'uppercase' }}>
-                <th style={{ padding: '10px 8px', width: 32 }}></th>
-                <th style={{ padding: '10px 8px', width: 30 }}>#</th>
-                <th style={{ padding: '10px 8px', minWidth: 140 }}>Format</th>
-                <th style={{ padding: '10px 8px', minWidth: 220 }}>Hook</th>
-                <th style={{ padding: '10px 8px', minWidth: 160 }}>Setting</th>
-                <th style={{ padding: '10px 8px', width: 70 }}>Aspect</th>
-                <th style={{ padding: '10px 8px', width: 70 }}>Dur</th>
-                <th style={{ padding: '10px 8px', minWidth: 220 }}>Caption</th>
-                <th style={{ padding: '10px 8px', width: 70 }}>Credits</th>
-                <th style={{ padding: '10px 8px', width: 120 }}></th>
-              </tr>
-            </thead>
-            <tbody>
-              {shots.map(shot => {
-                const fmt = getCampaignFormat(shot.format_key)
-                const saving = savingIds.has(shot.id)
-                return (
-                  <tr key={shot.id} style={{ borderBottom: '1px solid var(--border)', opacity: shot.selected ? 1 : 0.55 }}>
-                    <td style={{ padding: '10px 8px' }}>
-                      <input type="checkbox" checked={shot.selected} onChange={() => toggleSelected(shot)} />
-                    </td>
-                    <td style={{ padding: '10px 8px', color: 'var(--ink-2)' }}>{shot.position}</td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <div style={{ fontWeight: 600 }}>{fmt?.label ?? shot.format_key}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>{fmt?.category ?? shot.pipeline}</div>
-                    </td>
-                    <td style={{ padding: '6px 8px' }}>
-                      <textarea
-                        value={shot.spec.hook ?? ''}
-                        onChange={e => updateSpec(shot.id, 'hook', e.target.value)}
-                        onBlur={e => commitSpec(shot, 'hook', e.target.value)}
-                        rows={2}
-                        style={inputStyle}
-                      />
-                    </td>
-                    <td style={{ padding: '6px 8px' }}>
-                      <textarea
-                        value={shot.spec.setting ?? ''}
-                        onChange={e => updateSpec(shot.id, 'setting', e.target.value)}
-                        onBlur={e => commitSpec(shot, 'setting', e.target.value)}
-                        rows={2}
-                        style={inputStyle}
-                      />
-                    </td>
-                    <td style={{ padding: '6px 8px' }}>
-                      <select
-                        value={shot.spec.aspect ?? fmt?.defaultAspect ?? '9:16'}
-                        onChange={e => { updateSpec(shot.id, 'aspect', e.target.value); void commitSpec(shot, 'aspect', e.target.value) }}
-                        style={selectStyle}
-                      >
-                        {aspectOptions.map(a => <option key={a} value={a}>{a}</option>)}
-                      </select>
-                    </td>
-                    <td style={{ padding: '6px 8px' }}>
-                      {(fmt?.defaultDuration ?? 0) > 0 ? (
-                        <input
-                          type="number"
-                          min={4} max={30}
-                          value={shot.spec.duration ?? fmt?.defaultDuration ?? 0}
-                          onChange={e => updateSpec(shot.id, 'duration', Number(e.target.value))}
-                          onBlur={e => commitSpec(shot, 'duration', Number(e.target.value))}
-                          style={{ ...inputStyle, width: 55, textAlign: 'center' }}
-                        />
-                      ) : (
-                        <span style={{ color: 'var(--ink-2)', fontSize: 12 }}>—</span>
-                      )}
-                    </td>
-                    <td style={{ padding: '6px 8px' }}>
-                      <textarea
-                        value={shot.spec.caption ?? ''}
-                        onChange={e => updateSpec(shot.id, 'caption', e.target.value)}
-                        onBlur={e => commitSpec(shot, 'caption', e.target.value)}
-                        rows={2}
-                        style={inputStyle}
-                      />
-                    </td>
-                    <td style={{ padding: '10px 8px', textAlign: 'center', fontWeight: 600, color: 'var(--ink-2)' }}>{shot.credit_hint}</td>
-                    <td style={{ padding: '10px 8px' }}>
-                      <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'flex-end' }}>
-                        {saving && <Loader2 size={12} className="spin" />}
-                        <Link
-                          href={builderUrl(shot, campaign.product_id, campaign.id)}
-                          className="btn btn-ghost"
-                          style={{ padding: '5px 8px', fontSize: 11.5 }}
-                          title="Open in Builder"
-                        >
-                          <ExternalLink size={12} />
-                        </Link>
-                        <button
-                          onClick={() => deleteShot(shot)}
-                          className="btn btn-ghost"
-                          style={{ padding: '5px 8px', fontSize: 11.5, color: '#c33' }}
-                          title="Delete row"
-                        >
-                          <Trash2 size={12} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+      {/* Cards */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {shots.map(shot => {
+          const fmt = getCampaignFormat(shot.format_key)
+          const saving = savingIds.has(shot.id)
+          const isPhoto = (fmt?.defaultDuration ?? 0) === 0
+          return (
+            <div
+              key={shot.id}
+              style={{
+                background: 'var(--surface)',
+                border: `1.5px solid ${shot.selected ? 'var(--ink)' : 'var(--border)'}`,
+                borderRadius: 12,
+                padding: 16,
+                opacity: shot.selected ? 1 : 0.6,
+                transition: 'opacity 0.15s, border-color 0.15s',
+              }}
+            >
+              {/* Header row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+                <input type="checkbox" checked={shot.selected} onChange={() => toggleSelected(shot)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
+                <div style={{ fontSize: 12, color: 'var(--ink-2)', fontWeight: 600, minWidth: 24 }}>#{shot.position}</div>
+                <div style={{ flex: 1, minWidth: 200 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>{fmt?.label ?? shot.format_key}</div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2 }}>{fmt?.tagline ?? shot.pipeline}</div>
+                </div>
+
+                {/* Aspect chip */}
+                <label style={chipLabel}>
+                  <span style={chipKey}>Aspect</span>
+                  <select
+                    value={shot.spec.aspect ?? fmt?.defaultAspect ?? '9:16'}
+                    onChange={e => { updateSpec(shot.id, 'aspect', e.target.value); void commitSpec(shot, 'aspect', e.target.value) }}
+                    style={chipInput}
+                  >
+                    {aspectOptions.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </label>
+
+                {/* Duration chip (only for video formats) */}
+                {!isPhoto && (
+                  <label style={chipLabel}>
+                    <span style={chipKey}>Duration</span>
+                    <input
+                      type="number"
+                      min={4} max={30}
+                      value={shot.spec.duration ?? fmt?.defaultDuration ?? 0}
+                      onChange={e => updateSpec(shot.id, 'duration', Number(e.target.value))}
+                      onBlur={e => commitSpec(shot, 'duration', Number(e.target.value))}
+                      style={{ ...chipInput, width: 50, textAlign: 'center' }}
+                    />
+                    <span style={{ fontSize: 11.5, color: 'var(--ink-2)' }}>s</span>
+                  </label>
+                )}
+
+                {/* Credits chip */}
+                <div style={{ ...chipLabel, background: 'var(--surface-2)' }}>
+                  <span style={chipKey}>Credits</span>
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>{shot.credit_hint}</span>
+                </div>
+
+                {/* Actions */}
+                <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                  {saving && <Loader2 size={13} className="spin" style={{ color: 'var(--ink-2)' }} />}
+                  <Link
+                    href={builderUrl(shot, campaign.product_id, campaign.id)}
+                    className="btn btn-ghost"
+                    style={{ padding: '6px 10px', fontSize: 12, gap: 5, display: 'inline-flex', alignItems: 'center' }}
+                    title="Open in Builder"
+                  >
+                    <ExternalLink size={13} /> Builder
+                  </Link>
+                  <button
+                    onClick={() => deleteShot(shot)}
+                    className="btn btn-ghost"
+                    style={{ padding: '6px 8px', color: '#c33' }}
+                    title="Delete shot"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Editable fields — grouped by function */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                <FieldBlock label="Hook">
+                  <textarea
+                    value={shot.spec.hook ?? ''}
+                    onChange={e => updateSpec(shot.id, 'hook', e.target.value)}
+                    onBlur={e => commitSpec(shot, 'hook', e.target.value)}
+                    rows={2}
+                    style={roomyInput}
+                  />
+                </FieldBlock>
+                <FieldBlock label="Setting">
+                  <textarea
+                    value={shot.spec.setting ?? ''}
+                    onChange={e => updateSpec(shot.id, 'setting', e.target.value)}
+                    onBlur={e => commitSpec(shot, 'setting', e.target.value)}
+                    rows={2}
+                    style={roomyInput}
+                  />
+                </FieldBlock>
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <FieldBlock label="Script / Dialogue">
+                  <textarea
+                    value={shot.spec.script ?? ''}
+                    onChange={e => updateSpec(shot.id, 'script', e.target.value)}
+                    onBlur={e => commitSpec(shot, 'script', e.target.value)}
+                    rows={5}
+                    style={{ ...roomyInput, minHeight: 130, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13 }}
+                  />
+                </FieldBlock>
+              </div>
+
+              <div style={{ marginBottom: 12 }}>
+                <FieldBlock label="Visual notes / Beats">
+                  <textarea
+                    value={shot.spec.visual_notes ?? ''}
+                    onChange={e => updateSpec(shot.id, 'visual_notes', e.target.value)}
+                    onBlur={e => commitSpec(shot, 'visual_notes', e.target.value)}
+                    rows={2}
+                    style={roomyInput}
+                  />
+                </FieldBlock>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: 12 }}>
+                <FieldBlock label="CTA">
+                  <textarea
+                    value={shot.spec.cta ?? ''}
+                    onChange={e => updateSpec(shot.id, 'cta', e.target.value)}
+                    onBlur={e => commitSpec(shot, 'cta', e.target.value)}
+                    rows={2}
+                    style={roomyInput}
+                  />
+                </FieldBlock>
+                <FieldBlock label="Caption (on-post copy)">
+                  <textarea
+                    value={shot.spec.caption ?? ''}
+                    onChange={e => updateSpec(shot.id, 'caption', e.target.value)}
+                    onBlur={e => commitSpec(shot, 'caption', e.target.value)}
+                    rows={2}
+                    style={roomyInput}
+                  />
+                </FieldBlock>
+              </div>
+            </div>
+          )
+        })}
       </div>
 
       {shots.length === 0 && (
@@ -343,25 +398,55 @@ export default function CampaignDetailPage() {
   )
 }
 
-const inputStyle: React.CSSProperties = {
-  width: '100%',
-  padding: '6px 8px',
-  fontSize: 12.5,
-  fontFamily: 'inherit',
-  border: '1px solid var(--border)',
-  borderRadius: 6,
-  background: 'var(--surface)',
-  color: 'var(--ink)',
-  resize: 'vertical',
-  minHeight: 40,
-  lineHeight: 1.35,
+function FieldBlock({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, color: 'var(--ink-2)', marginBottom: 5, textTransform: 'uppercase' }}>{label}</div>
+      {children}
+    </div>
+  )
 }
 
-const selectStyle: React.CSSProperties = {
-  padding: '6px 8px',
-  fontSize: 12.5,
+const roomyInput: React.CSSProperties = {
+  width: '100%',
+  padding: '10px 12px',
+  fontSize: 13.5,
+  lineHeight: 1.5,
+  fontFamily: 'inherit',
   border: '1px solid var(--border)',
-  borderRadius: 6,
-  background: 'var(--surface)',
+  borderRadius: 8,
+  background: 'var(--surface-2)',
   color: 'var(--ink)',
+  resize: 'vertical',
+  minHeight: 82,
 }
+
+const chipLabel: React.CSSProperties = {
+  display: 'inline-flex',
+  alignItems: 'center',
+  gap: 6,
+  padding: '5px 10px',
+  border: '1px solid var(--border)',
+  borderRadius: 8,
+  background: 'var(--surface)',
+  fontSize: 12,
+}
+
+const chipKey: React.CSSProperties = {
+  fontSize: 10.5,
+  fontWeight: 700,
+  color: 'var(--ink-2)',
+  textTransform: 'uppercase',
+  letterSpacing: 0.5,
+}
+
+const chipInput: React.CSSProperties = {
+  padding: '3px 6px',
+  fontSize: 12.5,
+  fontFamily: 'inherit',
+  border: 'none',
+  background: 'transparent',
+  color: 'var(--ink)',
+  outline: 'none',
+}
+
