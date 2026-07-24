@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { CAMPAIGN_FORMATS, CAMPAIGN_FORMAT_KEYS, getCampaignFormat } from '@/lib/campaign-formats'
 import { loadBrandContext } from '@/lib/brand-context'
+import { analyzeInspiration } from '@/lib/inspiration-fetch'
 
 export const maxDuration = 90
 
@@ -72,6 +73,15 @@ export async function POST(request: NextRequest) {
 
     const wantCount = Math.max(8, Math.min(40, typeof targetCount === 'number' ? targetCount : 24))
 
+    // ── Fetch any URLs the user pasted in inspiration notes ───────
+    let inspirationSection = ''
+    if (typeof inspiration === 'string' && inspiration.trim()) {
+      const { urls, summary } = await analyzeInspiration(inspiration).catch(() => ({ urls: [], summary: '' }))
+      const notes = inspiration.slice(0, 4000)
+      const fetched = summary ? `\n\nFETCHED PAGE CONTENT from the URLs the user pasted (${urls.length} sources, use these to identify winning hooks, formats, tones — don't just quote, extract patterns):\n${summary}` : ''
+      inspirationSection = `\nINSPIRATION / COMPETITOR / TREND NOTES from the user — use these to anchor hooks and formats to what's actually working right now:\n${notes}${fetched}`
+    }
+
     // ── Ask Sonnet for the shot list ──────────────────────────────
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const formatCatalog = CAMPAIGN_FORMATS.map(f => `- ${f.key} · ${f.label} · ${f.tagline} · pipeline=${f.pipeline} · defaultDur=${f.defaultDuration}s · aspect=${f.defaultAspect}`).join('\n')
@@ -108,7 +118,7 @@ CAMPAIGN BRIEF: ${typeof brief === 'string' ? brief : '(none)'}
 Goal: ${typeof goal === 'string' ? goal : 'awareness'}
 Duration: ${typeof durationLabel === 'string' ? durationLabel : '2 weeks'}
 Target shot count: ${wantCount}
-${typeof inspiration === 'string' && inspiration.trim() ? `\nINSPIRATION / COMPETITOR / TREND NOTES from the user — use these to anchor hooks and formats to what's actually working right now:\n${inspiration.slice(0, 4000)}` : ''}
+${inspirationSection}
 
 Return the JSON shot list now.`
 
