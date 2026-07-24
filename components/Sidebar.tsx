@@ -78,6 +78,11 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
 
       <div className="rail-section">
         <div className="rail-label">Create</div>
+        <Link href="/campaigns" className={`nav-item ${isActive('/campaigns') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Calendar />
+          <span style={{ flex: 1 }}>Campaigns</span>
+          <span className="flagship-badge">New</span>
+        </Link>
         <Link href="/generate/ugc" className={`nav-item ${isActive('/generate/ugc') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Video />
           <span style={{ flex: 1 }}>UGC Package</span>
