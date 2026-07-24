@@ -92,6 +92,11 @@ export default function InfluencersPage() {
   // finalize call updates that row instead of inserting a new one.
   const [candidateUpdateId, setCandidateUpdateId] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState(false)
+  // Small popovers over the Regenerate look / Regenerate sheet buttons so
+  // the user picks NB Pro vs NB2 (and 2K vs 4K for the sheet) without a
+  // native prompt() interstitial.
+  const [regenMenuOpen, setRegenMenuOpen] = useState(false)
+  const [sheetMenuOpen, setSheetMenuOpen] = useState(false)
   const [showCreate, setShowCreate] = useState(false)
   const [refImages, setRefImages] = useState<CompressedImage[]>([])
   // Structured identity traits — every selected one is a hard lock the AI
@@ -297,17 +302,19 @@ export default function InfluencersPage() {
     setCandidates([]); setCandidateIdentity(null); setCandidateReferenceUrls([]); setCandidateUpdateId(null)
   }
 
-  async function regenerateLook() {
+  async function regenerateLook(model: 'pro' | 'nb2' = 'pro') {
     if (!selected) return
-    if (!confirm(`Regenerate ${selected.name}'s look with the new visual guidelines? Costs 32 cr (Nano Banana Pro). Your existing photos and identity stay the same — only the portrait + character sheet get replaced.`)) return
+    const label = model === 'pro' ? 'Nano Banana Pro · 32 cr' : 'Nano Banana 2 · 20 cr (cheaper, slightly less accurate)'
+    if (!confirm(`Regenerate ${selected.name}'s look with the new visual guidelines using ${label}?\n\nYour existing photos and identity stay the same — only the portrait + character sheet get replaced.`)) return
     setRegenerating(true)
+    setRegenMenuOpen(false)
     try {
       const token = await getToken()
       if (!token) throw new Error('Not signed in')
       const res = await fetch(`/api/influencers/${selected.id}/regenerate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ model: 'pro' }),
+        body: JSON.stringify({ model }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Regenerate failed')
@@ -338,15 +345,17 @@ export default function InfluencersPage() {
     }
   }
 
-  async function generateSheet() {
+  async function generateSheet(resolution: '2K' | '4K' = '2K') {
     if (!selected) return
     setSheetLoading(true)
+    setSheetMenuOpen(false)
     try {
       const token = await getToken()
       if (!token) throw new Error('Not signed in')
       const res = await fetch(`/api/influencers/${selected.id}/character-sheet`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ resolution }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Sheet generation failed')
@@ -492,27 +501,111 @@ export default function InfluencersPage() {
               <button onClick={useInUgc} disabled={bridging} className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 {bridging ? <Loader2 size={14} className="animate-spin" /> : <Clapperboard size={14} />} Use in UGC
               </button>
-              <button
-                onClick={regenerateLook}
-                disabled={regenerating}
-                title="Rewrite the appearance with the current visual guidelines and pick a fresh portrait (32 cr NB Pro)"
-                style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-              >
-                {regenerating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Regenerate look
-              </button>
+              {/* Regenerate look — small popover to pick NB Pro (higher
+                  fidelity, 32 cr) or NB 2 (cheaper, 20 cr). */}
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={() => setRegenMenuOpen(o => !o)}
+                  disabled={regenerating}
+                  title="Rewrite the appearance with the current visual guidelines and pick a fresh portrait"
+                  style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                >
+                  {regenerating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Regenerate look <span style={{ opacity: 0.6, fontSize: 10 }}>▾</span>
+                </button>
+                {regenMenuOpen && (
+                  <div
+                    onMouseLeave={() => setRegenMenuOpen(false)}
+                    style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 6px 24px rgba(0,0,0,0.12)', overflow: 'hidden', minWidth: 220 }}
+                  >
+                    <button
+                      onClick={() => regenerateLook('pro')}
+                      style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+                    >
+                      <span style={{ fontWeight: 600 }}>Nano Banana Pro · 32 cr</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Best fidelity for face + identity</span>
+                    </button>
+                    <div style={{ height: 1, background: 'var(--border)' }} />
+                    <button
+                      onClick={() => regenerateLook('nb2')}
+                      style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+                    >
+                      <span style={{ fontWeight: 600 }}>Nano Banana 2 · 20 cr</span>
+                      <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Cheaper, slightly less accurate</span>
+                    </button>
+                  </div>
+                )}
+              </div>
               {selected.character_sheet_url ? (
                 <>
                   <button onClick={() => { setLightbox({ url: selected.character_sheet_url!, label: 'Character sheet' }); setLightboxZoom(false) }} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-2)', cursor: 'pointer' }}>
                     View character sheet
                   </button>
-                  <button onClick={generateSheet} disabled={sheetLoading} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet · 8 cr
-                  </button>
+                  {/* Regenerate sheet — popover to pick 2K (8 cr, default) or
+                      4K (14 cr, sharper close-ups for better identity anchor). */}
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setSheetMenuOpen(o => !o)}
+                      disabled={sheetLoading}
+                      style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    >
+                      {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet <span style={{ opacity: 0.6, fontSize: 10 }}>▾</span>
+                    </button>
+                    {sheetMenuOpen && (
+                      <div
+                        onMouseLeave={() => setSheetMenuOpen(false)}
+                        style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 6px 24px rgba(0,0,0,0.12)', overflow: 'hidden', minWidth: 220 }}
+                      >
+                        <button
+                          onClick={() => generateSheet('2K')}
+                          style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+                        >
+                          <span style={{ fontWeight: 600 }}>2K · 8 cr</span>
+                          <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Default — fine for downstream shoots</span>
+                        </button>
+                        <div style={{ height: 1, background: 'var(--border)' }} />
+                        <button
+                          onClick={() => generateSheet('4K')}
+                          style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+                        >
+                          <span style={{ fontWeight: 600 }}>4K · 14 cr</span>
+                          <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Sharper face close-ups, best identity anchor</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
-                <button onClick={generateSheet} disabled={sheetLoading} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                  {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Generate character sheet · 8 cr
-                </button>
+                <div style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => setSheetMenuOpen(o => !o)}
+                    disabled={sheetLoading}
+                    style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  >
+                    {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Generate character sheet <span style={{ opacity: 0.6, fontSize: 10 }}>▾</span>
+                  </button>
+                  {sheetMenuOpen && (
+                    <div
+                      onMouseLeave={() => setSheetMenuOpen(false)}
+                      style={{ position: 'absolute', top: 'calc(100% + 4px)', left: 0, zIndex: 50, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 6px 24px rgba(0,0,0,0.12)', overflow: 'hidden', minWidth: 220 }}
+                    >
+                      <button
+                        onClick={() => generateSheet('2K')}
+                        style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+                      >
+                        <span style={{ fontWeight: 600 }}>2K · 8 cr</span>
+                        <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Default — fine for downstream shoots</span>
+                      </button>
+                      <div style={{ height: 1, background: 'var(--border)' }} />
+                      <button
+                        onClick={() => generateSheet('4K')}
+                        style={{ width: '100%', textAlign: 'left', padding: '9px 12px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
+                      >
+                        <span style={{ fontWeight: 600 }}>4K · 14 cr</span>
+                        <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Sharper face close-ups, best identity anchor</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
               <button onClick={remove} disabled={deleting} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
                 <Trash2 size={13} /> Delete

@@ -10,7 +10,8 @@ import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 export const maxDuration = 120
 
-export const SHEET_CR = 8   // 1× NB Pro turnaround ≈ $0.14 raw × 1.4
+export const SHEET_CR = 8      // 2K NB Pro turnaround ≈ $0.14 raw × 1.4
+export const SHEET_4K_CR = 14  // 4K NB Pro turnaround ≈ $0.24 raw × 1.4
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -27,6 +28,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const userId = userData.user.id
     const { id } = await params
 
+    const body = await request.json().catch(() => ({}))
+    const resolution: '2K' | '4K' = body?.resolution === '4K' ? '4K' : '2K'
+    const cost = resolution === '4K' ? SHEET_4K_CR : SHEET_CR
+
     const { data: influencer } = await supabase
       .from('user_influencers')
       .select('id, appearance_prompt, portrait_url')
@@ -40,8 +45,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .select('balance, pack_credits')
       .eq('user_id', userId)
       .maybeSingle()
-    if (!credits || credits.balance < SHEET_CR) {
-      return NextResponse.json({ error: `Insufficient credits. Need ${SHEET_CR}.` }, { status: 402 })
+    if (!credits || credits.balance < cost) {
+      return NextResponse.json({ error: `Insufficient credits. Need ${cost}.` }, { status: 402 })
     }
 
     const sheetUrl = await generateCharacterSheet({
@@ -49,16 +54,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       influencerId: influencer.id,
       appearancePrompt: influencer.appearance_prompt,
       portraitUrl: influencer.portrait_url,
+      resolution,
     })
 
     const { newBalance, newPackCredits } = await deductCredits(
-      supabase, userId, SHEET_CR, credits.balance, credits.pack_credits ?? 0,
+      supabase, userId, cost, credits.balance, credits.pack_credits ?? 0,
     )
     await supabase.from('user_credits')
       .update({ balance: newBalance, pack_credits: newPackCredits })
       .eq('user_id', userId)
 
-    return NextResponse.json({ characterSheetUrl: sheetUrl, creditsCharged: SHEET_CR })
+    return NextResponse.json({ characterSheetUrl: sheetUrl, creditsCharged: cost })
   } catch (err) {
     console.error('[influencers/character-sheet] failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
