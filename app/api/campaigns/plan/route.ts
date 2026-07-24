@@ -6,7 +6,7 @@ import { loadBrandContext } from '@/lib/brand-context'
 import { analyzeInspiration } from '@/lib/inspiration-fetch'
 import { autoDiscoverTrendSources, formatSourcesForPrompt } from '@/lib/trends/web-search'
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 // Campaign Planner — one product + one brief → shot table.
 // Reads brand voice + product info + user brief, asks Sonnet to draft ~20-30
@@ -74,26 +74,48 @@ export async function POST(request: NextRequest) {
 
     const wantCount = Math.max(8, Math.min(40, typeof targetCount === 'number' ? targetCount : 24))
 
+    function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T, label: string): Promise<T> {
+      return Promise.race([
+        promise,
+        new Promise<T>(resolve => setTimeout(() => { console.warn(`[campaigns/plan] ${label} timed out after ${ms}ms`); resolve(fallback) }, ms)),
+      ])
+    }
+
+    const t0 = Date.now()
+
     // ── Fetch any URLs the user pasted in inspiration notes ───────
     let inspirationSection = ''
     if (typeof inspiration === 'string' && inspiration.trim()) {
-      const { urls, summary } = await analyzeInspiration(inspiration).catch(() => ({ urls: [], summary: '' }))
+      const { urls, summary } = await withTimeout(
+        analyzeInspiration(inspiration).catch(() => ({ urls: [] as string[], summary: '' })),
+        15000,
+        { urls: [], summary: '' },
+        'analyzeInspiration',
+      )
       const notes = inspiration.slice(0, 4000)
       const fetched = summary ? `\n\nFETCHED PAGE CONTENT from the URLs the user pasted (${urls.length} sources, use these to identify winning hooks, formats, tones — don't just quote, extract patterns):\n${summary}` : ''
       inspirationSection = `\nUSER INSPIRATION / COMPETITOR / TREND NOTES — use these to anchor hooks and formats to what's actually working right now:\n${notes}${fetched}`
     }
+    console.log(`[campaigns/plan] inspiration done in ${Date.now() - t0}ms`)
 
+    const t1 = Date.now()
     // ── Auto-discover trend sources via Tavily ────────────────────
     // Runs in parallel background; failure is silent (planner still works).
-    const autoTrends = await autoDiscoverTrendSources({
-      brand: brand?.companyName,
-      productName: product?.name,
-      productDescription: product?.description,
-      category: brand?.productType,
-      goal: typeof goal === 'string' ? goal : undefined,
-      audience: brand?.targetAudience,
-    }).catch(() => ({ queries: [] as string[], sources: [] as Array<{ url: string; title: string; excerpt: string; query: string }> }))
+    const autoTrends = await withTimeout(
+      autoDiscoverTrendSources({
+        brand: brand?.companyName,
+        productName: product?.name,
+        productDescription: product?.description,
+        category: brand?.productType,
+        goal: typeof goal === 'string' ? goal : undefined,
+        audience: brand?.targetAudience,
+      }).catch(() => ({ queries: [] as string[], sources: [] as Array<{ url: string; title: string; excerpt: string; query: string }> })),
+      30000,
+      { queries: [] as string[], sources: [] as Array<{ url: string; title: string; excerpt: string; query: string }> },
+      'autoDiscoverTrendSources',
+    )
     const autoSourcesSection = formatSourcesForPrompt(autoTrends.sources)
+    console.log(`[campaigns/plan] trends done in ${Date.now() - t1}ms — ${autoTrends.sources.length} sources`)
 
     // ── Ask Sonnet for the shot list ──────────────────────────────
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -137,12 +159,14 @@ ${autoSourcesSection ? '\n' + autoSourcesSection : ''}
 
 Return the JSON shot list now.`
 
+    const tSonnet = Date.now()
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 8000,
+      max_tokens: 12000,
       system,
       messages: [{ role: 'user', content: userMsg }],
     })
+    console.log(`[campaigns/plan] Sonnet done in ${Date.now() - tSonnet}ms`)
 
     const raw = (msg.content[0] as { type: 'text'; text: string }).text
       .trim()
