@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       influencerId,    // default actor for the whole campaign (optional)
       sceneId,         // default scene (optional)
       targetCount,     // 10..40, default 24
+      inspiration,     // freeform user-pasted competitor / trend / hook notes
     } = body as Record<string, unknown>
 
     if (typeof name !== 'string' || !name.trim()) {
@@ -107,6 +108,7 @@ CAMPAIGN BRIEF: ${typeof brief === 'string' ? brief : '(none)'}
 Goal: ${typeof goal === 'string' ? goal : 'awareness'}
 Duration: ${typeof durationLabel === 'string' ? durationLabel : '2 weeks'}
 Target shot count: ${wantCount}
+${typeof inspiration === 'string' && inspiration.trim() ? `\nINSPIRATION / COMPETITOR / TREND NOTES from the user — use these to anchor hooks and formats to what's actually working right now:\n${inspiration.slice(0, 4000)}` : ''}
 
 Return the JSON shot list now.`
 

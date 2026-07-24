@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { Icon } from '@/components/Icons'
 import { showError, showSuccess } from '@/lib/notifications'
@@ -34,6 +35,8 @@ function prettifyName(raw?: string): string | null {
 }
 
 export default function LibraryPage() {
+  const searchParams = useSearchParams()
+  const campaignId = searchParams?.get('campaign') ?? null
   const [items, setItems] = useState<LibraryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -41,6 +44,8 @@ export default function LibraryPage() {
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [previewItem, setPreviewItem] = useState<LibraryItem | null>(null)
   const [driveConnected, setDriveConnected] = useState<boolean | null>(null)
+  const [campaignName, setCampaignName] = useState<string | null>(null)
+  const [campaignAssetIds, setCampaignAssetIds] = useState<Set<string> | null>(null)
 
   const fetchLibrary = async () => {
     try {
@@ -93,6 +98,42 @@ export default function LibraryPage() {
     return () => clearTimeout(timer)
   }, [])
 
+  // Load campaign metadata when ?campaign=<id> is set so we can filter to just
+  // the shots that have rendered into this library.
+  useEffect(() => {
+    if (!campaignId) {
+      setCampaignName(null)
+      setCampaignAssetIds(null)
+      return
+    }
+    void (async () => {
+      try {
+        const supabase = getSupabase()
+        if (!supabase) return
+        const { data: sess } = await supabase.auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const res = await fetch(`/api/campaigns/${campaignId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+        if (!res.ok) {
+          showError('Failed to load campaign')
+          return
+        }
+        const data = await res.json()
+        setCampaignName(data?.campaign?.name ?? 'Campaign')
+        const ids = new Set<string>(
+          (data?.shots ?? [])
+            .map((s: { library_asset_id: string | null }) => s.library_asset_id)
+            .filter((id: string | null): id is string => !!id)
+        )
+        setCampaignAssetIds(ids)
+      } catch (err) {
+        console.error('Failed to load campaign filter:', err)
+      }
+    })()
+  }, [campaignId])
+
   const filteredItems = items.filter((item) => {
     const q = searchTerm.toLowerCase()
     const matchesSearch = !q ||
@@ -102,7 +143,8 @@ export default function LibraryPage() {
       item.metadata?.productName?.toLowerCase().includes(q) ||
       item.name?.toLowerCase().includes(q)
     const matchesFilter = filterType === 'all' || item.content_type === filterType
-    return matchesSearch && matchesFilter
+    const matchesCampaign = !campaignId || (campaignAssetIds?.has(item.id) ?? false)
+    return matchesSearch && matchesFilter && matchesCampaign
   })
 
   const handleDelete = async (id: string) => {
@@ -188,6 +230,22 @@ export default function LibraryPage() {
         <p className="page-sub">View and manage all your generated content</p>
       </div>
 
+      {/* Campaign filter banner */}
+      {campaignId && (
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          background: 'var(--surface)', border: '1px solid var(--border)',
+          borderRadius: 12, padding: '12px 18px', marginBottom: 16, gap: 16,
+        }}>
+          <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>
+            Filtered to campaign: <strong>{campaignName ?? '…'}</strong>
+          </div>
+          <Link href="/library" style={{ fontSize: 13, color: 'var(--accent)', textDecoration: 'none' }}>
+            Clear filter
+          </Link>
+        </div>
+      )}
+
       {/* Drive connection banner */}
       {driveConnected === false && (
         <div style={{
@@ -264,9 +322,18 @@ export default function LibraryPage() {
         </div>
       ) : filteredItems.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.6 }}>
-          <p>No content found</p>
-          {items.length === 0 && (
-            <p style={{ fontSize: '13px', opacity: 0.7 }}>Start generating content to see it here</p>
+          {campaignId ? (
+            <>
+              <p>No renders from this campaign yet.</p>
+              <p style={{ fontSize: '13px', opacity: 0.7 }}>Open shots in the Builder to generate them.</p>
+            </>
+          ) : (
+            <>
+              <p>No content found</p>
+              {items.length === 0 && (
+                <p style={{ fontSize: '13px', opacity: 0.7 }}>Start generating content to see it here</p>
+              )}
+            </>
           )}
         </div>
       ) : (

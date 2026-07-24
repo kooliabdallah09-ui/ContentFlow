@@ -83,6 +83,10 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>Campaigns</span>
           <span className="flagship-badge">New</span>
         </Link>
+        <Link href="/formats" className={`nav-item ${isActive('/formats') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.Library />
+          <span style={{ flex: 1 }}>Format Library</span>
+        </Link>
         <Link href="/generate/ugc" className={`nav-item ${isActive('/generate/ugc') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Video />
           <span style={{ flex: 1 }}>UGC Package</span>

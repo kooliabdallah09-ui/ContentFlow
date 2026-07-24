@@ -50,6 +50,7 @@ export default function CampaignsPage() {
   const [influencerId, setInfluencerId] = useState('')
   const [sceneId, setSceneId] = useState('')
   const [targetCount, setTargetCount] = useState(24)
+  const [inspiration, setInspiration] = useState('')
   const [planning, setPlanning] = useState(false)
 
   useEffect(() => { void load() }, [])
@@ -82,6 +83,7 @@ export default function CampaignsPage() {
         body: JSON.stringify({
           name, brief, productId: productId || undefined, goal, durationLabel,
           influencerId: influencerId || undefined, sceneId: sceneId || undefined, targetCount,
+          inspiration: inspiration || undefined,
         }),
       })
       if (!res.ok) {
@@ -175,6 +177,16 @@ export default function CampaignsPage() {
               </select>
             </Field>
           </div>
+
+          <Field label="Inspiration notes (optional)">
+            <textarea
+              value={inspiration}
+              onChange={e => setInspiration(e.target.value)}
+              placeholder="Paste competitor URLs, hooks you've seen work, references, TikTok trends worth stealing… anything. Sonnet uses this to anchor the shot list to what's actually working right now."
+              rows={4}
+              style={{ ...fieldInput, resize: 'vertical', minHeight: 90, marginTop: 12 }}
+            />
+          </Field>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 18, justifyContent: 'flex-end' }}>
             <button className="btn btn-ghost" onClick={() => setShowNew(false)} disabled={planning}>Cancel</button>

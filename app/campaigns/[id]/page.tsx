@@ -209,9 +209,18 @@ export default function CampaignDetailPage() {
               </div>
             )}
           </div>
-          <button onClick={deleteCampaign} className="btn btn-ghost" style={{ color: '#c33', fontSize: 13 }}>
-            <Trash2 size={14} /> Delete
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Link
+              href={`/library?campaign=${campaign.id}`}
+              className="btn btn-ghost"
+              style={{ fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}
+            >
+              <ExternalLink size={14} /> View in Library
+            </Link>
+            <button onClick={deleteCampaign} className="btn btn-ghost" style={{ color: '#c33', fontSize: 13 }}>
+              <Trash2 size={14} /> Delete
+            </button>
+          </div>
         </div>
       </div>
 
