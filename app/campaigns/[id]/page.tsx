@@ -44,6 +44,9 @@ interface Shot {
     notes?: string
     influencer_id?: string | null
     scene_id?: string | null
+    rendered_video_url?: string | null
+    rendered_video_id?: string | null
+    rendered_at?: string | null
   }
   credit_hint: number
   selected: boolean
@@ -383,6 +386,18 @@ export default function CampaignDetailPage() {
                   <span style={chipKey}>Credits</span>
                   <span style={{ fontSize: 13, fontWeight: 700 }}>{shot.credit_hint}</span>
                 </div>
+
+                {/* Rendered badge */}
+                {shot.status === 'done' && (
+                  <div style={{ ...chipLabel, background: '#dcfce7', border: '1px solid #86efac', color: '#166534' }}>
+                    <span style={{ ...chipKey, color: '#166534' }}>Rendered</span>
+                    {shot.spec.rendered_video_url && (
+                      <a href={shot.spec.rendered_video_url} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', textDecoration: 'underline', fontSize: 12 }}>
+                        watch ↗
+                      </a>
+                    )}
+                  </div>
+                )}
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>

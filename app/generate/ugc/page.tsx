@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { useSearchParams } from 'next/navigation'
 import { readChatPrefill } from '@/lib/chat-prefill'
+import { saveCampaignShotPrefill, peekCampaignShotLink, clearCampaignShotLink } from '@/lib/campaign-shot-prefill'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
@@ -24,6 +25,33 @@ interface UGCComponent {
 }
 
 export default function UGCGeneratorPage() {
+  // Campaign Planner → Builder handoff.
+  // The campaign detail page links to /generate/ugc?campaign=&shot=&product=&hook=&…
+  // We stash the params synchronously in sessionStorage BEFORE UGCPackageBuilder
+  // mounts so its useState initializers (which read the prefill) paint the form
+  // pre-filled with no flash.
+  if (typeof window !== 'undefined') {
+    const qs = new URLSearchParams(window.location.search)
+    const campaignId = qs.get('campaign')
+    const shotId = qs.get('shot')
+    if (campaignId && shotId && !sessionStorage.getItem('campaignShotPrefill:consumed')) {
+      saveCampaignShotPrefill({
+        campaignId,
+        shotId,
+        productId: qs.get('product') ?? undefined,
+        formatKey: qs.get('format') ?? undefined,
+        hook: qs.get('hook') ?? undefined,
+        setting: qs.get('setting') ?? undefined,
+        aspect: qs.get('aspect') ?? undefined,
+        duration: qs.get('duration') ? Number(qs.get('duration')) : undefined,
+        actorId: qs.get('actor') ?? undefined,
+        sceneId: qs.get('scene') ?? undefined,
+      })
+      // Mark consumed so this doesn't loop through renders.
+      sessionStorage.setItem('campaignShotPrefill:consumed', '1')
+      setTimeout(() => sessionStorage.removeItem('campaignShotPrefill:consumed'), 100)
+    }
+  }
   const [components, setComponents] = useState<UGCComponent | null>(null)
   const [ugcType, setUgcType] = useState('')
   const [creditBalance, setCreditBalance] = useState(200)
@@ -144,6 +172,34 @@ export default function UGCGeneratorPage() {
     return () => clearTimeout(timer)
   }, [])
 
+  // Called after a successful render — if the current browser session was
+  // deep-linked from /campaigns/[id], PATCH the corresponding campaign shot
+  // so the planner UI shows it as rendered.
+  const writeBackToCampaignShot = async (components: UGCComponent | null | undefined) => {
+    const link = peekCampaignShotLink()
+    if (!link) return
+    try {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      if (!token) return
+      await fetch(`/api/campaigns/${link.campaignId}/shots/${link.shotId}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          status: 'done',
+          spec: {
+            rendered_video_url: components?.video?.videoUrl ?? null,
+            rendered_video_id: components?.video?.videoId ?? null,
+            rendered_at: new Date().toISOString(),
+          },
+        }),
+      }).catch(() => { /* soft fail */ })
+      clearCampaignShotLink()
+    } catch { /* soft fail */ }
+  }
+
   const handleGenerate = async (settings: {
     ugcType: string
     tier: 'standard'
@@ -184,6 +240,8 @@ export default function UGCGeneratorPage() {
         setCreditBalance(pre.newBalance)
         setCreditDeducted(pre.creditDeducted)
         showSuccess('UGC package generated successfully', 'Complete package ready to use')
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        await writeBackToCampaignShot(pre.components as any)
         return
       }
 
@@ -217,6 +275,10 @@ export default function UGCGeneratorPage() {
       setCreditBalance(data.newBalance)
       setCreditDeducted(data.creditDeducted)
       showSuccess('UGC package generated successfully', 'Complete package ready to use')
+
+      // If this render came from a Campaign Planner shot, write status +
+      // video url back to the shot so /campaigns/[id] shows it as rendered.
+      await writeBackToCampaignShot(data.components)
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate UGC package'
       setError(errorMessage)
