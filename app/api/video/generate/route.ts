@@ -35,13 +35,13 @@ const NO_AUDIO_MULTIPLIER = 0.85
 // Keep in sync with CINEMOTION_CR on the client.
 const CINEMOTION_CR = 14
 
-// Gemini Omni Flash on Vertex — admin-only. Priced roughly in line with
-// Vertex Veo 2's $0.35/s at 720p and $0.60/s at 1080p, with our 1.8×
-// markup applied. Kept below Seedance so admins have an incentive to
-// test-drive it while BytePlus setup wraps up.
+// Veo 3.1 Fast on Vertex — admin-only. Priced against Google's public
+// Vertex rates for Veo 3.1 Fast ($0.40/s at 720p, $0.65/s at 1080p) with
+// our 1.8× markup applied. Kept below Seedance so admins have an incentive
+// to test-drive it while BytePlus setup wraps up.
 const OMNI_FLASH_CR_PER_SECOND: Record<string, number> = {
-  '720p': 11,   // ~$0.35/s raw × 1.8
-  '1080p': 19,  // ~$0.60/s raw × 1.8
+  '720p': 12,   // ~$0.40/s raw × 1.8
+  '1080p': 20,  // ~$0.65/s raw × 1.8
 }
 
 function getCost(model: string, duration: number, resolution?: string, withAudio: boolean = true, cinemotion: boolean = false): number {

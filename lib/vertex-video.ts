@@ -3,9 +3,9 @@
 // Uses the same GOOGLE_VERTEX_SA_JSON service-account auth we already
 // have for Nano Banana Pro on Vertex.
 //
-// Model default: 'veo-2.0-generate-001' (Vertex Veo 2 GA). Overridable via
-// GOOGLE_VERTEX_VIDEO_MODEL so we can flip to Omni Flash video / Veo 3
-// preview without a redeploy.
+// Model default: 'veo-3.1-fast-generate-001' (Veo 3.1 fast). Overridable
+// via GOOGLE_VERTEX_VIDEO_MODEL to hit the quality tier
+// (veo-3.1-generate-001) or newer previews without a redeploy.
 //
 // Vertex video is a long-running operation:
 //   1. POST :predictLongRunning  → { name: 'projects/…/operations/…' }
@@ -15,7 +15,7 @@
 import { createSign } from 'node:crypto'
 
 const VERTEX_VIDEO_REGION = process.env.GOOGLE_VERTEX_VIDEO_REGION || 'us-central1'
-const VERTEX_VIDEO_MODEL = process.env.GOOGLE_VERTEX_VIDEO_MODEL || 'veo-2.0-generate-001'
+const VERTEX_VIDEO_MODEL = process.env.GOOGLE_VERTEX_VIDEO_MODEL || 'veo-3.1-fast-generate-001'
 
 interface VertexServiceAccount {
   client_email: string
@@ -106,7 +106,9 @@ export async function submitOmniFlashJob(params: {
   }
   const parameters: Record<string, unknown> = {
     aspectRatio: params.aspectRatio ?? '9:16',
-    durationSeconds: Math.max(5, Math.min(8, Math.round(params.durationSeconds))),
+    // Veo 3.1 supports 4, 6, or 8 seconds. Snap to the nearest supported
+    // value rather than a raw clamp so a request for 5s → 4s (not 5s reject).
+    durationSeconds: [4, 6, 8].reduce((best, v) => Math.abs(v - params.durationSeconds) < Math.abs(best - params.durationSeconds) ? v : best, 4),
     sampleCount: 1,
     personGeneration: 'allow_all',
   }

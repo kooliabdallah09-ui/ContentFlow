@@ -32,11 +32,12 @@ export const SEEDANCE_MINI_CR_PER_SECOND: Record<'480p' | '720p', number> = {
   '720p': 7,     // $0.09/s → $0.162 → 6.75 → 7 cr
 }
 
-// Gemini Omni Flash on Vertex — admin-only. Priced in line with Veo 2's
-// $0.35/s at 720p and $0.60/s at 1080p, with our 1.8× markup applied.
+// Veo 3.1 Fast on Vertex — admin-only. Priced against Google's public
+// Vertex rates for Veo 3.1 Fast ($0.40/s at 720p, $0.65/s at 1080p) with
+// our 1.8× markup applied.
 export const OMNI_FLASH_CR_PER_SECOND: Record<'720p' | '1080p', number> = {
-  '720p': 11,   // $0.35/s × 1.8 ≈ $0.63 → 11 cr
-  '1080p': 19,  // $0.60/s × 1.8 ≈ $1.08 → 19 cr
+  '720p': 12,   // $0.40/s × 1.8 ≈ $0.72 → 12 cr
+  '1080p': 20,  // $0.65/s × 1.8 ≈ $1.17 → 20 cr
 }
 
 // Fixed overhead per package: Nano Banana Pro renders + Claude prompt calls.

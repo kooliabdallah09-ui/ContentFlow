@@ -69,16 +69,16 @@ const MODELS: {
     id: 'omni-flash',
     name: 'Omni Flash',
     badge: 'Admin · temp',
-    tagline: 'Gemini Omni Flash on Vertex — cheaper stopgap while BytePlus is being set up',
+    tagline: 'Veo 3.1 Fast on Vertex — cheaper stopgap while BytePlus is being set up',
     excels: [
       'Runs on our existing Vertex $300 trial credit',
       'Cheaper per second than Seedance at both 720p and 1080p',
-      'Solid natural motion for talking-head UGC',
-      '5-8 second clips',
+      'Native audio + strong physics on Veo 3.1',
+      '4, 6, or 8 second clips',
     ],
-    caveat: '5-8s clips only, admin-only until BytePlus lands',
-    durations: [5, 6, 8],
-    credits: { 5: 0, 6: 0, 8: 0 },
+    caveat: '4-8s clips only, admin-only until BytePlus lands',
+    durations: [4, 6, 8],
+    credits: { 4: 0, 6: 0, 8: 0 },
   },
 ]
 
@@ -105,12 +105,12 @@ const SEEDANCE_MINI_CR_PER_SECOND: Record<'480p' | '720p', number> = {
   '480p': 3,   // $0.04/s
   '720p': 7,   // $0.09/s
 }
-// Gemini Omni Flash on Vertex — admin-only. Priced in line with Veo 2's
-// $0.35/s at 720p and $0.60/s at 1080p, with our 1.8× markup. Kept below
-// Seedance so admins have an incentive to test-drive it.
+// Veo 3.1 Fast on Vertex — admin-only. Priced against Google's public
+// Vertex rates for Veo 3.1 Fast ($0.40/s at 720p, $0.65/s at 1080p) with
+// our 1.8× markup. Kept below Seedance so admins have an incentive.
 const OMNI_FLASH_CR_PER_SECOND: Record<'720p' | '1080p', number> = {
-  '720p': 11,
-  '1080p': 19,
+  '720p': 12,
+  '1080p': 20,
 }
 function perSecondFor(model: Model, resolution: Resolution): number {
   if (model === 'seedance-mini') {
