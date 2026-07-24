@@ -126,15 +126,13 @@ export async function POST(request: NextRequest) {
 CRITICAL RULES:
 1. Every shot's "format_key" MUST be one of the exact keys from the catalog below. Never invent a key.
 2. Aim for balance: ~60% video shots, ~25% photo shots, ~15% experimental / two-person. Vary hooks, settings, aspects.
-3. Every field is CONCRETE, not generic:
-   - hook = one specific opening line (spoken or text overlay).
-   - script = the FULL spoken/on-screen dialogue, beat by beat, matching the duration. Split with line breaks if there are multiple beats. For no-dialogue formats (aesthetic-broll, unboxing-asmr, hyper-motion, product-showcase), write the text overlays / ASMR sound cues instead.
-   - cta = the closing call to action (one line — "Link in bio", "Try HiGG today", "Grab yours before it drops", etc.).
-   - setting = a concrete place ("Brooklyn café at 9am", not "urban environment").
-   - visual_notes = 1-2 sentences on camera moves + key visual beats ("cold open on hand grabbing bottle → cut to sip → slow zoom on smile").
-   - caption = the on-post copy including relevant emojis + hashtags if the brand voice fits.
-4. Return STRICT JSON with shape: {"research_summary":"...","shots":[{"position":1,"format_key":"...","hook":"...","script":"...","cta":"...","setting":"...","visual_notes":"...","caption":"...","aspect":"9:16","duration":15,"notes":"optional 1-liner"} ...]}
-5. research_summary = 3-5 sentence paragraph written in French, summarizing what you learned from the auto-discovered sources + user inspiration notes: which hooks are working right now in this category, which formats are winning, what tone competitors are hitting, what to steal. Concrete, no fluff. If there were no sources, write a short summary of the strategic direction you chose based on the brand + brief. Address the reader directly ("Voici ce que la recherche a révélé…").
+3. Fields are CONCRETE, not generic. Keep them TIGHT — planner output is a scan-able overview, not the final script.
+   - hook = ONE specific opening line, ≤ 20 words.
+   - setting = a concrete place ≤ 15 words ("Brooklyn café at 9am", not "urban environment").
+   - caption = the on-post copy, ≤ 30 words + hashtags if brand fits.
+   - script, cta, visual_notes = LEAVE THEM OUT of this response. They'll be generated on demand later.
+4. Return STRICT JSON: {"research_summary":"...","shots":[{"position":1,"format_key":"...","hook":"...","setting":"...","caption":"...","aspect":"9:16","duration":15} ...]}
+5. research_summary = 3-4 sentences in French, tight, summarizing what you learned from the auto-discovered sources + user inspiration notes. Address the reader directly ("Voici ce que la recherche a révélé…"). If no sources, summarize your strategic direction from brand + brief.
 6. No preamble, no code fences. Just the JSON object.
 
 FORMAT CATALOG (use these keys):
@@ -162,7 +160,7 @@ Return the JSON shot list now.`
     const tSonnet = Date.now()
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 12000,
+      max_tokens: 6000,
       system,
       messages: [{ role: 'user', content: userMsg }],
     })

@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
 import { CAMPAIGN_FORMATS, getCampaignFormat } from '@/lib/campaign-formats'
-import { ArrowLeft, Trash2, Loader2, Sparkles, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
+import { ArrowLeft, Trash2, Loader2, Sparkles, ExternalLink, ChevronDown, ChevronRight, Wand2 } from 'lucide-react'
 
 interface Campaign {
   id: string
@@ -184,6 +184,24 @@ export default function CampaignDetailPage() {
     })
     showSuccess('Campaign deleted')
     router.push('/campaigns')
+  }
+
+  async function enrichShot(shot: Shot) {
+    const token = await getToken()
+    if (!token) return
+    setSavingIds(prev => new Set(prev).add(shot.id))
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}/shots/${shot.id}/enrich`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) { showError('Enrichment failed'); return }
+      const data = await res.json()
+      setShots(prev => prev.map(s => s.id === shot.id ? { ...s, spec: { ...s.spec, ...data.spec } } : s))
+      showSuccess('Script + CTA + visual notes generated')
+    } finally {
+      setSavingIds(prev => { const n = new Set(prev); n.delete(shot.id); return n })
+    }
   }
 
   function selectAll(v: boolean) {
@@ -412,15 +430,28 @@ export default function CampaignDetailPage() {
               </div>
 
               <div style={{ marginBottom: 12 }}>
-                <FieldBlock label="Script / Dialogue">
-                  <textarea
-                    value={shot.spec.script ?? ''}
-                    onChange={e => updateSpec(shot.id, 'script', e.target.value)}
-                    onBlur={e => commitSpec(shot, 'script', e.target.value)}
-                    rows={5}
-                    style={{ ...roomyInput, minHeight: 130, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13 }}
-                  />
-                </FieldBlock>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, color: 'var(--ink-2)', textTransform: 'uppercase' }}>Script / Dialogue</div>
+                  {!shot.spec.script && (
+                    <button
+                      onClick={() => enrichShot(shot)}
+                      disabled={saving}
+                      className="btn btn-ghost"
+                      style={{ padding: '4px 10px', fontSize: 11.5, display: 'inline-flex', gap: 5, alignItems: 'center' }}
+                      title="Generate script + CTA + visual notes with Haiku"
+                    >
+                      {saving ? <Loader2 size={12} className="spin" /> : <Wand2 size={12} />} Generate
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={shot.spec.script ?? ''}
+                  onChange={e => updateSpec(shot.id, 'script', e.target.value)}
+                  onBlur={e => commitSpec(shot, 'script', e.target.value)}
+                  rows={5}
+                  placeholder="Click Generate to have AI draft the full dialogue for this shot."
+                  style={{ ...roomyInput, minHeight: 130, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace', fontSize: 13 }}
+                />
               </div>
 
               <div style={{ marginBottom: 12 }}>
