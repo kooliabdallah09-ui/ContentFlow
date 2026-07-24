@@ -25,11 +25,11 @@ export interface GridParams {
 // dimensions (no crop, no resize) — only the number of bars and their
 // thickness changes.
 export const GRID_RETRIES: GridParams[] = [
-  { cols: 7,  rows: 10, gap: 18 },
-  { cols: 8,  rows: 10, gap: 16 },
-  { cols: 6,  rows: 10, gap: 20 },
-  { cols: 7,  rows: 12, gap: 15 },
-  { cols: 8,  rows: 11, gap: 15 },
+  { cols: 7,  rows: 10, gap: 10 },
+  { cols: 8,  rows: 10, gap: 9 },
+  { cols: 6,  rows: 10, gap: 11 },
+  { cols: 7,  rows: 12, gap: 8 },
+  { cols: 8,  rows: 11, gap: 8 },
 ]
 
 // Draw a white grid overlay on top of the source image, preserving the
@@ -50,7 +50,7 @@ export async function gridify(sourceBuf: Buffer, params: GridParams): Promise<Bu
   // proportionally thinner — weakening the face obfuscation and triggering
   // Seedance's sensitivity scanner. Scale the gap with source width so the
   // relative bar thickness matches the calibrated look at any resolution.
-  const gap = Math.max(8, Math.round(params.gap * canvasW / 720))
+  const gap = Math.max(4, Math.round(params.gap * canvasW / 720))
 
   // Distribute the remaining space evenly across visible tiles.
   // (cols+1) vertical bars, (rows+1) horizontal bars.
