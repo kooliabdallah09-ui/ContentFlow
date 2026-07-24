@@ -12,7 +12,7 @@ import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
 import { CAMPAIGN_FORMATS, getCampaignFormat } from '@/lib/campaign-formats'
-import { ArrowLeft, Trash2, Loader2, Sparkles, ExternalLink } from 'lucide-react'
+import { ArrowLeft, Trash2, Loader2, Sparkles, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react'
 
 interface Campaign {
   id: string
@@ -97,6 +97,15 @@ export default function CampaignDetailPage() {
   const [shots, setShots] = useState<Shot[]>([])
   const [loading, setLoading] = useState(true)
   const [savingIds, setSavingIds] = useState<Set<string>>(new Set())
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+
+  function toggleExpanded(id: string) {
+    setExpandedIds(prev => {
+      const n = new Set(prev)
+      if (n.has(id)) n.delete(id); else n.add(id)
+      return n
+    })
+  }
 
   useEffect(() => {
     void (async () => {
@@ -237,6 +246,16 @@ export default function CampaignDetailPage() {
         <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
           <strong style={{ color: 'var(--ink)' }}>{selectedShots.length}</strong> selected
         </div>
+        <button
+          className="btn btn-ghost"
+          onClick={() => {
+            if (expandedIds.size === shots.length) setExpandedIds(new Set())
+            else setExpandedIds(new Set(shots.map(s => s.id)))
+          }}
+          style={{ fontSize: 12.5 }}
+        >
+          {expandedIds.size === shots.length ? 'Collapse all' : 'Expand all'}
+        </button>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
             Estimated total: <strong style={{ color: 'var(--ink)', fontSize: 15 }}>{totalCredits.toLocaleString()} cr</strong>
@@ -250,6 +269,7 @@ export default function CampaignDetailPage() {
           const fmt = getCampaignFormat(shot.format_key)
           const saving = savingIds.has(shot.id)
           const isPhoto = (fmt?.defaultDuration ?? 0) === 0
+          const isExpanded = expandedIds.has(shot.id)
           return (
             <div
               key={shot.id}
@@ -257,15 +277,31 @@ export default function CampaignDetailPage() {
                 background: 'var(--surface)',
                 border: `1.5px solid ${shot.selected ? 'var(--ink)' : 'var(--border)'}`,
                 borderRadius: 12,
-                padding: 16,
+                padding: isExpanded ? 16 : 12,
                 opacity: shot.selected ? 1 : 0.6,
-                transition: 'opacity 0.15s, border-color 0.15s',
+                transition: 'opacity 0.15s, border-color 0.15s, padding 0.15s',
               }}
             >
-              {/* Header row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
+              {/* Header row — clicking the label area expands/collapses */}
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: isExpanded ? 14 : 0, cursor: 'pointer' }}
+                onClick={e => {
+                  // Don't toggle when clicking any interactive control inside the row.
+                  const el = e.target as HTMLElement
+                  if (el.closest('input, select, button, a, textarea, label')) return
+                  toggleExpanded(shot.id)
+                }}
+              >
                 <input type="checkbox" checked={shot.selected} onChange={() => toggleSelected(shot)} style={{ width: 16, height: 16, cursor: 'pointer' }} />
                 <div style={{ fontSize: 12, color: 'var(--ink-2)', fontWeight: 600, minWidth: 24 }}>#{shot.position}</div>
+                <button
+                  onClick={() => toggleExpanded(shot.id)}
+                  className="btn btn-ghost"
+                  style={{ padding: 4, display: 'inline-flex' }}
+                  title={isExpanded ? 'Collapse' : 'Expand'}
+                >
+                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                </button>
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ fontSize: 15, fontWeight: 700 }}>{fmt?.label ?? shot.format_key}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2 }}>{fmt?.tagline ?? shot.pipeline}</div>
@@ -328,6 +364,7 @@ export default function CampaignDetailPage() {
               </div>
 
               {/* Editable fields — grouped by function */}
+              {isExpanded && (<>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <FieldBlock label="Hook">
                   <textarea
@@ -393,6 +430,7 @@ export default function CampaignDetailPage() {
                   />
                 </FieldBlock>
               </div>
+              </>)}
             </div>
           )
         })}
