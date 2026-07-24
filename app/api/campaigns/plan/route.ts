@@ -111,8 +111,9 @@ CRITICAL RULES:
    - setting = a concrete place ("Brooklyn café at 9am", not "urban environment").
    - visual_notes = 1-2 sentences on camera moves + key visual beats ("cold open on hand grabbing bottle → cut to sip → slow zoom on smile").
    - caption = the on-post copy including relevant emojis + hashtags if the brand voice fits.
-4. Return STRICT JSON with shape: {"shots":[{"position":1,"format_key":"...","hook":"...","script":"...","cta":"...","setting":"...","visual_notes":"...","caption":"...","aspect":"9:16","duration":15,"notes":"optional 1-liner"} ...]}
-5. No preamble, no code fences. Just the JSON object.
+4. Return STRICT JSON with shape: {"research_summary":"...","shots":[{"position":1,"format_key":"...","hook":"...","script":"...","cta":"...","setting":"...","visual_notes":"...","caption":"...","aspect":"9:16","duration":15,"notes":"optional 1-liner"} ...]}
+5. research_summary = 3-5 sentence paragraph written in French, summarizing what you learned from the auto-discovered sources + user inspiration notes: which hooks are working right now in this category, which formats are winning, what tone competitors are hitting, what to steal. Concrete, no fluff. If there were no sources, write a short summary of the strategic direction you chose based on the brand + brief. Address the reader directly ("Voici ce que la recherche a révélé…").
+6. No preamble, no code fences. Just the JSON object.
 
 FORMAT CATALOG (use these keys):
 ${formatCatalog}`
@@ -148,13 +149,13 @@ Return the JSON shot list now.`
       .replace(/^```json?\n?/i, '')
       .replace(/\n?```$/, '')
 
-    let parsed: { shots: PlannedShot[] }
+    let parsed: { shots: PlannedShot[]; research_summary?: string }
     try {
-      parsed = JSON.parse(raw) as { shots: PlannedShot[] }
+      parsed = JSON.parse(raw) as { shots: PlannedShot[]; research_summary?: string }
     } catch {
       // Forgiving parser: attempt to close a truncated array.
       const salvage = raw.replace(/,\s*$/, '') + ']}'
-      parsed = JSON.parse(salvage) as { shots: PlannedShot[] }
+      parsed = JSON.parse(salvage) as { shots: PlannedShot[]; research_summary?: string }
     }
     if (!Array.isArray(parsed.shots) || parsed.shots.length === 0) {
       return NextResponse.json({ error: 'Planner returned no shots' }, { status: 500 })
@@ -187,6 +188,7 @@ Return the JSON shot list now.`
           product_image_url: product?.image_url ?? null,
           trend_queries: autoTrends.queries,
           trend_sources: autoTrends.sources.slice(0, 8).map(s => ({ url: s.url, title: s.title, query: s.query })),
+          research_summary: typeof parsed.research_summary === 'string' ? parsed.research_summary.slice(0, 2000) : null,
         },
       })
       .select('id')

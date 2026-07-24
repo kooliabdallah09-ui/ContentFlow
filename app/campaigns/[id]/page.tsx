@@ -248,6 +248,16 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
+      {/* Research summary — Sonnet's short French-language bilan on what it learned from sources */}
+      {typeof (campaign.meta as { research_summary?: string }).research_summary === 'string' && (campaign.meta as { research_summary: string }).research_summary.trim() && (
+        <div style={{ marginBottom: 14, padding: '14px 16px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10 }}>
+          <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, color: 'var(--ink-2)', marginBottom: 8, textTransform: 'uppercase' }}>Bilan de la recherche</div>
+          <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>
+            {(campaign.meta as { research_summary: string }).research_summary}
+          </div>
+        </div>
+      )}
+
       {/* Totals bar */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 14, flexWrap: 'wrap' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
