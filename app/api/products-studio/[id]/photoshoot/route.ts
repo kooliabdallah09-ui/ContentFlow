@@ -362,7 +362,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       try { return await fn() } catch (e1) {
         console.warn('[products-studio/photoshoot] shot attempt 1 failed, retrying:', e1 instanceof Error ? e1.message : e1)
         await new Promise(r => setTimeout(r, 600))
-        return await fn()
+        try { return await fn() } catch (e2) {
+          console.warn('[products-studio/photoshoot] shot attempt 2 failed, retrying:', e2 instanceof Error ? e2.message : e2)
+          await new Promise(r => setTimeout(r, 1200))
+          return await fn()
+        }
       }
     }
     // Universal clauses appended to every render prompt (aesthetic + ad + style-ref).
@@ -460,22 +464,72 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     })
 
     const photos: Array<{ id: string; concept: string; image_url: string; created_at: string }> = []
+    const failedShotIndices: number[] = []
     for (let i = 0; i < results.length; i++) {
       const r = results[i]
-      if (r.status !== 'fulfilled') continue
+      if (r.status !== 'fulfilled') { failedShotIndices.push(i); continue }
       const filename = `product-studio/${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-shot.png`
       const { error: upErr } = await supabase.storage
         .from('ugc-assets')
         .upload(filename, Buffer.from(r.value.imageBase64, 'base64'), { contentType: r.value.mimeType, upsert: false })
-      if (upErr) continue
+      if (upErr) { failedShotIndices.push(i); continue }
       const url = supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl
       const { data: row } = await supabase
         .from('user_studio_product_photos')
         .insert({ product_id: id, user_id: userId, concept: shots[i].concept, prompt: shots[i].prompt, image_url: url })
         .select('id, concept, image_url, created_at')
         .single()
-      if (row) photos.push(row)
+      if (row) photos.push(row); else failedShotIndices.push(i)
     }
+
+    // Backfill pass — re-fire any shot that didn't land. The renderShot
+    // helper already runs 3 attempts inline; this is an additional round
+    // AFTER upload/DB failures too. Keeps 4-out-of-4 promises real.
+    if (failedShotIndices.length > 0 && failedShotIndices.length < shots.length) {
+      console.log(`[products-studio/photoshoot] backfill: ${failedShotIndices.length} missing shots`)
+      const backfillResults = await Promise.allSettled(
+        failedShotIndices.map(i => renderShot(async () => {
+          const sh = shots[i]
+          const finalPrompt = (
+            styleReference
+              ? `${sh.prompt}\n\nSTYLE REFERENCE MODE — match the attached reference layout with our product swapped in.`
+              : (mode === 'ad' ? sh.prompt : sh.prompt)
+          ) + sceneLockClause + productIntegrityClause + peopleLockClause
+          return generateNanoBananaImage(finalPrompt, {
+            style: mode === 'ad' && !influencersDetail.length ? 'professional' : (influencersDetail.length ? 'realistic' : 'professional'),
+            ratio,
+            model,
+            resolution: quality === '4k' ? '4K' : undefined,
+            referenceImages: [
+              ...(styleReference ? [styleReference] : []),
+              ...styleReferences,
+              ...(sceneRef ? [sceneRef] : []),
+              ...(influencersDetail.length ? identityRefs : []),
+              ...productRefs,
+              ...coProductRefs,
+            ],
+          })
+        })),
+      )
+      for (let k = 0; k < backfillResults.length; k++) {
+        const r = backfillResults[k]
+        if (r.status !== 'fulfilled') continue
+        const originalIdx = failedShotIndices[k]
+        const filename = `product-studio/${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-backfill.png`
+        const { error: upErr } = await supabase.storage
+          .from('ugc-assets')
+          .upload(filename, Buffer.from(r.value.imageBase64, 'base64'), { contentType: r.value.mimeType, upsert: false })
+        if (upErr) continue
+        const url = supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl
+        const { data: row } = await supabase
+          .from('user_studio_product_photos')
+          .insert({ product_id: id, user_id: userId, concept: shots[originalIdx].concept, prompt: shots[originalIdx].prompt, image_url: url })
+          .select('id, concept, image_url, created_at')
+          .single()
+        if (row) photos.push(row)
+      }
+    }
+
     if (!photos.length) {
       return NextResponse.json({ error: 'All shots failed to render — try again' }, { status: 500 })
     }
