@@ -52,6 +52,32 @@ export default function CampaignsPage() {
   const [targetCount, setTargetCount] = useState(24)
   const [inspiration, setInspiration] = useState('')
   const [planning, setPlanning] = useState(false)
+  const [inlineProductName, setInlineProductName] = useState('')
+  const [addingProduct, setAddingProduct] = useState(false)
+
+  async function quickAddProduct() {
+    const name = inlineProductName.trim()
+    if (!name) return
+    setAddingProduct(true)
+    const token = await getToken()
+    if (!token) { setAddingProduct(false); return }
+    try {
+      const newProduct: Product = { id: crypto.randomUUID(), name, image_url: null }
+      const next = [...products, newProduct]
+      const res = await fetch('/api/brand/products', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ products: next }),
+      })
+      if (!res.ok) { showError('Could not save product'); return }
+      setProducts(next)
+      setProductId(newProduct.id)
+      setInlineProductName('')
+      showSuccess(`Added ${name}`)
+    } finally {
+      setAddingProduct(false)
+    }
+  }
 
   useEffect(() => { void load() }, [])
   async function load() {
@@ -125,10 +151,29 @@ export default function CampaignsPage() {
               <input value={name} onChange={e => setName(e.target.value)} placeholder="HiGG summer launch" style={fieldInput} />
             </Field>
             <Field label="Product">
-              <select value={productId} onChange={e => setProductId(e.target.value)} style={fieldInput}>
-                <option value="">— select —</option>
-                {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-              </select>
+              {products.length > 0 ? (
+                <select value={productId} onChange={e => setProductId(e.target.value)} style={fieldInput}>
+                  <option value="">— none —</option>
+                  {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+              ) : (
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    value={inlineProductName}
+                    onChange={e => setInlineProductName(e.target.value)}
+                    placeholder="Type a product name to add it"
+                    style={{ ...fieldInput, flex: 1 }}
+                  />
+                  <button
+                    className="btn btn-ghost"
+                    onClick={quickAddProduct}
+                    disabled={!inlineProductName.trim() || addingProduct}
+                    style={{ fontSize: 12, padding: '8px 12px', whiteSpace: 'nowrap' }}
+                  >
+                    {addingProduct ? '…' : '+ Add'}
+                  </button>
+                </div>
+              )}
             </Field>
           </div>
 
