@@ -109,11 +109,6 @@ export default function ProductStudio() {
   // Optional style-reference upload — user drops in an ad they want to
   // riff on and NB Pro rebuilds it with THEIR product. Base64 for the API.
   const [styleRef, setStyleRef] = useState<CompressedImage | null>(null)
-  // "Match a proven style" — server fetches 4 real category ads via Tavily
-  // and passes them to NB Pro as inspiration.
-  const [matchProvenStyle, setMatchProvenStyle] = useState(false)
-  const [inspoLoading, setInspoLoading] = useState(false)
-  const [inspoPreview, setInspoPreview] = useState<Array<{ dataUrl: string; base64: string; mimeType: string; sourceUrl: string }>>([])
 
   // Drag-and-drop targets. Style ref accepts one image, product-create accepts up to 5.
   const styleRefDrop = useImageDrop({
@@ -216,33 +211,6 @@ export default function ProductStudio() {
     }
   }
 
-  async function fetchInspoPreview() {
-    if (!selected) return
-    setInspoLoading(true)
-    try {
-      const token = await getToken()
-      if (!token) throw new Error('Not signed in')
-      const res = await fetch(`/api/products-studio/${selected.id}/inspo-preview`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Preview failed')
-      setInspoPreview(data.images ?? [])
-      if ((data.images ?? []).length === 0) {
-        showError('No inspo found', data.note ?? 'Try shooting without style match.')
-      }
-    } catch (err) {
-      showError('Inspo fetch failed', err instanceof Error ? err.message : 'Try again')
-    } finally {
-      setInspoLoading(false)
-    }
-  }
-
-  function removeInspo(sourceUrl: string) {
-    setInspoPreview(prev => prev.filter(i => i.sourceUrl !== sourceUrl))
-  }
-
   async function photoshoot() {
     if (!selected) return
     setShooting(true)
@@ -264,10 +232,6 @@ export default function ProductStudio() {
           coProductIds: shootCoProductIds,
           mode,
           styleReference: styleRef ? { base64: styleRef.base64, mimeType: styleRef.mimeType } : undefined,
-          matchProvenStyle,
-          inspoImages: matchProvenStyle && inspoPreview.length > 0
-            ? inspoPreview.map(i => ({ base64: i.base64, mimeType: i.mimeType }))
-            : undefined,
         }),
       })
       const data = await res.json()
@@ -570,65 +534,6 @@ export default function ProductStudio() {
           {styleRef && (
             <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6 }}>
               Style reference attached — the AI will match its composition, typography and palette while swapping in <em>{selected?.name}</em>.
-            </div>
-          )}
-          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '7px 12px', border: `1.5px solid ${matchProvenStyle ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 999, cursor: 'pointer', fontSize: 12, background: matchProvenStyle ? 'var(--surface-2)' : 'transparent', userSelect: 'none' }}>
-            <input
-              type="checkbox"
-              checked={matchProvenStyle}
-              onChange={e => {
-                const next = e.target.checked
-                setMatchProvenStyle(next)
-                if (next && inspoPreview.length === 0) void fetchInspoPreview()
-                if (!next) setInspoPreview([])
-              }}
-              style={{ margin: 0, width: 14, height: 14, accentColor: 'var(--ink)' }}
-            />
-            <span style={{ fontWeight: 600 }}>✨ Match a proven style</span>
-            <span style={{ color: 'var(--ink-mute)' }}>— vet 4 real category ads before shooting</span>
-          </label>
-
-          {matchProvenStyle && (
-            <div style={{ marginTop: 12, padding: 12, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.4, color: 'var(--ink-2)', textTransform: 'uppercase' }}>
-                  Inspiration preview {inspoPreview.length > 0 ? `· ${inspoPreview.length}` : ''}
-                </div>
-                <button
-                  onClick={fetchInspoPreview}
-                  disabled={inspoLoading}
-                  className="btn btn-ghost"
-                  style={{ fontSize: 11.5, padding: '5px 10px' }}
-                >
-                  {inspoLoading ? 'Fetching…' : (inspoPreview.length ? '↻ Regenerate' : '↓ Fetch')}
-                </button>
-              </div>
-              {inspoLoading && inspoPreview.length === 0 ? (
-                <div style={{ padding: 22, textAlign: 'center', fontSize: 12, color: 'var(--ink-mute)' }}>Searching for category inspiration…</div>
-              ) : inspoPreview.length === 0 ? (
-                <div style={{ padding: 14, textAlign: 'center', fontSize: 12, color: 'var(--ink-mute)' }}>
-                  Click Fetch to pull 4 real ads. Review them, drop any that don&apos;t fit, then shoot.
-                </div>
-              ) : (
-                <>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 8 }}>
-                    {inspoPreview.map(img => (
-                      <div key={img.sourceUrl} style={{ position: 'relative', aspectRatio: '1/1', overflow: 'hidden', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={img.dataUrl} alt="inspiration" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                        <button
-                          onClick={() => removeInspo(img.sourceUrl)}
-                          title="Remove"
-                          style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', background: 'rgba(0,0,0,0.7)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 12, lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                        >×</button>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ marginTop: 8, fontSize: 11, color: 'var(--ink-mute)' }}>
-                    The AI will only absorb <strong>lighting, composition, palette</strong> from these — it&apos;s explicitly told to preserve your product&apos;s exact packaging and label.
-                  </div>
-                </>
-              )}
             </div>
           )}
           <div className="ps-controls-row" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
