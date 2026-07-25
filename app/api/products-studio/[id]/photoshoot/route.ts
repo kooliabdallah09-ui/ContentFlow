@@ -112,6 +112,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // reference images for the product's category via Tavily and feeds
     // them to NB Pro as inspiration alongside the product photos.
     const matchProvenStyle: boolean = body?.matchProvenStyle === true
+    // Client-provided inspo images (from the preview endpoint) — when
+    // present we use these directly instead of re-fetching, so the user
+    // sees exactly what NB gets.
+    const inspoImagesFromClient: Array<{ base64: string; mimeType: string }> = Array.isArray(body?.inspoImages)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (body.inspoImages as any[])
+          .filter(i => i && typeof i.base64 === 'string' && typeof i.mimeType === 'string')
+          .slice(0, 4)
+          .map(i => ({ base64: i.base64, mimeType: i.mimeType }))
+      : []
     const totalCost = CR[quality] * count
 
     const { data: product } = await supabase
@@ -174,26 +184,30 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: `Insufficient credits. Need ${totalCost}.` }, { status: 402 })
     }
 
-    // ── Optional: fetch style inspiration images ─────────────────────
-    // Runs in parallel with concept generation below. Capped at 4 images
-    // so we don't blow NB's reference budget. Fails silently.
+    // ── Style inspiration images ─────────────────────────────────────
+    // Priority: client-provided (from the preview endpoint) > auto-fetch.
     let inspoImages: Array<{ base64: string; mimeType: string }> = []
     let inspoSources: string[] = []
     if (matchProvenStyle) {
-      try {
-        const cat = await inferProductCategory({
-          productName: product.name,
-          productDescription: product.description ?? '',
-        }).catch(() => undefined)
-        const { images, sourceUrls } = await fetchStyleInspoImages({
-          productName: product.name,
-          productCategory: cat,
-        })
-        inspoImages = images.slice(0, 4)
-        inspoSources = sourceUrls.slice(0, 4)
-        console.log(`[products-studio/photoshoot] matched ${inspoImages.length} inspo images for category=${cat}`)
-      } catch (err) {
-        console.warn('[products-studio/photoshoot] style inspo fetch failed:', err instanceof Error ? err.message : err)
+      if (inspoImagesFromClient.length > 0) {
+        inspoImages = inspoImagesFromClient
+        console.log(`[products-studio/photoshoot] using ${inspoImages.length} client-provided inspo images`)
+      } else {
+        try {
+          const cat = await inferProductCategory({
+            productName: product.name,
+            productDescription: product.description ?? '',
+          }).catch(() => undefined)
+          const { images, sourceUrls } = await fetchStyleInspoImages({
+            productName: product.name,
+            productCategory: cat,
+          })
+          inspoImages = images.slice(0, 4)
+          inspoSources = sourceUrls.slice(0, 4)
+          console.log(`[products-studio/photoshoot] auto-fetched ${inspoImages.length} inspo images for category=${cat}`)
+        } catch (err) {
+          console.warn('[products-studio/photoshoot] style inspo fetch failed:', err instanceof Error ? err.message : err)
+        }
       }
     }
 
@@ -387,7 +401,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (inspoImages.length) {
         const start = idx + 1
         const end = idx + inspoImages.length
-        hintParts.push(`Image${inspoImages.length > 1 ? 's' : ''} ${start}${end > start ? `–${end}` : ''}: STYLE INSPIRATION — real ${product.name} category ad + editorial references. Absorb their visual language: composition energy, lighting quality, colour palette, texture, negative-space instinct, typography treatment. DO NOT copy any of their product, packaging, models, or specific compositions — just channel the mood + polish. The product to render is defined further down in the reference list.`)
+        hintParts.push(`Image${inspoImages.length > 1 ? 's' : ''} ${start}${end > start ? `–${end}` : ''}: STYLE INSPIRATION ONLY — real ${product.name} category references. CRITICAL: these images CONTAIN OTHER PRODUCTS, other brands, other packaging, other models. You must IGNORE the specific products, packaging designs, labels, colours, logos, and any people shown in these images. Only absorb: (a) lighting direction and quality, (b) overall composition energy, (c) camera angle and framing instinct, (d) negative-space use, (e) typography weight and integration approach, (f) surface / prop styling vibe. The HERO PRODUCT that must appear in the final render is the JAMU / user's own product defined LATER in this reference list — that product's packaging, label text, colours, and shape must be preserved EXACTLY as shown in its own reference photos. Under no circumstances substitute or blend the hero product's design with any product visible in these inspiration images.`)
         idx = end
       }
       if (influencersDetail.length) {
