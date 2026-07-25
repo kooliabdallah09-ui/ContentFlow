@@ -16,7 +16,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { deductCredits } from '@/lib/deduct-credits'
 
-export const maxDuration = 180
+export const maxDuration = 300
 
 // Studio tiers at 1.4× markup: NB2 $0.075 · Pro 2K $0.139 · Pro 4K $0.24 raw.
 const CR = { nb2: 4, pro: 8, '4k': 14 } as const
@@ -321,6 +321,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Concept generation failed — try again (fewer shots may help)' }, { status: 500 })
     }
     shots = shots.slice(0, count)
+
+    // Concept short-fall guard — Sonnet sometimes returns fewer valid shots
+    // than requested (JSON truncated mid-array, or some shots failed
+    // validation). Rather than shipping 2-out-of-4, pad the batch with
+    // variations of the concepts we DO have so the render pass still
+    // produces `count` outputs.
+    if (shots.length < count) {
+      console.warn(`[products-studio/photoshoot] short-fall: parsed ${shots.length} concepts, need ${count}. Filling with variations.`)
+      const variationTails = [
+        ' Reframed at a lower hero angle for a fresh perspective.',
+        ' Same concept from a wider composition with more negative space.',
+        ' Same energy, tighter macro crop on the product.',
+        ' Same setup shifted to a different moment in the same location.',
+      ]
+      const baseShots = [...shots]
+      let vi = 0
+      while (shots.length < count) {
+        const base = baseShots[shots.length % baseShots.length]
+        shots.push({
+          concept: `${base.concept} — variant ${shots.length + 1}`,
+          prompt: base.prompt + (variationTails[vi % variationTails.length]),
+        })
+        vi++
+      }
+    }
 
     // Product fidelity refs (up to 3 angles).
     const refUrls: string[] = Array.isArray(product.photo_urls) ? product.photo_urls.slice(0, 3) : []
