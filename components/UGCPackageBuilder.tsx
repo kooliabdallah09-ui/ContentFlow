@@ -24,6 +24,8 @@ import { readCampaignShotPrefill } from '@/lib/campaign-shot-prefill'
 import { compressImageFile } from '@/lib/image-compress'
 import { useImageDrop } from '@/hooks/useImageDrop'
 import { ugcPackageCost, type UGCResolution } from '@/lib/ugc-pricing'
+import { CAMPAIGN_FORMATS, type CampaignFormat } from '@/lib/campaign-formats'
+import { BookOpen } from 'lucide-react'
 
 interface HookVariant {
   id: string
@@ -337,6 +339,36 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   function advanceTo(n: number, ref: React.RefObject<HTMLElement | null>) {
     setUnlockedStep(prev => Math.max(prev, n))
     requestAnimationFrame(() => ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  // Format Library modal — inline picker replacing the standalone /formats page.
+  // On pick, we prefill duration + aspect + direction + benefits so the form
+  // reflects the chosen format's spec instantly.
+  const [showFormatPicker, setShowFormatPicker] = useState(false)
+  const [activeFormatKey, setActiveFormatKey] = useState<string | null>(null)
+  function applyFormat(fmt: CampaignFormat) {
+    // Snap duration to nearest supported UGCDuration.
+    const supported: UGCDuration[] = [5, 10, 15, 20, 30]
+    const d = fmt.defaultDuration || 15
+    const snapped = supported.reduce((best, v) => Math.abs(v - d) < Math.abs(best - d) ? v : best, DEFAULT_DURATION)
+    setDuration(snapped)
+    setDurationTouched(true)
+    // Map aspect string → UGCAspect.
+    const a: UGCAspect =
+      fmt.defaultAspect === '9:16' ? 'portrait' :
+      fmt.defaultAspect === '4:5'  ? 'tall45' :
+      fmt.defaultAspect === '1:1'  ? 'square' : 'landscape'
+    setAspect(a)
+    setAspectTouched(true)
+    // Weave the format brief into director instructions.
+    setCustomInstructions(prev => {
+      const header = `Format: ${fmt.label}\n${fmt.sonnetSpec}`
+      // If the user already typed direction, prepend format header — don't wipe.
+      return prev.trim() ? `${header}\n\n${prev.trim()}` : header
+    })
+    setActiveFormatKey(fmt.key)
+    setShowFormatPicker(false)
+    showSuccess(`Format applied: ${fmt.label}`, `Duration + aspect + brief updated. Edit anything below before generating.`)
   }
 
   // Three-step flow: form → script review → hero frame pick → video
@@ -1165,6 +1197,63 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+      {/* Format Library trigger — inline replacement for the old sidebar
+          entry. Opens a modal with the 28 registered UGC formats. */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => setShowFormatPicker(true)}
+          className="btn btn-ghost"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '9px 14px', border: '1.5px dashed var(--border)', borderRadius: 999, background: 'var(--surface)' }}
+        >
+          <BookOpen size={14} />
+          {activeFormatKey
+            ? <>Format: <strong style={{ marginLeft: 2 }}>{CAMPAIGN_FORMATS.find(f => f.key === activeFormatKey)?.label ?? activeFormatKey}</strong> <span style={{ color: 'var(--ink-mute)', marginLeft: 6 }}>· change</span></>
+            : <>Pick a format from the Library</>}
+        </button>
+      </div>
+
+      {showFormatPicker && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowFormatPicker(false) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 1000, width: '100%', maxHeight: '85vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 24, lineHeight: 1.15 }}>Format Library</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4 }}>Pick a proven UGC format — the builder pre-fills to match.</div>
+              </div>
+              <button type="button" onClick={() => setShowFormatPicker(false)} className="btn btn-ghost" style={{ fontSize: 13 }}>Close</button>
+            </div>
+            {(['solo', 'two-person', 'motion', 'transformation'] as const).map(cat => {
+              const items = CAMPAIGN_FORMATS.filter(f => f.category === cat)
+              if (!items.length) return null
+              const catLabel = cat === 'solo' ? 'Solo talking-head' : cat === 'two-person' ? 'Two-person' : cat === 'motion' ? 'Product motion (no dialogue)' : 'Transformation'
+              return (
+                <div key={cat} style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: 'var(--ink-2)', marginBottom: 8, textTransform: 'uppercase' }}>{catLabel}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+                    {items.map(fmt => (
+                      <button
+                        key={fmt.key}
+                        type="button"
+                        onClick={() => applyFormat(fmt)}
+                        style={{ textAlign: 'left', padding: 12, border: `1.5px solid ${activeFormatKey === fmt.key ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 10, background: 'var(--surface-2, var(--surface))', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
+                      >
+                        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{fmt.label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.4 }}>{fmt.tagline}</div>
+                        <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginTop: 4, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: 600 }}>{fmt.defaultAspect} · {fmt.defaultDuration}s · ~{fmt.creditHint} cr</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Editorial summary strip — a compact overview of the current
           selections. Clicking a card scrolls to the matching step below. */}
