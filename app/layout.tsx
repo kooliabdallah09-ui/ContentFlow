@@ -37,7 +37,7 @@ export default function RootLayout({
     const titles: Record<string, string> = {
       '/': 'Contentflow Web — AI Content Studio',
       '/dashboard': 'Dashboard — Contentflow Web',
-      '/calendar': 'Monthly Plan — Contentflow Web',
+      '/campaigns': 'Campaigns — Contentflow Web',
       '/library': 'Library — Contentflow Web',
       '/analytics': 'Analytics — Contentflow Web',
       '/scheduler': 'Scheduler — Contentflow Web',
@@ -51,7 +51,6 @@ export default function RootLayout({
       '/generate/ugc': 'UGC Package — Contentflow Web',
       '/generate/business-card': 'Business Card — Contentflow Web',
       '/editor': 'Video Editor — Contentflow Web',
-      '/generate/from-calendar': 'Create Content — Contentflow Web',
       '/settings': 'Settings — Contentflow Web',
       '/settings/brand': 'Brand Settings — Contentflow Web',
       '/settings/account': 'Account — Contentflow Web',

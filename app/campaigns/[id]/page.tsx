@@ -222,6 +222,27 @@ export default function CampaignDetailPage() {
     for (const s of shots) if (s.selected !== v) void patchShot(s.id, { selected: v })
   }
 
+  const [expanding, setExpanding] = useState(false)
+  async function expandCampaign() {
+    setExpanding(true)
+    const token = await getToken()
+    if (!token) { setExpanding(false); return }
+    try {
+      const res = await fetch(`/api/campaigns/${campaignId}/expand`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!res.ok) { const d = await res.json().catch(() => ({} as { error?: string })); showError(d.error ?? 'Expand failed'); return }
+      const r2 = await fetch(`/api/campaigns/${campaignId}`, { headers: { Authorization: `Bearer ${token}` } })
+      const data = await r2.json()
+      setCampaign(data.campaign)
+      setShots(data.shots ?? [])
+      showSuccess('Expanded to a full campaign')
+    } finally {
+      setExpanding(false)
+    }
+  }
+
   if (loading) {
     return <div style={{ padding: 40, display: 'flex', gap: 10, alignItems: 'center', color: 'var(--ink-2)' }}><Loader2 size={16} className="spin" /> Loading campaign…</div>
   }
@@ -277,6 +298,24 @@ export default function CampaignDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Expand preview banner — for campaigns created via the onboarding lite planner */}
+      {(campaign.meta as { source?: string; expandable?: boolean }).source === 'onboarding' && (campaign.meta as { expandable?: boolean }).expandable && (
+        <div style={{ marginBottom: 14, padding: '14px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: '#78350f', marginBottom: 2 }}>This is your preview campaign — expand it into a full 2-week plan.</div>
+            <div style={{ fontSize: 12.5, color: '#92400e' }}>Sonnet will draft 18 more diverse shots to round it out. Your existing 6 stay untouched.</div>
+          </div>
+          <button
+            onClick={expandCampaign}
+            disabled={expanding}
+            className="btn btn-primary"
+            style={{ fontSize: 13, padding: '9px 16px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            {expanding ? <><Loader2 size={14} className="spin" /> Expanding…</> : <><Sparkles size={14} /> Expand to full campaign</>}
+          </button>
+        </div>
+      )}
 
       {/* Research summary — Sonnet's short French-language bilan on what it learned from sources */}
       {typeof (campaign.meta as { research_summary?: string }).research_summary === 'string' && (campaign.meta as { research_summary: string }).research_summary.trim() && (

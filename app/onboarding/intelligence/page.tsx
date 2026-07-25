@@ -23,7 +23,7 @@ export default function IntelligenceOnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
   const [answers, setAnswers] = useState({ product: '', audience: '', goal: '' })
-  const [phase, setPhase] = useState<'form' | 'profiling' | 'planning'>('form')
+  const [phase, setPhase] = useState<'form' | 'profiling'>('form')
   const [aiFilling, setAiFilling] = useState(false)
 
   useEffect(() => {
@@ -111,32 +111,7 @@ export default function IntelligenceOnboardingPage() {
         throw new Error(err.error || 'Onboarding failed')
       }
 
-      setPhase('planning')
-      // Plan generation is the slow step (Sonnet + trends can push past 60s).
-      // If it fails, don't dump the user back to Step 3 — the brand +
-      // intelligence rows are already saved, so send them to the dashboard
-      // where the "Refresh trends" button retries plan gen without
-      // re-answering the questionnaire.
-      try {
-        const plan = await fetch('/api/intelligence/generate-plan', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify({}),
-        })
-        if (!plan.ok) {
-          const err = await plan.json().catch(() => ({}))
-          console.warn('[intelligence] plan generation failed, routing to dashboard for retry:', err)
-          showError('Almost there', 'Your profile was saved but the plan generation took too long. Hit "Refresh trends" on the dashboard to try again.')
-          router.push('/dashboard?plan=pending&onboarded=1')
-          return
-        }
-      } catch (planErr) {
-        console.warn('[intelligence] plan generation threw, routing to dashboard for retry:', planErr)
-        showError('Almost there', 'Your profile was saved but the plan generation timed out. Hit "Refresh trends" on the dashboard to try again.')
-        router.push('/dashboard?plan=pending&onboarded=1')
-        return
-      }
-      router.push('/dashboard?plan=ready&onboarded=1')
+      router.push('/onboarding/campaign')
     } catch (err) {
       setPhase('form')
       showError('Error', err instanceof Error ? err.message : 'Something went wrong')
@@ -149,11 +124,9 @@ export default function IntelligenceOnboardingPage() {
         <Loader2 size={32} className="animate-spin" style={{ marginBottom: 20 }} />
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 400, margin: '0 0 8px' }}>
           {phase === 'profiling' && 'Reading your niche…'}
-          {phase === 'planning' && 'Building your 30-day plan…'}
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', maxWidth: 460, margin: '0 auto', lineHeight: 1.6 }}>
           {phase === 'profiling' && 'Extracting your product profile and pulling real-time trend data from Google + Reddit.'}
-          {phase === 'planning' && 'Scoring UGC formats, generating hooks, and structuring 30 days of content around what already works in your niche.'}
         </p>
       </main>
     )

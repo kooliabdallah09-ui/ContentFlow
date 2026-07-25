@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
-import ContentPlanSection from '@/components/ContentPlanSection'
 
 interface LibraryItem {
   id: string
@@ -20,25 +19,6 @@ interface CreditsData {
   plan: string
   monthlyCredits: number
   resetDate: string
-}
-
-interface CalendarDay {
-  date: string
-  contentType: string
-  title: string
-  description: string
-  icon: string
-  completed: boolean
-  suggestedTime?: string
-}
-
-const CONTENT_HREF: Record<string, string> = {
-  ugc: '/generate/ugc',
-  video: '/generate/video',
-  image: '/generate/image',
-  social: '/generate/social',
-  voice: '/generate/voice',
-  'screen-demo': '/generate/screen-demo',
 }
 
 function timeAgo(iso: string) {
@@ -63,10 +43,8 @@ export default function DashboardPage() {
   const [recentItems, setRecentItems] = useState<LibraryItem[]>([])
   const [recentLoading, setRecentLoading] = useState(true)
   const [credits, setCredits] = useState<CreditsData | null>(null)
-  const [todayTask, setTodayTask] = useState<CalendarDay | null>(null)
 
   const today = new Date()
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`
   const dayStr = today.toLocaleDateString('en-US', { weekday: 'long' })
   const dateStr = today.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })
   const yearStr = today.getFullYear()
@@ -87,10 +65,9 @@ export default function DashboardPage() {
       if (!token) { setRecentLoading(false); return }
 
       // Parallel fetches
-      const [libRes, creditsRes, planRes] = await Promise.allSettled([
+      const [libRes, creditsRes] = await Promise.allSettled([
         fetch('/api/library', { headers: { Authorization: `Bearer ${token}` } }),
         fetch('/api/credits/balance', { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('/api/planner/get-monthly-plan', { headers: { Authorization: `Bearer ${token}` } }),
       ])
 
       if (libRes.status === 'fulfilled' && libRes.value.ok) {
@@ -100,17 +77,10 @@ export default function DashboardPage() {
       if (creditsRes.status === 'fulfilled' && creditsRes.value.ok) {
         setCredits(await creditsRes.value.json())
       }
-      if (planRes.status === 'fulfilled' && planRes.value.ok) {
-        const { plan } = await planRes.value.json()
-        if (plan?.days) {
-          const task = plan.days.find((d: CalendarDay) => d.date === todayStr)
-          if (task) setTodayTask(task)
-        }
-      }
 
       setRecentLoading(false)
     })
-  }, [todayStr])
+  }, [])
 
   const creditsPercent = credits ? Math.min(100, Math.round((credits.balance / credits.monthlyCredits) * 100)) : null
 
@@ -124,7 +94,7 @@ export default function DashboardPage() {
       </h1>
 
       {/* Stats bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 28 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginTop: 28 }}>
         {/* Credits */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Credits</div>
@@ -143,34 +113,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Today's plan */}
-        {todayTask ? (
-          <Link href={CONTENT_HREF[todayTask.contentType] ?? '/calendar'} style={{
-            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13,
-            padding: '14px 16px', textDecoration: 'none', color: 'inherit',
-            transition: 'box-shadow 0.15s', display: 'block',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Today&apos;s task</div>
-              {todayTask.completed && <span style={{ fontSize: 10, fontWeight: 600, color: '#10B981', background: 'rgba(16,185,129,0.1)', borderRadius: 5, padding: '2px 6px' }}>Done</span>}
-            </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-              {todayTask.title}
-            </div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6 }}>
-              {todayTask.contentType.toUpperCase()} · {todayTask.suggestedTime}
-            </div>
-          </Link>
-        ) : (
-          <Link href="/calendar" style={{
-            background: 'var(--surface)', border: '1px dashed var(--border)', borderRadius: 13,
-            padding: '14px 16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', justifyContent: 'center',
-          }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Today&apos;s task</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-mute)' }}>No task for today — view calendar →</div>
-          </Link>
-        )}
-
         {/* Quick links */}
         <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, padding: '14px 16px' }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Quick create</div>
@@ -188,9 +130,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      {/* CONTENT INTELLIGENCE PLAN */}
-      <ContentPlanSection />
 
       {/* THREE-UP FORMAT CARDS */}
       <div className="dash-grid">

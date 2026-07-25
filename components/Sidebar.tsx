@@ -69,11 +69,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>Ask AI</span>
           <span className="kbd">A</span>
         </Link>
-        <Link href="/calendar" className={`nav-item ${isActive('/calendar') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Calendar />
-          <span style={{ flex: 1 }}>Calendar</span>
-          <span className="kbd">C</span>
-        </Link>
       </div>
 
       <div className="rail-section">
