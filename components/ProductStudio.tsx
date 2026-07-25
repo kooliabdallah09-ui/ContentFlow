@@ -108,19 +108,26 @@ export default function ProductStudio() {
   const [mobileOptionsOpen, setMobileOptionsOpen] = useState(false)
   // Optional style-reference upload — user drops in an ad they want to
   // riff on and NB Pro rebuilds it with THEIR product. Base64 for the API.
-  const [styleRef, setStyleRef] = useState<CompressedImage | null>(null)
+  // Style refs: 1 image = "recreate this exact layout with my product swapped in"
+  // (strict copy mode). 2-6 images = "channel the mood/lighting/palette only,
+  // don't copy any specific composition or product" (mood mode).
+  const [styleRefs, setStyleRefs] = useState<CompressedImage[]>([])
+  const styleRef = styleRefs[0] ?? null   // legacy alias used by existing UI
 
   // Drag-and-drop targets. Style ref accepts one image, product-create accepts up to 5.
   const styleRefDrop = useImageDrop({
-    multiple: false,
     onFiles: async files => {
-      const f = files[0]
-      try {
-        const compressed = await compressImageFile(f, 1600, 0.9)
-        setStyleRef(compressed)
-      } catch { showError('Image failed', `Could not read ${f.name}`) }
+      for (const f of files.slice(0, 6 - styleRefs.length)) {
+        try {
+          const compressed = await compressImageFile(f, 1600, 0.9)
+          setStyleRefs(prev => prev.length >= 6 ? prev : [...prev, compressed])
+        } catch { showError('Image failed', `Could not read ${f.name}`) }
+      }
     },
   })
+  function setStyleRef(img: CompressedImage | null) {
+    setStyleRefs(img ? [img] : [])
+  }
   const productPhotosDrop = useImageDrop({
     onFiles: async files => {
       for (const f of files.slice(0, 5 - createPhotos.length)) {
@@ -231,7 +238,10 @@ export default function ProductStudio() {
           influencerIds: shootInfluencerIds,
           coProductIds: shootCoProductIds,
           mode,
-          styleReference: styleRef ? { base64: styleRef.base64, mimeType: styleRef.mimeType } : undefined,
+          // 1 ref → strict "recreate this layout" mode (legacy field).
+          // 2-6 refs → mood-only inspo mode (new field).
+          styleReference: styleRefs.length === 1 ? { base64: styleRefs[0].base64, mimeType: styleRefs[0].mimeType } : undefined,
+          styleReferences: styleRefs.length >= 2 ? styleRefs.map(r => ({ base64: r.base64, mimeType: r.mimeType })) : undefined,
         }),
       })
       const data = await res.json()
@@ -457,52 +467,60 @@ export default function ProductStudio() {
             <span style={{ fontSize: 14, transition: 'transform 180ms', transform: mobileOptionsOpen ? 'rotate(180deg)' : 'rotate(0)' }}>⌄</span>
           </button>
           <div className="ps-composer-row" style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-            {/* Optional style reference — user's target ad; NB Pro copies its
-                composition/typography/palette but swaps in the user's product. */}
-            {styleRef ? (
-              <div style={{ position: 'relative', width: 62, height: 62, flexShrink: 0 }}>
-                <img
-                  src={`data:${styleRef.mimeType};base64,${styleRef.base64}`}
-                  alt="Style reference"
-                  onClick={() => setLightbox({ url: `data:${styleRef.mimeType};base64,${styleRef.base64}`, label: 'Style reference' })}
-                  style={{ width: 62, height: 62, objectFit: 'cover', borderRadius: 10, border: '1.5px solid var(--ink)', cursor: 'zoom-in' }}
-                />
-                <button
-                  onClick={() => setStyleRef(null)}
-                  title="Remove style reference"
-                  style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', cursor: 'pointer', fontSize: 11, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                >
-                  <X size={11} />
-                </button>
-              </div>
-            ) : (
-              <>
-                <input
-                  id="styleRefInput"
-                  type="file"
-                  accept="image/*"
-                  style={{ display: 'none' }}
-                  onChange={async e => {
-                    const f = e.target.files?.[0]
-                    e.currentTarget.value = ''
-                    if (!f) return
-                    try {
-                      const compressed = await compressImageFile(f, 1600, 0.9)
-                      setStyleRef(compressed)
-                    } catch { showError('Image failed', `Could not read ${f.name}`) }
-                  }}
-                />
-                <button
-                  onClick={() => document.getElementById('styleRefInput')?.click()}
-                  title="Attach a style reference — an existing ad or layout you want the AI to recreate with your product. Drag & drop an image here too."
-                  {...styleRefDrop.dropzoneProps}
-                  style={{ width: 62, height: 62, borderRadius: 10, border: `1.5px dashed ${styleRefDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: styleRefDrop.isDragging ? 'var(--hover)' : 'var(--surface-2)', color: styleRefDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, flexShrink: 0, fontSize: 10, lineHeight: 1.1, transition: 'background 120ms, border-color 120ms, color 120ms' }}
-                >
-                  <ImagePlus size={16} />
-                  <span>Style</span>
-                </button>
-              </>
-            )}
+            {/* Style references — 1 image = strict "recreate this layout"
+                mode; 2-6 images = mood-only inspo (drop screenshots you
+                saved from Pinterest, Insta, wherever). */}
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0, flexWrap: 'wrap', maxWidth: 300 }}>
+              {styleRefs.map((r, i) => (
+                <div key={i} style={{ position: 'relative', width: 62, height: 62 }}>
+                  <img
+                    src={`data:${r.mimeType};base64,${r.base64}`}
+                    alt={`Style ref ${i + 1}`}
+                    onClick={() => setLightbox({ url: `data:${r.mimeType};base64,${r.base64}`, label: `Style ref ${i + 1}` })}
+                    style={{ width: 62, height: 62, objectFit: 'cover', borderRadius: 10, border: '1.5px solid var(--ink)', cursor: 'zoom-in' }}
+                  />
+                  <button
+                    onClick={() => setStyleRefs(prev => prev.filter((_, j) => j !== i))}
+                    title="Remove"
+                    style={{ position: 'absolute', top: -6, right: -6, width: 20, height: 20, borderRadius: '50%', background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', cursor: 'pointer', fontSize: 11, lineHeight: 1, padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+              {styleRefs.length < 6 && (
+                <>
+                  <input
+                    id="styleRefInput"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={async e => {
+                      const files = Array.from(e.target.files ?? [])
+                      e.currentTarget.value = ''
+                      for (const f of files.slice(0, 6 - styleRefs.length)) {
+                        try {
+                          const compressed = await compressImageFile(f, 1600, 0.9)
+                          setStyleRefs(prev => prev.length >= 6 ? prev : [...prev, compressed])
+                        } catch { showError('Image failed', `Could not read ${f.name}`) }
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => document.getElementById('styleRefInput')?.click()}
+                    title={styleRefs.length === 0
+                      ? "Drop 1 image to copy its exact layout, or 2-6 to feed mood/palette/lighting only."
+                      : `Add another inspo image (${6 - styleRefs.length} slots left).`}
+                    {...styleRefDrop.dropzoneProps}
+                    style={{ width: 62, height: 62, borderRadius: 10, border: `1.5px dashed ${styleRefDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: styleRefDrop.isDragging ? 'var(--hover)' : 'var(--surface-2)', color: styleRefDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, flexShrink: 0, fontSize: 10, lineHeight: 1.1, transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                  >
+                    <ImagePlus size={16} />
+                    <span>{styleRefs.length === 0 ? 'Inspo' : `+${6 - styleRefs.length}`}</span>
+                  </button>
+                </>
+              )}
+            </div>
             <textarea
               className="textarea"
               rows={2}
@@ -531,9 +549,14 @@ export default function ProductStudio() {
               </button>
             )}
           </div>
-          {styleRef && (
+          {styleRefs.length === 1 && (
             <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6 }}>
-              Style reference attached — the AI will match its composition, typography and palette while swapping in <em>{selected?.name}</em>.
+              1 reference attached — <strong>strict mode</strong>: the AI will match its composition, typography and palette while swapping in <em>{selected?.name}</em>. Drop another image to switch to <strong>mood-only</strong> mode.
+            </div>
+          )}
+          {styleRefs.length >= 2 && (
+            <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 6 }}>
+              {styleRefs.length} references attached — <strong>mood mode</strong>: the AI absorbs lighting, palette and composition energy from these but preserves <em>{selected?.name}</em>&apos;s packaging exactly. Won&apos;t copy competitor products or people.
             </div>
           )}
           <div className="ps-controls-row" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>

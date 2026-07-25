@@ -106,6 +106,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const styleReference = styleRefRaw && typeof styleRefRaw === 'object' && typeof styleRefRaw.base64 === 'string' && typeof styleRefRaw.mimeType === 'string'
       ? { base64: styleRefRaw.base64, mimeType: styleRefRaw.mimeType }
       : null
+    // Mood-mode style refs — user drops 2-6 inspo images (Pinterest saves,
+    // screenshots, whatever). NB Pro absorbs lighting/palette/composition
+    // energy but is explicitly told not to copy specific products/people.
+    const styleRefsRaw: unknown = body?.styleReferences
+    const styleReferences: Array<{ base64: string; mimeType: string }> = Array.isArray(styleRefsRaw)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      ? (styleRefsRaw as any[])
+          .filter(r => r && typeof r.base64 === 'string' && typeof r.mimeType === 'string')
+          .slice(0, 6)
+          .map(r => ({ base64: r.base64, mimeType: r.mimeType }))
+      : []
     const totalCost = CR[quality] * count
 
     const { data: product } = await supabase
@@ -344,6 +355,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       //   4. Co-product refs (one hero angle per additional product)
       const refs = [
         ...(styleReference ? [styleReference] : []),
+        ...styleReferences,
         ...(influencersDetail.length ? identityRefs : []),
         ...productRefs,
         ...coProductRefs,
@@ -354,6 +366,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       let idx = 0
       const hintParts: string[] = []
       if (styleReference) { idx++; hintParts.push(`Image 1: STYLE REFERENCE — copy its layout, palette, camera angle, typography vibe.`) }
+      if (styleReferences.length) {
+        const start = idx + 1
+        const end = idx + styleReferences.length
+        hintParts.push(`Image${styleReferences.length > 1 ? 's' : ''} ${start}${end > start ? `–${end}` : ''}: MOOD-ONLY INSPIRATION — the user hand-picked these references (Pinterest saves / screenshots / editorial finds). ABSORB from them: lighting direction and quality, colour palette, composition energy, camera angle instinct, negative-space use, surface / prop styling vibe, typography treatment where present. DO NOT copy any of the following FROM these images: specific products or packaging shown, brand logos or wordmarks visible, models or their faces, exact compositions. The hero product to render is defined LATER in this reference list — its packaging, label text, colours and shape must be preserved EXACTLY from its own reference photos. Never substitute or blend the hero product's design with any product in these inspiration images.`)
+        idx = end
+      }
       if (influencersDetail.length) {
         const start = idx + 1
         const end = idx + identityRefs.length
