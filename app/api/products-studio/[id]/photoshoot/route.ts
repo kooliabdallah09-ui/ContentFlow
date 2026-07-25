@@ -15,6 +15,8 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { deductCredits } from '@/lib/deduct-credits'
+import { fetchStyleInspoImages } from '@/lib/trends/image-search'
+import { inferProductCategory } from '@/lib/multi-shot'
 
 export const maxDuration = 180
 
@@ -106,6 +108,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const styleReference = styleRefRaw && typeof styleRefRaw === 'object' && typeof styleRefRaw.base64 === 'string' && typeof styleRefRaw.mimeType === 'string'
       ? { base64: styleRefRaw.base64, mimeType: styleRefRaw.mimeType }
       : null
+    // "Match a proven style" — server-side fetches real ad + editorial
+    // reference images for the product's category via Tavily and feeds
+    // them to NB Pro as inspiration alongside the product photos.
+    const matchProvenStyle: boolean = body?.matchProvenStyle === true
     const totalCost = CR[quality] * count
 
     const { data: product } = await supabase
@@ -166,6 +172,29 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .maybeSingle()
     if (!credits || credits.balance < totalCost) {
       return NextResponse.json({ error: `Insufficient credits. Need ${totalCost}.` }, { status: 402 })
+    }
+
+    // ── Optional: fetch style inspiration images ─────────────────────
+    // Runs in parallel with concept generation below. Capped at 4 images
+    // so we don't blow NB's reference budget. Fails silently.
+    let inspoImages: Array<{ base64: string; mimeType: string }> = []
+    let inspoSources: string[] = []
+    if (matchProvenStyle) {
+      try {
+        const cat = await inferProductCategory({
+          productName: product.name,
+          productDescription: product.description ?? '',
+        }).catch(() => undefined)
+        const { images, sourceUrls } = await fetchStyleInspoImages({
+          productName: product.name,
+          productCategory: cat,
+        })
+        inspoImages = images.slice(0, 4)
+        inspoSources = sourceUrls.slice(0, 4)
+        console.log(`[products-studio/photoshoot] matched ${inspoImages.length} inspo images for category=${cat}`)
+      } catch (err) {
+        console.warn('[products-studio/photoshoot] style inspo fetch failed:', err instanceof Error ? err.message : err)
+      }
     }
 
     // Recent concepts → the avoid list that keeps batches fresh.
@@ -344,6 +373,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       //   4. Co-product refs (one hero angle per additional product)
       const refs = [
         ...(styleReference ? [styleReference] : []),
+        ...inspoImages,
         ...(influencersDetail.length ? identityRefs : []),
         ...productRefs,
         ...coProductRefs,
@@ -354,6 +384,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       let idx = 0
       const hintParts: string[] = []
       if (styleReference) { idx++; hintParts.push(`Image 1: STYLE REFERENCE — copy its layout, palette, camera angle, typography vibe.`) }
+      if (inspoImages.length) {
+        const start = idx + 1
+        const end = idx + inspoImages.length
+        hintParts.push(`Image${inspoImages.length > 1 ? 's' : ''} ${start}${end > start ? `–${end}` : ''}: STYLE INSPIRATION — real ${product.name} category ad + editorial references. Absorb their visual language: composition energy, lighting quality, colour palette, texture, negative-space instinct, typography treatment. DO NOT copy any of their product, packaging, models, or specific compositions — just channel the mood + polish. The product to render is defined further down in the reference list.`)
+        idx = end
+      }
       if (influencersDetail.length) {
         const start = idx + 1
         const end = idx + identityRefs.length
@@ -419,7 +455,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', id)
 
-    return NextResponse.json({ photos, creditsCharged: charged, requested: shots.length, rendered: photos.length })
+    return NextResponse.json({
+      photos,
+      creditsCharged: charged,
+      requested: shots.length,
+      rendered: photos.length,
+      inspoSources,
+    })
   } catch (err) {
     console.error('[products-studio/photoshoot] failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })

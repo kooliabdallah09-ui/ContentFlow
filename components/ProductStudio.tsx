@@ -109,6 +109,9 @@ export default function ProductStudio() {
   // Optional style-reference upload — user drops in an ad they want to
   // riff on and NB Pro rebuilds it with THEIR product. Base64 for the API.
   const [styleRef, setStyleRef] = useState<CompressedImage | null>(null)
+  // "Match a proven style" — server fetches 4 real category ads via Tavily
+  // and passes them to NB Pro as inspiration.
+  const [matchProvenStyle, setMatchProvenStyle] = useState(false)
 
   // Drag-and-drop targets. Style ref accepts one image, product-create accepts up to 5.
   const styleRefDrop = useImageDrop({
@@ -232,6 +235,7 @@ export default function ProductStudio() {
           coProductIds: shootCoProductIds,
           mode,
           styleReference: styleRef ? { base64: styleRef.base64, mimeType: styleRef.mimeType } : undefined,
+          matchProvenStyle,
         }),
       })
       const data = await res.json()
@@ -536,6 +540,16 @@ export default function ProductStudio() {
               Style reference attached — the AI will match its composition, typography and palette while swapping in <em>{selected?.name}</em>.
             </div>
           )}
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginTop: 8, padding: '7px 12px', border: `1.5px solid ${matchProvenStyle ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 999, cursor: 'pointer', fontSize: 12, background: matchProvenStyle ? 'var(--surface-2)' : 'transparent', userSelect: 'none' }}>
+            <input
+              type="checkbox"
+              checked={matchProvenStyle}
+              onChange={e => setMatchProvenStyle(e.target.checked)}
+              style={{ margin: 0, width: 14, height: 14, accentColor: 'var(--ink)' }}
+            />
+            <span style={{ fontWeight: 600 }}>✨ Match a proven style</span>
+            <span style={{ color: 'var(--ink-mute)' }}>— pulls 4 real category ads as inspiration</span>
+          </label>
           <div className="ps-controls-row" style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 10, flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {(['1:1', '4:5', '9:16', '16:9'] as const).map(r => (
