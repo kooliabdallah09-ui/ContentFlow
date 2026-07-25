@@ -28,9 +28,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const userId = userData.user.id
     const { id } = await params
 
-    const body = await request.json().catch(() => ({}))
-    const resolution: '2K' | '4K' = body?.resolution === '4K' ? '4K' : '2K'
-    const cost = resolution === '4K' ? SHEET_4K_CR : SHEET_CR
+    // Character sheets are always NB Pro at 4K now — the identity anchor
+    // for every downstream shoot needs sharp face detail, and the 2K
+    // fallback shipped visibly cheap renders. Body params are ignored.
+    await request.json().catch(() => ({}))
+    const resolution: '2K' | '4K' = '4K'
+    const cost = SHEET_4K_CR
 
     const { data: influencer } = await supabase
       .from('user_influencers')

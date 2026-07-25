@@ -55,12 +55,11 @@ export async function generateCharacterSheet(input: {
     } catch { /* sheet still works text-only */ }
   }
 
-  // Default at 2K to keep the sheet render cheap. Callers can pass
-  // resolution: '4K' when they want each face close-up rendered at ~640px
-  // instead of ~320px — sharper identity anchor but 1.7× the NB Pro cost.
-  // NB2 doesn't support 4K, so it's ignored on that path.
-  const model = input.model ?? 'pro'
-  const resolution = model === 'pro' && input.resolution === '4K' ? '4K' : undefined
+  // Character sheets are ALWAYS NB Pro at 4K — the sheet is the identity
+  // anchor for every downstream shoot, and the 2K / NB2 variants shipped
+  // visibly cheap-looking renders. Model + resolution inputs are ignored.
+  const model = 'pro' as const
+  const resolution = '4K' as const
   const sheet = await generateNanoBananaImage(SHEET_PROMPT(input.appearancePrompt), {
     style: 'realistic',
     ratio: '16:9',

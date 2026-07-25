@@ -599,30 +599,20 @@ export default function InfluencersPage() {
                     View character sheet
                   </button>
                   <button
-                    ref={sheetBtnRef}
-                    onClick={() => {
-                      const r = sheetBtnRef.current?.getBoundingClientRect() ?? null
-                      setRegenMenuAnchor(null)
-                      setSheetMenuAnchor(prev => prev ? null : r)
-                    }}
+                    onClick={() => generateSheet('4K')}
                     disabled={sheetLoading}
                     style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
-                    {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet <span style={{ opacity: 0.6, fontSize: 10 }}>▾</span>
+                    {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet <span style={{ opacity: 0.6, fontSize: 10 }}>4K · 14 cr</span>
                   </button>
                 </>
               ) : (
                 <button
-                  ref={sheetBtnRef}
-                  onClick={() => {
-                    const r = sheetBtnRef.current?.getBoundingClientRect() ?? null
-                    setRegenMenuAnchor(null)
-                    setSheetMenuAnchor(prev => prev ? null : r)
-                  }}
+                  onClick={() => generateSheet('4K')}
                   disabled={sheetLoading}
                   style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
-                  {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Generate character sheet <span style={{ opacity: 0.6, fontSize: 10 }}>▾</span>
+                  {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Generate character sheet <span style={{ opacity: 0.6, fontSize: 10 }}>4K · 14 cr</span>
                 </button>
               )}
               <button onClick={remove} disabled={deleting} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
