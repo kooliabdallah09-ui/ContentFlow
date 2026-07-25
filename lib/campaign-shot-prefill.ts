@@ -39,25 +39,34 @@ export function peekCampaignShotPrefill(): CampaignShotPrefill | null {
   } catch { return null }
 }
 
-// Read + consume — form initializers use this so refresh doesn't re-apply.
+// Read — PEEKS by default (does not delete). Strict Mode + Next's double-mount
+// cycle can invoke useState initializers more than once; if we deleted here
+// the second read would come back empty and the form would paint blank.
+// The prefill is cleared explicitly after a successful render via
+// clearCampaignShotPrefill() below.
 export function readCampaignShotPrefill(): CampaignShotPrefill | null {
   if (typeof window === 'undefined') return null
   try {
     const raw = sessionStorage.getItem(KEY)
     if (!raw) return null
     const parsed = JSON.parse(raw) as CampaignShotPrefill
-    // Keep the campaign/shot IDs alive in a separate cheap key so we can
-    // still write library_asset_id back after a successful render even
-    // though the form fields were consumed.
+    // Also mirror the campaign/shot IDs into a persistent link key that
+    // survives the eventual clear — needed for write-back on render success.
     try {
       sessionStorage.setItem(KEY + ':link', JSON.stringify({ campaignId: parsed.campaignId, shotId: parsed.shotId }))
     } catch { /* ignore */ }
-    sessionStorage.removeItem(KEY)
     return parsed
   } catch {
     sessionStorage.removeItem(KEY)
     return null
   }
+}
+
+// Explicit clear — called by the /generate/ugc page after a successful render
+// so the next visit without URL params starts fresh.
+export function clearCampaignShotPrefill() {
+  if (typeof window === 'undefined') return
+  try { sessionStorage.removeItem(KEY) } catch { /* ignore */ }
 }
 
 // Read the persistent link (survives the initial form prefill consumption).

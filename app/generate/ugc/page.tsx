@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { useSearchParams } from 'next/navigation'
 import { readChatPrefill } from '@/lib/chat-prefill'
-import { saveCampaignShotPrefill, peekCampaignShotLink, clearCampaignShotLink } from '@/lib/campaign-shot-prefill'
+import { saveCampaignShotPrefill, peekCampaignShotLink, clearCampaignShotLink, clearCampaignShotPrefill } from '@/lib/campaign-shot-prefill'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
@@ -30,11 +30,15 @@ export default function UGCGeneratorPage() {
   // We stash the params synchronously in sessionStorage BEFORE UGCPackageBuilder
   // mounts so its useState initializers (which read the prefill) paint the form
   // pre-filled with no flash.
+  // Campaign Planner → Builder handoff. Any time the URL carries campaign+shot,
+  // overwrite the prefill session store. UGCPackageBuilder reads it in its
+  // useState initializers on mount. No consume-guard — Strict Mode double
+  // renders were eating the value before the builder saw it.
   if (typeof window !== 'undefined') {
     const qs = new URLSearchParams(window.location.search)
     const campaignId = qs.get('campaign')
     const shotId = qs.get('shot')
-    if (campaignId && shotId && !sessionStorage.getItem('campaignShotPrefill:consumed')) {
+    if (campaignId && shotId) {
       saveCampaignShotPrefill({
         campaignId,
         shotId,
@@ -47,9 +51,6 @@ export default function UGCGeneratorPage() {
         actorId: qs.get('actor') ?? undefined,
         sceneId: qs.get('scene') ?? undefined,
       })
-      // Mark consumed so this doesn't loop through renders.
-      sessionStorage.setItem('campaignShotPrefill:consumed', '1')
-      setTimeout(() => sessionStorage.removeItem('campaignShotPrefill:consumed'), 100)
     }
   }
   const [components, setComponents] = useState<UGCComponent | null>(null)
@@ -197,6 +198,7 @@ export default function UGCGeneratorPage() {
         }),
       }).catch(() => { /* soft fail */ })
       clearCampaignShotLink()
+      clearCampaignShotPrefill()
     } catch { /* soft fail */ }
   }
 
