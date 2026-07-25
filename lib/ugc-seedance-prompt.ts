@@ -94,7 +94,7 @@ The Seedance prompt must include:
 - handheld phone camera movement
 - natural framing and imperfect composition
 - realistic hand movement and product interaction
-- real attractive person with individual features and slight asymmetries — no active acne / blemishes / rough patches, but still real skin texture (faint pores, tiny freckles, subtle unevenness). NOT the plastic AI-influencer look. Natural facial movement.
+- real attractive person with individual bone structure and slight bone-level asymmetries. Clear healthy even-toned skin with natural subtle glow, LIGHT natural makeup. Do NOT add moles, freckles, or red patches. Also NOT the plastic AI-influencer look. Natural facial movement.
 - realistic facial expressions
 - exact product preservation from the reference image
 - ambient sound effects only, plus product-specific sound effects

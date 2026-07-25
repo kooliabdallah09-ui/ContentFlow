@@ -306,7 +306,7 @@ async function callNanoBanana(
 // Used by the standalone /generate/video page when the user doesn't upload a ref.
 // Output is a 9:16-friendly hyper-realistic still that Sora will animate forward.
 export async function generateTextToImage(prompt: string): Promise<NanoBananaResult> {
-  const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting. Real attractive person — clear skin (no active acne, blemishes, or rough patches) but still with real texture (faint pores, tiny freckles, slight unevenness), individual features, subtle asymmetries. AVOID the generic AI-influencer look (plastic-glossy skin, dead-symmetrical face, over-groomed, cookie-cutter beauty). Should read as a candid moment captured on a real phone of a real attractive person, not a stock-model render.`
+  const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting. Real attractive person — clear healthy even skin with a natural subtle glow, LIGHT natural makeup (mascara, subtle blush, tinted lip). Barely-there real-skin micro-texture (very subtle pores only). Do NOT add moles, freckle clusters, or red patches on the nose or cheeks unless the source prompt explicitly asks for them. AVOID plastic-glossy over-smoothed skin AND avoid tacked-on imperfections that scream AI. Individual features come from bone structure and subtle asymmetries, not blemishes. Should read as a candid moment captured on a real phone of a genuinely attractive person, not a stock-model render.`
   return callNanoBanana(wrapped, undefined, '9:16')
 }
 
@@ -393,7 +393,7 @@ CAMERA: phone-camera close-up — hands, body parts (neck, jawline, wrist, lips,
 LIGHTING: single soft natural source, real shadow, no studio look, no rim light.
 
 REALISM ANCHORS:
-- Skin: no active acne / open blemishes / rough patches, but STILL has real texture — faint pores, tiny freckles, subtle unevenness, slight redness at the nose or cheeks. NOT glass-doll plastic. Individual face, not generic AI-influencer template.
+- Skin: clear, healthy, even-toned with a natural subtle glow. LIGHT natural makeup (mascara, subtle blush, tinted lip). Barely-there real-skin micro-texture only. NO added moles, freckle clusters, or red patches — those read as tacked-on AI imperfections and look worse than smooth skin. Also NOT glass-doll plastic. Individuality comes from bone structure and subtle asymmetries.
 - Motion blur: subtle on the moving parts (hand, liquid, fabric) — proves it's a frozen second from a video
 - Product still locked to the reference image: same packaging, same label text, same colour
 
@@ -551,7 +551,7 @@ CAMERA: handheld selfie, slight tilt (2°), iPhone front camera framing — face
 EXPRESSION: caught mid-moment — not a finished pose. Mid-smile starting, eyes alive and focused on the camera, mouth just parting to speak. Specific micro-expression, never a polished portrait smile.
 
 REALISM ANCHORS — these must all be present:
-- Skin: no active acne / open blemishes / rough patches, but STILL has real texture — faint pores, tiny freckles, subtle unevenness, natural micro-redness. Individual face with distinctive features and slight asymmetries, NOT the generic plastic AI-influencer template.
+- Skin: clear, healthy, even-toned with a natural subtle glow. LIGHT natural makeup (mascara, subtle blush, tinted lip). Barely-there real-skin micro-texture only. NO added moles, freckle clusters, or red patches on the nose or cheeks — those read as tacked-on AI imperfections. Individual face through bone structure and slight bone-level asymmetries, NOT through blemishes. Also NOT plastic AI-influencer template.
 - Eyes: asymmetric catchlight, warm iris detail, lid weight natural, slight asymmetry between left and right
 - Hair: flyaways, slight frizz, irregular part, baby hairs visible
 - Lighting: single soft natural source (window or overhead), not studio
@@ -606,7 +606,7 @@ FRAMING: handheld selfie framing, face to mid-chest visible, slightly off-centre
 EXPRESSION: caught mid-sentence — eyebrow slightly raised, eyes alive and looking directly at camera, mouth just opening to speak. Confident, knowing expression like sharing a shortcut.
 
 REALISM:
-- Skin: no active acne / blemishes / rough patches, but still has REAL texture (faint pores, tiny freckles, subtle unevenness) — NOT plastic-smooth AI-influencer skin. Individual features, slight asymmetries. Real attractive person, not a stock-photo template.
+- Skin: clear, healthy, even-toned with a natural subtle glow. LIGHT natural makeup (mascara, subtle blush, tinted lip). Barely-there real-skin micro-texture only. NO added moles, freckle clusters, or red patches — those look like AI-tacked-on flaws. Individual features come from bone structure and subtle asymmetries. Also NOT plastic-smooth AI-influencer skin.
 - Hair: flyaways, slight frizz
 - Lighting: the screen's glow adds a soft blue/white fill light on the character from behind/above — this is realistic for someone standing in front of a lit screen
 - Background: the large screen behind them, soft depth-of-field so edges blur naturally
