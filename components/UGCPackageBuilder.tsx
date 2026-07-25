@@ -126,14 +126,18 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [callToAction, setCallToAction] = useState(campaignShotPrefill?.cta || 'Try it today')
   const [benefitsGenerating, setBenefitsGenerating] = useState(false)
   const [customInstructions, setCustomInstructions] = useState(() => {
-    // Weave the campaign shot's setting + visual notes + format into the
-    // director-style instructions so Sonnet/Seedance get the full brief.
+    // Weave the full campaign shot brief into the director-style instructions.
+    // Uses section headers + blank-line separators so the field renders
+    // cleanly as a readable brief even if any single newline gets stripped
+    // in transit.
     if (campaignShotPrefill) {
-      const parts: string[] = []
-      if (campaignShotPrefill.formatKey) parts.push(`Format: ${campaignShotPrefill.formatKey}`)
-      if (campaignShotPrefill.setting) parts.push(`Setting: ${campaignShotPrefill.setting}`)
-      if (campaignShotPrefill.visualNotes) parts.push(`Visuals: ${campaignShotPrefill.visualNotes}`)
-      if (parts.length) return parts.join('\n')
+      const sections: string[] = []
+      const fmtName = campaignShotPrefill.formatLabel || campaignShotPrefill.formatKey
+      if (fmtName) sections.push(`FORMAT\n${fmtName}`)
+      if (campaignShotPrefill.setting) sections.push(`SETTING\n${campaignShotPrefill.setting}`)
+      if (campaignShotPrefill.visualNotes) sections.push(`VISUAL NOTES / BEATS\n${campaignShotPrefill.visualNotes}`)
+      if (campaignShotPrefill.caption) sections.push(`ON-POST CAPTION\n${campaignShotPrefill.caption}`)
+      if (sections.length) return sections.join('\n\n')
     }
     return initialPrefill?.description ?? ''
   })
@@ -337,9 +341,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
   // Three-step flow: form → script review → hero frame pick → video
   const [step, setStep] = useState<'form' | 'script' | 'frames'>('form')
-  const [generatedScript, setGeneratedScript] = useState<string>('')
+  const [generatedScript, setGeneratedScript] = useState<string>(campaignShotPrefill?.script ?? '')
   const [scriptLoading, setScriptLoading] = useState(false)
-  const [editedScript, setEditedScript] = useState<string>('')
+  const [editedScript, setEditedScript] = useState<string>(campaignShotPrefill?.script ?? '')
   const [scriptError, setScriptError] = useState<string | null>(null)
   const [reviseInput, setReviseInput] = useState('')
   const [revising, setRevising] = useState(false)

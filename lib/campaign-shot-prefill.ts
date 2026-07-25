@@ -12,6 +12,7 @@ export interface CampaignShotPrefill {
   shotId: string
   productId?: string
   formatKey?: string
+  formatLabel?: string
   hook?: string
   setting?: string
   aspect?: string
