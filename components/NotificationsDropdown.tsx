@@ -108,7 +108,7 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
             title: 'Published to YouTube',
             detail: j.title,
             date: j.scheduled_at,
-            href: '/scheduler',
+            href: '/library',
             unread: new Date(j.scheduled_at) > new Date(lastReadAt),
           })
         } else if (j.status === 'failed') {
@@ -118,7 +118,7 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
             title: 'YouTube publish failed',
             detail: j.error_message || j.title,
             date: j.scheduled_at,
-            href: '/scheduler',
+            href: '/library',
             unread: new Date(j.scheduled_at) > new Date(lastReadAt),
           })
         } else if (j.status === 'queued') {
@@ -128,7 +128,7 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
             title: 'Scheduled for YouTube',
             detail: j.title,
             date: j.scheduled_at,
-            href: '/scheduler',
+            href: '/library',
             unread: false,
           })
         }

@@ -40,7 +40,6 @@ export default function RootLayout({
       '/campaigns': 'Campaigns — Contentflow Web',
       '/library': 'Library — Contentflow Web',
       '/analytics': 'Analytics — Contentflow Web',
-      '/scheduler': 'Scheduler — Contentflow Web',
       '/generate/blog': 'Blog Post — Contentflow Web',
       '/generate/social': 'Social Post — Contentflow Web',
       '/generate/email': 'Email — Contentflow Web',

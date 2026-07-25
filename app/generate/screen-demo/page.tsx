@@ -8,6 +8,7 @@ import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Upload, X, Sparkles } from 'lucide-react'
 import { useDriveSync } from '@/lib/useDriveSync'
+import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
 
 const CHAR_BLOCK = 80
 const MIN_CREDITS = 20
@@ -234,6 +235,7 @@ export default function ScreenDemoPage() {
 
   return (
     <main className="sd-page" style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }}>
+      <SectionTabs tabs={VIDEO_STUDIO_TABS} />
       <DriveConnectBanner />
       <header style={{ marginBottom: 36 }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>

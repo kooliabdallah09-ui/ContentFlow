@@ -5,10 +5,12 @@
 
 import ProductStudio from '@/components/ProductStudio'
 import { DriveConnectBanner } from '@/components/DriveConnectBanner'
+import { SectionTabs, STUDIOS_TABS } from '@/components/SectionTabs'
 
 export default function ProductStudioPage() {
   return (
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: '42px 40px 90px' }}>
+      <SectionTabs tabs={STUDIOS_TABS} />
       <DriveConnectBanner />
       <header style={{ marginBottom: 28 }}>
         <h1 style={{

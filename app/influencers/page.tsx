@@ -6,6 +6,7 @@
 import { useEffect, useState, useRef, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { DriveConnectBanner } from '@/components/DriveConnectBanner'
+import { SectionTabs, STUDIOS_TABS } from '@/components/SectionTabs'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
@@ -508,6 +509,7 @@ export default function InfluencersPage() {
     ]
     return (
       <main style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 32px 24px', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 60px)' }}>
+      <SectionTabs tabs={STUDIOS_TABS} />
       {/* Portalled popovers for Regenerate look / Regenerate sheet — escape
           the identity card's overflow:hidden clipping. */}
       {typeof document !== 'undefined' && regenMenuAnchor && createPortal(
@@ -973,6 +975,7 @@ export default function InfluencersPage() {
   // ── List + create view ───────────────────────────────────────────────
   return (
     <main style={{ maxWidth: 980, margin: '0 auto', padding: '48px 32px' }}>
+      <SectionTabs tabs={STUDIOS_TABS} />
       <DriveConnectBanner />
       <div style={{ marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)' }}>ADMIN · BETA</div>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 34, fontWeight: 400, margin: '0 0 6px' }}>Influencer <em>studio</em></h1>

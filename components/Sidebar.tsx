@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessScheduling, canAccessReelAnalyzer, canAccessFormats, canAccessInfluencerStudio } from '@/lib/pov-access'
+import { canAccessReelAnalyzer, canAccessInfluencerStudio } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -23,9 +23,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
 
   const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
 
-  const [schedAccess, setSchedAccess] = useState(false)
   const [analyzerAccess, setAnalyzerAccess] = useState(false)
-  const [formatsAccess, setFormatsAccess] = useState(false)
   const [influencerAccess, setInfluencerAccess] = useState(false)
   useEffect(() => {
     (async () => {
@@ -33,9 +31,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       if (!supabase) return
       const { data: sess } = await supabase.auth.getSession()
       const email = sess?.session?.user?.email
-      setSchedAccess(canAccessScheduling(email))
       setAnalyzerAccess(canAccessReelAnalyzer(email))
-      setFormatsAccess(canAccessFormats(email))
       setInfluencerAccess(canAccessInfluencerStudio(email))
     })()
   }, [])
@@ -69,6 +65,10 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>Ask AI</span>
           <span className="kbd">A</span>
         </Link>
+        <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.TrendUp />
+          <span style={{ flex: 1 }}>Analytics</span>
+        </Link>
       </div>
 
       <div className="rail-section">
@@ -78,32 +78,32 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>Campaigns</span>
           <span className="flagship-badge">New</span>
         </Link>
-        <Link href="/formats" className={`nav-item ${isActive('/formats') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Library />
-          <span style={{ flex: 1 }}>Format Library</span>
-        </Link>
-        <Link href="/generate/ugc" className={`nav-item ${isActive('/generate/ugc') ? 'active' : ''}`} onClick={handleNavClick}>
+        {/* Fused Video Studio — 3 tabs at the top of the destination page:
+            UGC Package · Video · Screen Demo. Sidebar links to the default
+            UGC tab; the tab bar switches between them. Format Library also
+            lives inside the UGC tab (inline picker). */}
+        <Link
+          href="/generate/ugc"
+          className={`nav-item ${(isActive('/generate/ugc') || isActive('/generate/video') || isActive('/generate/screen-demo')) ? 'active' : ''}`}
+          onClick={handleNavClick}
+        >
           <Icon.Video />
-          <span style={{ flex: 1 }}>UGC Package</span>
+          <span style={{ flex: 1 }}>Video Studio</span>
           <span className="flagship-badge">Flagship</span>
         </Link>
+        {/* Fused Studios — 3 tabs: Influencers · Products · Scenes.
+            Sidebar links to Influencers as default. */}
         {influencerAccess && (
-          <Link href="/influencers" className={`nav-item ${isActive('/influencers') ? 'active' : ''}`} onClick={handleNavClick}>
-            <Icon.Brand />
-            <span style={{ flex: 1 }}>Influencers</span>
+          <Link
+            href="/influencers"
+            className={`nav-item ${(isActive('/influencers') || isActive('/generate/products') || isActive('/scenes')) ? 'active' : ''}`}
+            onClick={handleNavClick}
+          >
+            <Icon.Package />
+            <span style={{ flex: 1 }}>Studios</span>
             <span className="flagship-badge">Beta</span>
           </Link>
         )}
-        <Link href="/generate/products" className={`nav-item ${isActive('/generate/products') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Package />
-          <span style={{ flex: 1 }}>Product Studio</span>
-          <span className="flagship-badge">Beta</span>
-        </Link>
-        <Link href="/scenes" className={`nav-item ${isActive('/scenes') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Library />
-          <span style={{ flex: 1 }}>Scene Studio</span>
-          <span className="flagship-badge">New</span>
-        </Link>
         {analyzerAccess && (
           <Link href="/generate/analyzer" className={`nav-item ${isActive('/generate/analyzer') ? 'active' : ''}`} onClick={handleNavClick}>
             <Icon.Video />
@@ -111,28 +111,13 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
             <span className="flagship-badge">Beta</span>
           </Link>
         )}
-        {formatsAccess && (
-          <Link href="/generate/formats" className={`nav-item ${isActive('/generate/formats') ? 'active' : ''}`} onClick={handleNavClick}>
-            <Icon.Library />
-            <span style={{ flex: 1 }}>Format Library</span>
-            <span className="flagship-badge">Beta</span>
-          </Link>
-        )}
         <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Image />
           <span style={{ flex: 1 }}>Image</span>
         </Link>
-        <Link href="/generate/video" className={`nav-item ${isActive('/generate/video') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Video />
-          <span style={{ flex: 1 }}>Video</span>
-        </Link>
         <Link href="/generate/voice" className={`nav-item ${isActive('/generate/voice') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Voice />
           <span style={{ flex: 1 }}>Voiceover</span>
-        </Link>
-        <Link href="/generate/screen-demo" className={`nav-item ${isActive('/generate/screen-demo') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Monitor />
-          <span style={{ flex: 1 }}>Screen Demo</span>
         </Link>
         <Link href="/generate/social" className={`nav-item ${isActive('/generate/social') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Social />
@@ -147,28 +132,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           <span style={{ flex: 1 }}>Video Editor</span>
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Beta</span>
         </Link>
-      </div>
-
-      <div className="rail-section">
-        <div className="rail-label">Publish</div>
-        <Link href="/scheduler" className={`nav-item ${isActive('/scheduler') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Calendar />
-          <span style={{ flex: 1 }}>Scheduler</span>
-          {!schedAccess && <span className="soon-badge">Soon</span>}
-        </Link>
-        <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.TrendUp />
-          <span style={{ flex: 1 }}>Analytics</span>
-        </Link>
-      </div>
-
-      <div className="rail-section">
-        <div className="rail-label">Coming soon</div>
-        <div className="nav-item nav-soon">
-          <Icon.Blog />
-          <span style={{ flex: 1 }}>Blog · Email</span>
-          <span className="soon-badge">Soon</span>
-        </div>
       </div>
 
       <div className="rail-footer">

@@ -57,7 +57,6 @@ Optional textarea on the UGC form. Users can paste their own script ("Use this s
 - /generate/social : Social post writer
 - /generate/email : Email writer
 - /calendar : Monthly content calendar
-- /scheduler : Post scheduler
 - /library : Generated content history
 - /analytics : Performance analytics
 - /pricing : Plans and credit packs

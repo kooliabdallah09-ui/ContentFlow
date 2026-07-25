@@ -10,11 +10,6 @@ export function canAccessPovStudio(email: string | null | undefined): boolean {
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
 
-export function canAccessScheduling(email: string | null | undefined): boolean {
-  if (!email) return false
-  return ADMIN_EMAILS.has(email.toLowerCase())
-}
-
 export function canAccessMultiAgentChat(email: string | null | undefined): boolean {
   if (!email) return false
   return ADMIN_EMAILS.has(email.toLowerCase())

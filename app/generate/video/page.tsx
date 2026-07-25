@@ -9,6 +9,7 @@ import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { Download, Play, Upload, X } from 'lucide-react'
+import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
 
 type Model = 'seedance-2' | 'seedance-mini' | 'omni-flash'
 type Resolution = '480p' | '720p' | '1080p' | '4k'
@@ -443,6 +444,7 @@ export default function VideoGeneratorPage() {
 
   return (
     <main style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }} className="vid-page">
+      <SectionTabs tabs={VIDEO_STUDIO_TABS} />
       <DriveConnectBanner />
       <header style={{ marginBottom: 36 }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>

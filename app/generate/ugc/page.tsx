@@ -5,6 +5,7 @@ import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { useSearchParams } from 'next/navigation'
 import { readChatPrefill } from '@/lib/chat-prefill'
 import { saveCampaignShotPrefill, peekCampaignShotLink, clearCampaignShotLink, clearCampaignShotPrefill } from '@/lib/campaign-shot-prefill'
+import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
@@ -297,6 +298,7 @@ export default function UGCGeneratorPage() {
 
   return (
     <main style={{ maxWidth: 1140, margin: '0 auto', padding: '36px 40px 90px' }} className="ugc-page">
+      <SectionTabs tabs={VIDEO_STUDIO_TABS} />
       <DriveConnectBanner />
       <header style={{ marginBottom: 28, display: 'flex', alignItems: 'end', justifyContent: 'space-between', gap: 18, flexWrap: 'wrap' }}>
         <div>

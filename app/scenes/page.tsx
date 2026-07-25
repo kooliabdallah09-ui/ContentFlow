@@ -12,6 +12,7 @@ import { showError, showSuccess } from '@/lib/notifications'
 import { compressImageFile, type CompressedImage } from '@/lib/image-compress'
 import { useImageDrop } from '@/hooks/useImageDrop'
 import { Loader2, Trash2, Sparkles, ArrowLeft, ImagePlus, X } from 'lucide-react'
+import { SectionTabs, STUDIOS_TABS } from '@/components/SectionTabs'
 
 interface Scene {
   id: string
@@ -133,6 +134,7 @@ export default function ScenesStudio() {
 
   return (
     <main className="content" style={{ display: 'flex', flexDirection: 'column' }}>
+      <SectionTabs tabs={STUDIOS_TABS} />
       <div className="page-head" style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
         <div>
           <div className="page-meta"><span>Studio</span><span>/</span><span>Scenes</span></div>

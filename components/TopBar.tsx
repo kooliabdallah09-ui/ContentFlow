@@ -29,7 +29,6 @@ const TITLES: Record<string, string> = {
   '/generate/voice': 'Voiceover',
   '/generate/video': 'Video',
   '/generate/ugc': 'UGC Package',
-  '/scheduler': 'Scheduler',
   '/analytics': 'Analytics',
   '/ask': 'Ask AI',
   '/pricing': 'Pricing',

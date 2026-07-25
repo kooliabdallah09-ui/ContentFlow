@@ -16,7 +16,6 @@ interface CommandItem {
 const PAGES: Array<{ label: string; href: string; group: string; sub?: string }> = [
   { label: 'Dashboard', href: '/dashboard', group: 'Navigation' },
   { label: 'Library', href: '/library', group: 'Navigation' },
-  { label: 'Scheduler', href: '/scheduler', group: 'Navigation' },
   { label: 'Analytics', href: '/analytics', group: 'Navigation' },
   { label: 'Ask AI', href: '/ask', group: 'Navigation' },
   { label: 'UGC Package', href: '/generate/ugc', group: 'Create', sub: 'Flagship talking-head ad' },
