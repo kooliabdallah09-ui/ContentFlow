@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessReelAnalyzer, canAccessInfluencerStudio } from '@/lib/pov-access'
+import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -23,7 +23,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
 
   const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
 
-  const [analyzerAccess, setAnalyzerAccess] = useState(false)
   const [influencerAccess, setInfluencerAccess] = useState(false)
   useEffect(() => {
     (async () => {
@@ -31,7 +30,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       if (!supabase) return
       const { data: sess } = await supabase.auth.getSession()
       const email = sess?.session?.user?.email
-      setAnalyzerAccess(canAccessReelAnalyzer(email))
       setInfluencerAccess(canAccessInfluencerStudio(email))
     })()
   }, [])
@@ -101,13 +99,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
           >
             <Icon.Package />
             <span style={{ flex: 1 }}>Studios</span>
-            <span className="flagship-badge">Beta</span>
-          </Link>
-        )}
-        {analyzerAccess && (
-          <Link href="/generate/analyzer" className={`nav-item ${isActive('/generate/analyzer') ? 'active' : ''}`} onClick={handleNavClick}>
-            <Icon.Video />
-            <span style={{ flex: 1 }}>Reel Analyzer</span>
             <span className="flagship-badge">Beta</span>
           </Link>
         )}
