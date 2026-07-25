@@ -99,6 +99,10 @@ export default function ProductStudio() {
   // Feature one or more influencers in the shots (401s harmlessly for non-admin).
   const [influencers, setInfluencers] = useState<Array<{ id: string; name: string; portrait_url: string }>>([])
   const [shootInfluencerIds, setShootInfluencerIds] = useState<string[]>([])
+  // Reusable Scenes from Scene Studio — pick one to lock the shoot to that
+  // exact location (hero image + scene_prompt travel as anchors to NB Pro).
+  const [scenes, setScenes] = useState<Array<{ id: string; name: string; hero_image_url: string | null; scene_prompt: string }>>([])
+  const [shootSceneId, setShootSceneId] = useState<string | undefined>(undefined)
   // Feature one or more of the user's OTHER products alongside the current one
   // (e.g. flat-lay of two SKUs, or an influencer holding two products).
   const [shootCoProductIds, setShootCoProductIds] = useState<string[]>([])
@@ -154,6 +158,18 @@ export default function ProductStudio() {
           if (Array.isArray(data?.influencers)) setInfluencers(data.influencers)
         }
       } catch { /* hidden for non-admin */ }
+    })()
+    // Reusable Scenes — 401 / empty degrades silently.
+    ;(async () => {
+      try {
+        const token = await getToken()
+        if (!token) return
+        const res = await fetch('/api/scenes', { headers: { Authorization: `Bearer ${token}` } })
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data?.scenes)) setScenes(data.scenes)
+        }
+      } catch { /* silent */ }
     })()
   }, [])
 
@@ -237,6 +253,7 @@ export default function ProductStudio() {
           influencerId: shootInfluencerIds[0],
           influencerIds: shootInfluencerIds,
           coProductIds: shootCoProductIds,
+          sceneId: shootSceneId,
           mode,
           // 1 ref → strict "recreate this layout" mode (legacy field).
           // 2-6 refs → mood-only inspo mode (new field).
@@ -421,6 +438,36 @@ export default function ProductStudio() {
               {shootCoProductIds.length > 0 && (
                 <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginLeft: 4 }}>+{shootCoProductIds.length} product{shootCoProductIds.length > 1 ? 's' : ''} in shot</span>
               )}
+            </div>
+          )}
+          {/* Reusable Scene picker — locks the shoot to a saved Scene Studio
+              environment (its hero image + prompt travel as anchors to NB Pro). */}
+          {scenes.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Scene</span>
+              <button
+                onClick={() => setShootSceneId(undefined)}
+                style={{ ...chip(!shootSceneId), padding: '6px 12px' }}
+              >
+                AI picks
+              </button>
+              {scenes.map(s => {
+                const active = shootSceneId === s.id
+                return (
+                  <button
+                    key={s.id}
+                    onClick={() => setShootSceneId(active ? undefined : s.id)}
+                    title={s.name}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0, borderRadius: 10, overflow: 'hidden', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', cursor: 'pointer', flexShrink: 0 }}
+                  >
+                    {s.hero_image_url && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.hero_image_url} alt={s.name} style={{ width: 46, height: 34, objectFit: 'cover', display: 'block' }} />
+                    )}
+                    <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', padding: '0 10px 0 0' }}>{s.name}</span>
+                  </button>
+                )
+              })}
             </div>
           )}
           {/* Mode toggle — Aesthetic photo vs typographic Ad graphic */}

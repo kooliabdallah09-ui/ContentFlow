@@ -98,6 +98,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     //  'aesthetic' = editorial lifestyle product photos (default).
     //  'ad' = bold typographic promo graphics (Listicle / Social Proof / Feature Callout).
     const mode: 'aesthetic' | 'ad' = body?.mode === 'ad' ? 'ad' : 'aesthetic'
+    // Optional Scene — a reusable environment the user built in Scene Studio.
+    // When set, its hero image is passed to NB Pro as a location anchor and
+    // its scene_prompt is appended to the shot brief so the render happens
+    // IN that specific place.
+    const sceneId = typeof body?.sceneId === 'string' && body.sceneId.length > 0 ? body.sceneId : null
     const model: 'pro' | 'nb2' = quality === 'nb2' ? 'nb2' : 'pro'
     // Optional style reference — an existing ad or layout the user wants NB Pro
     // to recreate with THEIR product. Bypasses the archetype-mix rules and
@@ -177,6 +182,39 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       .maybeSingle()
     if (!credits || credits.balance < totalCost) {
       return NextResponse.json({ error: `Insufficient credits. Need ${totalCost}.` }, { status: 402 })
+    }
+
+    // Optional Scene fetch — mirrors the influencer photoshoot pattern.
+    // Prefer the user's original reference photos (drift-free anchor to the
+    // real place); fall back to the AI-rendered hero.
+    let sceneDetail: { name: string; scene_prompt: string } | null = null
+    let sceneRef: { base64: string; mimeType: string } | null = null
+    if (sceneId) {
+      const { data: sceneRow } = await supabase
+        .from('user_scenes')
+        .select('id, name, scene_prompt, hero_image_url, reference_urls')
+        .eq('id', sceneId)
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (sceneRow) {
+        sceneDetail = { name: sceneRow.name, scene_prompt: sceneRow.scene_prompt }
+        const originalRefs: string[] = Array.isArray(sceneRow.reference_urls)
+          ? (sceneRow.reference_urls as string[]).filter(u => typeof u === 'string' && u.startsWith('http'))
+          : []
+        const anchorUrl = originalRefs[0] ?? sceneRow.hero_image_url
+        if (typeof anchorUrl === 'string' && anchorUrl.startsWith('http')) {
+          try {
+            const r = await fetch(anchorUrl)
+            if (r.ok) {
+              sceneRef = {
+                base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
+                mimeType: r.headers.get('content-type') || 'image/png',
+              }
+            }
+          } catch { /* soft fail — the scene_prompt still travels */ }
+        }
+        void supabase.from('user_scenes').update({ last_used_at: new Date().toISOString() }).eq('id', sceneId).eq('user_id', userId)
+      }
     }
 
     // Recent concepts → the avoid list that keeps batches fresh.
@@ -341,7 +379,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // "copy this layout, swap the product" brief so NB stays anchored on
       // the reference image and doesn't drift into its own composition.
       const styleRefPrompt = styleReference
-        ? `${sh.prompt}\n\nSTYLE REFERENCE MODE — the FIRST attached image is the target ad the user wants to recreate. Match its composition, layout, camera angle, palette, lighting mood, typography style, and overall vibe as closely as possible. Then REPLACE whatever product appears in the reference with OUR product (shown in the subsequent reference images) — same pose, same position in the frame, same scale relationship to any people or typography. Preserve OUR product's packaging, label text, colours, shape and proportions exactly. Any typography in the recreated ad should feel like a natural counterpart to what the reference shows — same weight, same case, same energy — but the copy can be new and appropriate for our product. Do not include any text overlays, watermarks, or logos that aren't in the spirit of the reference.`
+        ? `${sh.prompt}\n\nSTYLE REFERENCE MODE — the FIRST attached image is the target ad the user wants to recreate. Match its composition, layout, camera angle, palette, lighting mood, typography style, and overall vibe as closely as possible. Then REPLACE whatever product appears in the reference with OUR product (shown in the subsequent reference images) — same pose, same position in the frame, same scale relationship to any people or typography. Preserve OUR product's packaging, label text, colours, shape and proportions exactly. Any typography in the recreated ad should feel like a natural counterpart to what the reference shows — same weight, same case, same energy — but the copy can be new and appropriate for our product. Do not include any text overlays, watermarks, or logos that aren't in the spirit of the reference.\n\n★ ANATOMY & FIGURE INTEGRITY — non-negotiable ★ Any humans in the scene must render with correct, natural anatomy: proper leg proportions, correctly-jointed knees and ankles, no fused/merged/duplicated limbs, no extra or missing fingers, no unnaturally hairy or texture-glitched skin patches (leg hair only where it naturally belongs on male legs, never as a rendering artefact), no doubled bodies or ghost limbs where two figures overlap. If two people sit close together with crossing legs, keep each person's limbs clearly separated and readable — do not blend the two anatomies. Skin texture consistent and clean across the whole body of each figure.`
         : null
       const finalPrompt = (styleRefPrompt
         ? styleRefPrompt
@@ -356,6 +394,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const refs = [
         ...(styleReference ? [styleReference] : []),
         ...styleReferences,
+        ...(sceneRef ? [sceneRef] : []),
         ...(influencersDetail.length ? identityRefs : []),
         ...productRefs,
         ...coProductRefs,
@@ -371,6 +410,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const end = idx + styleReferences.length
         hintParts.push(`Image${styleReferences.length > 1 ? 's' : ''} ${start}${end > start ? `–${end}` : ''}: MOOD-ONLY INSPIRATION — the user hand-picked these references (Pinterest saves / screenshots / editorial finds). ABSORB from them: lighting direction and quality, colour palette, composition energy, camera angle instinct, negative-space use, surface / prop styling vibe, typography treatment where present. DO NOT copy any of the following FROM these images: specific products or packaging shown, brand logos or wordmarks visible, models or their faces, exact compositions. The hero product to render is defined LATER in this reference list — its packaging, label text, colours and shape must be preserved EXACTLY from its own reference photos. Never substitute or blend the hero product's design with any product in these inspiration images.`)
         idx = end
+      }
+      if (sceneRef) {
+        idx += 1
+        hintParts.push(`Image ${idx}: SCENE ANCHOR — this is the exact location the shoot happens in (${sceneDetail?.name ?? 'this place'}). The final image's environment (architecture, materials, decor, palette, lighting) must match this scene faithfully. The product${influencersDetail.length ? ' and ' + (influencersDetail.length === 1 ? 'person' : 'people') : ''} sit INSIDE this place — use its light direction, colour temperature and shadows.`)
       }
       if (influencersDetail.length) {
         const start = idx + 1
