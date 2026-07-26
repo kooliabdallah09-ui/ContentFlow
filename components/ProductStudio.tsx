@@ -891,37 +891,49 @@ export default function ProductStudio() {
                   <img src={img.preview} alt={`angle ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   <button onClick={() => setCreatePhotos(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: 2, right: 2, width: 17, height: 17, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0 }}>×</button>
                 </div>
-                {img.angle === '__custom__' ? (
-                  <input
-                    autoFocus
-                    type="text"
-                    placeholder="what is it?"
-                    value={img.customAngle ?? ''}
-                    onChange={e => setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, customAngle: e.target.value } : p))}
-                    onBlur={e => {
-                      const v = e.target.value.trim()
-                      setCreatePhotos(prev => prev.map((p, j) => j === i ? (v ? { ...p, angle: v, customAngle: undefined } : { ...p, angle: undefined, customAngle: undefined }) : p))
-                    }}
-                    style={{ width: 74, fontSize: 10.5, padding: '3px 5px', borderRadius: 6, border: '1px solid var(--ink)', background: 'var(--bg)', color: 'var(--ink)' }}
-                  />
-                ) : (
-                  <select
-                    value={img.angle ?? ''}
-                    onChange={e => {
-                      const v = e.target.value
-                      if (v === '__custom__') setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, angle: '__custom__', customAngle: '' } : p))
-                      else setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, angle: v || undefined, customAngle: undefined } : p))
-                    }}
-                    style={{ width: 74, fontSize: 10.5, padding: '3px 4px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink-2)' }}
-                  >
-                    <option value="">what?</option>
-                    {(createProductType === 'app'
-                      ? ['landing page', 'feature page', 'dashboard', 'mobile view', 'product catalogue', 'product detail', 'pricing', 'onboarding', 'settings', 'chat/messages', 'analytics', 'empty state', 'checkout', 'search results']
-                      : ['front', 'back', 'side', 'top', 'contents', 'detail', 'in use', 'packaging', 'label close-up', 'lifestyle']
-                    ).map(a => <option key={a} value={a}>{a}</option>)}
-                    <option value="__custom__">✎ custom…</option>
-                  </select>
-                )}
+                {(() => {
+                  const standardOptions = createProductType === 'app'
+                    ? ['logo', 'landing page', 'feature page', 'dashboard', 'mobile view', 'product catalogue', 'product detail', 'pricing', 'onboarding', 'settings', 'chat/messages', 'analytics', 'empty state', 'checkout', 'search results']
+                    : ['logo', 'front', 'back', 'side', 'top', 'contents', 'detail', 'in use', 'packaging', 'label close-up', 'lifestyle']
+                  const isEditingCustom = img.angle === '__custom__'
+                  // A previously-committed custom label that isn't in the standard set
+                  // still needs to appear as a selected option so the value doesn't render blank.
+                  const currentIsCustomCommitted = !!img.angle && img.angle !== '__custom__' && !standardOptions.includes(img.angle)
+                  if (isEditingCustom) {
+                    const commit = (v: string) => setCreatePhotos(prev => prev.map((p, j) => j === i ? (v ? { ...p, angle: v, customAngle: undefined } : { ...p, angle: undefined, customAngle: undefined }) : p))
+                    return (
+                      <input
+                        autoFocus
+                        type="text"
+                        placeholder="what is it?"
+                        value={img.customAngle ?? ''}
+                        onChange={e => setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, customAngle: e.target.value } : p))}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter') { e.preventDefault(); commit(e.currentTarget.value.trim()) }
+                          else if (e.key === 'Escape') { e.preventDefault(); commit('') }
+                        }}
+                        onBlur={e => commit(e.target.value.trim())}
+                        style={{ width: 74, fontSize: 10.5, padding: '3px 5px', borderRadius: 6, border: '1px solid var(--ink)', background: 'var(--bg)', color: 'var(--ink)' }}
+                      />
+                    )
+                  }
+                  return (
+                    <select
+                      value={img.angle ?? ''}
+                      onChange={e => {
+                        const v = e.target.value
+                        if (v === '__custom__') setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, angle: '__custom__', customAngle: '' } : p))
+                        else setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, angle: v || undefined, customAngle: undefined } : p))
+                      }}
+                      style={{ width: 74, fontSize: 10.5, padding: '3px 4px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink-2)' }}
+                    >
+                      <option value="">what?</option>
+                      {standardOptions.map(a => <option key={a} value={a}>{a}</option>)}
+                      {currentIsCustomCommitted && <option value={img.angle}>{img.angle}</option>}
+                      <option value="__custom__">✎ custom…</option>
+                    </select>
+                  )
+                })()}
               </div>
             ))}
             {createPhotos.length < 5 && (
