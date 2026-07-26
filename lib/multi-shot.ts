@@ -21,6 +21,38 @@
 // Each cutaway is 2 seconds and is centred in an evenly-spaced slot within
 // the anchor's middle (leaves 1s intro + 1s outro of the anchor visible).
 
+import { pickCrushMethods, type CrushMethod } from './motion-broll-prompt'
+
+// Crush-Test multi-shot planner. Split total duration into N distinct
+// crush-method shots per the budget:
+//   ≤8s   → 1 shot (single-shot flow, not this planner's problem)
+//   9-15s → 2 shots
+//   16-24s → 3 shots
+//   25-30s → 4 shots
+// Each shot duration is clamped to Seedance's supported 3–10s range
+// (prefer 5–8s), distributed as evenly as possible.
+export interface CrushShot {
+  method: CrushMethod
+  durationSec: number
+}
+
+export function planCrushTestShots(totalDurationSec: number): CrushShot[] {
+  const total = Math.max(3, Math.round(totalDurationSec))
+  let shots: number
+  if (total <= 8) shots = 1
+  else if (total <= 15) shots = 2
+  else if (total <= 24) shots = 3
+  else shots = 4
+
+  // Split evenly, clamp each to [3, 10], then normalize any remainder.
+  const base = Math.floor(total / shots)
+  const remainder = total - base * shots
+  const raw: number[] = Array.from({ length: shots }, (_, i) => base + (i < remainder ? 1 : 0))
+  const clamped = raw.map(d => Math.max(3, Math.min(10, d)))
+  const methods = pickCrushMethods(shots)
+  return methods.map((method, i) => ({ method, durationSec: clamped[i] }))
+}
+
 export type CutawaySlot = 'apply' | 'hero' | 'reaction' | 'usage'
 
 export interface CutawayPlan {

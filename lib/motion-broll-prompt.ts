@@ -160,6 +160,35 @@ REALISM ANCHORS:
 Render in ${input.aspectRatio} aspect ratio.${directionBlock}`
 }
 
+// Crush-Test multi-shot method pool. Used when total duration >8s to
+// split the crush-test video into N distinct crushing-method shots that
+// are then stitched into one final video. Each entry describes:
+//   frame:  the first-frame image prompt (fed to Nano Banana Pro)
+//   motion: the Seedance camera + motion prompt for the shot
+//   audio:  native-audio direction appended to the motion prompt
+export const CRUSH_METHODS: Array<{ key: string; frame: string; motion: string; audio: string }> = [
+  { key: 'hydraulic-press',   frame: 'Product sits centered on a heavy steel plate. Above it, a chrome hydraulic-press ram descends from the top of the frame, seconds from contact. Industrial workshop lighting.', motion: 'Hydraulic press ram descends smoothly and crushes the product flat. Slow deliberate mechanical motion.', audio: 'Deep pneumatic hiss, metal-on-metal groan, satisfying crunch on impact.' },
+  { key: 'sledgehammer',      frame: 'Product placed on a wooden workbench. Gloved hands grip a large sledgehammer raised overhead, mid-swing about to descend.', motion: 'Sledgehammer swings down in a powerful arc, direct impact on the product, debris flies outward.', audio: 'Whoosh of the swing, sharp cracking impact, pieces scattering.' },
+  { key: 'tire-roll',         frame: 'Product lies on asphalt. A large truck tire looms above it, about to roll forward.', motion: 'Heavy truck tire rolls forward over the product, flattening it under its weight, tire tread visible.', audio: 'Deep tire rumble, low crunch, rubber squelch.' },
+  { key: 'boulder-drop',      frame: 'Product sits on the ground. A large rough boulder hangs suspended above, ready to drop.', motion: 'Boulder drops straight down, decisive impact, dust plume rising around the product.', audio: 'Whoosh, heavy thud, gritty crush, dust dispersal.' },
+  { key: 'car-crusher',       frame: 'Product placed in an industrial car-crusher chamber. Two massive metal walls flank it, poised to close.', motion: 'Steel walls squeeze inward compressing the product between them, hydraulics working. Slow menacing pressure.', audio: 'Steel groaning, hydraulic whine, crunching compression.' },
+  { key: 'anvil-drop',        frame: 'Product on a concrete floor. A cast-iron anvil hangs by a chain overhead, about to be released.', motion: 'Anvil plunges down, cartoon-style vertical drop, direct crushing impact.', audio: 'Chain clank release, whistling drop, massive metal-on-concrete clang.' },
+  { key: 'vice-grip',         frame: 'Product clamped in a large industrial bench vice, handle just starting to turn.', motion: 'Vice jaws slowly tighten, compressing and warping the product between them.', audio: 'Metal screech of the vice turning, plastic/metal groan, sharp snap.' },
+  { key: 'boot-stomp',        frame: 'Product on rough gravel. A heavy work boot poised directly above, sole visible.', motion: 'Heavy boot stomps down decisively onto the product, ground vibrating.', audio: 'Boot slam, gravel scatter, crunching debris.' },
+]
+
+export type CrushMethod = typeof CRUSH_METHODS[number]
+
+// Pick n distinct crush methods at random (Fisher-Yates → take first n).
+export function pickCrushMethods(n: number): CrushMethod[] {
+  const pool = [...CRUSH_METHODS]
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[pool[i], pool[j]] = [pool[j], pool[i]]
+  }
+  return pool.slice(0, Math.max(1, Math.min(n, pool.length)))
+}
+
 // Per-format Seedance motion prompt for the animate step. NO character
 // direction, NO dialogue — just camera + product motion + optional
 // native-audio cue.

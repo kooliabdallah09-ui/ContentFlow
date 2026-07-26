@@ -671,7 +671,20 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // Nano Banana Pro / Claude overhead. Shared source of truth in
   // lib/ugc-pricing so the client display never drifts from the server
   // deduction.
-  const videoCredits = ugcPackageCost(duration, resolution, engine)
+  // Crush-Test multi-shot: when duration >8s the pipeline splits into
+  // 2-4 shots (per planCrushTestShots), each rendered as a separate
+  // Seedance job. Cost = sum of per-shot single-shot costs.
+  const isCrushTestMultiShot = activeFormatKey === 'crush-test' && duration > 8
+  const crushShotCount = duration <= 8 ? 1 : duration <= 15 ? 2 : duration <= 24 ? 3 : 4
+  const crushShotDurations: number[] = (() => {
+    if (!isCrushTestMultiShot) return [duration]
+    const base = Math.floor(duration / crushShotCount)
+    const remainder = duration - base * crushShotCount
+    return Array.from({ length: crushShotCount }, (_, i) => Math.max(3, Math.min(10, base + (i < remainder ? 1 : 0))))
+  })()
+  const videoCredits = isCrushTestMultiShot
+    ? crushShotDurations.reduce((sum, d) => sum + ugcPackageCost(d, resolution, engine), 0)
+    : ugcPackageCost(duration, resolution, engine)
   const totalCredits = videoCredits
   void calculateVideoCredits
   // Require a picked creator (either a saved influencer or a saved actor)
@@ -821,6 +834,64 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   }
 
   // Called once the user has picked one of the 4 hero frames.
+  const runCrushTestMultiShot = async () => {
+    setAnimating(true)
+    try {
+      const supabase = getSupabase()
+      if (!supabase) throw new Error('Auth not ready')
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+
+      const res = await fetch('/api/ugc/motion-broll-multishot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          formatKey: 'crush-test',
+          productName,
+          productDescription,
+          videoDirection: customInstructions.trim() || undefined,
+          aspect,
+          resolution,
+          engine,
+          duration,
+          productImageBase64: productImage?.base64,
+          productImageMimeType: productImage?.mimeType,
+          extraProductImages: combinedExtraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Crush-test multishot submission failed')
+
+      await onGenerate({
+        ugcType: UGC_TYPE, tier, duration, productName, productDescription, benefits, callToAction,
+        style: 'realistic', imageSize: '1024x1024', voiceId: '',
+        productImageBase64: productImage?.base64,
+        productImageMimeType: productImage?.mimeType,
+        character,
+        customInstructions: customInstructions.trim() || undefined,
+        language,
+        aspect,
+        actorId,
+        customPhotoBase64: customPhoto?.base64,
+        customPhotoMimeType: customPhoto?.mimeType,
+        productType,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        __animateResponse: data as any,
+      } as Parameters<typeof onGenerate>[0])
+
+      setStep('form')
+      setGeneratedScript('')
+      setEditedScript('')
+      setFrames(null)
+      resetForm()
+    } catch (err) {
+      showError('Crush-test multishot failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setAnimating(false)
+    }
+  }
+
   const runAnimate = async (selectedFrameUrl: string, finalScript: string) => {
     setAnimating(true)
     try {
@@ -1043,8 +1114,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
     // Motion-broll skips scripts entirely — go straight to the product-hero
     // frame generator. There is no dialogue, no character, no hook picker.
+    // Crush-Test with duration >8s skips the pick-frame step entirely and
+    // routes through the multi-shot pipeline (auto-generates its own N
+    // frames + Seedance jobs then stitches).
     if (isMotionBrollFormat) {
-      await requestHeroFrames('')
+      if (isCrushTestMultiShot) {
+        await runCrushTestMultiShot()
+      } else {
+        await requestHeroFrames('')
+      }
       return
     }
 

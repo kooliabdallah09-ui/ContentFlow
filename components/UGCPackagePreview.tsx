@@ -34,12 +34,25 @@ interface CutawayClip {
   error?: string
 }
 
+interface CrushShotClip {
+  index: number
+  methodKey: string
+  predictionId: string
+  durationSec: number
+  frameUrl?: string
+  videoUrl?: string
+  status?: 'processing' | 'completed' | 'failed'
+  error?: string
+}
+
 interface UGCComponent {
   image?: { url: string; id: string }
   video?: VideoComponent
   broll?: BrollClip[]
   cutaways?: CutawayClip[]
   multiShot?: boolean
+  multiShotMode?: 'overlay' | 'crush-test-concat'
+  crushShots?: CrushShotClip[]
   script?: string
   audioOverlayUrl?: string  // Hero tier: ElevenLabs voice to overlay on the muted Sora video
   language?: string         // ISO-639-1 code — drives Whisper transcription hint
@@ -61,6 +74,9 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [brolls, setBrolls] = useState<BrollClip[]>([])
   const [cutaways, setCutaways] = useState<CutawayClip[]>([])
   const [multiShot, setMultiShot] = useState(false)
+  const [crushShots, setCrushShots] = useState<CrushShotClip[]>([])
+  const [multiShotMode, setMultiShotMode] = useState<'overlay' | 'crush-test-concat' | null>(null)
+  const crushFinalizeStartedRef = useRef(false)
   const [compositeRenderId, setCompositeRenderId] = useState<string | null>(null)
   const compositePollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const compositeStartedRef = useRef(false)
@@ -117,6 +133,13 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
       })))
     }
     if (components?.multiShot) setMultiShot(true)
+    if (components?.multiShotMode) setMultiShotMode(components.multiShotMode)
+    if (components?.crushShots?.length) {
+      setCrushShots(components.crushShots.map(s => ({
+        ...s,
+        status: s.predictionId ? 'processing' : 'failed',
+      })))
+    }
   }, [components])
 
   // Poll each cutaway's Seedance job independently. Uses the same
@@ -150,6 +173,119 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
     return () => clearInterval(t)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cutaways.map(c => `${c.predictionId}:${c.status}`).join('|')])
+
+  // Crush-test multi-shot: poll each shot's Seedance job independently.
+  useEffect(() => {
+    if (multiShotMode !== 'crush-test-concat') return
+    const processing = crushShots.filter(s => s.predictionId && s.status === 'processing')
+    if (!processing.length) return
+    const t = setInterval(async () => {
+      const updates = await Promise.all(processing.map(async s => {
+        try {
+          const res = await fetch(`/api/ugc/video-status?videoId=${s.predictionId}&provider=seedance-2`)
+          if (!res.ok) return null
+          const data = await res.json()
+          const v = data.video
+          if (!v) return null
+          if (v.status === 'completed' || v.status === 'failed') {
+            return { predictionId: s.predictionId, status: v.status, videoUrl: v.videoUrl, error: v.error }
+          }
+          return null
+        } catch { return null }
+      }))
+      const meaningful = updates.filter((u): u is NonNullable<typeof u> => !!u)
+      if (meaningful.length) {
+        setCrushShots(prev => prev.map(s => {
+          const u = meaningful.find(m => m.predictionId === s.predictionId)
+          return u ? { ...s, status: u.status as 'completed' | 'failed', videoUrl: u.videoUrl, error: u.error } : s
+        }))
+      }
+    }, 5000)
+    return () => clearInterval(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [multiShotMode, crushShots.map(s => `${s.predictionId}:${s.status}`).join('|')])
+
+  // Crush-test finalize: once every shot is done, POST the ordered urls to
+  // /api/ugc/motion-broll-multishot/finalize which submits a Shotstack
+  // concat and returns a renderId; we then poll GET /api/ugc/stitch until
+  // the mp4 is ready.
+  useEffect(() => {
+    if (multiShotMode !== 'crush-test-concat') return
+    if (crushFinalizeStartedRef.current) return
+    if (!crushShots.length) return
+    if (crushShots.some(s => s.status === 'processing')) return
+    const usable = crushShots.filter(s => s.status === 'completed' && s.videoUrl)
+      .sort((a, b) => a.index - b.index)
+    if (!usable.length) {
+      crushFinalizeStartedRef.current = true
+      setStitchStatus('failed')
+      setStitchError('All crush shots failed')
+      return
+    }
+    if (usable.length === 1) {
+      crushFinalizeStartedRef.current = true
+      setFinalVideoUrl(usable[0].videoUrl!)
+      setStitchStatus('completed')
+      // Also reflect on the anchor so the primary player picks it up.
+      setVideo(prev => prev ? { ...prev, status: 'completed', videoUrl: usable[0].videoUrl } : prev)
+      return
+    }
+    crushFinalizeStartedRef.current = true
+    setStitchStatus('stitching')
+    ;(async () => {
+      try {
+        const { getSupabase } = await import('@/lib/auth')
+        const supabase = getSupabase()
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+        const token = sess?.session?.access_token
+        if (!token) throw new Error('Not signed in')
+        const aspect: 'portrait' | 'square' | 'landscape' = components?.aspect ?? 'portrait'
+        const res = await fetch('/api/ugc/motion-broll-multishot/finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            aspect,
+            shots: usable.map(s => ({ videoUrl: s.videoUrl!, durationSec: s.durationSec })),
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Finalize failed')
+        if (data.singleShot && data.finalVideoUrl) {
+          setFinalVideoUrl(data.finalVideoUrl)
+          setStitchStatus('completed')
+          return
+        }
+        if (!data.renderId) throw new Error('finalize: no renderId')
+        setStitchRenderId(data.renderId)
+      } catch (err) {
+        setStitchStatus('failed')
+        setStitchError(err instanceof Error ? err.message : 'Finalize failed')
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [multiShotMode, crushShots.map(s => s.status).join('|')])
+
+  // Poll the Shotstack stitch job for the crush-test concat.
+  useEffect(() => {
+    if (multiShotMode !== 'crush-test-concat') return
+    if (!stitchRenderId || stitchStatus !== 'stitching') return
+    stitchPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/ugc/stitch?renderId=${stitchRenderId}`)
+        const data = await res.json()
+        if (data.status === 'completed' && data.videoUrl) {
+          setFinalVideoUrl(data.videoUrl)
+          setStitchStatus('completed')
+          if (stitchPollRef.current) clearInterval(stitchPollRef.current)
+        } else if (data.status === 'failed') {
+          setStitchStatus('failed')
+          setStitchError(data.error || 'Stitch failed')
+          if (stitchPollRef.current) clearInterval(stitchPollRef.current)
+        }
+      } catch { /* keep polling */ }
+    }, 4000)
+    return () => { if (stitchPollRef.current) clearInterval(stitchPollRef.current) }
+  }, [multiShotMode, stitchRenderId, stitchStatus])
 
   // Main video + B-roll polling
   useEffect(() => {
@@ -248,6 +384,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   useEffect(() => {
     if (compositeStartedRef.current || stitchStartedRef.current) return
     if (!multiShot) return
+    if (multiShotMode === 'crush-test-concat') return
     if (video?.status !== 'completed' || !video.videoUrl) return
     // Wait for every cutaway to finish polling (either completed or failed).
     if (cutaways.some(c => c.status === 'processing')) return
