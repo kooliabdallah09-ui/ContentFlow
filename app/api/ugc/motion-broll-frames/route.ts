@@ -36,6 +36,7 @@ export async function POST(request: NextRequest) {
       productImageBase64,
       productImageMimeType,
       extraProductImages,
+      productPhotoAngles,   // parallel to [primary, ...extras] — angle labels for each product ref
       aspectId,
       formatKey,
       videoDirection,
@@ -128,8 +129,13 @@ export async function POST(request: NextRequest) {
     for (const r of extraRefs) refStack.push(r)
     if (sceneAnchorRef) refStack.push(sceneAnchorRef)
 
+    const angles: string[] = Array.isArray(productPhotoAngles)
+      ? (productPhotoAngles as unknown[]).map(a => typeof a === 'string' ? a.trim() : '')
+      : []
+    const primaryAngle = angles[0] ?? ''
+    const extraAngles = angles.slice(1, 1 + extraRefs.length).filter(Boolean)
     const productHint = hasProduct
-      ? `The FIRST reference image is the EXACT product — packaging, label, colours, shape must match faithfully. ${extraRefs.length ? `The next ${extraRefs.length} image(s) are additional angles / details of the SAME product — use them to disambiguate shape/label.` : ''}${sceneAnchorRef ? ' The LAST image is the required scene — match its materials, palette, and mood.' : ''}`
+      ? `The FIRST reference image is the ${primaryAngle ? `${primaryAngle} view of the` : 'EXACT'} product — packaging, label, colours, shape must match faithfully. ${extraRefs.length ? `The next ${extraRefs.length} image(s) are additional angles / details of the SAME product${extraAngles.length ? ` (${extraAngles.join(', ')})` : ''} — use them to disambiguate shape/label.` : ''}${sceneAnchorRef ? ' The LAST image is the required scene — match its materials, palette, and mood.' : ''}`
       : (sceneAnchorRef ? 'The reference image is the required scene — match its materials, palette, and mood.' : 'Follow the prompt precisely.')
 
     async function generateOne(): Promise<{ base64: string; mimeType: string }> {

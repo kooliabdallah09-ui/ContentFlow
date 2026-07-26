@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
     if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     const { data, error } = await supa()
       .from('user_studio_products')
-      .select('id, name, category, description, photo_urls, created_at, last_used_at')
+      .select('id, name, category, description, photo_urls, photo_angles, product_type, website_url, created_at, last_used_at')
       .eq('user_id', userId)
       .order('last_used_at', { ascending: false })
       .limit(100)
@@ -126,14 +126,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Could not read the product — try clearer photos' }, { status: 500 })
     }
 
-    // 2) Upload the reference angles.
+    // 2) Upload the reference angles. Track the angle per-photo in parallel
+    // so downstream UGC knows which URL is landing-page vs mobile vs custom.
     const photoUrls: string[] = []
+    const photoAngles: string[] = []
     for (const p of photos) {
       const filename = `product-studio/${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.png`
       const { error: upErr } = await supabase.storage
         .from('ugc-assets')
         .upload(filename, Buffer.from(p.base64, 'base64'), { contentType: p.mimeType, upsert: false })
-      if (!upErr) photoUrls.push(supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl)
+      if (!upErr) {
+        photoUrls.push(supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl)
+        photoAngles.push(typeof p.angle === 'string' ? p.angle.trim().slice(0, 60) : '')
+      }
     }
     if (!photoUrls.length) throw new Error('Photo upload failed')
 
@@ -146,6 +151,7 @@ export async function POST(request: NextRequest) {
         description: typeof sheet.description === 'string' ? sheet.description.slice(0, 400) : null,
         appearance_prompt: String(sheet.appearance_prompt).slice(0, 2000),
         photo_urls: photoUrls,
+        photo_angles: photoAngles,
         product_type: productType,
         website_url: websiteUrl,
       })

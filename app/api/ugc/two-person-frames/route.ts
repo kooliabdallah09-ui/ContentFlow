@@ -44,6 +44,7 @@ export async function POST(request: NextRequest) {
       sceneId,
       formatKey,
       productType,
+      productPhotoAngles,   // parallel to [primary, ...extras] — angle labels for the product refs
     } = body as Record<string, unknown>
 
     // formatKey is optional now — two-character mode is driven by having
@@ -176,10 +177,14 @@ export async function POST(request: NextRequest) {
 
     const aCount = personA.refs.length
     const bCount = personB?.refs.length ?? 0
+    const angles: string[] = Array.isArray(productPhotoAngles)
+      ? (productPhotoAngles as unknown[]).map(a => typeof a === 'string' ? a.trim() : '')
+      : []
+    const primaryAngle = angles[0] ?? ''
     const productHintLine = hasProduct
       ? (safeProductType === 'website'
-          ? ` The reference image AFTER the people images (before any scene image) is a screenshot of the WEBSITE — render it faithfully on the device screen (laptop or phone) one of the people is holding. Do NOT treat it as a physical product to hold.`
-          : ` The reference image AFTER the people images (before any scene image) is the exact product — packaging, label, colours, shape must match faithfully.`)
+          ? ` The reference image AFTER the people images (before any scene image) is a screenshot of the WEBSITE${primaryAngle ? ` (screen: ${primaryAngle})` : ''} — render it faithfully on the device screen (laptop or phone) one of the people is holding. Do NOT treat it as a physical product to hold.`
+          : ` The reference image AFTER the people images (before any scene image) is the ${primaryAngle || 'exact'} view of the product — packaging, label, colours, shape must match faithfully.`)
       : ''
     const sceneHintLine = sceneAnchorRef
       ? ' The LAST image is the EXACT scene — architecture, materials, decor, palette, and lighting must match it faithfully.'

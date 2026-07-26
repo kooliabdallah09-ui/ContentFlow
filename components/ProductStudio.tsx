@@ -20,6 +20,7 @@ interface StudioProduct {
   category?: string | null
   description?: string | null
   photo_urls: string[]
+  photo_angles?: (string | null)[]
   created_at: string
 }
 
@@ -54,7 +55,7 @@ export default function ProductStudio() {
   const [showCreate, setShowCreate] = useState(false)
   const [createName, setCreateName] = useState('')
   const [createWhatItIs, setCreateWhatItIs] = useState('')
-  const [createPhotos, setCreatePhotos] = useState<Array<CompressedImage & { angle?: string }>>([])
+  const [createPhotos, setCreatePhotos] = useState<Array<CompressedImage & { angle?: string; customAngle?: string }>>([])
   const [creating, setCreating] = useState(false)
   const [aiFilling, setAiFilling] = useState(false)
   // Physical vs App/Website — mirrors the toggle in UGCPackageBuilder.
@@ -828,7 +829,7 @@ export default function ProductStudio() {
                       const data = await res.json()
                       if (!res.ok) throw new Error(data.error || 'Failed to fetch screenshot')
                       const mimeType = data.mimeType || 'image/png'
-                      const shot: CompressedImage & { angle?: string } = {
+                      const shot: CompressedImage & { angle?: string; customAngle?: string } = {
                         base64: data.imageBase64,
                         mimeType,
                         preview: `data:${mimeType};base64,${data.imageBase64}`,
@@ -890,17 +891,37 @@ export default function ProductStudio() {
                   <img src={img.preview} alt={`angle ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   <button onClick={() => setCreatePhotos(prev => prev.filter((_, j) => j !== i))} style={{ position: 'absolute', top: 2, right: 2, width: 17, height: 17, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0 }}>×</button>
                 </div>
-                <select
-                  value={img.angle ?? ''}
-                  onChange={e => setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, angle: e.target.value || undefined } : p))}
-                  style={{ width: 74, fontSize: 10.5, padding: '3px 4px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink-2)' }}
-                >
-                  <option value="">side?</option>
-                  {(createProductType === 'app'
-                    ? ['landing page', 'feature', 'dashboard', 'mobile', 'detail']
-                    : ['front', 'back', 'side', 'top', 'contents', 'detail']
-                  ).map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
+                {img.angle === '__custom__' ? (
+                  <input
+                    autoFocus
+                    type="text"
+                    placeholder="what is it?"
+                    value={img.customAngle ?? ''}
+                    onChange={e => setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, customAngle: e.target.value } : p))}
+                    onBlur={e => {
+                      const v = e.target.value.trim()
+                      setCreatePhotos(prev => prev.map((p, j) => j === i ? (v ? { ...p, angle: v, customAngle: undefined } : { ...p, angle: undefined, customAngle: undefined }) : p))
+                    }}
+                    style={{ width: 74, fontSize: 10.5, padding: '3px 5px', borderRadius: 6, border: '1px solid var(--ink)', background: 'var(--bg)', color: 'var(--ink)' }}
+                  />
+                ) : (
+                  <select
+                    value={img.angle ?? ''}
+                    onChange={e => {
+                      const v = e.target.value
+                      if (v === '__custom__') setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, angle: '__custom__', customAngle: '' } : p))
+                      else setCreatePhotos(prev => prev.map((p, j) => j === i ? { ...p, angle: v || undefined, customAngle: undefined } : p))
+                    }}
+                    style={{ width: 74, fontSize: 10.5, padding: '3px 4px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink-2)' }}
+                  >
+                    <option value="">what?</option>
+                    {(createProductType === 'app'
+                      ? ['landing page', 'feature page', 'dashboard', 'mobile view', 'product catalogue', 'product detail', 'pricing', 'onboarding', 'settings', 'chat/messages', 'analytics', 'empty state', 'checkout', 'search results']
+                      : ['front', 'back', 'side', 'top', 'contents', 'detail', 'in use', 'packaging', 'label close-up', 'lifestyle']
+                    ).map(a => <option key={a} value={a}>{a}</option>)}
+                    <option value="__custom__">✎ custom…</option>
+                  </select>
+                )}
               </div>
             ))}
             {createPhotos.length < 5 && (

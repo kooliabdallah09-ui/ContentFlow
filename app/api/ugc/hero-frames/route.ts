@@ -42,6 +42,7 @@ export async function POST(request: NextRequest) {
       influencerPhotoUrl,   // user explicitly chose this gallery photo as the identity ref
       sceneId,              // uuid of a user_scenes row — override the location with a stored scene
       extraProductImages,   // additional photos of the SAME product (package + contents…)
+      productPhotoAngles,   // parallel to [primary, ...extras] — angle labels so NB knows which UI screen each ref shows
       formatKey,            // campaign format key — drives shot-type-aware first frame
       productType,          // 'physical' | 'website' — website = the product image is a landing-page screenshot
     } = body as Record<string, unknown>
@@ -49,6 +50,15 @@ export async function POST(request: NextRequest) {
     const safeFormatKey = typeof formatKey === 'string' && formatKey.length > 0 ? formatKey : undefined
     const safeProductType: 'physical' | 'website' = productType === 'website' ? 'website' : 'physical'
     const campaignFormat = safeFormatKey ? getCampaignFormat(safeFormatKey) : undefined
+
+    // Angles parallel to [primary, ...extras]. Used to label each reference
+    // in the Nano Banana hint so the model knows which UI screen (landing
+    // page / mobile view / dashboard / custom) each image shows.
+    const angles: string[] = Array.isArray(productPhotoAngles)
+      ? (productPhotoAngles as unknown[]).map(a => typeof a === 'string' ? a.trim() : '')
+      : []
+    const primaryAngle = angles[0] ?? ''
+    const extraAngles = angles.slice(1)
 
     const extraProductRefs: Array<{ base64: string; mimeType: string }> = Array.isArray(extraProductImages)
       ? extraProductImages
@@ -131,7 +141,15 @@ export async function POST(request: NextRequest) {
     // Pro sees an unambiguous instruction to render the reference image ON
     // a device screen instead of treating it as a physical product to hold.
     if (safeProductType === 'website') {
-      imagePrompt = `${imagePrompt}\n\n=== WEBSITE PRODUCT — MANDATORY, OVERRIDES ANYTHING ABOVE ===\n${websiteProductDirection(safeFormatKey)}\n============================================================`
+      const angleNote = primaryAngle
+        ? `\n\nThe FIRST reference image is the EXACT app UI (screen: ${primaryAngle}) — the character's device screen MUST faithfully match this specific screen (not a mash-up of the other references).${extraAngles.length ? ` The next ${extraAngles.length} image(s) are additional UI screens (${extraAngles.filter(Boolean).join(', ') || 'other screens'}) — use them ONLY for supplementary brand detail (colours, typography, logo). The DEVICE SCREEN must primarily show the FIRST image.` : ''}`
+        : ''
+      imagePrompt = `${imagePrompt}\n\n=== WEBSITE PRODUCT — MANDATORY, OVERRIDES ANYTHING ABOVE ===\n${websiteProductDirection(safeFormatKey)}${angleNote}\n============================================================`
+    }
+    // Physical products with angle labels — nudge NB to interpret each ref as
+    // a specific view (front / back / label close-up / packaging / etc).
+    if (safeProductType === 'physical' && primaryAngle) {
+      imagePrompt = `${imagePrompt}\n\nREFERENCE ANGLES: the FIRST reference is the ${primaryAngle} view of the product.${extraAngles.filter(Boolean).length ? ` Additional refs: ${extraAngles.filter(Boolean).join(', ')}.` : ''}`
     }
 
     // Scene relevance — when reusing a saved actor / influencer, their

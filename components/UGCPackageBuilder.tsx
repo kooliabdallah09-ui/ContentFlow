@@ -78,6 +78,42 @@ interface UGCPackageBuilderProps {
 // from the sidebar — we don't conflate the two on this page anymore.
 const UGC_TYPE = 'video-with-voiceover'
 
+// Formats where the character is filming with a phone in-hand (POV /
+// interview / vlog) — for these, the on-screen reference should be a
+// MOBILE screenshot so the phone framing reads correctly. All other
+// formats prefer a landing-page screenshot (laptop framing).
+const POV_LIKE_FORMATS = new Set(['interview-pov', 'interview-man-on-street', 'pov-vlog', 'camera-pov'])
+
+// Given a saved app product and the picked format, pick the best
+// primary reference photo (the one that renders on the device screen)
+// and return the remaining indices in original order for extras.
+function pickPrimaryAppPhoto(
+  product: { photo_urls: string[]; photo_angles?: (string | null)[] | null; product_type?: 'physical' | 'app' | null },
+  formatKey: string | null,
+): { url: string | null; angle: string; restIndices: number[] } {
+  const urls = Array.isArray(product.photo_urls) ? product.photo_urls : []
+  const angles = Array.isArray(product.photo_angles) ? product.photo_angles : []
+  if (!urls.length) return { url: null, angle: '', restIndices: [] }
+  const normAngles = urls.map((_, i) => String(angles[i] ?? '').toLowerCase().trim())
+  const isApp = product.product_type === 'app'
+  let primaryIdx = 0
+  if (isApp) {
+    const wantsMobile = formatKey && POV_LIKE_FORMATS.has(formatKey)
+    const mobileIdx = normAngles.findIndex(a => a === 'mobile view' || a === 'mobile')
+    const landingIdx = normAngles.findIndex(a => a === 'landing page')
+    if (wantsMobile && mobileIdx >= 0) primaryIdx = mobileIdx
+    else if (!wantsMobile && landingIdx >= 0) primaryIdx = landingIdx
+    else if (landingIdx >= 0) primaryIdx = landingIdx
+    else if (mobileIdx >= 0) primaryIdx = mobileIdx
+  }
+  const restIndices = urls.map((_, i) => i).filter(i => i !== primaryIdx)
+  return {
+    url: urls[primaryIdx] ?? null,
+    angle: String(angles[primaryIdx] ?? ''),
+    restIndices,
+  }
+}
+
 // Voice is now generated natively by Kling v3 omni-video (one model produces
 // video + voice in perfect sync). No voice picker needed — Kling chooses the
 // voice based on the character's appearance from the hero frame.
@@ -173,7 +209,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [productImage, setProductImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   // Additional photos of the SAME product (e.g. candy: sealed package +
   // the candies inside). Up to 2. Sent alongside productImage everywhere.
-  const [extraProductImages, setExtraProductImages] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
+  const [extraProductImages, setExtraProductImages] = useState<Array<{ base64: string; mimeType: string; preview: string; angle?: string }>>([])
+  // Angle label for the primary product image, when we know it (imported
+  // from a Product Studio saved product). Empty string for uploads. Sent
+  // alongside extras' angles as `productPhotoAngles` so Nano Banana knows
+  // which UI screen each reference is (landing page / mobile / dashboard).
+  const [primaryPhotoAngle, setPrimaryPhotoAngle] = useState<string>('')
   // Optional packaging reference (shipping/retail box) for unboxing-style
   // formats. Kept separate from extraProductImages so the UI can label it
   // explicitly; merged into extraProductImages on submit so the routes see
@@ -282,7 +323,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   }
   const [influencers, setInfluencers] = useState<InfluencerCard[]>([])
   // Product Studio products — importable into this form with all angles.
-  const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; description?: string | null; photo_urls: string[] }>>([])
+  const [studioProducts, setStudioProducts] = useState<Array<{ id: string; name: string; description?: string | null; photo_urls: string[]; photo_angles?: (string | null)[]; product_type?: 'physical' | 'app'; website_url?: string | null }>>([])
   const [studioProductId, setStudioProductId] = useState<string | undefined>(undefined)
   // Scene Studio scenes — the environment the UGC happens in. Feeds Sonnet
   // the location brief and feeds NB a hero anchor image so the shots render
@@ -383,6 +424,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     ? [packagingImage, ...extraProductImages]
     : extraProductImages
   ).slice(0, 2)
+  // Angles parallel to the reference stack the routes see: [primary, ...extras].
+  // Packaging image (when present) has no angle — treat as empty string.
+  const combinedExtraAngles = combinedExtraProductImages.map(img => (img as { angle?: string }).angle ?? '')
+  const productPhotoAngles = [primaryPhotoAngle, ...combinedExtraAngles]
   const isTwoPersonFormat = !!activeFormat && (activeFormat.pipeline === 'ugc-interview' || activeFormat.pipeline === 'ugc-couple')
   // True whenever the user has opted-in to a second character — either by
   // picking one, ticking auto-generate, or being on a two-person format
@@ -646,6 +691,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     try {
       const compressed = await compressImageFile(file)
       setProductImage(compressed)
+      setPrimaryPhotoAngle('')
     } catch (err) {
       console.warn('[UGCPackageBuilder] product image compress fallback:', err)
       const reader = new FileReader()
@@ -713,6 +759,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             productImageBase64: productImage?.base64,
             productImageMimeType: productImage?.mimeType,
             extraProductImages: combinedExtraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+            productPhotoAngles,
             aspectId: aspect,
             formatKey: activeFormatKey,
             videoDirection: customInstructions.trim() || undefined,
@@ -732,6 +779,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             sceneId,
             formatKey: activeFormatKey,
             productType,
+            productPhotoAngles,
           }
         : {
             productName,
@@ -749,6 +797,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             influencerPhotoUrl,
             sceneId,
             extraProductImages: combinedExtraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+            productPhotoAngles,
             formatKey: activeFormatKey,
           }
       const res = await fetch(endpoint, {
@@ -1772,14 +1821,26 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       setProductName(sp.name)
                       if (sp.description) setProductDescription(sp.description)
                       const urls = Array.isArray(sp.photo_urls) ? sp.photo_urls : []
-                      if (urls[0]) {
-                        const main = await loadBrandImage(urls[0])
+                      const angles = Array.isArray(sp.photo_angles) ? sp.photo_angles : []
+                      // If the studio product is an app, flip productType so the
+                      // routes render the reference on a device screen.
+                      if (sp.product_type === 'app') setProductType('website')
+                      // Pick primary based on the picked format's framing needs:
+                      // POV/interview → mobile screenshot (phone framing);
+                      // everything else → landing page (laptop framing).
+                      const { url: primaryUrl, angle: primaryAngle, restIndices } = pickPrimaryAppPhoto(
+                        { photo_urls: urls, photo_angles: angles, product_type: sp.product_type },
+                        activeFormatKey ?? null,
+                      )
+                      if (primaryUrl) {
+                        const main = await loadBrandImage(primaryUrl)
                         if (main) setProductImage(main)
+                        setPrimaryPhotoAngle(primaryAngle ?? '')
                       }
-                      const extras: Array<{ base64: string; mimeType: string; preview: string }> = []
-                      for (const u of urls.slice(1, 3)) {
-                        const img = await loadBrandImage(u)
-                        if (img) extras.push(img)
+                      const extras: Array<{ base64: string; mimeType: string; preview: string; angle?: string }> = []
+                      for (const i of restIndices.slice(0, 2)) {
+                        const img = await loadBrandImage(urls[i])
+                        if (img) extras.push({ ...img, angle: (angles[i] ?? '') || '' })
                       }
                       setExtraProductImages(extras)
                       showSuccess('Product imported', `${sp.name} — ${Math.min(urls.length, 3)} photo${urls.length > 1 ? 's' : ''} loaded.`)
