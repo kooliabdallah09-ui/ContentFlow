@@ -5,6 +5,7 @@ import { generateCharacterWithProduct, generateTextToImage, generateNanoBananaIm
 import type { CharacterProfile } from '@/lib/character'
 import { buildCharacterPrompt as buildCharacterImagePrompt } from '@/lib/ugc-character-prompt'
 import { inferProductCategory } from '@/lib/multi-shot'
+import { getCampaignFormat } from '@/lib/campaign-formats'
 
 export const maxDuration = 180
 
@@ -41,7 +42,11 @@ export async function POST(request: NextRequest) {
       influencerPhotoUrl,   // user explicitly chose this gallery photo as the identity ref
       sceneId,              // uuid of a user_scenes row — override the location with a stored scene
       extraProductImages,   // additional photos of the SAME product (package + contents…)
+      formatKey,            // campaign format key — drives shot-type-aware first frame
     } = body as Record<string, unknown>
+
+    const safeFormatKey = typeof formatKey === 'string' && formatKey.length > 0 ? formatKey : undefined
+    const campaignFormat = safeFormatKey ? getCampaignFormat(safeFormatKey) : undefined
 
     const extraProductRefs: Array<{ base64: string; mimeType: string }> = Array.isArray(extraProductImages)
       ? extraProductImages
@@ -99,6 +104,8 @@ export async function POST(request: NextRequest) {
         videoDirection: safeVideoDirection || undefined,
         customPersona,
         hasProductImage: hasProduct,
+        formatKey: safeFormatKey,
+        formatSpec: campaignFormat?.sonnetSpec,
       })
       characterIdea = built.characterIdea
       imagePrompt = built.imagePrompt
@@ -150,6 +157,15 @@ export async function POST(request: NextRequest) {
     }
     const reusingIdentity = (typeof savedActorId === 'string' && savedActorId.length > 0)
       || (typeof influencerId === 'string' && influencerId.length > 0)
+    // If the campaign format already implies a specific scene (requiresScene:
+    // true, e.g. GRWM = bathroom vanity, TV spot = cinematic setting), skip
+    // the Haiku scene-relevance detector and use the format's implied scene
+    // directly. Saves a Haiku call and gives the shot-direction override
+    // undisputed control over framing.
+    if (reusingIdentity && !requiredScene && campaignFormat?.requiresScene) {
+      requiredScene = `${campaignFormat.label} — ${campaignFormat.sonnetSpec}`.slice(0, 400)
+      console.log('[hero-frames] scene from format:', campaignFormat.key)
+    }
     if (reusingIdentity && !requiredScene) {
       try {
         const Anthropic = (await import('@anthropic-ai/sdk')).default

@@ -631,6 +631,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           influencerPhotoUrl,
           sceneId,
           extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+          formatKey: activeFormatKey,
         }),
       })
       const data = await res.json()
