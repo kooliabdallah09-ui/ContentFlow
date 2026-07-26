@@ -421,15 +421,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       fmt.defaultAspect === '1:1'  ? 'square' : 'landscape'
     setAspect(a)
     setAspectTouched(true)
-    // Weave the format brief into director instructions.
-    setCustomInstructions(prev => {
-      const header = `Format: ${fmt.label}\n${fmt.sonnetSpec}`
-      // If the user already typed direction, prepend format header — don't wipe.
-      return prev.trim() ? `${header}\n\n${prev.trim()}` : header
-    })
+    // Don't touch customInstructions — that's reserved for the user's
+    // optional extras. The format's shot direction reaches the server via
+    // activeFormatKey and is injected there. Also strip any stale
+    // "Format: ..." block a previous version of this code may have left in
+    // the textarea so switching formats doesn't accumulate old briefs.
+    setCustomInstructions(prev => prev.replace(/^Format:[\s\S]*?(?:\n\n|$)/, '').trimStart())
     setActiveFormatKey(fmt.key)
     setShowFormatPicker(false)
-    showSuccess(`Format applied: ${fmt.label}`, `Duration + aspect + brief updated. Edit anything below before generating.`)
+    showSuccess(`Format applied: ${fmt.label}`, `Duration + aspect updated.`)
   }
 
   // Three-step flow: form → script review → hero frame pick → video
@@ -1301,9 +1301,15 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             disabled={isLoading || framesLoading || !editedScript.trim() || creditBalance < totalCredits}
             onClick={() => runGenerate(undefined, editedScript)}
             className="btn btn-primary"
-            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11 }}
+            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
           >
-            {framesLoading ? 'Rendering 4 starting frames…' : isLoading ? 'Generating…' : 'Pick starting frame →'}
+            {(framesLoading || isLoading) && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="animate-spin" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+                <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            )}
+            <span>{framesLoading ? 'Rendering 4 starting frames…' : isLoading ? 'Generating…' : 'Pick starting frame →'}</span>
           </button>
 
           {creditBalance < totalCredits && (
@@ -2546,8 +2552,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </a>
         ) : (
           <button type="submit" disabled={!canGenerate || isLoading || scriptLoading || framesLoading} className="btn btn-primary"
-            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11 }}>
-            {scriptLoading ? 'Writing script…' : (framesLoading ? 'Rendering frames…' : (isMotionBrollFormat ? 'Generate Frames →' : 'Generate Script →'))}
+            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            {(scriptLoading || framesLoading || isLoading) && (
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="animate-spin" aria-hidden="true">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+                <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              </svg>
+            )}
+            <span>{scriptLoading ? 'Writing script…' : (framesLoading ? 'Rendering frames…' : (isMotionBrollFormat ? 'Generate Frames →' : 'Generate Script →'))}</span>
           </button>
         )}
 
