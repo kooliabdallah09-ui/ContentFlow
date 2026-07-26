@@ -1995,9 +1995,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           {/* Product-type segmented toggle. Website mode swaps the file
               upload for a URL input that fetches a landing-page screenshot
               via /api/screenshot and drops it into productImage. */}
-          <div style={{ display: 'inline-flex', gap: 6, padding: 4, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', marginBottom: 12 }}>
+          <div style={{ display: 'inline-flex', padding: 3, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', marginBottom: 12 }}>
             {(['physical', 'website'] as const).map(pt => {
               const active = productType === pt
+              const isPhysical = pt === 'physical'
               return (
                 <button
                   key={pt}
@@ -2006,21 +2007,35 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   onClick={() => {
                     if (pt === productType) return
                     setProductType(pt)
-                    // Clear image + url when switching so state is unambiguous.
                     setProductImage(null)
                     setWebsiteError(null)
                     if (pt === 'physical') setWebsiteUrl('')
                   }}
                   style={{
-                    padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600,
-                    border: 'none',
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+                    border: 'none', minWidth: 148, justifyContent: 'center',
                     background: active ? 'var(--ink)' : 'transparent',
-                    color: active ? 'var(--paper)' : 'var(--ink-2)',
+                    color: active ? 'var(--on-ink, var(--paper))' : 'var(--ink-mute, var(--ink-2))',
                     cursor: isLoading ? 'not-allowed' : 'pointer',
-                    transition: 'background 120ms, color 120ms',
+                    transition: 'background 140ms, color 140ms',
+                    letterSpacing: '-0.005em',
                   }}
                 >
-                  {pt === 'physical' ? '📦 Physical product' : '💻 App / Website'}
+                  {isPhysical ? (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                      <line x1="12" y1="22.08" x2="12" y2="12" />
+                    </svg>
+                  ) : (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                      <line x1="8" y1="21" x2="16" y2="21" />
+                      <line x1="12" y1="17" x2="12" y2="21" />
+                    </svg>
+                  )}
+                  <span>{isPhysical ? 'Physical product' : 'App / Website'}</span>
                 </button>
               )
             })}
