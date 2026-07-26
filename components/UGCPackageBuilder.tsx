@@ -353,6 +353,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [showSecondPicker, setShowSecondPicker] = useState(false)
   const activeFormat = activeFormatKey ? CAMPAIGN_FORMATS.find(f => f.key === activeFormatKey) ?? null : null
   const isTwoPersonFormat = !!activeFormat && (activeFormat.pipeline === 'ugc-interview' || activeFormat.pipeline === 'ugc-couple')
+  // Motion-broll formats are product-first, no character, no dialogue.
+  // They skip script generation entirely and route to /api/ugc/motion-broll-*
+  // for both frames and animate.
+  const isMotionBrollFormat = !!activeFormat && activeFormat.pipeline === 'motion-broll'
   const secondCharacterRoleLabel = activeFormat?.pipeline === 'ugc-interview'
     ? 'Auto-generated stranger'
     : activeFormatKey === 'couple-sharing'
@@ -562,8 +566,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   void calculateVideoCredits
   // Require a picked creator (either a saved influencer or a saved actor)
   // to hit Generate — no more AI-picked characters.
-  const hasCreator = !!(selectedInfluencerId || savedActorId)
-  const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && benefits.trim() && hasCreator
+  // Motion-broll is product-only — no creator required. All other pipelines
+  // still require either a saved influencer or actor.
+  const hasCreator = isMotionBrollFormat ? true : !!(selectedInfluencerId || savedActorId)
+  const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && (isMotionBrollFormat || benefits.trim()) && hasCreator
 
   // Downscale + re-encode uploaded product photos before storing them in
   // state. Raw phone-camera JPEGs are 5-15 MB — over Vercel's 4.5 MB
@@ -628,8 +634,23 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       // dedicated composer that stages TWO characters in one Nano Banana
       // Pro frame. Everything else stays on the solo hero-frames path.
       const useTwoPerson = isTwoPersonFormat && !!selectedInfluencerId
-      const endpoint = useTwoPerson ? '/api/ugc/two-person-frames' : '/api/ugc/hero-frames'
-      const payload: Record<string, unknown> = useTwoPerson
+      const useMotionBroll = isMotionBrollFormat
+      const endpoint = useMotionBroll
+        ? '/api/ugc/motion-broll-frames'
+        : useTwoPerson ? '/api/ugc/two-person-frames' : '/api/ugc/hero-frames'
+      const payload: Record<string, unknown> = useMotionBroll
+        ? {
+            productName,
+            productDescription,
+            productImageBase64: productImage?.base64,
+            productImageMimeType: productImage?.mimeType,
+            extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+            aspectId: aspect,
+            formatKey: activeFormatKey,
+            videoDirection: customInstructions.trim() || undefined,
+            sceneId,
+          }
+        : useTwoPerson
         ? {
             productName,
             productDescription,
@@ -719,36 +740,51 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         setSavingActor(false)
       }
 
-      const res = await fetch('/api/ugc/animate', {
+      const animateEndpoint = isMotionBrollFormat ? '/api/ugc/motion-broll-animate' : '/api/ugc/animate'
+      const animatePayload: Record<string, unknown> = isMotionBrollFormat
+        ? {
+            frameUrl: selectedFrameUrl,
+            selectedFrameUrl,
+            formatKey: activeFormatKey,
+            productName,
+            productDescription,
+            videoDirection: customInstructions.trim() || undefined,
+            aspect,
+            resolution,
+            engine,
+            duration,
+          }
+        : {
+            selectedFrameUrl,
+            script: finalScript,
+            ugcType: UGC_TYPE,
+            duration,
+            productName,
+            productDescription,
+            benefits,
+            callToAction,
+            avatarGender: character?.gender ?? 'Female',
+            character,
+            customInstructions: customInstructions.trim() || undefined,
+            language,
+            aspect,
+            // Product photo, forwarded so the animate route can run pass-2
+            // Nano Banana refinement against the user-picked frame. Server
+            // fails soft — if refinement errors we keep the raw frame.
+            productImageBase64: productImage?.base64,
+            productImageMimeType: productImage?.mimeType,
+            extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+            resolution,
+            engine,
+            // videoDirection is the freeform "how should this ad feel"
+            // note the Seedance prompt builder ingests. Reuse the existing
+            // Custom Instructions textarea for this — same intent.
+            videoDirection: customInstructions.trim() || undefined,
+          }
+      const res = await fetch(animateEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          selectedFrameUrl,
-          script: finalScript,
-          ugcType: UGC_TYPE,
-          duration,
-          productName,
-          productDescription,
-          benefits,
-          callToAction,
-          avatarGender: character?.gender ?? 'Female',
-          character,
-          customInstructions: customInstructions.trim() || undefined,
-          language,
-          aspect,
-          // Product photo, forwarded so the animate route can run pass-2
-          // Nano Banana refinement against the user-picked frame. Server
-          // fails soft — if refinement errors we keep the raw frame.
-          productImageBase64: productImage?.base64,
-          productImageMimeType: productImage?.mimeType,
-          extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
-          resolution,
-          engine,
-          // videoDirection is the freeform "how should this ad feel"
-          // note the Seedance prompt builder ingests. Reuse the existing
-          // Custom Instructions textarea for this — same intent.
-          videoDirection: customInstructions.trim() || undefined,
-        }),
+        body: JSON.stringify(animatePayload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Seedance submission failed')
@@ -884,6 +920,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!canGenerate || isLoading || scriptLoading) return
+
+    // Motion-broll skips scripts entirely — go straight to the product-hero
+    // frame generator. There is no dialogue, no character, no hook picker.
+    if (isMotionBrollFormat) {
+      await requestHeroFrames('')
+      return
+    }
 
     setScriptError(null)
     setScriptLoading(true)
@@ -1077,7 +1120,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           {/* Save-as-reusable-actor bar — shows only when we have a Sonnet
               image prompt from this generation. Clicking a frame picks it
               AND saves it under the name typed here. */}
-          {characterImagePrompt && !savedActorId && frames && frames.length > 0 && (
+          {characterImagePrompt && !savedActorId && frames && frames.length > 0 && !isMotionBrollFormat && !isTwoPersonFormat && (
             <div style={{ marginTop: 8, padding: 12, borderRadius: 12, border: '1px dashed var(--border-strong, var(--border))', background: 'var(--surface-2, var(--surface))' }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>
                 Save this actor for reuse <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>· optional</span>
@@ -2392,9 +2435,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </span>
         </div>
 
-        <button type="submit" disabled={!canGenerate || isLoading || scriptLoading} className="btn btn-primary"
+        <button type="submit" disabled={!canGenerate || isLoading || scriptLoading || framesLoading} className="btn btn-primary"
           style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11 }}>
-          {scriptLoading ? 'Writing script…' : 'Generate Script →'}
+          {scriptLoading ? 'Writing script…' : (framesLoading ? 'Rendering frames…' : (isMotionBrollFormat ? 'Generate Frames →' : 'Generate Script →'))}
         </button>
 
         {scriptError && (
