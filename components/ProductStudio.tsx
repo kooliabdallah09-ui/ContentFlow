@@ -76,6 +76,9 @@ export default function ProductStudio() {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           quick: createWhatItIs.trim() || undefined,
+          name: createName.trim() || undefined,
+          productType: createProductType,
+          websiteUrl: createProductType === 'app' && createWebsiteUrl.trim() ? createWebsiteUrl.trim() : undefined,
           photo: createPhotos[0] ? { base64: createPhotos[0].base64, mimeType: createPhotos[0].mimeType } : undefined,
         }),
       })

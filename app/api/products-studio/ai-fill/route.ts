@@ -20,9 +20,14 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const quick = typeof body?.quick === 'string' ? body.quick.trim().slice(0, 300) : ''
+    const name = typeof body?.name === 'string' ? body.name.trim().slice(0, 80) : ''
+    const productType: 'physical' | 'app' = body?.productType === 'app' ? 'app' : 'physical'
+    const websiteUrl = typeof body?.websiteUrl === 'string' ? body.websiteUrl.trim().slice(0, 300) : ''
     const photo = body?.photo && typeof body.photo.base64 === 'string' && typeof body.photo.mimeType === 'string'
       ? body.photo : null
-    if (!quick && !photo) return NextResponse.json({ error: 'Type a quick description or upload a photo first' }, { status: 400 })
+    if (!quick && !photo && !name && !websiteUrl) {
+      return NextResponse.json({ error: 'Type a quick description, product name, URL, or upload a photo first' }, { status: 400 })
+    }
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const content: Anthropic.ContentBlockParam[] = []
@@ -32,9 +37,20 @@ export async function POST(request: NextRequest) {
         source: { type: 'base64', media_type: photo.mimeType, data: photo.base64 },
       })
     }
+    const contextBits: string[] = []
+    if (name) contextBits.push(`Product name the user already typed: "${name}" — TRUST THIS as the name and refine only if clearly wrong.`)
+    if (quick) contextBits.push(`Quick description from the user: "${quick}"`)
+    if (productType === 'app') {
+      contextBits.push(`This is a WEBSITE / SaaS APP, NOT a physical product. The attached image (if any) is a landing-page screenshot — READ the visible text (hero copy, product name in the header, features) to describe what the software does. Do NOT invent a physical object. If the screenshot is blank or unreadable, rely on the URL + name.`)
+      if (websiteUrl) contextBits.push(`Website URL: ${websiteUrl}`)
+    } else {
+      contextBits.push(`This is a PHYSICAL product. Read packaging/label text on the photo if present.`)
+    }
+    if (contextBits.length === 0) contextBits.push('No context — read the photo.')
+
     content.push({
       type: 'text',
-      text: `${quick ? `Quick description from the user: "${quick}"` : 'No description — read the photo.'}\n\nReturn ONLY JSON: {"name": "short product name (read packaging if visible)", "whatItIs": "one plain sentence: what the product is and what it's for"}`,
+      text: `${contextBits.join('\n\n')}\n\nReturn ONLY JSON: {"name": "short product/app name", "whatItIs": "one plain sentence: what the ${productType === 'app' ? 'app or website does and who it\'s for' : 'product is and what it\'s for'}"}. If a name was already provided, keep it verbatim unless clearly typo\'d.`,
     })
     const msg = await anthropic.messages.create({
       model: 'claude-haiku-4-5-20251001',
