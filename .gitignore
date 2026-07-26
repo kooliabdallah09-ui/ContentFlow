@@ -47,3 +47,6 @@ next-env.d.ts
 *.mp4
 sora-output-video_*
 logo.png
+
+# Session transcripts
+cfai.txt

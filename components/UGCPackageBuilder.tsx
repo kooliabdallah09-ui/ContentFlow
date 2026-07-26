@@ -346,6 +346,18 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // reflects the chosen format's spec instantly.
   const [showFormatPicker, setShowFormatPicker] = useState(false)
   const [activeFormatKey, setActiveFormatKey] = useState<string | null>(null)
+  // Two-person co-star: null = auto-generate PERSON B. Set to another
+  // saved influencer's id to have them co-star. Only meaningful when
+  // the active format's pipeline is ugc-interview or ugc-couple.
+  const [secondInfluencerId, setSecondInfluencerId] = useState<string | null>(null)
+  const [showSecondPicker, setShowSecondPicker] = useState(false)
+  const activeFormat = activeFormatKey ? CAMPAIGN_FORMATS.find(f => f.key === activeFormatKey) ?? null : null
+  const isTwoPersonFormat = !!activeFormat && (activeFormat.pipeline === 'ugc-interview' || activeFormat.pipeline === 'ugc-couple')
+  const secondCharacterRoleLabel = activeFormat?.pipeline === 'ugc-interview'
+    ? 'Auto-generated stranger'
+    : activeFormatKey === 'couple-sharing'
+      ? 'Auto-generated partner'
+      : 'Auto-generated friend'
   function applyFormat(fmt: CampaignFormat) {
     // Snap duration to nearest supported UGCDuration.
     const supported: UGCDuration[] = [5, 10, 15, 20, 30]
@@ -612,27 +624,47 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       const { data: sess } = await supabase.auth.getSession()
       const token = sess?.session?.access_token
       if (!token) throw new Error('Not signed in')
-      const res = await fetch('/api/ugc/hero-frames', {
+      // Two-person formats (interview / couple / roommate) route to the
+      // dedicated composer that stages TWO characters in one Nano Banana
+      // Pro frame. Everything else stays on the solo hero-frames path.
+      const useTwoPerson = isTwoPersonFormat && !!selectedInfluencerId
+      const endpoint = useTwoPerson ? '/api/ugc/two-person-frames' : '/api/ugc/hero-frames'
+      const payload: Record<string, unknown> = useTwoPerson
+        ? {
+            productName,
+            productDescription,
+            productImageBase64: productImage?.base64,
+            productImageMimeType: productImage?.mimeType,
+            aspectId: aspect,
+            videoDirection: customInstructions.trim() || undefined,
+            script: finalScript,
+            influencerId: selectedInfluencerId,
+            secondInfluencerId: secondInfluencerId ?? undefined,
+            sceneId,
+            formatKey: activeFormatKey,
+          }
+        : {
+            productName,
+            productDescription,
+            productImageBase64: productImage?.base64,
+            productImageMimeType: productImage?.mimeType,
+            productType,
+            character,
+            avatarGender: character?.gender ?? 'Female',
+            aspectId: aspect,
+            videoDirection: customInstructions.trim() || undefined,
+            script: finalScript,
+            savedActorId,
+            influencerId: selectedInfluencerId,
+            influencerPhotoUrl,
+            sceneId,
+            extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+            formatKey: activeFormatKey,
+          }
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          productName,
-          productDescription,
-          productImageBase64: productImage?.base64,
-          productImageMimeType: productImage?.mimeType,
-          productType,
-          character,
-          avatarGender: character?.gender ?? 'Female',
-          aspectId: aspect,
-          videoDirection: customInstructions.trim() || undefined,
-          script: finalScript,
-          savedActorId,
-          influencerId: selectedInfluencerId,
-          influencerPhotoUrl,
-          sceneId,
-          extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
-          formatKey: activeFormatKey,
-        }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to render hero frames')
@@ -2146,6 +2178,80 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       )
                     })}
                   </div>
+                </div>
+              )}
+
+              {/* Two-person format: pick a co-star (or let it auto-generate). */}
+              {selectedInfluencerId && isTwoPersonFormat && (
+                <div style={{ marginTop: 12, padding: 12, borderRadius: 12, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))' }}>
+                  <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>
+                    Second character
+                  </div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.5, marginBottom: 10 }}>
+                    This format needs two people in the frame. By default the AI generates the second character. Swap in another saved influencer to have them co-star.
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                    {(() => {
+                      const co = secondInfluencerId ? influencers.find(i => i.id === secondInfluencerId) : null
+                      if (co) {
+                        return (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px 4px 4px', borderRadius: 9, border: '1.5px solid var(--ink)', background: 'var(--surface)' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={co.portrait_url} alt={co.name} style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
+                            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{co.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => setSecondInfluencerId(null)}
+                              disabled={isLoading}
+                              style={{ marginLeft: 4, background: 'transparent', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: 2 }}
+                              aria-label="Remove co-star"
+                            >×</button>
+                          </div>
+                        )
+                      }
+                      return (
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', padding: '6px 10px', borderRadius: 9, border: '1.5px solid var(--border)', background: 'var(--surface)' }}>
+                          {secondCharacterRoleLabel}
+                        </span>
+                      )
+                    })()}
+                    {influencers.filter(i => i.id !== selectedInfluencerId).length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowSecondPicker(v => !v)}
+                        disabled={isLoading}
+                        style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', background: 'transparent', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        {showSecondPicker ? 'Close' : (secondInfluencerId ? 'Change' : 'Pick from Influencers')}
+                      </button>
+                    )}
+                  </div>
+                  {showSecondPicker && (
+                    <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))', gap: 8 }}>
+                      {influencers.filter(i => i.id !== selectedInfluencerId).map(inf => {
+                        const active = secondInfluencerId === inf.id
+                        return (
+                          <button
+                            key={inf.id}
+                            type="button"
+                            disabled={isLoading}
+                            onClick={() => { setSecondInfluencerId(active ? null : inf.id); setShowSecondPicker(false) }}
+                            style={{
+                              padding: 5, borderRadius: 9, textAlign: 'left',
+                              border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                              background: active ? 'var(--surface-2)' : 'var(--surface)',
+                              cursor: isLoading ? 'not-allowed' : 'pointer',
+                              display: 'flex', flexDirection: 'column', gap: 4,
+                            }}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={inf.portrait_url} alt={inf.name} style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', borderRadius: 6, display: 'block' }} />
+                            <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{inf.name}</div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
