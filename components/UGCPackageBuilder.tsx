@@ -174,6 +174,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // Additional photos of the SAME product (e.g. candy: sealed package +
   // the candies inside). Up to 2. Sent alongside productImage everywhere.
   const [extraProductImages, setExtraProductImages] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
+  // Optional packaging reference (shipping/retail box) for unboxing-style
+  // formats. Kept separate from extraProductImages so the UI can label it
+  // explicitly; merged into extraProductImages on submit so the routes see
+  // it as another product reference photo.
+  const [packagingImage, setPackagingImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const productType = 'physical'
 
   // Shopify product picker
@@ -354,6 +359,17 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const [secondInfluencerId, setSecondInfluencerId] = useState<string | null>(null)
   const [showSecondPicker, setShowSecondPicker] = useState(false)
   const activeFormat = activeFormatKey ? CAMPAIGN_FORMATS.find(f => f.key === activeFormatKey) ?? null : null
+  // Formats where a "what's inside the box" reveal is core — for these we
+  // expose an optional packaging photo upload so Nano Banana has a real
+  // box to render instead of inventing one (or worse, framing the bare
+  // product as though it were the box).
+  const wantsPackagingPhoto = ['unboxing', 'unboxing-asmr', 'mystery-box'].includes(activeFormatKey ?? '')
+  // Merged payload for API calls — packaging photo is sent as another
+  // product reference so the routes can treat it uniformly.
+  const combinedExtraProductImages = (packagingImage
+    ? [packagingImage, ...extraProductImages]
+    : extraProductImages
+  ).slice(0, 2)
   const isTwoPersonFormat = !!activeFormat && (activeFormat.pipeline === 'ugc-interview' || activeFormat.pipeline === 'ugc-couple')
   // Motion-broll formats are product-first, no character, no dialogue.
   // They skip script generation entirely and route to /api/ugc/motion-broll-*
@@ -673,7 +689,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             productDescription,
             productImageBase64: productImage?.base64,
             productImageMimeType: productImage?.mimeType,
-            extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+            extraProductImages: combinedExtraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
             aspectId: aspect,
             formatKey: activeFormatKey,
             videoDirection: customInstructions.trim() || undefined,
@@ -708,7 +724,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             influencerId: selectedInfluencerId,
             influencerPhotoUrl,
             sceneId,
-            extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+            extraProductImages: combinedExtraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
             formatKey: activeFormatKey,
           }
       const res = await fetch(endpoint, {
@@ -802,7 +818,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             // fails soft — if refinement errors we keep the raw frame.
             productImageBase64: productImage?.base64,
             productImageMimeType: productImage?.mimeType,
-            extraProductImages: extraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
+            extraProductImages: combinedExtraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
             resolution,
             engine,
             // videoDirection is the freeform "how should this ad feel"
@@ -2032,6 +2048,59 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               <span style={{ fontSize: 11, color: 'var(--ink-mute)', maxWidth: 300, lineHeight: 1.4 }}>
                 Optional: more photos of the same product — e.g. the package and what&apos;s inside. The AI uses all of them.
               </span>
+            </div>
+          )}
+
+          {/* Packaging reference — shown for unboxing-style formats where the
+              on-camera reveal depends on a distinct openable box. If left
+              empty the routes instruct Nano Banana to invent a plausible
+              branded shipping box for the product. */}
+          {productImage && wantsPackagingPhoto && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+              <input
+                id="packagingInput"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={async e => {
+                  const f = e.target.files?.[0]
+                  e.target.value = ''
+                  if (!f) return
+                  try {
+                    const compressed = await compressImageFile(f)
+                    setPackagingImage(compressed)
+                  } catch { showError('Image failed', `Could not read ${f.name}`) }
+                }}
+              />
+              {packagingImage ? (
+                <div style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
+                  <img src={packagingImage.preview} alt="packaging" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button
+                    type="button"
+                    onClick={() => setPackagingImage(null)}
+                    disabled={isLoading}
+                    style={{ position: 'absolute', top: 1, right: 1, width: 16, height: 16, borderRadius: '50%', background: 'rgba(0,0,0,0.65)', color: '#fff', border: 'none', cursor: 'pointer', fontSize: 10, lineHeight: 1, padding: 0 }}
+                  >×</button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('packagingInput')?.click()}
+                  disabled={isLoading}
+                  style={{ width: 48, height: 48, borderRadius: 8, border: '1.5px dashed var(--border)', background: 'var(--surface)', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}
+                  title="Upload a photo of the packaging / shipping box"
+                >+</button>
+              )}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, maxWidth: 300 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>
+                  Packaging photo (optional)
+                </span>
+                <span style={{ fontSize: 11, color: 'var(--ink-mute)', lineHeight: 1.4 }}>
+                  {packagingImage
+                    ? 'The AI will use this as the exact box to open.'
+                    : 'Leave empty and we’ll invent a branded box.'}
+                </span>
+              </div>
             </div>
           )}
         </div>

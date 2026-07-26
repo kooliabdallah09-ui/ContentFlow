@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { generateCharacterWithProduct, generateTextToImage, generateNanoBananaImage } from '@/lib/nanobanana'
 import type { CharacterProfile } from '@/lib/character'
-import { buildCharacterPrompt as buildCharacterImagePrompt } from '@/lib/ugc-character-prompt'
+import { buildCharacterPrompt as buildCharacterImagePrompt, shotDirectionFor, SHOT_DIRECTIONS } from '@/lib/ugc-character-prompt'
 import { inferProductCategory } from '@/lib/multi-shot'
 import { getCampaignFormat } from '@/lib/campaign-formats'
 
@@ -106,9 +106,22 @@ export async function POST(request: NextRequest) {
         hasProductImage: hasProduct,
         formatKey: safeFormatKey,
         formatSpec: campaignFormat?.sonnetSpec,
+        hasPackagingRef: extraProductRefs.length > 0,
       })
       characterIdea = built.characterIdea
       imagePrompt = built.imagePrompt
+    }
+
+    // Hard imperative override — append the shot-direction verbatim to the
+    // end of whatever Sonnet produced (or whatever was loaded from a saved
+    // actor). Sonnet's rewrite tends to water composition down; putting the
+    // direction after the paragraph, framed as OVERRIDING everything above,
+    // gives Nano Banana Pro an unambiguous instruction it can't ignore.
+    if (safeFormatKey && (SHOT_DIRECTIONS[safeFormatKey] || safeFormatKey === 'unboxing')) {
+      const direction = shotDirectionFor(safeFormatKey, { hasPackagingRef: extraProductRefs.length > 0 })
+      if (direction) {
+        imagePrompt = `${imagePrompt}\n\n=== SHOT COMPOSITION — MANDATORY, OVERRIDES ANYTHING ABOVE ===\n${direction}\n============================================================`
+      }
     }
 
     // Scene relevance — when reusing a saved actor / influencer, their

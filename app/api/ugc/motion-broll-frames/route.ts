@@ -3,7 +3,9 @@ import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { getCampaignFormat } from '@/lib/campaign-formats'
-import { buildMotionBrollFramePrompt } from '@/lib/motion-broll-prompt'
+import { buildMotionBrollFramePrompt, motionBrollShotDirectionFor } from '@/lib/motion-broll-prompt'
+
+const PACKAGING_FORMATS = new Set(['unboxing-asmr', 'mystery-box'])
 
 export const maxDuration = 180
 
@@ -101,14 +103,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const imagePrompt = buildMotionBrollFramePrompt({
+    const hasPackagingRef = extraRefs.length > 0
+    let imagePrompt = buildMotionBrollFramePrompt({
       formatKey,
       productName: safeProductName,
       productDescription: safeProductDescription,
       videoDirection: safeVideoDirection || undefined,
       aspectRatio: aspect.nanoBananaRatio,
       hasProductRef: hasProduct,
+      hasPackagingRef,
     })
+
+    // Hard imperative override — append shot direction at the very end so
+    // Nano Banana can't dilute it. Only applies to formats where the
+    // composition tends to drift (currently unboxing-asmr / mystery-box).
+    if (PACKAGING_FORMATS.has(formatKey)) {
+      const direction = motionBrollShotDirectionFor(formatKey, { hasPackagingRef })
+      imagePrompt = `${imagePrompt}\n\n=== SHOT COMPOSITION — MANDATORY, OVERRIDES ANYTHING ABOVE ===\n${direction}\n============================================================`
+    }
 
     // Reference stack: primary product → extra product angles → scene anchor.
     const refStack: Array<{ base64: string; mimeType: string }> = []

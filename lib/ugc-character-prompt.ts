@@ -19,7 +19,11 @@ import { getCampaignFormat } from '@/lib/campaign-formats'
 // image prompt around this framing instead of defaulting to a generic
 // chest-up selfie. Formats not listed here fall back to the default
 // medium talking-head selfie framing.
-const SHOT_DIRECTIONS: Record<string, string> = {
+//
+// Exported so the route can inject the direction as a hard imperative
+// override at the end of the Nano Banana prompt (after Sonnet's rewrite),
+// bypassing any dilution that happens through the Sonnet rewrite step.
+export const SHOT_DIRECTIONS: Record<string, string> = {
   'camera-pov':          'FIRST-PERSON POV shot. Only the character\'s HANDS and forearms are visible entering frame from the bottom or side. NO face, NO selfie. Camera is at eye level looking out at the world/product from the character\'s viewpoint. The setting drives the composition.',
   'pov-vlog':            'POV-vlog framing. Camera held out slightly overhead by the character, capturing them casually in the shot from a friendly POV angle — they are engaged with the product/environment, not posing. Setting is clearly visible.',
   'get-ready-with-me':   'Bathroom mirror or vanity framing — the character is captured in a mirror doing a morning / getting-ready routine (skincare, hair, makeup, coffee). Product sits naturally on the counter or is being picked up. Warm morning light. Bathroom or vanity tiles/decor visible.',
@@ -27,16 +31,39 @@ const SHOT_DIRECTIONS: Record<string, string> = {
   'hot-take':            'TIGHT close-up talking-head, framed shoulders-up or chin-up. Character stares directly into the camera with a slightly annoyed / incredulous expression — eyebrows raised or slight scoff. High engagement, confrontational energy.',
   'before-after':        'This is the BEFORE half of a transformation. Show the PROBLEM STATE clearly — messy hair, dull skin, cluttered space, tired expression, un-styled outfit, whatever "before" means for this product category. Product NOT yet visible or off to the side unused. Lighting flatter, less flattering.',
   'mess-to-fresh':       'Messy start state — clear visual chaos relevant to the product (cluttered kitchen counter, dirty surface, tangled hair, unmade bed, etc.). Character in the middle of the mess, product visible and about to be used.',
-  'unboxing':            'Product is still IN its package / sealed box, held by the character at chest height. Character has anticipatory / excited expression, about to open it. Package label clearly visible.',
+  // NOTE: `unboxing` is resolved dynamically via shotDirectionFor() because
+//   the exact wording depends on whether the user attached a packaging
+//   reference photo. This static string is a safe fallback only.
+  'unboxing':            'MANDATORY: this is an UNBOXING shot. Character MUST be holding a branded cardboard shipping / retail box (not the bare product) at chest height, lid partially lifted, product just being revealed inside with tissue or protective paper visible. Anticipatory / excited expression. Do NOT frame this as a plain chest-up selfie with a sealed can/bottle — a distinct openable BOX must be visible and mid-opening.',
   'tv-spot':             'Cinematic WIDER shot, not a phone selfie. Considered composition — the character is IN a specific meaningful setting (kitchen, living room, café, outdoors) with intentional lighting. Ad-polish look but still authentic and human. Chest-up or waist-up framing.',
   'tutorial':            'Step-1 setup framing — materials and product laid out on a clean surface (counter, desk, table), viewed slightly from above or straight-on. Character\'s hands or upper body visible getting ready to begin. Instructional / organized energy.',
   'things-i-wish-i-knew': 'Medium selfie framing. Character is mid-gesture COUNTING on fingers or holding up a finger to indicate a list point ("one thing…"). Direct-to-camera, list-teaching energy.',
   'secret-hack-reveal':  'Medium shot, product held prominently at chest height in one hand. Character\'s posture and expression suggest they are ABOUT to reveal something — slightly leaning in, knowing smile or raised brow, "wait for it" energy.',
 }
 
-function shotDirectionBlock(formatKey?: string, formatSpec?: string): string {
+// Resolve the shot-direction string for a format, taking into account
+// per-generation options (e.g. whether the user attached a packaging
+// reference photo for unboxing).
+export function shotDirectionFor(
+  formatKey: string,
+  opts: { hasPackagingRef?: boolean } = {},
+): string {
+  if (formatKey === 'unboxing') {
+    if (opts.hasPackagingRef) {
+      return 'MANDATORY UNBOXING SHOT. The character MUST be holding the packaging shown in the attached packaging reference photo — match its exact shape, colour, branding, materials, and proportions faithfully. Lid or flap partially lifted, product just being revealed inside (tissue or protective paper visible). Anticipatory / excited expression, held at chest height. Do NOT frame as a plain chest-up selfie with just the bare product — the distinct openable package from the reference MUST be the visual focus, mid-opening.'
+    }
+    return 'MANDATORY UNBOXING SHOT. Invent a plausible branded cardboard shipping/retail box appropriate to the product category. The box MUST be minimalist clean cardboard OR branded matte cardboard with the PRODUCT/BRAND NAME printed on the side in clear, well-set typography — professional, NOT generic Amazon-style shipping. The character is holding this branded box at chest height, lid partially lifted, product just being revealed inside with tissue or protective paper visible. Anticipatory / excited expression. Do NOT frame this as a plain chest-up selfie with a sealed can/bottle/tube — a distinct openable branded BOX must be visible and mid-opening. The bare product alone in-hand is NOT acceptable.'
+  }
+  return SHOT_DIRECTIONS[formatKey] ?? ''
+}
+
+function shotDirectionBlock(
+  formatKey?: string,
+  formatSpec?: string,
+  opts: { hasPackagingRef?: boolean } = {},
+): string {
   if (!formatKey) return ''
-  const override = SHOT_DIRECTIONS[formatKey]
+  const override = shotDirectionFor(formatKey, opts)
   const fmt = getCampaignFormat(formatKey)
   const spec = formatSpec || fmt?.sonnetSpec || ''
   if (!override && !spec) return ''
@@ -59,6 +86,7 @@ export interface CharacterPromptInput {
   hasProductImage: boolean
   formatKey?: string                // campaign format key (e.g. 'camera-pov', 'get-ready-with-me')
   formatSpec?: string               // format's sonnetSpec — optional override for lookup
+  hasPackagingRef?: boolean         // user attached a packaging photo (unboxing formats)
 }
 
 export interface CharacterPromptOutput {
@@ -149,7 +177,7 @@ export async function buildCharacterPrompt(input: CharacterPromptInput): Promise
         content: `Character idea: ${characterIdea}
 ${productLine}
 ${directionLine}
-Product image ${input.hasProductImage ? 'IS' : 'is NOT'} attached to Nano Banana Pro as a reference image.${personaBlock(input.customPersona)}${shotDirectionBlock(input.formatKey, input.formatSpec)}
+Product image ${input.hasProductImage ? 'IS' : 'is NOT'} attached to Nano Banana Pro as a reference image.${personaBlock(input.customPersona)}${shotDirectionBlock(input.formatKey, input.formatSpec, { hasPackagingRef: input.hasPackagingRef })}
 
 Write the finished Nano Banana Pro image prompt now.`,
       }],

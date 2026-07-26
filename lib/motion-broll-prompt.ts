@@ -17,12 +17,37 @@ export type MotionBrollFormatKey =
 // Per-format first-frame image prompts. Fed to Nano Banana Pro with the
 // product reference image. Every prompt insists on faithful product
 // fidelity (label, colour, shape) — this is the whole point of motion-broll.
-export function motionBrollFrameSpec(formatKey: string): {
+export function motionBrollFrameSpec(
+  formatKey: string,
+  opts: { hasPackagingRef?: boolean } = {},
+): {
   framing: string
   scene: string
   lighting: string
   extra?: string
 } {
+  if (formatKey === 'unboxing-asmr') {
+    const packagingLine = opts.hasPackagingRef
+      ? 'The sealed package MUST match the attached packaging reference photo — exact shape, colour, branding, materials, and proportions. Two hands (forearms visible, no face) are entering frame from the bottom or side, fingers about to grasp or begin opening it. Top-down or slight-angle overhead framing.'
+      : 'The sealed package MUST be a plausible branded cardboard shipping/retail box appropriate to the product category — minimalist clean cardboard or branded matte cardboard with the PRODUCT/BRAND NAME printed on the side in clear typography. Professional, NOT generic Amazon-style shipping. Two hands (forearms visible, no face) are entering frame from the bottom or side, fingers about to grasp or begin opening it. Top-down or slight-angle overhead framing. Do NOT show the bare product alone — a distinct closed BOX must be the subject.'
+    return {
+      framing: `Hands-only ASMR unbox. MANDATORY: a closed branded PACKAGE / BOX is the subject (NOT the bare product). ${packagingLine}`,
+      scene: 'Clean neutral surface — light wood, marble, or matte paper — with the sealed package centred. Optional minimal props (a pair of scissors, a card).',
+      lighting: 'Soft overhead daylight, even and shadow-free. Slight sheen on tape/plastic to show it is unopened.',
+      extra: 'CRITICAL: the package is CLOSED. The product inside is NOT yet visible. Hands look real, natural skin tone, clean nails, no jewelry conflict. Face is NEVER in frame.',
+    }
+  }
+  if (formatKey === 'mystery-box') {
+    const packagingLine = opts.hasPackagingRef
+      ? 'The mystery package MUST match the attached packaging reference photo — exact shape, colour, branding, materials, and proportions.'
+      : 'The mystery package MUST be a plausible branded cardboard shipping/retail box appropriate to the product category — minimalist clean cardboard or branded matte cardboard with the PRODUCT/BRAND NAME printed on the side in clear typography. Professional and intriguing, NOT generic Amazon-style shipping. Do NOT show the bare product — only the sealed branded BOX is visible.'
+    return {
+      framing: `Closed wrapped mystery package as the SOLE subject. MANDATORY: the product itself is NOT yet revealed — only the sealed BOX/wrap is visible. Dramatic hero-shot composition, product-hero centred. ${packagingLine}`,
+      scene: 'Dark moody surface (black slate, dark wood, deep-toned linen). Suspenseful minimalism — no clutter, no props, just the mysterious package.',
+      lighting: 'Low-key dramatic lighting — single hard rim light or spotlight from above/side, deep shadows, high contrast. Chiaroscuro mood.',
+      extra: 'The box/wrap should look intriguing and untouched. Do not reveal the product inside. No hands, no character.',
+    }
+  }
   switch (formatKey) {
     case 'aesthetic-broll':
       return {
@@ -78,6 +103,22 @@ export function motionBrollFrameSpec(formatKey: string): {
 // Build the Nano Banana Pro image prompt for a motion-broll first frame.
 // The product reference image is passed separately as a reference; the
 // prompt just describes framing + scene + lighting.
+// Exported so routes can inject the format's shot direction as a hard
+// imperative override at the tail of the Nano Banana prompt (bypasses any
+// dilution that may occur through upstream rewrites).
+export function motionBrollShotDirectionFor(
+  formatKey: string,
+  opts: { hasPackagingRef?: boolean } = {},
+): string {
+  const s = motionBrollFrameSpec(formatKey, opts)
+  return [
+    `FRAMING: ${s.framing}`,
+    `SCENE: ${s.scene}`,
+    `LIGHTING: ${s.lighting}`,
+    s.extra ? `ADDITIONAL: ${s.extra}` : '',
+  ].filter(Boolean).join('\n')
+}
+
 export function buildMotionBrollFramePrompt(input: {
   formatKey: string
   productName: string
@@ -85,8 +126,9 @@ export function buildMotionBrollFramePrompt(input: {
   videoDirection?: string
   aspectRatio: '9:16' | '16:9' | '1:1' | '3:4'
   hasProductRef: boolean
+  hasPackagingRef?: boolean
 }): string {
-  const spec = motionBrollFrameSpec(input.formatKey)
+  const spec = motionBrollFrameSpec(input.formatKey, { hasPackagingRef: input.hasPackagingRef })
   const productLine = input.hasProductRef
     ? `Using the attached reference image as the EXACT product — preserve packaging, label text, every logo/font/colour, shape and proportions PIXEL-FAITHFULLY. Do NOT redesign, restyle, or substitute a generic product.`
     : `Render the product described below as a hero object.`
