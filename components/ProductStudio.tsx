@@ -6,6 +6,7 @@
 // batches don't produce the same format twice.
 
 import { useEffect, useState, type CSSProperties } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
 import { compressImageFile, type CompressedImage } from '@/lib/image-compress'
@@ -145,6 +146,37 @@ export default function ProductStudio() {
   })
 
   const CR = { nb2: 5, pro: 10, '4k': 18 } as const
+
+  // Prefill from Format Library redirects (see UGCPackageBuilder → photo
+  // format handling). Reads ?formatKey=&mode=aesthetic&substyle=…&productName=&productDescription=
+  // on mount and: (a) locks mode to aesthetic, (b) seeds the direction box
+  // with a sub-style hint so the AI concept generator biases toward that
+  // look, (c) prefills the Create form fields if the user hasn't picked a
+  // product yet.
+  const searchParams = useSearchParams()
+  useEffect(() => {
+    if (!searchParams) return
+    const paramMode = searchParams.get('mode')
+    const substyle = searchParams.get('substyle')
+    const pName = searchParams.get('productName')
+    const pDesc = searchParams.get('productDescription')
+    if (paramMode === 'aesthetic') setMode('aesthetic')
+    if (substyle) {
+      const hint =
+        substyle === 'editorial' ? 'Hero editorial energy — magazine-cover composition, dramatic single-point studio lighting, hero product front-and-center on a rich textured surface.' :
+        substyle === 'lifestyle' ? 'Lifestyle in-scene — product used in a real environment, candid moment, natural light, human hands or ambient life in frame.' :
+        substyle === 'studio' ? 'Studio still — clean minimal seamless backdrop, controlled lighting, sculptural product-first composition with strong negative space.' :
+        ''
+      if (hint) setDirection(prev => prev.trim() ? prev : hint)
+    }
+    if (pName || pDesc) {
+      if (pName) setCreateName(prev => prev || pName)
+      if (pDesc) setCreateWhatItIs(prev => prev || pDesc)
+      // Only auto-open the Create form if there's nothing selected yet.
+      setShowCreate(prev => prev || (!selected))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
 
   useEffect(() => {
     load()
