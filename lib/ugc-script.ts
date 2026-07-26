@@ -39,8 +39,24 @@ export async function generateUGCScript(
   const hookEnd = Math.min(5, Math.round(targetDurationSeconds * 0.2))
   const bodyEnd = Math.round(targetDurationSeconds * 0.85)
 
-  const backgroundLine = forcedScene
-    ? `[BACKGROUND: ${forcedScene}]   ← USE THIS EXACT SCENE, do not change it`
+  // Format-implied scenes — the format itself dictates where this HAS to be shot.
+  // Falls back to a generic picker only if no format is set and no forcedScene given.
+  const formatScene = (() => {
+    if (!formatKey) return null
+    if (formatKey === 'interview-pov' || formatKey === 'interview-man-on-street')
+      return 'busy city street or pedestrian walkway — real outdoor urban setting, cars/people in background'
+    if (formatKey === 'couple-sharing') return 'living room or kitchen at home — warm, lived-in'
+    if (formatKey === 'roommate-rec') return 'shared apartment living space — casual, cluttered-real'
+    if (formatKey === 'get-ready-with-me') return 'bathroom mirror or bedroom vanity — morning-routine setting'
+    if (formatKey === 'tv-spot') return 'considered cinematic setting appropriate to the product — not a generic room'
+    if (formatKey === 'camera-pov' || formatKey === 'pov-vlog')
+      return 'first-person environment where the product is being used'
+    if (formatKey === 'unboxing') return 'clean desk, table, or countertop — package-opening setting'
+    return null
+  })()
+  const finalScene = forcedScene || formatScene
+  const backgroundLine = finalScene
+    ? `[BACKGROUND: ${finalScene}]   ← USE THIS EXACT SCENE, do not change it (format requires it)`
     : `[BACKGROUND: one of: bedroom, bathroom, kitchen, living room, office, gym, outdoor, car interior, cafe]`
 
   const customBlock = customInstructions?.trim()
@@ -118,9 +134,41 @@ Rules:
 - Spoken text always in double quotes
 - Stage directions always in (parentheses)
 - Section headers always in [brackets]
-- ${forcedScene ? `[BACKGROUND: ${forcedScene}] must be the very first line, use it exactly` : '[BACKGROUND: ...] must be the very first line — choose what fits the product naturally'}
+- ${finalScene ? `[BACKGROUND: ${finalScene}] must be the very first line, use it exactly` : '[BACKGROUND: ...] must be the very first line — choose what fits the product naturally'}
 - No markdown, no title, no hashtags
-- Authentic UGC tone — real person, not corporate${customInstructions?.trim() ? `\n- The USER INSTRUCTIONS block above overrides default tone/style choices wherever they conflict.` : ''}`
+
+HOW A REAL PERSON TALKS ON CAMERA — this is the difference between good and cringe:
+
+BANNED phrases (these are AI-ad tells — a real person NEVER says these together like this):
+- "actually amazing", "genuinely good", "actually really", "actually really good", "actually does something"
+- "finally, a [X] that…", "no more [X]", "the [X] that [Y]"
+- "amazing", "incredible", "revolutionary", "game-changer", "next-level", "hits different", "life-changing", "obsessed"
+- "you have to try", "trust me", "you won't believe", "you need this"
+- multi-benefit stitching ("great taste AND healthy AND refreshing AND …") — pick ONE reaction
+- three-adjective descriptions ("light, refreshing, and functional")
+- CTAs like "grab one today", "get yours now", "don't miss out"
+
+DO write like this:
+- Reactions BEFORE opinions: "oh — wait", "hm", "okay", "no way", "hold on"
+- Disfluencies and thinking sounds: "uh", "like", "hm", "wait…", trailing off with "…"
+- False starts and self-correction: "this is — okay this is actually kind of…"
+- Short direct sentences. One thought at a time. Not two claims stitched together.
+- Specific concrete details over adjectives: not "refreshing", but "cold, kinda tart" or "tastes like basil"
+- Genuine mild reactions, not enthusiasm dial: "yeah… I'd buy this" beats "you HAVE to try this"
+- CTAs that sound like a real recommendation, not a pitch: "I'd get this", "worth trying", "gonna buy more"
+- If the character just tasted/tried the product, they react first (surprise, curiosity), THEN describe. Never launch straight into a pitch.
+
+EXAMPLES of good vs bad — study these:
+BAD: "Wait, this is actually amazing. Lemon and basil? Sounds weird but tastes incredible. Plus it's good for digestion. Finally a drink that's actually refreshing and functional."
+GOOD: "Wait — (sips) hm. Yeah, that's… weird in a good way. Basil? Kinda tart. I like it."
+
+BAD: "You have to try this. It's revolutionary."
+GOOD: "Honestly? I'd get this again."
+
+BAD: "This app changed my life. It saves me hours every day."
+GOOD: "Okay, I've been using this for like a week. It's — it just works. Weirdly."
+
+Every quoted line must pass this test: "Would a real person tasting/testing this for the first time, filmed on a phone, ACTUALLY say this?" If it sounds like ad copy, rewrite it.${customInstructions?.trim() ? `\n- The USER INSTRUCTIONS block above overrides default tone/style choices wherever they conflict.` : ''}`
 
   const content: Anthropic.MessageParam['content'] = productImageBase64
     ? [
