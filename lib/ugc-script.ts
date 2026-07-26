@@ -15,12 +15,17 @@ export async function generateUGCScript(
   language?: { name: string; code: string },
   productType?: 'physical' | 'software',
   formatKey?: string,
+  hasSecondCharacter?: boolean,
 ): Promise<string> {
   // Determine script mode from format. Two-person = interview/couple/roommate.
   // POV-stranger-only = interview-pov (solo pipeline but interview framing).
+  // Also: if a co-star is explicitly present (hasSecondCharacter) we ALWAYS
+  // write a two-person script regardless of the picked format.
   const { getCampaignFormat } = await import('./campaign-formats')
   const fmt = formatKey ? getCampaignFormat(formatKey) : undefined
-  const isTwoPerson = fmt?.pipeline === 'ugc-interview' || fmt?.pipeline === 'ugc-couple'
+  const isTwoPerson = hasSecondCharacter
+    || fmt?.pipeline === 'ugc-interview'
+    || fmt?.pipeline === 'ugc-couple'
   const isInterviewPOV = formatKey === 'interview-pov'
   const isInterviewLike = formatKey === 'interview-man-on-street' || isInterviewPOV
   const personA = isInterviewLike ? 'interviewer' : (formatKey === 'couple-sharing' ? 'partner' : 'friend')

@@ -66,7 +66,7 @@ interface UGCPackageBuilderProps {
     actorId?: string
     customPhotoBase64?: string
     customPhotoMimeType?: string
-    productType?: 'physical'
+    productType?: 'physical' | 'website'
     prewrittenScript?: string
   }) => Promise<void>
   isLoading: boolean
@@ -179,7 +179,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // explicitly; merged into extraProductImages on submit so the routes see
   // it as another product reference photo.
   const [packagingImage, setPackagingImage] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
-  const productType = 'physical'
+  // Product type toggle — physical (default) uses the normal file-upload
+  // path; 'website' swaps the upload for a URL input that fetches a landing-
+  // page screenshot via /api/screenshot and drops it into productImage so
+  // downstream pipeline sees it as a normal reference image.
+  const [productType, setProductType] = useState<'physical' | 'website'>('physical')
+  const [websiteUrl, setWebsiteUrl] = useState('')
+  const [websiteFetching, setWebsiteFetching] = useState(false)
+  const [websiteError, setWebsiteError] = useState<string | null>(null)
 
   // Shopify product picker
   const [shopifyUrl, setShopifyUrl] = useState('')
@@ -358,6 +365,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // the active format's pipeline is ugc-interview or ugc-couple.
   const [secondInfluencerId, setSecondInfluencerId] = useState<string | null>(null)
   const [showSecondPicker, setShowSecondPicker] = useState(false)
+  // Explicit opt-in for the auto-generated second character. When the user
+  // is on a solo (non-interview/couple) format we still let them add a co-
+  // star — either by picking one from Influencers OR by ticking this flag
+  // to let the AI invent PERSON B. Either signal routes to the two-person
+  // pipeline for both frames AND script.
+  const [useAutoSecondChar, setUseAutoSecondChar] = useState(false)
   const activeFormat = activeFormatKey ? CAMPAIGN_FORMATS.find(f => f.key === activeFormatKey) ?? null : null
   // Formats where a "what's inside the box" reveal is core — for these we
   // expose an optional packaging photo upload so Nano Banana has a real
@@ -371,6 +384,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     : extraProductImages
   ).slice(0, 2)
   const isTwoPersonFormat = !!activeFormat && (activeFormat.pipeline === 'ugc-interview' || activeFormat.pipeline === 'ugc-couple')
+  // True whenever the user has opted-in to a second character — either by
+  // picking one, ticking auto-generate, or being on a two-person format
+  // (which implicitly needs two people). Drives BOTH the frame endpoint
+  // choice and the script's two-person dialogue mode.
+  const hasSecondCharacter = !!secondInfluencerId || useAutoSecondChar || isTwoPersonFormat
   // Motion-broll formats are product-first, no character, no dialogue.
   // They skip script generation entirely and route to /api/ugc/motion-broll-*
   // for both frames and animate.
@@ -386,7 +404,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     ? 'Auto-generated stranger'
     : activeFormatKey === 'couple-sharing'
       ? 'Auto-generated partner'
-      : 'Auto-generated friend'
+      : activeFormatKey === 'roommate-rec'
+        ? 'Auto-generated roommate'
+        : 'Auto-generated co-star'
   function applyFormat(fmt: CampaignFormat) {
     // Photo formats live in Product Studio, not the video builder.
     // Redirect with prefill query so Product Studio can pre-select the right
@@ -678,7 +698,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       // Two-person formats (interview / couple / roommate) route to the
       // dedicated composer that stages TWO characters in one Nano Banana
       // Pro frame. Everything else stays on the solo hero-frames path.
-      const useTwoPerson = isTwoPersonFormat && !!selectedInfluencerId
+      // Two-person pipeline fires whenever a co-star is on deck — regardless
+      // of the picked format. Two-person format still forces it on for
+      // interview/couple even without an explicit co-star pick.
+      const useTwoPerson = !!selectedInfluencerId && hasSecondCharacter
       const useMotionBroll = isMotionBrollFormat
       const endpoint = useMotionBroll
         ? '/api/ugc/motion-broll-frames'
@@ -708,6 +731,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             secondInfluencerId: secondInfluencerId ?? undefined,
             sceneId,
             formatKey: activeFormatKey,
+            productType,
           }
         : {
             productName,
@@ -998,6 +1022,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           language,
           productType,
           formatKey: activeFormatKey,
+          hasSecondCharacter,
         }),
       })
       const data = await res.json()
@@ -1967,11 +1992,114 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
 
         <div className="form-row">
+          {/* Product-type segmented toggle. Website mode swaps the file
+              upload for a URL input that fetches a landing-page screenshot
+              via /api/screenshot and drops it into productImage. */}
+          <div style={{ display: 'inline-flex', gap: 6, padding: 4, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', marginBottom: 12 }}>
+            {(['physical', 'website'] as const).map(pt => {
+              const active = productType === pt
+              return (
+                <button
+                  key={pt}
+                  type="button"
+                  disabled={isLoading}
+                  onClick={() => {
+                    if (pt === productType) return
+                    setProductType(pt)
+                    // Clear image + url when switching so state is unambiguous.
+                    setProductImage(null)
+                    setWebsiteError(null)
+                    if (pt === 'physical') setWebsiteUrl('')
+                  }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600,
+                    border: 'none',
+                    background: active ? 'var(--ink)' : 'transparent',
+                    color: active ? 'var(--paper)' : 'var(--ink-2)',
+                    cursor: isLoading ? 'not-allowed' : 'pointer',
+                    transition: 'background 120ms, color 120ms',
+                  }}
+                >
+                  {pt === 'physical' ? '📦 Physical product' : '💻 App / Website'}
+                </button>
+              )
+            })}
+          </div>
+          {productType === 'website' && isMotionBrollFormat && (
+            <div style={{ padding: '8px 10px', marginBottom: 10, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2, var(--surface))', fontSize: 11.5, color: 'var(--ink-dim)' }}>
+              Heads up — motion-broll / product-still formats are built around physical objects. Website products render better with talking-head formats.
+            </div>
+          )}
           <label className="form-label">
-            Product photo{' '}
+            {productType === 'website' ? 'Website URL' : 'Product photo'}{' '}
             <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(recommended)</span>
           </label>
-          <p className="help">Our AI composites your real product into the video first frame. Skip it and we&apos;ll build a character-only ad.</p>
+          <p className="help">
+            {productType === 'website'
+              ? 'Paste your app or landing-page URL. We fetch a screenshot and the AI puts a laptop (or phone for POV) in the character\'s hands with your website on screen.'
+              : 'Our AI composites your real product into the video first frame. Skip it and we\'ll build a character-only ad.'}
+          </p>
+          {productType === 'website' && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
+              <input
+                className="input"
+                style={{ flex: '1 1 260px' }}
+                type="url"
+                placeholder="https://your-app.com"
+                value={websiteUrl}
+                onChange={e => setWebsiteUrl(e.target.value)}
+                disabled={isLoading || websiteFetching}
+              />
+              <button
+                type="button"
+                className="btn"
+                disabled={isLoading || websiteFetching || !websiteUrl.trim()}
+                onClick={async () => {
+                  setWebsiteError(null)
+                  setWebsiteFetching(true)
+                  try {
+                    const res = await fetch('/api/screenshot', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ url: websiteUrl.trim() }),
+                    })
+                    const data = await res.json()
+                    if (!res.ok) throw new Error(data.error || 'Failed to fetch screenshot')
+                    setProductImage({
+                      base64: data.imageBase64,
+                      mimeType: data.mimeType || 'image/png',
+                      preview: `data:${data.mimeType || 'image/png'};base64,${data.imageBase64}`,
+                    })
+                  } catch (err) {
+                    setWebsiteError(err instanceof Error ? err.message : 'Screenshot failed')
+                  } finally {
+                    setWebsiteFetching(false)
+                  }
+                }}
+              >
+                {websiteFetching ? 'Fetching…' : productImage ? 'Refetch' : 'Fetch website'}
+              </button>
+            </div>
+          )}
+          {websiteError && productType === 'website' && (
+            <div style={{ fontSize: 12, color: 'var(--danger, #c34)', marginBottom: 10 }}>{websiteError}</div>
+          )}
+          {productType === 'website' && productImage ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={productImage.preview} alt="website screenshot" style={{ width: 96, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Screenshot captured</p>
+                <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '2px 0 0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{websiteUrl}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setProductImage(null); setWebsiteError(null) }}
+                disabled={isLoading}
+                style={{ fontSize: 18, lineHeight: 1, background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: '0 4px' }}
+              >×</button>
+            </div>
+          ) : productType === 'physical' && (
           <label {...productDrop.dropzoneProps} style={{
             display: 'flex', alignItems: 'center', gap: '14px',
             padding: '12px 14px', borderRadius: 12,
@@ -2009,10 +2137,12 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               </>
             )}
           </label>
+          )}
 
           {/* Extra photos of the SAME product — e.g. the package AND what's
-              inside. Both feed Nano Banana + Seedance as combined refs. */}
-          {productImage && (
+              inside. Both feed Nano Banana + Seedance as combined refs.
+              Website mode skips these — one screenshot is all we need. */}
+          {productImage && productType === 'physical' && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
               {extraProductImages.map((img, i) => (
                 <div key={i} style={{ position: 'relative', width: 48, height: 48, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)' }}>
@@ -2331,15 +2461,35 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 </div>
               )}
 
-              {/* Two-person format: pick a co-star (or let it auto-generate). */}
-              {selectedInfluencerId && isTwoPersonFormat && (
+              {/* Second character — available whenever a main influencer is
+                  picked, regardless of format. Setting this OR ticking auto-
+                  generate routes the whole pipeline (frames + script) to
+                  two-person mode. */}
+              {selectedInfluencerId && (
                 <div style={{ marginTop: 12, padding: 12, borderRadius: 12, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>
-                    Second character
+                    {secondInfluencerId
+                      ? `Co-starring: ${influencers.find(i => i.id === secondInfluencerId)?.name ?? 'saved influencer'}`
+                      : isTwoPersonFormat
+                        ? 'Second character'
+                        : 'Add a co-star (optional)'}
                   </div>
                   <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.5, marginBottom: 10 }}>
-                    This format needs two people in the frame. By default the AI generates the second character. Swap in another saved influencer to have them co-star.
+                    {isTwoPersonFormat
+                      ? 'This format needs two people in the frame. By default the AI generates the second character — swap in another saved influencer to have them co-star.'
+                      : 'Put a second person in the frame with your main influencer. Pick another saved influencer, or let the AI generate one — either way, we switch to two-person dialogue and two-shot framing.'}
                   </div>
+                  {!isTwoPersonFormat && !secondInfluencerId && (
+                    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--ink-2)', marginBottom: 10, cursor: isLoading ? 'not-allowed' : 'pointer' }}>
+                      <input
+                        type="checkbox"
+                        checked={useAutoSecondChar}
+                        onChange={e => setUseAutoSecondChar(e.target.checked)}
+                        disabled={isLoading}
+                      />
+                      Auto-generate a second character
+                    </label>
+                  )}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     {(() => {
                       const co = secondInfluencerId ? influencers.find(i => i.id === secondInfluencerId) : null

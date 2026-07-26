@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import sharp from 'sharp'
 import { generateCharacterWithProduct, generateTextToImage, generateNanoBananaImage } from '@/lib/nanobanana'
 import type { CharacterProfile } from '@/lib/character'
-import { buildCharacterPrompt as buildCharacterImagePrompt, shotDirectionFor, SHOT_DIRECTIONS } from '@/lib/ugc-character-prompt'
+import { buildCharacterPrompt as buildCharacterImagePrompt, shotDirectionFor, SHOT_DIRECTIONS, websiteProductDirection } from '@/lib/ugc-character-prompt'
 import { inferProductCategory } from '@/lib/multi-shot'
 import { getCampaignFormat } from '@/lib/campaign-formats'
 
@@ -43,9 +43,11 @@ export async function POST(request: NextRequest) {
       sceneId,              // uuid of a user_scenes row — override the location with a stored scene
       extraProductImages,   // additional photos of the SAME product (package + contents…)
       formatKey,            // campaign format key — drives shot-type-aware first frame
+      productType,          // 'physical' | 'website' — website = the product image is a landing-page screenshot
     } = body as Record<string, unknown>
 
     const safeFormatKey = typeof formatKey === 'string' && formatKey.length > 0 ? formatKey : undefined
+    const safeProductType: 'physical' | 'website' = productType === 'website' ? 'website' : 'physical'
     const campaignFormat = safeFormatKey ? getCampaignFormat(safeFormatKey) : undefined
 
     const extraProductRefs: Array<{ base64: string; mimeType: string }> = Array.isArray(extraProductImages)
@@ -107,6 +109,7 @@ export async function POST(request: NextRequest) {
         formatKey: safeFormatKey,
         formatSpec: campaignFormat?.sonnetSpec,
         hasPackagingRef: extraProductRefs.length > 0,
+        productType: safeProductType,
       })
       characterIdea = built.characterIdea
       imagePrompt = built.imagePrompt
@@ -122,6 +125,13 @@ export async function POST(request: NextRequest) {
       if (direction) {
         imagePrompt = `${imagePrompt}\n\n=== SHOT COMPOSITION — MANDATORY, OVERRIDES ANYTHING ABOVE ===\n${direction}\n============================================================`
       }
+    }
+    // When the "product" is a website, hard-append the app-demo composition
+    // override too — same pattern as the shot-direction block, so Nano Banana
+    // Pro sees an unambiguous instruction to render the reference image ON
+    // a device screen instead of treating it as a physical product to hold.
+    if (safeProductType === 'website') {
+      imagePrompt = `${imagePrompt}\n\n=== WEBSITE PRODUCT — MANDATORY, OVERRIDES ANYTHING ABOVE ===\n${websiteProductDirection(safeFormatKey)}\n============================================================`
     }
 
     // Scene relevance — when reusing a saved actor / influencer, their

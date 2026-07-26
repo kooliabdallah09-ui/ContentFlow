@@ -24,15 +24,20 @@ export const TWO_PERSON_SHOT_DIRECTIONS: Record<string, string> = {
     'SHARED APARTMENT casual two-shot. PERSON A and PERSON B look like roommates / close friends mid-conversation — one is enthusiastically recommending the reference product to the other, who is listening with a mildly skeptical or amused expression. Casual home setting (dorm-room, small kitchen, living-room clutter — plants, mugs, a laptop on the coffee table). Both wearing loungewear / casual everyday clothes. Handheld-phone framing, both chest-up, natural indoor daylight.',
 }
 
+// Generic two-person framing used when the format has no dedicated entry in
+// TWO_PERSON_SHOT_DIRECTIONS (e.g. hot-take + co-star, or two-character mode
+// without a picked format at all).
+const GENERIC_TWO_PERSON_DIRECTION =
+  'Both people together in the SAME frame, natural interaction, chest-up two-shot with both faces clearly visible. Warm natural indoor daylight, casual everyday setting. Handheld phone framing, unposed and unscripted feel.'
+
 function twoPersonShotBlock(formatKey: string): string {
-  const override = TWO_PERSON_SHOT_DIRECTIONS[formatKey]
-  const fmt = getCampaignFormat(formatKey)
+  const override = TWO_PERSON_SHOT_DIRECTIONS[formatKey] ?? GENERIC_TWO_PERSON_DIRECTION
+  const fmt = formatKey ? getCampaignFormat(formatKey) : undefined
   const spec = fmt?.sonnetSpec ?? ''
   const parts: string[] = []
-  if (override) parts.push(`Framing/composition: ${override}`)
+  parts.push(`Framing/composition: ${override}`)
   if (spec) parts.push(`Format intent: ${spec}`)
-  if (!parts.length) return ''
-  return `\n\nSHOT DIRECTION (two-person format: ${formatKey}):\n- ${parts.join('\n- ')}`
+  return `\n\nSHOT DIRECTION (two-person format: ${formatKey || 'generic'}):\n- ${parts.join('\n- ')}`
 }
 
 const anthropic = process.env.ANTHROPIC_API_KEY
@@ -89,7 +94,9 @@ export async function draftSecondCharacter(input: {
     ? 'a mid-30s passer-by in casual weekend clothes, mildly amused expression'
     : input.formatKey === 'couple-sharing'
       ? 'a late-20s partner in a cozy oversized sweater, warm relaxed energy'
-      : 'a mid-20s roommate in loungewear, easygoing skeptical vibe'
+      : input.formatKey === 'roommate-rec'
+        ? 'a mid-20s roommate in loungewear, easygoing skeptical vibe'
+        : 'a mid-20s friend in casual everyday clothes, warm engaged expression'
 
   if (!anthropic) return fallback
 
@@ -97,7 +104,9 @@ export async function draftSecondCharacter(input: {
     ? 'a random stranger being stopped on the street for an interview'
     : input.formatKey === 'couple-sharing'
       ? 'a romantic partner at home'
-      : 'a close friend / roommate at home'
+      : input.formatKey === 'roommate-rec'
+        ? 'a close friend / roommate at home'
+        : 'a friend or peer sharing the frame in a casual everyday setting'
 
   try {
     const msg = await anthropic.messages.create({

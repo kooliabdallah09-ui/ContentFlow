@@ -4,6 +4,7 @@ import sharp from 'sharp'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { buildTwoPersonPrompt } from '@/lib/ugc-two-person-prompt'
 import { getCampaignFormat } from '@/lib/campaign-formats'
+import { websiteProductDirection } from '@/lib/ugc-character-prompt'
 
 export const maxDuration = 180
 
@@ -42,15 +43,15 @@ export async function POST(request: NextRequest) {
       secondInfluencerId,    // optional second influencer for co-star mode
       sceneId,
       formatKey,
+      productType,
     } = body as Record<string, unknown>
 
-    if (typeof formatKey !== 'string' || !formatKey) {
-      return NextResponse.json({ error: 'formatKey required' }, { status: 400 })
-    }
-    const fmt = getCampaignFormat(formatKey)
-    if (!fmt || (fmt.pipeline !== 'ugc-interview' && fmt.pipeline !== 'ugc-couple')) {
-      return NextResponse.json({ error: 'formatKey is not a two-person format' }, { status: 400 })
-    }
+    // formatKey is optional now — two-character mode is driven by having
+    // two influencers/co-star present, not by the picked format. When no
+    // format is provided the two-person prompt falls back to a generic
+    // "two people together" shot direction.
+    const safeFormatKey = typeof formatKey === 'string' && formatKey.length > 0 ? formatKey : ''
+    const fmt = safeFormatKey ? getCampaignFormat(safeFormatKey) : undefined
     if (typeof influencerId !== 'string' || !influencerId) {
       return NextResponse.json({ error: 'influencerId required' }, { status: 400 })
     }
@@ -141,22 +142,31 @@ export async function POST(request: NextRequest) {
       }
     }
     // Format-implied scene if none explicitly picked.
-    if (!requiredScene && fmt.requiresScene) {
+    if (!requiredScene && fmt?.requiresScene) {
       requiredScene = `${fmt.label} — ${fmt.sonnetSpec}`.slice(0, 400)
     }
 
     // ── Build the two-person image prompt ─────────────────────────────
     const scriptText = typeof script === 'string' ? script.slice(0, 2000) : ''
-    const { characterIdeaA, characterIdeaB, imagePrompt } = await buildTwoPersonPrompt({
+    const safeProductType: 'physical' | 'website' = productType === 'website' ? 'website' : 'physical'
+    const { characterIdeaA, characterIdeaB, imagePrompt: rawImagePrompt } = await buildTwoPersonPrompt({
       productName: safeProductName,
       productDescription: safeProductDescription,
       hasProductImage: hasProduct,
       videoDirection: safeVideoDirection || scriptText || undefined,
-      formatKey,
+      formatKey: safeFormatKey,
       personADescription: personA.description,
       personBDescription: personB?.description,
       requiredScene: requiredScene ?? undefined,
     })
+
+    // Hard-append the app-demo override when the "product" is a website.
+    // The two-person Sonnet prompt doesn't know about website mode; adding
+    // it as a trailing OVERRIDES block lets NB Pro render the reference
+    // image on-screen instead of treating it as something to hold.
+    const imagePrompt = safeProductType === 'website'
+      ? `${rawImagePrompt}\n\n=== WEBSITE PRODUCT — MANDATORY, OVERRIDES ANYTHING ABOVE ===\n${websiteProductDirection(safeFormatKey)}\nOne of the two people (typically PERSON A) is the one holding the device with the website on screen; the other is looking at the screen too.\n============================================================`
+      : rawImagePrompt
 
     // ── Compose reference stack: A refs → B refs → scene anchor ──────
     const refStack: Array<{ base64: string; mimeType: string }> = [...personA.refs]
@@ -167,7 +177,9 @@ export async function POST(request: NextRequest) {
     const aCount = personA.refs.length
     const bCount = personB?.refs.length ?? 0
     const productHintLine = hasProduct
-      ? ` The reference image AFTER the people images (before any scene image) is the exact product — packaging, label, colours, shape must match faithfully.`
+      ? (safeProductType === 'website'
+          ? ` The reference image AFTER the people images (before any scene image) is a screenshot of the WEBSITE — render it faithfully on the device screen (laptop or phone) one of the people is holding. Do NOT treat it as a physical product to hold.`
+          : ` The reference image AFTER the people images (before any scene image) is the exact product — packaging, label, colours, shape must match faithfully.`)
       : ''
     const sceneHintLine = sceneAnchorRef
       ? ' The LAST image is the EXACT scene — architecture, materials, decor, palette, and lighting must match it faithfully.'

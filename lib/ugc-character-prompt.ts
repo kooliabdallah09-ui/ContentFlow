@@ -58,6 +58,22 @@ export function shotDirectionFor(
   return SHOT_DIRECTIONS[formatKey] ?? ''
 }
 
+// Extra guidance appended when the "product" is a website / web-app rather
+// than a physical object. We ask NB Pro to show the character holding an
+// open laptop (or phone for POV interview formats) with the reference
+// screenshot rendered faithfully on the screen — Higgsfield-style app-demo
+// composition.
+export function websiteProductDirection(formatKey?: string): string {
+  const usePhone = formatKey === 'interview-pov' || formatKey === 'interview-man-on-street'
+  const device = usePhone
+    ? 'a modern smartphone in portrait orientation'
+    : 'an open modern laptop (thin bezel, silver/space-grey aluminium)'
+  const hold = usePhone
+    ? 'holding the phone at chest height, screen tilted slightly toward the camera'
+    : 'holding the open laptop across their lap or forearms with the screen tilted toward the camera'
+  return `The "product" here is a WEBSITE / WEB APP — not a physical object. The character MUST be ${hold}. On the ${usePhone ? 'phone' : 'laptop'} SCREEN, render the exact website landing page shown in the reference image — same header, hero section, colours, typography, and layout must match faithfully. The screen contents are the star of the shot — legible, in focus, taking up most of the device display area. Match the tone of a SaaS / app founder or user showing off a website they love — casual and confident, NOT a physical-product unboxing. Do NOT invent packaging, do NOT frame this as holding a bottle/box/tube.`
+}
+
 function shotDirectionBlock(
   formatKey?: string,
   formatSpec?: string,
@@ -88,6 +104,7 @@ export interface CharacterPromptInput {
   formatKey?: string                // campaign format key (e.g. 'camera-pov', 'get-ready-with-me')
   formatSpec?: string               // format's sonnetSpec — optional override for lookup
   hasPackagingRef?: boolean         // user attached a packaging photo (unboxing formats)
+  productType?: 'physical' | 'website' // 'website' = the "product" is an app/site screenshot
 }
 
 export interface CharacterPromptOutput {
@@ -178,7 +195,7 @@ export async function buildCharacterPrompt(input: CharacterPromptInput): Promise
         content: `Character idea: ${characterIdea}
 ${productLine}
 ${directionLine}
-Product image ${input.hasProductImage ? 'IS' : 'is NOT'} attached to Nano Banana Pro as a reference image.${personaBlock(input.customPersona)}${shotDirectionBlock(input.formatKey, input.formatSpec, { hasPackagingRef: input.hasPackagingRef })}
+Product image ${input.hasProductImage ? 'IS' : 'is NOT'} attached to Nano Banana Pro as a reference image.${personaBlock(input.customPersona)}${shotDirectionBlock(input.formatKey, input.formatSpec, { hasPackagingRef: input.hasPackagingRef })}${input.productType === 'website' ? `\n\nWEBSITE PRODUCT — CRITICAL: ${websiteProductDirection(input.formatKey)}` : ''}
 
 Write the finished Nano Banana Pro image prompt now.`,
       }],

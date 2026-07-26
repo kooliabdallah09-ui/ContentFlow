@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
       language: languageRaw,
       productType,
       formatKey,
+      hasSecondCharacter,
     } = body
 
     if (!productName || !productDescription || !benefits) {
@@ -90,6 +91,7 @@ export async function POST(request: NextRequest) {
       { name: language.name, code: language.code },
       (productType === 'software' || productType === 'physical') ? productType : undefined,
       typeof formatKey === 'string' ? formatKey : undefined,
+      !!hasSecondCharacter,
     )
 
     return NextResponse.json({ script })
