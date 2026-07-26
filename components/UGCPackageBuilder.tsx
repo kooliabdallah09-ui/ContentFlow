@@ -692,7 +692,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // Motion-broll is product-only — no creator required. All other pipelines
   // still require either a saved influencer or actor.
   const hasCreator = isMotionBrollFormat ? true : !!(selectedInfluencerId || savedActorId)
-  const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && (isMotionBrollFormat || benefits.trim()) && hasCreator
+  const canGenerate = !scriptLoading && productName.trim() && productDescription.trim() && hasCreator
 
   // Downscale + re-encode uploaded product photos before storing them in
   // state. Raw phone-camera JPEGs are 5-15 MB — over Vercel's 4.5 MB
@@ -2101,33 +2101,17 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
         {!showProductAdvanced && (
           <button type="button" onClick={() => setShowProductAdvanced(true)} style={{ fontSize: 12.5, color: 'var(--ink-mute)', textAlign: 'left', padding: '4px 2px', cursor: 'pointer', width: 'fit-content' }}>
-            More details (benefits, CTA, Shopify import) →
+            More details (CTA, Shopify import) →
           </button>
         )}
 
-        {showProductAdvanced && (<>
-        <div className="form-row">
-          <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            Key benefits
-            {benefitsGenerating && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, color: 'var(--ink-mute)', fontWeight: 400 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', border: '2px solid var(--accent)', borderTopColor: 'transparent', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />
-                Generating…
-              </span>
-            )}
-          </label>
-          <textarea className="textarea" rows={3} value={benefits}
-            onChange={e => { setBenefits(e.target.value); if (useBrand) setUseBrand(false) }}
-            placeholder={benefitsGenerating ? 'Generating benefits from product…' : 'Save time · ships to all platforms · AI-powered'}
-            disabled={isLoading || benefitsGenerating} />
-        </div>
-
+        {showProductAdvanced && (
         <div className="form-row">
           <label className="form-label">Call to action</label>
           <input className="input" value={callToAction} onChange={e => { setCallToAction(e.target.value); if (useBrand) setUseBrand(false) }}
             placeholder="e.g. Try it free today" disabled={isLoading} />
         </div>
-        </>)}
+        )}
 
 
         <div className="form-row">
