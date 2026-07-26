@@ -14,7 +14,17 @@ export async function generateUGCScript(
   customInstructions?: string,
   language?: { name: string; code: string },
   productType?: 'physical' | 'software',
+  formatKey?: string,
 ): Promise<string> {
+  // Determine script mode from format. Two-person = interview/couple/roommate.
+  // POV-stranger-only = interview-pov (solo pipeline but interview framing).
+  const { getCampaignFormat } = await import('./campaign-formats')
+  const fmt = formatKey ? getCampaignFormat(formatKey) : undefined
+  const isTwoPerson = fmt?.pipeline === 'ugc-interview' || fmt?.pipeline === 'ugc-couple'
+  const isInterviewPOV = formatKey === 'interview-pov'
+  const isInterviewLike = formatKey === 'interview-man-on-street' || isInterviewPOV
+  const personA = isInterviewLike ? 'interviewer' : (formatKey === 'couple-sharing' ? 'partner' : 'friend')
+  const personB = isInterviewLike ? 'stranger' : (formatKey === 'couple-sharing' ? 'partner' : 'roommate')
   // Kling v3 omni's native voice actually spits ~2.2 words/sec for casual UGC
   // delivery. With only 0.4s of tail padding the last word lands just before
   // the final frame — no silent-mouth drift like we had with the old (dur-1.5)×1.9
@@ -48,13 +58,40 @@ export async function generateUGCScript(
     ? `\nLANGUAGE — All SPOKEN content (everything inside double quotes) MUST be written in ${language.name}. Stage directions in (parentheses) and section headers in [brackets] stay in English so the parser can read them. The CTA "${callToAction}" should also be translated to natural ${language.name}.\n`
     : ''
 
+  const twoPersonBlock = isTwoPerson
+    ? `\nTWO-PERSON DIALOGUE FORMAT — this is a two-persona script. You MUST label every spoken line with either "PERSON A (${personA})" or "PERSON B (${personB})". They trade lines back-and-forth across HOOK, BODY, CTA. Include brief stage directions in (parentheses) after the label — e.g. PERSON A (${personA}, holding mic + product): "line". Both personas share the ${targetWords}-word budget. Example:
+[HOOK — 0:00 to 0:03]
+PERSON A (${personA}, holding mic + product): "Have you tried this?"
+PERSON B (${personB}, curious): "What is it?"
+[BODY — 0:03 to 0:10]
+PERSON A: "Short pitch line."
+PERSON B (taking a sip, impressed): "Oh wow. Really good."
+[CTA — 0:10 to 0:15]
+PERSON A: "Try it."
+PERSON B (nodding): "Yeah, I'm buying this."
+\n`
+    : ''
+
+  const povInterviewBlock = isInterviewPOV
+    ? `\nPOV INTERVIEW FORMAT — the camera IS the interviewer. Only the STRANGER's spoken audio matters (only their voice will be in the final video). The interviewer's question is IMPLIED off-camera in brackets like [interviewer off-camera: "Have you tried this?"] for context, but is NOT counted in the spoken-word budget. Every quoted spoken line must belong to the stranger. Example:
+[HOOK — 0:00 to 0:03]
+[interviewer off-camera: "Have you tried this?"]
+(stranger, curious) "Wait, what is it?"
+[BODY — 0:03 to 0:10]
+[interviewer off-camera: "Take a sip."]
+(stranger, taking a sip, impressed) "Oh wow. That's actually really good."
+[CTA — 0:10 to 0:15]
+(stranger, nodding) "Yeah, I'm buying this."
+\n`
+    : ''
+
   const textPrompt = `Write a ${targetDurationSeconds}-SECOND UGC video script for a social media ad. The TOTAL spoken word count across HOOK + BODY + CTA must be ${targetWords} words or fewer — this is a hard limit because the video will be cut at ${targetDurationSeconds}s. Count carefully.
 
 Product: ${productName}
 Description: ${productDescription}
 Benefits: ${benefits}
 CTA: ${callToAction}
-${languageBlock}${productTypeBlock}${customBlock}
+${languageBlock}${productTypeBlock}${twoPersonBlock}${povInterviewBlock}${customBlock}
 Use this exact format:
 
 ${backgroundLine}

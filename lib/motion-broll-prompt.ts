@@ -28,24 +28,24 @@ export function motionBrollFrameSpec(
 } {
   if (formatKey === 'unboxing-asmr') {
     const packagingLine = opts.hasPackagingRef
-      ? 'The sealed package MUST match the attached packaging reference photo — exact shape, colour, branding, materials, and proportions. Two hands (forearms visible, no face) are entering frame from the bottom or side, fingers about to grasp or begin opening it. Top-down or slight-angle overhead framing.'
-      : 'The sealed package MUST be a plausible branded cardboard shipping/retail box appropriate to the product category — minimalist clean cardboard or branded matte cardboard with the PRODUCT/BRAND NAME printed on the side in clear typography. Professional, NOT generic Amazon-style shipping. Two hands (forearms visible, no face) are entering frame from the bottom or side, fingers about to grasp or begin opening it. Top-down or slight-angle overhead framing. Do NOT show the bare product alone — a distinct closed BOX must be the subject.'
+      ? 'The package MUST match the attached packaging reference photo — exact shape, colour, branding, materials, and proportions. The lid is CLEARLY LIFTED / partially open, tissue paper peeled back, and a CORNER OR TOP of the actual product (the reference product) is PARTIALLY VISIBLE emerging from inside. Two hands (forearms visible, no face) hold the lid mid-lift. Top-down or slight-angle overhead framing.'
+      : 'The package MUST be a plausible branded cardboard shipping/retail box appropriate to the product category — minimalist clean cardboard or branded matte cardboard with the PRODUCT/BRAND NAME printed on the side in clear typography. Professional, NOT generic Amazon-style shipping. The lid is CLEARLY LIFTED / partially open, tissue paper peeled back, and a CORNER OR TOP of the actual product is PARTIALLY VISIBLE emerging from inside. Two hands (forearms visible, no face) hold the lid mid-lift. Top-down or slight-angle overhead framing.'
     return {
-      framing: `Hands-only ASMR unbox. MANDATORY: a closed branded PACKAGE / BOX is the subject (NOT the bare product). ${packagingLine}`,
-      scene: 'Clean neutral surface — light wood, marble, or matte paper — with the sealed package centred. Optional minimal props (a pair of scissors, a card).',
-      lighting: 'Soft overhead daylight, even and shadow-free. Slight sheen on tape/plastic to show it is unopened.',
-      extra: 'CRITICAL: the package is CLOSED. The product inside is NOT yet visible. Hands look real, natural skin tone, clean nails, no jewelry conflict. Face is NEVER in frame.',
+      framing: `Hands-only ASMR unbox at the MOMENT OF REVEAL. MANDATORY: a branded PACKAGE / BOX with lid PARTIALLY LIFTED, tissue peeled back, and the product PARTIALLY VISIBLE inside (not fully out, not fully hidden — mid-reveal). ${packagingLine}`,
+      scene: 'Clean neutral surface — light wood, marble, or matte paper — with the package centred. Optional minimal props (a pair of scissors, a card).',
+      lighting: 'Soft overhead daylight, even and shadow-free. Gentle sheen on the tissue paper and box edge.',
+      extra: 'CRITICAL: the lid is LIFTED and the product is PARTIALLY VISIBLE inside — this is the mid-reveal beat, NOT a sealed closed box. A corner, top, cap, or edge of the actual product must be clearly showing. Hands look real, natural skin tone, clean nails, no jewelry conflict. Face is NEVER in frame.',
     }
   }
   if (formatKey === 'mystery-box') {
     const packagingLine = opts.hasPackagingRef
-      ? 'The mystery package MUST match the attached packaging reference photo — exact shape, colour, branding, materials, and proportions.'
-      : 'The mystery package MUST be a plausible branded cardboard shipping/retail box appropriate to the product category — minimalist clean cardboard or branded matte cardboard with the PRODUCT/BRAND NAME printed on the side in clear typography. Professional and intriguing, NOT generic Amazon-style shipping. Do NOT show the bare product — only the sealed branded BOX is visible.'
+      ? 'The mystery package MUST match the attached packaging reference photo — exact shape, colour, branding, materials, and proportions. Its lid is CLEARLY LIFTED / partially open with tissue paper peeled back, and a CORNER OR TOP of the actual product is PARTIALLY VISIBLE emerging from inside.'
+      : 'The mystery package MUST be a plausible branded cardboard shipping/retail box appropriate to the product category — minimalist clean cardboard or branded matte cardboard with the PRODUCT/BRAND NAME printed on the side in clear typography. Professional and intriguing, NOT generic Amazon-style shipping. Its lid is CLEARLY LIFTED / partially open with tissue paper peeled back, and a CORNER OR TOP of the actual product is PARTIALLY VISIBLE emerging from inside.'
     return {
-      framing: `Closed wrapped mystery package as the SOLE subject. MANDATORY: the product itself is NOT yet revealed — only the sealed BOX/wrap is visible. Dramatic hero-shot composition, product-hero centred. ${packagingLine}`,
-      scene: 'Dark moody surface (black slate, dark wood, deep-toned linen). Suspenseful minimalism — no clutter, no props, just the mysterious package.',
-      lighting: 'Low-key dramatic lighting — single hard rim light or spotlight from above/side, deep shadows, high contrast. Chiaroscuro mood.',
-      extra: 'The box/wrap should look intriguing and untouched. Do not reveal the product inside. No hands, no character.',
+      framing: `Mystery package captured mid-reveal as the SOLE subject. MANDATORY: lid is LIFTED, tissue peeled back, product PARTIALLY VISIBLE inside (a corner, top, or edge showing — not fully out, not fully hidden). Dramatic hero-shot composition, package centred. ${packagingLine}`,
+      scene: 'Dark moody surface (black slate, dark wood, deep-toned linen). Suspenseful minimalism — no clutter, no props, just the package.',
+      lighting: 'Low-key dramatic lighting — single hard rim light or spotlight from above/side, deep shadows, high contrast. Chiaroscuro mood, with a beam catching the partially-visible product inside.',
+      extra: 'CRITICAL: the lid is LIFTED and a corner/top of the actual product is CLEARLY VISIBLE inside — this is the mid-reveal beat, NOT a sealed closed box. No hands, no character.',
     }
   }
   switch (formatKey) {

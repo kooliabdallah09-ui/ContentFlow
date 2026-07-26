@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       customInstructions,
       language: languageRaw,
       productType,
+      formatKey,
     } = body
 
     if (!productName || !productDescription || !benefits) {
@@ -88,6 +89,7 @@ export async function POST(request: NextRequest) {
       safeCustomInstructions,
       { name: language.name, code: language.code },
       (productType === 'software' || productType === 'physical') ? productType : undefined,
+      typeof formatKey === 'string' ? formatKey : undefined,
     )
 
     return NextResponse.json({ script })

@@ -139,6 +139,15 @@ export const CAMPAIGN_FORMATS: CampaignFormat[] = [
     sonnetSpec: 'Living-room / kitchen scene. One offers product to the other. Cozy tone.',
   },
   {
+    key: 'interview-pov',
+    label: 'Street Interview (POV)',
+    tagline: 'POV interviewer holds mic, only the stranger is on camera.',
+    category: 'solo', pipeline: 'ugc-video',
+    defaultAspect: '9:16', defaultDuration: 15,
+    requiresActor: true, requiresScene: true, requiresProduct: true, creditHint: 300,
+    sonnetSpec: `POV: interviewer's outstretched arm holding a mic (and/or product) into frame from bottom edge. Camera on the stranger's face — real, spontaneous reaction. Stranger delivers the line; interviewer voice implied off-camera in brackets.`,
+  },
+  {
     key: 'roommate-rec',
     label: 'Roommate Rec',
     tagline: 'Friend banter, spontaneous recommendation.',

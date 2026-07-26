@@ -798,6 +798,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             resolution,
             engine,
             duration,
+            productImageBase64: productImage?.base64,
+            productImageMimeType: productImage?.mimeType,
           }
         : {
             selectedFrameUrl,
@@ -995,6 +997,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           customInstructions: customInstructions.trim() || undefined,
           language,
           productType,
+          formatKey: activeFormatKey,
         }),
       })
       const data = await res.json()

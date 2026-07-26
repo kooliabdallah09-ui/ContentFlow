@@ -24,6 +24,7 @@ import { getCampaignFormat } from '@/lib/campaign-formats'
 // override at the end of the Nano Banana prompt (after Sonnet's rewrite),
 // bypassing any dilution that happens through the Sonnet rewrite step.
 export const SHOT_DIRECTIONS: Record<string, string> = {
+  'interview-pov':       'POV framing — camera is the interviewer. Interviewer\'s outstretched arm/hand extends from the BOTTOM edge of frame holding a microphone (or the product acting as a mic prop). The STRANGER (main character) fills the center of the frame, medium close-up, real spontaneous reaction — surprised, curious, or amused. Outdoor street/city background. Do NOT show the interviewer\'s face — only the arm/hand at bottom.',
   'camera-pov':          'FIRST-PERSON POV shot. Only the character\'s HANDS and forearms are visible entering frame from the bottom or side. NO face, NO selfie. Camera is at eye level looking out at the world/product from the character\'s viewpoint. The setting drives the composition.',
   'pov-vlog':            'POV-vlog framing. Camera held out slightly overhead by the character, capturing them casually in the shot from a friendly POV angle — they are engaged with the product/environment, not posing. Setting is clearly visible.',
   'get-ready-with-me':   'Bathroom mirror or vanity framing — the character is captured in a mirror doing a morning / getting-ready routine (skincare, hair, makeup, coffee). Product sits naturally on the counter or is being picked up. Warm morning light. Bathroom or vanity tiles/decor visible.',

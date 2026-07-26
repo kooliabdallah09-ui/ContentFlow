@@ -43,6 +43,9 @@ export async function POST(request: NextRequest) {
       aspect: aspectRaw,
       resolution: resolutionRaw,
       engine: engineRaw,
+      productImageUrl: productImageUrlRaw,
+      productImageBase64,
+      productImageMimeType,
     } = body as Record<string, unknown>
 
     const startUrl = typeof frameUrl === 'string' && frameUrl.startsWith('http')
@@ -102,15 +105,58 @@ export async function POST(request: NextRequest) {
       videoDirection: safeVideoDirection || undefined,
     })
 
-    const primary = await submitSeedanceJob({
+    // Product appearance anchor — gives Seedance the real product to bind
+    // to. Especially matters for unboxing / mystery-box where the first
+    // frame hides the product inside a box. Upload the base64 to storage
+    // so we can hand Seedance a public URL. Fail-soft.
+    let productAnchorUrl: string | undefined = typeof productImageUrlRaw === 'string' && productImageUrlRaw.startsWith('http')
+      ? productImageUrlRaw
+      : undefined
+    if (!productAnchorUrl && typeof productImageBase64 === 'string' && productImageBase64.length > 100) {
+      try {
+        const mt = typeof productImageMimeType === 'string' ? productImageMimeType : 'image/png'
+        const ext = mt.includes('jpeg') ? 'jpg' : mt.includes('webp') ? 'webp' : 'png'
+        const buf = Buffer.from(productImageBase64, 'base64')
+        const filename = `motion-broll-ref/${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`
+        const { error: upErr } = await supabase.storage
+          .from('ugc-assets')
+          .upload(filename, buf, { contentType: mt, upsert: false })
+        if (!upErr) {
+          productAnchorUrl = supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl
+        }
+      } catch (e) {
+        console.warn('[motion-broll-animate] product anchor upload failed:', e instanceof Error ? e.message : e)
+      }
+    }
+
+    const seedanceBase = {
       prompt: seedancePrompt,
       durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
       aspectRatio: aspect.nanoBananaRatio,
       startImageUrl: startUrl,
       resolution,
       enableAudio: true,
-      engine: engine === 'seedance-mini' ? 'seedance-mini' : 'seedance-2',
-    })
+      engine: (engine === 'seedance-mini' ? 'seedance-mini' : 'seedance-2') as 'seedance-mini' | 'seedance-2',
+    }
+
+    // Try with reference_images as an appearance anchor. Seedance can
+    // reject reference_images + first frame together (E006) — in that
+    // case retry with the first frame only. The strengthened frame spec
+    // still gives it usable product visibility.
+    let primary
+    try {
+      primary = await submitSeedanceJob({
+        ...seedanceBase,
+        referenceImageUrls: productAnchorUrl ? [productAnchorUrl] : undefined,
+      })
+    } catch (err) {
+      if (productAnchorUrl) {
+        console.warn('[motion-broll-animate] retry without reference_images:', err instanceof Error ? err.message : err)
+        primary = await submitSeedanceJob(seedanceBase)
+      } else {
+        throw err
+      }
+    }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const components: Record<string, any> = {
