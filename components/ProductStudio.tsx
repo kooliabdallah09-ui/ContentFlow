@@ -57,6 +57,14 @@ export default function ProductStudio() {
   const [createPhotos, setCreatePhotos] = useState<Array<CompressedImage & { angle?: string }>>([])
   const [creating, setCreating] = useState(false)
   const [aiFilling, setAiFilling] = useState(false)
+  // Physical vs App/Website — mirrors the toggle in UGCPackageBuilder.
+  // App mode swaps the primary upload for a URL → /api/screenshot fetch;
+  // the resulting screenshot becomes photo[0], additional uploads still go
+  // into createPhotos as extra reference images (feature pages, mobile, etc).
+  const [createProductType, setCreateProductType] = useState<'physical' | 'app'>('physical')
+  const [createWebsiteUrl, setCreateWebsiteUrl] = useState('')
+  const [websiteFetching, setWebsiteFetching] = useState(false)
+  const [websiteError, setWebsiteError] = useState<string | null>(null)
 
   async function aiFill() {
     setAiFilling(true)
@@ -234,6 +242,8 @@ export default function ProductStudio() {
           name: createName.trim() || undefined,
           whatItIs: createWhatItIs.trim() || undefined,
           photos: createPhotos.map(p => ({ base64: p.base64, mimeType: p.mimeType, angle: p.angle })),
+          productType: createProductType,
+          websiteUrl: createProductType === 'app' && createWebsiteUrl.trim() ? createWebsiteUrl.trim() : undefined,
         }),
       })
       const data = await res.json()
@@ -242,6 +252,9 @@ export default function ProductStudio() {
       setCreateName('')
       setCreateWhatItIs('')
       setCreatePhotos([])
+      setCreateProductType('physical')
+      setCreateWebsiteUrl('')
+      setWebsiteError(null)
       setShowCreate(false)
       showSuccess('Product added', `${data.product.name} is ready for photoshoots.`)
       openDetail(data.product)
@@ -736,6 +749,111 @@ export default function ProductStudio() {
             <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 4 }}><X size={18} /></button>
           </div>
 
+          {/* Product-type toggle — mirrors UGCPackageBuilder. Physical keeps
+              the multi-angle upload; App/Website fetches a landing-page
+              screenshot via /api/screenshot and prepends it to createPhotos
+              as the primary reference. Users can still upload additional
+              screenshots (feature pages, dashboard, mobile) manually. */}
+          <div style={{ display: 'inline-flex', padding: 3, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2, var(--surface))', alignSelf: 'flex-start' }}>
+            {(['physical', 'app'] as const).map(pt => {
+              const active = createProductType === pt
+              const isPhysical = pt === 'physical'
+              return (
+                <button
+                  key={pt}
+                  type="button"
+                  disabled={creating}
+                  onClick={() => {
+                    if (pt === createProductType) return
+                    setCreateProductType(pt)
+                    setWebsiteError(null)
+                    if (pt === 'physical') setCreateWebsiteUrl('')
+                  }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 7,
+                    padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+                    border: 'none', minWidth: 148, justifyContent: 'center',
+                    background: active ? 'var(--ink)' : 'transparent',
+                    color: active ? 'var(--on-ink, var(--paper))' : 'var(--ink-mute, var(--ink-2))',
+                    cursor: creating ? 'not-allowed' : 'pointer',
+                    transition: 'background 140ms, color 140ms',
+                    letterSpacing: '-0.005em',
+                  }}
+                >
+                  {isPhysical ? (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                      <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                      <line x1="12" y1="22.08" x2="12" y2="12" />
+                    </svg>
+                  ) : (
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+                      <line x1="8" y1="21" x2="16" y2="21" />
+                      <line x1="12" y1="17" x2="12" y2="21" />
+                    </svg>
+                  )}
+                  <span>{isPhysical ? 'Physical product' : 'App / Website'}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {createProductType === 'app' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <input
+                  type="url"
+                  placeholder="https://your-app.com"
+                  value={createWebsiteUrl}
+                  onChange={e => setCreateWebsiteUrl(e.target.value)}
+                  disabled={creating || websiteFetching}
+                  style={{ flex: '1 1 260px', boxSizing: 'border-box', padding: '10px 13px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+                />
+                <button
+                  type="button"
+                  disabled={creating || websiteFetching || !createWebsiteUrl.trim() || createPhotos.length >= 5}
+                  onClick={async () => {
+                    setWebsiteError(null)
+                    setWebsiteFetching(true)
+                    try {
+                      const res = await fetch('/api/screenshot', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ url: createWebsiteUrl.trim() }),
+                      })
+                      const data = await res.json()
+                      if (!res.ok) throw new Error(data.error || 'Failed to fetch screenshot')
+                      const mimeType = data.mimeType || 'image/png'
+                      const shot: CompressedImage & { angle?: string } = {
+                        base64: data.imageBase64,
+                        mimeType,
+                        preview: `data:${mimeType};base64,${data.imageBase64}`,
+                        angle: 'landing page',
+                      }
+                      // Prepend so the screenshot is the primary product reference.
+                      setCreatePhotos(prev => [shot, ...prev].slice(0, 5))
+                    } catch (err) {
+                      setWebsiteError(err instanceof Error ? err.message : 'Screenshot failed')
+                    } finally {
+                      setWebsiteFetching(false)
+                    }
+                  }}
+                  className="btn"
+                  style={{ padding: '10px 14px', fontSize: 12.5, fontWeight: 600 }}
+                >
+                  {websiteFetching ? 'Fetching…' : 'Fetch website'}
+                </button>
+              </div>
+              <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: 0, lineHeight: 1.4 }}>
+                We&apos;ll capture the landing page. Add extra screenshots below for feature pages, dashboard, or mobile views.
+              </p>
+              {websiteError && (
+                <div style={{ fontSize: 12, color: 'var(--danger, #c34)' }}>{websiteError}</div>
+              )}
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             <input
               type="text"
@@ -775,7 +893,10 @@ export default function ProductStudio() {
                   style={{ width: 74, fontSize: 10.5, padding: '3px 4px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink-2)' }}
                 >
                   <option value="">side?</option>
-                  {['front', 'back', 'side', 'top', 'contents', 'detail'].map(a => <option key={a} value={a}>{a}</option>)}
+                  {(createProductType === 'app'
+                    ? ['landing page', 'feature', 'dashboard', 'mobile', 'detail']
+                    : ['front', 'back', 'side', 'top', 'contents', 'detail']
+                  ).map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
               </div>
             ))}

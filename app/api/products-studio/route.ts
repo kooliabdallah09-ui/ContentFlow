@@ -71,6 +71,10 @@ export async function POST(request: NextRequest) {
     if (!photos.length) return NextResponse.json({ error: 'Upload at least one product photo' }, { status: 400 })
     const userName = typeof body?.name === 'string' ? body.name.trim().slice(0, 80) : ''
     const whatItIs = typeof body?.whatItIs === 'string' ? body.whatItIs.trim().slice(0, 300) : ''
+    const productType: 'physical' | 'app' = body?.productType === 'app' ? 'app' : 'physical'
+    const websiteUrl = productType === 'app' && typeof body?.websiteUrl === 'string' && body.websiteUrl.trim()
+      ? body.websiteUrl.trim().slice(0, 500)
+      : null
 
     const { data: credits } = await supabase
       .from('user_credits')
@@ -100,6 +104,9 @@ export async function POST(request: NextRequest) {
         userName ? `The product is called "${userName}" — use this exact name.` : null,
         whatItIs ? `The user says: "${whatItIs}" — trust this over guesses.` : null,
         angleNotes || null,
+        productType === 'app'
+          ? `This is a SOFTWARE PRODUCT (app / website). The attached images are screenshots of its UI${websiteUrl ? ` at ${websiteUrl}` : ''}. Category should be "app" or "website". The appearance_prompt should densely describe the UI's visual identity — brand colours, logo, layout patterns, key screens shown, product wordmark, typography feel — so an image model can faithfully reproduce the app's on-screen look when composed onto a laptop or phone in a scene.`
+          : null,
         'Build the product sheet.',
       ].filter(Boolean).join('\n'),
     })
@@ -139,6 +146,8 @@ export async function POST(request: NextRequest) {
         description: typeof sheet.description === 'string' ? sheet.description.slice(0, 400) : null,
         appearance_prompt: String(sheet.appearance_prompt).slice(0, 2000),
         photo_urls: photoUrls,
+        product_type: productType,
+        website_url: websiteUrl,
       })
       .select('*')
       .single()
