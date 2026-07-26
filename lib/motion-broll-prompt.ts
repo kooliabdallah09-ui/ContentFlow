@@ -39,13 +39,13 @@ export function motionBrollFrameSpec(
   }
   if (formatKey === 'mystery-box') {
     const packagingLine = opts.hasPackagingRef
-      ? 'The mystery package MUST match the attached packaging reference photo — exact shape, colour, branding, materials, and proportions. Its lid is CLEARLY LIFTED / partially open with tissue paper peeled back, and a CORNER OR TOP of the actual product is PARTIALLY VISIBLE emerging from inside.'
-      : 'The mystery package MUST be a plausible branded cardboard shipping/retail box appropriate to the product category — minimalist clean cardboard or branded matte cardboard with the PRODUCT/BRAND NAME printed on the side in clear typography. Professional and intriguing, NOT generic Amazon-style shipping. Its lid is CLEARLY LIFTED / partially open with tissue paper peeled back, and a CORNER OR TOP of the actual product is PARTIALLY VISIBLE emerging from inside.'
+      ? 'The mystery package MUST match the attached packaging reference photo — exact shape, colour, branding, materials, and proportions. It is SEALED / CLOSED — lid firmly on, tape or ribbon intact, wrapping smooth.'
+      : 'The mystery package is a beautiful matte-black or deep-charcoal branded cardboard box, tied with a single dark ribbon or sealed with a wax stamp / minimalist branded label. Premium editorial packaging — think luxury tech drop, art gallery mailer, black-tie invitation. Never generic Amazon shipping. Small subtle brand mark only.'
     return {
-      framing: `Mystery package captured mid-reveal as the SOLE subject. MANDATORY: lid is LIFTED, tissue peeled back, product PARTIALLY VISIBLE inside (a corner, top, or edge showing — not fully out, not fully hidden). Dramatic hero-shot composition, package centred. ${packagingLine}`,
-      scene: 'Dark moody surface (black slate, dark wood, deep-toned linen). Suspenseful minimalism — no clutter, no props, just the package.',
-      lighting: 'Low-key dramatic lighting — single hard rim light or spotlight from above/side, deep shadows, high contrast. Chiaroscuro mood, with a beam catching the partially-visible product inside.',
-      extra: 'CRITICAL: the lid is LIFTED and a corner/top of the actual product is CLEARLY VISIBLE inside — this is the mid-reveal beat, NOT a sealed closed box. No hands, no character.',
+      framing: `Sealed mystery package as the SOLE subject, dead-centre or in a strong hero composition. The product inside is COMPLETELY HIDDEN — nothing peeks out, no reveal, no hint. Editorial hero-shot photography, cinematic and premium. ${packagingLine}`,
+      scene: 'Dark, moody, tactile surface — black slate, dark walnut, deep-charcoal linen, or matte black paper. Curls of atmospheric fog or faint dust particles catching light are optional. No clutter, no props. The whole frame breathes suspense.',
+      lighting: 'Low-key chiaroscuro — a single hard rim/edge light rakes across the package from one side, carving out the silhouette against deep shadow. A faint glow escapes from the seam between lid and base (as if something inside is emitting soft light) — just a whisper, never a full reveal. Deep blacks, high contrast, cinematic grade.',
+      extra: 'MANDATORY: the box is COMPLETELY CLOSED. Do NOT lift the lid, do NOT show the product, do NOT let anything peek out. The whole point is suspense — the viewer must be curious. The only tease allowed is a faint light glow escaping the lid seam. No hands, no character, no text overlays.',
     }
   }
   switch (formatKey) {
@@ -208,7 +208,7 @@ export function buildMotionBrollSeedancePrompt(input: {
       case 'unboxing-asmr':
         return `Overhead / slight-angle. Hands (already visible in the first frame) slowly and satisfyingly open the sealed package — peeling tape, lifting a flap, unwrapping paper, revealing the product inside at the mid-to-late beat. Fingers move naturally, real skin. Native audio ON: crisp ASMR — paper crinkle, tape peel, cardboard flex, gentle handling. No music, no voice.`
       case 'mystery-box':
-        return `Slow dramatic orbit around the closed package for the first half. In the second half the wrap/box begins to open on its own or via a subtle hand — the reveal happens at the last beat, product just barely emerging. Suspenseful pacing. Native audio: low ambient hum, subtle paper/box sounds at the reveal. No voice.`
+        return `Slow suspenseful orbit around the sealed package. The box stays CLOSED for almost the entire clip — the whole video is a tease, not a reveal. The glow at the lid seam pulses/breathes gently. In the FINAL beat (last ~0.5-1s), the lid ONLY BEGINS to lift — a sliver of light escapes, a hint of colour, but the product itself never fully appears. Cut to black or hold on the crack of light. This is a cliffhanger. Native audio: low ambient hum, subtle atmospheric drone, a soft creak at the very end when the lid starts to lift. No voice, no music.`
       case 'crush-test':
         return `A heavy object (hydraulic press plate, steel weight) descends slowly from above onto the product. Impact lands mid-clip with satisfying compression and deformation — packaging crumples, contents may burst or crack. Camera holds steady on the product. Native audio ON: mechanical whir of the press, deep crunch and compression at impact. No voice, no music.`
       case 'product-showcase':
