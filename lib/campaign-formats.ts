@@ -267,11 +267,11 @@ export const CAMPAIGN_FORMATS: CampaignFormat[] = [
   {
     key: 'mess-to-fresh',
     label: 'Mess to Fresh',
-    tagline: 'Cleanup / result-driven transformation.',
-    category: 'transformation', pipeline: 'ugc-video',
-    defaultAspect: '9:16', defaultDuration: 12,
-    requiresActor: true, requiresScene: true, requiresProduct: true, creditHint: 260,
-    sonnetSpec: 'Messy start. Product applied. Clean/fresh finish.',
+    tagline: 'Dirty sneaker → hands clean it → fresh result. Cleaning products only.',
+    category: 'transformation', pipeline: 'motion-broll',
+    defaultAspect: '9:16', defaultDuration: 10,
+    requiresActor: false, requiresScene: false, requiresProduct: true, creditHint: 220,
+    sonnetSpec: 'Hands-only close-up. Dirty sneaker/shoe on a flat surface, cleaning product beside it. Hands scrub with product → shoe becomes clean. Satisfying progressive reveal.',
     noScript: true,
   },
   {

@@ -1,8 +1,8 @@
 // Motion-broll pipeline prompt helpers.
 //
-// The 5 motion-broll formats (aesthetic-broll, unboxing-asmr, mystery-box,
-// crush-test, product-showcase, hyper-motion) are all product-first, no
-// dialogue. There is no character, no script. The first frame is a
+// Motion-broll formats: aesthetic-broll, unboxing-asmr, mystery-box,
+// crush-test, product-showcase, hyper-motion, mess-to-fresh. All product-
+// first, no dialogue. No character, no script. The first frame is a
 // product-hero still; Seedance animates it forward with a per-format
 // motion prompt.
 
@@ -13,6 +13,7 @@ export type MotionBrollFormatKey =
   | 'crush-test'
   | 'product-showcase'
   | 'hyper-motion'
+  | 'mess-to-fresh'
 
 // Per-format first-frame image prompts. Fed to Nano Banana Pro with the
 // product reference image. Every prompt insists on faithful product
@@ -90,6 +91,13 @@ export function motionBrollFrameSpec(
         scene: 'Bold coloured seamless backdrop (electric blue, red, black) or a splash/liquid/powder cloud around the product. Zero incidental clutter.',
         lighting: 'Punchy high-contrast lighting, edge highlights, saturated colour. Slight motion-blur trails on the periphery to hint at velocity.',
         extra: 'Product is unmistakable and pixel-faithful even mid-motion. No hands, no character. Composition should feel like the moment before a hero drop lands.',
+      }
+    case 'mess-to-fresh':
+      return {
+        framing: 'Hands-only close-up of a visibly dirty white sneaker or canvas shoe resting on a flat surface. The cleaning product bottle/spray is placed directly beside the shoe, label facing camera. One hand enters from the side holding a small scrubbing brush or white cloth — mid-reach, about to make contact with the dirty surface. Shoe fills at least 60% of the frame. Top-down or slight-angle view. No face, no body above the wrist.',
+        scene: 'Clean hard floor or neutral surface — concrete, light wood planks, or white tile. The contrast between the grimy shoe and the clean floor amplifies the before-state. Minimal props: just the shoe, the product, and the cleaning tool in hand.',
+        lighting: 'Bright even daylight — natural window light or overhead soft box. High clarity, no dramatic shadows. The dirt on the shoe must be clearly readable: mud, scuffs, grass stains, or yellowed soles.',
+        extra: 'CRITICAL: the shoe is DIRTY in this first frame — this is the BEFORE state. Grime, mud streaks, or scuff marks must be clearly visible. The cleaning product label must be fully readable and pixel-faithful to the reference. Hands look real, natural skin tone, no jewelry. Face is NEVER in frame. No text overlays.',
       }
     default:
       return {
@@ -215,6 +223,8 @@ export function buildMotionBrollSeedancePrompt(input: {
         return `Smooth continuous 360° orbit (or 180° arc if duration is short) around the product on the pedestal. Constant angular velocity, seamless motion, product perfectly centred throughout, label passes cleanly through the frame. Ambient/musical audio-friendly — native audio minimal, no voice.`
       case 'hyper-motion':
         return `Fast dynamic camera work matching the product's motion — spins, splashes, drops, powder bursts. Multiple micro-beats of energy across the ${dur} seconds. Motion-blur trails, punchy cuts of movement. Product remains readable at every peak. Native audio ON: whooshes, impact sounds, dynamic sound design. No voice.`
+      case 'mess-to-fresh':
+        return `Hands-only close-up cleaning transformation, ${dur} seconds. BEFORE (first ~30%): dirty sneaker clearly visible — mud, scuffs, grime. The hand applies or sprays the cleaning product onto the shoe. DURING (middle ~50%): hand scrubs the shoe with a brush or cloth in deliberate strokes — dirt visibly lifts and dissolves with each stroke. Foam or cleaning solution may appear. Satisfying, rhythmic scrubbing motion. AFTER (final ~20%): hand reveals the cleaned section — shoe is visibly bright, clean, refreshed. Camera stays tight on the shoe throughout; no face, no body above the wrist. Native audio ON: liquid spray hiss, brush bristles scrubbing fabric, satisfying squeaky-clean rub at the end. No voice, no music.`
       default:
         return `Smooth cinematic camera motion on the product. Product remains hero throughout.`
     }
