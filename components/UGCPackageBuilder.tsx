@@ -69,6 +69,16 @@ interface UGCPackageBuilderProps {
     customPhotoMimeType?: string
     productType?: 'physical' | 'website'
     prewrittenScript?: string
+    // Scroll-stop hook v1 (admin-only). Populated when the user picks a hook —
+    // the builder dispatches /api/ugc/scroll-stop-hook first and forwards the
+    // returned Seedance jobId + frame url so the preview can poll & stitch.
+    scrollStopHook?: {
+      jobId: string
+      frameUrl: string
+      hookKey: string
+      durationSec: number
+      trimToSec?: number  // Target length after Shotstack trim. Defaults to 1.5.
+    }
   }) => Promise<void>
   isLoading: boolean
   creditBalance: number
@@ -385,6 +395,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const step3Ref = useRef<HTMLElement | null>(null)
   const step4Ref = useRef<HTMLElement | null>(null)
   const step5Ref = useRef<HTMLElement | null>(null)
+  // Scroll-stop hook (admin) — dispatch result held here between handleSubmit
+  // (which fires the hook render in parallel) and runAnimate (which forwards
+  // it through onGenerate so the preview can poll + stitch).
+  const scrollStopHookRef = useRef<{ jobId: string; frameUrl: string; hookKey: string; durationSec: number } | null>(null)
 
   useEffect(() => {
     if (durationTouched && aspectTouched && unlockedStep < 2) {
@@ -1009,6 +1023,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         customPhotoBase64: customPhoto?.base64,
         customPhotoMimeType: customPhoto?.mimeType,
         productType,
+        scrollStopHook: scrollStopHookRef.current
+          ? { ...scrollStopHookRef.current, trimToSec: 1.5 }
+          : undefined,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         __animateResponse: data as any,
       } as Parameters<typeof onGenerate>[0])
@@ -1130,6 +1147,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     // clip will be polled + stitched by the preview once the API returns
     // its jobId and frameUrl. Silent-fail: if the hook API errors we just
     // proceed with the main clip.
+    scrollStopHookRef.current = null
     if (isAdminUser && hookEnabled && selectedHookKey && !isMotionBrollFormat) {
       const povIncompatible = ['interview-pov', 'interview-man-on-street', 'pov-vlog', 'camera-pov'].includes(activeFormatKey ?? '')
       if (!povIncompatible) {
@@ -1166,6 +1184,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             // review of the client-side polling flow lands.
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             ;(window as any).__scrollStopHook = { jobId: data.jobId, frameUrl: data.frameUrl, hookKey: data.hookKey, durationSec: data.durationSec }
+            // Also stash on a ref so runAnimate can forward it through the
+            // parent onGenerate contract into UGCPackagePreview.
+            scrollStopHookRef.current = {
+              jobId: data.jobId,
+              frameUrl: data.frameUrl,
+              hookKey: data.hookKey,
+              durationSec: data.durationSec,
+            }
           } catch (err) {
             console.warn('[scroll-stop-hook] dispatch threw:', err instanceof Error ? err.message : err)
           }

@@ -23,6 +23,13 @@ interface UGCComponent {
     estimatedDuration?: number
     duration?: number
   }
+  scrollStopHook?: {
+    jobId: string
+    frameUrl: string
+    hookKey: string
+    durationSec: number
+    trimToSec?: number
+  }
 }
 
 export default function UGCGeneratorPage() {
@@ -227,6 +234,13 @@ export default function UGCGeneratorPage() {
     language?: string
     aspect?: 'portrait' | 'tall45' | 'square' | 'landscape'
     prewrittenScript?: string
+    scrollStopHook?: {
+      jobId: string
+      frameUrl: string
+      hookKey: string
+      durationSec: number
+      trimToSec?: number
+    }
   }) => {
     setLoading(true)
     setError('')
@@ -243,7 +257,9 @@ export default function UGCGeneratorPage() {
         | { components: unknown; newBalance: number; creditDeducted: number } | undefined
       if (pre) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        setComponents(pre.components as any)
+        const merged: any = { ...(pre.components as any) }
+        if (settings.scrollStopHook) merged.scrollStopHook = settings.scrollStopHook
+        setComponents(merged)
         setUgcType(settings.ugcType)
         setCreditBalance(pre.newBalance)
         setCreditDeducted(pre.creditDeducted)

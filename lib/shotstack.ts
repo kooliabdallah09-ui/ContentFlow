@@ -405,6 +405,76 @@ export async function submitScreenDemoJob({
   return { renderId }
 }
 
+// Scroll-stop hook stitch: concat a trimmed hook clip in front of the main
+// talking-head clip. Seedance's hard floor is 3s, but the design target for
+// the hook is 1.5s — we absorb the delta by setting the hook clip's `length`
+// to 1.5, which tells Shotstack to only play the first 1.5s before cutting
+// to the next clip on the timeline. Audio + captions stay on both clips.
+//
+// Both clips render on the same track sequentially — hook at start=0 length=1.5,
+// main at start=1.5 length=mainDuration.
+export async function submitStitchWithHook({
+  hookUrl,
+  hookTrimTo,
+  mainUrl,
+  mainDuration,
+  aspect,
+}: {
+  hookUrl: string
+  hookTrimTo?: number       // How long the hook plays before cutting to main. Default 1.5s.
+  mainUrl: string
+  mainDuration?: number     // Estimated seconds; falls back to 12s if omitted.
+  aspect?: 'portrait' | 'square' | 'landscape'
+}): Promise<{ renderId: string }> {
+  const apiKey = process.env.SHOTSTACK_API_KEY
+  if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
+
+  const hookLength = typeof hookTrimTo === 'number' && hookTrimTo > 0 ? hookTrimTo : 1.5
+  const mainLen = typeof mainDuration === 'number' && mainDuration > 0 ? mainDuration : 12
+
+  const tracks: Record<string, unknown>[] = [{
+    clips: [
+      {
+        asset: { type: 'video', src: hookUrl, volume: 1 },
+        start: 0,
+        length: hookLength,
+        fit: 'cover',
+      },
+      {
+        asset: { type: 'video', src: mainUrl, volume: 1 },
+        start: hookLength,
+        length: mainLen,
+        fit: 'cover',
+      },
+    ],
+  }]
+
+  const outputSize =
+    aspect === 'square'    ? { width: 1080, height: 1080 } :
+    aspect === 'landscape' ? { width: 1920, height: 1080 } :
+                             { width: 1080, height: 1920 }
+
+  const body = {
+    timeline: { background: '#000000', tracks },
+    output: { format: 'mp4', size: outputSize, fps: 30 },
+  }
+
+  const res = await fetch(`${SHOTSTACK_BASE}/render`, {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    console.error('[shotstack] hook stitch rejected', { status: res.status, detail: text.slice(0, 400) })
+    throw new Error(`Shotstack ${res.status}: ${text.slice(0, 300)}`)
+  }
+  const data = await res.json()
+  const renderId = data?.response?.id ?? data?.id
+  if (!renderId) throw new Error('Shotstack: no render id returned for hook stitch')
+  return { renderId }
+}
+
 // Status normalised to match the Creatomate interface used by the route + UI.
 //   Shotstack:    queued | fetching | rendering | saving | done | failed
 //   Creatomate:   planned | waiting | transcribing | rendering | succeeded | failed

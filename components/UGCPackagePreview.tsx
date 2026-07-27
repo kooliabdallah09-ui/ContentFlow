@@ -45,6 +45,23 @@ interface CrushShotClip {
   error?: string
 }
 
+interface ScrollStopHookPayload {
+  jobId: string             // Seedance prediction id for the hook clip
+  frameUrl: string          // First-frame preview (used while the clip renders)
+  hookKey: string
+  durationSec: number       // Rendered length (Seedance floor is 3s)
+  trimToSec?: number        // Target length after Shotstack trim (design target: 1.5s)
+}
+
+interface HookClipState {
+  jobId: string
+  frameUrl: string
+  trimToSec: number
+  status: 'processing' | 'completed' | 'failed'
+  videoUrl?: string
+  error?: string
+}
+
 interface UGCComponent {
   image?: { url: string; id: string }
   video?: VideoComponent
@@ -57,6 +74,10 @@ interface UGCComponent {
   audioOverlayUrl?: string  // Hero tier: ElevenLabs voice to overlay on the muted Sora video
   language?: string         // ISO-639-1 code — drives Whisper transcription hint
   aspect?: 'portrait' | 'square' | 'landscape'  // Drives the stitch output size + preview aspect
+  // Scroll-stop hook v1 (admin). When present, preview must poll BOTH the
+  // hook clip and the main clip, then submit a Shotstack render that trims
+  // the hook to ~1.5s and concatenates it before the main clip.
+  scrollStopHook?: ScrollStopHookPayload
 }
 
 interface UGCPackagePreviewProps {
@@ -122,6 +143,17 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const stitchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const stitchStartedRef = useRef(false)
 
+  // ── Scroll-stop hook state ─────────────────────────────────────────
+  // Independent from the crush-test/multishot flow: when a hook payload is
+  // passed on components.scrollStopHook we poll BOTH the hook Seedance job
+  // and the main clip's job, then submit a Shotstack render that trims the
+  // hook to ~1.5s and concatenates it before the main clip.
+  const [hookClip, setHookClip] = useState<HookClipState | null>(null)
+  const [hookStitchRenderId, setHookStitchRenderId] = useState<string | null>(null)
+  const [hookStitchStatus, setHookStitchStatus] = useState<'idle' | 'stitching' | 'completed' | 'failed'>('idle')
+  const hookStitchStartedRef = useRef(false)
+  const hookStitchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   useEffect(() => {
     if (components?.video) setVideo(components.video)
     if (components?.broll) setBrolls(components.broll)
@@ -139,6 +171,14 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
         ...s,
         status: s.predictionId ? 'processing' : 'failed',
       })))
+    }
+    if (components?.scrollStopHook?.jobId) {
+      setHookClip({
+        jobId: components.scrollStopHook.jobId,
+        frameUrl: components.scrollStopHook.frameUrl,
+        trimToSec: components.scrollStopHook.trimToSec ?? 1.5,
+        status: 'processing',
+      })
     }
   }, [components])
 
@@ -369,14 +409,131 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   }, [video?.videoId, video?.status, brolls.length])
 
   // Single-shot path: anchor is the final video, no composite needed.
+  // If a scroll-stop hook is attached, the hook-stitch effect below owns the
+  // finalVideoUrl — don't short-circuit here.
   useEffect(() => {
     if (stitchStartedRef.current || compositeStartedRef.current) return
     if (multiShot) return
+    if (hookClip) return
     if (video?.status !== 'completed' || !video.videoUrl) return
     stitchStartedRef.current = true
     setFinalVideoUrl(video.videoUrl)
     setStitchStatus('completed')
-  }, [video?.status, video?.videoUrl, multiShot])
+  }, [video?.status, video?.videoUrl, multiShot, hookClip])
+
+  // ── Scroll-stop hook: poll the hook Seedance job ─────────────────
+  useEffect(() => {
+    if (!hookClip || hookClip.status !== 'processing') return
+    const t = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/ugc/video-status?videoId=${hookClip.jobId}&provider=seedance-2`)
+        if (!res.ok) return
+        const data = await res.json()
+        const v = data.video
+        if (!v) return
+        if (v.status === 'completed' || v.status === 'failed') {
+          setHookClip(prev => prev ? {
+            ...prev,
+            status: v.status,
+            videoUrl: v.videoUrl,
+            error: v.error,
+          } : prev)
+        }
+      } catch { /* keep polling */ }
+    }, 5000)
+    return () => clearInterval(t)
+  }, [hookClip?.jobId, hookClip?.status])
+
+  // ── Scroll-stop hook: once BOTH hook + main are ready, submit stitch ─
+  // Fail-soft: if the hook failed, skip it and show the main clip alone
+  // rather than blocking the whole video on hook render failure.
+  useEffect(() => {
+    if (!hookClip) return
+    if (hookStitchStartedRef.current) return
+    if (multiShot) return  // multishot/crush flows own their own stitch
+    if (video?.status === 'processing' || video?.status === undefined) return
+    if (hookClip.status === 'processing') return
+
+    const mainOk = video?.status === 'completed' && !!video.videoUrl
+    if (!mainOk) {
+      // Main failed — nothing to show. Let the existing failed-state card render.
+      hookStitchStartedRef.current = true
+      return
+    }
+    const hookOk = hookClip.status === 'completed' && !!hookClip.videoUrl
+    if (!hookOk) {
+      // Hook failed — fall back to main clip only. Fail-soft.
+      hookStitchStartedRef.current = true
+      setFinalVideoUrl(video.videoUrl!)
+      setStitchStatus('completed')
+      return
+    }
+
+    hookStitchStartedRef.current = true
+    setHookStitchStatus('stitching')
+    setStitchStatus('stitching')
+    ;(async () => {
+      try {
+        const { getSupabase } = await import('@/lib/auth')
+        const supabase = getSupabase()
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+        const token = sess?.session?.access_token
+        if (!token) throw new Error('Not signed in')
+        const aspect: 'portrait' | 'square' | 'landscape' = components?.aspect ?? 'portrait'
+        const res = await fetch('/api/ugc/scroll-stop-hook/stitch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            hookUrl: hookClip.videoUrl,
+            hookTrimTo: hookClip.trimToSec,
+            mainUrl: video!.videoUrl,
+            mainDuration: video!.duration ?? video!.estimatedDuration ?? 12,
+            aspect,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.renderId) throw new Error(data.error || 'Hook stitch submit failed')
+        setHookStitchRenderId(data.renderId)
+      } catch (err) {
+        // Fail-soft: main clip alone.
+        console.warn('[scroll-stop-hook] stitch failed, falling back to main:', err)
+        setHookStitchStatus('failed')
+        setFinalVideoUrl(video!.videoUrl!)
+        setStitchStatus('completed')
+      }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hookClip?.status, video?.status, video?.videoUrl, multiShot])
+
+  // Poll the Shotstack hook-stitch job.
+  useEffect(() => {
+    if (!hookStitchRenderId || hookStitchStatus !== 'stitching') return
+    hookStitchPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/ugc/scroll-stop-hook/stitch?renderId=${hookStitchRenderId}`)
+        const data = await res.json()
+        if (data.status === 'completed' && data.videoUrl) {
+          setFinalVideoUrl(data.videoUrl)
+          setHookStitchStatus('completed')
+          setStitchStatus('completed')
+          if (hookStitchPollRef.current) clearInterval(hookStitchPollRef.current)
+        } else if (data.status === 'failed') {
+          // Fail-soft: main clip alone.
+          console.warn('[scroll-stop-hook] stitch render failed, falling back to main')
+          setHookStitchStatus('failed')
+          if (video?.videoUrl) {
+            setFinalVideoUrl(video.videoUrl)
+            setStitchStatus('completed')
+          } else {
+            setStitchStatus('failed')
+            setStitchError(data.error || 'Hook stitch failed')
+          }
+          if (hookStitchPollRef.current) clearInterval(hookStitchPollRef.current)
+        }
+      } catch { /* keep polling */ }
+    }, 4000)
+    return () => { if (hookStitchPollRef.current) clearInterval(hookStitchPollRef.current) }
+  }, [hookStitchRenderId, hookStitchStatus, video?.videoUrl])
 
   // Multi-shot path: once anchor + every cutaway are done (or failed), fire
   // the Shotstack composite. We include only the cutaways that produced a
@@ -608,6 +765,32 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
               </Link>
             </>
           )}
+        </div>
+      )}
+
+      {/* Scroll-stop hook: still assembling. Shown when the main clip is
+          done but the hook clip or the stitch is still working. */}
+      {hookClip && stitchStatus === 'idle' && video?.status === 'completed' && hookClip.status === 'processing' && (
+        <div className="card" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
+            ✦ Assembling Scroll-Stop Hook
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)' }}>
+            <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
+            <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Assembling scroll-stop hook…</p>
+            <p style={{ fontSize: '11px', color: 'var(--ink-fade)' }}>Main clip is ready. Stitching in the 1.5s opener.</p>
+          </div>
+        </div>
+      )}
+      {hookStitchStatus === 'stitching' && !finalVideoUrl && (
+        <div className="card" style={{ padding: '20px' }}>
+          <h3 style={{ fontSize: '13px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', color: 'var(--accent)', marginBottom: '12px' }}>
+            ✦ Stitching Final Video
+          </h3>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '32px', gap: '12px', background: 'var(--bg)', borderRadius: 'var(--r-md)' }}>
+            <Loader style={{ width: 24, height: 24, color: 'var(--accent)', animation: 'spin 1s linear infinite' }} />
+            <p style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Assembling scroll-stop hook…</p>
+          </div>
         </div>
       )}
 
