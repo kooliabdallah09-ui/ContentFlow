@@ -1,7 +1,7 @@
 // Feature gates for beta / testing-only surfaces. Each list is separate so we
 // can enable features independently (POV first, then scheduling, then chat).
 
-const ADMIN_EMAILS = new Set<string>(['abdallah.kooli@icloud.com', 'abdallah@icloud.com'])
+const ADMIN_EMAILS = new Set<string>(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
 
 export const POV_STUDIO_ALLOWED_EMAILS = ADMIN_EMAILS
 
