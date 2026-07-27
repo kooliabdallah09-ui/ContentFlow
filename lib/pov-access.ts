@@ -30,6 +30,13 @@ export function canAccessInfluencerStudio(email: string | null | undefined): boo
   return !!email
 }
 
+// Admin-only scroll-stop hook v1 (short attention-grabbing clip stitched
+// before the main UGC talking-head). Reuses the ADMIN_EMAILS set.
+export function canAccessScrollStopHook(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
+
 // Temporary admin-only alternative video engine (Gemini Omni Flash on Vertex)
 // while BytePlus direct-Seedance access is still being provisioned. Remove
 // this gate once BytePlus is live and we standardise on Seedance-direct.

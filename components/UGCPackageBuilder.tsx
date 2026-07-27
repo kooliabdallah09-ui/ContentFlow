@@ -18,7 +18,8 @@ import {
   type UGCDuration,
 } from '@/lib/tiers'
 import { getSupabase } from '@/lib/auth'
-import { canAccessOmniFlashVideo } from '@/lib/pov-access'
+import { canAccessOmniFlashVideo, canAccessScrollStopHook } from '@/lib/pov-access'
+import { SCROLL_STOP_HOOKS, isHookAllowedForFormat, type ScrollStopHook } from '@/lib/scroll-stop-hooks'
 import { showError, showSuccess } from '@/lib/notifications'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { readCampaignShotPrefill } from '@/lib/campaign-shot-prefill'
@@ -293,7 +294,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     const supabase = getSupabase()
     if (!supabase) return
     supabase.auth.getSession().then((res: { data: { session: { user?: { email?: string | null } } | null } }) => {
-      setShowOmniFlash(canAccessOmniFlashVideo(res.data.session?.user?.email ?? null))
+      const email = res.data.session?.user?.email ?? null
+      setShowOmniFlash(canAccessOmniFlashVideo(email))
+      setIsAdminUser(canAccessScrollStopHook(email))
     })
   }, [])
 
@@ -401,6 +404,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // reflects the chosen format's spec instantly.
   const [showFormatPicker, setShowFormatPicker] = useState(false)
   const [activeFormatKey, setActiveFormatKey] = useState<string | null>(null)
+  // Scroll-stop hook (admin-only v1). When enabled + a hook is picked, we
+  // fire /api/ugc/scroll-stop-hook in parallel with the main video flow
+  // and hand the returned jobId + frameUrl to the preview for stitching.
+  const [isAdminUser, setIsAdminUser] = useState(false)
+  const [hookEnabled, setHookEnabled] = useState(false)
+  const [selectedHookKey, setSelectedHookKey] = useState<string | null>(null)
+  const [showHookPicker, setShowHookPicker] = useState(false)
   // Two-person co-star: null = auto-generate PERSON B. Set to another
   // saved influencer's id to have them co-star. Only meaningful when
   // the active format's pipeline is ugc-interview or ugc-couple.
@@ -685,7 +695,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   const videoCredits = isCrushTestMultiShot
     ? crushShotDurations.reduce((sum, d) => sum + ugcPackageCost(d, resolution, engine), 0)
     : ugcPackageCost(duration, resolution, engine)
-  const totalCredits = videoCredits
+  // Scroll-stop hook adds a fixed ~120cr surcharge (see the API route).
+  const SCROLL_STOP_HOOK_COST_CR = 120
+  const hookCredits = (isAdminUser && hookEnabled && selectedHookKey) ? SCROLL_STOP_HOOK_COST_CR : 0
+  const totalCredits = videoCredits + hookCredits
   void calculateVideoCredits
   // Require a picked creator (either a saved influencer or a saved actor)
   // to hit Generate — no more AI-picked characters.
@@ -1112,6 +1125,54 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     e.preventDefault()
     if (!canGenerate || isLoading || scriptLoading) return
 
+    // Scroll-stop hook v1 — admin-only. Fire in PARALLEL with the main
+    // video flow so it doesn't block the primary generate path. The hook
+    // clip will be polled + stitched by the preview once the API returns
+    // its jobId and frameUrl. Silent-fail: if the hook API errors we just
+    // proceed with the main clip.
+    if (isAdminUser && hookEnabled && selectedHookKey && !isMotionBrollFormat) {
+      const povIncompatible = ['interview-pov', 'interview-man-on-street', 'pov-vlog', 'camera-pov'].includes(activeFormatKey ?? '')
+      if (!povIncompatible) {
+        ;(async () => {
+          try {
+            const supabase = getSupabase()
+            if (!supabase) return
+            const { data: sessionData } = await supabase.auth.getSession()
+            const token = sessionData?.session?.access_token
+            if (!token) return
+            const res = await fetch('/api/ugc/scroll-stop-hook', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({
+                hookKey: selectedHookKey,
+                influencerId: selectedInfluencerId ?? undefined,
+                productImageBase64: productImage?.base64,
+                productImageMimeType: productImage?.mimeType,
+                extraProductImages: combinedExtraProductImages,
+                aspectId: aspect,
+                formatKey: activeFormatKey,
+              }),
+            })
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) {
+              console.warn('[scroll-stop-hook] dispatch failed:', data?.error)
+              return
+            }
+            // Stash the returned ids on window so a future stitch integration
+            // in the preview can pick them up without needing to plumb them
+            // through the parent onGenerate contract. This is intentional
+            // scaffolding for v1 — the full stitch wiring lives here for
+            // now and will be lifted into UGCPackagePreview once the design
+            // review of the client-side polling flow lands.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            ;(window as any).__scrollStopHook = { jobId: data.jobId, frameUrl: data.frameUrl, hookKey: data.hookKey, durationSec: data.durationSec }
+          } catch (err) {
+            console.warn('[scroll-stop-hook] dispatch threw:', err instanceof Error ? err.message : err)
+          }
+        })()
+      }
+    }
+
     // Motion-broll skips scripts entirely — go straight to the product-hero
     // frame generator. There is no dialogue, no character, no hook picker.
     // Crush-Test with duration >8s skips the pick-frame step entirely and
@@ -1495,6 +1556,88 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             : <>Pick a format from the Library</>}
         </button>
       </div>
+
+      {/* Scroll-stop hook toggle — admin-only v1. Disabled for POV formats
+          where the camera IS a character. */}
+      {isAdminUser && (() => {
+        const povIncompatible = ['interview-pov', 'interview-man-on-street', 'pov-vlog', 'camera-pov'].includes(activeFormatKey ?? '')
+        const selectedHook: ScrollStopHook | undefined = selectedHookKey ? SCROLL_STOP_HOOKS.find(h => h.key === selectedHookKey) : undefined
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 12px', border: '1px dashed var(--border)', borderRadius: 10, background: 'var(--surface)' }}>
+            <label
+              title={povIncompatible ? 'Not compatible with POV formats' : ''}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: povIncompatible ? 'not-allowed' : 'pointer', opacity: povIncompatible ? 0.5 : 1 }}
+            >
+              <input
+                type="checkbox"
+                disabled={povIncompatible}
+                checked={hookEnabled && !povIncompatible}
+                onChange={e => {
+                  setHookEnabled(e.target.checked)
+                  if (!e.target.checked) setSelectedHookKey(null)
+                }}
+              />
+              <span>Add scroll-stop hook</span>
+              <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: 600 }}>Admin · +{SCROLL_STOP_HOOK_COST_CR} cr</span>
+            </label>
+            {hookEnabled && !povIncompatible && (
+              !selectedHook ? (
+                <button type="button" onClick={() => setShowHookPicker(true)} className="btn btn-ghost" style={{ fontSize: 12.5, padding: '6px 12px' }}>
+                  Choose your hook →
+                </button>
+              ) : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, padding: '5px 10px', background: 'var(--surface-2, var(--surface))', border: '1px solid var(--border)', borderRadius: 999 }}>
+                  Hook: <strong>{selectedHook.label}</strong>
+                  <button type="button" onClick={() => setShowHookPicker(true)} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 0, fontSize: 12 }}>· change</button>
+                </span>
+              )
+            )}
+          </div>
+        )
+      })()}
+
+      {isAdminUser && showHookPicker && (
+        <div
+          onClick={e => { if (e.target === e.currentTarget) setShowHookPicker(false) }}
+          style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
+        >
+          <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 1000, width: '100%', maxHeight: '85vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+              <div>
+                <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 24, lineHeight: 1.15 }}>Scroll-stop hooks</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4 }}>A short attention-grabbing clip stitched before the main talking-head. Uses your chosen avatar.</div>
+              </div>
+              <button type="button" onClick={() => setShowHookPicker(false)} className="btn btn-ghost" style={{ fontSize: 13 }}>Close</button>
+            </div>
+            {(['entry', 'object', 'environmental', 'meta'] as const).map(cat => {
+              const items = SCROLL_STOP_HOOKS.filter(h => h.category === cat && isHookAllowedForFormat(h, activeFormatKey))
+              if (!items.length) return null
+              const catLabel = cat === 'entry' ? '🎬 Entry' : cat === 'object' ? '📦 Object' : cat === 'environmental' ? '🌍 Environmental' : '🎭 Meta'
+              return (
+                <div key={cat} style={{ marginTop: 18 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: 'var(--ink-2)', marginBottom: 8, textTransform: 'uppercase' }}>{catLabel}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
+                    {items.map(h => (
+                      <button
+                        key={h.key}
+                        type="button"
+                        onClick={() => { setSelectedHookKey(h.key); setShowHookPicker(false) }}
+                        style={{ textAlign: 'left', padding: 12, border: `1.5px solid ${selectedHookKey === h.key ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 10, background: selectedHookKey === h.key ? 'var(--surface-2, var(--surface))' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
+                      >
+                        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{h.label}</div>
+                        <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.4 }}>{h.tagline}</div>
+                        {h.featuresProduct && (
+                          <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginTop: 4, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: 600 }}>Features product</div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {showFormatPicker && (
         <div
