@@ -33,6 +33,8 @@ export interface CampaignFormat {
   creditHint: number        // rough estimate, drives the running total
   // Prompt hint Sonnet uses when writing hook/setting/caption for this format.
   sonnetSpec: string
+  // Visual-only formats — no spoken dialogue. Skips the script review step.
+  noScript?: boolean
 }
 
 export const CAMPAIGN_FORMATS: CampaignFormat[] = [
@@ -260,6 +262,7 @@ export const CAMPAIGN_FORMATS: CampaignFormat[] = [
     defaultAspect: '9:16', defaultDuration: 8,
     requiresActor: true, requiresScene: false, requiresProduct: true, creditHint: 200,
     sonnetSpec: 'Before shot → beat → after shot. Product is the cause.',
+    noScript: true,
   },
   {
     key: 'mess-to-fresh',
@@ -269,6 +272,7 @@ export const CAMPAIGN_FORMATS: CampaignFormat[] = [
     defaultAspect: '9:16', defaultDuration: 12,
     requiresActor: true, requiresScene: true, requiresProduct: true, creditHint: 260,
     sonnetSpec: 'Messy start. Product applied. Clean/fresh finish.',
+    noScript: true,
   },
   {
     key: 'tutorial',

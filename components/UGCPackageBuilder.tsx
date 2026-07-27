@@ -462,6 +462,10 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // They skip script generation entirely and route to /api/ugc/motion-broll-*
   // for both frames and animate.
   const isMotionBrollFormat = !!activeFormat && activeFormat.pipeline === 'motion-broll'
+  // Visual transformation formats (before-after, mess-to-fresh) — actor present
+  // but no spoken dialogue. Skip the script review step; pass a minimal visual
+  // context script to the animate API so it builds a silent transformation video.
+  const isNoScriptFormat = !!activeFormat?.noScript
   // Photo formats never belong in the video builder — belt-and-suspenders
   // guard in case a photo format survives into builder state.
   const isPhotoFormat = !!activeFormat && (
@@ -1148,7 +1152,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     // its jobId and frameUrl. Silent-fail: if the hook API errors we just
     // proceed with the main clip.
     scrollStopHookRef.current = null
-    if (isAdminUser && hookEnabled && selectedHookKey && !isMotionBrollFormat) {
+    if (isAdminUser && hookEnabled && selectedHookKey && !isMotionBrollFormat && !isNoScriptFormat) {
       const povIncompatible = ['interview-pov', 'interview-man-on-street', 'pov-vlog', 'camera-pov'].includes(activeFormatKey ?? '')
       if (!povIncompatible) {
         ;(async () => {
@@ -1210,6 +1214,18 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       } else {
         await requestHeroFrames('')
       }
+      return
+    }
+
+    // Visual transformation formats skip the script step — no dialogue.
+    // Pass a minimal background-context script so the animate API has
+    // something to extract scene context from, but extractSpokenLines
+    // returns empty string so Seedance generates a silent visual video.
+    if (isNoScriptFormat) {
+      const visualScript = `[BACKGROUND: transformation scene for ${productName}]\n[VISUAL: ${activeFormat?.sonnetSpec ?? 'visual transformation — no spoken dialogue'}]`
+      setGeneratedScript(visualScript)
+      setEditedScript(visualScript)
+      await requestHeroFrames(visualScript)
       return
     }
 
@@ -1584,8 +1600,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       </div>
 
       {/* Scroll-stop hook toggle — admin-only v1. Disabled for POV formats
-          where the camera IS a character. */}
-      {isAdminUser && (() => {
+          where the camera IS a character, and for no-script visual formats. */}
+      {isAdminUser && !isNoScriptFormat && !isMotionBrollFormat && (() => {
         const povIncompatible = ['interview-pov', 'interview-man-on-street', 'pov-vlog', 'camera-pov'].includes(activeFormatKey ?? '')
         const selectedHook: ScrollStopHook | undefined = selectedHookKey ? SCROLL_STOP_HOOKS.find(h => h.key === selectedHookKey) : undefined
         return (
@@ -3019,7 +3035,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
               </svg>
             )}
-            <span>{scriptLoading ? 'Writing script…' : (framesLoading ? 'Rendering frames…' : (isMotionBrollFormat ? 'Generate Frames →' : 'Generate Script →'))}</span>
+            <span>{scriptLoading ? 'Writing script…' : (framesLoading ? 'Rendering frames…' : ((isMotionBrollFormat || isNoScriptFormat) ? 'Generate Frames →' : 'Generate Script →'))}</span>
           </button>
         )}
 
