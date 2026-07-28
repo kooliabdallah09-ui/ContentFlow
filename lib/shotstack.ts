@@ -610,3 +610,83 @@ export async function submitEditorRender(input: {
   if (!renderId) throw new Error('Shotstack: no render id returned')
   return { renderId }
 }
+
+// ── Vox Studio stitch ────────────────────────────────────────────────────────
+// N animated clips sequentially on Track 1 (muted), voiceover audio on
+// Track 2 spanning full duration, per-beat headline text overlays on Track 3.
+import type { VoxBeat } from './vox-beatmap'
+
+export async function submitVoxStitch({
+  beats,
+  videoUrls,
+  voiceoverUrl,
+  aspect,
+}: {
+  beats: VoxBeat[]
+  videoUrls: string[]
+  voiceoverUrl: string
+  aspect?: 'portrait' | 'square' | 'landscape'
+}): Promise<{ renderId: string }> {
+  const apiKey = process.env.SHOTSTACK_API_KEY
+  if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
+
+  const totalDuration = beats.reduce((sum, b) => sum + b.duration_sec, 0)
+
+  let cursor = 0
+  const videoClips = videoUrls.map((src, i) => {
+    const len = beats[i]?.duration_sec ?? 5
+    const clip = { asset: { type: 'video', src, volume: 0 }, start: cursor, length: len, fit: 'cover' as const }
+    cursor += len
+    return clip
+  })
+
+  cursor = 0
+  const headlineClips = beats.map((beat, i) => {
+    if (!videoUrls[i]) { cursor += beat.duration_sec; return null }
+    const safeText = beat.headline.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    const clip = {
+      asset: {
+        type: 'html',
+        html: `<p>${safeText}</p>`,
+        css: `p { font-family: 'Inter', 'Arial Black', sans-serif; font-size: 3.2vh; font-weight: 900; letter-spacing: -0.02em; color: #FFFFFF; text-align: center; text-transform: uppercase; margin: 0; padding: 10px 20px; text-shadow: 0 2px 16px rgba(0,0,0,0.8); }`,
+        width: 900, height: 120, background: 'transparent',
+      },
+      start: cursor, length: beat.duration_sec,
+      position: 'bottom', offset: { y: 0.12 },
+      transition: { in: 'fade', out: 'fade' },
+    }
+    cursor += beat.duration_sec
+    return clip
+  }).filter(Boolean)
+
+  const outputSize =
+    aspect === 'square'    ? { width: 1080, height: 1080 } :
+    aspect === 'landscape' ? { width: 1920, height: 1080 } :
+                             { width: 1080, height: 1920 }
+
+  const body = {
+    timeline: {
+      background: '#000000',
+      tracks: [
+        { clips: headlineClips },
+        { clips: [{ asset: { type: 'audio', src: voiceoverUrl, volume: 1 }, start: 0, length: totalDuration }] },
+        { clips: videoClips },
+      ],
+    },
+    output: { format: 'mp4', size: outputSize, fps: 30 },
+  }
+
+  const res = await fetch(`${SHOTSTACK_BASE}/render`, {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const msg = await res.text().catch(() => '')
+    throw new Error(`Shotstack Vox ${res.status}: ${msg.slice(0, 300)}`)
+  }
+  const data = await res.json()
+  const renderId = data?.response?.id ?? data?.id
+  if (!renderId) throw new Error('Shotstack Vox: no render ID returned')
+  return { renderId }
+}

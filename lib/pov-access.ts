@@ -44,3 +44,10 @@ export function canAccessOmniFlashVideo(email: string | null | undefined): boole
   if (!email) return false
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
+
+// Vox Studio: admin-only narrated explainer video pipeline (v1 alpha).
+// Scene-by-scene editorial video with voiceover, no talking head.
+export function canAccessVoxStudio(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}

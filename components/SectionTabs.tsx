@@ -59,6 +59,7 @@ export const STUDIOS_TABS: SectionTab[] = [
 
 export const VIDEO_STUDIO_TABS: SectionTab[] = [
   { label: 'UGC Package', href: '/generate/ugc', badge: 'Flagship' },
+  { label: 'Vox', href: '/generate/vox', badge: 'Alpha' },
   { label: 'Podcast Ad', href: '/generate/podcast-ad', badge: 'New' },
   { label: 'Video', href: '/generate/video' },
   { label: 'Screen Demo', href: '/generate/screen-demo' },
