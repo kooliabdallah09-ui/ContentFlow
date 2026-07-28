@@ -13,7 +13,7 @@ export default function VoxPage() {
   useEffect(() => {
     const supabase = getSupabase()
     if (!supabase) { setLoading(false); return }
-    supabase.auth.getSession().then((result) => {
+    supabase.auth.getSession().then((result: { data: { session: { user?: { email?: string | null } | null } | null } }) => {
       setEmail(result.data?.session?.user?.email ?? null)
       setLoading(false)
     })
