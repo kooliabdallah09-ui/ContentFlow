@@ -4,9 +4,6 @@ import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { PADDLE_PRICES } from '@/lib/paddle'
-import { openPaddleCheckout } from '@/lib/paddle-client'
-
 const PLANS = [
   {
     name: 'Free',
@@ -15,8 +12,8 @@ const PLANS = [
     annualTotal: null,
     unit: 'forever',
     credits: '60 credits at signup',
-    monthlyPriceId: '',
-    annualPriceId: '',
+    monthlyProductKey: '',
+    annualProductKey: '',
     features: ['~12 product images', '~7 AI influencer / product photos', 'Try every studio', 'Business card generator', 'Video editor (Beta)', 'No UGC videos (cheapest is 95cr)'],
     cta: 'Get started',
     href: '/auth/signup',
@@ -28,8 +25,8 @@ const PLANS = [
     annualTotal: '$190/yr',
     unit: '/month',
     credits: '800 credits/month',
-    monthlyPriceId: PADDLE_PRICES.starter,
-    annualPriceId: PADDLE_PRICES.starterAnnual,
+    monthlyProductKey: 'starter',
+    annualProductKey: 'starterAnnual',
     features: ['~6 UGC videos/mo at 5s · ~4 at 10s (720p)', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer & Product studios · CineMotion', 'No watermark · Video editor · Priority support'],
     cta: 'Get Starter',
     href: '/auth/signup?plan=starter',
@@ -42,8 +39,8 @@ const PLANS = [
     annualTotal: '$490/yr',
     unit: '/month',
     credits: '2,000 credits/month',
-    monthlyPriceId: PADDLE_PRICES.pro,
-    annualPriceId: PADDLE_PRICES.proAnnual,
+    monthlyProductKey: 'pro',
+    annualProductKey: 'proAnnual',
     features: ['~16 UGC videos/mo at 5s · ~10 at 10s (720p)', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
     cta: 'Get Pro',
     href: '/auth/signup?plan=pro',
@@ -55,8 +52,8 @@ const PLANS = [
     annualTotal: '$1,490/yr',
     unit: '/month',
     credits: '6,500 credits/month',
-    monthlyPriceId: PADDLE_PRICES.agency,
-    annualPriceId: PADDLE_PRICES.agencyAnnual,
+    monthlyProductKey: 'agency',
+    annualProductKey: 'agencyAnnual',
     features: ['~52 UGC videos/mo at 5s · ~35 at 10s · ~27 at 15s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
     cta: 'Get Agency',
     href: '/auth/signup?plan=agency',
@@ -81,14 +78,21 @@ export default function PricingPage() {
     })
   }, [])
 
-  async function handleCheckout(priceId: string, _mode: 'subscription' | 'payment') {
-    if (!priceId) { window.location.href = '/auth/signup'; return }
-    setUpgradeLoading(priceId)
+  async function handleCheckout(productKey: string) {
+    if (!productKey) { window.location.href = '/auth/signup'; return }
+    setUpgradeLoading(productKey)
     try {
       const { data } = await getSupabase()!.auth.getSession()
-      const user = data?.session?.user
-      if (!user) { window.location.href = '/auth/signup'; return }
-      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
+      const token = data?.session?.access_token
+      if (!token) { window.location.href = '/auth/signup'; return }
+      const res = await fetch('/api/polar/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ productKey }),
+      })
+      const json = await res.json() as { url?: string; error?: string }
+      if (!res.ok || !json.url) throw new Error(json.error ?? 'Checkout failed')
+      window.location.href = json.url
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {
@@ -188,9 +192,9 @@ export default function PricingPage() {
       }}>
         {PLANS.map(plan => {
           const popular = !!plan.popular
-          const activePriceId = annual ? plan.annualPriceId : plan.monthlyPriceId
+          const activeProductKey = annual ? plan.annualProductKey : plan.monthlyProductKey
           const displayPrice = annual ? plan.annualPrice : plan.monthlyPrice
-          const isLoading = upgradeLoading === activePriceId
+          const isLoading = upgradeLoading === activeProductKey
 
           return (
             <div
@@ -234,9 +238,9 @@ export default function PricingPage() {
                 {plan.credits}
               </div>
 
-              {isLoggedIn && activePriceId ? (
+              {isLoggedIn && activeProductKey ? (
                 <button
-                  onClick={() => handleCheckout(activePriceId, 'subscription')}
+                  onClick={() => handleCheckout(activeProductKey)}
                   disabled={isLoading}
                   style={{
                     display: 'block', textAlign: 'center', width: '100%',

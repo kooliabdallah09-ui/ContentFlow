@@ -4,10 +4,18 @@ import { POLAR_PRODUCTS } from '@/lib/polar'
 
 export const maxDuration = 30
 
-const PRODUCT_KEY_MAP: Record<string, string> = {
-  pack500:  POLAR_PRODUCTS.pack500,
-  pack1500: POLAR_PRODUCTS.pack1500,
-  pack5000: POLAR_PRODUCTS.pack5000,
+const PRODUCT_MAP: Record<string, string> = {
+  // Credit packs
+  pack500:       POLAR_PRODUCTS.pack500,
+  pack1500:      POLAR_PRODUCTS.pack1500,
+  pack5000:      POLAR_PRODUCTS.pack5000,
+  // Subscription plans
+  starter:       POLAR_PRODUCTS.starter,
+  starterAnnual: POLAR_PRODUCTS.starterAnnual,
+  pro:           POLAR_PRODUCTS.pro,
+  proAnnual:     POLAR_PRODUCTS.proAnnual,
+  agency:        POLAR_PRODUCTS.agency,
+  agencyAnnual:  POLAR_PRODUCTS.agencyAnnual,
 }
 
 export async function POST(request: NextRequest) {
@@ -27,11 +35,13 @@ export async function POST(request: NextRequest) {
     const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
     if (!userData.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const { packKey } = await request.json() as { packKey: string }
-    const productId = PRODUCT_KEY_MAP[packKey]
-    if (!productId) return NextResponse.json({ error: 'Invalid pack' }, { status: 400 })
+    const { productKey } = await request.json() as { productKey: string }
+    const productId = PRODUCT_MAP[productKey]
+    if (!productId) return NextResponse.json({ error: 'Invalid product' }, { status: 400 })
 
-    const successUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://contentflow-web.com'}/billing?success=credits`
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'https://contentflow-web.com'
+    const isPack = productKey.startsWith('pack')
+    const successUrl = isPack ? `${appUrl}/billing?success=credits` : `${appUrl}/billing?success=plan`
 
     const res = await fetch('https://api.polar.sh/v1/checkouts/custom/', {
       method: 'POST',
