@@ -178,6 +178,7 @@ export default function ProductStudio() {
         substyle === 'editorial' ? 'Hero editorial energy — magazine-cover composition, dramatic single-point studio lighting, hero product front-and-center on a rich textured surface.' :
         substyle === 'lifestyle' ? 'Lifestyle in-scene — product used in a real environment, candid moment, natural light, human hands or ambient life in frame.' :
         substyle === 'studio' ? 'Studio still — clean minimal seamless backdrop, controlled lighting, sculptural product-first composition with strong negative space.' :
+        substyle === 'hyper-motion' ? 'Hyper-motion explosion — product floating mid-air surrounded by its ingredients or elements flying outward in all directions, vivid saturated studio backdrop (electric blue, deep red, or brand colour), ultra-sharp product, punchy high-contrast studio lighting, kinetic energy in every corner of the frame.' :
         ''
       if (hint) setDirection(prev => prev.trim() ? prev : hint)
     }
@@ -1024,6 +1025,7 @@ export default function ProductStudio() {
         <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Shot inspiration</div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
           {[
+            ['⚡', 'Hyper Motion', 'product mid-air, ingredients exploding outward, vivid saturated studio backdrop, ultra-kinetic energy'],
             ['🗼', 'Stacked hero tower', 'products piled into a bold sculptural tower, hard light'],
             ['💦', 'Mid-air splash', 'product frozen mid-splash, droplets suspended'],
             ['🫳', 'Hands in frame', 'anonymous hands pouring, holding, unwrapping'],

@@ -274,6 +274,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
   // Kling start_image.
   const [frames, setFrames] = useState<string[] | null>(null)
   const [framesLoading, setFramesLoading] = useState(false)
+  const [savedFramesToGallery, setSavedFramesToGallery] = useState(false)
   const [animating, setAnimating] = useState(false)
   // Which frame the user clicked — drives the picked highlight + overlay.
   const [pickedFrameUrl, setPickedFrameUrl] = useState<string | null>(null)
@@ -852,6 +853,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed to render hero frames')
       setFrames(data.frames)
+      setSavedFramesToGallery(false)
       // Cache the character prompts returned by /api/ugc/hero-frames so
       // the user can save this identity as a reusable actor after picking.
       setCharacterImagePrompt(String(data.characterImagePrompt ?? ''))
@@ -1406,19 +1408,49 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           )}
           <style>{`@keyframes cf-spin { to { transform: rotate(360deg); } }`}</style>
 
-          <button
-            type="button"
-            onClick={() => requestHeroFrames(editedScript || generatedScript || '')}
-            disabled={framesLoading || animating}
-            style={{
-              padding: '10px 14px', borderRadius: 10,
-              background: 'transparent', border: '1px solid var(--border)',
-              color: 'var(--ink)', fontSize: 13, cursor: framesLoading ? 'wait' : 'pointer',
-              alignSelf: 'flex-start',
-            }}
-          >
-            {framesLoading ? 'Regenerating…' : 'Regenerate frames'}
-          </button>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => requestHeroFrames(editedScript || generatedScript || '')}
+              disabled={framesLoading || animating}
+              style={{
+                padding: '10px 14px', borderRadius: 10,
+                background: 'transparent', border: '1px solid var(--border)',
+                color: 'var(--ink)', fontSize: 13, cursor: framesLoading ? 'wait' : 'pointer',
+              }}
+            >
+              {framesLoading ? 'Regenerating…' : 'Regenerate frames'}
+            </button>
+            {studioProductId && frames && frames.length > 0 && (
+              <button
+                type="button"
+                disabled={savedFramesToGallery || animating}
+                onClick={async () => {
+                  const supabase = getSupabase()
+                  if (!supabase) return
+                  const { data: sessionData } = await supabase.auth.getSession()
+                  const token = sessionData?.session?.access_token
+                  if (!token) return
+                  const productName = studioProducts.find(p => p.id === studioProductId)?.name ?? 'product'
+                  const res = await fetch(`/api/products-studio/${studioProductId}/save-frames`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ frameUrls: frames, concept: `UGC hero frames — ${productName}` }),
+                  })
+                  if (res.ok) setSavedFramesToGallery(true)
+                }}
+                style={{
+                  padding: '10px 14px', borderRadius: 10,
+                  background: savedFramesToGallery ? 'var(--surface-2, var(--surface))' : 'transparent',
+                  border: '1px solid var(--border)',
+                  color: savedFramesToGallery ? 'var(--ink-mute)' : 'var(--ink)',
+                  fontSize: 13, cursor: savedFramesToGallery ? 'default' : 'pointer',
+                }}
+              >
+                {savedFramesToGallery ? '✓ Saved to gallery' : 'Save to product gallery'}
+              </button>
+            )}
+          </div>
 
           {/* Save-as-reusable-actor bar — shows only when we have a Sonnet
               image prompt from this generation. Clicking a frame picks it
