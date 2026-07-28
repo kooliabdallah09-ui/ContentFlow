@@ -64,14 +64,15 @@ const PLANS = [
 ]
 
 const PACKS = [
-  { credits: 500, price: 15, perCredit: 0.030, priceId: PADDLE_PRICES.pack500 },
-  { credits: 1500, price: 45, perCredit: 0.030, priceId: PADDLE_PRICES.pack1500 },
-  { credits: 5000, price: 120, perCredit: 0.024, priceId: PADDLE_PRICES.pack5000 },
+  { credits: 500, price: 15, perCredit: 0.030, packKey: 'pack500' },
+  { credits: 1500, price: 45, perCredit: 0.030, packKey: 'pack1500' },
+  { credits: 5000, price: 120, perCredit: 0.024, packKey: 'pack5000' },
 ]
 
 export default function PricingPage() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
+  const [packLoading, setPackLoading] = useState<string | null>(null)
   const [annual, setAnnual] = useState(false)
 
   useEffect(() => {
@@ -92,6 +93,27 @@ export default function PricingPage() {
       alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {
       setUpgradeLoading(null)
+    }
+  }
+
+  async function handlePackCheckout(packKey: string) {
+    setPackLoading(packKey)
+    try {
+      const { data } = await getSupabase()!.auth.getSession()
+      const token = data?.session?.access_token
+      if (!token) { window.location.href = '/auth/signup'; return }
+      const res = await fetch('/api/polar/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ packKey }),
+      })
+      const json = await res.json() as { url?: string; error?: string }
+      if (!res.ok || !json.url) throw new Error(json.error ?? 'Checkout failed')
+      window.location.href = json.url
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Checkout failed')
+    } finally {
+      setPackLoading(null)
     }
   }
 
@@ -316,19 +338,19 @@ export default function PricingPage() {
                 <span style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>${pack.price}</span>
                 <span style={{ marginLeft: 6, color: 'var(--ink-mute)' }}>· ${pack.perCredit.toFixed(3)}/cr</span>
               </div>
-              {isLoggedIn && pack.priceId ? (
+              {isLoggedIn ? (
                 <button
-                  onClick={() => handleCheckout(pack.priceId, 'payment')}
-                  disabled={upgradeLoading === pack.priceId}
+                  onClick={() => handlePackCheckout(pack.packKey)}
+                  disabled={packLoading === pack.packKey}
                   style={{
                     marginTop: 4, display: 'block', textAlign: 'center', width: '100%',
                     padding: '9px 14px', borderRadius: 9,
                     background: 'var(--surface)', border: '1px solid var(--border)',
                     color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer',
-                    opacity: upgradeLoading === pack.priceId ? 0.6 : 1,
+                    opacity: packLoading === pack.packKey ? 0.6 : 1,
                   }}
                 >
-                  {upgradeLoading === pack.priceId ? 'Redirecting…' : 'Buy credits'}
+                  {packLoading === pack.packKey ? 'Redirecting…' : 'Buy credits'}
                 </button>
               ) : (
                 <Link href="/auth/signup" style={{
