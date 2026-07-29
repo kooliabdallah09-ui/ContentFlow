@@ -2,22 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { PADDLE_PRICES } from '@/lib/paddle'
-import { openPaddleCheckout } from '@/lib/paddle-client'
 import { Icon } from '@/components/Icons'
-import Link from 'next/link'
-
-const PRICE_IDS = {
-  starter: PADDLE_PRICES.starter,
-  starter_annual: PADDLE_PRICES.starterAnnual,
-  pro: PADDLE_PRICES.pro,
-  pro_annual: PADDLE_PRICES.proAnnual,
-  agency: PADDLE_PRICES.agency,
-  agency_annual: PADDLE_PRICES.agencyAnnual,
-  pack_500: PADDLE_PRICES.pack500,
-  pack_1500: PADDLE_PRICES.pack1500,
-  pack_5000: PADDLE_PRICES.pack5000,
-}
 
 interface CreditsInfo {
   balance: number
@@ -35,49 +20,32 @@ export default function BillingPage() {
 
   useEffect(() => {
     loadCreditsInfo()
-    // Handle return from Stripe Checkout
     const params = new URLSearchParams(window.location.search)
-    if (params.get('success') === '1') {
-      setTimeout(() => loadCreditsInfo(), 2000) // Give webhook time to fire
+    if (params.get('success') === 'credits' || params.get('success') === 'plan') {
+      setTimeout(() => loadCreditsInfo(), 2500)
     }
   }, [])
 
   async function getToken() {
-    const supabase = getSupabase()
-    if (!supabase) return null
-    const { data } = await supabase.auth.getSession()
+    const { data } = await getSupabase()!.auth.getSession()
     return data?.session?.access_token ?? null
   }
 
-  async function handleUpgrade(priceId: string, _mode: 'subscription' | 'payment') {
-    if (!priceId) { alert('Annual pricing coming soon — switch to monthly to upgrade now.'); return }
-    setUpgradeLoading(priceId)
-    try {
-      const supabase = getSupabase()
-      const { data } = await supabase!.auth.getSession()
-      const user = data?.session?.user
-      if (!user) { window.location.href = '/auth/login'; return }
-      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Checkout failed')
-    } finally {
-      setUpgradeLoading(null)
-    }
-  }
-
-  async function handleManageSubscription() {
-    setUpgradeLoading('portal')
+  async function handlePolarCheckout(productKey: string) {
+    setUpgradeLoading(productKey)
     try {
       const token = await getToken()
-      const res = await fetch('/api/paddle/portal', {
+      if (!token) { window.location.href = '/auth/login'; return }
+      const res = await fetch('/api/polar/checkout', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ productKey }),
       })
-      const { url, error } = await res.json()
-      if (error) throw new Error(error)
-      window.location.href = url
+      const json = await res.json() as { url?: string; error?: string }
+      if (!res.ok || !json.url) throw new Error(json.error ?? 'Checkout failed')
+      window.location.href = json.url
     } catch (e) {
-      alert(e instanceof Error ? e.message : 'Portal failed')
+      alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {
       setUpgradeLoading(null)
     }
@@ -87,22 +55,17 @@ export default function BillingPage() {
     try {
       const supabase = getSupabase()
       if (!supabase) return
-
       const { data: sessionData } = await supabase.auth.getSession()
       if (!sessionData?.session?.access_token) return
-
       const response = await fetch('/api/credits/balance', {
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       })
-
       if (response.ok) {
         const data = await response.json()
         setCreditsInfo({
           balance: data.balance || 0,
           plan: data.plan || 'free',
-          monthlyCredits: data.monthlyCredits || 50,
+          monthlyCredits: data.monthlyCredits || 0,
           resetDate: data.resetDate || '',
           hasSubscription: !!(data.plan && data.plan !== 'free'),
         })
@@ -118,266 +81,178 @@ export default function BillingPage() {
     return (
       <div className="content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ width: '32px', height: '32px', borderRadius: '50%', border: '4px solid var(--accent)', borderTopColor: 'transparent', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
-          <p style={{ color: 'var(--ink-dim)', fontSize: '14px' }}>Loading billing info...</p>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--ink)', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       </div>
     )
   }
 
+  const currentPlan = creditsInfo?.plan ?? 'free'
+
   const plans = [
     {
       name: 'Free',
-      monthlyPrice: '$0',
-      annualPrice: '$0',
+      price: { monthly: '$0', annual: '$0' },
       annualTotal: null,
-      credits: '0/month',
-      bonus: '+ 60 signup',
-      monthlyPriceId: '',
-      annualPriceId: '',
-      features: [
-        '60 one-time signup credits',
-        '~12 product images',
-        '~7 AI influencer / product photos',
-        'Try every studio',
-        'Business card generator',
-        'Video editor (Beta)',
-        'No UGC videos (cheapest is 95cr)',
-      ],
-      current: creditsInfo?.plan === 'free',
-      cta: 'Current Plan',
-      ctaDisabled: true,
+      credits: '0/month · +60 signup',
+      productKey: { monthly: '', annual: '' },
+      features: ['60 one-time signup credits', '~12 product images', '~7 AI influencer / product photos', 'Try every studio', 'Business card generator', 'No UGC videos (cheapest is 95cr)'],
+      planKey: 'free',
     },
     {
       name: 'Starter',
-      monthlyPrice: '$19',
-      annualPrice: '$16',
+      price: { monthly: '$19', annual: '$16' },
       annualTotal: '$190/yr',
-      credits: '800/month',
-      monthlyPriceId: PRICE_IDS.starter,
-      annualPriceId: PRICE_IDS.starter_annual,
-      features: [
-        '800 monthly credits / month',
-        '~6 UGC videos/mo at 5s · ~4 at 10s (720p)',
-        '~8 budget UGC videos (Seedance Mini)',
-        '~160 images · ~100 AI influencer / product photos',
-        'AI Influencer Studio & Product Studio',
-        'CineMotion product ads',
-        'No watermark · Video editor',
-        'Priority support',
-      ],
-      current: creditsInfo?.plan === 'starter',
-      cta: creditsInfo?.plan === 'starter' ? 'Current Plan' : annual ? 'Upgrade — $16/mo' : 'Upgrade — $19/mo',
-      ctaDisabled: creditsInfo?.plan === 'starter',
-      pricePerCredit: '$0.024/cr',
+      credits: '800/month · $0.024/cr',
+      productKey: { monthly: 'starter', annual: 'starterAnnual' },
+      features: ['~6 UGC videos/mo at 5s · ~4 at 10s', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer Studio & Product Studio', 'No watermark · Video editor · Priority support'],
+      planKey: 'starter',
     },
     {
       name: 'Pro',
-      monthlyPrice: '$49',
-      annualPrice: '$41',
+      price: { monthly: '$49', annual: '$41' },
       annualTotal: '$490/yr',
-      credits: '2,000/month',
-      monthlyPriceId: PRICE_IDS.pro,
-      annualPriceId: PRICE_IDS.pro_annual,
-      features: [
-        '2,000 monthly credits / month',
-        '~16 UGC videos/mo at 5s · ~10 at 10s (720p)',
-        '~21 budget UGC videos (Seedance Mini)',
-        '~400 images · ~250 AI influencer / product photos',
-        'Everything in Starter',
-        'Shopify product import',
-        'Priority support',
-      ],
-      current: creditsInfo?.plan === 'pro',
-      cta: creditsInfo?.plan === 'pro' ? 'Current Plan' : annual ? 'Upgrade — $41/mo' : 'Upgrade — $49/mo',
-      ctaDisabled: creditsInfo?.plan === 'pro',
-      pricePerCredit: '$0.025/cr',
+      credits: '2,000/month · $0.025/cr',
+      productKey: { monthly: 'pro', annual: 'proAnnual' },
+      features: ['~16 UGC videos/mo at 5s · ~10 at 10s', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
+      planKey: 'pro',
+      popular: true,
     },
     {
       name: 'Agency',
-      monthlyPrice: '$149',
-      annualPrice: '$124',
+      price: { monthly: '$149', annual: '$124' },
       annualTotal: '$1,490/yr',
-      credits: '6,500/month',
-      monthlyPriceId: PRICE_IDS.agency,
-      annualPriceId: PRICE_IDS.agency_annual,
-      features: [
-        '6,500 monthly credits / month',
-        '~52 UGC videos/mo at 5s · ~35 at 10s · ~27 at 15s',
-        '~1,300 images · ~800 AI influencer / product photos',
-        'Everything in Pro',
-        'Multiple brand profiles',
-        'Dedicated support',
-      ],
-      current: creditsInfo?.plan === 'agency',
-      cta: creditsInfo?.plan === 'agency' ? 'Current Plan' : annual ? 'Upgrade — $124/mo' : 'Upgrade — $149/mo',
-      ctaDisabled: creditsInfo?.plan === 'agency',
-      pricePerCredit: '$0.023/cr',
+      credits: '6,500/month · $0.023/cr',
+      productKey: { monthly: 'agency', annual: 'agencyAnnual' },
+      features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
+      planKey: 'agency',
     },
   ]
 
   const creditPacks = [
-    {
-      credits: 500,
-      price: '$15',
-      priceId: PRICE_IDS.pack_500,
-      pricePerCredit: '$0.030/cr',
-      discount: null,
-      popular: false,
-    },
-    {
-      credits: 1500,
-      price: '$45',
-      priceId: PRICE_IDS.pack_1500,
-      pricePerCredit: '$0.030/cr',
-      discount: null,
-      popular: false,
-    },
-    {
-      credits: 5000,
-      price: '$120',
-      priceId: PRICE_IDS.pack_5000,
-      pricePerCredit: '$0.024/cr',
-      discount: null,
-      popular: true,
-    },
+    { credits: 500,  price: '$15',  perCr: '$0.030/cr', key: 'pack500' },
+    { credits: 1500, price: '$45',  perCr: '$0.030/cr', key: 'pack1500' },
+    { credits: 5000, price: '$120', perCr: '$0.024/cr', key: 'pack5000' },
   ]
 
   return (
     <div className="content">
       <div className="page-head">
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '24px', borderBottom: '1px solid var(--border)', paddingBottom: '16px', overflowX: 'auto' }}>
-          <a href="/settings/brand" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Brand</a>
-          <a href="/settings/account" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Account</a>
-          <a href="/settings/billing" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--accent)', borderBottom: '2px solid var(--accent)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Billing</a>
-          <a href="/settings/integrations" style={{ padding: '8px 12px', fontSize: '13px', fontWeight: 600, color: 'var(--ink-dim)', textDecoration: 'none', whiteSpace: 'nowrap' }}>Integrations</a>
+        <div style={{ display: 'flex', gap: 12, marginBottom: 24, borderBottom: '1px solid var(--border)', paddingBottom: 16, overflowX: 'auto' }}>
+          {['brand', 'account', 'billing', 'integrations'].map(s => (
+            <a key={s} href={`/settings/${s}`} style={{ padding: '8px 12px', fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap', color: s === 'billing' ? 'var(--ink)' : 'var(--ink-dim)', borderBottom: s === 'billing' ? '2px solid var(--ink)' : '2px solid transparent', marginBottom: -1 }}>
+              {s.charAt(0).toUpperCase() + s.slice(1)}
+            </a>
+          ))}
         </div>
         <h1 className="page-title">Billing & <em>Credits</em></h1>
         <p className="page-sub">Manage your subscription and purchase additional credits.</p>
       </div>
 
-      {/* Current Credits */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--accent)', borderRadius: 'var(--r-lg)', padding: '24px', marginBottom: '32px' }}>
-        <p className="eyebrow" style={{ marginBottom: '16px' }}>Current Balance</p>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+      {/* Current Balance */}
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 24, marginBottom: 32 }}>
+        <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', margin: '0 0 16px' }}>Current Balance</p>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: '4px' }}>
-              {(creditsInfo?.balance || 0).toLocaleString()}
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: 4 }}>
+              {(creditsInfo?.balance ?? 0).toLocaleString()}
             </div>
-            <p className="eyebrow">Available Credits</p>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', margin: 0 }}>Available Credits</p>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: '4px' }}>
-              {(creditsInfo?.monthlyCredits || 0).toLocaleString()}
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: 4 }}>
+              {(creditsInfo?.monthlyCredits ?? 0).toLocaleString()}
             </div>
-            <p className="eyebrow">Monthly Allocation</p>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', margin: 0 }}>Monthly Allocation</p>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, lineHeight: 1.6, color: 'var(--ink)', marginBottom: '4px' }}>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, lineHeight: 1.6, color: 'var(--ink)', marginBottom: 4 }}>
               {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString() : '–'}
             </div>
-            <p className="eyebrow">Reset Date</p>
+            <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', margin: 0 }}>Reset Date</p>
           </div>
         </div>
-        {creditsInfo?.hasSubscription && (
-          <button
-            onClick={handleManageSubscription}
-            disabled={upgradeLoading === 'portal'}
-            className="btn"
-            style={{ marginTop: '16px', fontSize: '13px', padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-dim)', cursor: 'pointer' }}
-          >
-            {upgradeLoading === 'portal' ? 'Opening…' : '⚙ Manage subscription'}
-          </button>
-        )}
       </div>
 
       {/* Plans */}
-      <div style={{ marginBottom: '48px' }}>
-        <div className="section-head" style={{ marginBottom: '20px' }}>
-          <h2 className="section-title">{annual ? 'Annual' : 'Monthly'} <em>Plans</em></h2>
-          <p style={{ fontSize: '13px', color: 'var(--ink-dim)', marginTop: '8px' }}>Renewable monthly credits + 60 one-time bonus at signup</p>
+      <div style={{ marginBottom: 48 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 400, margin: 0, letterSpacing: '-0.01em' }}>
+              {annual ? 'Annual' : 'Monthly'} <em>Plans</em>
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: '6px 0 0' }}>Renewable monthly credits + 60 one-time bonus at signup</p>
+          </div>
+          {/* Annual toggle */}
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 999, padding: '5px 6px 5px 16px' }}>
+            <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink-mute)' : 'var(--ink)' }}>Monthly</span>
+            <button onClick={() => setAnnual(a => !a)} aria-label="Toggle annual billing" style={{ position: 'relative', width: 36, height: 20, borderRadius: 999, border: 'none', cursor: 'pointer', background: annual ? 'var(--ink)' : 'var(--border)', transition: 'background 0.2s', flexShrink: 0 }}>
+              <span style={{ position: 'absolute', top: 2, left: annual ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: annual ? 'var(--bg)' : '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
+            </button>
+            <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink)' : 'var(--ink-mute)' }}>Annual</span>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', background: annual ? 'var(--ink)' : 'var(--border-soft)', color: annual ? 'var(--bg)' : 'var(--ink-mute)', borderRadius: 999, padding: '3px 9px', transition: 'background 0.2s, color 0.2s' }}>
+              2 mo free
+            </span>
+          </div>
         </div>
 
-        {/* Annual toggle */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 12, marginBottom: 24, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 999, padding: '5px 6px 5px 18px' }}>
-          <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink-mute)' : 'var(--ink)' }}>Monthly</span>
-          <button
-            onClick={() => setAnnual(a => !a)}
-            aria-label="Toggle annual billing"
-            style={{ position: 'relative', width: 40, height: 22, borderRadius: 999, border: 'none', cursor: 'pointer', background: annual ? 'var(--ink)' : 'var(--border)', transition: 'background 0.2s', flexShrink: 0 }}
-          >
-            <span style={{ position: 'absolute', top: 3, left: annual ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
-          </button>
-          <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink)' : 'var(--ink-mute)' }}>Annual</span>
-          <span style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', background: annual ? 'var(--ink)' : 'var(--border-soft)', color: annual ? '#fff' : 'var(--ink-mute)', borderRadius: 999, padding: '4px 10px', transition: 'background 0.2s, color 0.2s' }}>
-            2 months free
-          </span>
-        </div>
-
-        <div className="billing-plan-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+        <div className="billing-plan-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
           {plans.map((plan) => {
-            const activePriceId = annual ? plan.annualPriceId : plan.monthlyPriceId
-            const displayPrice = annual ? plan.annualPrice : plan.monthlyPrice
-            const isLoading = upgradeLoading === activePriceId
+            const isCurrent = currentPlan === plan.planKey
+            const activeKey = annual ? plan.productKey.annual : plan.productKey.monthly
+            const isLoading = upgradeLoading === activeKey
+            const displayPrice = annual ? plan.price.annual : plan.price.monthly
+
             return (
-              <div
-                key={plan.name}
-                style={{
-                  position: 'relative',
-                  background: 'var(--surface)',
-                  border: plan.current ? '2px solid var(--ink)' : '1px solid var(--border)',
-                  borderRadius: 15,
-                  padding: 28,
-                }}
-              >
-                {plan.current && (
-                  <span style={{
-                    position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)',
-                    fontSize: 10.5, fontWeight: 600,
-                    letterSpacing: '0.04em', textTransform: 'uppercase',
-                    background: 'var(--ink)', color: '#fff',
-                    borderRadius: 999, padding: '4px 12px',
-                    whiteSpace: 'nowrap',
-                  }}>Current plan</span>
+              <div key={plan.name} style={{ position: 'relative', background: 'var(--surface)', border: isCurrent ? '2px solid var(--ink)' : '1px solid var(--border)', borderRadius: 14, padding: 22 }}>
+                {isCurrent && (
+                  <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: 'var(--ink)', color: 'var(--bg)', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                    Current plan
+                  </span>
                 )}
-                <div style={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em' }}>{plan.name}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, marginTop: 10 }}>
-                  <span style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1 }}>{displayPrice}</span>
-                  <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>{plan.name === 'Free' ? 'forever' : '/mo'}</span>
-                </div>
-                {annual && plan.annualTotal ? (
-                  <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 3 }}>billed {plan.annualTotal}</div>
-                ) : null}
-                <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: annual && plan.annualTotal ? 4 : 8 }}>
-                  {plan.credits}{plan.bonus ? ` · ${plan.bonus}` : ''}{plan.pricePerCredit ? ` · ${plan.pricePerCredit}` : ''}
-                </div>
+                {plan.popular && !isCurrent && (
+                  <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: 'var(--border)', color: 'var(--ink-dim)', borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap' }}>
+                    Most popular
+                  </span>
+                )}
 
-                <button
-                  disabled={plan.ctaDisabled || isLoading}
-                  onClick={() => !plan.ctaDisabled && handleUpgrade(activePriceId, 'subscription')}
-                  style={{
-                    display: 'block', textAlign: 'center', width: '100%',
-                    marginTop: 16, padding: 11, borderRadius: 9,
-                    background: plan.ctaDisabled ? 'var(--surface)' : 'var(--ink)',
-                    color: plan.ctaDisabled ? 'var(--ink-mute)' : '#fff',
-                    border: plan.ctaDisabled ? '1px solid var(--border)' : 'none',
-                    fontWeight: 600, fontSize: 13,
-                    cursor: plan.ctaDisabled ? 'default' : 'pointer',
-                    opacity: isLoading ? 0.6 : 1,
-                  }}
-                >
-                  {isLoading ? 'Redirecting…' : plan.cta}
-                </button>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{plan.name}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 8 }}>
+                  <span style={{ fontFamily: 'var(--font-serif)', fontSize: 36, lineHeight: 1 }}>{displayPrice}</span>
+                  <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{plan.planKey === 'free' ? 'forever' : '/mo'}</span>
+                </div>
+                {annual && plan.annualTotal && (
+                  <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>billed {plan.annualTotal}</div>
+                )}
+                <div style={{ fontSize: 12, color: 'var(--ink-dim)', marginTop: 6 }}>{plan.credits}</div>
 
-                <div style={{ height: 1, background: 'var(--border-soft)', margin: '18px 0' }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {plan.features.map((feature, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 9, alignItems: 'flex-start', fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.4 }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }}>
+                {isCurrent ? (
+                  <div style={{ marginTop: 14, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', textAlign: 'center', fontSize: 12.5, fontWeight: 500, color: 'var(--ink-mute)' }}>
+                    Current plan
+                  </div>
+                ) : activeKey ? (
+                  <button
+                    onClick={() => handlePolarCheckout(activeKey)}
+                    disabled={isLoading}
+                    style={{ marginTop: 14, display: 'block', width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--ink)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.15s' }}
+                  >
+                    {isLoading ? 'Redirecting…' : 'Upgrade'}
+                  </button>
+                ) : (
+                  <div style={{ marginTop: 14, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', textAlign: 'center', fontSize: 12.5, fontWeight: 500, color: 'var(--ink-mute)' }}>
+                    Free forever
+                  </div>
+                )}
+
+                <div style={{ height: 1, background: 'var(--border-soft)', margin: '16px 0' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  {plan.features.map((f, i) => (
+                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.4 }}>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 13, height: 13, flexShrink: 0, marginTop: 1 }}>
                         <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
-                      <span>{feature}</span>
+                      <span>{f}</span>
                     </div>
                   ))}
                 </div>
@@ -387,30 +262,20 @@ export default function BillingPage() {
         </div>
         <style>{`
           @media (max-width: 1100px) { .billing-plan-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-          @media (max-width: 640px) { .billing-plan-grid { grid-template-columns: 1fr !important; } }
+          @media (max-width: 640px)  { .billing-plan-grid { grid-template-columns: 1fr !important; } }
         `}</style>
       </div>
 
       {/* Credits policy */}
-      <div style={{
-        marginBottom: 28,
-        border: '1px solid var(--border)', borderRadius: 14,
-        background: 'var(--surface)', padding: '20px 24px',
-        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px 32px',
-      }}>
+      <div style={{ marginBottom: 28, border: '1px solid var(--border)', borderRadius: 14, background: 'var(--surface)', padding: '20px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px 32px' }}>
         {[
-          { icon: '↑', title: 'Upgrading', body: 'Your balance resets to the new plan\'s full monthly allowance. Pack credits are preserved on top.' },
-          { icon: '↓', title: 'Downgrading', body: 'Your current credits are kept and the new plan\'s credits are added. Nothing is taken away.' },
-          { icon: '↻', title: 'Monthly renewal', body: 'Balance resets to your plan\'s allowance. Pack credits never expire and always carry over.' },
+          { icon: '↑', title: 'Upgrading', body: "Your balance resets to the new plan's full monthly allowance. Pack credits are preserved on top." },
+          { icon: '↓', title: 'Downgrading', body: "Your current credits are kept and the new plan's credits are added. Nothing is taken away." },
+          { icon: '↻', title: 'Monthly renewal', body: "Balance resets to your plan's allowance. Pack credits never expire and always carry over." },
           { icon: '＋', title: 'Credit packs', body: 'Stack on top of your subscription. Survive plan changes and monthly resets — they never disappear.' },
         ].map(({ icon, title, body }) => (
           <div key={title} style={{ display: 'flex', gap: 12 }}>
-            <span style={{
-              flexShrink: 0, width: 28, height: 28, borderRadius: 8,
-              background: 'var(--bg-elev)', border: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 13, fontWeight: 700, color: 'var(--ink)',
-            }}>{icon}</span>
+            <span style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, background: 'var(--bg-elev)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{icon}</span>
             <div>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{title}</p>
               <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>{body}</p>
@@ -419,80 +284,49 @@ export default function BillingPage() {
         ))}
       </div>
 
-      {/* Credit Packs — pay-as-you-go card, same design as the pricing page */}
-      <div style={{
-        marginBottom: '48px',
-        border: '1px solid var(--border)', borderRadius: 18,
-        background: 'var(--surface)', padding: '30px 32px',
-      }}>
-        <div>
-          <h2 style={{
-            fontFamily: 'var(--font-serif)', fontSize: 26, fontWeight: 400,
-            margin: 0, letterSpacing: '-0.01em', color: 'var(--ink)',
-          }}>
-            Prefer to <span style={{ fontStyle: 'italic' }}>pay as you go?</span>
-          </h2>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: '7px 0 0' }}>
-            One-off credit packs. No subscription, never expire.
-          </p>
-        </div>
-        <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginTop: 22 }}>
+      {/* Pay as you go */}
+      <div style={{ marginBottom: 48, border: '1px solid var(--border)', borderRadius: 18, background: 'var(--surface)', padding: '28px 30px' }}>
+        <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 400, margin: 0, letterSpacing: '-0.01em' }}>
+          Prefer to <span style={{ fontStyle: 'italic' }}>pay as you go?</span>
+        </h2>
+        <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: '6px 0 0' }}>One-off credit packs. No subscription, never expire.</p>
+        <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, marginTop: 20 }}>
           {creditPacks.map((pack) => (
-            <div key={pack.credits} style={{
-              border: '1px solid var(--border)', borderRadius: 13,
-              padding: '18px 20px', background: 'var(--bg-elev)',
-              display: 'flex', flexDirection: 'column', gap: 6,
-            }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 500, letterSpacing: '-0.03em', color: 'var(--ink)' }}>
-                {pack.credits.toLocaleString()} <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>cr</span>
+            <div key={pack.credits} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', background: 'var(--bg-elev)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 20, fontWeight: 500, letterSpacing: '-0.03em' }}>
+                {pack.credits.toLocaleString()} <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>cr</span>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>
-                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>{pack.price}</span>
-                <span style={{ marginLeft: 6, color: 'var(--ink-mute)' }}>· {pack.pricePerCredit}</span>
+              <div>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)' }}>{pack.price}</span>
+                <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--ink-mute)' }}>· {pack.perCr}</span>
               </div>
               <button
-                onClick={() => pack.priceId && handleUpgrade(pack.priceId, 'payment')}
-                disabled={upgradeLoading === pack.priceId}
-                style={{
-                  marginTop: 4, display: 'block', textAlign: 'center', width: '100%',
-                  padding: '9px 14px', borderRadius: 9,
-                  background: 'var(--surface)', border: '1px solid var(--border)',
-                  color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer',
-                  opacity: upgradeLoading === pack.priceId ? 0.6 : 1,
-                }}
+                onClick={() => handlePolarCheckout(pack.key)}
+                disabled={upgradeLoading === pack.key}
+                style={{ marginTop: 4, display: 'block', width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: upgradeLoading === pack.key ? 0.5 : 1 }}
               >
-                {upgradeLoading === pack.priceId ? 'Redirecting…' : 'Buy credits'}
+                {upgradeLoading === pack.key ? 'Redirecting…' : 'Buy credits'}
               </button>
             </div>
           ))}
         </div>
-        <style>{`
-          @media (max-width: 760px) { .billing-pack-grid { grid-template-columns: 1fr !important; } }
-        `}</style>
+        <style>{`@media (max-width: 700px) { .billing-pack-grid { grid-template-columns: 1fr !important; } }`}</style>
       </div>
 
       {/* FAQ */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '24px' }}>
-        <h3 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--ink)', marginBottom: '16px' }}>Frequently Asked Questions</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>What are credits used for?</p>
-            <p style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>
-              Credits are consumed when you generate content using our AI services. Different content types cost different amounts based on complexity and processing time.
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>Do unused credits roll over?</p>
-            <p style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>
-              No, monthly credits reset on the date shown above. Purchase additional credits anytime to extend beyond your monthly allocation.
-            </p>
-          </div>
-          <div>
-            <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', marginBottom: '4px' }}>Can I change my plan anytime?</p>
-            <p style={{ fontSize: '13px', color: 'var(--ink-dim)', lineHeight: 1.5 }}>
-              Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately and are prorated.
-            </p>
-          </div>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
+        <h3 style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 16, marginTop: 0 }}>Frequently Asked Questions</h3>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[
+            { q: 'What are credits used for?', a: 'Credits are consumed when you generate content — images, UGC videos, influencer photos, voiceovers, and more. Each type has a fixed credit cost.' },
+            { q: 'Do unused monthly credits roll over?', a: 'Monthly plan credits reset each billing period. One-time pack credits never expire and survive plan changes and renewals.' },
+            { q: 'Can I change my plan anytime?', a: 'Yes — upgrade or downgrade at any time. Changes take effect immediately.' },
+          ].map(({ q, a }) => (
+            <div key={q}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, marginTop: 0 }}>{q}</p>
+              <p style={{ fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1.5, margin: 0 }}>{a}</p>
+            </div>
+          ))}
         </div>
       </div>
     </div>
