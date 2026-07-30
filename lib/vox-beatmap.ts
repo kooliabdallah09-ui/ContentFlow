@@ -35,13 +35,13 @@ Each beat lasts approximately ${avgBeatSec} seconds (can range 4–8s). Beats mu
 
 For each beat write:
 - narration: 15–25 words the narrator says aloud. Conversational but editorial. No filler. Each sentence punches.
-- headline: 2–4 bold words that appear as text overlay on screen (like a chapter title or key stat)
-- visual_description: a specific scene description for a 16:9 LANDSCAPE frame. Choose ONE of these Vox visual formats:
-    A) PHOTOJOURNALISM: real-world editorial photograph — people, places, events. Describe subject, framing (wide/medium/close), lighting mood, location.
-    B) INFOGRAPHIC: flat-color data visualization — bar chart, timeline, map, stat card. Describe what data is shown and its visual layout.
-    C) MAP: bold illustrated geographic map — specify region, what areas are highlighted, color coding.
-    D) DOCUMENTARY B-ROLL: establishing shot of a location, institution, or object — specific and cinematic.
-    ALWAYS specify the visual format type (PHOTO / INFOGRAPHIC / MAP / B-ROLL) at the start.
+- headline: 2–4 plain words (NO markdown, NO asterisks, NO bold formatting — just plain text)
+- visual_description: ONE specific scene, 16:9 landscape. Prefix with format tag. NEVER describe multiple images or collages — single scene only.
+    PHOTO: single editorial photo, one subject. Example: "PHOTO: extreme close-up of a racing driver's eyes in helmet visor reflection, dramatic side light"
+    INFOGRAPHIC: one simple chart or one bold number — max 5 data points, minimal. Example: "INFOGRAPHIC: 3-bar chart comparing lap times, bold red bars on dark background, lots of white space"
+    MAP: flat map of one region with solid color fills. Example: "MAP: flat map of Netherlands highlighted in orange, surrounding Europe in light grey"
+    B-ROLL: wide cinematic establishing shot of a real place. Example: "B-ROLL: wide shot of an empty Formula 1 pit lane at dawn, low golden side lighting"
+    Keep description under 20 words after the tag. No markdown bold. No asterisks.
 - duration_sec: integer seconds this beat lasts (must sum to ${targetDuration})
 - accent_color: a bold editorial color for this beat's chapter card
 

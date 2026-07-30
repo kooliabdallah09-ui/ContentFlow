@@ -57,6 +57,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Beat map has no beats' }, { status: 500 })
     }
 
+    // Strip markdown bold/italic from headlines and narration
+    beatMap.beats = beatMap.beats.map(b => ({
+      ...b,
+      headline: b.headline.replace(/\*+/g, '').trim(),
+      narration: b.narration.replace(/\*+/g, '').trim(),
+    }))
+
     return NextResponse.json({ beatMap })
   } catch (err) {
     console.error('[vox/beat-map] error:', err)

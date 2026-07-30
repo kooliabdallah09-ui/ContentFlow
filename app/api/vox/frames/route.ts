@@ -7,36 +7,64 @@ import type { VoxBeat } from '@/lib/vox-beatmap'
 export const maxDuration = 180
 
 // Builds a Vox-style frame prompt for a single beat.
-// Visual style: Vox Media YouTube explainer — 16:9 landscape, cinematic, data-driven, editorial.
+// Real Vox style: single clean scene, bold flat colors, minimal, editorial.
 function buildVoxFramePrompt(beat: VoxBeat, productName?: string, hasProductRef?: boolean): string {
   const desc = beat.visual_description
   const color = beat.accent_color
 
   const productSuffix = hasProductRef
-    ? ` The reference image shows the exact product — preserve its label, packaging, and colours faithfully.`
-    : productName
-    ? ` Context: the topic is about "${productName}".`
+    ? ` The reference image shows the exact product — preserve its packaging, label, and colours faithfully.`
     : ''
 
-  // Detect the visual format tag the beat map specified
   const isInfographic = /^INFOGRAPHIC:/i.test(desc)
   const isMap = /^MAP:/i.test(desc)
   const isBroll = /^B-ROLL:/i.test(desc)
-  const cleanDesc = desc.replace(/^(PHOTO|INFOGRAPHIC|MAP|B-ROLL|DOCUMENTARY):\s*/i, '')
+  const cleanDesc = desc.replace(/^(PHOTO|INFOGRAPHIC|MAP|B-ROLL|DOCUMENTARY):\s*/i, '').trim()
 
   let styleDirective: string
-  if (isInfographic) {
-    styleDirective = `Bold flat infographic illustration. ${cleanDesc}. Dominant accent color ${color} used for key elements. Clean sans-serif data visualization aesthetic — bar charts, icons, or stat typography rendered as graphic art. White or very dark background for contrast. No photographic elements.`
-  } else if (isMap) {
-    styleDirective = `Bold editorial map illustration. ${cleanDesc}. Solid fills, high-contrast color coding, accent ${color} highlights the key region. Flat design, crisp outlines. Vox-style geographic visualization. No labels or text overlays.`
+
+  if (isMap) {
+    styleDirective = [
+      `Flat vector-style map illustration, single unified scene filling the entire 16:9 frame.`,
+      cleanDesc,
+      `Bold solid color fills — accent color ${color} highlights the key region. Minimal detail, crisp clean outlines, Vox Media editorial map aesthetic.`,
+      `Lots of negative space. Very simple and clean. NOT a collage.`,
+    ].join(' ')
+  } else if (isInfographic) {
+    styleDirective = [
+      `Clean minimal data visualization poster, single graphic filling the entire 16:9 frame.`,
+      cleanDesc,
+      `ONE simple chart or bold statistic. Dominant accent color ${color}. Very generous white or near-black negative space.`,
+      `Maximum 5 visual elements. No clutter. Inspired by Vox Media explainer graphics — bold, simple, immediately readable.`,
+      `NOT a collage, NOT a grid of multiple charts. Single focused graphic.`,
+    ].join(' ')
   } else if (isBroll) {
-    styleDirective = `Cinematic 16:9 documentary B-roll photograph. ${cleanDesc}. ${color} accent color reflected subtly in lighting or environmental color. Wide establishing shot or dramatic close-up. High contrast, photojournalistic realism. Shot on professional cinema camera.`
+    styleDirective = [
+      `Single wide cinematic shot, one continuous scene filling the entire 16:9 frame.`,
+      cleanDesc,
+      `Shot on professional cinema camera. Shallow depth of field, rich film color grade. Accent color ${color} present in the environment or lighting.`,
+      `ONE establishing shot — no split screen, no collage, no grid. Single unified image.`,
+    ].join(' ')
   } else {
-    // PHOTO or untagged — photojournalism
-    styleDirective = `Cinematic 16:9 editorial photograph. ${cleanDesc}. Photojournalistic style — dramatic real-world lighting, authentic subject matter. ${color} color accent woven into the scene (a colored surface, lighting gel, or environmental element). Shot on professional camera with a 35mm or 85mm lens. High contrast, film-grade colour grade.`
+    // PHOTO — editorial photojournalism
+    styleDirective = [
+      `Single editorial photograph filling the entire 16:9 frame, one unified scene.`,
+      cleanDesc,
+      `Photojournalistic style. Dramatic real-world lighting. Professional 35mm lens.`,
+      `Accent color ${color} subtly present in scene (clothing, environment, or light). High contrast, film-grade colour grade.`,
+      `ONE complete photograph — absolutely no split-screen, no collage, no tiled images, no grid of photos.`,
+    ].join(' ')
   }
 
-  return `${styleDirective}${productSuffix} 16:9 landscape frame. No text overlays, no watermarks, no captions, no subtitles. Vox Media explainer video visual style.`
+  const suffix = [
+    productSuffix,
+    `16:9 landscape orientation.`,
+    `CRITICAL: Single unified image. No split screen. No photo grid. No collage. No tiled panels.`,
+    `No text overlays. No watermarks. No captions. No UI elements.`,
+    `Style reference: Vox Media YouTube video frame.`,
+  ].filter(Boolean).join(' ')
+
+  return `${styleDirective} ${suffix}`
 }
 
 export async function POST(request: NextRequest) {
