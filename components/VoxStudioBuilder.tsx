@@ -84,7 +84,7 @@ function BeatCard({ beat, frameUrl }: { beat: VoxBeat; frameUrl?: string | null 
       background: 'var(--surface)',
     }}>
       {frameUrl && (
-        <div style={{ position: 'relative', aspectRatio: '9/16', overflow: 'hidden', maxHeight: 160 }}>
+        <div style={{ position: 'relative', aspectRatio: '16/9', overflow: 'hidden' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={frameUrl}
@@ -246,6 +246,7 @@ export default function VoxStudioBuilder() {
           productImageBase64,
           productImageMimeType,
           productName: topic,
+          aspectId: 'landscape',
         }),
       })
       const data = await res.json()
@@ -285,8 +286,8 @@ export default function VoxStudioBuilder() {
                 formatKey: 'aesthetic-broll',
                 productName: topic,
                 duration: beats[i]?.duration_sec ?? 5,
-                aspect: 'portrait',
-                resolution: '1080p',
+                aspect: 'landscape',
+                resolution: '720p',
                 engine: 'seedance-2',
               }),
             })
@@ -343,7 +344,7 @@ export default function VoxStudioBuilder() {
           beats,
           videoUrls,
           voiceoverUrl,
-          aspectId: 'portrait',
+          aspectId: 'landscape',
         }),
       })
       const stitchData = await stitchRes.json()
@@ -598,7 +599,7 @@ export default function VoxStudioBuilder() {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {beatMap.beats.map(beat => (
               <BeatCard key={beat.id} beat={beat} />
             ))}
@@ -653,7 +654,7 @@ export default function VoxStudioBuilder() {
             </button>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
             {beatMap.beats.map((beat, i) => (
               <BeatCard key={beat.id} beat={beat} frameUrl={frameUrls[i]} />
             ))}

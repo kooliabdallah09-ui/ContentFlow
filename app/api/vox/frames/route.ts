@@ -6,19 +6,37 @@ import type { VoxBeat } from '@/lib/vox-beatmap'
 
 export const maxDuration = 180
 
-// Builds a Vox editorial-style image prompt for a single beat.
-function buildVoxFramePrompt(
-  beat: VoxBeat,
-  productName?: string,
-  hasProductRef?: boolean,
-): string {
-  const productLine = productName
-    ? `Product: ${productName}. `
+// Builds a Vox-style frame prompt for a single beat.
+// Visual style: Vox Media YouTube explainer — 16:9 landscape, cinematic, data-driven, editorial.
+function buildVoxFramePrompt(beat: VoxBeat, productName?: string, hasProductRef?: boolean): string {
+  const desc = beat.visual_description
+  const color = beat.accent_color
+
+  const productSuffix = hasProductRef
+    ? ` The reference image shows the exact product — preserve its label, packaging, and colours faithfully.`
+    : productName
+    ? ` Context: the topic is about "${productName}".`
     : ''
-  const refLine = hasProductRef
-    ? 'The reference image is the EXACT product — preserve its label, packaging, and colours faithfully. '
-    : ''
-  return `${beat.visual_description}. ${productLine}${refLine}Vox editorial style — bold flat ${beat.accent_color} backdrop, dramatic product-hero composition, cinematic lighting, magazine-cover energy, no text overlays, no captions, no watermarks, high contrast, graphic design aesthetic.`
+
+  // Detect the visual format tag the beat map specified
+  const isInfographic = /^INFOGRAPHIC:/i.test(desc)
+  const isMap = /^MAP:/i.test(desc)
+  const isBroll = /^B-ROLL:/i.test(desc)
+  const cleanDesc = desc.replace(/^(PHOTO|INFOGRAPHIC|MAP|B-ROLL|DOCUMENTARY):\s*/i, '')
+
+  let styleDirective: string
+  if (isInfographic) {
+    styleDirective = `Bold flat infographic illustration. ${cleanDesc}. Dominant accent color ${color} used for key elements. Clean sans-serif data visualization aesthetic — bar charts, icons, or stat typography rendered as graphic art. White or very dark background for contrast. No photographic elements.`
+  } else if (isMap) {
+    styleDirective = `Bold editorial map illustration. ${cleanDesc}. Solid fills, high-contrast color coding, accent ${color} highlights the key region. Flat design, crisp outlines. Vox-style geographic visualization. No labels or text overlays.`
+  } else if (isBroll) {
+    styleDirective = `Cinematic 16:9 documentary B-roll photograph. ${cleanDesc}. ${color} accent color reflected subtly in lighting or environmental color. Wide establishing shot or dramatic close-up. High contrast, photojournalistic realism. Shot on professional cinema camera.`
+  } else {
+    // PHOTO or untagged — photojournalism
+    styleDirective = `Cinematic 16:9 editorial photograph. ${cleanDesc}. Photojournalistic style — dramatic real-world lighting, authentic subject matter. ${color} color accent woven into the scene (a colored surface, lighting gel, or environmental element). Shot on professional camera with a 35mm or 85mm lens. High contrast, film-grade colour grade.`
+  }
+
+  return `${styleDirective}${productSuffix} 16:9 landscape frame. No text overlays, no watermarks, no captions, no subtitles. Vox Media explainer video visual style.`
 }
 
 export async function POST(request: NextRequest) {
@@ -40,7 +58,7 @@ export async function POST(request: NextRequest) {
     const productImageBase64 = typeof body.productImageBase64 === 'string' ? body.productImageBase64 : undefined
     const productImageMimeType = typeof body.productImageMimeType === 'string' ? body.productImageMimeType : undefined
     const productName = typeof body.productName === 'string' ? body.productName.trim() : undefined
-    const aspectId = typeof body.aspectId === 'string' ? body.aspectId : undefined
+    const aspectId = typeof body.aspectId === 'string' ? body.aspectId : 'landscape'
 
     if (!Array.isArray(beats) || beats.length === 0) {
       return NextResponse.json({ error: 'beats array is required' }, { status: 400 })
