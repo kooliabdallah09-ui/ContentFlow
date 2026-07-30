@@ -11,7 +11,7 @@ import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
 import { Loader2, Sparkles, Play, ArrowRight } from 'lucide-react'
 import type { PodcastScript } from '@/lib/podcast-ad'
 
-interface Product { id: string; name: string; image_url: string | null }
+interface Product { id: string; name: string; image_url: string | null; description?: string }
 interface Influencer { id: string; name: string; portrait_url: string; character_sheet_url?: string | null }
 
 async function getToken() {
@@ -58,10 +58,17 @@ export default function PodcastAdPage() {
       const token = await getToken()
       if (!token) return
       const [p, i] = await Promise.all([
-        fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ products: [] })),
+        fetch('/api/products-studio', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ products: [] })),
         fetch('/api/influencers', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ influencers: [] })),
       ])
-      setProducts(p.products ?? [])
+      // Normalise studio products → { id, name, image_url, description }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      setProducts((p.products ?? []).map((x: any) => ({
+        id: x.id,
+        name: x.name,
+        image_url: Array.isArray(x.photo_urls) && x.photo_urls.length > 0 ? x.photo_urls[0] : null,
+        description: x.description ?? '',
+      })))
       setInfluencers(i.influencers ?? [])
     })()
   }, [])
@@ -72,6 +79,7 @@ export default function PodcastAdPage() {
     if (p) {
       setProductName(p.name)
       setProductImageUrl(p.image_url ?? '')
+      if (p.description) setProductDescription(p.description)
     }
   }
 
