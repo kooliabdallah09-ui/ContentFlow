@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { Icon } from '@/components/Icons'
+import { PADDLE_PRICES } from '@/lib/paddle'
+import { openPaddleCheckout } from '@/lib/paddle-client'
 
 interface CreditsInfo {
   balance: number
@@ -16,14 +17,13 @@ export default function BillingPage() {
   const [creditsInfo, setCreditsInfo] = useState<CreditsInfo | null>(null)
   const [loading, setLoading] = useState(true)
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
+  const [packLoading, setPackLoading] = useState<string | null>(null)
   const [annual, setAnnual] = useState(false)
 
   useEffect(() => {
     loadCreditsInfo()
     const params = new URLSearchParams(window.location.search)
-    if (params.get('success') === 'credits' || params.get('success') === 'plan') {
-      setTimeout(() => loadCreditsInfo(), 2500)
-    }
+    if (params.get('success') === '1') setTimeout(() => loadCreditsInfo(), 2500)
   }, [])
 
   async function getToken() {
@@ -31,21 +31,48 @@ export default function BillingPage() {
     return data?.session?.access_token ?? null
   }
 
-  async function handlePolarCheckout(productKey: string) {
-    setUpgradeLoading(productKey)
+  async function handleUpgrade(priceId: string) {
+    if (!priceId) return
+    setUpgradeLoading(priceId)
     try {
-      const token = await getToken()
-      if (!token) { window.location.href = '/auth/login'; return }
-      const res = await fetch('/api/polar/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ productKey }),
-      })
-      const json = await res.json() as { url?: string; error?: string }
-      if (!res.ok || !json.url) throw new Error(json.error ?? 'Checkout failed')
-      window.location.href = json.url
+      const { data } = await getSupabase()!.auth.getSession()
+      const user = data?.session?.user
+      if (!user) { window.location.href = '/auth/login'; return }
+      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Checkout failed')
+    } finally {
+      setUpgradeLoading(null)
+    }
+  }
+
+  async function handlePackCheckout(priceId: string) {
+    setPackLoading(priceId)
+    try {
+      const { data } = await getSupabase()!.auth.getSession()
+      const user = data?.session?.user
+      if (!user) { window.location.href = '/auth/login'; return }
+      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Checkout failed')
+    } finally {
+      setPackLoading(null)
+    }
+  }
+
+  async function handleManageSubscription() {
+    setUpgradeLoading('portal')
+    try {
+      const token = await getToken()
+      const res = await fetch('/api/paddle/portal', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const { url, error } = await res.json()
+      if (error) throw new Error(error)
+      window.location.href = url
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Portal failed')
     } finally {
       setUpgradeLoading(null)
     }
@@ -80,10 +107,8 @@ export default function BillingPage() {
   if (loading) {
     return (
       <div className="content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ textAlign: 'center' }}>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--ink)', animation: 'spin 0.8s linear infinite', margin: '0 auto 16px' }} />
-          <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        </div>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--ink)', animation: 'spin 0.8s linear infinite', margin: '0 auto' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }
@@ -92,48 +117,40 @@ export default function BillingPage() {
 
   const plans = [
     {
-      name: 'Free',
-      price: { monthly: '$0', annual: '$0' },
-      annualTotal: null,
+      name: 'Free', price: { monthly: '$0', annual: '$0' }, annualTotal: null,
       credits: '0/month · +60 signup',
-      productKey: { monthly: '', annual: '' },
+      priceId: { monthly: '', annual: '' },
       features: ['60 one-time signup credits', '~12 product images', '~7 AI influencer / product photos', 'Try every studio', 'Business card generator', 'No UGC videos (cheapest is 95cr)'],
       planKey: 'free',
     },
     {
-      name: 'Starter',
-      price: { monthly: '$19', annual: '$16' },
-      annualTotal: '$190/yr',
+      name: 'Starter', price: { monthly: '$19', annual: '$16' }, annualTotal: '$190/yr',
       credits: '800/month · $0.024/cr',
-      productKey: { monthly: 'starter', annual: 'starterAnnual' },
+      priceId: { monthly: PADDLE_PRICES.starter, annual: PADDLE_PRICES.starterAnnual },
       features: ['~6 UGC videos/mo at 5s · ~4 at 10s', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer Studio & Product Studio', 'No watermark · Video editor · Priority support'],
       planKey: 'starter',
     },
     {
-      name: 'Pro',
-      price: { monthly: '$49', annual: '$41' },
-      annualTotal: '$490/yr',
+      name: 'Pro', price: { monthly: '$49', annual: '$41' }, annualTotal: '$490/yr',
       credits: '2,000/month · $0.025/cr',
-      productKey: { monthly: 'pro', annual: 'proAnnual' },
+      priceId: { monthly: PADDLE_PRICES.pro, annual: PADDLE_PRICES.proAnnual },
       features: ['~16 UGC videos/mo at 5s · ~10 at 10s', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
       planKey: 'pro',
       popular: true,
     },
     {
-      name: 'Agency',
-      price: { monthly: '$149', annual: '$124' },
-      annualTotal: '$1,490/yr',
+      name: 'Agency', price: { monthly: '$149', annual: '$124' }, annualTotal: '$1,490/yr',
       credits: '6,500/month · $0.023/cr',
-      productKey: { monthly: 'agency', annual: 'agencyAnnual' },
+      priceId: { monthly: PADDLE_PRICES.agency, annual: PADDLE_PRICES.agencyAnnual },
       features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
       planKey: 'agency',
     },
   ]
 
   const creditPacks = [
-    { credits: 500,  price: '$15',  perCr: '$0.030/cr', key: 'pack500' },
-    { credits: 1500, price: '$45',  perCr: '$0.030/cr', key: 'pack1500' },
-    { credits: 5000, price: '$120', perCr: '$0.024/cr', key: 'pack5000' },
+    { credits: 500,  price: '$15',  perCr: '$0.030/cr', priceId: PADDLE_PRICES.pack500 },
+    { credits: 1500, price: '$45',  perCr: '$0.030/cr', priceId: PADDLE_PRICES.pack1500 },
+    { credits: 5000, price: '$120', perCr: '$0.024/cr', priceId: PADDLE_PRICES.pack5000 },
   ]
 
   return (
@@ -155,15 +172,11 @@ export default function BillingPage() {
         <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', margin: '0 0 16px' }}>Current Balance</p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 24 }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: 4 }}>
-              {(creditsInfo?.balance ?? 0).toLocaleString()}
-            </div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: 4 }}>{(creditsInfo?.balance ?? 0).toLocaleString()}</div>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', margin: 0 }}>Available Credits</p>
           </div>
           <div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: 4 }}>
-              {(creditsInfo?.monthlyCredits ?? 0).toLocaleString()}
-            </div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 40, lineHeight: 1.1, color: 'var(--ink)', marginBottom: 4 }}>{(creditsInfo?.monthlyCredits ?? 0).toLocaleString()}</div>
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', margin: 0 }}>Monthly Allocation</p>
           </div>
           <div>
@@ -173,6 +186,12 @@ export default function BillingPage() {
             <p style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', margin: 0 }}>Reset Date</p>
           </div>
         </div>
+        {creditsInfo?.hasSubscription && (
+          <button onClick={handleManageSubscription} disabled={upgradeLoading === 'portal'}
+            style={{ marginTop: 16, fontSize: 13, padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-dim)', cursor: 'pointer' }}>
+            {upgradeLoading === 'portal' ? 'Opening…' : '⚙ Manage subscription'}
+          </button>
+        )}
       </div>
 
       {/* Plans */}
@@ -184,10 +203,10 @@ export default function BillingPage() {
             </h2>
             <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: '6px 0 0' }}>Renewable monthly credits + 60 one-time bonus at signup</p>
           </div>
-          {/* Annual toggle */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 999, padding: '5px 6px 5px 16px' }}>
             <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink-mute)' : 'var(--ink)' }}>Monthly</span>
-            <button onClick={() => setAnnual(a => !a)} aria-label="Toggle annual billing" style={{ position: 'relative', width: 36, height: 20, borderRadius: 999, border: 'none', cursor: 'pointer', background: annual ? 'var(--ink)' : 'var(--border)', transition: 'background 0.2s', flexShrink: 0 }}>
+            <button onClick={() => setAnnual(a => !a)} aria-label="Toggle annual billing"
+              style={{ position: 'relative', width: 36, height: 20, borderRadius: 999, border: 'none', cursor: 'pointer', background: annual ? 'var(--ink)' : 'var(--border)', transition: 'background 0.2s', flexShrink: 0 }}>
               <span style={{ position: 'absolute', top: 2, left: annual ? 18 : 2, width: 16, height: 16, borderRadius: '50%', background: annual ? 'var(--bg)' : '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.25)' }} />
             </button>
             <span style={{ fontSize: 13, fontWeight: 500, color: annual ? 'var(--ink)' : 'var(--ink-mute)' }}>Annual</span>
@@ -200,10 +219,9 @@ export default function BillingPage() {
         <div className="billing-plan-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
           {plans.map((plan) => {
             const isCurrent = currentPlan === plan.planKey
-            const activeKey = annual ? plan.productKey.annual : plan.productKey.monthly
-            const isLoading = upgradeLoading === activeKey
+            const activePriceId = annual ? plan.priceId.annual : plan.priceId.monthly
+            const isLoading = upgradeLoading === activePriceId
             const displayPrice = annual ? plan.price.annual : plan.price.monthly
-
             return (
               <div key={plan.name} style={{ position: 'relative', background: 'var(--surface)', border: isCurrent ? '2px solid var(--ink)' : '1px solid var(--border)', borderRadius: 14, padding: 22 }}>
                 {isCurrent && (
@@ -216,42 +234,28 @@ export default function BillingPage() {
                     Most popular
                   </span>
                 )}
-
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{plan.name}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 8 }}>
                   <span style={{ fontFamily: 'var(--font-serif)', fontSize: 36, lineHeight: 1 }}>{displayPrice}</span>
                   <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{plan.planKey === 'free' ? 'forever' : '/mo'}</span>
                 </div>
-                {annual && plan.annualTotal && (
-                  <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>billed {plan.annualTotal}</div>
-                )}
+                {annual && plan.annualTotal && <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>billed {plan.annualTotal}</div>}
                 <div style={{ fontSize: 12, color: 'var(--ink-dim)', marginTop: 6 }}>{plan.credits}</div>
-
                 {isCurrent ? (
-                  <div style={{ marginTop: 14, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', textAlign: 'center', fontSize: 12.5, fontWeight: 500, color: 'var(--ink-mute)' }}>
-                    Current plan
-                  </div>
-                ) : activeKey ? (
-                  <button
-                    onClick={() => handlePolarCheckout(activeKey)}
-                    disabled={isLoading}
-                    style={{ marginTop: 14, display: 'block', width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--ink)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: isLoading ? 0.5 : 1, transition: 'opacity 0.15s' }}
-                  >
+                  <div style={{ marginTop: 14, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', textAlign: 'center', fontSize: 12.5, fontWeight: 500, color: 'var(--ink-mute)' }}>Current plan</div>
+                ) : activePriceId ? (
+                  <button onClick={() => handleUpgrade(activePriceId)} disabled={isLoading}
+                    style={{ marginTop: 14, display: 'block', width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid var(--ink)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: isLoading ? 0.5 : 1 }}>
                     {isLoading ? 'Redirecting…' : 'Upgrade'}
                   </button>
                 ) : (
-                  <div style={{ marginTop: 14, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', textAlign: 'center', fontSize: 12.5, fontWeight: 500, color: 'var(--ink-mute)' }}>
-                    Free forever
-                  </div>
+                  <div style={{ marginTop: 14, padding: '9px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', textAlign: 'center', fontSize: 12.5, fontWeight: 500, color: 'var(--ink-mute)' }}>Free forever</div>
                 )}
-
                 <div style={{ height: 1, background: 'var(--border-soft)', margin: '16px 0' }} />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                   {plan.features.map((f, i) => (
                     <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.4 }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 13, height: 13, flexShrink: 0, marginTop: 1 }}>
-                        <path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
-                      </svg>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 13, height: 13, flexShrink: 0, marginTop: 1 }}><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       <span>{f}</span>
                     </div>
                   ))}
@@ -300,12 +304,9 @@ export default function BillingPage() {
                 <span style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)' }}>{pack.price}</span>
                 <span style={{ marginLeft: 6, fontSize: 12, color: 'var(--ink-mute)' }}>· {pack.perCr}</span>
               </div>
-              <button
-                onClick={() => handlePolarCheckout(pack.key)}
-                disabled={upgradeLoading === pack.key}
-                style={{ marginTop: 4, display: 'block', width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: upgradeLoading === pack.key ? 0.5 : 1 }}
-              >
-                {upgradeLoading === pack.key ? 'Redirecting…' : 'Buy credits'}
+              <button onClick={() => handlePackCheckout(pack.priceId)} disabled={packLoading === pack.priceId}
+                style={{ marginTop: 4, display: 'block', width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink)', fontWeight: 600, fontSize: 12.5, cursor: 'pointer', opacity: packLoading === pack.priceId ? 0.5 : 1 }}>
+                {packLoading === pack.priceId ? 'Redirecting…' : 'Buy credits'}
               </button>
             </div>
           ))}

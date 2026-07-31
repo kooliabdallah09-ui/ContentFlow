@@ -4,6 +4,9 @@ import Link from 'next/link'
 import { Check } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { getSupabase } from '@/lib/auth'
+import { PADDLE_PRICES } from '@/lib/paddle'
+import { openPaddleCheckout } from '@/lib/paddle-client'
+
 const PLANS = [
   {
     name: 'Free',
@@ -25,8 +28,8 @@ const PLANS = [
     annualTotal: '$190/yr',
     unit: '/month',
     credits: '800 credits/month',
-    monthlyProductKey: 'starter',
-    annualProductKey: 'starterAnnual',
+    monthlyProductKey: PADDLE_PRICES.starter,
+    annualProductKey: PADDLE_PRICES.starterAnnual,
     features: ['~6 UGC videos/mo at 5s · ~4 at 10s (720p)', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer & Product studios · CineMotion', 'No watermark · Video editor · Priority support'],
     cta: 'Get Starter',
     href: '/auth/signup?plan=starter',
@@ -39,8 +42,8 @@ const PLANS = [
     annualTotal: '$490/yr',
     unit: '/month',
     credits: '2,000 credits/month',
-    monthlyProductKey: 'pro',
-    annualProductKey: 'proAnnual',
+    monthlyProductKey: PADDLE_PRICES.pro,
+    annualProductKey: PADDLE_PRICES.proAnnual,
     features: ['~16 UGC videos/mo at 5s · ~10 at 10s (720p)', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
     cta: 'Get Pro',
     href: '/auth/signup?plan=pro',
@@ -52,8 +55,8 @@ const PLANS = [
     annualTotal: '$1,490/yr',
     unit: '/month',
     credits: '6,500 credits/month',
-    monthlyProductKey: 'agency',
-    annualProductKey: 'agencyAnnual',
+    monthlyProductKey: PADDLE_PRICES.agency,
+    annualProductKey: PADDLE_PRICES.agencyAnnual,
     features: ['~52 UGC videos/mo at 5s · ~35 at 10s · ~27 at 15s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
     cta: 'Get Agency',
     href: '/auth/signup?plan=agency',
@@ -61,9 +64,9 @@ const PLANS = [
 ]
 
 const PACKS = [
-  { credits: 500, price: 15, perCredit: 0.030, packKey: 'pack500' },
-  { credits: 1500, price: 45, perCredit: 0.030, packKey: 'pack1500' },
-  { credits: 5000, price: 120, perCredit: 0.024, packKey: 'pack5000' },
+  { credits: 500, price: 15, perCredit: 0.030, packKey: PADDLE_PRICES.pack500 },
+  { credits: 1500, price: 45, perCredit: 0.030, packKey: PADDLE_PRICES.pack1500 },
+  { credits: 5000, price: 120, perCredit: 0.024, packKey: PADDLE_PRICES.pack5000 },
 ]
 
 export default function PricingPage() {
@@ -78,21 +81,14 @@ export default function PricingPage() {
     })
   }, [])
 
-  async function handleCheckout(productKey: string) {
-    if (!productKey) { window.location.href = '/auth/signup'; return }
-    setUpgradeLoading(productKey)
+  async function handleCheckout(priceId: string, mode: 'subscription' | 'payment') {
+    if (!priceId) { window.location.href = '/auth/signup'; return }
+    setUpgradeLoading(priceId)
     try {
       const { data } = await getSupabase()!.auth.getSession()
-      const token = data?.session?.access_token
-      if (!token) { window.location.href = '/auth/signup'; return }
-      const res = await fetch('/api/polar/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ productKey }),
-      })
-      const json = await res.json() as { url?: string; error?: string }
-      if (!res.ok || !json.url) throw new Error(json.error ?? 'Checkout failed')
-      window.location.href = json.url
+      const user = data?.session?.user
+      if (!user) { window.location.href = '/auth/signup'; return }
+      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {
@@ -100,20 +96,13 @@ export default function PricingPage() {
     }
   }
 
-  async function handlePackCheckout(packKey: string) {
-    setPackLoading(packKey)
+  async function handlePackCheckout(priceId: string) {
+    setPackLoading(priceId)
     try {
       const { data } = await getSupabase()!.auth.getSession()
-      const token = data?.session?.access_token
-      if (!token) { window.location.href = '/auth/signup'; return }
-      const res = await fetch('/api/polar/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ packKey }),
-      })
-      const json = await res.json() as { url?: string; error?: string }
-      if (!res.ok || !json.url) throw new Error(json.error ?? 'Checkout failed')
-      window.location.href = json.url
+      const user = data?.session?.user
+      if (!user) { window.location.href = '/auth/signup'; return }
+      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {
@@ -192,9 +181,9 @@ export default function PricingPage() {
       }}>
         {PLANS.map(plan => {
           const popular = !!plan.popular
-          const activeProductKey = annual ? plan.annualProductKey : plan.monthlyProductKey
+          const activePriceId = annual ? plan.annualProductKey : plan.monthlyProductKey
           const displayPrice = annual ? plan.annualPrice : plan.monthlyPrice
-          const isLoading = upgradeLoading === activeProductKey
+          const isLoading = upgradeLoading === activePriceId
 
           return (
             <div
@@ -238,9 +227,9 @@ export default function PricingPage() {
                 {plan.credits}
               </div>
 
-              {isLoggedIn && activeProductKey ? (
+              {isLoggedIn && activePriceId ? (
                 <button
-                  onClick={() => handleCheckout(activeProductKey)}
+                  onClick={() => handleCheckout(activePriceId, 'subscription')}
                   disabled={isLoading}
                   style={{
                     display: 'block', textAlign: 'center', width: '100%',
@@ -342,7 +331,7 @@ export default function PricingPage() {
                 <span style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>${pack.price}</span>
                 <span style={{ marginLeft: 6, color: 'var(--ink-mute)' }}>· ${pack.perCredit.toFixed(3)}/cr</span>
               </div>
-              {isLoggedIn ? (
+              {isLoggedIn && pack.packKey ? (
                 <button
                   onClick={() => handlePackCheckout(pack.packKey)}
                   disabled={packLoading === pack.packKey}
