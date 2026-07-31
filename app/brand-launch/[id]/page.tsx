@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { useParams, useRouter } from 'next/navigation'
+import { canAccessBrandLaunch } from '@/lib/pov-access'
 import Link from 'next/link'
 
 interface BrandColors {
@@ -78,6 +79,9 @@ export default function BrandDashboardPage() {
       const { data: sess } = await supa.auth.getSession()
       const token = sess?.session?.access_token
       if (!token) { router.replace('/auth/login'); return }
+
+      const email = sess?.session?.user?.email
+      if (!canAccessBrandLaunch(email)) { router.replace('/dashboard'); return }
 
       const res = await fetch(`/api/brand-launch/${id}`, { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) { router.replace('/brand-launch'); return }

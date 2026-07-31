@@ -51,3 +51,9 @@ export function canAccessVoxStudio(email: string | null | undefined): boolean {
   if (!email) return false
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
+
+// Brand Launch: admin-only AI brand builder (v1 alpha).
+export function canAccessBrandLaunch(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}

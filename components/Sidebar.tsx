@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessInfluencerStudio } from '@/lib/pov-access'
+import { canAccessInfluencerStudio, canAccessBrandLaunch } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -24,6 +24,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
   const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
 
   const [influencerAccess, setInfluencerAccess] = useState(false)
+  const [brandLaunchAccess, setBrandLaunchAccess] = useState(false)
   useEffect(() => {
     (async () => {
       const supabase = getSupabase()
@@ -31,6 +32,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       const { data: sess } = await supabase.auth.getSession()
       const email = sess?.session?.user?.email
       setInfluencerAccess(canAccessInfluencerStudio(email))
+      setBrandLaunchAccess(canAccessBrandLaunch(email))
     })()
   }, [])
 
@@ -71,11 +73,13 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
 
       <div className="rail-section">
         <div className="rail-label">Create</div>
-        <Link href="/brand-launch" className={`nav-item ${isActive('/brand-launch') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Sparkle />
-          <span style={{ flex: 1 }}>Brand Launch</span>
-          <span className="flagship-badge">New</span>
-        </Link>
+        {brandLaunchAccess && (
+          <Link href="/brand-launch" className={`nav-item ${isActive('/brand-launch') ? 'active' : ''}`} onClick={handleNavClick}>
+            <Icon.Sparkle />
+            <span style={{ flex: 1 }}>Brand Launch</span>
+            <span className="flagship-badge">New</span>
+          </Link>
+        )}
         <Link href="/campaigns" className={`nav-item ${isActive('/campaigns') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Calendar />
           <span style={{ flex: 1 }}>Campaigns</span>

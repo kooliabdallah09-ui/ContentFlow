@@ -4,6 +4,7 @@ import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import BrandLaunchWizard from '@/components/BrandLaunchWizard'
 import { getSupabase } from '@/lib/auth'
+import { canAccessBrandLaunch } from '@/lib/pov-access'
 
 function WizardLoader() {
   const params = useSearchParams()
@@ -19,8 +20,9 @@ function WizardLoader() {
     }
     const supa = getSupabase()
     if (!supa) return
-    supa.auth.getSession().then((result: { data: { session: unknown } }) => {
-      if (!result.data.session) router.replace('/auth/login')
+    supa.auth.getSession().then((result: { data: { session: { user?: { email?: string | null } | null } | null } }) => {
+      const email = result.data.session?.user?.email
+      if (!result.data.session || !canAccessBrandLaunch(email)) router.replace('/dashboard')
       else setReady(true)
     })
   }, [brandId, router])

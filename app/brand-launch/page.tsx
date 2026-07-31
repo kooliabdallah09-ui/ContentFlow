@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { canAccessBrandLaunch } from '@/lib/pov-access'
 
 interface Brand {
   id: string
@@ -29,7 +30,8 @@ export default function BrandLaunchPage() {
       if (!supa) return
       const { data: sess } = await supa.auth.getSession()
       const token = sess?.session?.access_token
-      if (!token) { setLoading(false); return }
+      const email = sess?.session?.user?.email
+      if (!token || !canAccessBrandLaunch(email)) { setLoading(false); return }
 
       const res = await fetch('/api/brand-launch', { headers: { Authorization: `Bearer ${token}` } })
       const data = await res.json()
