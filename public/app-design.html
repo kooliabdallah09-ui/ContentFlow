@@ -1,0 +1,783 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContentFlow — App Design</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#FAFAF8;--surface:#FFFFFF;--surface-2:#F4F2ED;--surface-3:#EDEAE2;--hover:#F1EFEA;
+  --border:#E7E4DE;--border-soft:#F0EEE8;--border-strong:#D8D5CD;
+  --ink:#1A1A17;--ink-2:#3A382F;--ink-3:#56544D;--ink-dim:#6A685F;--ink-mute:#8A887E;--ink-fade:#A6A398;--ink-faint:#B8B5AB;
+  --danger:#B83A35;--good:#2F7A4E;
+  --font-serif:"Instrument Serif",Georgia,serif;
+  --font-sans:"Geist",system-ui,sans-serif;
+  --font-mono:"Geist Mono",monospace;
+  --r-sm:9px;--r-md:13px;--r-lg:16px;--r-xl:22px;
+  --shadow-sm:0 2px 12px rgba(20,18,12,.04);--shadow-md:0 6px 18px rgba(20,18,12,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans);background:#E8E5DF;color:var(--ink);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased;}
+.doc{max-width:1200px;margin:0 auto;padding:48px 32px;}
+.doc-title{font-family:var(--font-serif);font-size:36px;letter-spacing:-.03em;margin-bottom:6px;}
+.doc-title em{font-style:italic;}
+.doc-sub{font-size:14px;color:#6A685F;margin-bottom:48px;}
+.page-section{margin-bottom:64px;}
+.page-label{font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:#8A887E;margin-bottom:12px;}
+.page-name{font-size:18px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;}
+.page-desc{font-size:12.5px;color:#6A685F;margin-bottom:16px;}
+/* App shell */
+.app-frame{background:var(--bg);border-radius:16px;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.12);display:flex;border:1px solid rgba(0,0,0,.06);}
+.rail{width:240px;flex-shrink:0;background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0 10px 16px;}
+.rail-brand{display:flex;align-items:center;gap:9px;padding:18px 10px 12px;}
+.rail-logo{width:26px;height:26px;border-radius:7px;background:var(--ink);display:grid;place-items:center;}
+.rail-logo span{color:#fff;font-size:12px;font-weight:700;}
+.rail-bname{font-size:15px;font-weight:600;letter-spacing:-.02em;}
+.rail-bname em{font-family:var(--font-serif);font-style:italic;font-weight:400;}
+.rlabel{font-size:10px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-fade);padding:10px 8px 5px;}
+.ritem{display:flex;align-items:center;gap:9px;padding:6px 8px;border-radius:8px;font-size:12.5px;font-weight:500;color:var(--ink-2);}
+.ritem.active{background:var(--surface-3);color:var(--ink);}
+.ritem .ico{width:15px;height:15px;border-radius:3px;background:var(--surface-3);flex-shrink:0;}
+.ritem.active .ico{background:var(--ink);}
+.rbadge{margin-left:auto;font-size:9px;font-weight:600;background:var(--surface-3);color:var(--ink);border-radius:4px;padding:2px 5px;}
+.rkbd{margin-left:auto;font-size:9px;color:var(--ink-fade);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:var(--font-mono);}
+.rcredits{margin-top:auto;background:var(--surface-2);border-radius:10px;padding:12px 14px;border:1px solid var(--border-soft);}
+.rcr-num{font-size:20px;font-weight:800;letter-spacing:-.03em;}
+.rcr-bar{height:3px;background:var(--border);border-radius:99px;margin:6px 0;}<br>.rcr-fill{height:100%;background:var(--ink);border-radius:99px;width:30%;}
+.rcr-row{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:var(--ink-mute);}
+.rcr-row u{color:var(--ink);cursor:pointer;}
+/* Main area */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{height:48px;border-bottom:1px solid var(--border);background:rgba(250,250,248,.9);display:flex;align-items:center;padding:0 20px;gap:10px;flex-shrink:0;}
+.tb-bc{font-size:11.5px;color:var(--ink-mute);}
+.tb-bc b{color:var(--ink);}
+.tb-search{flex:1;max-width:220px;height:28px;border-radius:7px;background:var(--surface-2);border:1px solid var(--border-soft);display:flex;align-items:center;padding:0 8px;gap:5px;font-size:12px;color:var(--ink-mute);}
+.tb-icons{display:flex;gap:6px;margin-left:auto;}
+.tb-icon{width:26px;height:26px;border-radius:6px;border:1px solid var(--border);background:var(--surface);display:grid;place-items:center;font-size:11px;}
+.tb-avatar{width:26px;height:26px;border-radius:50%;background:var(--ink);display:grid;place-items:center;color:#fff;font-size:10px;font-weight:700;}
+.content{padding:22px 22px 32px;overflow:auto;}
+/* Shared UI */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--r-sm);font-size:12.5px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--ink);font-family:var(--font-sans);}
+.btn-p{background:var(--ink);color:#fff;border-color:var(--ink);}
+.btn-sm{padding:5px 10px;font-size:11px;}
+.pg-title{font-family:var(--font-serif);font-size:24px;letter-spacing:-.025em;margin-bottom:3px;}
+.pg-title em{font-style:italic;}
+.pg-sub{font-size:12.5px;color:var(--ink-dim);margin-bottom:18px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);}
+.chip{display:inline-block;font-size:11px;padding:3px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface-2);color:var(--ink-dim);}
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink);}
+.chip.good{background:rgba(47,122,78,.08);color:var(--good);border-color:rgba(47,122,78,.2);}
+.chip.new{background:var(--surface-3);color:var(--ink);}
+.input{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:var(--font-sans);background:var(--surface);color:var(--ink);}
+.textarea{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--r-sm);font-size:13px;font-family:var(--font-sans);background:var(--surface);color:var(--ink);resize:none;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.grid4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;}
+.row{display:flex;align-items:center;gap:8px;}
+.col{display:flex;flex-direction:column;gap:8px;}
+.divider{height:1px;background:var(--border);margin:14px 0;}
+.eyebrow{font-family:var(--font-mono);font-size:9.5px;font-weight:500;letter-spacing:.13em;text-transform:uppercase;color:var(--ink-fade);}
+.stat-num{font-family:var(--font-serif);font-size:28px;letter-spacing:-.03em;}
+.tag{font-size:9.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:2px 6px;color:var(--ink-dim);}
+/* placeholder blocks */
+.ph{background:var(--surface-2);border-radius:6px;}
+.ph-img{background:var(--surface-3);border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-faint);font-size:11px;}
+.ph-line{height:8px;background:var(--surface-2);border-radius:4px;margin-bottom:5px;}
+
+/* page separator */
+hr.sep{border:none;border-top:2px dashed #CDC9C0;margin:48px 0;}
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="doc-title">Content<em>flow</em> — Full App Design</div>
+  <div class="doc-sub">Every major screen, with real text labels and UI structure. Share with claude.ai/design to improve any section.</div>
+
+<!-- ═══════════════════════════════════════════════════════ 1. DASHBOARD -->
+<div class="page-section">
+  <div class="page-label">01</div>
+  <div class="page-name">Dashboard</div>
+  <div class="page-desc">/dashboard — greeting, stats, quick create, feature cards, recent content</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Workspace</div>
+      <div class="ritem active"><div class="ico"></div> Dashboard <div class="rkbd">D</div></div>
+      <div class="ritem"><div class="ico"></div> Library <div class="rkbd">L</div></div>
+      <div class="ritem"><div class="ico"></div> Brand <div class="rkbd">B</div></div>
+      <div class="ritem"><div class="ico"></div> Ask AI</div>
+      <div class="ritem"><div class="ico"></div> Analytics</div>
+      <div class="rlabel">Create</div>
+      <div class="ritem"><div class="ico"></div> Brand Launch <div class="rbadge">New</div></div>
+      <div class="ritem"><div class="ico"></div> Campaigns <div class="rbadge">New</div></div>
+      <div class="ritem"><div class="ico"></div> Video Studio <div class="rbadge">Flagship</div></div>
+      <div class="ritem"><div class="ico"></div> Studios <div class="rbadge">Beta</div></div>
+      <div class="ritem"><div class="ico"></div> Image</div>
+      <div class="ritem"><div class="ico"></div> Voiceover</div>
+      <div class="ritem"><div class="ico"></div> Social</div>
+      <div class="ritem"><div class="ico"></div> Business Card</div>
+      <div class="ritem"><div class="ico"></div> Video Editor <div class="rbadge" style="background:#fef3c7;color:#b45309;border:1px solid #fde68a;">Beta</div></div>
+      <div class="rcredits" style="margin-top:16px;">
+        <div class="eyebrow" style="margin-bottom:4px;">Credits</div>
+        <div class="rcr-num">65,093</div>
+        <div class="rcr-bar"><div class="rcr-fill"></div></div>
+        <div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div>
+      </div>
+    </div>
+    <div class="main">
+      <div class="topbar">
+        <div class="tb-bc">STUDIO / <b>DASHBOARD</b></div>
+        <div class="tb-search">🔍 Search…</div>
+        <div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-icon">🔔</div><div class="tb-avatar">A</div></div>
+      </div>
+      <div class="content">
+        <div style="margin-bottom:18px;">
+          <div style="font-family:var(--font-serif);font-size:26px;letter-spacing:-.03em;margin-bottom:2px;">Good morning, <em>Abdallah.</em></div>
+          <div style="font-size:13px;color:var(--ink-dim);">What are we making today? · Thursday · July 31 · 2026</div>
+        </div>
+        <!-- Stats row -->
+        <div class="grid2" style="margin-bottom:14px;">
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:8px;">Credit balance</div>
+            <div class="row" style="align-items:flex-end;gap:12px;margin-bottom:8px;">
+              <div><div style="font-size:10px;color:var(--ink-mute);">Available</div><div class="stat-num">65,093</div></div>
+              <div><div style="font-size:10px;color:var(--ink-mute);">Monthly</div><div class="stat-num" style="font-size:20px;">0</div></div>
+            </div>
+            <div style="height:3px;background:var(--border);border-radius:99px;"><div style="height:100%;width:35%;background:var(--ink);border-radius:99px;"></div></div>
+          </div>
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:8px;">Quick create</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span class="chip">UGC Package</span>
+              <span class="chip">AI Video</span>
+              <span class="chip">Image</span>
+              <span class="chip">Social caption</span>
+              <span class="chip">Voice</span>
+            </div>
+          </div>
+        </div>
+        <!-- Feature cards -->
+        <div class="grid3" style="margin-bottom:14px;">
+          <div class="card" style="position:relative;overflow:hidden;">
+            <div class="tag" style="margin-bottom:8px;">FLAGSHIP</div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">UGC Package</div>
+            <div style="font-size:11.5px;color:var(--ink-dim);line-height:1.5;">Full talking-head ad — script, character, voice, captions & B-roll</div>
+            <div style="position:absolute;bottom:0;right:0;width:60px;height:60px;background:var(--surface-3);border-radius:12px 0 0 0;opacity:.5;"></div>
+          </div>
+          <div class="card">
+            <div class="tag" style="margin-bottom:8px;">PRODUCT SHOT</div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Image</div>
+            <div style="font-size:11.5px;color:var(--ink-dim);line-height:1.5;">AI product photos & creative imagery from a prompt</div>
+          </div>
+          <div class="card">
+            <div class="tag" style="margin-bottom:8px;">VIDEO</div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:4px;">Video</div>
+            <div style="font-size:11.5px;color:var(--ink-dim);line-height:1.5;">Open-ended AI video motion from any prompt</div>
+          </div>
+        </div>
+        <!-- Recent -->
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-weight:600;font-size:13px;">Made with ContentFlow</div>
+          <span style="font-size:12px;color:var(--ink-dim);cursor:pointer;">View library →</span>
+        </div>
+        <div class="grid4">
+          <div class="ph-img" style="height:90px;"><span>UGC</span></div>
+          <div class="ph-img" style="height:90px;"><span>VIDEO</span></div>
+          <div class="ph-img" style="height:90px;"><span>UGC</span></div>
+          <div class="ph-img" style="height:90px;"><span>IMAGE</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 2. LIBRARY -->
+<div class="page-section">
+  <div class="page-label">02</div>
+  <div class="page-name">Library</div>
+  <div class="page-desc">/library — search, filter by type, masonry grid with hover actions, preview modal</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Workspace</div>
+      <div class="ritem"><div class="ico"></div> Dashboard <div class="rkbd">D</div></div>
+      <div class="ritem active"><div class="ico"></div> Library <div class="rkbd">L</div></div>
+      <div class="ritem"><div class="ico"></div> Brand <div class="rkbd">B</div></div>
+      <div class="ritem"><div class="ico"></div> Analytics</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">STUDIO / <b>LIBRARY</b></div><div class="tb-search">🔍 Search content…</div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content">
+        <div class="row" style="margin-bottom:16px;">
+          <div class="pg-title" style="margin:0;flex:1;">Content Library</div>
+          <div style="display:flex;gap:6px;">
+            <select class="input" style="width:auto;padding:6px 10px;font-size:12px;">
+              <option>All Types</option><option>Images</option><option>Voices</option><option>Videos</option><option>UGC Packages</option>
+            </select>
+          </div>
+        </div>
+        <!-- Masonry grid mockup -->
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="ph-img" style="height:120px;border-radius:12px 12px 0 0;font-size:10px;">VIDEO · 40 cr</div>
+            <div style="padding:8px 10px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">Product demo reel</div><div style="font-size:10.5px;color:var(--ink-mute);">2 hours ago</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="ph-img" style="height:160px;border-radius:12px 12px 0 0;font-size:10px;">IMAGE · 5 cr</div>
+            <div style="padding:8px 10px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">Serum hero shot</div><div style="font-size:10.5px;color:var(--ink-mute);">Yesterday</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="ph-img" style="height:100px;border-radius:12px 12px 0 0;font-size:10px;">AUDIO · 5 cr</div>
+            <div style="padding:8px 10px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">Launch voiceover</div><div style="font-size:10.5px;color:var(--ink-mute);">3 days ago</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="ph-img" style="height:140px;border-radius:12px 12px 0 0;font-size:10px;">UGC PACKAGE</div>
+            <div style="padding:8px 10px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">Summer ad pack</div><div style="font-size:10.5px;color:var(--ink-mute);">1 week ago</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="ph-img" style="height:130px;border-radius:12px 12px 0 0;font-size:10px;">IMAGE · 5 cr</div>
+            <div style="padding:8px 10px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">Lifestyle shot</div><div style="font-size:10.5px;color:var(--ink-mute);">1 week ago</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="ph-img" style="height:110px;border-radius:12px 12px 0 0;font-size:10px;">VIDEO · 40 cr</div>
+            <div style="padding:8px 10px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">Brand video</div><div style="font-size:10.5px;color:var(--ink-mute);">2 weeks ago</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="ph-img" style="height:150px;border-radius:12px 12px 0 0;font-size:10px;">IMAGE · 5 cr</div>
+            <div style="padding:8px 10px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">Product flat lay</div><div style="font-size:10.5px;color:var(--ink-mute);">2 weeks ago</div></div>
+          </div>
+          <div class="card" style="padding:0;overflow:hidden;">
+            <div class="ph-img" style="height:120px;border-radius:12px 12px 0 0;font-size:10px;">AUDIO · 5 cr</div>
+            <div style="padding:8px 10px;"><div style="font-size:12px;font-weight:600;margin-bottom:2px;">Podcast ad 30s</div><div style="font-size:10.5px;color:var(--ink-mute);">3 weeks ago</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 3. CAMPAIGNS -->
+<div class="page-section">
+  <div class="page-label">03</div>
+  <div class="page-name">Campaigns</div>
+  <div class="page-desc">/campaigns — campaign planner with new campaign form and shot list</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Create</div>
+      <div class="ritem active"><div class="ico"></div> Campaigns <div class="rbadge">New</div></div>
+      <div class="ritem"><div class="ico"></div> Video Studio</div>
+      <div class="ritem"><div class="ico"></div> Image</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">STUDIO / <b>CAMPAIGNS</b></div><div class="tb-search">🔍 Search…</div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content">
+        <div class="row" style="margin-bottom:4px;">
+          <div style="flex:1;"><div class="pg-title">Campaigns</div><div class="pg-sub" style="margin:0;">One product, one brief → an editable shot list for a full week or month of content</div></div>
+          <button class="btn btn-p">+ New campaign</button>
+        </div>
+        <div class="divider"></div>
+        <!-- New campaign form -->
+        <div class="card" style="margin-bottom:14px;">
+          <div style="font-weight:700;font-size:14px;margin-bottom:14px;">Plan a new campaign</div>
+          <div class="grid2" style="margin-bottom:10px;">
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Campaign name</div><input class="input" placeholder="HiGG summer launch" /></div>
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Product</div><select class="input"><option>Select a product…</option></select></div>
+          </div>
+          <div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Brief</div><textarea class="textarea" rows="2" placeholder="Launching our new ergonomic desk pad. Target: remote workers 25–40. Tone: clean, productive, premium."></textarea></div>
+          <div class="grid3" style="margin-bottom:12px;">
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Goal</div><select class="input"><option>Launch</option><option>Awareness</option><option>Conversion</option><option>Evergreen</option></select></div>
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Duration</div><select class="input"><option>1 week</option><option>2 weeks</option><option>1 month</option></select></div>
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Target shots</div><input class="input" type="number" value="24" /></div>
+          </div>
+          <div class="row"><button class="btn btn-p">Plan campaign</button><button class="btn">Cancel</button></div>
+        </div>
+        <!-- Campaign list -->
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-mute);margin-bottom:8px;">Your campaigns</div>
+        <div class="col" style="gap:8px;">
+          <div class="card" style="display:flex;align-items:center;gap:12px;">
+            <div class="ph-img" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;font-size:9px;">IMG</div>
+            <div style="flex:1;"><div style="font-weight:700;font-size:13.5px;">Summer Drop 2026</div><div style="font-size:11.5px;color:var(--ink-dim);">24 shots · Launch · 1 month · DeskPad Pro</div></div>
+            <span class="chip good">Active</span>
+            <span style="color:var(--ink-mute);font-size:16px;">›</span>
+          </div>
+          <div class="card" style="display:flex;align-items:center;gap:12px;">
+            <div class="ph-img" style="width:40px;height:40px;border-radius:8px;flex-shrink:0;font-size:9px;">IMG</div>
+            <div style="flex:1;"><div style="font-weight:700;font-size:13.5px;">Q3 Awareness Push</div><div style="font-size:11.5px;color:var(--ink-dim);">16 shots · Awareness · 2 weeks · ErgoCushion</div></div>
+            <span class="chip">Draft</span>
+            <span style="color:var(--ink-mute);font-size:16px;">›</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 4. SOCIAL -->
+<div class="page-section">
+  <div class="page-label">04</div>
+  <div class="page-name">Social Post Generator</div>
+  <div class="page-desc">/generate/social — caption mode (left composer + right results), carousel mode</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Create</div>
+      <div class="ritem active"><div class="ico"></div> Social</div>
+      <div class="ritem"><div class="ico"></div> Image</div>
+      <div class="ritem"><div class="ico"></div> Voiceover</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">STUDIO / <b>SOCIAL</b></div><div class="tb-search">🔍 Search…</div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content">
+        <div class="pg-title">Social</div>
+        <div class="pg-sub">Platform-native captions and image carousels — everything social, in one place</div>
+        <!-- Mode switcher -->
+        <div class="row" style="gap:6px;margin-bottom:16px;">
+          <button class="btn btn-p btn-sm">Caption / Post</button>
+          <button class="btn btn-sm">Image Carousel</button>
+        </div>
+        <!-- Two panel layout -->
+        <div class="grid2" style="gap:14px;align-items:start;">
+          <!-- Composer -->
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:8px;">Compose</div>
+            <div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Topic</div><textarea class="textarea" rows="3" placeholder="e.g. Our skincare serum just hit 10,000 five-star reviews…"></textarea></div>
+            <div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--ink-mute);margin-bottom:6px;">Platforms</div><div class="row" style="flex-wrap:wrap;gap:6px;"><span class="chip on">Instagram</span><span class="chip">Facebook</span><span class="chip">X / Twitter</span></div></div>
+            <div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--ink-mute);margin-bottom:6px;">Tone</div><div class="row" style="flex-wrap:wrap;gap:5px;"><span class="chip on">Bold</span><span class="chip">Conversational</span><span class="chip">Professional</span><span class="chip">Storytelling</span></div></div>
+            <div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--ink-mute);margin-bottom:6px;">Post type</div><div class="col" style="gap:5px;"><label style="display:flex;align-items:center;gap:7px;font-size:12.5px;"><input type="radio" name="pt" checked> Text only (caption + hashtags)</label><label style="display:flex;align-items:center;gap:7px;font-size:12.5px;"><input type="radio" name="pt"> Text + image <span style="font-size:11px;color:var(--ink-mute);">(+3 cr)</span></label></div></div>
+            <div class="divider"></div>
+            <button class="btn btn-p" style="width:100%;justify-content:center;padding:10px;">Generate posts</button>
+            <div style="font-size:11px;color:var(--ink-mute);text-align:center;margin-top:6px;">5 credits · all platforms in one generation</div>
+          </div>
+          <!-- Results -->
+          <div class="card">
+            <div class="eyebrow" style="margin-bottom:8px;">Results</div>
+            <!-- Platform tabs -->
+            <div class="row" style="gap:0;border-bottom:1px solid var(--border);margin-bottom:12px;">
+              <button style="padding:6px 12px;font-size:12px;font-weight:600;border:none;background:none;border-bottom:2px solid var(--ink);color:var(--ink);font-family:var(--font-sans);cursor:pointer;">Instagram</button>
+              <button style="padding:6px 12px;font-size:12px;border:none;background:none;border-bottom:2px solid transparent;color:var(--ink-dim);font-family:var(--font-sans);cursor:pointer;">Facebook</button>
+              <button style="padding:6px 12px;font-size:12px;border:none;background:none;border-bottom:2px solid transparent;color:var(--ink-dim);font-family:var(--font-sans);cursor:pointer;">X / Twitter</button>
+            </div>
+            <div style="position:relative;">
+              <textarea class="textarea" rows="5" style="font-size:12.5px;line-height:1.7;">✨ 10,000 five-star reviews and counting. Our serum didn't just meet expectations — it rewrote them.
+
+No harsh chemicals. No empty promises. Just real results that speak for themselves.
+
+Ready to see what the hype is about? Link in bio 👆
+
+#skincare #serumlovers #cleanbeauty #glowup #skincareRoutine</textarea>
+              <button class="btn btn-sm" style="position:absolute;top:6px;right:6px;">Copy</button>
+            </div>
+            <div style="font-size:10.5px;color:var(--ink-mute);text-align:right;margin-top:4px;">218 / 2200 chars</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 5. IMAGE -->
+<div class="page-section">
+  <div class="page-label">05</div>
+  <div class="page-name">Image Generator</div>
+  <div class="page-desc">/generate/image — prompt + model + ratio + count → persistent image gallery</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Create</div>
+      <div class="ritem"><div class="ico"></div> Social</div>
+      <div class="ritem active"><div class="ico"></div> Image</div>
+      <div class="ritem"><div class="ico"></div> Voiceover</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">STUDIO / <b>IMAGE</b></div><div class="tb-search">🔍 Search…</div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content">
+        <div class="pg-title">Image</div>
+        <div class="pg-sub">AI product photos and creative imagery. Describe the shot you want</div>
+        <div class="card" style="margin-bottom:14px;">
+          <div style="margin-bottom:10px;"><textarea class="textarea" rows="3" placeholder="A matte amber serum bottle on wet stone, soft morning light, shallow depth of field, editorial product shot…"></textarea></div>
+          <!-- Reference image drop zone -->
+          <div style="border:1.5px dashed var(--border);border-radius:10px;padding:12px;text-align:center;color:var(--ink-mute);font-size:12px;margin-bottom:12px;cursor:pointer;">
+            Drop reference image here (optional)
+          </div>
+          <div class="grid2" style="gap:10px;">
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:5px;">Model</div><div class="row" style="gap:5px;"><span class="chip on">NB Pro (best)</span><span class="chip">NB2 (cheaper)</span></div></div>
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:5px;">Resolution</div><div class="row" style="gap:5px;"><span class="chip">2K</span><span class="chip on">4K · 18 cr</span></div></div>
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:5px;">Ratio</div><div class="row" style="gap:5px;"><span class="chip on">1:1</span><span class="chip">4:5</span><span class="chip">9:16</span><span class="chip">16:9</span></div></div>
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:5px;">Count</div><div class="row" style="gap:5px;"><span class="chip on">1</span><span class="chip">2</span><span class="chip">4</span></div></div>
+          </div>
+          <div class="divider"></div>
+          <div class="row" style="justify-content:space-between;align-items:center;">
+            <div style="font-size:11.5px;color:var(--ink-mute);">1 × 18 cr = <b style="color:var(--ink);">18 credits</b> · Balance: 65,093</div>
+            <button class="btn btn-p">Generate image</button>
+          </div>
+        </div>
+        <!-- Gallery -->
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-mute);margin-bottom:10px;">Your images</div>
+        <div class="grid4">
+          <div class="ph-img" style="height:130px;border-radius:10px;"></div>
+          <div class="ph-img" style="height:130px;border-radius:10px;"></div>
+          <div class="ph-img" style="height:130px;border-radius:10px;"></div>
+          <div style="height:130px;border-radius:10px;border:1.5px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--ink-fade);">Your images live here</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 6. VOICEOVER -->
+<div class="page-section">
+  <div class="page-label">06</div>
+  <div class="page-name">Voiceover</div>
+  <div class="page-desc">/generate/voice — script + voice picker + language + speed → audio results with waveform</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Create</div>
+      <div class="ritem"><div class="ico"></div> Image</div>
+      <div class="ritem active"><div class="ico"></div> Voiceover</div>
+      <div class="ritem"><div class="ico"></div> Social</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">STUDIO / <b>VOICEOVER</b></div><div class="tb-search">🔍 Search…</div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content">
+        <div class="pg-title">Voiceover</div>
+        <div class="pg-sub">Turn any script into a studio-quality voiceover. Pick a voice and generate in seconds</div>
+        <div class="card" style="margin-bottom:14px;">
+          <div style="margin-bottom:10px;"><textarea class="textarea" rows="4" placeholder="Paste your script here — product descriptions, reel captions, podcast intros, narration…"></textarea><div style="font-size:10.5px;color:var(--ink-mute);text-align:right;margin-top:3px;">0 / 2000</div></div>
+          <div style="margin-bottom:10px;"><div style="font-size:11px;color:var(--ink-mute);margin-bottom:6px;">Voice</div><div style="display:flex;flex-wrap:wrap;gap:5px;"><span class="chip on">Drew ♂</span><span class="chip">Paul ♂</span><span class="chip">James ♂</span><span class="chip">Rachel ♀</span><span class="chip">Hope ♀</span><span class="chip">Sarah ♀</span><span class="chip">Aria ♀</span></div></div>
+          <div class="grid2" style="gap:10px;margin-bottom:12px;">
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Language</div><select class="input" style="font-size:12.5px;"><option>English (US)</option><option>French</option><option>Spanish</option></select></div>
+            <div><div style="font-size:11px;color:var(--ink-mute);margin-bottom:4px;">Speed</div><input type="range" min="70" max="120" value="100" style="width:100%;margin-top:8px;"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--ink-mute);"><span>0.7×</span><span>1.0×</span><span>1.2×</span></div></div>
+          </div>
+          <div class="row" style="justify-content:space-between;">
+            <div style="font-size:11.5px;color:var(--ink-mute);">5 credits · Drew voice</div>
+            <button class="btn btn-p">Generate voiceover</button>
+          </div>
+        </div>
+        <!-- Result -->
+        <div class="card" style="display:flex;align-items:center;gap:12px;">
+          <button class="btn btn-p" style="width:36px;height:36px;padding:0;border-radius:50%;justify-content:center;flex-shrink:0;">▶</button>
+          <div style="flex:1;"><div style="font-size:13px;font-weight:600;margin-bottom:2px;">Drew · AI voice</div><div style="height:28px;background:var(--surface-2);border-radius:4px;display:flex;align-items:center;padding:0 8px;gap:2px;">{waveform}</div></div>
+          <button class="btn btn-sm">↓ Download</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 7. BRAND LAUNCH -->
+<div class="page-section">
+  <div class="page-label">07</div>
+  <div class="page-name">Brand Launch</div>
+  <div class="page-desc">/brand-launch + /brand-launch/new — landing list + 5-step wizard</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Create</div>
+      <div class="ritem active"><div class="ico"></div> Brand Launch <div class="rbadge">New</div></div>
+      <div class="ritem"><div class="ico"></div> Campaigns</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">STUDIO / <b>BRAND LAUNCH</b></div><div class="tb-search">🔍 Search…</div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content">
+        <div class="pg-title">Launch <em>Your Brand.</em></div>
+        <div class="pg-sub" style="margin-bottom:16px;">AI builds your brand identity, product strategy, and launch content — ready for Shopify in minutes</div>
+        <button class="btn btn-p" style="margin-bottom:20px;">+ Start new brand</button>
+        <!-- Feature cards -->
+        <div class="grid3" style="margin-bottom:20px;">
+          <div class="card"><div style="font-size:22px;margin-bottom:6px;">🎯</div><div style="font-weight:600;font-size:13px;margin-bottom:3px;">Niche discovery</div><div style="font-size:11.5px;color:var(--ink-dim);">AI finds a profitable niche for you</div></div>
+          <div class="card"><div style="font-size:22px;margin-bottom:6px;">🎨</div><div style="font-weight:600;font-size:13px;margin-bottom:3px;">Brand identity</div><div style="font-size:11.5px;color:var(--ink-dim);">Name, logo, colors, and voice</div></div>
+          <div class="card"><div style="font-size:22px;margin-bottom:6px;">📦</div><div style="font-weight:600;font-size:13px;margin-bottom:3px;">Product strategy</div><div style="font-size:11.5px;color:var(--ink-dim);">8 winning products with margins</div></div>
+        </div>
+        <!-- Existing brand -->
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-mute);margin-bottom:8px;">Your brands</div>
+        <div class="card" style="display:flex;align-items:center;gap:12px;">
+          <div class="ph-img" style="width:44px;height:44px;border-radius:8px;flex-shrink:0;"></div>
+          <div style="flex:1;"><div style="font-weight:700;font-size:14px;">DeskWell</div><div style="font-size:12px;color:var(--ink-dim);">Home Office Wellness · ergonomic minimalists</div></div>
+          <span class="chip good">Complete</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Wizard sub-view -->
+  <div style="margin-top:12px;font-size:12px;color:#6A685F;margin-bottom:8px;">Wizard view (/brand-launch/new)</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="ritem active"><div class="ico"></div> Brand Launch</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">BRAND LAUNCH / <b>NEW</b></div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content" style="max-width:600px;">
+        <div class="pg-title">Launch <em>your brand.</em></div>
+        <div class="pg-sub">Answer a few questions. AI does the rest.</div>
+        <!-- Step indicator -->
+        <div style="display:flex;align-items:center;gap:0;margin-bottom:28px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:26px;height:26px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;">✓</div><div style="font-size:9.5px;color:var(--ink-mute);">Niche</div></div>
+          <div style="width:28px;height:2px;background:var(--ink);margin:0 3px 14px;"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:26px;height:26px;border-radius:50%;background:var(--ink);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;">2</div><div style="font-size:9.5px;color:var(--ink);font-weight:600;">Identity</div></div>
+          <div style="width:28px;height:2px;background:var(--border);margin:0 3px 14px;"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:26px;height:26px;border-radius:50%;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-mute);">3</div><div style="font-size:9.5px;color:var(--ink-mute);">Products</div></div>
+          <div style="width:28px;height:2px;background:var(--border);margin:0 3px 14px;"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:26px;height:26px;border-radius:50%;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-mute);">4</div><div style="font-size:9.5px;color:var(--ink-mute);">Content</div></div>
+          <div style="width:28px;height:2px;background:var(--border);margin:0 3px 14px;"></div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:3px;"><div style="width:26px;height:26px;border-radius:50%;background:var(--surface-2);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--ink-mute);">5</div><div style="font-size:9.5px;color:var(--ink-mute);">Launch</div></div>
+        </div>
+        <!-- Step 2: Identity -->
+        <div style="font-family:var(--font-serif);font-size:20px;letter-spacing:-.02em;margin-bottom:4px;">Build your brand identity</div>
+        <div style="font-size:12.5px;color:var(--ink-dim);margin-bottom:18px;">AI generates your name options, color palette, and brand voice for <b>Home Office Wellness</b>.</div>
+        <!-- Name picker -->
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-mute);margin-bottom:8px;">Pick a name</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;"><button class="btn">Posture</button><button class="btn">ZoneFlow</button><button class="btn btn-p">DeskWell</button><button class="btn">Ergonomy</button><button class="btn">SitRight</button></div>
+        <!-- Color palette -->
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-mute);margin-bottom:8px;">Color palette</div>
+        <div style="display:flex;gap:16px;margin-bottom:16px;">
+          <div style="text-align:center;"><div style="width:40px;height:40px;border-radius:8px;background:#2D5A3D;border:1px solid var(--border);margin-bottom:4px;"></div><div style="font-family:var(--font-mono);font-size:9.5px;color:var(--ink-dim);">#2D5A3D</div><div style="font-size:9.5px;color:var(--ink-mute);">PRIMARY</div></div>
+          <div style="text-align:center;"><div style="width:40px;height:40px;border-radius:8px;background:#F4A261;border:1px solid var(--border);margin-bottom:4px;"></div><div style="font-family:var(--font-mono);font-size:9.5px;color:var(--ink-dim);">#F4A261</div><div style="font-size:9.5px;color:var(--ink-mute);">ACCENT</div></div>
+          <div style="text-align:center;"><div style="width:40px;height:40px;border-radius:8px;background:#FAFAF8;border:1px solid var(--border);margin-bottom:4px;"></div><div style="font-family:var(--font-mono);font-size:9.5px;color:var(--ink-dim);">#FAFAF8</div><div style="font-size:9.5px;color:var(--ink-mute);">BG</div></div>
+          <div style="text-align:center;"><div style="width:40px;height:40px;border-radius:8px;background:#1A1A18;border:1px solid var(--border);margin-bottom:4px;"></div><div style="font-family:var(--font-mono);font-size:9.5px;color:var(--ink-dim);">#1A1A18</div><div style="font-size:9.5px;color:var(--ink-mute);">TEXT</div></div>
+        </div>
+        <!-- Brand voice -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="eyebrow" style="margin-bottom:8px;">Brand voice</div>
+          <div style="font-family:var(--font-serif);font-size:17px;color:var(--ink);margin-bottom:6px;">"Your desk. Your wellness. Your victory."</div>
+          <div style="font-size:12.5px;color:var(--ink-3);line-height:1.6;margin-bottom:8px;">We've designed thoughtfully curated ergonomic solutions and mindfulness tools for remote professionals who refuse to sacrifice their health for productivity.</div>
+          <div style="display:flex;gap:5px;"><span class="chip">Knowledgeable</span><span class="chip">Empowering</span><span class="chip">Grounded</span></div>
+        </div>
+        <!-- Logo -->
+        <div style="font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--ink-mute);margin-bottom:8px;">Logo <span style="font-weight:400;text-transform:none;letter-spacing:0;">(optional)</span></div>
+        <button class="btn" style="margin-bottom:16px;">Generate logo for DeskWell</button>
+        <button class="btn btn-p" style="width:100%;justify-content:center;padding:11px;">Continue with DeskWell →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 8. ANALYTICS -->
+<div class="page-section">
+  <div class="page-label">08</div>
+  <div class="page-name">Analytics</div>
+  <div class="page-desc">/analytics — KPI row, bar charts by type, recent activity list</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Workspace</div>
+      <div class="ritem"><div class="ico"></div> Dashboard</div>
+      <div class="ritem"><div class="ico"></div> Library</div>
+      <div class="ritem active"><div class="ico"></div> Analytics</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">STUDIO / <b>ANALYTICS</b></div><div class="tb-search">🔍 Search…</div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content">
+        <div class="pg-title">Your Content Stats</div>
+        <div class="pg-sub">Everything you've created with ContentFlow</div>
+        <!-- KPIs -->
+        <div class="grid4" style="margin-bottom:14px;">
+          <div class="card"><div class="eyebrow" style="margin-bottom:4px;">Total created</div><div class="stat-num">142</div><div style="font-size:11px;color:var(--ink-mute);">All time</div></div>
+          <div class="card"><div class="eyebrow" style="margin-bottom:4px;">This month</div><div class="stat-num">38</div><div style="font-size:11px;color:var(--ink-mute);">July 2026</div></div>
+          <div class="card"><div class="eyebrow" style="margin-bottom:4px;">Credits used</div><div class="stat-num">4,890</div><div style="font-size:11px;color:var(--ink-mute);">All time</div></div>
+          <div class="card"><div class="eyebrow" style="margin-bottom:4px;">Credits left</div><div class="stat-num">65k</div><div style="font-size:11px;color:var(--ink-mute);">Of monthly 0</div></div>
+        </div>
+        <!-- Charts row -->
+        <div class="grid2" style="margin-bottom:14px;">
+          <div class="card">
+            <div style="font-weight:600;font-size:13px;margin-bottom:12px;">Content by type</div>
+            <div class="col" style="gap:6px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:60px;color:var(--ink-mute);">UGC</div><div style="flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:65%;background:var(--ink);border-radius:4px;"></div></div><span style="color:var(--ink-mute);width:24px;text-align:right;">52</span></div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:60px;color:var(--ink-mute);">Image</div><div style="flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:40%;background:var(--ink);border-radius:4px;"></div></div><span style="color:var(--ink-mute);width:24px;text-align:right;">31</span></div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:60px;color:var(--ink-mute);">Social</div><div style="flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:30%;background:var(--ink);border-radius:4px;"></div></div><span style="color:var(--ink-mute);width:24px;text-align:right;">24</span></div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:60px;color:var(--ink-mute);">Voice</div><div style="flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:20%;background:var(--ink);border-radius:4px;"></div></div><span style="color:var(--ink-mute);width:24px;text-align:right;">18</span></div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:60px;color:var(--ink-mute);">Video</div><div style="flex:1;height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden;"><div style="height:100%;width:15%;background:var(--ink);border-radius:4px;"></div></div><span style="color:var(--ink-mute);width:24px;text-align:right;">12</span></div>
+            </div>
+          </div>
+          <div class="card">
+            <div style="font-weight:600;font-size:13px;margin-bottom:12px;">Recent activity</div>
+            <div class="col" style="gap:7px;">
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:7px;height:7px;border-radius:50%;background:#2D5A3D;flex-shrink:0;"></div><div style="flex:1;color:var(--ink-2);">UGC Package generated</div><div style="color:var(--ink-mute);">−40 cr</div><div style="color:var(--ink-fade);font-size:10.5px;">2h ago</div></div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:7px;height:7px;border-radius:50%;background:#B83A35;flex-shrink:0;"></div><div style="flex:1;color:var(--ink-2);">Image generated</div><div style="color:var(--ink-mute);">−5 cr</div><div style="color:var(--ink-fade);font-size:10.5px;">5h ago</div></div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:7px;height:7px;border-radius:50%;background:#1a73e8;flex-shrink:0;"></div><div style="flex:1;color:var(--ink-2);">Social post created</div><div style="color:var(--ink-mute);">−5 cr</div><div style="color:var(--ink-fade);font-size:10.5px;">Yesterday</div></div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:11.5px;"><div style="width:7px;height:7px;border-radius:50%;background:#f4a261;flex-shrink:0;"></div><div style="flex:1;color:var(--ink-2);">Voiceover generated</div><div style="color:var(--ink-mute);">−5 cr</div><div style="color:var(--ink-fade);font-size:10.5px;">2 days ago</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 9. BILLING -->
+<div class="page-section">
+  <div class="page-label">09</div>
+  <div class="page-name">Billing & Credits</div>
+  <div class="page-desc">/settings/billing — plan cards, toggle monthly/annual, credit packs, FAQ</div>
+  <div class="app-frame">
+    <div class="rail">
+      <div class="rail-brand"><div class="rail-logo"><span>C</span></div><div class="rail-bname">Content<em>flow</em></div></div>
+      <div class="rlabel">Settings</div>
+      <div class="ritem"><div class="ico"></div> Brand</div>
+      <div class="ritem"><div class="ico"></div> Account</div>
+      <div class="ritem active"><div class="ico"></div> Billing</div>
+      <div class="ritem"><div class="ico"></div> Integrations</div>
+      <div class="rcredits" style="margin-top:auto;"><div class="rcr-num">65,093</div><div class="rcr-bar"><div class="rcr-fill"></div></div><div class="rcr-row"><span>Free plan</span><u>Upgrade</u></div></div>
+    </div>
+    <div class="main">
+      <div class="topbar"><div class="tb-bc">SETTINGS / <b>BILLING</b></div><div class="tb-icons"><div class="tb-icon">☀</div><div class="tb-avatar">A</div></div></div>
+      <div class="content">
+        <div class="pg-title">Billing & Credits</div>
+        <div class="pg-sub">Manage your subscription and purchase additional credits</div>
+        <!-- Balance card -->
+        <div class="card" style="margin-bottom:14px;">
+          <div class="grid3">
+            <div><div class="eyebrow" style="margin-bottom:4px;">Available credits</div><div class="stat-num">65,093</div></div>
+            <div><div class="eyebrow" style="margin-bottom:4px;">Monthly allocation</div><div class="stat-num">0</div></div>
+            <div><div class="eyebrow" style="margin-bottom:4px;">Reset date</div><div style="font-size:16px;font-weight:600;margin-top:4px;">Aug 1, 2026</div></div>
+          </div>
+        </div>
+        <!-- Toggle -->
+        <div class="row" style="gap:8px;margin-bottom:14px;">
+          <span style="font-size:13px;font-weight:500;">Monthly</span>
+          <div style="width:36px;height:20px;background:var(--surface-3);border-radius:99px;border:1px solid var(--border);"></div>
+          <span style="font-size:13px;font-weight:500;">Annual</span>
+          <span class="chip new" style="font-size:10px;">2 months free</span>
+        </div>
+        <!-- Plan cards -->
+        <div class="grid4" style="margin-bottom:14px;">
+          <div class="card">
+            <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Free</div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px;">$0<span style="font-size:12px;font-weight:400;color:var(--ink-mute);">/mo</span></div>
+            <div style="font-size:11px;color:var(--ink-mute);margin-bottom:10px;">60 signup credits</div>
+            <button class="btn btn-sm" style="width:100%;justify-content:center;opacity:.5;" disabled>Free forever</button>
+          </div>
+          <div class="card">
+            <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Starter</div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px;">$19<span style="font-size:12px;font-weight:400;color:var(--ink-mute);">/mo</span></div>
+            <div style="font-size:11px;color:var(--ink-mute);margin-bottom:10px;">800 cr/mo · $0.024/cr</div>
+            <button class="btn btn-sm btn-p" style="width:100%;justify-content:center;">Upgrade</button>
+          </div>
+          <div class="card" style="border-color:var(--ink);position:relative;">
+            <div style="position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:9px;font-weight:700;padding:2px 8px;border-radius:99px;white-space:nowrap;">MOST POPULAR</div>
+            <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Pro</div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px;">$39<span style="font-size:12px;font-weight:400;color:var(--ink-mute);">/mo</span></div>
+            <div style="font-size:11px;color:var(--ink-mute);margin-bottom:10px;">2000 cr/mo · $0.020/cr</div>
+            <button class="btn btn-sm btn-p" style="width:100%;justify-content:center;">Upgrade</button>
+          </div>
+          <div class="card">
+            <div style="font-weight:700;font-size:14px;margin-bottom:2px;">Agency</div>
+            <div style="font-size:22px;font-weight:800;letter-spacing:-.03em;margin-bottom:4px;">$99<span style="font-size:12px;font-weight:400;color:var(--ink-mute);">/mo</span></div>
+            <div style="font-size:11px;color:var(--ink-mute);margin-bottom:10px;">6500 cr/mo · $0.015/cr</div>
+            <button class="btn btn-sm btn-p" style="width:100%;justify-content:center;">Upgrade</button>
+          </div>
+        </div>
+        <!-- Credit packs -->
+        <div style="font-weight:600;font-size:13px;margin-bottom:10px;">Prefer to pay as you go?</div>
+        <div class="grid3">
+          <div class="card" style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;"><div style="font-weight:700;">500 credits</div><div style="font-size:11.5px;color:var(--ink-dim);">$15 · $0.030/cr</div></div>
+            <button class="btn btn-sm btn-p">Buy</button>
+          </div>
+          <div class="card" style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;"><div style="font-weight:700;">1,500 credits</div><div style="font-size:11.5px;color:var(--ink-dim);">$45 · $0.030/cr</div></div>
+            <button class="btn btn-sm btn-p">Buy</button>
+          </div>
+          <div class="card" style="display:flex;align-items:center;gap:10px;">
+            <div style="flex:1;"><div style="font-weight:700;">5,000 credits</div><div style="font-size:11.5px;color:var(--ink-dim);">$120 · $0.024/cr</div></div>
+            <button class="btn btn-sm btn-p">Buy</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+
+<!-- ═══════════════════════════════════════════════════════ 10. PRICING PAGE -->
+<div class="page-section">
+  <div class="page-label">10</div>
+  <div class="page-name">Pricing Page</div>
+  <div class="page-desc">/pricing — public marketing page, centered layout, full-width</div>
+  <div style="background:var(--bg);border-radius:16px;padding:40px 32px;border:1px solid rgba(0,0,0,.06);box-shadow:0 12px 40px rgba(0,0,0,.1);">
+    <div style="text-align:center;margin-bottom:36px;">
+      <div class="eyebrow" style="margin-bottom:10px;">Pricing</div>
+      <div style="font-family:var(--font-serif);font-size:36px;letter-spacing:-.03em;margin-bottom:8px;">Premium UGC, indie <em>pricing.</em></div>
+      <div style="font-size:14px;color:var(--ink-dim);max-width:500px;margin:0 auto 20px;">Arcads quality at a fifth of the price. Every plan is credits-based — spend them on whatever you create</div>
+      <div style="display:inline-flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--border);border-radius:99px;padding:4px 8px;">
+        <span class="btn btn-sm btn-p" style="border-radius:99px;">Monthly</span>
+        <span style="font-size:13px;font-weight:500;padding:0 8px;">Annual</span>
+        <span class="chip new" style="font-size:10px;">2 months free</span>
+      </div>
+    </div>
+    <div class="grid4" style="max-width:860px;margin:0 auto 32px;">
+      <div class="card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Free</div>
+        <div style="font-size:28px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">$0<span style="font-size:13px;font-weight:400;color:var(--ink-mute);">/mo</span></div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-bottom:12px;">60 credits on signup</div>
+        <div class="col" style="gap:5px;font-size:11.5px;color:var(--ink-dim);margin-bottom:14px;"><span>✓ All content types</span><span>✓ 60 signup credits</span><span>✗ No monthly credits</span></div>
+        <button class="btn" style="width:100%;justify-content:center;">Get Free</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Starter</div>
+        <div style="font-size:28px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">$19<span style="font-size:13px;font-weight:400;color:var(--ink-mute);">/mo</span></div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-bottom:12px;">800 credits/month</div>
+        <div class="col" style="gap:5px;font-size:11.5px;color:var(--ink-dim);margin-bottom:14px;"><span>✓ 800 cr/mo</span><span>✓ No watermark</span><span>✓ All generators</span></div>
+        <button class="btn btn-p" style="width:100%;justify-content:center;">Get Starter</button>
+      </div>
+      <div class="card" style="border-color:var(--ink);position:relative;">
+        <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--ink);color:#fff;font-size:9px;font-weight:700;padding:3px 10px;border-radius:99px;white-space:nowrap;">MOST POPULAR</div>
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Pro</div>
+        <div style="font-size:28px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">$39<span style="font-size:13px;font-weight:400;color:var(--ink-mute);">/mo</span></div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-bottom:12px;">2000 credits/month</div>
+        <div class="col" style="gap:5px;font-size:11.5px;color:var(--ink-dim);margin-bottom:14px;"><span>✓ 2000 cr/mo</span><span>✓ Priority rendering</span><span>✓ All generators</span><span>✓ Analytics</span></div>
+        <button class="btn btn-p" style="width:100%;justify-content:center;">Get Pro</button>
+      </div>
+      <div class="card">
+        <div style="font-weight:700;font-size:15px;margin-bottom:4px;">Agency</div>
+        <div style="font-size:28px;font-weight:800;letter-spacing:-.04em;margin-bottom:4px;">$99<span style="font-size:13px;font-weight:400;color:var(--ink-mute);">/mo</span></div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-bottom:12px;">6500 credits/month</div>
+        <div class="col" style="gap:5px;font-size:11.5px;color:var(--ink-dim);margin-bottom:14px;"><span>✓ 6500 cr/mo</span><span>✓ Everything in Pro</span><span>✓ Bulk operations</span><span>✓ Priority support</span></div>
+        <button class="btn btn-p" style="width:100%;justify-content:center;">Get Agency</button>
+      </div>
+    </div>
+    <!-- Credit packs -->
+    <div style="max-width:600px;margin:0 auto;text-align:center;">
+      <div style="font-weight:700;font-size:15px;margin-bottom:14px;">Prefer to pay as you go?</div>
+      <div class="grid3">
+        <div class="card" style="text-align:left;"><div style="font-weight:700;margin-bottom:2px;">500 credits</div><div style="font-size:12px;color:var(--ink-dim);margin-bottom:8px;">$15 · $0.030/cr</div><button class="btn btn-sm btn-p">Buy credits</button></div>
+        <div class="card" style="text-align:left;"><div style="font-weight:700;margin-bottom:2px;">1,500 credits</div><div style="font-size:12px;color:var(--ink-dim);margin-bottom:8px;">$45 · $0.030/cr</div><button class="btn btn-sm btn-p">Buy credits</button></div>
+        <div class="card" style="text-align:left;"><div style="font-weight:700;margin-bottom:2px;">5,000 credits</div><div style="font-size:12px;color:var(--ink-dim);margin-bottom:8px;">$120 · $0.024/cr</div><button class="btn btn-sm btn-p">Buy credits</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="sep">
+<p style="font-size:12px;color:#8A887E;text-align:center;padding-bottom:20px;">ContentFlow — Full App Design · contentflow-web.com/app-design.html</p>
+</div>
+</body>
+</html>
