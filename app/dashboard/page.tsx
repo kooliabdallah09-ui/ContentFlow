@@ -93,42 +93,42 @@ export default function DashboardPage() {
         <span style={{ color: 'var(--ink-mute)' }}>What are we making <em>today?</em></span>
       </h1>
 
-      {/* Stats bar */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginTop: 28 }}>
-        {/* Credits */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Credits</div>
-          <div style={{ fontSize: 24, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.03em' }}>
-            {credits?.balance ?? '—'}
-          </div>
-          {credits && (
-            <>
-              <div style={{ height: 4, borderRadius: 4, background: 'var(--surface-3)', marginTop: 8 }}>
-                <div style={{ height: '100%', borderRadius: 4, width: `${creditsPercent}%`, background: creditsPercent! > 20 ? '#10B981' : '#EF4444', transition: 'width 0.3s' }} />
-              </div>
-              <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 5 }}>
-                of {credits.monthlyCredits}/mo · {credits.plan}
-              </div>
-            </>
-          )}
+      {/* Credits banner */}
+      <div style={{
+        background: 'linear-gradient(120deg, #FBF7EC, #F3EBD6)',
+        border: '1px solid #EADFBB',
+        borderRadius: 18,
+        padding: '20px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 32,
+        marginTop: 24,
+        marginBottom: 4,
+        flexWrap: 'wrap',
+      }}>
+        <div>
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 4 }}>Available credits</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 36, letterSpacing: '-0.02em', lineHeight: 1 }}>{credits?.balance?.toLocaleString() ?? '—'}</div>
         </div>
-
-        {/* Quick links */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 13, padding: '14px 16px' }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Quick create</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {QUICK.slice(0, 4).map(q => (
-              <Link key={q.label} href={q.href} style={{
-                fontSize: 12.5, fontWeight: 500, color: 'var(--ink-2)',
-                textDecoration: 'none', padding: '3px 0',
-                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-              }}>
-                {q.label}
-                <span style={{ color: 'var(--ink-faint)', fontSize: 11 }}>→</span>
-              </Link>
-            ))}
-          </div>
+        <div style={{ width: 1, height: 40, background: '#E4D2A0', flexShrink: 0 }} />
+        <div>
+          <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 3 }}>Monthly allocation</div>
+          <div style={{ fontSize: 15, fontWeight: 600 }}>{credits ? credits.monthlyCredits.toLocaleString() : '—'} · {credits?.plan ?? 'Free plan'}</div>
         </div>
+        {credits?.resetDate && (
+          <>
+            <div style={{ width: 1, height: 40, background: '#E4D2A0', flexShrink: 0 }} />
+            <div>
+              <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 3 }}>Resets</div>
+              <div style={{ fontSize: 15, fontWeight: 600 }}>{new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+            </div>
+          </>
+        )}
+        <Link href="/settings/billing" style={{
+          marginLeft: 'auto', background: 'var(--ink)', color: '#fff',
+          borderRadius: 9, padding: '9px 18px', fontSize: 13, fontWeight: 600,
+          textDecoration: 'none', flexShrink: 0,
+        }}>Upgrade plan</Link>
       </div>
 
       {/* THREE-UP FORMAT CARDS */}

@@ -135,15 +135,15 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       </div>
 
       <div className="rail-footer">
-        <div className="credits-card">
-          <div className="credits-row">
-            <div className="credits-num">{displayBalance}</div>
-            <div className="credits-label">Credits</div>
+        <div className="credits-card-dark" onClick={() => router.push('/settings/billing')} style={{ cursor: 'pointer' }}>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B8A97A', marginBottom: 5 }}>Credit balance</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, letterSpacing: '-0.02em', color: '#fff', lineHeight: 1, marginBottom: 8 }}>{displayBalance.toLocaleString()}</div>
+          <div style={{ height: 4, background: 'rgba(255,255,255,0.14)', borderRadius: 99, marginBottom: 10 }}>
+            <div style={{ height: '100%', width: `${creditPercentage}%`, background: '#D8B978', borderRadius: 99 }} />
           </div>
-          <div className="credits-bar"><div style={{ width: `${creditPercentage}%` }} /></div>
-          <div className="credits-upgrade">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: '#B5B29E' }}>
             <span>Free plan</span>
-            <u onClick={() => router.push('/settings/billing')}>Upgrade</u>
+            <span style={{ color: '#fff', fontWeight: 600 }}>Upgrade →</span>
           </div>
         </div>
       </div>

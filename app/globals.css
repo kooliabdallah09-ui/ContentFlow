@@ -310,6 +310,14 @@ a { color: inherit; text-decoration: none; }
   gap: 0;
 }
 
+.credits-card-dark {
+  background: linear-gradient(155deg, #1C1B12, #2C2A1C);
+  border-radius: 14px;
+  padding: 14px 15px;
+  display: flex;
+  flex-direction: column;
+}
+
 .credits-row {
   display: flex;
   justify-content: space-between;

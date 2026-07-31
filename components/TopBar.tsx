@@ -6,6 +6,7 @@ import { Icon } from '@/components/Icons'
 import { getSupabase } from '@/lib/auth'
 import { CommandPalette } from '@/components/CommandPalette'
 import { NotificationsDropdown } from '@/components/NotificationsDropdown'
+import { useCredits } from '@/lib/CreditsContext'
 
 interface TopBarProps {
   currentPath: string
@@ -40,6 +41,8 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
   const [initial, setInitial] = useState('A')
   const [paletteOpen, setPaletteOpen] = useState(false)
   const title = TITLES[currentPath] || 'Dashboard'
+  const { balance: creditBalance } = useCredits()
+  const displayBalance = creditBalance ?? 0
 
   useEffect(() => {
     const supabase = getSupabase()
@@ -96,6 +99,20 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
         <span style={{ flex: 1, color: 'var(--ink-mute)', fontSize: 13 }}>Search…</span>
         <span className="kbd">⌘K</span>
+      </button>
+      <button
+        onClick={() => router.push('/settings/billing')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 7,
+          background: '#F1E6C9', border: '1px solid #E4D2A0',
+          borderRadius: 99, padding: '5px 12px 5px 9px',
+          cursor: 'pointer', flexShrink: 0,
+        }}
+      >
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#B8862F', flexShrink: 0 }} />
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: '#6E4E17', whiteSpace: 'nowrap' }}>
+          {displayBalance.toLocaleString()} cr
+        </span>
       </button>
       <button className="icon-btn" title={isDark ? 'Switch to light' : 'Switch to dark'} onClick={onToggleTheme}>
         {isDark ? (
