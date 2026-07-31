@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ContentFlow — Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #FAFAF8;
+  --surface: #FFFFFF;
+  --surface-2: #F4F2ED;
+  --surface-3: #EDEAE2;
+  --border: #E7E4DE;
+  --border-soft: #F0EEE8;
+  --ink: #1A1A17;
+  --ink-2: #3A382F;
+  --ink-3: #56544D;
+  --ink-dim: #6A685F;
+  --ink-mute: #8A887E;
+  --ink-fade: #A6A398;
+  --danger: #B83A35;
+  --good: #2F7A4E;
+  --font-serif: "Instrument Serif", Georgia, serif;
+  --font-sans: "Geist", system-ui, sans-serif;
+  --font-mono: "Geist Mono", monospace;
+  --r-sm: 9px;
+  --r-md: 13px;
+  --r-lg: 16px;
+  --shadow-sm: 0 2px 12px rgba(20,18,12,0.04);
+  --shadow-md: 0 6px 18px rgba(20,18,12,0.08);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--font-sans); background: var(--bg); color: var(--ink); font-size: 14px; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+.page { max-width: 980px; margin: 0 auto; padding: 60px 40px; }
+h1.page-title { font-family: var(--font-serif); font-size: 48px; font-weight: 400; letter-spacing: -0.03em; margin-bottom: 6px; }
+h1.page-title em { font-style: italic; }
+.page-sub { font-size: 15px; color: var(--ink-dim); margin-bottom: 60px; }
+.section { margin-bottom: 56px; }
+.section-label { font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-fade); margin-bottom: 20px; }
+h2.section-title { font-family: var(--font-serif); font-size: 28px; font-weight: 400; letter-spacing: -0.02em; margin-bottom: 4px; }
+h2.section-title em { font-style: italic; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 48px 0; }
+
+/* Sidebar mockup */
+.sidebar-mock {
+  width: 262px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+.sidebar-brand { display: flex; align-items: center; gap: 10px; padding: 20px 18px 12px; }
+.sidebar-logo { width: 30px; height: 30px; border-radius: 8px; background: var(--ink); display: grid; place-items: center; }
+.sidebar-logo span { color: #fff; font-size: 14px; font-weight: 700; }
+.sidebar-name { font-size: 16px; font-weight: 600; letter-spacing: -0.02em; }
+.sidebar-name em { font-family: var(--font-serif); font-style: italic; font-weight: 400; }
+.sidebar-section { padding: 0 12px; margin-bottom: 4px; }
+.sidebar-section-label { font-size: 10.5px; font-weight: 600; letter-spacing: 0.13em; text-transform: uppercase; color: var(--ink-fade); padding: 12px 11px 6px; }
+.nav-item { display: flex; align-items: center; gap: 11px; padding: 8px 11px; border-radius: 9px; color: var(--ink-2); font-size: 13px; font-weight: 500; }
+.nav-item.active { background: var(--surface-3); color: var(--ink); }
+.nav-item .dot { width: 16px; height: 16px; border-radius: 4px; background: var(--surface-3); flex-shrink: 0; }
+.nav-item .dot.filled { background: var(--ink); }
+.nav-badge { margin-left: auto; font-size: 10px; font-weight: 600; background: var(--surface-3); color: var(--ink); border-radius: 5px; padding: 2px 6px; }
+.nav-kbd { margin-left: auto; font-size: 10px; color: var(--ink-fade); border: 1px solid var(--border); border-radius: 5px; padding: 1px 6px; font-family: var(--font-mono); }
+
+/* Palette */
+.palette-row { display: flex; flex-wrap: wrap; gap: 12px; }
+.swatch { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.swatch-color { width: 56px; height: 56px; border-radius: 10px; border: 1px solid var(--border); }
+.swatch-label { font-family: var(--font-mono); font-size: 10px; color: var(--ink-dim); }
+.swatch-name { font-size: 10px; color: var(--ink-mute); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* Typography */
+.type-row { display: flex; flex-direction: column; gap: 16px; }
+.type-item { display: flex; align-items: baseline; gap: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border-soft); }
+.type-meta { font-family: var(--font-mono); font-size: 10px; color: var(--ink-mute); min-width: 140px; }
+.type-sample { }
+
+/* Buttons */
+.btn-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.btn { display: inline-flex; align-items: center; gap: 6px; padding: 9px 16px; border-radius: var(--r-sm); font-size: 13.5px; font-weight: 500; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--ink); font-family: var(--font-sans); transition: all 0.12s; }
+.btn:hover { background: var(--surface-2); }
+.btn-primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+.btn-primary:hover { background: var(--ink-2); }
+.btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+
+/* Inputs */
+.input-row { display: flex; flex-direction: column; gap: 10px; max-width: 400px; }
+.input { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-size: 14px; font-family: var(--font-sans); background: var(--surface); color: var(--ink); }
+.input:focus { outline: none; border-color: var(--ink); }
+.textarea { width: 100%; padding: 10px 13px; border: 1.5px solid var(--border); border-radius: var(--r-sm); font-size: 14px; font-family: var(--font-sans); background: var(--surface); color: var(--ink); resize: vertical; min-height: 80px; }
+
+/* Cards */
+.card-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 20px; box-shadow: var(--shadow-sm); }
+.card-title { font-weight: 700; font-size: 15px; margin-bottom: 4px; }
+.card-sub { font-size: 12.5px; color: var(--ink-dim); line-height: 1.5; }
+.card-stat { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 2px; }
+
+/* Tags / chips */
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 11.5px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--surface-2); color: var(--ink-dim); font-family: var(--font-sans); }
+.chip.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.chip.success { background: rgba(47,122,78,0.08); color: var(--good); border-color: rgba(47,122,78,0.2); }
+.chip.danger { background: rgba(184,58,53,0.08); color: var(--danger); border-color: rgba(184,58,53,0.2); }
+
+/* Layout */
+.layout-demo { display: flex; border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; height: 320px; background: var(--bg); box-shadow: var(--shadow-md); }
+.layout-rail { width: 220px; background: var(--bg); border-right: 1px solid var(--border); flex-shrink: 0; padding: 16px 10px; display: flex; flex-direction: column; gap: 4px; }
+.layout-main { flex: 1; display: flex; flex-direction: column; }
+.layout-topbar { height: 52px; border-bottom: 1px solid var(--border); background: rgba(250,250,248,0.85); backdrop-filter: blur(12px); display: flex; align-items: center; padding: 0 24px; gap: 12px; }
+.layout-content { flex: 1; padding: 28px 24px; overflow: auto; }
+.topbar-search { flex: 1; max-width: 260px; height: 32px; border-radius: 8px; background: var(--surface-2); border: 1px solid var(--border-soft); display: flex; align-items: center; padding: 0 10px; gap: 6px; font-size: 13px; color: var(--ink-mute); }
+.topbar-icons { display: flex; gap: 8px; margin-left: auto; }
+.topbar-icon { width: 30px; height: 30px; border-radius: 7px; border: 1px solid var(--border); background: var(--surface); display: grid; place-items: center; }
+.topbar-avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; color: #fff; font-size: 12px; font-weight: 600; }
+.mini-nav { height: 30px; border-radius: 7px; background: var(--hover); padding: 0 10px; display: flex; align-items: center; font-size: 12px; font-weight: 500; color: var(--ink-2); gap: 6px; }
+.mini-nav.active { background: var(--surface-3); color: var(--ink); }
+.content-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
+.content-block-title { font-weight: 700; font-size: 13px; margin-bottom: 4px; }
+.content-block-line { height: 8px; background: var(--surface-2); border-radius: 4px; margin-bottom: 6px; }
+
+/* Dark preview box */
+.dark-preview {
+  background: #111110;
+  border-radius: var(--r-lg);
+  padding: 28px;
+  color: #EDEAE2;
+}
+.dark-surface { background: #1C1C1A; border: 1px solid #2E2E2B; border-radius: var(--r-md); padding: 16px 18px; margin-bottom: 10px; }
+.dark-mute { color: #8A887E; }
+.dark-btn { background: #EDEAE2; color: #111110; border: none; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 600; font-family: var(--font-sans); cursor: pointer; }
+.dark-outline-btn { background: transparent; color: #EDEAE2; border: 1.5px solid #2E2E2B; border-radius: 8px; padding: 9px 18px; font-size: 13px; font-weight: 500; font-family: var(--font-sans); cursor: pointer; }
+
+/* Spacing showcase */
+.spacing-row { display: flex; align-items: flex-end; gap: 16px; }
+.spacing-block { background: var(--surface-3); border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+.spacing-label { font-family: var(--font-mono); font-size: 10px; color: var(--ink-mute); text-align: center; margin-top: 6px; }
+
+/* Two-column */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+@media (max-width: 680px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1 class="page-title">Content<em>flow</em></h1>
+  <p class="page-sub">Design System — for claude.ai/design. Warm editorial aesthetic, serif + sans pairing, dark/light modes.</p>
+
+  <hr class="divider">
+
+  <!-- LAYOUT -->
+  <div class="section">
+    <div class="section-label">01 — Layout</div>
+    <div class="layout-demo">
+      <div class="layout-rail">
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-fade);padding:0 6px 6px;">Workspace</div>
+        <div class="mini-nav"><span>◻</span> Dashboard</div>
+        <div class="mini-nav"><span>◻</span> Library</div>
+        <div class="mini-nav"><span>◻</span> Brand</div>
+        <div style="font-size:10px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--ink-fade);padding:10px 6px 6px;">Create</div>
+        <div class="mini-nav active"><span>◼</span> Campaigns <span style="margin-left:auto;font-size:9px;background:var(--surface-3);padding:2px 5px;border-radius:4px;">New</span></div>
+        <div class="mini-nav"><span>◻</span> Video Studio <span style="margin-left:auto;font-size:9px;background:var(--surface-3);padding:2px 5px;border-radius:4px;">Flagship</span></div>
+        <div class="mini-nav"><span>◻</span> Image</div>
+        <div class="mini-nav"><span>◻</span> Social</div>
+      </div>
+      <div class="layout-main">
+        <div class="layout-topbar">
+          <div style="font-size:12px;color:var(--ink-mute);">STUDIO / <span style="color:var(--ink);font-weight:600;">CAMPAIGNS</span></div>
+          <div class="topbar-search"><span>🔍</span> Search…</div>
+          <div class="topbar-icons">
+            <div class="topbar-icon"><span style="font-size:12px;">☀</span></div>
+            <div class="topbar-icon"><span style="font-size:12px;">🔔</span></div>
+            <div class="topbar-avatar">A</div>
+          </div>
+        </div>
+        <div class="layout-content">
+          <div style="font-family:var(--font-serif);font-size:22px;font-weight:400;letter-spacing:-0.02em;margin-bottom:14px;">Your <em>campaigns.</em></div>
+          <div class="content-block">
+            <div class="content-block-title">Summer Drop 2026</div>
+            <div class="content-block-line" style="width:80%;"></div>
+            <div class="content-block-line" style="width:60%;"></div>
+          </div>
+          <div class="content-block">
+            <div class="content-block-title">Product Launch — DeskWell</div>
+            <div class="content-block-line" style="width:70%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-mute);margin-top:10px;">Rail sidebar (262px) + sticky topbar with blur + main content area. Breadcrumb navigation in topbar.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- COLOR PALETTE -->
+  <div class="section">
+    <div class="section-label">02 — Color</div>
+    <p style="font-size:13px;color:var(--ink-dim);margin-bottom:20px;">Warm off-white light mode. True black dark mode. Primary action color = ink (no blue accent).</p>
+
+    <div style="margin-bottom:16px;font-size:12px;font-weight:600;color:var(--ink-mute);text-transform:uppercase;letter-spacing:0.08em;">Backgrounds</div>
+    <div class="palette-row" style="margin-bottom:28px;">
+      <div class="swatch"><div class="swatch-color" style="background:#FAFAF8;"></div><div class="swatch-label">#FAFAF8</div><div class="swatch-name">--bg</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#FFFFFF;"></div><div class="swatch-label">#FFFFFF</div><div class="swatch-name">--surface</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#F4F2ED;"></div><div class="swatch-label">#F4F2ED</div><div class="swatch-name">--surface-2</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#EDEAE2;"></div><div class="swatch-label">#EDEAE2</div><div class="swatch-name">--surface-3</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#E7E4DE;"></div><div class="swatch-label">#E7E4DE</div><div class="swatch-name">--border</div></div>
+    </div>
+
+    <div style="margin-bottom:16px;font-size:12px;font-weight:600;color:var(--ink-mute);text-transform:uppercase;letter-spacing:0.08em;">Ink scale (text)</div>
+    <div class="palette-row" style="margin-bottom:28px;">
+      <div class="swatch"><div class="swatch-color" style="background:#1A1A17;"></div><div class="swatch-label">#1A1A17</div><div class="swatch-name">--ink</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#3A382F;"></div><div class="swatch-label">#3A382F</div><div class="swatch-name">--ink-2</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#56544D;"></div><div class="swatch-label">#56544D</div><div class="swatch-name">--ink-3</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#6A685F;"></div><div class="swatch-label">#6A685F</div><div class="swatch-name">--ink-dim</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#8A887E;"></div><div class="swatch-label">#8A887E</div><div class="swatch-name">--ink-mute</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#A6A398;"></div><div class="swatch-label">#A6A398</div><div class="swatch-name">--ink-fade</div></div>
+    </div>
+
+    <div style="margin-bottom:16px;font-size:12px;font-weight:600;color:var(--ink-mute);text-transform:uppercase;letter-spacing:0.08em;">Semantic</div>
+    <div class="palette-row" style="margin-bottom:28px;">
+      <div class="swatch"><div class="swatch-color" style="background:#B83A35;"></div><div class="swatch-label">#B83A35</div><div class="swatch-name">--danger</div></div>
+      <div class="swatch"><div class="swatch-color" style="background:#2F7A4E;"></div><div class="swatch-label">#2F7A4E</div><div class="swatch-name">--good</div></div>
+    </div>
+
+    <!-- Dark mode -->
+    <div class="dark-preview">
+      <div style="font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;color:#524F4A;margin-bottom:16px;">Dark mode (data-theme="dark")</div>
+      <div class="palette-row" style="margin-bottom:20px;">
+        <div class="swatch"><div class="swatch-color" style="background:#111110;border-color:#3C3C38;"></div><div class="swatch-label" style="color:#524F4A;">#111110</div><div class="swatch-name" style="color:#524F4A;">--bg</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#1C1C1A;border-color:#3C3C38;"></div><div class="swatch-label" style="color:#524F4A;">#1C1C1A</div><div class="swatch-name" style="color:#524F4A;">--surface</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#2E2E2B;border-color:#3C3C38;"></div><div class="swatch-label" style="color:#524F4A;">#2E2E2B</div><div class="swatch-name" style="color:#524F4A;">--border</div></div>
+        <div class="swatch"><div class="swatch-color" style="background:#EDEAE2;border-color:#3C3C38;"></div><div class="swatch-label" style="color:#524F4A;">#EDEAE2</div><div class="swatch-name" style="color:#524F4A;">--ink</div></div>
+      </div>
+      <div class="dark-surface">
+        <div style="font-weight:700;margin-bottom:4px;">Card in dark mode</div>
+        <div class="dark-mute" style="font-size:13px;margin-bottom:12px;">Background is warm near-black, not pure black.</div>
+        <div style="display:flex;gap:8px;">
+          <button class="dark-btn">Primary</button>
+          <button class="dark-outline-btn">Secondary</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- TYPOGRAPHY -->
+  <div class="section">
+    <div class="section-label">03 — Typography</div>
+    <p style="font-size:13px;color:var(--ink-dim);margin-bottom:24px;">Serif (Instrument Serif) for headlines and em phrases. Geist sans for body. Geist Mono for labels/eyebrows/code.</p>
+    <div class="type-row">
+      <div class="type-item">
+        <div class="type-meta">Instrument Serif<br>48px / weight 400<br>Page title</div>
+        <div class="type-sample" style="font-family:var(--font-serif);font-size:48px;font-weight:400;letter-spacing:-0.03em;line-height:1.1;">Build your <em>brand.</em></div>
+      </div>
+      <div class="type-item">
+        <div class="type-meta">Instrument Serif<br>28px / weight 400<br>Section title</div>
+        <div class="type-sample" style="font-family:var(--font-serif);font-size:28px;font-weight:400;letter-spacing:-0.02em;">Your <em>campaigns.</em></div>
+      </div>
+      <div class="type-item">
+        <div class="type-meta">Geist<br>22px / weight 700<br>Card headline</div>
+        <div class="type-sample" style="font-size:22px;font-weight:700;letter-spacing:-0.02em;">Brand Identity</div>
+      </div>
+      <div class="type-item">
+        <div class="type-meta">Geist<br>15px / weight 600<br>UI label</div>
+        <div class="type-sample" style="font-size:15px;font-weight:600;">Video Studio</div>
+      </div>
+      <div class="type-item">
+        <div class="type-meta">Geist<br>14px / weight 400<br>Body text</div>
+        <div class="type-sample" style="font-size:14px;color:var(--ink-dim);line-height:1.6;max-width:420px;">AI generates your name options, color palette, and brand voice. Answer a few questions and get a complete brand kit ready for Shopify.</div>
+      </div>
+      <div class="type-item">
+        <div class="type-meta">Geist Mono<br>10px / weight 500<br>Eyebrow / label</div>
+        <div class="type-sample" style="font-family:var(--font-mono);font-size:10px;font-weight:500;letter-spacing:0.14em;text-transform:uppercase;color:var(--ink-fade);">Color Palette</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- BUTTONS -->
+  <div class="section">
+    <div class="section-label">04 — Buttons</div>
+    <div class="btn-row" style="margin-bottom:20px;">
+      <button class="btn btn-primary">Generate content</button>
+      <button class="btn">Secondary</button>
+      <button class="btn btn-sm btn-primary">Small primary</button>
+      <button class="btn btn-sm">Small default</button>
+      <button class="btn btn-danger">Delete</button>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-primary" disabled style="opacity:0.5;cursor:not-allowed;">Generating…</button>
+      <button class="btn" style="border:1.5px solid var(--ink);font-weight:600;">Outlined strong</button>
+    </div>
+    <p style="font-size:12px;color:var(--ink-mute);margin-top:12px;">No icon-only buttons without tooltips. Loading states replace label text with "…" suffix. Danger only for destructive confirmation.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- INPUTS -->
+  <div class="section">
+    <div class="section-label">05 — Inputs</div>
+    <div class="two-col">
+      <div class="input-row">
+        <input class="input" placeholder="Brand name…" />
+        <input class="input" placeholder="Target audience…" />
+        <textarea class="textarea" placeholder="Describe your product or brief…"></textarea>
+      </div>
+      <div>
+        <div style="font-size:12px;color:var(--ink-mute);margin-bottom:10px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.08em;">Select / chips</div>
+        <div class="chip-row" style="margin-bottom:14px;">
+          <span class="chip active">Energetic</span>
+          <span class="chip">Informative</span>
+          <span class="chip">Documentary</span>
+        </div>
+        <div class="chip-row">
+          <span class="chip success">Complete</span>
+          <span class="chip danger">Failed</span>
+          <span class="chip">Draft</span>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-mute);margin-top:12px;">Border: 1.5px var(--border). On focus: border-color: var(--ink). No outline. Border-radius: 9px.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- CARDS -->
+  <div class="section">
+    <div class="section-label">06 — Cards</div>
+    <div class="card-row">
+      <div class="card">
+        <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.07em;color:var(--ink-mute);margin-bottom:6px;">Total credits</div>
+        <div class="card-stat">65,093</div>
+        <div style="font-size:12.5px;color:var(--ink-dim);">Resets in 14 days</div>
+      </div>
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+          <div style="width:36px;height:36px;border-radius:8px;background:var(--surface-2);border:1px solid var(--border);"></div>
+          <div>
+            <div class="card-title">DeskWell</div>
+            <div style="font-size:11.5px;color:var(--ink-mute);">Home Office Wellness</div>
+          </div>
+          <span class="chip success" style="margin-left:auto;">Complete</span>
+        </div>
+        <div class="card-sub">AI-built brand with 3 products and launch content pack.</div>
+      </div>
+      <div class="card" style="border-style:dashed;background:transparent;">
+        <div style="font-size:24px;margin-bottom:8px;">+</div>
+        <div class="card-title">New campaign</div>
+        <div class="card-sub" style="margin-top:4px;">Start from a brief or product.</div>
+      </div>
+    </div>
+    <p style="font-size:12px;color:var(--ink-mute);margin-top:12px;">Cards: 1px solid var(--border), border-radius: 16px, padding: 20px. Dashed = empty/create state.</p>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SIDEBAR COMPONENT -->
+  <div class="section">
+    <div class="section-label">07 — Sidebar (Rail)</div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+      <div class="sidebar-mock">
+        <div class="sidebar-brand">
+          <div class="sidebar-logo"><span>C</span></div>
+          <div class="sidebar-name">Content<em>flow</em></div>
+        </div>
+        <div class="sidebar-section">
+          <div class="sidebar-section-label">Workspace</div>
+          <div class="nav-item"><div class="dot filled"></div> Dashboard <div class="nav-kbd">D</div></div>
+          <div class="nav-item"><div class="dot"></div> Library <div class="nav-kbd">L</div></div>
+          <div class="nav-item active"><div class="dot filled"></div> Brand <div class="nav-kbd">B</div></div>
+        </div>
+        <div class="sidebar-section" style="margin-top:8px;">
+          <div class="sidebar-section-label">Create</div>
+          <div class="nav-item"><div class="dot"></div> Brand Launch <div class="nav-badge">New</div></div>
+          <div class="nav-item"><div class="dot"></div> Campaigns <div class="nav-badge">New</div></div>
+          <div class="nav-item"><div class="dot"></div> Video Studio <div class="nav-badge">Flagship</div></div>
+          <div class="nav-item"><div class="dot"></div> Image</div>
+          <div class="nav-item"><div class="dot"></div> Social</div>
+        </div>
+      </div>
+      <div style="font-size:13px;color:var(--ink-dim);max-width:320px;line-height:1.7;">
+        <p style="margin-bottom:8px;"><strong>Rail nav:</strong> 262px wide, sticky, warm background (#FAFAF8 light / #111110 dark).</p>
+        <p style="margin-bottom:8px;"><strong>Active state:</strong> background: var(--surface-3), no left border or pill — just bg fill.</p>
+        <p style="margin-bottom:8px;"><strong>Section labels:</strong> Geist Mono 10px, uppercase, var(--ink-fade).</p>
+        <p><strong>Badges:</strong> "New" / "Flagship" / "Beta" — subtle chips, not colored.</p>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- SPACING + RADIUS -->
+  <div class="section">
+    <div class="section-label">08 — Spacing & Radius</div>
+    <div class="two-col">
+      <div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font-mono);">Radius scale</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:var(--surface-3);border:1px solid var(--border);border-radius:5px;"></div><span style="font-size:12px;color:var(--ink-dim);">5px — xs (chips, badges)</span></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:var(--surface-3);border:1px solid var(--border);border-radius:9px;"></div><span style="font-size:12px;color:var(--ink-dim);">9px — sm (buttons, inputs)</span></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:var(--surface-3);border:1px solid var(--border);border-radius:13px;"></div><span style="font-size:12px;color:var(--ink-dim);">13px — md (modals, panels)</span></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:var(--surface-3);border:1px solid var(--border);border-radius:16px;"></div><span style="font-size:12px;color:var(--ink-dim);">16px — lg (cards, sections)</span></div>
+          <div style="display:flex;align-items:center;gap:12px;"><div style="width:32px;height:32px;background:var(--surface-3);border:1px solid var(--border);border-radius:22px;"></div><span style="font-size:12px;color:var(--ink-dim);">22px — xl (large cards)</span></div>
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--ink-mute);margin-bottom:12px;text-transform:uppercase;letter-spacing:0.08em;font-family:var(--font-mono);">Common spacing</div>
+        <table style="font-size:12px;color:var(--ink-dim);border-collapse:collapse;width:100%;">
+          <tr><td style="padding:5px 0;border-bottom:1px solid var(--border-soft);">Page padding</td><td style="padding:5px 0;border-bottom:1px solid var(--border-soft);font-family:var(--font-mono);">28px 20px 60px</td></tr>
+          <tr><td style="padding:5px 0;border-bottom:1px solid var(--border-soft);">Card padding</td><td style="padding:5px 0;border-bottom:1px solid var(--border-soft);font-family:var(--font-mono);">20px</td></tr>
+          <tr><td style="padding:5px 0;border-bottom:1px solid var(--border-soft);">Section gap</td><td style="padding:5px 0;border-bottom:1px solid var(--border-soft);font-family:var(--font-mono);">24–32px</td></tr>
+          <tr><td style="padding:5px 0;border-bottom:1px solid var(--border-soft);">Form gap</td><td style="padding:5px 0;border-bottom:1px solid var(--border-soft);font-family:var(--font-mono);">10–12px</td></tr>
+          <tr><td style="padding:5px 0;">Max content width</td><td style="padding:5px 0;font-family:var(--font-mono);">860px (680px wizard)</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- DESIGN NOTES -->
+  <div class="section">
+    <div class="section-label">09 — Design principles</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:6px;">Warm, not sterile</div>
+        <div class="card-sub">Off-white backgrounds (#FAFAF8 not #F9F9F9). Warm ink (#1A1A17 not #000). Feels like paper, not a Google product.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:6px;">Serif + sans pairing</div>
+        <div class="card-sub">Headlines in Instrument Serif italic. Body/UI in Geist. Eyebrows in Geist Mono. Never mix more than these three.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:6px;">No blue accent</div>
+        <div class="card-sub">Primary CTA = ink (near-black). No blue, purple, or teal accents. The brand color IS the content color.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:6px;">Subtle structure</div>
+        <div class="card-sub">Borders at 1px, shadows minimal. Content hierarchy from typography and spacing — not heavy borders or colors.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:6px;">Dark mode = true dark</div>
+        <div class="card-sub">#111110 background, warm dark surfaces. Buttons in dark mode use --ink (the off-white #EDEAE2) as background.</div>
+      </div>
+      <div class="card">
+        <div class="card-title" style="margin-bottom:6px;">Inline styles (no Tailwind)</div>
+        <div class="card-sub">All component styles use CSS custom properties inline. No Tailwind, no CSS modules. One globals.css with tokens.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+  <p style="font-size:12px;color:var(--ink-fade);text-align:center;padding-bottom:40px;">ContentFlow Design System — share this file + screenshots with claude.ai/design</p>
+</div>
+</body>
+</html>
