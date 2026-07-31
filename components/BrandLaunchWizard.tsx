@@ -228,6 +228,7 @@ function StepIdentity({
   const [logoLoading, setLogoLoading] = useState(false)
   const [logoUrl, setLogoUrl] = useState('')
   const [error, setError] = useState('')
+  const [logoError, setLogoError] = useState('')
 
   const generate = async () => {
     setLoading(true); setError('')
@@ -243,14 +244,14 @@ function StepIdentity({
 
   const generateLogo = async () => {
     if (!selectedName || !identity) return
-    setLogoLoading(true)
+    setLogoLoading(true); setLogoError('')
     try {
       const data = await apiFetch('/api/brand-launch/logo', {
         name: selectedName, primaryColor: identity.colors.primary, niche,
       })
       setLogoUrl(data.logoUrl)
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Logo generation failed')
+      setLogoError(e instanceof Error ? e.message : 'Logo generation failed')
     } finally {
       setLogoLoading(false)
     }
@@ -338,7 +339,7 @@ function StepIdentity({
           {/* Logo */}
           {selectedName && (
             <div>
-              <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)', marginBottom: 10 }}>Logo</div>
+              <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)', marginBottom: 10 }}>Logo <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-mute)', fontSize: 11 }}>(optional)</span></div>
               {logoUrl ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
                   <img src={logoUrl} alt="Brand logo" style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 10, border: '1px solid var(--border)', background: '#fff', padding: 8 }} />
@@ -347,10 +348,11 @@ function StepIdentity({
                   </button>
                 </div>
               ) : (
-                <button onClick={generateLogo} disabled={logoLoading} className="btn-primary" style={{ padding: '10px 20px' }}>
+                <button onClick={generateLogo} disabled={logoLoading} className="btn" style={{ padding: '10px 20px' }}>
                   {logoLoading ? 'Generating logo… (15s)' : `Generate logo for ${selectedName}`}
                 </button>
               )}
+              {logoError && <p style={{ color: 'var(--danger)', fontSize: 12, marginTop: 8, marginBottom: 0 }}>{logoError}</p>}
             </div>
           )}
 
