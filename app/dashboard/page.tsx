@@ -137,9 +137,28 @@ export default function DashboardPage() {
           <div className="dash-art dash-art-ugc">
             <span className="dash-flag">FLAGSHIP</span>
             <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-              <div className="dash-strip dash-strip-short" />
-              <div className="dash-strip dash-strip-tall" />
-              <div className="dash-strip dash-strip-short" />
+              {([
+                { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-shopify.mp4', h: 96, t: 2 },
+                { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-talking-head.mp4', h: 108, t: 1 },
+                { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/video-pepsi.mp4', h: 96, t: 3 },
+              ] as { src: string; h: number; t: number }[]).map(({ src, h, t }, i) => (
+                <div key={i} style={{
+                  width: 54, height: h, borderRadius: 8, overflow: 'hidden',
+                  border: '1px solid rgba(255,255,255,0.08)', flexShrink: 0,
+                  background: '#111',
+                  boxShadow: i === 1 ? '0 8px 24px rgba(0,0,0,0.5)' : '0 4px 12px rgba(0,0,0,0.3)',
+                }}>
+                  <video
+                    src={`${src}#t=${t}`}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    onLoadedData={(e) => { (e.target as HTMLVideoElement).currentTime = t }}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                </div>
+              ))}
             </div>
           </div>
           <div className="dash-card-body">
