@@ -133,13 +133,34 @@ export default function DashboardPage() {
 
       {/* THREE-UP FORMAT CARDS */}
       <div className="dash-grid">
+
+        {/* UGC Package */}
         <Link href="/generate/ugc" className="dash-card">
-          <div className="dash-art dash-art-ugc">
-            <span className="dash-flag">FLAGSHIP</span>
-            <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-              <div className="dash-strip dash-strip-short" />
-              <div className="dash-strip dash-strip-tall" />
-              <div className="dash-strip dash-strip-short" />
+          <div className="dash-art" style={{ background: '#18170F', flexDirection: 'column', gap: 0, padding: 0, justifyContent: 'flex-start' }}>
+            <span className="dash-flag" style={{ background: '#D4B97A', color: '#3A2D10', top: 14, left: 14 }}>FLAGSHIP</span>
+            {/* Scene: avatar + script */}
+            <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+              {/* Phone frame with avatar */}
+              <div style={{ width: 62, height: 100, borderRadius: 12, background: '#2A2920', border: '1.5px solid rgba(255,255,255,0.12)', display: 'flex', flexDirection: 'column', overflow: 'hidden', flexShrink: 0, boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                <div style={{ flex: 1, background: 'linear-gradient(180deg, #1E1D14 0%, #2D2B1E 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, #C5A96B, #A8894A)', border: '2px solid rgba(255,255,255,0.15)' }} />
+                </div>
+                <div style={{ height: 22, background: '#1A1910', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, padding: '0 6px' }}>
+                  {[8, 13, 10, 7].map((w, i) => <div key={i} style={{ height: 3, width: w, borderRadius: 2, background: 'rgba(255,255,255,0.3)' }} />)}
+                </div>
+              </div>
+              {/* Script preview */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <div style={{ fontSize: 8.5, fontFamily: 'var(--font-mono)', color: '#D4B97A', letterSpacing: '0.08em', marginBottom: 4 }}>SCRIPT</div>
+                {[70, 55, 80, 45, 65].map((w, i) => (
+                  <div key={i} style={{ height: 5, width: w, borderRadius: 3, background: i === 0 ? 'rgba(212,185,122,0.6)' : 'rgba(255,255,255,0.15)' }} />
+                ))}
+                <div style={{ marginTop: 6, display: 'flex', gap: 3, alignItems: 'center' }}>
+                  {[4, 7, 5, 8, 4, 6, 5, 7, 4, 6].map((h, i) => (
+                    <div key={i} style={{ width: 3, height: h, borderRadius: 2, background: 'rgba(212,185,122,0.7)' }} />
+                  ))}
+                </div>
+              </div>
             </div>
           </div>
           <div className="dash-card-body">
@@ -151,9 +172,27 @@ export default function DashboardPage() {
           </div>
         </Link>
 
+        {/* Image */}
         <Link href="/generate/image" className="dash-card">
-          <div className="dash-art dash-art-stripe">
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-faint)', letterSpacing: '0.05em' }}>PRODUCT SHOT</span>
+          <div className="dash-art" style={{ background: 'linear-gradient(145deg, #F7F2EA, #EDE5D6)', overflow: 'hidden' }}>
+            {/* Light rays */}
+            <div style={{ position: 'absolute', top: -30, right: -20, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,235,180,0.5) 0%, transparent 70%)' }} />
+            {/* Product bottle */}
+            <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+              {/* Cap */}
+              <div style={{ width: 20, height: 10, borderRadius: '6px 6px 0 0', background: '#C8A96A' }} />
+              {/* Neck */}
+              <div style={{ width: 16, height: 16, background: 'linear-gradient(180deg, #D4B97A, #C4A96A)' }} />
+              {/* Body */}
+              <div style={{ width: 52, height: 78, borderRadius: '8px 8px 10px 10px', background: 'linear-gradient(135deg, rgba(255,255,255,0.9), rgba(240,230,210,0.95))', border: '1px solid rgba(180,155,100,0.3)', boxShadow: '4px 6px 20px rgba(0,0,0,0.12), inset -4px 0 12px rgba(255,255,255,0.6)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+                <div style={{ width: 34, height: 4, borderRadius: 3, background: 'rgba(160,130,80,0.4)' }} />
+                <div style={{ width: 24, height: 3, borderRadius: 3, background: 'rgba(160,130,80,0.25)' }} />
+              </div>
+              {/* Shadow */}
+              <div style={{ width: 44, height: 6, borderRadius: '50%', background: 'rgba(0,0,0,0.08)', marginTop: 2 }} />
+            </div>
+            {/* Corner label */}
+            <span style={{ position: 'absolute', bottom: 12, right: 14, fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-fade)', letterSpacing: '0.1em' }}>PRODUCT SHOT</span>
           </div>
           <div className="dash-card-body">
             <div className="dash-card-head">
@@ -164,11 +203,22 @@ export default function DashboardPage() {
           </div>
         </Link>
 
+        {/* Video */}
         <Link href="/generate/video" className="dash-card">
-          <div className="dash-art dash-art-stripe">
-            <div className="dash-play">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="var(--ink)"><path d="M8 5v14l11-7z"/></svg>
+          <div className="dash-art" style={{ background: '#0E0E0C', overflow: 'hidden', flexDirection: 'column' }}>
+            {/* Cinematic letterbox bars */}
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 24, background: '#000', zIndex: 2 }} />
+            <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 24, background: '#000', zIndex: 2 }} />
+            {/* Gradient scene */}
+            <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 60%, rgba(60,50,30,0.8) 0%, #0E0E0C 70%)' }} />
+            {/* Horizon line */}
+            <div style={{ position: 'absolute', top: '52%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.06)' }} />
+            {/* Play button */}
+            <div style={{ position: 'relative', zIndex: 3, width: 48, height: 48, borderRadius: '50%', background: 'rgba(255,255,255,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 8px rgba(255,255,255,0.08)' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="#0E0E0C"><path d="M8 5v14l11-7z"/></svg>
             </div>
+            {/* Subtle film grain dots */}
+            <div style={{ position: 'absolute', inset: 0, zIndex: 1, opacity: 0.06, backgroundImage: 'radial-gradient(circle, #fff 1px, transparent 1px)', backgroundSize: '20px 20px' }} />
           </div>
           <div className="dash-card-body">
             <div className="dash-card-head">
