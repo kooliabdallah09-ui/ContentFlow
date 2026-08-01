@@ -137,27 +137,9 @@ export default function DashboardPage() {
           <div className="dash-art dash-art-ugc">
             <span className="dash-flag">FLAGSHIP</span>
             <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-              {[
-                { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-shopify.mp4', h: 96 },
-                { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-talking-head.mp4', h: 108 },
-                { src: 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/video-pepsi.mp4', h: 96 },
-              ].map(({ src, h }, i) => (
-                <div key={i} style={{
-                  width: 54, height: h, borderRadius: 8, overflow: 'hidden',
-                  border: '1px solid rgba(0,0,0,0.25)', flexShrink: 0,
-                  background: '#111',
-                  boxShadow: i === 1 ? '0 8px 20px rgba(0,0,0,0.35)' : '0 4px 12px rgba(0,0,0,0.2)',
-                }}>
-                  <video
-                    src={src}
-                    autoPlay
-                    muted
-                    loop
-                    playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                  />
-                </div>
-              ))}
+              <div className="dash-strip dash-strip-short" />
+              <div className="dash-strip dash-strip-tall" />
+              <div className="dash-strip dash-strip-short" />
             </div>
           </div>
           <div className="dash-card-body">
