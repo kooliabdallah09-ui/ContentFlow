@@ -19,6 +19,8 @@ export default function BillingPage() {
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
   const [packLoading, setPackLoading] = useState<string | null>(null)
   const [annual, setAnnual] = useState(false)
+  const [recGoals, setRecGoals] = useState<string[]>([])
+  const [recVolume, setRecVolume] = useState<string>('')
 
   useEffect(() => {
     loadCreditsInfo()
@@ -104,6 +106,14 @@ export default function BillingPage() {
     }
   }
 
+  // ─── Plan Recommender logic ───────────────────────────────────────────────
+  function getRecommendedPlan(goals: string[], volume: string): string {
+    if (goals.includes('ugc') && (volume === 'heavy' || goals.length >= 3)) return 'agency'
+    if (goals.includes('ugc') || volume === 'heavy') return 'pro'
+    if (goals.length >= 2 || volume === 'medium') return 'starter'
+    return 'free'
+  }
+
   if (loading) {
     return (
       <div className="content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -187,20 +197,21 @@ export default function BillingPage() {
         alignItems: 'center',
         gap: 0,
         flexWrap: 'wrap',
+        color: '#2C1F0A',
       }}>
         <div style={{ paddingRight: 28 }}>
           <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 4 }}>Available credits</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, letterSpacing: '-0.02em', lineHeight: 1 }}>{(creditsInfo?.balance ?? 0).toLocaleString()}</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, letterSpacing: '-0.02em', lineHeight: 1, color: '#2C1F0A' }}>{(creditsInfo?.balance ?? 0).toLocaleString()}</div>
         </div>
         <div style={{ width: 1, height: 44, background: '#E4D2A0', marginRight: 28, flexShrink: 0 }} />
         <div style={{ paddingRight: 28 }}>
           <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 4 }}>Monthly allocation</div>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>{(creditsInfo?.monthlyCredits ?? 0).toLocaleString()} · {creditsInfo?.plan ?? 'Free plan'}</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: '#2C1F0A' }}>{(creditsInfo?.monthlyCredits ?? 0).toLocaleString()} · {creditsInfo?.plan ?? 'Free plan'}</div>
         </div>
         <div style={{ width: 1, height: 44, background: '#E4D2A0', marginRight: 28, flexShrink: 0 }} />
         <div>
           <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 4 }}>Reset date</div>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>
+          <div style={{ fontSize: 16, fontWeight: 600, color: '#2C1F0A' }}>
             {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
           </div>
         </div>
@@ -258,7 +269,7 @@ export default function BillingPage() {
               <div key={plan.name} style={{
                 position: 'relative',
                 background: 'var(--surface)',
-                border: `1.5px solid ${isCurrent || plan.popular ? 'var(--ink)' : 'var(--border)'}`,
+                border: `1.5px solid ${isCurrent || plan.popular ? '#111' : 'var(--border)'}`,
                 borderRadius: 16,
                 padding: 20,
                 display: 'flex',
@@ -268,7 +279,7 @@ export default function BillingPage() {
                   <span style={{
                     position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
                     fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                    background: 'var(--ink)', color: '#fff',
+                    background: '#111', color: '#fff',
                     borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap',
                   }}>
                     {isCurrent ? 'Current plan' : 'Most popular'}
@@ -294,7 +305,7 @@ export default function BillingPage() {
                     disabled={isLoading}
                     style={{
                       display: 'block', width: '100%', padding: '9px 12px', borderRadius: 9,
-                      border: 'none', background: 'var(--ink)', color: '#fff',
+                      border: 'none', background: '#111', color: '#fff',
                       fontWeight: 600, fontSize: 13, cursor: 'pointer',
                       opacity: isLoading ? 0.5 : 1,
                     }}
@@ -307,15 +318,6 @@ export default function BillingPage() {
                   </div>
                 )}
 
-                <div style={{ height: 1, background: 'var(--border-soft)', margin: '16px 0' }} />
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1 }}>
-                  {plan.features.map((f, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.45 }}>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 12, height: 12, flexShrink: 0, marginTop: 2, color: 'var(--good)' }}><path d="M20 6L9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                      <span>{f}</span>
-                    </div>
-                  ))}
-                </div>
               </div>
             )
           })}
@@ -325,6 +327,17 @@ export default function BillingPage() {
           @media (max-width: 640px)  { .billing-plan-grid { grid-template-columns: 1fr !important; } }
         `}</style>
       </div>
+
+      {/* Plan Recommender */}
+      <PlanRecommender
+        goals={recGoals} setGoals={setRecGoals}
+        volume={recVolume} setVolume={setRecVolume}
+        currentPlan={currentPlan}
+        annual={annual}
+        plans={plans}
+        onUpgrade={handleUpgrade}
+        upgradeLoading={upgradeLoading}
+      />
 
       {/* Credits policy */}
       <div style={{ marginBottom: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', padding: '20px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px 32px' }}>
@@ -366,7 +379,7 @@ export default function BillingPage() {
                 disabled={packLoading === pack.priceId}
                 style={{
                   padding: '8px 16px', borderRadius: 8,
-                  border: 'none', background: 'var(--ink)', color: '#fff',
+                  border: 'none', background: '#111', color: '#fff',
                   fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
                   opacity: packLoading === pack.priceId ? 0.5 : 1,
                 }}
@@ -395,6 +408,147 @@ export default function BillingPage() {
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+// ─── Plan Recommender Widget ────────────────────────────────────────────────
+const GOALS = [
+  { key: 'ugc',        label: 'UGC videos',          icon: '🎬' },
+  { key: 'images',     label: 'Product images',       icon: '🖼️' },
+  { key: 'influencer', label: 'AI influencer photos', icon: '✨' },
+  { key: 'social',     label: 'Social captions',      icon: '📝' },
+  { key: 'voice',      label: 'Voiceovers',           icon: '🎙️' },
+  { key: 'video',      label: 'Cinematic video',      icon: '🎥' },
+]
+const VOLUMES = [
+  { key: 'light',  label: 'A few pieces',      sub: '1–5 / month' },
+  { key: 'medium', label: 'Regular cadence',   sub: '10–30 / month' },
+  { key: 'heavy',  label: 'Agency-level',      sub: '30+ / month' },
+]
+
+function PlanRecommender({
+  goals, setGoals, volume, setVolume, currentPlan, annual, plans, onUpgrade, upgradeLoading,
+}: {
+  goals: string[], setGoals: (g: string[]) => void,
+  volume: string, setVolume: (v: string) => void,
+  currentPlan: string, annual: boolean,
+  plans: { name: string, price: { monthly: string, annual: string }, credits: string, priceId: { monthly: string, annual: string }, planKey: string, popular?: boolean, annualTotal?: string | null }[],
+  onUpgrade: (id: string) => void, upgradeLoading: string | null,
+}) {
+  function toggleGoal(key: string) {
+    setGoals(goals.includes(key) ? goals.filter(g => g !== key) : [...goals, key])
+  }
+  function getRecommendedPlanKey(): string {
+    if (!goals.length && !volume) return ''
+    if (goals.includes('ugc') && (volume === 'heavy' || goals.length >= 3)) return 'agency'
+    if (goals.includes('ugc') || volume === 'heavy') return 'pro'
+    if (goals.length >= 2 || volume === 'medium') return 'starter'
+    return 'free'
+  }
+  const recKey = getRecommendedPlanKey()
+  const recPlan = plans.find(p => p.planKey === recKey)
+  const hasInput = goals.length > 0 || volume !== ''
+
+  return (
+    <div style={{ marginBottom: 24, border: '1px solid var(--border)', borderRadius: 18, background: 'var(--surface)', overflow: 'hidden' }}>
+      <div style={{ padding: '20px 24px 0', borderBottom: '1px solid var(--border-soft)' }}>
+        <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>Find the right plan for you</div>
+        <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: '0 0 20px' }}>Tell us what you create and we'll suggest a plan.</p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', minHeight: 240 }}>
+        {/* Left — questions */}
+        <div style={{ padding: '20px 24px', borderRight: '1px solid var(--border-soft)' }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 10 }}>
+            1 · What do you want to create?
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
+            {GOALS.map(g => {
+              const active = goals.includes(g.key)
+              return (
+                <button key={g.key} onClick={() => toggleGoal(g.key)} style={{
+                  display: 'flex', alignItems: 'center', gap: 7,
+                  padding: '7px 13px', borderRadius: 9, fontSize: 12.5, fontWeight: 500,
+                  border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                  background: active ? 'var(--ink)' : 'transparent',
+                  color: active ? 'var(--on-ink)' : 'var(--ink)',
+                  cursor: 'pointer', transition: 'all 0.12s',
+                }}>
+                  <span style={{ fontSize: 14 }}>{g.icon}</span>
+                  {g.label}
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 10 }}>
+            2 · How much content per month?
+          </div>
+          <div style={{ display: 'flex', gap: 10 }}>
+            {VOLUMES.map(v => {
+              const active = volume === v.key
+              return (
+                <button key={v.key} onClick={() => setVolume(active ? '' : v.key)} style={{
+                  flex: 1, padding: '10px 12px', borderRadius: 10, textAlign: 'left',
+                  border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                  background: active ? 'var(--ink)' : 'transparent',
+                  color: active ? 'var(--on-ink)' : 'var(--ink)',
+                  cursor: 'pointer', transition: 'all 0.12s',
+                }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 2 }}>{v.label}</div>
+                  <div style={{ fontSize: 11, opacity: 0.65 }}>{v.sub}</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* Right — recommendation */}
+        <div style={{ padding: '20px 22px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          {!hasInput ? (
+            <div style={{ textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13 }}>
+              <div style={{ fontSize: 28, marginBottom: 10 }}>←</div>
+              Select your goals to see a recommendation
+            </div>
+          ) : !recPlan ? null : (
+            <>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 12 }}>We recommend</div>
+              <div style={{ background: 'var(--surface-2)', borderRadius: 14, padding: '16px 18px', border: '1.5px solid #111', marginBottom: 16 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 4 }}>{recPlan.name}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 4 }}>
+                  <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>
+                    {annual ? recPlan.price.annual : recPlan.price.monthly}
+                  </span>
+                  {recPlan.planKey !== 'free' && <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/mo</span>}
+                </div>
+                <div style={{ fontSize: 11.5, color: 'var(--ink-dim)' }}>{recPlan.credits}</div>
+              </div>
+              {currentPlan === recPlan.planKey ? (
+                <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ink-mute)', fontWeight: 500 }}>
+                  ✓ You're on this plan
+                </div>
+              ) : recPlan.priceId.monthly ? (
+                <button
+                  onClick={() => onUpgrade(annual ? recPlan.priceId.annual : recPlan.priceId.monthly)}
+                  disabled={!!upgradeLoading}
+                  style={{
+                    width: '100%', padding: '10px', borderRadius: 9,
+                    border: 'none', background: '#111', color: '#fff',
+                    fontWeight: 600, fontSize: 13, cursor: 'pointer',
+                    opacity: upgradeLoading ? 0.5 : 1,
+                  }}
+                >
+                  {upgradeLoading ? 'Redirecting…' : `Upgrade to ${recPlan.name}`}
+                </button>
+              ) : (
+                <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ink-mute)' }}>No upgrade needed</div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
+      <style>{`@media (max-width: 700px) { .rec-grid { grid-template-columns: 1fr !important; } }`}</style>
     </div>
   )
 }

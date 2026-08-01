@@ -246,8 +246,21 @@ export default function BrandSettingsPage() {
 
   return (
     <main className="content">
+      {/* Settings nav tabs */}
+      <div style={{ display: 'flex', gap: 2, marginBottom: 28, borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
+        {['brand', 'account', 'billing', 'integrations'].map(s => (
+          <a key={s} href={`/settings/${s}`} style={{
+            padding: '8px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
+            color: s === 'brand' ? 'var(--ink)' : 'var(--ink-mute)',
+            borderBottom: s === 'brand' ? '2px solid var(--ink)' : '2px solid transparent',
+            marginBottom: -1, transition: 'color 0.15s',
+          }}>
+            {s.charAt(0).toUpperCase() + s.slice(1)}
+          </a>
+        ))}
+      </div>
+
       <div className="page-head">
-        <div className="page-meta">Settings</div>
         <h1 className="page-title">Brand <em>profile</em></h1>
         <p className="page-sub">
           Everything you fill in here auto-populates the UGC builder and content calendar — no re-typing.
