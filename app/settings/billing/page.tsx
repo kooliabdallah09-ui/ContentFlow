@@ -418,15 +418,82 @@ export default function BillingPage() {
 }
 
 // ─── Plan Recommender Widget ────────────────────────────────────────────────
-const CONTENT_TYPES = [
-  { key: 'ugc',        label: 'UGC Video',         sub: 'Talking-head · 9:16',    crEach: 95,  color: '#D97706' },
-  { key: 'budget-ugc', label: 'Budget UGC',         sub: 'Seedance Mini',          crEach: 40,  color: '#7C3AED' },
-  { key: 'image',      label: 'Product Image',      sub: 'AI photo · studio shot', crEach: 5,   color: '#0EA5E9' },
-  { key: 'influencer', label: 'AI Influencer',      sub: 'Lifestyle · portrait',   crEach: 8,   color: '#EC4899' },
-  { key: 'cinematic',  label: 'Cinematic Video',    sub: 'Kling · scene video',    crEach: 140, color: '#10B981' },
-  { key: 'voiceover',  label: 'Voiceover',          sub: 'ElevenLabs · per clip',  crEach: 10,  color: '#6366F1' },
-  { key: 'social',     label: 'Social Caption',     sub: 'AI copywriting',         crEach: 2,   color: '#F59E0B' },
+type CTOption = { key: string; choices: string[]; default: string }
+type ContentType = {
+  key: string; label: string; sub: string; color: string
+  crBase: number
+  opts?: CTOption[]
+  crMod?: (selections: Record<string, string>) => number
+}
+
+const CONTENT_TYPES: ContentType[] = [
+  {
+    key: 'ugc', label: 'UGC Video', sub: 'Talking-head · 9:16', color: '#D97706',
+    crBase: 95,
+    opts: [
+      { key: 'duration', choices: ['5s', '10s'], default: '5s' },
+      { key: 'quality',  choices: ['720p', '1080p'], default: '720p' },
+    ],
+    crMod: (s) => {
+      const d = s.duration === '10s' ? 1.9 : 1
+      const q = s.quality === '1080p' ? 1.35 : 1
+      return Math.round(95 * d * q)
+    },
+  },
+  {
+    key: 'budget-ugc', label: 'Budget UGC', sub: 'Seedance Mini · 9:16', color: '#7C3AED',
+    crBase: 40,
+    opts: [
+      { key: 'duration', choices: ['5s', '8s'], default: '5s' },
+    ],
+    crMod: (s) => s.duration === '8s' ? 60 : 40,
+  },
+  {
+    key: 'image', label: 'Product Image', sub: 'AI photo · studio shot', color: '#0EA5E9',
+    crBase: 5,
+    opts: [
+      { key: 'quality', choices: ['Standard', 'HD'], default: 'Standard' },
+    ],
+    crMod: (s) => s.quality === 'HD' ? 9 : 5,
+  },
+  {
+    key: 'influencer', label: 'AI Influencer', sub: 'Lifestyle · portrait', color: '#EC4899',
+    crBase: 8,
+  },
+  {
+    key: 'cinematic', label: 'Cinematic Video', sub: 'Kling · scene video', color: '#10B981',
+    crBase: 140,
+    opts: [
+      { key: 'duration', choices: ['5s', '10s'], default: '5s' },
+      { key: 'quality',  choices: ['720p', '1080p'], default: '720p' },
+    ],
+    crMod: (s) => {
+      const d = s.duration === '10s' ? 1.9 : 1
+      const q = s.quality === '1080p' ? 1.3 : 1
+      return Math.round(140 * d * q)
+    },
+  },
+  {
+    key: 'voiceover', label: 'Voiceover', sub: 'ElevenLabs · per clip', color: '#6366F1',
+    crBase: 10,
+    opts: [
+      { key: 'duration', choices: ['30s', '60s', '120s'], default: '30s' },
+    ],
+    crMod: (s) => s.duration === '120s' ? 28 : s.duration === '60s' ? 16 : 10,
+  },
+  {
+    key: 'social', label: 'Social Caption', sub: 'AI copywriting', color: '#F59E0B',
+    crBase: 2,
+  },
 ]
+
+function getCrEach(type: ContentType, sel: Record<string, string>): number {
+  if (type.crMod) {
+    const defaults = Object.fromEntries((type.opts ?? []).map(o => [o.key, o.default]))
+    return type.crMod({ ...defaults, ...sel })
+  }
+  return type.crBase
+}
 
 const PLAN_CAPS: Record<string, number> = { free: 60, starter: 800, pro: 2000, agency: 6500 }
 
@@ -440,15 +507,26 @@ function PlanRecommender({
   onUpgrade: (id: string) => void, upgradeLoading: string | null,
 }) {
   const [qty, setQty] = useState<Record<string, number>>({})
+  const [typeOpts, setTypeOpts] = useState<Record<string, Record<string, string>>>({})
   const [step, setStep] = useState(1)
 
+  function getOpts(key: string): Record<string, string> {
+    const type = CONTENT_TYPES.find(t => t.key === key)!
+    const defaults = Object.fromEntries((type.opts ?? []).map(o => [o.key, o.default]))
+    return { ...defaults, ...(typeOpts[key] ?? {}) }
+  }
+
   const selected = CONTENT_TYPES.filter(t => goals.includes(t.key))
-  const totalCr = selected.reduce((sum, t) => sum + (qty[t.key] ?? 1) * t.crEach, 0)
+  const totalCr = selected.reduce((sum, t) => sum + (qty[t.key] ?? 1) * getCrEach(t, getOpts(t.key)), 0)
 
   function toggleType(key: string) {
     const next = goals.includes(key) ? goals.filter(g => g !== key) : [...goals, key]
     setGoals(next)
     if (!qty[key]) setQty(q => ({ ...q, [key]: 1 }))
+  }
+
+  function setOpt(typeKey: string, optKey: string, val: string) {
+    setTypeOpts(prev => ({ ...prev, [typeKey]: { ...getOpts(typeKey), [optKey]: val } }))
   }
 
   function bump(key: string, delta: number) {
@@ -498,30 +576,63 @@ function PlanRecommender({
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 14 }}>
                 What do you want to create?
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 10 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
                 {CONTENT_TYPES.map(t => {
                   const active = goals.includes(t.key)
+                  const opts = getOpts(t.key)
+                  const crNow = getCrEach(t, opts)
                   return (
-                    <button key={t.key} onClick={() => toggleType(t.key)} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px',
-                      borderRadius: 12, textAlign: 'left', cursor: 'pointer',
-                      border: `1.5px solid ${active ? t.color : 'var(--border)'}`,
-                      background: active ? `${t.color}14` : 'var(--surface-2)',
-                      transition: 'all 0.15s',
-                      position: 'relative',
+                    <div key={t.key} style={{
+                      borderRadius: 12, border: `1.5px solid ${active ? t.color : 'var(--border)'}`,
+                      background: active ? `${t.color}12` : 'var(--surface-2)',
+                      transition: 'border-color 0.15s, background 0.15s',
+                      overflow: 'hidden',
                     }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0, marginTop: 4 }} />
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>{t.label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{t.sub}</div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: t.color, marginTop: 4, fontFamily: 'var(--font-mono)' }}>{t.crEach} cr each</div>
-                      </div>
-                      {active && (
-                        <div style={{ position: 'absolute', top: 8, right: 10, width: 16, height: 16, borderRadius: '50%', background: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                      {/* Top row — clickable to toggle */}
+                      <button onClick={() => toggleType(t.key)} style={{
+                        width: '100%', display: 'flex', alignItems: 'flex-start', gap: 12,
+                        padding: '12px 14px 10px', textAlign: 'left', cursor: 'pointer',
+                        background: 'transparent', border: 'none', position: 'relative',
+                      }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0, marginTop: 4 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>{t.label}</div>
+                          <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{t.sub}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: t.color, marginTop: 4, fontFamily: 'var(--font-mono)' }}>{crNow} cr each</div>
+                        </div>
+                        {active && (
+                          <div style={{ width: 16, height: 16, borderRadius: '50%', background: t.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                          </div>
+                        )}
+                      </button>
+                      {/* Options row — only when selected */}
+                      {active && t.opts && t.opts.length > 0 && (
+                        <div style={{ padding: '0 12px 10px', display: 'flex', flexWrap: 'wrap', gap: 6 }}
+                          onClick={e => e.stopPropagation()}>
+                          {t.opts.map(opt => (
+                            <div key={opt.key} style={{ display: 'flex', gap: 3 }}>
+                              {opt.choices.map(choice => {
+                                const sel = opts[opt.key] === choice
+                                return (
+                                  <button key={choice}
+                                    onClick={e => { e.stopPropagation(); setOpt(t.key, opt.key, choice) }}
+                                    style={{
+                                      padding: '3px 8px', borderRadius: 5, fontSize: 10.5, fontWeight: 600,
+                                      cursor: 'pointer', transition: 'all 0.12s',
+                                      border: `1px solid ${sel ? t.color : 'var(--border)'}`,
+                                      background: sel ? t.color : 'transparent',
+                                      color: sel ? '#fff' : 'var(--ink-mute)',
+                                    }}>
+                                    {choice}
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          ))}
                         </div>
                       )}
-                    </button>
+                    </div>
                   )
                 })}
               </div>
@@ -542,7 +653,10 @@ function PlanRecommender({
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {selected.map(t => {
                   const q = qty[t.key] ?? 1
-                  const subtotal = q * t.crEach
+                  const crNow = getCrEach(t, getOpts(t.key))
+                  const subtotal = q * crNow
+                  const opts = getOpts(t.key)
+                  const optSummary = t.opts ? t.opts.map(o => opts[o.key]).join(' · ') : ''
                   return (
                     <div key={t.key} style={{
                       display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
@@ -550,8 +664,8 @@ function PlanRecommender({
                     }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{t.label}</div>
-                        <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{t.crEach} cr × {q} = <span style={{ fontWeight: 700, color: t.color }}>{subtotal} cr</span></div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{t.label}{optSummary ? <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--ink-mute)', marginLeft: 6 }}>{optSummary}</span> : null}</div>
+                        <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{crNow} cr × {q} = <span style={{ fontWeight: 700, color: t.color }}>{subtotal} cr</span></div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
                         <button onClick={() => bump(t.key, -1)} style={{ width: 32, height: 32, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
@@ -623,7 +737,7 @@ function PlanRecommender({
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: t.color, display: 'inline-block', flexShrink: 0 }} />
                         {qty[t.key] ?? 1}× {t.label}
                       </span>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{((qty[t.key] ?? 1) * t.crEach).toLocaleString()} cr</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 600 }}>{((qty[t.key] ?? 1) * getCrEach(t, getOpts(t.key))).toLocaleString()} cr</span>
                     </div>
                   ))}
                   {selected.length > 4 && <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>+{selected.length - 4} more types</div>}
