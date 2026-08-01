@@ -137,55 +137,15 @@ export default function DashboardPage() {
           <div className="dash-art dash-art-ugc">
             <span className="dash-flag">FLAGSHIP</span>
             <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-
-              {/* Phone 1 — talking head */}
-              <div style={{ width: 54, height: 96, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#0E0D09', boxShadow: '0 4px 14px rgba(0,0,0,0.4)', flexShrink: 0, position: 'relative' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, #1A1508 0%, #0E0D09 100%)' }} />
-                {/* Face glow */}
-                <div style={{ position: 'absolute', top: 14, left: '50%', transform: 'translateX(-50%)', width: 26, height: 26, borderRadius: '50%', background: 'radial-gradient(circle, #C4995A 30%, #8B6635 70%, #3A2910 100%)', boxShadow: '0 0 12px rgba(196,153,90,0.4)' }} />
-                {/* Shoulders */}
-                <div style={{ position: 'absolute', top: 36, left: '50%', transform: 'translateX(-50%)', width: 40, height: 24, borderRadius: '50% 50% 0 0', background: 'linear-gradient(180deg, #5C4020 0%, #3A2810 100%)' }} />
-                {/* Caption bar */}
-                <div style={{ position: 'absolute', bottom: 8, left: 6, right: 6, height: 14, borderRadius: 4, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', padding: '0 5px', gap: 3 }}>
-                  {[20, 14, 18].map((w, i) => <div key={i} style={{ height: 3, width: w, borderRadius: 2, background: 'rgba(255,255,255,0.5)' }} />)}
+              {[
+                'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-1.mp4',
+                'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-2.mp4',
+                'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-3.mp4',
+              ].map((src, i) => (
+                <div key={i} style={{ width: 54, height: i === 1 ? 108 : 96, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', background: '#0A0A08', boxShadow: i === 1 ? '0 10px 28px rgba(0,0,0,0.55)' : '0 4px 14px rgba(0,0,0,0.4)', flexShrink: 0, position: 'relative' }}>
+                  <video src={src} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
-                {/* Rec dot */}
-                <div style={{ position: 'absolute', top: 6, right: 7, width: 5, height: 5, borderRadius: '50%', background: '#E8433A' }} />
-              </div>
-
-              {/* Phone 2 — product shot (taller, lifted) */}
-              <div style={{ width: 54, height: 108, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', background: '#0A0A08', boxShadow: '0 10px 28px rgba(0,0,0,0.55)', flexShrink: 0, position: 'relative' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 50% 40%, #2A1F0E 0%, #0A0A08 70%)' }} />
-                {/* Product bottle */}
-                <div style={{ position: 'absolute', top: 16, left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <div style={{ width: 10, height: 6, borderRadius: '3px 3px 0 0', background: '#C4995A' }} />
-                  <div style={{ width: 22, height: 42, borderRadius: '3px 3px 5px 5px', background: 'linear-gradient(135deg, rgba(255,255,255,0.18) 0%, rgba(196,153,90,0.3) 50%, rgba(255,255,255,0.08) 100%)', border: '1px solid rgba(196,153,90,0.4)', boxShadow: '0 0 16px rgba(196,153,90,0.2)' }}>
-                    <div style={{ margin: '10px auto 0', width: 14, height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.3)' }} />
-                    <div style={{ margin: '3px auto 0', width: 10, height: 2, borderRadius: 1, background: 'rgba(255,255,255,0.2)' }} />
-                  </div>
-                </div>
-                {/* Price tag */}
-                <div style={{ position: 'absolute', bottom: 10, left: 5, right: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ height: 3, width: 18, borderRadius: 2, background: 'rgba(255,255,255,0.3)' }} />
-                  <div style={{ fontSize: 7, fontWeight: 700, color: '#C4995A', fontFamily: 'var(--font-mono)' }}>$49</div>
-                </div>
-              </div>
-
-              {/* Phone 3 — b-roll scene */}
-              <div style={{ width: 54, height: 96, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', background: '#080C0A', boxShadow: '0 4px 14px rgba(0,0,0,0.4)', flexShrink: 0, position: 'relative' }}>
-                <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(160deg, #0D1A12 0%, #060C08 60%, #080C0A 100%)' }} />
-                {/* Horizon / scene lines */}
-                <div style={{ position: 'absolute', top: '45%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.06)' }} />
-                <div style={{ position: 'absolute', top: '55%', left: 0, right: 0, height: 1, background: 'rgba(255,255,255,0.04)' }} />
-                {/* Center glow */}
-                <div style={{ position: 'absolute', top: '30%', left: '20%', width: 30, height: 20, borderRadius: '50%', background: 'radial-gradient(ellipse, rgba(80,160,100,0.25) 0%, transparent 70%)' }} />
-                {/* Waveform bars at bottom */}
-                <div style={{ position: 'absolute', bottom: 8, left: 5, right: 5, display: 'flex', gap: 2, alignItems: 'flex-end', height: 14 }}>
-                  {[5, 8, 4, 10, 6, 9, 4, 7, 5, 8].map((h, i) => (
-                    <div key={i} style={{ flex: 1, height: h, borderRadius: 1, background: 'rgba(80,200,120,0.5)' }} />
-                  ))}
-                </div>
-              </div>
+              ))}
 
             </div>
           </div>
