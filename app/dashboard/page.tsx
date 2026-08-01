@@ -137,9 +137,15 @@ export default function DashboardPage() {
           <div className="dash-art dash-art-ugc">
             <span className="dash-flag">FLAGSHIP</span>
             <div style={{ display: 'flex', gap: 9, alignItems: 'center' }}>
-              <div className="dash-strip dash-strip-short" />
-              <div className="dash-strip dash-strip-tall" />
-              <div className="dash-strip dash-strip-short" />
+              {[
+                { src: DASH_DEMOS[0].src, h: 96 },
+                { src: DASH_DEMOS[1].src, h: 108 },
+                { src: DASH_DEMOS[2].src, h: 96 },
+              ].map(({ src, h }, i) => (
+                <div key={i} style={{ width: 54, height: h, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border-strong)', flexShrink: 0, boxShadow: i === 1 ? 'var(--shadow-md)' : undefined }}>
+                  <video src={src} autoPlay muted loop playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                </div>
+              ))}
             </div>
           </div>
           <div className="dash-card-body">
