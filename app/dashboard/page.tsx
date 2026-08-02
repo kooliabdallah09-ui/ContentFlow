@@ -105,27 +105,28 @@ export default function DashboardPage() {
         marginTop: 24,
         marginBottom: 4,
         flexWrap: 'wrap',
+        color: '#2C1F0A',
       }}>
         <div>
           <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 4 }}>Available credits</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 36, letterSpacing: '-0.02em', lineHeight: 1 }}>{credits?.balance?.toLocaleString() ?? '—'}</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 36, letterSpacing: '-0.02em', lineHeight: 1, color: '#2C1F0A' }}>{credits?.balance?.toLocaleString() ?? '—'}</div>
         </div>
         <div style={{ width: 1, height: 40, background: '#E4D2A0', flexShrink: 0 }} />
         <div>
           <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 3 }}>Monthly allocation</div>
-          <div style={{ fontSize: 15, fontWeight: 600 }}>{credits ? credits.monthlyCredits.toLocaleString() : '—'} · {credits?.plan ?? 'Free plan'}</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: '#2C1F0A' }}>{credits ? credits.monthlyCredits.toLocaleString() : '—'} · {credits?.plan ?? 'Free plan'}</div>
         </div>
         {credits?.resetDate && (
           <>
             <div style={{ width: 1, height: 40, background: '#E4D2A0', flexShrink: 0 }} />
             <div>
               <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 3 }}>Resets</div>
-              <div style={{ fontSize: 15, fontWeight: 600 }}>{new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: '#2C1F0A' }}>{new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
             </div>
           </>
         )}
         <Link href="/settings/billing" style={{
-          marginLeft: 'auto', background: 'var(--ink)', color: '#fff',
+          marginLeft: 'auto', background: '#2C1F0A', color: '#F1E6C9',
           borderRadius: 9, padding: '9px 18px', fontSize: 13, fontWeight: 600,
           textDecoration: 'none', flexShrink: 0,
         }}>Upgrade plan</Link>
