@@ -41,9 +41,11 @@ export async function POST(request: NextRequest) {
       hasSecondCharacter,
     } = body
 
-    if (!productName || !productDescription || !benefits) {
-      return NextResponse.json({ error: 'Missing required fields: productName, productDescription, benefits' }, { status: 400 })
+    if (!productName || !productDescription) {
+      return NextResponse.json({ error: 'Missing required fields: productName, productDescription' }, { status: 400 })
     }
+    // benefits is optional — fall back to productDescription so the hidden field never blocks generation
+    const effectiveBenefits = benefits || productDescription
 
     const { getLanguage } = await import('@/lib/languages')
     const language = getLanguage(typeof languageRaw === 'string' ? languageRaw : undefined)
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
     const script = await generateUGCScript(
       productName,
       productDescription,
-      benefits,
+      effectiveBenefits,
       callToAction || 'Try it today',
       productImageBase64,
       productImageMimeType,
