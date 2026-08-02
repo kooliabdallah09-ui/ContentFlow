@@ -1957,8 +1957,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 const cfg = ASPECTS[a]
                 const active = aspect === a
                 // Visual cue: a small box mirroring the aspect inside each button.
-                const boxW = a === 'portrait' ? 14 : a === 'square' ? 18 : 22
-                const boxH = a === 'portrait' ? 22 : a === 'square' ? 18 : 12
+                const boxW = a === 'portrait' ? 14 : a === 'tall45' ? 16 : a === 'square' ? 18 : 22
+                const boxH = a === 'portrait' ? 22 : a === 'tall45' ? 20 : a === 'square' ? 18 : 12
                 return (
                   <button
                     key={a}
