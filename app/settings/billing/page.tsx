@@ -488,7 +488,11 @@ const CONTENT_TYPES: ContentType[] = [
       { key: 'duration', choices: ['5s', '10s', '15s'], default: '5s' },
       { key: 'quality',  choices: ['720p', '1080p', '4K'], default: '720p' },
     ],
-    crMod: (s) => Math.round(140 * (DUR_MULT[s.duration] ?? 1) * (RES_MULT[s.quality] ?? 1)),
+    crMod: (s) => {
+      const durMul = s.duration === '15s' ? 2 : s.duration === '10s' ? 1.5 : 1
+      const resMul = s.quality === '4K' ? 2.2 : s.quality === '1080p' ? 1.35 : 1
+      return Math.round(140 * durMul * resMul)
+    },
   },
   {
     key: 'voiceover', label: 'Voiceover', sub: 'ElevenLabs · per clip', color: '#6366F1',
