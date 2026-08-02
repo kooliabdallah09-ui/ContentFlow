@@ -25,7 +25,7 @@ import { readPrefill } from '@/lib/calendar-prefill'
 import { readCampaignShotPrefill } from '@/lib/campaign-shot-prefill'
 import { compressImageFile } from '@/lib/image-compress'
 import { useImageDrop } from '@/hooks/useImageDrop'
-import { ugcPackageCost, type UGCResolution } from '@/lib/ugc-pricing'
+import { ugcPackageCost, SEEDANCE_CR_PER_SECOND, SEEDANCE_MINI_CR_PER_SECOND, type UGCResolution } from '@/lib/ugc-pricing'
 import { CAMPAIGN_FORMATS, type CampaignFormat } from '@/lib/campaign-formats'
 import { BookOpen } from 'lucide-react'
 
@@ -2046,14 +2046,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             <div style={{ display: 'flex', gap: 10 }}>
               {(engine === 'seedance-mini'
                 ? [
-                    { id: '480p' as const, label: '480p', perSec: 3, note: 'draft' },
-                    { id: '720p' as const, label: '720p', perSec: 9, note: 'social' },
+                    { id: '480p' as const, label: '480p', perSec: SEEDANCE_MINI_CR_PER_SECOND['480p'], note: 'draft' },
+                    { id: '720p' as const, label: '720p', perSec: SEEDANCE_MINI_CR_PER_SECOND['720p'], note: 'social' },
                   ]
                 : [
-                    { id: '480p' as const,  label: '480p',  perSec: 3,  note: 'draft' },
-                    { id: '720p' as const,  label: '720p',  perSec: 9,  note: 'social' },
-                    { id: '1080p' as const, label: '1080p', perSec: 21, note: 'default' },
-                    { id: '4k' as const,    label: '4K',    perSec: 44, note: 'premium' },
+                    { id: '480p' as const,  label: '480p',  perSec: SEEDANCE_CR_PER_SECOND['480p'],  note: 'draft' },
+                    { id: '720p' as const,  label: '720p',  perSec: SEEDANCE_CR_PER_SECOND['720p'],  note: 'social' },
+                    { id: '1080p' as const, label: '1080p', perSec: SEEDANCE_CR_PER_SECOND['1080p'], note: 'default' },
+                    { id: '4k' as const,    label: '4K',    perSec: SEEDANCE_CR_PER_SECOND['4k'],    note: 'premium' },
                   ]
               ).map(r => {
                 const active = resolution === r.id
