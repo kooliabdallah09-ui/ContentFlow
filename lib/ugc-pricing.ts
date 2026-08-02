@@ -4,9 +4,13 @@
 // Pricing: 1.4× markup on (Seedance raw $/s × duration) + NB Pro + Claude overhead.
 // 1 credit = $0.025 USD.
 //
-// Seedance 2.0 BytePlus token pricing:
-//   tokens = duration × W × H × fps / 1024
-//   unit price per resolution: 720p $7.00/M · 1080p $7.70/M · 4K $4.00/M · 480p est.$5.50/M
+// Seedance 2.0 BytePlus unit prices (confirmed from BytePlus calculator):
+//   720p $7.00/M · 1080p $7.70/M · 4K $4.00/M · 480p est.$5.50/M
+//
+// Seedance Mini BytePlus unit price (confirmed from BytePlus calculator):
+//   $3.50/M tokens for all resolutions (480p and 720p only — 1080p+ unsupported)
+//   480p portrait 9:16 → 496×864 px (100,440 tokens/10s → $0.03515/s)
+//   720p portrait 9:16 → 720×1280 px (216,000 tokens/10s → $0.0756/s)
 
 export type UGCResolution = '480p' | '720p' | '1080p' | '4k'
 export type UGCEngine = 'seedance-2' | 'seedance-mini' | 'omni-flash'
@@ -24,10 +28,11 @@ const SEEDANCE_RAW_PER_S: Record<UGCResolution, number> = {
   '4k':    (2160 * 3840  * 24) / 1024 / 1_000_000 * 4.0,  //  $0.7776/s ($4.00/M)
 }
 
-// Seedance Mini: roughly half the token rate of Seedance 2.0, capped at 720p.
+// Seedance Mini: $3.50/M tokens, capped at 720p (1080p+ unsupported).
+// BytePlus confirmed: 480p uses 496×864 px, 720p uses 720×1280 px.
 const SEEDANCE_MINI_RAW_PER_S: Record<'480p' | '720p', number> = {
-  '480p': SEEDANCE_RAW_PER_S['480p'] / 2,  // ~$0.026/s
-  '720p': SEEDANCE_RAW_PER_S['720p'] / 2,  // ~$0.076/s
+  '480p': (496  * 864  * 24) / 1024 / 1_000_000 * 3.5,  // $0.03515/s
+  '720p': (720  * 1280 * 24) / 1024 / 1_000_000 * 3.5,  // $0.0756/s
 }
 
 // Veo 3.1 Fast on Vertex — admin-only. Google public rate × 1.4 markup.
