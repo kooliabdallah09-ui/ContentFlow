@@ -2047,13 +2047,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               {(engine === 'seedance-mini'
                 ? [
                     { id: '480p' as const, label: '480p', perSec: 3, note: 'draft' },
-                    { id: '720p' as const, label: '720p', perSec: 7, note: 'social' },
+                    { id: '720p' as const, label: '720p', perSec: 9, note: 'social' },
                   ]
                 : [
-                    { id: '480p' as const,  label: '480p',  perSec: 6,  note: 'draft' },
-                    { id: '720p' as const,  label: '720p',  perSec: 13, note: 'social' },
-                    { id: '1080p' as const, label: '1080p', perSec: 33, note: 'default' },
-                    { id: '4k' as const,    label: '4K',    perSec: 72, note: 'premium' },
+                    { id: '480p' as const,  label: '480p',  perSec: 3,  note: 'draft' },
+                    { id: '720p' as const,  label: '720p',  perSec: 9,  note: 'social' },
+                    { id: '1080p' as const, label: '1080p', perSec: 21, note: 'default' },
+                    { id: '4k' as const,    label: '4K',    perSec: 44, note: 'premium' },
                   ]
               ).map(r => {
                 const active = resolution === r.id

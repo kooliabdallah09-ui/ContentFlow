@@ -426,18 +426,36 @@ type ContentType = {
   crMod?: (selections: Record<string, string>) => number
 }
 
-const DUR_MULT: Record<string, number> = { '5s': 1, '10s': 1.9, '15s': 2.8, '30s': 5.5 }
-const RES_MULT: Record<string, number> = { '720p': 1, '1080p': 1.35, '4K': 2.2 }
+// Seedance 2.0 BytePlus token pricing. tokens = duration × W × H × fps / 1024.
+// Unit prices per resolution tier (from BytePlus calculator):
+//   720p  $7.00/M · 1080p $7.70/M · 4K $4.00/M · 480p est.$5.50/M
+const _SD_PER_S_480P  = (480  * 854   * 24) / 1024 / 1_000_000 * 5.5  // ~$0.0529/s
+const _SD_PER_S_720P  = (720  * 1280  * 24) / 1024 / 1_000_000 * 7    // $0.1512/s
+const _SD_PER_S_1080P = (1080 * 1920  * 24) / 1024 / 1_000_000 * 7.7  // $0.3742/s
+const _SD_PER_S_4K    = (2160 * 3840  * 24) / 1024 / 1_000_000 * 4.0  // $0.7776/s
+const _NBPRO_USD      = 0.075
+const _CLAUDE_USD     = 0.010
+const _MARKUP         = 1.4
+const _CR_VALUE       = 0.025
+
+function sdCr(durationSec: number, resPerS: number) {
+  return Math.ceil(((resPerS * durationSec) + _NBPRO_USD + _CLAUDE_USD) * _MARKUP / _CR_VALUE)
+}
+
+const DUR_SECS: Record<string, number> = { '5s': 5, '10s': 10, '15s': 15, '30s': 30 }
 
 const CONTENT_TYPES: ContentType[] = [
   {
     key: 'ugc', label: 'UGC Video', sub: 'Talking-head · 9:16', color: '#D97706',
-    crBase: 95,
+    crBase: 48,
     opts: [
       { key: 'duration', choices: ['5s', '10s', '15s', '30s'], default: '5s' },
-      { key: 'quality',  choices: ['720p', '1080p', '4K'],     default: '720p' },
+      { key: 'quality',  choices: ['480p', '720p', '1080p', '4K'], default: '720p' },
     ],
-    crMod: (s) => Math.round(95 * (DUR_MULT[s.duration] ?? 1) * (RES_MULT[s.quality] ?? 1)),
+    crMod: (s) => {
+      const perS = s.quality === '4K' ? _SD_PER_S_4K : s.quality === '1080p' ? _SD_PER_S_1080P : s.quality === '480p' ? _SD_PER_S_480P : _SD_PER_S_720P
+      return sdCr(DUR_SECS[s.duration] ?? 5, perS)
+    },
   },
   {
     key: 'budget-ugc', label: 'Budget UGC', sub: 'Seedance Mini · 9:16', color: '#7C3AED',
