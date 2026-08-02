@@ -426,60 +426,59 @@ type ContentType = {
   crMod?: (selections: Record<string, string>) => number
 }
 
+const DUR_MULT: Record<string, number> = { '5s': 1, '10s': 1.9, '15s': 2.8, '30s': 5.5 }
+const RES_MULT: Record<string, number> = { '720p': 1, '1080p': 1.35, '4K': 2.2 }
+
 const CONTENT_TYPES: ContentType[] = [
   {
     key: 'ugc', label: 'UGC Video', sub: 'Talking-head · 9:16', color: '#D97706',
     crBase: 95,
     opts: [
-      { key: 'duration', choices: ['5s', '10s'], default: '5s' },
-      { key: 'quality',  choices: ['720p', '1080p'], default: '720p' },
+      { key: 'duration', choices: ['5s', '10s', '15s', '30s'], default: '5s' },
+      { key: 'quality',  choices: ['720p', '1080p', '4K'],     default: '720p' },
     ],
-    crMod: (s) => {
-      const d = s.duration === '10s' ? 1.9 : 1
-      const q = s.quality === '1080p' ? 1.35 : 1
-      return Math.round(95 * d * q)
-    },
+    crMod: (s) => Math.round(95 * (DUR_MULT[s.duration] ?? 1) * (RES_MULT[s.quality] ?? 1)),
   },
   {
     key: 'budget-ugc', label: 'Budget UGC', sub: 'Seedance Mini · 9:16', color: '#7C3AED',
     crBase: 40,
     opts: [
-      { key: 'duration', choices: ['5s', '8s'], default: '5s' },
+      { key: 'duration', choices: ['5s', '8s', '10s'], default: '5s' },
     ],
-    crMod: (s) => s.duration === '8s' ? 60 : 40,
+    crMod: (s) => s.duration === '10s' ? 72 : s.duration === '8s' ? 60 : 40,
   },
   {
     key: 'image', label: 'Product Image', sub: 'AI photo · studio shot', color: '#0EA5E9',
     crBase: 5,
     opts: [
-      { key: 'quality', choices: ['Standard', 'HD'], default: 'Standard' },
+      { key: 'quality', choices: ['Standard', 'HD', '4K'], default: 'Standard' },
     ],
-    crMod: (s) => s.quality === 'HD' ? 9 : 5,
+    crMod: (s) => s.quality === '4K' ? 18 : s.quality === 'HD' ? 9 : 5,
   },
   {
     key: 'influencer', label: 'AI Influencer', sub: 'Lifestyle · portrait', color: '#EC4899',
     crBase: 8,
+    opts: [
+      { key: 'quality', choices: ['Standard', 'HD', '4K'], default: 'Standard' },
+    ],
+    crMod: (s) => s.quality === '4K' ? 26 : s.quality === 'HD' ? 14 : 8,
   },
   {
     key: 'cinematic', label: 'Cinematic Video', sub: 'Kling · scene video', color: '#10B981',
     crBase: 140,
     opts: [
-      { key: 'duration', choices: ['5s', '10s'], default: '5s' },
-      { key: 'quality',  choices: ['720p', '1080p'], default: '720p' },
+      { key: 'duration', choices: ['5s', '10s', '15s'], default: '5s' },
+      { key: 'quality',  choices: ['720p', '1080p', '4K'], default: '720p' },
     ],
-    crMod: (s) => {
-      const d = s.duration === '10s' ? 1.9 : 1
-      const q = s.quality === '1080p' ? 1.3 : 1
-      return Math.round(140 * d * q)
-    },
+    crMod: (s) => Math.round(140 * (DUR_MULT[s.duration] ?? 1) * (RES_MULT[s.quality] ?? 1)),
   },
   {
     key: 'voiceover', label: 'Voiceover', sub: 'ElevenLabs · per clip', color: '#6366F1',
     crBase: 10,
     opts: [
-      { key: 'duration', choices: ['30s', '60s', '120s'], default: '30s' },
+      { key: 'duration', choices: ['30s', '60s', '90s', '120s'], default: '30s' },
     ],
-    crMod: (s) => s.duration === '120s' ? 28 : s.duration === '60s' ? 16 : 10,
+    crMod: (s) => s.duration === '120s' ? 28 : s.duration === '90s' ? 22 : s.duration === '60s' ? 16 : 10,
   },
   {
     key: 'social', label: 'Social Caption', sub: 'AI copywriting', color: '#F59E0B',
