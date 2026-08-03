@@ -26,6 +26,7 @@ export interface ScrollStopHook {
   featuresProduct: boolean
   disabledForFormats?: string[]
   sfx: string
+  previewUrl?: string  // short demo clip (~3s) showing the hook motion, avatar-agnostic
 }
 
 // POV / interview / vlog formats where the camera IS a character — a

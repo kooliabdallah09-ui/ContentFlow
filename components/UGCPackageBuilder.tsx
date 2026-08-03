@@ -1675,36 +1675,81 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           onClick={e => { if (e.target === e.currentTarget) setShowHookPicker(false) }}
           style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 1000, width: '100%', maxHeight: '85vh', overflow: 'auto' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 1100, width: '100%', maxHeight: '88vh', overflow: 'auto' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               <div>
                 <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 24, lineHeight: 1.15 }}>Scroll-stop hooks</div>
-                <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4 }}>A short attention-grabbing clip stitched before the main talking-head. Uses your chosen avatar.</div>
+                <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 4 }}>~1.5s opener stitched before your talking-head. Generated with your chosen avatar.</div>
               </div>
               <button type="button" onClick={() => setShowHookPicker(false)} className="btn btn-ghost" style={{ fontSize: 13 }}>Close</button>
             </div>
             {(['entry', 'object', 'environmental', 'meta'] as const).map(cat => {
               const items = SCROLL_STOP_HOOKS.filter(h => h.category === cat && isHookAllowedForFormat(h, activeFormatKey))
               if (!items.length) return null
-              const catLabel = cat === 'entry' ? '🎬 Entry' : cat === 'object' ? '📦 Object' : cat === 'environmental' ? '🌍 Environmental' : '🎭 Meta'
+              const catMeta: Record<string, { label: string; color: string }> = {
+                entry:         { label: 'Entry — character arrives',    color: '#4F46E5' },
+                object:        { label: 'Object — product moment',      color: '#D97706' },
+                environmental: { label: 'Environmental — scene effect', color: '#059669' },
+                meta:          { label: 'Meta — break the fourth wall', color: '#7C3AED' },
+              }
+              const { label: catLabel, color: catColor } = catMeta[cat]
               return (
-                <div key={cat} style={{ marginTop: 18 }}>
-                  <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.6, color: 'var(--ink-2)', marginBottom: 8, textTransform: 'uppercase' }}>{catLabel}</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
-                    {items.map(h => (
-                      <button
-                        key={h.key}
-                        type="button"
-                        onClick={() => { setSelectedHookKey(h.key); setShowHookPicker(false) }}
-                        style={{ textAlign: 'left', padding: 12, border: `1.5px solid ${selectedHookKey === h.key ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 10, background: selectedHookKey === h.key ? 'var(--surface-2, var(--surface))' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
-                      >
-                        <div style={{ fontSize: 13.5, fontWeight: 700 }}>{h.label}</div>
-                        <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.4 }}>{h.tagline}</div>
-                        {h.featuresProduct && (
-                          <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginTop: 4, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: 600 }}>Features product</div>
-                        )}
-                      </button>
-                    ))}
+                <div key={cat} style={{ marginBottom: 28 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <div style={{ width: 3, height: 14, borderRadius: 2, background: catColor, flexShrink: 0 }} />
+                    <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.7, color: 'var(--ink-2)', textTransform: 'uppercase' }}>{catLabel}</div>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+                    {items.map(h => {
+                      const active = selectedHookKey === h.key
+                      return (
+                        <button
+                          key={h.key}
+                          type="button"
+                          onClick={() => { setSelectedHookKey(h.key); setShowHookPicker(false) }}
+                          style={{
+                            textAlign: 'left', padding: 0, border: `2px solid ${active ? catColor : 'var(--border)'}`,
+                            borderRadius: 12, background: 'var(--surface)', cursor: 'pointer',
+                            display: 'flex', flexDirection: 'column', overflow: 'hidden',
+                            boxShadow: active ? `0 0 0 3px ${catColor}22` : 'none',
+                            transition: 'border-color 0.12s, box-shadow 0.12s',
+                          }}
+                        >
+                          {/* Preview area — 9:16 thumbnail */}
+                          <div style={{ width: '100%', aspectRatio: '9/16', position: 'relative', background: `linear-gradient(135deg, ${catColor}22, ${catColor}44)`, overflow: 'hidden', flexShrink: 0 }}>
+                            {h.previewUrl ? (
+                              <video
+                                src={h.previewUrl}
+                                autoPlay muted loop playsInline
+                                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 12 }}>
+                                <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${catColor}33`, border: `1.5px solid ${catColor}66`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={catColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polygon points="5 3 19 12 5 21 5 3"/>
+                                  </svg>
+                                </div>
+                                <div style={{ fontSize: 10, color: catColor, fontWeight: 600, textAlign: 'center', lineHeight: 1.3, opacity: 0.8 }}>Preview coming soon</div>
+                              </div>
+                            )}
+                            {active && (
+                              <div style={{ position: 'absolute', top: 7, right: 7, width: 20, height: 20, borderRadius: '50%', background: catColor, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                              </div>
+                            )}
+                            {h.featuresProduct && (
+                              <div style={{ position: 'absolute', bottom: 7, left: 7, fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', background: catColor, color: '#fff', borderRadius: 4, padding: '2px 6px' }}>Product</div>
+                            )}
+                          </div>
+                          {/* Text */}
+                          <div style={{ padding: '10px 11px 12px' }}>
+                            <div style={{ fontSize: 13, fontWeight: 700, letterSpacing: -0.2, marginBottom: 3 }}>{h.label}</div>
+                            <div style={{ fontSize: 11, color: 'var(--ink-2)', lineHeight: 1.45 }}>{h.tagline}</div>
+                          </div>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
               )
