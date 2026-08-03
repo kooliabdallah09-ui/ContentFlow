@@ -106,6 +106,64 @@ PERSON B (nodding): "Yeah, I'm buying this."
 \n`
     : ''
 
+  // TV Spot: cinematic multi-shot structure — NOT a talking-head UGC.
+  if (formatKey === 'tv-spot') {
+    const shotCount = targetDurationSeconds <= 10 ? 2 : targetDurationSeconds <= 20 ? 3 : 4
+    const tvSpotPrompt = `Write a ${targetDurationSeconds}-SECOND TV SPOT script for a premium brand ad. This is NOT a UGC talking-head — it is a cinematic commercial with multiple shots and a confident voiceover or minimal spoken lines. Total spoken word count ≤ ${targetWords} words.
+
+Product: ${productName}
+Description: ${productDescription}
+Benefits: ${benefits}
+CTA: ${callToAction}
+${languageBlock}${customBlock}
+Use this EXACT format (${shotCount} shots + a super card):
+
+[LOCATION: {one cinematic setting — describe lighting, surfaces, mood. This is the main scene.}]
+
+${Array.from({ length: shotCount }, (_, i) => {
+  const start = Math.round((i / shotCount) * targetDurationSeconds)
+  const end = Math.round(((i + 1) / shotCount) * targetDurationSeconds)
+  return `[SHOT ${i + 1} — 0:${String(start).padStart(2, '0')} to 0:${String(end).padStart(2, '0')}]
+(camera angle + action — e.g. "tight on product, hand lifts it into light" or "wide — character walks into frame from left, sets product on counter")
+"spoken V.O. or on-camera line — OR write [VISUAL ONLY] if this shot has no dialogue"
+`
+}).join('\n')}
+[SUPER — final 2s]
+${productName}
+${callToAction}
+
+Rules:
+- TOTAL spoken word count ≤ ${targetWords} — the hardest constraint
+- Each [SHOT N] camera direction describes a CINEMATIC moment: product hero, lifestyle action, or character gesture. Not a selfie. Not talking straight to camera unless it's the final beat.
+- Spoken lines are V.O. or quiet/deliberate on-camera — confident, spare, NOT conversational rambling
+- [VISUAL ONLY] is valid when the image and motion say enough
+- [LOCATION] is one continuous setting — all shots happen here
+- [SUPER] = text overlay on final frame, not spoken
+- No markdown, no hashtags, no explanations outside the format
+
+TV AD TONE — the difference between a TV spot and a social UGC:
+- BANNED: filler reactions ("wait—", "hm", "uh"), disfluencies, self-corrections, casual chat
+- USE: short declarative sentences, poetic compression, one strong image per line
+- GOOD V.O.: "Cold. Herbal. Nothing like it." / "The drink you didn't know you needed." / "Some things are just different."
+- GOOD ON-CAMERA: a character picks up the product, looks at it, says one clean line — then cuts
+- CTA is shown as text in [SUPER], not spoken unless the format demands it
+- Think: Apple, Nike, Liquid Death TV ads — not TikTok reviews`
+
+    const tvContent: Anthropic.MessageParam['content'] = productImageBase64
+      ? [
+          { type: 'image', source: { type: 'base64', media_type: productImageMimeType as 'image/jpeg' | 'image/png' | 'image/webp', data: productImageBase64 } },
+          { type: 'text', text: tvSpotPrompt },
+        ]
+      : tvSpotPrompt
+
+    const tvMsg = await anthropic.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 700,
+      messages: [{ role: 'user', content: tvContent }],
+    })
+    return (tvMsg.content[0] as { text: string }).text.trim()
+  }
+
   const textPrompt = `Write a ${targetDurationSeconds}-SECOND UGC video script for a social media ad. The TOTAL spoken word count across HOOK + BODY + CTA must be ${targetWords} words or fewer — this is a hard limit because the video will be cut at ${targetDurationSeconds}s. Count carefully.
 
 Product: ${productName}
