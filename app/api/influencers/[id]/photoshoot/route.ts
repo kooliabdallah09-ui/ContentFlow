@@ -333,6 +333,8 @@ The output is the photograph itself, full-bleed. Absolutely NO camera interface 
         .single()
       if (row) photos.push(row)
     }
+    const failedCount = results.filter(r => r.status === 'rejected').length
+
     if (!photos.length) {
       return NextResponse.json({ error: 'All photo generations failed, try a different scene' }, { status: 500 })
     }
@@ -349,7 +351,7 @@ The output is the photograph itself, full-bleed. Absolutely NO camera interface 
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', id)
 
-    return NextResponse.json({ photos, creditsCharged: charged })
+    return NextResponse.json({ photos, creditsCharged: charged, failed: failedCount })
   } catch (err) {
     console.error('[influencers/photoshoot] failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })

@@ -423,7 +423,11 @@ export default function InfluencersPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Photoshoot failed')
       setPhotos(prev => [...data.photos, ...prev])
-      showSuccess('Photoshoot done', `${data.photos.length} photo${data.photos.length > 1 ? 's' : ''} · ${data.creditsCharged} cr`)
+      if (data.failed > 0) {
+        showError('Partial shoot', `${data.photos.length} of ${data.photos.length + data.failed} photos came back — only charged ${data.creditsCharged} cr for what rendered. Re-run to fill the gap.`)
+      } else {
+        showSuccess('Photoshoot done', `${data.photos.length} photo${data.photos.length > 1 ? 's' : ''} · ${data.creditsCharged} cr`)
+      }
     } catch (err) {
       showError('Photoshoot failed', err instanceof Error ? err.message : 'Try again')
     } finally {
