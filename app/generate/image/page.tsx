@@ -98,8 +98,24 @@ export default function ImageGeneratorPage() {
     const reader = new FileReader()
     reader.onload = ev => {
       const result = ev.target?.result as string
-      const base64 = result.split(',')[1] ?? ''
-      setReference({ base64, mimeType: file.type, preview: result })
+      const preview = result
+      // Resize client-side to max 1280px so the base64 payload stays under
+      // Vercel's 4.5MB function body limit regardless of original file size.
+      const img = new Image()
+      img.onload = () => {
+        const MAX = 1280
+        let { width, height } = img
+        if (width > MAX || height > MAX) {
+          if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+          else { width = Math.round(width * MAX / height); height = MAX }
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = width; canvas.height = height
+        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+        const resized = canvas.toDataURL('image/jpeg', 0.88)
+        setReference({ base64: resized.split(',')[1] ?? '', mimeType: 'image/jpeg', preview })
+      }
+      img.src = result
     }
     reader.readAsDataURL(file)
   }
