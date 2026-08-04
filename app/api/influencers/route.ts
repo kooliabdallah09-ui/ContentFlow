@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
     userContent.push({
       type: 'text',
       text: (referenceImages.length
-        ? `Client description of the influencer:\n${description || '(traits only)'}\n\nThe attached photo${referenceImages.length > 1 ? 's show' : ' shows'} the exact look the influencer should be based on — write the appearance_prompt to describe THIS person's face, hair, features, and style faithfully (adult, no age numbers).`
+        ? `Client note: "${description || '(use the photos)'}"\n\nThe attached photo${referenceImages.length > 1 ? 's are' : ' is'} the VISUAL REFERENCE — base the appearance_prompt entirely on THIS person's face, hair, features, build, and style as seen in the photos. The client note may just be a name or a short hint; that's fine, the photos carry the visual identity. Invent a plausible handle, bio, personality, and niche that fit the look. Write the appearance_prompt to faithfully describe what you see (adult framing, no age numbers).`
         : `Client description of the influencer:\n${description || '(traits only — build the character from the locked traits below)'}`) + traitsBlock,
     })
     // Retry Sonnet on transient 5xx / overloaded — Anthropic occasionally returns
@@ -197,10 +197,13 @@ export async function POST(request: NextRequest) {
       console.error('[influencers] Sonnet failed after retries:', sonnetErr)
       return NextResponse.json({ error: 'Identity model is temporarily overloaded — try again in a moment.' }, { status: 503 })
     }
-    const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
-      .replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
+    const rawText = (msg.content[0] as { type: 'text'; text: string }).text.trim()
+    // Extract JSON object from anywhere in the response — Claude sometimes adds a preamble.
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/)
+    const raw = jsonMatch ? jsonMatch[0] : rawText.replace(/^```json?\n?/i, '').replace(/\n?```$/, '')
     let sheet: { name?: string; handle?: string; bio?: string; personality?: string; niche?: string; appearance_prompt?: string }
     try { sheet = JSON.parse(raw) } catch {
+      console.error('[influencers] JSON parse failed, raw response:', rawText.slice(0, 600))
       return NextResponse.json({ error: 'Identity generation failed, try rewording' }, { status: 500 })
     }
     if (!sheet.appearance_prompt || !sheet.name) {
