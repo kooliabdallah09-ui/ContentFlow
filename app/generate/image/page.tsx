@@ -34,7 +34,7 @@ const RATIOS = [
   { id: '16:9', label: '16:9', size: '1280x720' },
 ]
 
-const COUNTS = [1, 2, 4]
+const COUNTS = [1, 2, 3, 4]
 
 // NB2 \$0.075 raw → 5cr · Pro 2K \$0.139 → 10cr · Pro 4K \$0.24 → 18cr (1.8×).
 function perImageCr(model: 'pro' | 'nb2', resolution: '2K' | '4K'): number {
