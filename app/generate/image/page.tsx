@@ -9,7 +9,7 @@ import { useCredits } from '@/lib/useCredits'
 import { Loader2, Download, Image as ImageIcon, X } from 'lucide-react'
 import { useImageDrop } from '@/hooks/useImageDrop'
 import { showError, showSuccess } from '@/lib/notifications'
-import { isAdminUser } from '@/lib/pov-access'
+import { canAccessPovStudio } from '@/lib/pov-access'
 
 // Editorial image generator matching the Claude Design export.
 // Single composer card with prompt textarea + style chips + ratio + count
@@ -81,7 +81,7 @@ export default function ImageGeneratorPage() {
       const token = sess?.session?.access_token
       if (!token) return
       const email = sess?.session?.user?.email
-      if (email && isAdminUser(email)) setIsAdmin(true)
+      if (canAccessPovStudio(email)) setIsAdmin(true)
       try {
         const res = await fetch('/api/content/generate/image', { headers: { Authorization: `Bearer ${token}` } })
         const data = await res.json()
