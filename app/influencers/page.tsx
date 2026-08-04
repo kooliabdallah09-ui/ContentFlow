@@ -420,8 +420,10 @@ export default function InfluencersPage() {
           sceneImages: sceneImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Photoshoot failed')
+      const text = await res.text()
+      let data: Record<string, unknown>
+      try { data = JSON.parse(text) } catch { throw new Error(text.slice(0, 120) || 'Photoshoot failed') }
+      if (!res.ok) throw new Error((data.error as string) || 'Photoshoot failed')
       setPhotos(prev => [...data.photos, ...prev])
       if (data.failed > 0) {
         showError('Partial shoot', `${data.photos.length} of ${data.photos.length + data.failed} photos came back — only charged ${data.creditsCharged} cr for what rendered. Re-run to fill the gap.`)

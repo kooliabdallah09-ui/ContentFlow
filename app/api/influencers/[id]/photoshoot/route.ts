@@ -10,7 +10,7 @@ import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { deductCredits } from '@/lib/deduct-credits'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 export const PHOTOSHOOT_CR_PER_IMAGE = 8       // NB Pro w/ reference ≈ $0.15 raw × 1.4
 export const PHOTOSHOOT_NB2_CR_PER_IMAGE = 4   // Nano Banana 2 — cheaper, less faithful
