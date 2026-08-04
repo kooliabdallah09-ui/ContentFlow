@@ -210,96 +210,23 @@ async function callNanoBanana(
   model: 'pro' | 'nb2' = 'pro',
   resolution?: '1K' | '2K' | '4K',
 ): Promise<NanoBananaResult> {
-  // Provider priority:
-  //   1. Vertex AI (GOOGLE_VERTEX_SA_JSON) — same models, but the request
-  //      bills against the Cloud project so the $300 trial credit is
-  //      actually consumed. AI Studio keys don't get the credit anymore.
-  //   2. Gemini API / AI Studio (GOOGLE_GENAI_API_KEY) — cheaper than
-  //      Replicate but bills the card immediately (no trial credit).
-  //   3. Replicate — original fallback so a bad key or transient outage
-  //      never blocks a render.
+  // Provider: Vertex AI only. Retry up to 3× on 429 with exponential backoff.
   const sa = getVertexSA()
-  if (sa) {
+  if (!sa) throw new Error('Vertex AI not configured — GOOGLE_VERTEX_SA_JSON missing')
+  let lastErr: unknown
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 1200 * attempt))
     try {
       return await callNanoBananaVertex(prompt, referenceImages, aspectRatio, model, resolution, sa)
     } catch (e) {
-      console.warn('[nanobanana] Vertex path failed, trying next provider:', e instanceof Error ? e.message : e)
+      lastErr = e
+      const msg = e instanceof Error ? e.message : ''
+      if (!msg.includes('429')) throw e   // non-rate-limit errors → fail fast
+      console.warn(`[nanobanana] Vertex 429, retry ${attempt + 1}/3`)
     }
   }
-  if (process.env.GOOGLE_GENAI_API_KEY) {
-    try {
-      return await callNanoBananaGoogle(prompt, referenceImages, aspectRatio, model, resolution)
-    } catch (e) {
-      console.warn('[nanobanana] AI Studio path failed, falling back to Replicate:', e instanceof Error ? e.message : e)
-    }
-  }
+  throw lastErr
 
-  const apiKey = process.env.REPLICATE_API_TOKEN
-  if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
-
-  const input: Record<string, unknown> = { prompt, output_format: 'png' }
-  if (aspectRatio) input.aspect_ratio = aspectRatio
-  // 4K only exists on NB Pro ($0.24/img raw vs $0.139 at 1K/2K).
-  if (resolution && model === 'pro') input.resolution = resolution
-  if (referenceImages?.length) {
-    input.image_input = referenceImages.map(r => `data:${r.mimeType};base64,${r.base64}`)
-  }
-
-  const modelPath = model === 'nb2' ? 'google/nano-banana-2' : NANO_BANANA_MODEL
-  // Async submit + own polling. `Prefer: wait` capped out around ~60s at the
-  // gateway — renders that legitimately took 55-60s (NB Pro with several
-  // reference images) completed on Replicate but the sync response died,
-  // silently dropping images from multi-shot batches.
-  const res = await fetch(`${REPLICATE_BASE}/models/${modelPath}/predictions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      Prefer: 'respond-async',
-    },
-    body: JSON.stringify({ input }),
-  })
-
-  if (!res.ok) {
-    const err = await res.text()
-    throw new Error(`Replicate Nano Banana error ${res.status}: ${err.slice(0, 400)}`)
-  }
-
-  const data = await res.json()
-  if (data.status === 'failed' || data.error) {
-    throw new Error(`Replicate Nano Banana failed: ${data.error || JSON.stringify(data).slice(0, 300)}`)
-  }
-
-  let output = data.output
-  if (data.status !== 'succeeded') {
-    const id = data.id
-    if (!id) throw new Error('Replicate Nano Banana: no prediction id returned')
-    // Poll up to ~110s — NB Pro at 4K with multiple refs can run 60-90s.
-    for (let i = 0; i < 55; i++) {
-      await new Promise(r => setTimeout(r, 2000))
-      const poll = await fetch(`${REPLICATE_BASE}/predictions/${id}`, { headers: { Authorization: `Bearer ${apiKey}` } })
-      const pollData = await poll.json()
-      if (pollData.status === 'succeeded') { output = pollData.output; break }
-      if (pollData.status === 'failed' || pollData.status === 'canceled') {
-        throw new Error(`Replicate Nano Banana failed during poll: ${JSON.stringify(pollData).slice(0, 300)}`)
-      }
-    }
-    if (!output) throw new Error('Replicate Nano Banana did not complete within 110s')
-  }
-
-  // Output is either a single URL string or an array — normalize to the first URL
-  const imageUrl = Array.isArray(output) ? output[0] : output
-  if (typeof imageUrl !== 'string') {
-    throw new Error(`Replicate Nano Banana returned unexpected output: ${JSON.stringify(output).slice(0, 300)}`)
-  }
-
-  // Fetch the generated image and convert to base64 so the existing orchestrate code
-  // (which uploads base64 to Supabase) keeps working without changes.
-  const imgRes = await fetch(imageUrl)
-  if (!imgRes.ok) throw new Error(`Failed to fetch Nano Banana output: ${imgRes.statusText}`)
-  const buf = Buffer.from(await imgRes.arrayBuffer())
-  const mimeType = imgRes.headers.get('content-type') || 'image/png'
-  return { imageBase64: buf.toString('base64'), mimeType }
 }
 
 // Generate a first frame for Sora 2 from a plain text prompt — no reference image.
