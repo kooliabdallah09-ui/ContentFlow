@@ -62,6 +62,7 @@ export default function ImageGeneratorPage() {
   // so the user's photo (e.g. their actual product) carries through to the output.
   const [reference, setReference] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [confirmDeleteUrl, setConfirmDeleteUrl] = useState<string | null>(null)
 
   useEffect(() => {
     const suggestion = readPrefill('image')
@@ -460,7 +461,7 @@ export default function ImageGeneratorPage() {
                 }}>
                 <Download size={14} />
               </a>
-              <button type="button" onClick={e => { e.stopPropagation(); deleteImage(img.url) }}
+              <button type="button" onClick={e => { e.stopPropagation(); setConfirmDeleteUrl(img.url) }}
                 style={{
                   width: 32, height: 32, borderRadius: 8,
                   background: 'rgba(184,58,53,0.85)', color: '#fff', border: 'none',
@@ -502,6 +503,35 @@ export default function ImageGeneratorPage() {
             style={zoomed
               ? { width: 'auto', maxWidth: 'none', cursor: 'zoom-out', margin: 'auto' }
               : { maxWidth: '92vw', maxHeight: '92vh', borderRadius: 12, cursor: 'zoom-in' }} />
+        </div>
+      )}
+
+      {/* Delete confirmation modal */}
+      {confirmDeleteUrl && (
+        <div onClick={() => setConfirmDeleteUrl(null)} style={{
+          position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(12,10,8,0.72)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <div onClick={e => e.stopPropagation()} style={{
+            background: 'var(--surface)', border: '1px solid var(--border)',
+            borderRadius: 16, padding: '24px 28px', maxWidth: 340, width: '90%',
+            display: 'flex', flexDirection: 'column', gap: 20,
+          }}>
+            <div>
+              <p style={{ margin: 0, fontWeight: 600, fontSize: 15, color: 'var(--ink)' }}>Delete this image?</p>
+              <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--ink-mute)', lineHeight: 1.5 }}>This will permanently remove it from your gallery.</p>
+            </div>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+              <button type="button" onClick={() => setConfirmDeleteUrl(null)} style={{
+                padding: '8px 18px', borderRadius: 10, border: '1px solid var(--border)',
+                background: 'transparent', color: 'var(--ink-2)', fontSize: 13, cursor: 'pointer', fontWeight: 500,
+              }}>Cancel</button>
+              <button type="button" onClick={() => { deleteImage(confirmDeleteUrl); setConfirmDeleteUrl(null) }} style={{
+                padding: '8px 18px', borderRadius: 10, border: 'none',
+                background: 'var(--danger)', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 600,
+              }}>Delete</button>
+            </div>
+          </div>
         </div>
       )}
 
