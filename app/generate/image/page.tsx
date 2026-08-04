@@ -141,8 +141,10 @@ export default function ImageGeneratorPage() {
           referenceImageMimeType: reference?.mimeType,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Generation failed')
+      const text = await res.text()
+      let data: Record<string, unknown>
+      try { data = JSON.parse(text) } catch { throw new Error(text.slice(0, 120) || 'Generation failed') }
+      if (!res.ok) throw new Error((data.error as string) || 'Generation failed')
 
       const fresh: string[] = Array.isArray(data.images) ? data.images : []
       setImages(fresh)
