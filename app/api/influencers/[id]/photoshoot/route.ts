@@ -302,38 +302,54 @@ The output is the photograph itself, full-bleed. Absolutely NO camera interface 
       effProductRefs = productRefs.slice(0, 1)
     }
 
-    const results = await Promise.allSettled(
-      Array.from({ length: count }, (_, i) =>
-        generateNanoBananaImage(basePrompt(SHOT_VARIATIONS[i % SHOT_VARIATIONS.length]), {
-          style: 'realistic',
-          ratio,
-          model,
-          resolution: quality === '4k' ? '4K' : undefined,
-          referenceImages: [...effIdentityRefs, ...guestRefs, ...effProductRefs, ...sceneRefs, ...(sceneRef ? [sceneRef] : [])],
-          referenceHint: (effProductRefs.length || sceneRefs.length)
-            ? `The FIRST ${effIdentityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; whatever top / shirt / jacket they wear in those reference photos is IRRELEVANT and must NOT appear in the output.${effProductRefs.length ? ` The next ${effProductRefs.length} image(s) show the EXACT product${wearable ? ` — the person is WEARING this exact garment as their outfit's top layer in the output, with print, label text and colours reproduced exactly; do NOT layer any other jacket/hoodie/coat over it and do NOT substitute a different top` : ' — preserve its packaging/print, label text, colours, shape and proportions perfectly'}; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
-            : 'The attached reference images define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. Apply the prompt as scene + framing around them.',
-        }),
-      ),
-    )
+    const generateBatch = (indices: number[]) =>
+      Promise.allSettled(
+        indices.map(i =>
+          generateNanoBananaImage(basePrompt(SHOT_VARIATIONS[i % SHOT_VARIATIONS.length]), {
+            style: 'realistic',
+            ratio,
+            model,
+            resolution: quality === '4k' ? '4K' : undefined,
+            referenceImages: [...effIdentityRefs, ...guestRefs, ...effProductRefs, ...sceneRefs, ...(sceneRef ? [sceneRef] : [])],
+            referenceHint: (effProductRefs.length || sceneRefs.length)
+              ? `The FIRST ${effIdentityRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; whatever top / shirt / jacket they wear in those reference photos is IRRELEVANT and must NOT appear in the output.${effProductRefs.length ? ` The next ${effProductRefs.length} image(s) show the EXACT product${wearable ? ` — the person is WEARING this exact garment as their outfit's top layer in the output, with print, label text and colours reproduced exactly; do NOT layer any other jacket/hoodie/coat over it and do NOT substitute a different top` : ' — preserve its packaging/print, label text, colours, shape and proportions perfectly'}; never redesign it.` : ''}${sceneRefs.length ? ' The LAST image(s) show a scene/outfit/object to incorporate faithfully.' : ''} Apply the prompt as framing around them.`
+              : 'The attached reference images define this exact person — face, hair, skin tone, build ONLY; their clothing may change per the prompt. Apply the prompt as scene + framing around them.',
+          }),
+        ),
+      )
 
-    const photos: Array<{ id: string; scene: string; image_url: string; created_at: string }> = []
-    for (const r of results) {
-      if (r.status !== 'fulfilled') continue
-      const filename = `influencers/${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-shoot.png`
-      const { error: upErr } = await supabase.storage
-        .from('ugc-assets')
-        .upload(filename, Buffer.from(r.value.imageBase64, 'base64'), { contentType: r.value.mimeType, upsert: false })
-      if (upErr) continue
-      const url = supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl
-      const { data: row } = await supabase
-        .from('user_influencer_photos')
-        .insert({ influencer_id: id, user_id: userId, scene, image_url: url })
-        .select('id, scene, image_url, created_at')
-        .single()
-      if (row) photos.push(row)
+    const saveResults = async (results: PromiseSettledResult<{ imageBase64: string; mimeType: string }>[]) => {
+      const saved: Array<{ id: string; scene: string; image_url: string; created_at: string }> = []
+      for (const r of results) {
+        if (r.status !== 'fulfilled') continue
+        const filename = `influencers/${userId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}-shoot.png`
+        const { error: upErr } = await supabase.storage
+          .from('ugc-assets')
+          .upload(filename, Buffer.from(r.value.imageBase64, 'base64'), { contentType: r.value.mimeType, upsert: false })
+        if (upErr) continue
+        const url = supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl
+        const { data: row } = await supabase
+          .from('user_influencer_photos')
+          .insert({ influencer_id: id, user_id: userId, scene, image_url: url })
+          .select('id, scene, image_url, created_at')
+          .single()
+        if (row) saved.push(row)
+      }
+      return saved
     }
-    const failedCount = results.filter(r => r.status === 'rejected').length
+
+    const firstResults = await generateBatch(Array.from({ length: count }, (_, i) => i))
+    const photos = await saveResults(firstResults)
+
+    // Backfill any that failed — one retry pass for the missing count.
+    const missing = count - photos.length
+    if (missing > 0) {
+      const backfillResults = await generateBatch(
+        Array.from({ length: missing }, (_, i) => count + i),
+      )
+      const backfilled = await saveResults(backfillResults)
+      photos.push(...backfilled)
+    }
 
     if (!photos.length) {
       return NextResponse.json({ error: 'All photo generations failed, try a different scene' }, { status: 500 })
@@ -351,7 +367,8 @@ The output is the photograph itself, full-bleed. Absolutely NO camera interface 
       .update({ last_used_at: new Date().toISOString() })
       .eq('id', id)
 
-    return NextResponse.json({ photos, creditsCharged: charged, failed: failedCount })
+    const stillMissing = count - photos.length
+    return NextResponse.json({ photos, creditsCharged: charged, failed: stillMissing })
   } catch (err) {
     console.error('[influencers/photoshoot] failed:', err instanceof Error ? err.message : err)
     return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
