@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
     if (typeof referenceImageBase64 === 'string' && typeof referenceImageMimeType === 'string') {
       try {
         const buf = Buffer.from(referenceImageBase64, 'base64')
-        if (buf.length > 5 * 1024 * 1024) {
-          return NextResponse.json({ error: 'Reference image must be under 5MB' }, { status: 400 })
+        if (buf.length > 20 * 1024 * 1024) {
+          return NextResponse.json({ error: 'Reference image must be under 20MB' }, { status: 400 })
         }
         const resized = await sharp(buf)
           .resize(1280, 1280, { fit: 'inside', withoutEnlargement: true })
@@ -218,25 +218,28 @@ export async function POST(request: NextRequest) {
         : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it. Apply the prompt as the scene and styling around it.'
     }
 
-    // Generate N images in parallel via Nano Banana 2 (image-to-image when a
-    // reference is provided, text-to-image otherwise). Each output is a base64
-    // PNG — upload to Supabase Storage so the client gets a real public URL.
+    // Generate N images in batches of 2 to avoid hitting Vertex rate limits.
+    // Promise.allSettled so a single failure doesn't kill the whole batch.
     const generationId = `nb-${Date.now()}`
-    const generated = await Promise.all(
-      Array.from({ length: safeQuantity }).map(() =>
-        generateNanoBananaImage(promptPrefix ? `${promptPrefix}${prompt}` : prompt, {
-          style: safeStyle,
-          ratio: safeRatio,
-          model,
-          resolution: model === 'pro' ? resolution : undefined,
-          raw: rawMode,
-          referenceImages: featureRefs.length ? featureRefs : undefined,
-          referenceHint: featureHint || undefined,
-          referenceImageBase64: featureRefs.length ? undefined : safeRefBase64,
-          referenceImageMimeType: featureRefs.length ? undefined : safeRefMime,
-        }),
-      ),
-    )
+    const imagePrompt = promptPrefix ? `${promptPrefix}${prompt}` : prompt
+    const imageOpts = {
+      style: safeStyle,
+      ratio: safeRatio,
+      model,
+      resolution: model === 'pro' ? resolution : undefined,
+      raw: rawMode,
+      referenceImages: featureRefs.length ? featureRefs : undefined,
+      referenceHint: featureHint || undefined,
+      referenceImageBase64: featureRefs.length ? undefined : safeRefBase64,
+      referenceImageMimeType: featureRefs.length ? undefined : safeRefMime,
+    }
+    const settled: PromiseSettledResult<Awaited<ReturnType<typeof generateNanoBananaImage>>>[] = []
+    for (let i = 0; i < safeQuantity; i += 2) {
+      if (i > 0) await new Promise(r => setTimeout(r, 600))
+      const batch = Array.from({ length: Math.min(2, safeQuantity - i) }, () => generateNanoBananaImage(imagePrompt, imageOpts))
+      settled.push(...await Promise.allSettled(batch))
+    }
+    const generated = settled.flatMap(r => r.status === 'fulfilled' ? [r.value] : [])
 
     const urls: string[] = []
     for (let i = 0; i < generated.length; i++) {
