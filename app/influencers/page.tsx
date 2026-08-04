@@ -421,9 +421,9 @@ export default function InfluencersPage() {
         }),
       })
       const text = await res.text()
-      let data: Record<string, unknown>
+      let data: { photos: typeof photos; creditsCharged: number; failed: number; error?: string }
       try { data = JSON.parse(text) } catch { throw new Error(text.slice(0, 120) || 'Photoshoot failed') }
-      if (!res.ok) throw new Error((data.error as string) || 'Photoshoot failed')
+      if (!res.ok) throw new Error(data.error || 'Photoshoot failed')
       setPhotos(prev => [...data.photos, ...prev])
       if (data.failed > 0) {
         showError('Partial shoot', `${data.photos.length} of ${data.photos.length + data.failed} photos came back — only charged ${data.creditsCharged} cr for what rendered. Re-run to fill the gap.`)
