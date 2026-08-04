@@ -45,6 +45,26 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+    const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
+    if (!userData.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const { url } = await request.json()
+    if (typeof url !== 'string') return NextResponse.json({ error: 'Missing url' }, { status: 400 })
+    await supabase.from('ugc_content')
+      .delete()
+      .eq('user_id', userData.user.id)
+      .eq('content_type', 'image')
+      .eq('storage_url', url)
+    return NextResponse.json({ ok: true })
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Failed' }, { status: 500 })
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL

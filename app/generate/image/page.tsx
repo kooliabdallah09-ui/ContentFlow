@@ -6,7 +6,7 @@ import { getSupabase } from '@/lib/auth'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { readChatPrefill } from '@/lib/chat-prefill'
 import { useCredits } from '@/lib/useCredits'
-import { Loader2, Download, Image as ImageIcon, X } from 'lucide-react'
+import { Loader2, Download, Image as ImageIcon, X, Trash2 } from 'lucide-react'
 import { useImageDrop } from '@/hooks/useImageDrop'
 import { showError, showSuccess } from '@/lib/notifications'
 import { canAccessPovStudio } from '@/lib/pov-access'
@@ -127,6 +127,23 @@ export default function ImageGeneratorPage() {
 
   const totalCost = count * perImageCr(imgModel, imgResolution)
   const canGenerate = prompt.trim().length >= 5 && creditBalance >= totalCost
+
+  async function deleteImage(url: string) {
+    setGallery(g => g.filter(img => img.url !== url))
+    if (lightbox === url) setLightbox(null)
+    try {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      await fetch('/api/content/generate/image', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ url }),
+      })
+    } catch { /* best-effort */ }
+  }
 
   async function generate() {
     if (!canGenerate || loading) return
@@ -423,23 +440,36 @@ export default function ImageGeneratorPage() {
           </div>
         ))}
         {gallery.map((img, i) => (
-          <div key={`${img.url}-${i}`} style={{
+          <div key={`${img.url}-${i}`} className="img-card" style={{
             breakInside: 'avoid', marginBottom: 14, borderRadius: 13, overflow: 'hidden',
             border: '1px solid var(--border)', background: 'var(--surface)', position: 'relative', cursor: 'zoom-in',
           }} onClick={() => { setLightbox(img.url); setZoomed(false) }}>
             <img src={img.url} alt={img.prompt || 'generated image'} loading="lazy"
               style={{ width: '100%', display: 'block' }} />
-            <a href={img.url} download target="_blank" rel="noopener noreferrer"
-              onClick={e => e.stopPropagation()}
-              style={{
-                position: 'absolute', top: 8, right: 8,
-                width: 32, height: 32, borderRadius: 8,
-                background: 'rgba(20,18,12,0.75)', color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                backdropFilter: 'blur(4px)',
-              }}>
-              <Download size={14} />
-            </a>
+            <div className="img-card-actions" style={{
+              position: 'absolute', top: 8, right: 8,
+              display: 'flex', gap: 6,
+            }}>
+              <a href={img.url} download target="_blank" rel="noopener noreferrer"
+                onClick={e => e.stopPropagation()}
+                style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  background: 'rgba(20,18,12,0.75)', color: '#fff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backdropFilter: 'blur(4px)',
+                }}>
+                <Download size={14} />
+              </a>
+              <button type="button" onClick={e => { e.stopPropagation(); deleteImage(img.url) }}
+                style={{
+                  width: 32, height: 32, borderRadius: 8,
+                  background: 'rgba(184,58,53,0.85)', color: '#fff', border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  backdropFilter: 'blur(4px)', cursor: 'pointer',
+                }}>
+                <Trash2 size={14} />
+              </button>
+            </div>
           </div>
         ))}
         {!loading && !gallery.length && (
