@@ -9,6 +9,7 @@ import { useCredits } from '@/lib/useCredits'
 import { Loader2, Download, Image as ImageIcon, X } from 'lucide-react'
 import { useImageDrop } from '@/hooks/useImageDrop'
 import { showError, showSuccess } from '@/lib/notifications'
+import { isAdminUser } from '@/lib/pov-access'
 
 // Editorial image generator matching the Claude Design export.
 // Single composer card with prompt textarea + style chips + ratio + count
@@ -60,6 +61,7 @@ export default function ImageGeneratorPage() {
   // Reference image — optional. When set, the API runs Nano Banana 2 image-to-image
   // so the user's photo (e.g. their actual product) carries through to the output.
   const [reference, setReference] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
+  const [isAdmin, setIsAdmin] = useState(false)
 
   useEffect(() => {
     const suggestion = readPrefill('image')
@@ -78,6 +80,8 @@ export default function ImageGeneratorPage() {
       const { data: sess } = await supabase.auth.getSession()
       const token = sess?.session?.access_token
       if (!token) return
+      const email = sess?.session?.user?.email
+      if (email && isAdminUser(email)) setIsAdmin(true)
       try {
         const res = await fetch('/api/content/generate/image', { headers: { Authorization: `Bearer ${token}` } })
         const data = await res.json()
@@ -88,7 +92,9 @@ export default function ImageGeneratorPage() {
 
   function pickReference(file: File | null) {
     if (!file) { setReference(null); return }
-    if (file.size > 5 * 1024 * 1024) { setError('Reference image must be under 5MB'); return }
+    const maxBytes = isAdmin ? 20 * 1024 * 1024 : 5 * 1024 * 1024
+    const maxLabel = isAdmin ? '20MB' : '5MB'
+    if (file.size > maxBytes) { setError(`Reference image must be under ${maxLabel}`); return }
     const reader = new FileReader()
     reader.onload = ev => {
       const result = ev.target?.result as string
