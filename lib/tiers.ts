@@ -50,22 +50,28 @@ export const TIERS: Record<UGCTier, TierConfig> = {
 export const DEFAULT_TIER: UGCTier = 'standard'
 export const DEFAULT_DURATION: UGCDuration = 10
 
-// === Credit math — 1.8× markup on Replicate cost ===
-// 1 cr = $0.025 USD.
-//   BASE_FIXED: NB 2 hero frame ($0.075 cost → 5cr) + Claude + overhead ≈ 11cr at 1.8×.
-//   PER_SECOND_KLING: Kling v3 omni standard-audio = $0.224/s → 8.96cr/s at cost → 16cr/s at 1.8×.
-//   CHAINED_OVERHEAD_PER_CLIP: extra orchestration per chained clip.
-const BASE_FIXED = 11
-const PER_SECOND_KLING = 16
-const CHAINED_OVERHEAD_PER_CLIP = 8
+// 1 credit = $0.025 USD.
+export const CREDIT_USD_VALUE = 0.025
+
+// === Credit math — 1.4× markup on Seedance 2.0 + NB Pro cost ===
+//
+// Seedance 2.0 token pricing (BytePlus):
+//   tokens = duration × width × height × fps / 1024
+//   price  = tokens / 1_000_000 × $7.00/M
+//   At 720p 9:16 (720×1280, 24fps): $0.1512/s
+//
+// NB Pro hero frame: ~$0.075 (one per video, reused for chained clips)
+// Claude prompt overhead: ~$0.010
+// Markup: 1.4×
+
+const SEEDANCE_USD_PER_S = (720 * 1280 * 24) / 1024 / 1_000_000 * 7   // $0.1512/s at 720p 9:16
+const NBPRO_USD          = 0.075  // NB Pro reference frame (one per video)
+const CLAUDE_USD         = 0.010  // Claude scripting overhead
+const MARKUP             = 1.4
 
 export function calculateVideoCredits(_tier: UGCTier, duration: UGCDuration): number {
-  const dCfg = DURATION_CONFIGS[duration]
-  if (!dCfg) return BASE_FIXED + PER_SECOND_KLING * 10
-
-  const klingCost = PER_SECOND_KLING * dCfg.klingSeconds * dCfg.klingClips
-  const chainOverhead = CHAINED_OVERHEAD_PER_CLIP * (dCfg.klingClips - 1)
-  return BASE_FIXED + klingCost + chainOverhead
+  const totalUSD = (SEEDANCE_USD_PER_S * duration + NBPRO_USD + CLAUDE_USD) * MARKUP
+  return Math.ceil(totalUSD / CREDIT_USD_VALUE)
 }
 
 // Pre-computed for UI render perf. Single-tier now, so the outer map is trivial.
@@ -83,9 +89,6 @@ export function estimateRenderSeconds(duration: UGCDuration): number {
   const klingTime = dCfg.klingSeconds * 6 * dCfg.klingClips
   return Math.round(klingTime + 30) // + stitch
 }
-
-// 1 credit = $0.025 USD.
-export const CREDIT_USD_VALUE = 0.025
 
 export function creditsToUSD(credits: number): number {
   return Math.round(credits * CREDIT_USD_VALUE * 100) / 100
