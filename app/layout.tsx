@@ -146,14 +146,14 @@ export default function RootLayout({
         <meta name="theme-color" content="#FAFAF8" />
 
         {/* Primary meta */}
-        <meta name="description" content="Contentflow Web — Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish content in minutes." />
-        <meta name="keywords" content="AI content creation, UGC ads, talking head video, AI voiceover, screen demo, social copy generator" />
+        <meta name="description" content="Turn one product photo into UGC ads, editorial product shots, social captions, blog posts and emails — all from one brand profile. No creator needed." />
+        <meta name="keywords" content="AI UGC ads, AI influencer for brands, product studio AI, Higgsfield alternative, Arcads alternative, HeyGen alternative, AI content creation, talking head video, social copy generator, DTC content" />
 
         {/* Open Graph */}
         <meta property="og:type" content="website" />
-        <meta property="og:site_name" content="Contentflow Web" />
-        <meta property="og:title" content="Contentflow Web — AI Content Studio" />
-        <meta property="og:description" content="Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish in minutes." />
+        <meta property="og:site_name" content="ContentFlow" />
+        <meta property="og:title" content="ContentFlow — AI Content Studio for Brands" />
+        <meta property="og:description" content="Turn one product photo into UGC ads, product shots, captions, blog posts and emails — all from one brand profile. No creator needed." />
         <meta property="og:image" content="https://contentflow-web.com/og-image.png" />
         <meta property="og:image:width" content="1200" />
         <meta property="og:image:height" content="630" />
@@ -161,8 +161,8 @@ export default function RootLayout({
 
         {/* Twitter / X */}
         <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content="Contentflow Web — AI Content Studio" />
-        <meta name="twitter:description" content="Generate UGC ads, screen demos, voiceovers, and social copy with AI. From idea to ready-to-publish in minutes." />
+        <meta name="twitter:title" content="ContentFlow — AI Content Studio for Brands" />
+        <meta name="twitter:description" content="Turn one product photo into UGC ads, product shots, captions, blog posts and emails — all from one brand profile. No creator needed." />
         <meta name="twitter:image" content="https://contentflow-web.com/og-image.png" />
       </head>
       <body>

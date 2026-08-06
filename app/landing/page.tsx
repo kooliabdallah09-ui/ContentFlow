@@ -153,7 +153,7 @@ export default function LandingPage() {
             <h1 style={heroH1} className="ls-hero-h1">
               Turn any product into a <span style={{ fontStyle: 'italic' }}>scroll-stopping ad.</span>
             </h1>
-            <p style={heroP}>One photo in. A finished UGC ad out — with script, character, voice, captions and B-roll. All in 2 minutes.</p>
+            <p style={heroP}>Script. Character. Voice. Captions. B-roll. Product photos. Social copy. Blog. Email.<br />One brand profile. Every format. 2 minutes.</p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
               <Link href="/auth/signup" style={btnPrimaryLg}>Create your first ad</Link>
               <a href="#features" style={btnSecondaryLg}>See how it works</a>
@@ -209,8 +209,8 @@ export default function LandingPage() {
       {/* FEATURES */}
       <section id="features" style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 20px' }}>
         <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto 50px' }}>
-          <h2 style={sectionH2}>Everything you need to win.<br/><span style={{ fontStyle: 'italic', color: 'var(--ink-mute)' }}>In one app.</span></h2>
-          <p style={sectionP}>Stop hiring creators. Stop waiting 3 weeks for clips. Start selling today.</p>
+          <h2 style={sectionH2}>One brand profile.<br/><span style={{ fontStyle: 'italic', color: 'var(--ink-mute)' }}>Every format.</span></h2>
+          <p style={sectionP}>Other tools make one video at a time. ContentFlow runs your brand&apos;s entire content stack — video ads, product photos, captions, blog posts, emails — all from the same profile.</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }} className="ls-features">
@@ -298,13 +298,13 @@ export default function LandingPage() {
         borderTop: '1px solid var(--border)', background: 'var(--surface)', padding: '60px 20px',
       }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 40, marginBottom: 48 }} className="ls-foot-grid">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 40, marginBottom: 48 }} className="ls-foot-grid">
             <div>
               <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
                 <span className="brand-mark" style={{ width: 28, height: 28 }}><img src="/logo-icon.png" alt="ContentFlow" /></span>
                 <div className="brand-name" style={{ fontSize: 15 }}>Content<em>flow</em></div>
               </Link>
-              <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0, lineHeight: 1.6 }}>Premium UGC ads for indie founders.</p>
+              <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0, lineHeight: 1.6 }}>Your brand&apos;s entire content team, in one app.</p>
             </div>
             <div>
               <div style={footH}>Product</div>
@@ -320,6 +320,15 @@ export default function LandingPage() {
                 <li><Link href="/about" style={footLink}>About</Link></li>
                 <li><Link href="/blog" style={footLink}>Blog</Link></li>
                 <li><Link href="/contact" style={footLink}>Contact</Link></li>
+              </ul>
+            </div>
+            <div>
+              <div style={footH}>Compare</div>
+              <ul style={footList}>
+                <li><Link href="/vs/higgsfield" style={footLink}>vs Higgsfield</Link></li>
+                <li><Link href="/vs/arcads" style={footLink}>vs Arcads</Link></li>
+                <li><Link href="/vs/heygen" style={footLink}>vs HeyGen</Link></li>
+                <li><Link href="/vs/runway" style={footLink}>vs Runway</Link></li>
               </ul>
             </div>
             <div>
@@ -376,7 +385,7 @@ const FEATURES = [
   },
   {
     title: 'AI influencers',
-    body: 'Create persistent AI creators with locked identities — shoot them in any scene, wearing your product, forever.',
+    body: 'Your AI creator remembers your brand across every shoot — same face, same voice, same identity, forever. No other tool does this.',
     svg: <>
       <rect x="2" y="8" width="20" height="13" rx="2"/>
       <path d="M2 8l3-6h14l3 6"/>
@@ -385,7 +394,7 @@ const FEATURES = [
   },
   {
     title: 'Product Studio',
-    body: 'Upload a few phone photos and get editorial product shots — splashes, flat lays, hero stacks — art-directed by AI.',
+    body: 'Upload phone photos and get editorial product shots — splashes, flat lays, hero stacks. Those same photos feed your UGC ads, captions, and blog posts automatically.',
     svg: <>
       <path d="M2 12h2M6 7v10M10 4v16M14 7v10M18 9v6M22 12h-2"/>
     </>,

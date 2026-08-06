@@ -3,8 +3,8 @@ import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { CREDIT_COSTS } from '@/lib/credits'
 import sharp from 'sharp'
 
-// Nano Banana 2 takes ~10-12s per image; 4 in parallel can hit 60s on cold start.
-export const maxDuration = 120
+// NB Pro 4K can take 25-40s per image; 4 images × 2 batches + upload = 200s+ on cold start.
+export const maxDuration = 300
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
