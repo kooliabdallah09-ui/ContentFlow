@@ -21,7 +21,7 @@ async function getToken() {
   return data.session?.access_token ?? null
 }
 
-type Step = 'setup' | 'script' | 'rendering'
+type Step = 'setup' | 'script' | 'frames' | 'rendering'
 
 interface JobStatus {
   shot: number
@@ -52,6 +52,10 @@ export default function PodcastAdPage() {
 
   const [rendering, setRendering] = useState(false)
   const [jobs, setJobs] = useState<JobStatus[]>([])
+
+  const [frameOptions, setFrameOptions] = useState<Array<{ url: string; variant: number; label: string }>>([])
+  const [selectedFrame, setSelectedFrame] = useState<string | null>(null)
+  const [framesLoading, setFramesLoading] = useState(false)
 
   useEffect(() => {
     void (async () => {
@@ -124,6 +128,26 @@ export default function PodcastAdPage() {
     })
   }
 
+  async function previewFrames() {
+    setFramesLoading(true)
+    const token = await getToken()
+    if (!token) { setFramesLoading(false); return }
+    try {
+      const res = await fetch('/api/podcast-ad/frames', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hostInfluencerId: hostId, expertInfluencerId: expertId, productName, productDescription }),
+      })
+      const data = await res.json()
+      if (!res.ok) { showError(data.error ?? 'Frame generation failed'); return }
+      setFrameOptions(data.frames ?? [])
+      setSelectedFrame(data.frames?.[0]?.url ?? null)
+      setStep('frames')
+    } finally {
+      setFramesLoading(false)
+    }
+  }
+
   async function renderAll() {
     if (!script) return
     setRendering(true)
@@ -144,6 +168,7 @@ export default function PodcastAdPage() {
           productDescription,
           productImageUrl: productImageUrl || undefined,
           resolution,
+          selectedFrameUrl: selectedFrame || undefined,
         }),
       })
       const data = await res.json()
@@ -306,10 +331,53 @@ export default function PodcastAdPage() {
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
             <button onClick={() => setStep('setup')} className="btn btn-ghost" style={{ fontSize: 13 }}>← Back</button>
             <button
-              onClick={renderAll}
-              disabled={rendering}
+              onClick={previewFrames}
+              disabled={framesLoading}
               className="btn btn-primary"
               style={{ fontSize: 14, padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            >
+              {framesLoading ? <><Loader2 size={15} className="spin" /> Generating frames…</> : <>Preview 4 scene frames <ArrowRight size={14} /></>}
+            </button>
+          </div>
+        </>
+      )}
+
+      {step === 'frames' && (
+        <>
+          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', marginBottom: 20, fontSize: 13, color: 'var(--ink-2)' }}>
+            Pick the scene composition you like best — this frame anchors the visual style for all 6 shots.
+          </div>
+          {frameOptions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-mute)', fontSize: 13 }}>No frames generated — go back and try again.</div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12, marginBottom: 20 }}>
+              {frameOptions.map(f => {
+                const active = selectedFrame === f.url
+                return (
+                  <button
+                    key={f.url}
+                    type="button"
+                    onClick={() => setSelectedFrame(f.url)}
+                    style={{ padding: 0, border: `2.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 12, background: 'var(--surface)', cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s' }}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={f.url} alt={f.label} style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', display: 'block' }} />
+                    <div style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: active ? 700 : 500, color: active ? 'var(--ink)' : 'var(--ink-mute)', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {active && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
+                      {f.label}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <button onClick={() => setStep('script')} className="btn btn-ghost" style={{ fontSize: 13 }}>← Back to script</button>
+            <button
+              onClick={renderAll}
+              disabled={!selectedFrame || rendering}
+              className="btn btn-primary"
+              style={{ fontSize: 14, padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: !selectedFrame ? 0.45 : 1 }}
             >
               {rendering ? <><Loader2 size={15} className="spin" /> Submitting…</> : <>Render all 6 shots <ArrowRight size={14} /></>}
             </button>

@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       productDescription,
       productImageUrl,
       resolution,
+      selectedFrameUrl,
     } = body as {
       script?: PodcastScript
       hostInfluencerId?: string
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
       productDescription?: string
       productImageUrl?: string
       resolution?: '720p' | '1080p'
+      selectedFrameUrl?: string
     }
 
     if (!script || typeof script !== 'object') return NextResponse.json({ error: 'Script required' }, { status: 400 })
@@ -65,9 +67,11 @@ export async function POST(request: NextRequest) {
     const host: PodcastCharacter = { role: 'host', name: hostRow.name, appearanceLine: hostRow.appearance_prompt.slice(0, 400) }
     const expert: PodcastCharacter = { role: 'expert', name: expertRow.name, appearanceLine: expertRow.appearance_prompt.slice(0, 400) }
 
-    // Reference images for Seedance — character sheet + portrait per person.
-    // Cap the list to prevent overrunning the reference budget.
+    // Reference images for Seedance — anchor frame first (if chosen), then
+    // character sheet + portrait per person. Cap the list to prevent
+    // overrunning the reference budget.
     const refUrls: string[] = []
+    if (selectedFrameUrl) refUrls.push(selectedFrameUrl)   // anchor frame first
     if (hostRow.character_sheet_url) refUrls.push(hostRow.character_sheet_url)
     if (hostRow.portrait_url) refUrls.push(hostRow.portrait_url)
     if (expertRow.character_sheet_url) refUrls.push(expertRow.character_sheet_url)
