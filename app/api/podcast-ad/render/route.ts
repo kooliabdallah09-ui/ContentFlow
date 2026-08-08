@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
       productDescription,
       productImageUrl,
       resolution,
+      aspect,
       selectedFrameUrl,
     } = body as {
       script?: PodcastScript
@@ -46,6 +47,7 @@ export async function POST(request: NextRequest) {
       productDescription?: string
       productImageUrl?: string
       resolution?: '720p' | '1080p'
+      aspect?: '9:16' | '4:5' | '1:1' | '16:9'
       selectedFrameUrl?: string
     }
 
@@ -105,7 +107,7 @@ export async function POST(request: NextRequest) {
       const { predictionId } = await submitSeedanceJob({
         prompt,
         durationSeconds: PODCAST_SHOT_DURATIONS[idx],
-        aspectRatio: '9:16',
+        aspectRatio: (aspect === '4:5' ? '3:4' : aspect) ?? '9:16',
         resolution: res,
         enableAudio: true,   // podcast ad needs native dialogue audio
         engine: 'seedance-2',

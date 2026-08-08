@@ -52,11 +52,12 @@ export async function POST(request: NextRequest) {
     const userId = userData.user.id
 
     const body = await request.json()
-    const { hostInfluencerId, expertInfluencerId, productName } = body as {
+    const { hostInfluencerId, expertInfluencerId, productName, aspect } = body as {
       hostInfluencerId?: string
       expertInfluencerId?: string
       productName?: string
       productDescription?: string
+      aspect?: '9:16' | '4:5' | '1:1' | '16:9'
     }
 
     if (!hostInfluencerId || !expertInfluencerId) {
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
       VARIANT_PROMPTS.map(prompt =>
         generateNanoBananaImage(prompt, {
           raw: true,
-          ratio: '9:16',
+          ratio: aspect ?? '9:16',
           referenceImages,
           model: 'pro',
         })

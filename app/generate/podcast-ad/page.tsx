@@ -46,6 +46,7 @@ export default function PodcastAdPage() {
   const [brief, setBrief] = useState('')
   const [offer, setOffer] = useState('')
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p')
+  const [aspect, setAspect] = useState<'9:16' | '4:5' | '1:1' | '16:9'>('9:16')
 
   const [planning, setPlanning] = useState(false)
   const [script, setScript] = useState<PodcastScript | null>(null)
@@ -136,7 +137,7 @@ export default function PodcastAdPage() {
       const res = await fetch('/api/podcast-ad/frames', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostInfluencerId: hostId, expertInfluencerId: expertId, productName, productDescription }),
+        body: JSON.stringify({ hostInfluencerId: hostId, expertInfluencerId: expertId, productName, productDescription, aspect }),
       })
       const data = await res.json()
       if (!res.ok) { showError(data.error ?? 'Frame generation failed'); return }
@@ -168,6 +169,7 @@ export default function PodcastAdPage() {
           productDescription,
           productImageUrl: productImageUrl || undefined,
           resolution,
+          aspect,
           selectedFrameUrl: selectedFrame || undefined,
         }),
       })
@@ -268,9 +270,30 @@ export default function PodcastAdPage() {
             />
           </Field>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 14 }}>
-            <Field label="Offer (optional) — appears in shot 5 CTA">
-              <input value={offer} onChange={e => setOffer(e.target.value)} placeholder="e.g. 50% off with code PODCAST50" style={inp} />
+          <Field label="Offer (optional) — appears in shot 5 CTA">
+            <input value={offer} onChange={e => setOffer(e.target.value)} placeholder="e.g. 50% off with code PODCAST50" style={inp} />
+          </Field>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <Field label="Format">
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {([
+                  { value: '9:16', label: '9:16', sub: 'Reels · TikTok' },
+                  { value: '4:5', label: '4:5', sub: 'Instagram' },
+                  { value: '1:1', label: '1:1', sub: 'Square' },
+                  { value: '16:9', label: '16:9', sub: 'YouTube' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setAspect(opt.value)}
+                    style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${aspect === opt.value ? 'var(--ink)' : 'var(--border)'}`, background: aspect === opt.value ? 'var(--ink)' : 'var(--surface)', color: aspect === opt.value ? 'var(--on-ink)' : 'var(--ink)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 700 }}>{opt.label}</span>
+                    <span style={{ fontSize: 10, opacity: 0.65 }}>{opt.sub}</span>
+                  </button>
+                ))}
+              </div>
             </Field>
             <Field label="Resolution">
               <select value={resolution} onChange={e => setResolution(e.target.value as '720p' | '1080p')} style={inp}>
