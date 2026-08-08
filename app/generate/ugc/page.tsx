@@ -13,6 +13,15 @@ import { Icon } from '@/components/Icons'
 import { showSuccess, showError } from '@/lib/notifications'
 import { useAutoSave } from '@/lib/useAutoSave'
 
+const BATCH_HOOK_ANGLES = [
+  { id: 'problem',        label: 'Problem → Solution',  desc: 'Open with the pain point the product solves' },
+  { id: 'transformation', label: 'Before / After',      desc: 'Before state vs. after using the product' },
+  { id: 'curiosity',      label: 'Curiosity hook',      desc: 'Start with a surprising fact or bold claim' },
+  { id: 'social_proof',   label: 'Social proof',        desc: 'Lead with results, numbers, or testimonial-style' },
+  { id: 'question',       label: 'Question hook',       desc: 'Open with a direct question to the viewer' },
+  { id: 'story',          label: 'Mini-story',          desc: 'Personal story arc that ends with the product' },
+] as const
+
 interface UGCComponent {
   image?: { url: string; id: string }
   script?: string
@@ -84,6 +93,17 @@ export default function UGCGeneratorPage() {
   // Actor gallery (loaded from saved-actors API for quick-select strip)
   const [topActors, setTopActors] = useState<Array<{ id: string; name: string; hero_frame_url: string }>>([])
   const [selectedActorId, setSelectedActorId] = useState<string | undefined>(undefined)
+
+  // Batch mode
+  const [batchMode, setBatchMode] = useState(false)
+  const [batchProductName, setBatchProductName] = useState('')
+  const [batchProductDescription, setBatchProductDescription] = useState('')
+  const [batchBenefits, setBatchBenefits] = useState('')
+  const [batchCallToAction, setBatchCallToAction] = useState('Shop now')
+  const [selectedAngles, setSelectedAngles] = useState<Set<string>>(new Set(['problem', 'transformation']))
+  interface BatchJob { angle: typeof BATCH_HOOK_ANGLES[number]; status: 'idle' | 'running' | 'done' | 'error'; progress: number; progressLabel: string; videoUrl?: string; error?: string }
+  const [batchJobs, setBatchJobs] = useState<BatchJob[]>([])
+  const [batchGenerating, setBatchGenerating] = useState(false)
   const [formData, setFormData] = useState({
     ugcType: 'image-with-voiceover',
     productName: '',
@@ -347,6 +367,68 @@ export default function UGCGeneratorPage() {
     }
   }
 
+  // Sync URL import into batch product fields too
+  useEffect(() => {
+    if (!externalPrefill) return
+    if (externalPrefill.productName) setBatchProductName(externalPrefill.productName)
+    if (externalPrefill.productDescription) setBatchProductDescription(externalPrefill.productDescription)
+    if (externalPrefill.benefits) setBatchBenefits(externalPrefill.benefits)
+    if (externalPrefill.callToAction) setBatchCallToAction(externalPrefill.callToAction)
+  }, [externalPrefill])
+
+  async function handleBatchGenerate() {
+    const angles = BATCH_HOOK_ANGLES.filter(a => selectedAngles.has(a.id))
+    if (!batchProductName.trim() || !batchProductDescription.trim() || !angles.length) return
+    const supabase = getSupabase()
+    if (!supabase) return
+    const { data: sess } = await supabase.auth.getSession()
+    const token = sess?.session?.access_token
+    if (!token) return
+
+    const initial: ReturnType<typeof batchJobs[number]['angle'] extends infer T ? () => Array<{ angle: typeof BATCH_HOOK_ANGLES[number]; status: 'idle'; progress: number; progressLabel: string }> : never> = angles.map(a => ({ angle: a, status: 'idle' as const, progress: 0, progressLabel: '' }))
+    setBatchJobs(initial)
+    setBatchGenerating(true)
+
+    await Promise.allSettled(angles.map(async (angle, idx) => {
+      const stepLabels = ['Writing script…', 'Generating character…', 'Rendering video…', 'Processing audio…', 'Finalizing…']
+      const stepPcts = [10, 30, 55, 80, 95]
+      let stepIdx = 0
+      const stepTimer = setInterval(() => {
+        if (stepIdx < stepLabels.length) {
+          setBatchJobs(prev => prev.map((j, i) => i === idx ? { ...j, status: 'running', progress: stepPcts[stepIdx], progressLabel: stepLabels[stepIdx] } : j))
+          stepIdx++
+        }
+      }, 18000)
+      setBatchJobs(prev => prev.map((j, i) => i === idx ? { ...j, status: 'running', progress: 5, progressLabel: 'Starting…' } : j))
+      try {
+        const res = await fetch('/api/ugc/orchestrate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            ugcType: 'image-with-voiceover',
+            productName: batchProductName,
+            productDescription: batchProductDescription,
+            benefits: batchBenefits,
+            callToAction: batchCallToAction,
+            customInstructions: `Hook angle: ${angle.label}. ${angle.desc}. Keep the hook tight and the energy high.`,
+            style: 'realistic',
+          }),
+        })
+        clearInterval(stepTimer)
+        const data = await res.json()
+        if (!res.ok || data.error) {
+          setBatchJobs(prev => prev.map((j, i) => i === idx ? { ...j, status: 'error', error: data.error || 'Failed', progress: 0, progressLabel: '' } : j))
+        } else {
+          setBatchJobs(prev => prev.map((j, i) => i === idx ? { ...j, status: 'done', videoUrl: data.components?.video?.videoUrl, progress: 100, progressLabel: 'Done' } : j))
+        }
+      } catch (err) {
+        clearInterval(stepTimer)
+        setBatchJobs(prev => prev.map((j, i) => i === idx ? { ...j, status: 'error', error: err instanceof Error ? err.message : 'Network error', progress: 0, progressLabel: '' } : j))
+      }
+    }))
+    setBatchGenerating(false)
+  }
+
   async function handleUrlImport() {
     const trimmed = urlInput.trim()
     if (!trimmed) return
@@ -437,25 +519,130 @@ export default function UGCGeneratorPage() {
         )}
       </div>
 
-      {/* Batch mode hero card */}
-      <a
-        href="/batch"
-        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', marginBottom: 8, textDecoration: 'none', color: 'inherit', transition: 'border-color 0.15s' }}
-        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ink)')}
-        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
-      >
-        <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--on-ink)" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="3" width="6" height="18" rx="1"/><rect x="16" y="3" width="6" height="18" rx="1"/></svg>
+      {/* Single / Batch tab toggle */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 16, padding: '4px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', width: 'fit-content' }}>
+        {(['single', 'batch'] as const).map(mode => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setBatchMode(mode === 'batch')}
+            style={{
+              padding: '6px 18px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em',
+              background: (mode === 'batch') === batchMode ? 'var(--ink)' : 'transparent',
+              color: (mode === 'batch') === batchMode ? 'var(--on-ink)' : 'var(--ink-dim)',
+              transition: 'all 0.15s',
+            }}
+          >
+            {mode === 'single' ? 'Single' : 'Batch  ×6'}
+          </button>
+        ))}
+      </div>
+
+      {/* Batch UI (inline) */}
+      {batchMode && (
+        <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* Product mini-form */}
+          <div style={{ padding: '18px 20px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Product info</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Product name *</label>
+                <input value={batchProductName} onChange={e => setBatchProductName(e.target.value)} placeholder="e.g. HydroGlow Serum" style={{ padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Call to action</label>
+                <input value={batchCallToAction} onChange={e => setBatchCallToAction(e.target.value)} placeholder="e.g. Shop now" style={{ padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Product description *</label>
+              <textarea value={batchProductDescription} onChange={e => setBatchProductDescription(e.target.value)} rows={2} placeholder="What does it do and who is it for?" style={{ padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', resize: 'vertical' }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Key benefits</label>
+              <input value={batchBenefits} onChange={e => setBatchBenefits(e.target.value)} placeholder="e.g. clears skin in 7 days, no harsh chemicals" style={{ padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
+            </div>
+          </div>
+
+          {/* Hook angle picker */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Hook angles <span style={{ fontWeight: 400, color: 'var(--ink-mute)', fontSize: 12 }}>— {selectedAngles.size} selected</span></div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
+              {BATCH_HOOK_ANGLES.map(angle => {
+                const active = selectedAngles.has(angle.id)
+                return (
+                  <button
+                    key={angle.id}
+                    type="button"
+                    onClick={() => setSelectedAngles(prev => {
+                      const next = new Set(prev)
+                      active ? next.delete(angle.id) : next.add(angle.id)
+                      return next
+                    })}
+                    style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: active ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3 }}
+                  >
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{active ? '✓ ' : ''}{angle.label}</span>
+                    <span style={{ fontSize: 11.5, color: 'var(--ink-mute)', lineHeight: 1.4 }}>{angle.desc}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Generate button */}
+          <button
+            type="button"
+            onClick={handleBatchGenerate}
+            disabled={batchGenerating || !batchProductName.trim() || !batchProductDescription.trim() || selectedAngles.size === 0}
+            style={{ alignSelf: 'flex-start', padding: '10px 22px', borderRadius: 10, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13.5, fontWeight: 700, cursor: batchGenerating || !batchProductName.trim() || !batchProductDescription.trim() || selectedAngles.size === 0 ? 'not-allowed' : 'pointer', opacity: batchGenerating || !batchProductName.trim() || !batchProductDescription.trim() || selectedAngles.size === 0 ? 0.45 : 1, display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            {batchGenerating ? (
+              <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Generating {selectedAngles.size} variations…</>
+            ) : (
+              `Generate ${selectedAngles.size} variation${selectedAngles.size !== 1 ? 's' : ''}`
+            )}
+          </button>
+
+          {/* Batch results grid */}
+          {batchJobs.length > 0 && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
+              {batchJobs.map((job, i) => (
+                <div key={i} style={{ borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{job.angle.label}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{job.angle.desc}</div>
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '16px 14px', gap: 10, minHeight: 120 }}>
+                    {job.status === 'idle' && <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Queued</div>}
+                    {job.status === 'running' && (
+                      <>
+                        <div style={{ width: '100%', height: 4, borderRadius: 4, background: 'var(--border)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', borderRadius: 4, background: 'var(--ink)', width: `${job.progress}%`, transition: 'width 0.4s ease' }} />
+                        </div>
+                        <div style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{job.progressLabel}</div>
+                      </>
+                    )}
+                    {job.status === 'error' && <div style={{ fontSize: 12, color: '#e84040', textAlign: 'center' }}>{job.error || 'Failed'}</div>}
+                    {job.status === 'done' && job.videoUrl && (
+                      <>
+                        <video src={job.videoUrl} controls style={{ width: '100%', borderRadius: 8, background: '#000' }} />
+                        <a href={job.videoUrl} download style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                          Download
+                        </a>
+                      </>
+                    )}
+                    {job.status === 'done' && !job.videoUrl && <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Done — no video URL</div>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Batch mode — generate 6 hook variations at once</div>
-          <div style={{ fontSize: 12, color: 'var(--ink-mute)', marginTop: 2 }}>Problem-solution, before/after, curiosity hook, social proof, question, story. All in one click. → Go to Batch</div>
-        </div>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, color: 'var(--ink-mute)' }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
+      )}
 
       {/* Saved actor quick-select strip */}
-      {topActors.length > 0 && (
+      {!batchMode && topActors.length > 0 && (
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
             Your saved actors — click to pre-select
@@ -479,7 +666,7 @@ export default function UGCGeneratorPage() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
+      <div style={{ display: batchMode ? 'none' : 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           <UGCPackageBuilder
             onGenerate={handleGenerate}
