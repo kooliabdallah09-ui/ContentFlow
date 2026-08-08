@@ -295,6 +295,27 @@ export default function PodcastAdPage() {
 
       {step === 'script' && script && (
         <>
+          {framesLoading && (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 50, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', gap: 24 }}>
+              {/* Pulsing ring animation */}
+              <div style={{ position: 'relative', width: 80, height: 80 }}>
+                <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.15)', animation: 'ping 1.4s ease-in-out infinite' }} />
+                <div style={{ position: 'absolute', inset: 6, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.25)', animation: 'ping 1.4s ease-in-out 0.35s infinite' }} />
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Loader2 size={28} color="#fff" className="spin" />
+                </div>
+              </div>
+              <div style={{ textAlign: 'center', color: '#fff' }}>
+                <div style={{ fontSize: 17, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 6 }}>Generating scene frames</div>
+                <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', maxWidth: 280 }}>NanoBanana is compositing your two hosts into 4 studio compositions — usually 30–60 s</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {[0,1,2,3].map(i => (
+                  <div key={i} style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff', opacity: 0.4, animation: `bounce 1.2s ease-in-out ${i * 0.15}s infinite` }} />
+                ))}
+              </div>
+            </div>
+          )}
           <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', marginBottom: 16, fontSize: 13, color: 'var(--ink-2)' }}>
             Edit any line before rendering. Every line under 25 words works best — Seedance loses lip-sync on longer takes.
           </div>
@@ -418,6 +439,16 @@ export default function PodcastAdPage() {
           </div>
         </>
       )}
+      <style>{`
+        @keyframes ping {
+          0%, 100% { transform: scale(1); opacity: 0.6; }
+          50% { transform: scale(1.18); opacity: 0.15; }
+        }
+        @keyframes bounce {
+          0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+          40% { transform: translateY(-8px); opacity: 1; }
+        }
+      `}</style>
     </main>
   )
 }
