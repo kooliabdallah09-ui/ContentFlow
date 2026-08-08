@@ -18,6 +18,7 @@ export async function submitStitchJob({
   watermark,
   aspect,
   uiScreenshotUrl,
+  music,
 }: {
   talkingHeadUrl: string
   talkingHeadDuration?: number  // seconds of EACH talking-head clip (used to position and concat)
@@ -30,6 +31,7 @@ export async function submitStitchJob({
   watermark?: boolean           // Free-tier flag — overlays "Made with ContentFlow" bottom-right
   aspect?: 'portrait' | 'square' | 'landscape'  // Drives the render output size
   uiScreenshotUrl?: string      // Software mode: UI screenshot composited as background behind chroma-keyed character
+  music?: { url: string; volume?: number }  // Optional background music track (low volume)
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.SHOTSTACK_API_KEY
   if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
@@ -193,6 +195,17 @@ export async function submitStitchJob({
         length: totalLength,
         position: 'bottomRight',
         offset: { x: -0.02, y: 0.02 },
+      }],
+    })
+  }
+
+  // Background music track (very low volume so the talking head audio remains clear).
+  if (music?.url) {
+    tracks.unshift({
+      clips: [{
+        asset: { type: 'audio', src: music.url, volume: music.volume ?? 0.25 },
+        start: 0,
+        length: talkingHeadLength,
       }],
     })
   }

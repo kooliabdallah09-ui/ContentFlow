@@ -1,4 +1,5 @@
 import { submitStitchJob, getStitchStatus } from '@/lib/shotstack'
+import { getMusicTrack, type MusicMood } from '@/lib/music-library'
 import { NextRequest, NextResponse } from 'next/server'
 
 // Stitch concatenates Kling clips and applies aspect ratio.
@@ -12,19 +13,22 @@ export async function POST(request: NextRequest) {
       talkingHeadDuration,
       additionalTalkingHeadUrls,
       aspect,
+      musicMood,
     } = await request.json()
 
     if (!talkingHeadUrl) {
       return NextResponse.json({ error: 'Missing talkingHeadUrl' }, { status: 400 })
     }
 
-    // Captions and watermark removed — users add them in the video editor instead.
+    const track = getMusicTrack(musicMood as MusicMood | null)
+
     const { renderId } = await submitStitchJob({
       talkingHeadUrl,
       talkingHeadDuration: typeof talkingHeadDuration === 'number' ? talkingHeadDuration : undefined,
       additionalTalkingHeadUrls: Array.isArray(additionalTalkingHeadUrls) ? additionalTalkingHeadUrls : undefined,
       watermark: false,
       aspect: typeof aspect === 'string' ? aspect as 'portrait' | 'square' | 'landscape' : undefined,
+      music: track ? { url: track.url, volume: track.volume } : undefined,
     })
     return NextResponse.json({ renderId })
   } catch (error) {

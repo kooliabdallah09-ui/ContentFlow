@@ -30,6 +30,7 @@ interface UGCComponent {
     durationSec: number
     trimToSec?: number
   }
+  musicMood?: string
 }
 
 export default function UGCGeneratorPage() {
@@ -73,6 +74,16 @@ export default function UGCGeneratorPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [creditsLoading, setCreditsLoading] = useState(true)
+
+  // URL → ad scraper
+  const [urlInput, setUrlInput] = useState('')
+  const [urlLoading, setUrlLoading] = useState(false)
+  const [urlError, setUrlError] = useState('')
+  const [externalPrefill, setExternalPrefill] = useState<{ productName?: string; productDescription?: string; benefits?: string; callToAction?: string } | undefined>(undefined)
+
+  // Actor gallery (loaded from saved-actors API for quick-select strip)
+  const [topActors, setTopActors] = useState<Array<{ id: string; name: string; hero_frame_url: string }>>([])
+  const [selectedActorId, setSelectedActorId] = useState<string | undefined>(undefined)
   const [formData, setFormData] = useState({
     ugcType: 'image-with-voiceover',
     productName: '',
@@ -186,6 +197,26 @@ export default function UGCGeneratorPage() {
     return () => clearTimeout(timer)
   }, [])
 
+  // Load top saved actors for the quick-select strip at the top of the page.
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      try {
+        const supabase = getSupabase()
+        if (!supabase) return
+        const { data: sess } = await supabase.auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const res = await fetch('/api/ugc/saved-actors', { headers: { Authorization: `Bearer ${token}` } })
+        if (!res.ok || cancelled) return
+        const data = await res.json()
+        if (!cancelled && Array.isArray(data?.actors)) setTopActors(data.actors.slice(0, 6))
+      } catch { /* best-effort */ }
+    }
+    load()
+    return () => { cancelled = true }
+  }, [])
+
   // Called after a successful render — if the current browser session was
   // deep-linked from /campaigns/[id], PATCH the corresponding campaign shot
   // so the planner UI shows it as rendered.
@@ -241,6 +272,7 @@ export default function UGCGeneratorPage() {
       durationSec: number
       trimToSec?: number
     }
+    musicMood?: string
   }) => {
     setLoading(true)
     setError('')
@@ -259,6 +291,7 @@ export default function UGCGeneratorPage() {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const merged: any = { ...(pre.components as any) }
         if (settings.scrollStopHook) merged.scrollStopHook = settings.scrollStopHook
+        if (settings.musicMood) merged.musicMood = settings.musicMood
         setComponents(merged)
         setUgcType(settings.ugcType)
         setCreditBalance(pre.newBalance)
@@ -294,7 +327,9 @@ export default function UGCGeneratorPage() {
       }
 
       const data = await response.json()
-      setComponents(data.components)
+      const merged = { ...(data.components ?? {}) }
+      if (settings.musicMood) merged.musicMood = settings.musicMood
+      setComponents(merged)
       setUgcType(settings.ugcType)
       setCreditBalance(data.newBalance)
       setCreditDeducted(data.creditDeducted)
@@ -309,6 +344,28 @@ export default function UGCGeneratorPage() {
       showError('Generation failed', errorMessage)
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleUrlImport() {
+    const trimmed = urlInput.trim()
+    if (!trimmed) return
+    setUrlLoading(true)
+    setUrlError('')
+    try {
+      const res = await fetch(`/api/product-url?url=${encodeURIComponent(trimmed)}`)
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not extract product info')
+      setExternalPrefill({
+        productName: data.productName,
+        productDescription: data.productDescription,
+        benefits: data.benefits,
+        callToAction: data.callToAction,
+      })
+    } catch (err) {
+      setUrlError(err instanceof Error ? err.message : 'Failed to fetch URL')
+    } finally {
+      setUrlLoading(false)
     }
   }
 
@@ -346,12 +403,90 @@ export default function UGCGeneratorPage() {
         </div>
       </header>
 
+      {/* URL → ad import bar */}
+      <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Start from a product URL</span>
+          <span style={{ fontSize: 11, color: 'var(--ink-mute)', marginLeft: 2 }}>— paste any product page and we extract the info</span>
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <input
+            type="url"
+            placeholder="https://yourstore.com/products/your-product"
+            value={urlInput}
+            onChange={e => setUrlInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleUrlImport()}
+            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+          />
+          <button
+            type="button"
+            onClick={handleUrlImport}
+            disabled={!urlInput.trim() || urlLoading}
+            style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13, fontWeight: 600, cursor: urlInput.trim() && !urlLoading ? 'pointer' : 'not-allowed', opacity: urlInput.trim() && !urlLoading ? 1 : 0.45, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
+          >
+            {urlLoading ? <><span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Importing…</> : 'Import →'}
+          </button>
+        </div>
+        {urlError && <div style={{ fontSize: 12, color: '#e84040' }}>{urlError}</div>}
+        {externalPrefill?.productName && (
+          <div style={{ fontSize: 12, color: 'var(--good)', display: 'flex', alignItems: 'center', gap: 5 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+            Imported <strong>{externalPrefill.productName}</strong> — form pre-filled below
+          </div>
+        )}
+      </div>
+
+      {/* Batch mode hero card */}
+      <a
+        href="/batch"
+        style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', marginBottom: 8, textDecoration: 'none', color: 'inherit', transition: 'border-color 0.15s' }}
+        onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--ink)')}
+        onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}
+      >
+        <div style={{ width: 34, height: 34, borderRadius: 8, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--on-ink)" strokeWidth="2" strokeLinecap="round"><rect x="2" y="3" width="6" height="18" rx="1"/><rect x="9" y="3" width="6" height="18" rx="1"/><rect x="16" y="3" width="6" height="18" rx="1"/></svg>
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Batch mode — generate 6 hook variations at once</div>
+          <div style={{ fontSize: 12, color: 'var(--ink-mute)', marginTop: 2 }}>Problem-solution, before/after, curiosity hook, social proof, question, story. All in one click. → Go to Batch</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, color: 'var(--ink-mute)' }}><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+
+      {/* Saved actor quick-select strip */}
+      {topActors.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
+            Your saved actors — click to pre-select
+          </div>
+          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
+            {topActors.map(a => {
+              const active = selectedActorId === a.id
+              return (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => setSelectedActorId(active ? undefined : a.id)}
+                  style={{ flexShrink: 0, padding: 5, borderRadius: 10, border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: active ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 5, width: 80 }}
+                >
+                  <img src={a.hero_frame_url} alt={a.name} style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: 7, display: 'block' }} />
+                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           <UGCPackageBuilder
             onGenerate={handleGenerate}
             isLoading={loading}
             creditBalance={creditBalance}
+            externalPrefill={externalPrefill}
+            initialActorId={selectedActorId}
           />
         </div>
 

@@ -5,6 +5,8 @@ import { getSupabase } from '@/lib/auth'
 import { PADDLE_PRICES } from '@/lib/paddle'
 import { openPaddleCheckout } from '@/lib/paddle-client'
 
+const ADMIN_EMAILS = new Set(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
+
 interface CreditsInfo {
   balance: number
   plan: string
@@ -21,6 +23,7 @@ export default function BillingPage() {
   const [annual, setAnnual] = useState(false)
   const [recGoals, setRecGoals] = useState<string[]>([])
   const [recVolume, setRecVolume] = useState<string>('')
+  const [userEmail, setUserEmail] = useState('')
 
   useEffect(() => {
     loadCreditsInfo()
@@ -86,6 +89,7 @@ export default function BillingPage() {
       if (!supabase) return
       const { data: sessionData } = await supabase.auth.getSession()
       if (!sessionData?.session?.access_token) return
+      if (sessionData.session.user?.email) setUserEmail(sessionData.session.user.email)
       const response = await fetch('/api/credits/balance', {
         headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       })
@@ -124,6 +128,7 @@ export default function BillingPage() {
   }
 
   const currentPlan = creditsInfo?.plan ?? 'free'
+  const isAdmin = ADMIN_EMAILS.has(userEmail.toLowerCase())
 
   const plans = [
     {
@@ -304,7 +309,7 @@ export default function BillingPage() {
                   <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
                     Current plan
                   </div>
-                ) : activePriceId ? (
+                ) : activePriceId && isAdmin ? (
                   <button
                     onClick={() => handleUpgrade(activePriceId)}
                     disabled={isLoading}
@@ -317,6 +322,10 @@ export default function BillingPage() {
                   >
                     {isLoading ? 'Redirecting…' : 'Upgrade'}
                   </button>
+                ) : activePriceId && !isAdmin ? (
+                  <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
+                    Coming soon
+                  </div>
                 ) : (
                   <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
                     Free forever
@@ -342,6 +351,7 @@ export default function BillingPage() {
         plans={plans}
         onUpgrade={handleUpgrade}
         upgradeLoading={upgradeLoading}
+        isAdmin={isAdmin}
       />
 
       {/* Credits policy */}
@@ -379,22 +389,62 @@ export default function BillingPage() {
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{pack.credits.toLocaleString()} credits</div>
                 <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{pack.price} · {pack.perCr}</div>
               </div>
-              <button
-                onClick={() => handlePackCheckout(pack.priceId)}
-                disabled={packLoading === pack.priceId}
-                style={{
-                  padding: '8px 16px', borderRadius: 8,
-                  border: 'none', background: '#111', color: '#fff',
-                  fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
-                  opacity: packLoading === pack.priceId ? 0.5 : 1,
-                }}
-              >
-                {packLoading === pack.priceId ? '…' : 'Buy'}
-              </button>
+              {isAdmin ? (
+                <button
+                  onClick={() => handlePackCheckout(pack.priceId)}
+                  disabled={packLoading === pack.priceId}
+                  style={{
+                    padding: '8px 16px', borderRadius: 8,
+                    border: 'none', background: '#111', color: '#fff',
+                    fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
+                    opacity: packLoading === pack.priceId ? 0.5 : 1,
+                  }}
+                >
+                  {packLoading === pack.priceId ? '…' : 'Buy'}
+                </button>
+              ) : (
+                <div style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink-mute)', flexShrink: 0 }}>Soon</div>
+              )}
             </div>
           ))}
         </div>
         <style>{`@media (max-width: 700px) { .billing-pack-grid { grid-template-columns: 1fr !important; } }`}</style>
+      </div>
+
+      {/* Competitor comparison table */}
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', overflowX: 'auto' }}>
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, marginTop: 0, letterSpacing: '-0.01em' }}>How we compare</h3>
+        <p style={{ fontSize: 12.5, color: 'var(--ink-mute)', marginTop: 0, marginBottom: 16 }}>ContentFlow vs. the alternatives — same job, half the cost.</p>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--border)' }}>
+              {['Feature', 'ContentFlow', 'Arcads', 'Creatify', 'HeyGen', 'Higgsfield'].map((h, i) => (
+                <th key={h} style={{ padding: '8px 10px', textAlign: i === 0 ? 'left' : 'center', fontWeight: 700, color: i === 1 ? 'var(--ink)' : 'var(--ink-mute)', whiteSpace: 'nowrap', background: i === 1 ? 'rgba(0,0,0,0.03)' : 'transparent' }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ['Starting price', '$19/mo', '$110/mo', '$39/mo', '$29/mo', '$15/mo'],
+              ['Monthly credits', '800 cr', 'Pay per video', '~100 cr', '200 cr', '200 cr'],
+              ['UGC video', '✓', '✓', '✓', '~', '✓'],
+              ['Product photos', '✓', '✗', '✗', '✗', '✗'],
+              ['Social copy + email', '✓', '✗', '✗', '✗', '✗'],
+              ['Blog + carousel', '✓', '✗', '✗', '✗', '✗'],
+              ['Brand persistence', '✓', '✗', '✗', '✗', '✗'],
+              ['URL → ad', '✓', '~', '✓', '✗', '✓'],
+              ['Batch variations', '✓', '✓', '✓', '✗', '✓'],
+              ['Background music', '✓', '✗', '✗', '✗', '✓'],
+            ].map(([feature, cf, arcads, creatify, heygen, higgsfield]) => (
+              <tr key={feature} style={{ borderBottom: '1px solid var(--border-soft)' }}>
+                <td style={{ padding: '8px 10px', color: 'var(--ink-2)', fontWeight: 500 }}>{feature}</td>
+                {[cf, arcads, creatify, heygen, higgsfield].map((v, i) => (
+                  <td key={i} style={{ padding: '8px 10px', textAlign: 'center', background: i === 0 ? 'rgba(0,0,0,0.03)' : 'transparent', color: v === '✓' ? '#16a34a' : v === '✗' ? '#dc2626' : 'var(--ink-mute)', fontWeight: i === 0 ? 700 : 400 }}>{v}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
 
       {/* FAQ */}
@@ -519,13 +569,14 @@ function getCrEach(type: ContentType, sel: Record<string, string>): number {
 const PLAN_CAPS: Record<string, number> = { free: 60, starter: 800, pro: 2000, agency: 6500 }
 
 function PlanRecommender({
-  goals, setGoals, currentPlan, annual, plans, onUpgrade, upgradeLoading,
+  goals, setGoals, currentPlan, annual, plans, onUpgrade, upgradeLoading, isAdmin,
 }: {
   goals: string[], setGoals: (g: string[]) => void,
   volume?: string, setVolume?: (v: string) => void,
   currentPlan: string, annual: boolean,
   plans: { name: string, price: { monthly: string, annual: string }, credits: string, priceId: { monthly: string, annual: string }, planKey: string, popular?: boolean, annualTotal?: string | null }[],
   onUpgrade: (id: string) => void, upgradeLoading: string | null,
+  isAdmin?: boolean,
 }) {
   const [qty, setQty] = useState<Record<string, number>>({})
   const [typeOpts, setTypeOpts] = useState<Record<string, Record<string, string>>>({})
@@ -770,6 +821,10 @@ function PlanRecommender({
                 <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ink-mute)', fontWeight: 500, padding: '10px 0' }}>
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', marginRight: 5 }}><path d="M20 6L9 17l-5-5"/></svg>
                   You're already on this plan
+                </div>
+              ) : recPlan.priceId.monthly && !isAdmin ? (
+                <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ink-mute)', fontWeight: 500, padding: '10px 0' }}>
+                  Upgrades coming soon
                 </div>
               ) : recPlan.priceId.monthly ? (
                 <button

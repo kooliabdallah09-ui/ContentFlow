@@ -78,6 +78,7 @@ interface UGCComponent {
   // hook clip and the main clip, then submit a Shotstack render that trims
   // the hook to ~1.5s and concatenates it before the main clip.
   scrollStopHook?: ScrollStopHookPayload
+  musicMood?: string
 }
 
 interface UGCPackagePreviewProps {
@@ -411,14 +412,47 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   // Single-shot path: anchor is the final video, no composite needed.
   // If a scroll-stop hook is attached, the hook-stitch effect below owns the
   // finalVideoUrl — don't short-circuit here.
+  // If musicMood is set, route through Shotstack stitch to overlay the track.
   useEffect(() => {
     if (stitchStartedRef.current || compositeStartedRef.current) return
     if (multiShot) return
     if (hookClip) return
     if (video?.status !== 'completed' || !video.videoUrl) return
     stitchStartedRef.current = true
-    setFinalVideoUrl(video.videoUrl)
-    setStitchStatus('completed')
+
+    const mood = components?.musicMood
+    if (!mood) {
+      setFinalVideoUrl(video.videoUrl)
+      setStitchStatus('completed')
+      return
+    }
+
+    setStitchStatus('stitching')
+    ;(async () => {
+      try {
+        const { getSupabase } = await import('@/lib/auth')
+        const supabase = getSupabase()
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+        const token = sess?.session?.access_token
+        const res = await fetch('/api/ugc/stitch', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+          body: JSON.stringify({
+            talkingHeadUrl: video.videoUrl,
+            aspect: components?.aspect ?? 'portrait',
+            musicMood: mood,
+          }),
+        })
+        const data = await res.json()
+        if (!res.ok || !data.renderId) throw new Error(data.error || 'Music stitch failed')
+        setStitchRenderId(data.renderId)
+      } catch {
+        // Fail-soft: use raw video without music
+        setFinalVideoUrl(video.videoUrl!)
+        setStitchStatus('completed')
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video?.status, video?.videoUrl, multiShot, hookClip])
 
   // ── Scroll-stop hook: poll the hook Seedance job ─────────────────
