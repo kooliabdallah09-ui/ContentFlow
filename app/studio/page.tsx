@@ -541,6 +541,34 @@ export default function StudioPage() {
     return () => clearTimeout(t)
   }, [messages, canvasNodes, currentSessionId])
 
+  // ── Guard against accidental navigation ───────────────────────────────────
+  // beforeunload → refresh / close tab / type new URL
+  // wheelGuard   → horizontal trackpad swipe that triggers browser back/forward
+  useEffect(() => {
+    const hasContent = messages.length > 0 || canvasNodes.length > 0
+    if (!hasContent) return
+
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault()
+      e.returnValue = ''
+    }
+
+    // Horizontal wheel deltaX triggers the Mac "swipe to go back" gesture.
+    // Preventing it on the whole document stops accidental back navigation.
+    const wheelGuard = (e: WheelEvent) => {
+      if (Math.abs(e.deltaX) > Math.abs(e.deltaY) && Math.abs(e.deltaX) > 5) {
+        e.preventDefault()
+      }
+    }
+
+    window.addEventListener('beforeunload', beforeUnload)
+    document.addEventListener('wheel', wheelGuard, { passive: false })
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnload)
+      document.removeEventListener('wheel', wheelGuard)
+    }
+  }, [messages.length, canvasNodes.length])
+
   // ── Close session list on outside click ───────────────────────────────────
   useEffect(() => {
     if (!showSessionList) return
