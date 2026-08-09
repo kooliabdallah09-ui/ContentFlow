@@ -131,13 +131,20 @@ export async function POST(request: NextRequest) {
           .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
       : []
 
-    // Credits check
+    // First influencer is always free — check existing count.
+    const { count: existingCount } = await supabase
+      .from('user_influencers')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', auth.userId)
+    const isFreeFirstInfluencer = (existingCount ?? 0) === 0
+
+    // Credits check — skipped for the free first influencer.
     const { data: credits } = await supabase
       .from('user_credits')
       .select('balance, pack_credits')
       .eq('user_id', auth.userId)
       .maybeSingle()
-    if (!credits || credits.balance < createCost) {
+    if (!isFreeFirstInfluencer && (!credits || credits.balance < createCost)) {
       return NextResponse.json({ error: `Insufficient credits. Need ${createCost}.` }, { status: 402 })
     }
 
@@ -267,14 +274,16 @@ export async function POST(request: NextRequest) {
       referenceUrls.push(supabase.storage.from('ugc-assets').getPublicUrl(refPath).data.publicUrl)
     }
 
-    // 4) Charge for the four candidates now. Sheet render is included in
-    // this cost — /finalize doesn't charge again.
-    const { newBalance, newPackCredits } = await deductCredits(
-      supabase, auth.userId, createCost, credits.balance, credits.pack_credits ?? 0,
-    )
-    await supabase.from('user_credits')
-      .update({ balance: newBalance, pack_credits: newPackCredits })
-      .eq('user_id', auth.userId)
+    // 4) Charge for the four candidates now — skipped for the free first influencer.
+    // Sheet render is included in this cost; /finalize doesn't charge again.
+    if (!isFreeFirstInfluencer && credits) {
+      const { newBalance, newPackCredits } = await deductCredits(
+        supabase, auth.userId, createCost, credits.balance, credits.pack_credits ?? 0,
+      )
+      await supabase.from('user_credits')
+        .update({ balance: newBalance, pack_credits: newPackCredits })
+        .eq('user_id', auth.userId)
+    }
 
     // Return the identity draft + the 4 candidates. The client shows the
     // grid; user picks one and POSTs to /api/influencers/finalize with the
@@ -292,7 +301,8 @@ export async function POST(request: NextRequest) {
       candidates,
       referenceUrls,
       model,
-      creditsCharged: createCost,
+      creditsCharged: isFreeFirstInfluencer ? 0 : createCost,
+      freeFirstInfluencer: isFreeFirstInfluencer,
     }, { status: 201 })
   } catch (err) {
     console.error('[influencers] create failed:', err instanceof Error ? err.message : err)
