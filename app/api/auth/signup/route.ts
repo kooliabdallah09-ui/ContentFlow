@@ -4,8 +4,8 @@ import { sendWelcomeEmail } from '@/lib/email'
 import { NextRequest } from 'next/server'
 
 const ADMIN_EMAIL = 'abdallah.kooli@icloud.com'
-// These two influencers are seeded to every new user account as defaults.
-const DEFAULT_INFLUENCER_NAMES = ['Sloane Mercer', 'Marco Vell']
+// Seeded to every new user account as a default starter influencer.
+const DEFAULT_INFLUENCER_HANDLE = '@sloanemerc'
 
 async function copyDefaultInfluencers(supabase: SupabaseClient, newUserId: string) {
   // Find admin's user ID by email
@@ -16,33 +16,32 @@ async function copyDefaultInfluencers(supabase: SupabaseClient, newUserId: strin
     return
   }
 
-  // Fetch both default influencers in one query
-  const { data: influencers } = await supabase
+  // Fetch Sloane Mercer by handle (unique, avoids name collisions)
+  const { data: influencer } = await supabase
     .from('user_influencers')
     .select('name, handle, bio, personality, niche, appearance_prompt, portrait_url, character_sheet_url, reference_urls')
     .eq('user_id', adminUser.id)
-    .in('name', DEFAULT_INFLUENCER_NAMES)
+    .eq('handle', DEFAULT_INFLUENCER_HANDLE)
+    .maybeSingle()
 
-  if (!influencers?.length) {
-    console.warn('[signup] default influencers not found in admin account')
+  if (!influencer) {
+    console.warn('[signup] default influencer not found in admin account:', DEFAULT_INFLUENCER_HANDLE)
     return
   }
 
-  const rows = influencers.map(inf => ({
+  const { error } = await supabase.from('user_influencers').insert({
     user_id: newUserId,
-    name: inf.name,
-    handle: inf.handle,
-    bio: inf.bio,
-    personality: inf.personality,
-    niche: inf.niche,
-    appearance_prompt: inf.appearance_prompt,
-    portrait_url: inf.portrait_url,
-    character_sheet_url: inf.character_sheet_url,
-    reference_urls: inf.reference_urls,
-  }))
-
-  const { error } = await supabase.from('user_influencers').insert(rows)
-  if (error) console.error('[signup] insert default influencers failed:', error.message)
+    name: influencer.name,
+    handle: influencer.handle,
+    bio: influencer.bio,
+    personality: influencer.personality,
+    niche: influencer.niche,
+    appearance_prompt: influencer.appearance_prompt,
+    portrait_url: influencer.portrait_url,
+    character_sheet_url: influencer.character_sheet_url,
+    reference_urls: influencer.reference_urls,
+  })
+  if (error) console.error('[signup] insert default influencer failed:', error.message)
 }
 
 // Simple in-process rate limiter: max 5 signups per IP per 10 minutes
