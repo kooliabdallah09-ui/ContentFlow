@@ -351,6 +351,7 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
               const imgNum = canvasItems.filter(i => i.kind === 'image').length + 1
               const label = `Rendering image ${imgNum}…`
               send({ type: 'step', label, icon: 'image', status: 'active' })
+              // Note: done event MUST use the same label so the frontend updates instead of adding a new row
 
               if (balance < 5) {
                 canvasItems.push({ kind: 'error', id: nanoid(), message: 'Insufficient credits — need 5 to generate an image.' })
@@ -394,7 +395,7 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
               balance = d1.newBalance; packCredits = d1.newPackCredits
 
               canvasItems.push({ kind: 'image', id: nanoid(), url: urlData.publicUrl, prompt, ratio, credits: 5 })
-              send({ type: 'step', label: `Image ${imgNum} ready`, icon: 'image', status: 'done' })
+              send({ type: 'step', label, icon: 'image', status: 'done' })
               return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Image generated and added to canvas.' }
 
             // ── generate_social_captions ──────────────────────────────────
