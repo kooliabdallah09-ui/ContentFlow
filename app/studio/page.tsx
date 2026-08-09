@@ -105,6 +105,89 @@ async function downloadBlob(url: string, filename: string) {
   }
 }
 
+// ─── Carousel slide download with text overlay baked in via Canvas ────────────
+function wrapText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, lineH: number): number {
+  const words = text.split(' ')
+  let line = ''
+  let cy = y
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word
+    if (ctx.measureText(test).width > maxW && line) {
+      ctx.fillText(line, x, cy)
+      line = word
+      cy += lineH
+    } else {
+      line = test
+    }
+  }
+  if (line) { ctx.fillText(line, x, cy); cy += lineH }
+  return cy
+}
+
+async function downloadCarouselSlide(slide: { headline: string; body: string; cta: string; imageUrl: string }, index: number) {
+  const W = 1080, H = 1350  // 4:5 Instagram
+  const canvas = document.createElement('canvas')
+  canvas.width = W; canvas.height = H
+  const ctx = canvas.getContext('2d')!
+
+  // Draw background image
+  if (slide.imageUrl) {
+    await new Promise<void>(resolve => {
+      const img = new Image()
+      img.crossOrigin = 'anonymous'
+      img.onload = () => { ctx.drawImage(img, 0, 0, W, H); resolve() }
+      img.onerror = () => resolve()
+      img.src = slide.imageUrl
+    })
+  } else {
+    ctx.fillStyle = '#111'; ctx.fillRect(0, 0, W, H)
+  }
+
+  // Gradient overlay
+  const grad = ctx.createLinearGradient(0, H * 0.35, 0, H)
+  grad.addColorStop(0, 'rgba(0,0,0,0)')
+  grad.addColorStop(1, 'rgba(0,0,0,0.92)')
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H)
+
+  // Text
+  const PAD = 72
+  const hasCta = slide.cta?.trim()
+  ctx.textAlign = 'left'
+  ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 8
+
+  ctx.fillStyle = '#fff'
+  ctx.font = `800 ${W * 0.052}px -apple-system, system-ui, sans-serif`
+  const headY = H - (hasCta ? 380 : 260)
+  const afterHead = wrapText(ctx, slide.headline, PAD, headY, W - PAD * 2, W * 0.065)
+
+  if (slide.body?.trim()) {
+    ctx.font = `400 ${W * 0.03}px -apple-system, system-ui, sans-serif`
+    ctx.fillStyle = 'rgba(255,255,255,0.82)'
+    wrapText(ctx, slide.body, PAD, afterHead + 24, W - PAD * 2, W * 0.04)
+  }
+
+  if (hasCta) {
+    const btnY = H - 140
+    ctx.shadowBlur = 0
+    ctx.fillStyle = '#fff'
+    ctx.beginPath(); ctx.roundRect(PAD, btnY, 340, 80, 40); ctx.fill()
+    ctx.fillStyle = '#000'
+    ctx.font = `700 ${W * 0.028}px -apple-system, system-ui, sans-serif`
+    ctx.textAlign = 'center'
+    ctx.fillText(slide.cta, PAD + 170, btnY + 52)
+  }
+
+  ctx.shadowBlur = 0
+  canvas.toBlob(blob => {
+    if (!blob) return
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url; a.download = `slide-${index + 1}.png`
+    document.body.appendChild(a); a.click()
+    document.body.removeChild(a); URL.revokeObjectURL(url)
+  }, 'image/png')
+}
+
 // ─── SVG icons ───────────────────────────────────────────────────────────────
 
 const Icon = {
@@ -117,17 +200,32 @@ const Icon = {
   Post: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>,
 }
 
-// ─── Tool quick-starters ──────────────────────────────────────────────────────
+// ─── Content mode pills ────────────────────────────────────────────────────────
+// Each pill sets a sticky mode. The mode is sent as a hidden directive alongside
+// the user's message — no prompt pre-filling, just context under the hood.
 
-const TOOL_PILLS = [
-  { icon: Icon.Image,    label: 'Image',    starter: 'Generate a product photo for Instagram — ' },
-  { icon: Icon.Logo,     label: 'Logo',     starter: 'Generate a logo in 1:1 square format for ' },
-  { icon: Icon.Carousel, label: 'Carousel', starter: 'Make a carousel for Instagram about ' },
-  { icon: Icon.Post,     label: 'Post',     starter: 'Create a single Instagram post (1 slide) about ' },
-  { icon: Icon.Caption,  label: 'Captions', starter: 'Write social captions for ' },
-  { icon: Icon.Voice,    label: 'Voice',    starter: 'Create a 30-second voiceover for ' },
-  { icon: Icon.Brief,    label: 'Brief',    starter: 'Plan a UGC video brief for ' },
+type ContentMode = 'image' | 'logo' | 'carousel' | 'post' | 'captions' | 'voice' | 'brief'
+
+const TOOL_PILLS: Array<{ icon: (s?: number) => React.ReactElement; label: string; mode: ContentMode; placeholder: string }> = [
+  { icon: Icon.Image,    label: 'Image',    mode: 'image',    placeholder: 'Describe the image you want…' },
+  { icon: Icon.Logo,     label: 'Logo',     mode: 'logo',     placeholder: 'What brand or concept is the logo for?' },
+  { icon: Icon.Carousel, label: 'Carousel', mode: 'carousel', placeholder: 'What\'s the carousel about?' },
+  { icon: Icon.Post,     label: 'Post',     mode: 'post',     placeholder: 'What\'s the post about?' },
+  { icon: Icon.Caption,  label: 'Captions', mode: 'captions', placeholder: 'What should the captions be for?' },
+  { icon: Icon.Voice,    label: 'Voice',    mode: 'voice',    placeholder: 'What should the voiceover say?' },
+  { icon: Icon.Brief,    label: 'Brief',    mode: 'brief',    placeholder: 'What product / campaign is this brief for?' },
 ]
+
+// Hidden directive prepended to the user's message when a mode is active
+const MODE_DIRECTIVES: Record<ContentMode, string> = {
+  image:    '[Mode: Image] Generate an image for the following:',
+  logo:     '[Mode: Logo] Generate a logo in 1:1 square format for the following:',
+  carousel: '[Mode: Carousel] Create a multi-slide Instagram carousel using generate_carousel for the following topic:',
+  post:     '[Mode: Post] Create a single-slide post using generate_carousel with slideCount=1 for the following:',
+  captions: '[Mode: Captions] Write social media captions for the following:',
+  voice:    '[Mode: Voice] Create a voiceover script and generate audio for the following:',
+  brief:    '[Mode: Brief] Plan a UGC video brief for the following:',
+}
 
 const EXAMPLE_PROMPTS = [
   { icon: Icon.Image,   label: 'Product photo', text: 'Generate a lifestyle product photo for Instagram, 4:5 ratio, warm tones' },
@@ -327,7 +425,7 @@ function CarouselCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'carou
         <p style={{ flex: 1, fontSize: 11, color: 'var(--ink-mute)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.topic}</p>
         <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
         {slide.imageUrl && (
-          <button onClick={() => downloadBlob(slide.imageUrl, `carousel-slide-${activeSlide + 1}.png`)} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>&#8595;</button>
+          <button onClick={() => downloadCarouselSlide(slide, activeSlide)} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>&#8595;</button>
         )}
       </div>
     </div>
@@ -545,6 +643,8 @@ export default function StudioPage() {
 
   // UI state
   const [input, setInput] = useState('')
+  const [activeMode, setActiveMode] = useState<ContentMode | null>(null)
+  const [infoOpen, setInfoOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [steps, setSteps] = useState<ProgressStep[]>([])
   const [brandName, setBrandName] = useState<string | null>(null)
@@ -725,9 +825,15 @@ export default function StudioPage() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
     setLoading(true)
 
+    // Capture and clear active mode before the async work
+    const sentMode = activeMode
+    setActiveMode(null)
+
     try {
+      // Prepend hidden mode directive so Claude knows what to generate
+      const modePrefix = sentMode ? `${MODE_DIRECTIVES[sentMode]}\n` : ''
       const body: Record<string, unknown> = {
-        message: text.trim(),
+        message: modePrefix + text.trim(),
         history: messages.map(m => ({ role: m.role, content: m.content })),
         model: selectedModel as string,
       }
@@ -910,10 +1016,9 @@ export default function StudioPage() {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
   }
 
-  const applyToolPill = (starter: string) => {
-    setInput(starter)
+  const toggleMode = (mode: ContentMode) => {
+    setActiveMode(prev => prev === mode ? null : mode)
     textareaRef.current?.focus()
-    setTimeout(autoResize, 0)
   }
 
   const displayBalance = balance ?? 0
@@ -934,7 +1039,6 @@ export default function StudioPage() {
         .studio-session-item:hover { background: var(--surface) !important; }
         .studio-example-card:hover { background: var(--surface) !important; border-color: var(--ink-mute) !important; }
         .studio-model-pill:not([data-active="true"]):hover { background: var(--surface) !important; color: var(--ink) !important; }
-        .studio-model-info:hover .studio-model-tooltip { opacity: 1 !important; transform: translateY(0) !important; pointer-events: auto !important; }
         .studio-model-info-btn:hover { border-color: var(--ink-dim) !important; }
         .canvas-node { transition: outline 0.12s; }
         .canvas-node:hover { cursor: grab; }
@@ -1008,22 +1112,22 @@ export default function StudioPage() {
               ))}
             </div>
 
-            {/* Info tooltip */}
+            {/* Info tooltip — click to open/close */}
             <div style={{ position: 'relative' }} className="studio-model-info">
               <button
                 className="studio-model-info-btn"
-                style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+                onClick={() => setInfoOpen(o => !o)}
+                style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid var(--border)', background: infoOpen ? 'var(--ink)' : 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0, transition: 'all 0.12s' }}
               >
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={infoOpen ? 'var(--on-ink)' : 'var(--ink-mute)'} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
                 </svg>
               </button>
-              <div className="studio-model-tooltip" style={{
+              {infoOpen && <div style={{
                 position: 'absolute', top: 'calc(100% + 8px)', right: 0,
                 background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.14)', padding: '12px 14px',
-                minWidth: 250, zIndex: 60, pointerEvents: 'none',
-                opacity: 0, transform: 'translateY(-4px)', transition: 'opacity 0.15s, transform 0.15s',
+                minWidth: 250, zIndex: 60,
               }}>
                 {/* Model tiers */}
                 {([
@@ -1066,7 +1170,7 @@ export default function StudioPage() {
                     ))}
                   </div>
                 </div>
-              </div>
+              </div>}
             </div>
           </div>
 
@@ -1180,14 +1284,21 @@ export default function StudioPage() {
                   </div>
                 )
               })()}
-              {/* Tool pills */}
+              {/* Tool pills — click to set active mode */}
               <div style={{ display: 'flex', gap: 5, padding: '10px 12px 0', overflowX: 'auto' }}>
-                {TOOL_PILLS.map(t => (
-                  <button key={t.label} className="studio-tool-pill" onClick={() => applyToolPill(t.starter)}
-                    style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}>
-                    {t.icon(11)}{t.label}
-                  </button>
-                ))}
+                {TOOL_PILLS.map(t => {
+                  const isActive = activeMode === t.mode
+                  return (
+                    <button key={t.label} className="studio-tool-pill" onClick={() => toggleMode(t.mode)}
+                      style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600,
+                        color: isActive ? 'var(--on-ink)' : 'var(--ink-dim)',
+                        background: isActive ? 'var(--ink)' : 'var(--bg)',
+                        border: `1px solid ${isActive ? 'var(--ink)' : 'var(--border)'}`,
+                        borderRadius: 20, padding: '4px 10px', cursor: 'pointer', transition: 'all 0.12s' }}>
+                      {t.icon(11)}{t.label}
+                    </button>
+                  )
+                })}
               </div>
 
               {/* Reference image preview */}
@@ -1220,7 +1331,7 @@ export default function StudioPage() {
                   value={input}
                   onChange={e => { setInput(e.target.value); autoResize() }}
                   onKeyDown={handleKeyDown}
-                  placeholder="Describe what you want to create…"
+                  placeholder={activeMode ? TOOL_PILLS.find(p => p.mode === activeMode)?.placeholder ?? 'Describe what you want to create…' : 'Describe what you want to create…'}
                   disabled={loading || !authToken}
                   rows={1}
                   style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, lineHeight: 1.5, fontFamily: 'inherit', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', maxHeight: 96, overflowY: 'auto', transition: 'border-color 0.15s, box-shadow 0.15s' }}
