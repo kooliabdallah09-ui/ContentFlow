@@ -7,26 +7,37 @@ const STEPS = [
   {
     icon: '✦',
     title: 'Welcome to ContentFlow',
-    body: 'AI content creation for brands — images, social posts, voiceovers, and more. Start exploring while we finish setting things up.',
-    cta: 'Show me around →',
-  },
-  {
-    icon: '🖼️',
-    title: 'Generate AI images',
-    body: 'Go to Image in the sidebar. Drop in a product photo and get studio-quality visuals in seconds — no photographer needed.',
-    cta: 'Got it →',
-  },
-  {
-    icon: '✍️',
-    title: 'Write social posts + captions',
-    body: 'Head to Social to generate on-brand captions, hashtags, and carousel copy for Instagram, TikTok, X, and more.',
-    cta: 'Nice →',
-  },
-  {
-    icon: '🎙️',
-    title: 'Record AI voiceovers',
-    body: 'Try Voiceover in the sidebar — paste a script and get a natural-sounding voice in 30+ languages within seconds.',
+    body: 'You have 60 free credits. Let\'s get you set up in 3 steps so you can start making content.',
     cta: 'Let\'s go →',
+    href: null,
+  },
+  {
+    icon: '📦',
+    title: 'Step 1 — Add your product',
+    body: 'Go to Studios → Products and upload your product photos. This is the foundation — every shoot, ad, and campaign you make will pull from it.',
+    cta: 'Go to Products →',
+    href: '/generate/products',
+  },
+  {
+    icon: '🎭',
+    title: 'Step 2 — Create an AI actor',
+    body: 'In Studios → Influencers, create your brand\'s AI character. Give it a face, a name, and a personality. You\'ll reuse it across all your content.',
+    cta: 'Go to Influencers →',
+    href: '/influencers',
+  },
+  {
+    icon: '📅',
+    title: 'Step 3 — Plan your campaign',
+    body: 'Head to Campaigns and map out your content. Pick your product, your actor, and your goal — the AI drafts a full shot list for you.',
+    cta: 'Go to Campaigns →',
+    href: '/campaigns',
+  },
+  {
+    icon: '✨',
+    title: 'Then — shoot lifestyle content',
+    body: 'Once your product and actor are set up, use the Studios to generate lifestyle photos, product shoots, and influencer scenes in any aesthetic — no photographer, no set.',
+    cta: 'Open Studios →',
+    href: '/generate/products',
   },
 ]
 
@@ -48,11 +59,12 @@ export default function OnboardingTour() {
   }
 
   function next() {
+    const current = STEPS[step]
+    if (current.href) router.push(current.href)
     if (step < STEPS.length - 1) {
       setStep(s => s + 1)
     } else {
       dismiss()
-      router.push('/generate/image')
     }
   }
 
@@ -126,7 +138,7 @@ export default function OnboardingTour() {
               letterSpacing: '-0.01em',
             }}
           >
-            {isLast ? 'Generate an image →' : current.cta}
+            {current.cta}
           </button>
         </div>
       </div>
