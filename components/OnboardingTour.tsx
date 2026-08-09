@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, type ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 
 // ── SVG icons ────────────────────────────────────────────────────────────────
@@ -55,12 +55,12 @@ function IconZap() {
 }
 
 // ── Step definitions ──────────────────────────────────────────────────────────
-const STEPS = [
+const STEPS: { Icon: () => React.ReactElement; label: string; title: string; body: ReactNode; tip: string | null; cta: string; href: string | null }[] = [
   {
     Icon: IconSpark,
     label: 'Welcome',
     title: 'Your AI content studio is ready.',
-    body: 'ContentFlow turns your product into scroll-stopping ads, lifestyle shoots, and branded content — fully AI-generated. No photographer, no crew, no agency. Follow this short guide to set everything up correctly before you start creating.',
+    body: <>ContentFlow turns your product into <strong>scroll-stopping ads</strong>, <strong>lifestyle shoots</strong>, and <strong>branded content</strong> — <strong>fully AI-generated</strong>. No photographer, no crew, no agency. Follow this short guide to set everything up correctly before you start creating.</>,
     tip: null,
     cta: 'Start the setup',
     href: null,
@@ -69,7 +69,7 @@ const STEPS = [
     Icon: IconBox,
     label: 'Product',
     title: 'Add your product first.',
-    body: 'Everything in ContentFlow is built around your product. Go to Studios → Products, upload your photos from multiple angles, and give it a name and description. The AI will use those reference photos in every shoot, ad, and campaign you run — so the more angles you provide, the better every result will look.',
+    body: <>Everything in ContentFlow is built around your product. Go to <strong>Studios → Products</strong>, upload your photos from <strong>multiple angles</strong>, and give it a name and description. The AI will use those <strong>reference photos</strong> in every shoot, ad, and campaign you run — so <strong>the more angles you provide, the better every result will look</strong>.</>,
     tip: 'Pro tip: upload at least 3 angles — front, back, and a detail shot. This dramatically improves consistency across all generated content.',
     cta: 'Open Product Studio',
     href: '/generate/products',
@@ -78,8 +78,8 @@ const STEPS = [
     Icon: IconPerson,
     label: 'Actor',
     title: 'Create your AI actor.',
-    body: 'Your AI actor is the face of your brand content. Go to Studios → Influencers, upload a portrait photo, give your actor a name, personality, and niche. ContentFlow will build a full character sheet — a reusable identity that stays consistent across every ad, scene, and shoot you generate.',
-    tip: 'Pro tip: use a high-resolution, well-lit portrait for the best identity consistency. Avoid group photos or heavily filtered shots.',
+    body: <>Your AI actor is the <strong>face of your brand content</strong>. Go to <strong>Studios → Influencers</strong> and <strong>let the AI generate a unique actor for you</strong> — just give it a name, personality, and niche. You can optionally upload a reference photo to guide the look. ContentFlow builds a full <strong>character sheet</strong> — a reusable identity that stays consistent across every ad, scene, and shoot.</>,
+    tip: 'Pro tip: describe a specific look in the personality field — age, style, energy. The more precise you are, the more consistent your actor will be across shoots.',
     cta: 'Open Influencer Studio',
     href: '/influencers',
   },
@@ -87,7 +87,7 @@ const STEPS = [
     Icon: IconCalendar,
     label: 'Campaign',
     title: 'Plan your campaign.',
-    body: 'Campaigns let you map out a full content strategy in one place. Select your product, pick your actor, choose a goal (launch, awareness, or conversion), and the AI generates a complete shot list with scripts and hooks. You can then generate each shot directly from the campaign planner without starting from scratch each time.',
+    body: <>Campaigns let you map out a <strong>full content strategy</strong> in one place. Select your product, pick your actor, choose a goal (launch, awareness, or conversion), and the AI generates a <strong>complete shot list with scripts and hooks</strong>. You can then generate each shot directly from the <strong>campaign planner</strong> without starting from scratch each time.</>,
     tip: 'Pro tip: build a launch campaign before your next product drop. It pre-generates 10–20 pieces of content you can deploy over weeks.',
     cta: 'Open Campaigns',
     href: '/campaigns',
@@ -96,7 +96,7 @@ const STEPS = [
     Icon: IconCamera,
     label: 'Shoot',
     title: 'Generate lifestyle content.',
-    body: 'With your product and actor saved, the Studios become your production engine. In Product Studio you can shoot your product in any aesthetic — golden hour lifestyle, studio white, street editorial, or custom scenes you describe. In Influencer Studio, shoot your actor in branded scenes, outfits, and settings. Every output is production-ready.',
+    body: <>With your product and actor saved, the Studios become your <strong>production engine</strong>. In <strong>Product Studio</strong> you can shoot your product in any aesthetic — golden hour lifestyle, studio white, street editorial, or custom scenes you describe. In <strong>Influencer Studio</strong>, shoot your actor in branded scenes, outfits, and settings. Every output is <strong>production-ready</strong>.</>,
     tip: 'Pro tip: create a Scene in Studios → Scenes first to lock in a specific environment. Then use that scene across multiple shoots for a cohesive look.',
     cta: 'Start shooting',
     href: '/generate/products',
@@ -105,7 +105,7 @@ const STEPS = [
     Icon: IconZap,
     label: 'Upgrade',
     title: 'Ready for UGC ads and video?',
-    body: 'UGC Package and AI Video generation — talking-head ads, podcast ads, and scroll-stop video — require a paid plan. These features use our most advanced models and are currently available to upgraded accounts. When you\'re ready to produce your first ad, upgrade and the full studio unlocks immediately.',
+    body: <><strong>UGC Package</strong> and <strong>AI Video generation</strong> — talking-head ads, podcast ads, and scroll-stop video — require a <strong>paid plan</strong>. These features use our most advanced models and are currently available to upgraded accounts. When you&apos;re ready to produce your first ad, <strong>upgrade and the full studio unlocks immediately</strong>.</>,
     tip: null,
     cta: 'View upgrade options',
     href: '/settings/billing',
