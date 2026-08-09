@@ -21,6 +21,13 @@ type CanvasItem =
   | { kind: 'brief'; id: string; title: string; hook: string; scenes: string[]; cta: string; platform: string }
   | { kind: 'error'; id: string; message: string }
 
+type CanvasNode = {
+  id: string
+  items: CanvasItem[]  // 1 item = single card; >1 = horizontal batch group
+  x: number
+  y: number
+}
+
 interface Message {
   role: 'user' | 'assistant'
   content: string
@@ -33,7 +40,7 @@ interface Session {
   name: string
   createdAt: number
   messages: Message[]
-  canvasItems: CanvasItem[]
+  canvasNodes: CanvasNode[]
 }
 
 interface AttachedImage {
@@ -258,6 +265,95 @@ function CanvasItemRenderer({ item, onOpenImage }: { item: CanvasItem; onOpenIma
   return null
 }
 
+function BatchGroup({ node, onOpenImage }: { node: CanvasNode; onOpenImage: (url: string, prompt: string) => void }) {
+  const imageCount = node.items.filter(i => i.kind === 'image').length
+  return (
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 14 }}>
+      <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>
+        {imageCount} image{imageCount !== 1 ? 's' : ''}
+      </p>
+      <div style={{ display: 'flex', gap: 10, overflowX: 'auto' }}>
+        {node.items.map(item => (
+          <div key={item.id} style={{ flexShrink: 0, width: 220 }}>
+            <CanvasItemRenderer item={item} onOpenImage={onOpenImage} />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function CanvasNodeWrapper({
+  node,
+  selected,
+  onSelect,
+  onPositionChange,
+  onOpenImage,
+}: {
+  node: CanvasNode
+  selected: boolean
+  onSelect: (id: string) => void
+  onPositionChange: (id: string, x: number, y: number) => void
+  onOpenImage: (url: string, prompt: string) => void
+}) {
+  const [dragging, setDragging] = useState(false)
+  const dragStart = useRef({ mouseX: 0, mouseY: 0, nodeX: 0, nodeY: 0, moved: false })
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    const target = e.target as HTMLElement
+    if (target.closest('button, a, input, audio, select')) return
+    dragStart.current = { mouseX: e.clientX, mouseY: e.clientY, nodeX: node.x, nodeY: node.y, moved: false }
+    setDragging(true)
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  useEffect(() => {
+    if (!dragging) return
+    const onMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragStart.current.mouseX
+      const dy = e.clientY - dragStart.current.mouseY
+      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) dragStart.current.moved = true
+      onPositionChange(node.id, dragStart.current.nodeX + dx, dragStart.current.nodeY + dy)
+    }
+    const onUp = () => {
+      if (!dragStart.current.moved) onSelect(node.id)
+      setDragging(false)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp) }
+  }, [dragging, node.id, onPositionChange, onSelect])
+
+  const isBatch = node.items.length > 1
+  const width = isBatch ? Math.min(node.items.length, 4) * 240 + 32 : 440
+
+  return (
+    <div
+      className="canvas-node"
+      onMouseDown={onMouseDown}
+      style={{
+        position: 'absolute',
+        left: node.x,
+        top: node.y,
+        width,
+        cursor: dragging ? 'grabbing' : 'default',
+        outline: selected ? '2px solid var(--ink)' : '2px solid transparent',
+        outlineOffset: 4,
+        borderRadius: 22,
+        transition: 'outline 0.12s',
+        userSelect: 'none',
+      }}
+    >
+      {isBatch ? (
+        <BatchGroup node={node} onOpenImage={onOpenImage} />
+      ) : (
+        node.items[0] && <CanvasItemRenderer item={node.items[0]} onOpenImage={onOpenImage} />
+      )}
+    </div>
+  )
+}
+
 // ─── Question Card ────────────────────────────────────────────────────────────
 
 function QuestionCard({ data, onSelect }: { data: { prompt: string; options: string[] }; onSelect: (opt: string) => void }) {
@@ -360,7 +456,8 @@ export default function StudioPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [currentSessionId, setCurrentSessionId] = useState<string>(genId)
   const [messages, setMessages] = useState<Message[]>([])
-  const [canvasItems, setCanvasItems] = useState<CanvasItem[]>([])
+  const [canvasNodes, setCanvasNodes] = useState<CanvasNode[]>([])
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [sessionName, setSessionName] = useState('New session')
   const [showSessionList, setShowSessionList] = useState(false)
 
@@ -419,21 +516,21 @@ export default function StudioPage() {
       const last = stored[0]
       setCurrentSessionId(last.id)
       setMessages(last.messages)
-      setCanvasItems(last.canvasItems)
+      setCanvasNodes(last.canvasNodes ?? [])
       setSessionName(last.name)
     }
   }, [])
 
   // ── Auto-save session ──────────────────────────────────────────────────────
   useEffect(() => {
-    if (messages.length === 0 && canvasItems.length === 0) return
+    if (messages.length === 0 && canvasNodes.length === 0) return
     const name = sessionNameFrom(messages)
     setSessionName(name)
-    const session: Session = { id: currentSessionId, name, createdAt: Date.now(), messages, canvasItems }
+    const session: Session = { id: currentSessionId, name, createdAt: Date.now(), messages, canvasNodes }
     const all = loadSessions().filter(s => s.id !== currentSessionId)
     persistSessions([session, ...all])
     setSessions(prev => [session, ...prev.filter(s => s.id !== currentSessionId)])
-  }, [messages, canvasItems, currentSessionId])
+  }, [messages, canvasNodes, currentSessionId])
 
   // ── Close session list on outside click ───────────────────────────────────
   useEffect(() => {
@@ -507,6 +604,18 @@ export default function StudioPage() {
         body.referenceImageBase64 = sentImage.dataUrl.split(',')[1]
         body.referenceImageMimeType = sentImage.mimeType
       }
+      if (selectedNodeId) {
+        const node = canvasNodes.find(n => n.id === selectedNodeId)
+        if (node) {
+          const firstImage = node.items.find(i => i.kind === 'image') as Extract<CanvasItem, {kind:'image'}> | undefined
+          const firstSocial = node.items.find(i => i.kind === 'social') as Extract<CanvasItem, {kind:'social'}> | undefined
+          body.selectedItemContext = firstImage
+            ? { kind: 'image', imageUrl: firstImage.url, prompt: firstImage.prompt }
+            : firstSocial
+            ? { kind: 'social', text: Object.values(firstSocial.posts).join('\n') }
+            : { kind: node.items[0]?.kind ?? 'item' }
+        }
+      }
 
       const res = await fetch('/api/studio/chat', {
         method: 'POST',
@@ -549,7 +658,16 @@ export default function StudioPage() {
             } else if (event.type === 'result') {
               if (event.reply) setMessages(prev => [...prev, { role: 'assistant', content: event.reply }])
               if (event.canvasItems?.length) {
-                setCanvasItems(prev => [...[...event.canvasItems].reverse(), ...prev])
+                setCanvasNodes(prev => {
+                  const nodeId = genId()
+                  const newNode: CanvasNode = {
+                    id: nodeId,
+                    items: event.canvasItems,
+                    x: 24 + (prev.length % 3) * 30,
+                    y: 24 + (prev.length % 3) * 30,
+                  }
+                  return [newNode, ...prev]
+                })
                 refreshCredits()
                 setPanX(24); setPanY(24); setZoom(1)
               }
@@ -567,13 +685,14 @@ export default function StudioPage() {
     } finally {
       setLoading(false)
     }
-  }, [loading, authToken, messages, refreshCredits, attachedImage])
+  }, [loading, authToken, messages, refreshCredits, attachedImage, selectedNodeId, canvasNodes])
 
   // ── Session management ─────────────────────────────────────────────────────
   const newSession = () => {
     setCurrentSessionId(genId())
     setMessages([])
-    setCanvasItems([])
+    setCanvasNodes([])
+    setSelectedNodeId(null)
     setSessionName('New session')
     setPanX(24); setPanY(24); setZoom(1)
     setShowSessionList(false)
@@ -583,7 +702,8 @@ export default function StudioPage() {
   const loadSession = (s: Session) => {
     setCurrentSessionId(s.id)
     setMessages(s.messages)
-    setCanvasItems(s.canvasItems)
+    setCanvasNodes(s.canvasNodes ?? [])
+    setSelectedNodeId(null)
     setSessionName(s.name)
     setPanX(24); setPanY(24); setZoom(1)
     setShowSessionList(false)
@@ -591,7 +711,7 @@ export default function StudioPage() {
 
   // ── Canvas pan ─────────────────────────────────────────────────────────────
   const onCanvasMouseDown = (e: React.MouseEvent) => {
-    if ((e.target as HTMLElement).closest('.canvas-card')) return
+    if ((e.target as HTMLElement).closest('.canvas-card, .canvas-node')) return
     setIsPanning(true)
     panOrigin.current = { x: e.clientX, y: e.clientY, panX, panY }
     e.preventDefault()
@@ -652,6 +772,8 @@ export default function StudioPage() {
         .studio-tool-pill:hover { background: var(--surface) !important; border-color: var(--ink-dim) !important; color: var(--ink) !important; }
         .studio-session-item:hover { background: var(--surface) !important; }
         .studio-example-card:hover { background: var(--surface) !important; border-color: var(--ink-mute) !important; }
+        .canvas-node { transition: outline 0.12s; }
+        .canvas-node:hover { cursor: grab; }
       `}</style>
 
       {/* Root — exactly fills below TopBar (60px) */}
@@ -786,6 +908,24 @@ export default function StudioPage() {
 
             {/* Input area */}
             <div style={{ flexShrink: 0, borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+              {/* Selected node indicator */}
+              {selectedNodeId && (() => {
+                const node = canvasNodes.find(n => n.id === selectedNodeId)
+                const firstImage = node?.items.find(i => i.kind === 'image') as Extract<CanvasItem, {kind:'image'}> | undefined
+                if (!node) return null
+                return (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 0' }}>
+                    {firstImage && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={firstImage.url} alt="" style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)', flexShrink: 0 }} />
+                    )}
+                    <p style={{ margin: 0, flex: 1, fontSize: 11, color: 'var(--ink-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {node.items.length > 1 ? `${node.items.length} items selected` : firstImage ? firstImage.prompt.slice(0, 50) : 'Item selected'}
+                    </p>
+                    <button onClick={() => setSelectedNodeId(null)} style={{ flexShrink: 0, fontSize: 11, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}>×</button>
+                  </div>
+                )
+              })()}
               {/* Tool pills */}
               <div style={{ display: 'flex', gap: 5, padding: '10px 12px 0', overflowX: 'auto' }}>
                 {TOOL_PILLS.map(t => (
@@ -858,6 +998,7 @@ export default function StudioPage() {
             onTouchMove={onTouchMove}
             onTouchEnd={onCanvasMouseUp}
             onWheel={onWheel}
+            onClick={(e) => { if ((e.target as HTMLElement).closest('.canvas-node')) return; setSelectedNodeId(null) }}
             style={{
               flex: 1, overflow: 'hidden', position: 'relative',
               cursor: isPanning ? 'grabbing' : 'grab',
@@ -868,18 +1009,23 @@ export default function StudioPage() {
             }}
           >
             <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: '0 0', transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, willChange: 'transform', transition: isPanning ? 'none' : 'transform 0.12s ease' }}>
-              {canvasItems.length === 0 ? (
+              {canvasNodes.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 340, height: 220, gap: 10, marginTop: 60, marginLeft: 60 }}>
                   <span style={{ fontSize: 30, opacity: 0.2 }}>✦</span>
                   <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0, opacity: 0.45, textAlign: 'center', lineHeight: 1.5 }}>Your generations<br />appear here</p>
                   <p style={{ fontSize: 11, color: 'var(--ink-mute)', margin: 0, opacity: 0.3, textAlign: 'center' }}>Drag to pan · Click images to zoom</p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: 440 }}>
-                  {canvasItems.map(item => (
-                    <CanvasItemRenderer key={item.id} item={item} onOpenImage={(url, prompt) => { setLightbox({ url, prompt }); setLightboxZoom(false) }} />
-                  ))}
-                </div>
+                canvasNodes.map(node => (
+                  <CanvasNodeWrapper
+                    key={node.id}
+                    node={node}
+                    selected={selectedNodeId === node.id}
+                    onSelect={setSelectedNodeId}
+                    onPositionChange={(id, x, y) => setCanvasNodes(prev => prev.map(n => n.id === id ? { ...n, x, y } : n))}
+                    onOpenImage={(url, prompt) => { setLightbox({ url, prompt }); setLightboxZoom(false) }}
+                  />
+                ))
               )}
             </div>
 
