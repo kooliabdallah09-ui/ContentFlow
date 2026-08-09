@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessInfluencerStudio, canAccessBrandLaunch } from '@/lib/pov-access'
+import { canAccessInfluencerStudio, canAccessBrandLaunch, canAccessStudio } from '@/lib/pov-access'
 
 interface SidebarProps {
   currentPath: string
@@ -25,6 +25,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
 
   const [influencerAccess, setInfluencerAccess] = useState(false)
   const [brandLaunchAccess, setBrandLaunchAccess] = useState(false)
+  const [studioAccess, setStudioAccess] = useState(false)
   useEffect(() => {
     (async () => {
       const supabase = getSupabase()
@@ -33,6 +34,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
       const email = sess?.session?.user?.email
       setInfluencerAccess(canAccessInfluencerStudio(email))
       setBrandLaunchAccess(canAccessBrandLaunch(email))
+      setStudioAccess(canAccessStudio(email))
     })()
   }, [])
 
@@ -73,6 +75,13 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
 
       <div className="rail-section">
         <div className="rail-label">Create</div>
+        {studioAccess && (
+          <Link href="/studio" className={`nav-item ${isActive('/studio') ? 'active' : ''}`} onClick={handleNavClick}>
+            <Icon.Sparkle />
+            <span style={{ flex: 1 }}>Studio</span>
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1e3a5f', background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Alpha</span>
+          </Link>
+        )}
         {brandLaunchAccess && (
           <Link href="/brand-launch" className={`nav-item ${isActive('/brand-launch') ? 'active' : ''}`} onClick={handleNavClick}>
             <Icon.Sparkle />

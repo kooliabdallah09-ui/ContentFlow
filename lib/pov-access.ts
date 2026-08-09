@@ -57,3 +57,9 @@ export function canAccessBrandLaunch(email: string | null | undefined): boolean 
   if (!email) return false
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
+
+// Studio: admin-only unified creative workspace (v1 alpha).
+export function canAccessStudio(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
