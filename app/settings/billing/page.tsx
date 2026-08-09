@@ -163,10 +163,14 @@ export default function BillingPage() {
   ]
 
   const creditPacks = [
+    { credits: 250,  price: '$8',   perCr: '$0.032/cr', priceId: PADDLE_PRICES.pack250 },
     { credits: 500,  price: '$15',  perCr: '$0.030/cr', priceId: PADDLE_PRICES.pack500 },
     { credits: 1500, price: '$45',  perCr: '$0.030/cr', priceId: PADDLE_PRICES.pack1500 },
     { credits: 5000, price: '$120', perCr: '$0.024/cr', priceId: PADDLE_PRICES.pack5000 },
   ]
+
+  const litePriceId = annual ? PADDLE_PRICES.liteAnnual : PADDLE_PRICES.lite
+  const isLitePlan = currentPlan === 'lite'
 
   return (
     <div className="content">
@@ -265,6 +269,61 @@ export default function BillingPage() {
             background: '#F1E6C9', color: '#8A6420',
             borderRadius: 6, padding: '3px 9px',
           }}>2 months free</span>
+        </div>
+
+        {/* ── Lite plan — restricted micro-tier ────────────────────────────── */}
+        <div style={{
+          border: isLitePlan ? '2px solid #111' : '1.5px solid var(--border)',
+          borderRadius: 16, marginBottom: 16, overflow: 'hidden',
+          background: 'var(--surface)', position: 'relative',
+        }}>
+          {isLitePlan && (
+            <span style={{ position: 'absolute', top: -10, left: 24, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: '#111', color: '#fff', borderRadius: 999, padding: '3px 10px' }}>
+              Current plan
+            </span>
+          )}
+          {/* Top row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '18px 22px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+              <span style={{ fontSize: 15, fontWeight: 700 }}>Lite</span>
+              <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$5' : '$6'}</span>
+              <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/mo</span>
+              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $50/yr</span>}
+              <span style={{ fontSize: 11, color: 'var(--ink-dim)', marginLeft: 4 }}>· 200 cr/month · $0.030/cr</span>
+            </div>
+
+            {/* Included */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {['Product photos', 'Voiceover', 'Social captions'].map(f => (
+                <span key={f} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 7, padding: '3px 9px' }}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
+                  {f}
+                </span>
+              ))}
+            </div>
+
+            {/* CTA */}
+            {isLitePlan ? (
+              <div style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: 9, border: '1px solid var(--border)', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)', flexShrink: 0 }}>Current plan</div>
+            ) : litePriceId && isAdmin ? (
+              <button onClick={() => handleUpgrade(litePriceId)} disabled={upgradeLoading === litePriceId}
+                style={{ marginLeft: 'auto', padding: '8px 20px', borderRadius: 9, border: 'none', background: '#111', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: upgradeLoading === litePriceId ? 0.5 : 1 }}>
+                {upgradeLoading === litePriceId ? 'Redirecting…' : 'Get Lite'}
+              </button>
+            ) : (
+              <div style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: 9, border: '1px solid var(--border)', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)', flexShrink: 0 }}>Coming soon</div>
+            )}
+          </div>
+
+          {/* Restriction banner — unmissable */}
+          <div style={{ background: '#fef3c7', borderTop: '1px solid #fde68a', padding: '10px 22px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e' }}>This plan does not include: </span>
+              <span style={{ fontSize: 12, color: '#92400e' }}>UGC video · AI Influencer studio · AI Video generation · Campaign planner · Blog posts · Emails. </span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>Upgrade to Starter ($19/mo) to unlock everything.</span>
+            </div>
+          </div>
         </div>
 
         {/* Plan cards */}
