@@ -8,6 +8,56 @@ import { deductCredits } from '@/lib/deduct-credits'
 
 export const maxDuration = 120
 
+// ─── Tavily web search ────────────────────────────────────────────────────────
+
+async function tavilySearch(query: string, includeImages: boolean): Promise<{ text: string; imageUrls: string[] }> {
+  const apiKey = process.env.TAVILY_API_KEY
+  if (!apiKey) return { text: 'Web search unavailable — TAVILY_API_KEY not configured.', imageUrls: [] }
+  try {
+    const res = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: apiKey,
+        query,
+        max_results: 5,
+        search_depth: 'basic',
+        include_answer: true,
+        include_images: includeImages,
+        include_raw_content: false,
+      }),
+      signal: AbortSignal.timeout(12000),
+    })
+    if (!res.ok) return { text: `Search failed (${res.status})`, imageUrls: [] }
+    const data = await res.json()
+    const answer = data.answer ? `Summary: ${data.answer}\n\n` : ''
+    const results = (data.results ?? [])
+      .map((r: { title: string; content: string; url: string }) =>
+        `${r.title}\n${(r.content ?? '').slice(0, 500)}\nSource: ${r.url}`)
+      .join('\n\n')
+    const imageUrls: string[] = includeImages ? (data.images ?? []).slice(0, 5) : []
+    return { text: `${answer}${results}`.trim(), imageUrls }
+  } catch (e) {
+    return { text: `Search error: ${e instanceof Error ? e.message : 'unknown'}`, imageUrls: [] }
+  }
+}
+
+async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string } | null> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(8000),
+      headers: { 'User-Agent': 'ContentFlow/1.0' },
+    })
+    if (!res.ok) return null
+    const ct = (res.headers.get('content-type') ?? 'image/jpeg').split(';')[0].trim()
+    if (!ct.startsWith('image/')) return null
+    const buf = await res.arrayBuffer()
+    return { base64: Buffer.from(buf).toString('base64'), mimeType: ct }
+  } catch {
+    return null
+  }
+}
+
 const ADMIN_EMAILS = new Set<string>([
   'abdallah.kooli@icloud.com',
   'abdallah@icloud.com',
@@ -119,6 +169,8 @@ STRICT RULES:
 - Be direct and confident — like a creative director, not an assistant.
 - Incorporate the user's brand context automatically without mentioning it.
 ${brandPrompt}${refImageNote}
+WEB SEARCH RULE: Use search_web proactively whenever accuracy matters — competitor comparisons, real brand UI, current pricing/features, trending content, or any fact you're unsure about. For image tasks involving real-world UI or brands, always call search_web with include_images=true first, then pass the returned URLs as web_reference_urls to generate_image so NanoBanana can use them as visual references.
+
 CAROUSEL RULE: When generating a carousel, you MUST call generate_image ONCE PER SLIDE in the SAME response — do not call it once and stop. A 6-slide carousel = 6 separate generate_image calls in one response. Each call must include the slide number and total in the prompt (e.g. "Slide 1 of 6: cover — ..."). Maintain a consistent visual style, ratio (1:1 for feed carousels), and color palette across all slides. Slide 1 = bold cover/title. Middle slides = content/comparison/features. Last slide = CTA or ranking/conclusion.
 
 CLARIFICATION RULE: You MUST call ask_clarification before generating images whenever ANY of the following is true:
@@ -150,14 +202,27 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
             },
           },
           {
+            name: 'search_web',
+            description: 'Search the web for current information before generating content. Use this proactively when you need: competitor UI screenshots, real brand visuals, current trends, product details, or any accurate up-to-date facts. Set include_images=true when you need real web images to use as visual references for generate_image (e.g. to generate a carousel about competitors, search for their screenshots first).',
+            input_schema: {
+              type: 'object' as const,
+              properties: {
+                query: { type: 'string', description: 'Specific search query.' },
+                include_images: { type: 'boolean', description: 'Set true to fetch real web images to use as visual references in generate_image via web_reference_urls.' },
+              },
+              required: ['query'],
+            },
+          },
+          {
             name: 'generate_image',
-            description: `Generate an image with AI. The result appears on the canvas — do not include the URL in your reply.${referenceImageBase64 ? ' A reference image was provided — analyze it carefully and mirror its exact visual style, color palette, lighting, background, and composition in your prompt.' : ''}`,
+            description: `Generate an image with AI. The result appears on the canvas — do not include the URL in your reply.${referenceImageBase64 ? ' A reference image was provided — analyze it carefully and mirror its exact visual style, color palette, lighting, background, and composition in your prompt.' : ''} If you called search_web with include_images=true, pass the returned image URLs as web_reference_urls so NanoBanana can use them as visual references.`,
             input_schema: {
               type: 'object' as const,
               properties: {
                 prompt: { type: 'string', description: 'Detailed image prompt' },
                 ratio: { type: 'string', enum: ['1:1', '4:5', '9:16', '16:9'], description: 'Aspect ratio — 4:5 for Instagram, 9:16 for Stories/Reels, 1:1 default' },
                 style: { type: 'string', enum: ['realistic', 'artistic', 'professional', 'minimalist'] },
+                web_reference_urls: { type: 'array', items: { type: 'string' }, description: 'URLs of real images found via search_web to use as visual references for generation. Max 3.' },
               },
               required: ['prompt', 'ratio', 'style'],
             },
@@ -274,8 +339,21 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
             const input = toolUse.input as Record<string, unknown>
 
             try {
+              // ── search_web ───────────────────────────────────────────────
+              if (toolUse.name === 'search_web') {
+                const query = String(input.query ?? '')
+                const includeImages = Boolean(input.include_images)
+                send({ type: 'step', label: `Searching "${query.slice(0, 40)}${query.length > 40 ? '…' : ''}"`, icon: 'think', status: 'active' })
+                const { text, imageUrls } = await tavilySearch(query, includeImages)
+                let content = text
+                if (imageUrls.length > 0) {
+                  content += `\n\nWEB IMAGES AVAILABLE AS REFERENCES (pass as web_reference_urls in generate_image):\n${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}`
+                }
+                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content })
+                send({ type: 'step', label: `Web search done`, icon: 'think', status: 'done' })
+
               // ── generate_image ───────────────────────────────────────────
-              if (toolUse.name === 'generate_image') {
+              } else if (toolUse.name === 'generate_image') {
                 const imgNum = canvasItems.filter(i => i.kind === 'image').length + 1
                 const totalImgs = toolUseBlocks.filter(b => b.name === 'generate_image').length
                 const label = totalImgs > 1 ? `Rendering slide ${imgNum} of ${totalImgs}…` : 'Rendering image…'
@@ -291,14 +369,32 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
                 const prompt = String(input.prompt ?? '')
                 const ratio = String(input.ratio ?? '1:1')
                 const style = (input.style ?? 'realistic') as 'realistic' | 'artistic' | 'professional' | 'minimalist'
+                const webRefUrls = Array.isArray(input.web_reference_urls)
+                  ? (input.web_reference_urls as string[]).slice(0, 3)
+                  : []
+
+                // Build reference images: user-uploaded + web-fetched
+                const userRef = referenceImageBase64
+                  ? [{ base64: referenceImageBase64, mimeType: referenceImageMimeType }]
+                  : []
+                let webRefs: Array<{ base64: string; mimeType: string }> = []
+                if (webRefUrls.length > 0) {
+                  send({ type: 'step', label: 'Fetching web references…', icon: 'think', status: 'active' })
+                  const fetched = await Promise.all(webRefUrls.map(fetchImageAsBase64))
+                  webRefs = fetched.filter(Boolean) as Array<{ base64: string; mimeType: string }>
+                  send({ type: 'step', label: 'Fetching web references…', icon: 'think', status: 'done' })
+                }
+                const allRefs = [...userRef, ...webRefs]
+                const hasWebRefs = webRefs.length > 0
 
                 const result = await generateNanoBananaImage(prompt, {
                   style,
                   ratio: ratio as '1:1' | '4:5' | '9:16' | '16:9',
-                  referenceImageBase64: referenceImageBase64,
-                  referenceImageMimeType: referenceImageMimeType,
-                  referenceHint: referenceImageBase64
-                    ? 'Use the attached reference image as the primary visual style guide — mirror its color palette, lighting quality, background textures, composition, and mood. The generated image should look like it belongs to the same visual world as the reference.'
+                  referenceImages: allRefs.length > 0 ? allRefs : undefined,
+                  referenceHint: allRefs.length > 0
+                    ? hasWebRefs
+                      ? 'Use the attached web reference images as the visual foundation — replicate their color palette, UI layout, design language, and composition as closely as possible in the generated image.'
+                      : 'Use the attached reference image as the primary visual style guide — mirror its color palette, lighting quality, background textures, composition, and mood.'
                     : undefined,
                 })
                 const fileName = `studio/${user.id}-${Date.now()}.png`
