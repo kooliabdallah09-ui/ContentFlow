@@ -197,7 +197,7 @@ export default function RootLayout({
         )}
         </CreditsProvider>
         <ToastContainer />
-        <AppAssistant />
+        {!pathname.startsWith('/studio') && <AppAssistant />}
         <Analytics />
         <SpeedInsights />
       </body>
