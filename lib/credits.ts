@@ -14,11 +14,11 @@ export const CREDIT_COSTS = {
   voice: PLAN_CREDIT_COSTS.voice,
 } as const
 
-// Free tier intentionally has NO monthly refill — 60cr signup is one-shot.
-// Sized to cover ~1 Standard 4s video (52cr) + a few product images (3cr each).
-// Prevents free users from indefinitely consuming Sora calls.
+// Free tier intentionally has NO monthly refill — 30cr signup is one-shot.
+// Sized to cover the onboarding flow (free influencer + a few product shoots).
+// First influencer creation is free so 30cr goes further than it looks.
 export const PLAN_CREDITS = {
-  free: { monthly: 0, signup_bonus: 60 },
+  free: { monthly: 0, signup_bonus: 30 },
   starter: { monthly: 800 },
   pro: { monthly: 2000 },
   agency: { monthly: 6500 },

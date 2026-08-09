@@ -38,7 +38,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
           Welcome, ${first}.
         </h1>
         <p style="font-size:15px;color:#5C5A56;line-height:1.6;margin:0 0 24px">
-          You've got <strong style="color:#1A1916">60 free credits</strong> waiting — enough to generate your first UGC ad in under 3 minutes.
+          You've got <strong style="color:#1A1916">30 free credits</strong> waiting — enough to generate your first piece of content in under 3 minutes.
         </p>
 
         <table cellpadding="0" cellspacing="0" style="margin:0 0 28px">
