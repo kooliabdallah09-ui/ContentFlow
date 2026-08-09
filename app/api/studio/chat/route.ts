@@ -70,6 +70,8 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
   const message: string = body.message ?? ''
   const history: Array<{ role: 'user' | 'assistant'; content: string }> = body.history ?? []
+  const referenceImageBase64: string | undefined = body.referenceImageBase64
+  const referenceImageMimeType: string = body.referenceImageMimeType ?? 'image/jpeg'
   if (!message.trim()) return Response.json({ error: 'Message required' }, { status: 400 })
 
   const encoder = new TextEncoder()
@@ -159,9 +161,25 @@ ${brandPrompt}`
           },
         ]
 
+        // Build the last user message — include a vision block if a reference image was attached
+        const lastUserContent: Anthropic.ContentBlockParam[] = []
+        if (referenceImageBase64) {
+          lastUserContent.push({
+            type: 'image',
+            source: {
+              type: 'base64',
+              media_type: referenceImageMimeType as 'image/jpeg' | 'image/png' | 'image/gif' | 'image/webp',
+              data: referenceImageBase64,
+            },
+          })
+          lastUserContent.push({ type: 'text', text: `[Reference image attached above]\n${message}` })
+        } else {
+          lastUserContent.push({ type: 'text', text: message })
+        }
+
         const conversationMessages: Anthropic.MessageParam[] = [
           ...history.map(m => ({ role: m.role as 'user' | 'assistant', content: m.content })),
-          { role: 'user', content: message },
+          { role: 'user', content: lastUserContent },
         ]
 
         // ── Step 1: Claude processes the request ──────────────────────────
