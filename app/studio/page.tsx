@@ -783,6 +783,8 @@ export default function StudioPage() {
         .studio-session-item:hover { background: var(--surface) !important; }
         .studio-example-card:hover { background: var(--surface) !important; border-color: var(--ink-mute) !important; }
         .studio-model-pill:not([data-active="true"]):hover { background: var(--surface) !important; color: var(--ink) !important; }
+        .studio-model-info:hover .studio-model-tooltip { opacity: 1 !important; transform: translateY(0) !important; }
+        .studio-model-info-btn:hover { border-color: var(--ink-dim) !important; }
         .canvas-node { transition: outline 0.12s; }
         .canvas-node:hover { cursor: grab; }
       `}</style>
@@ -828,24 +830,68 @@ export default function StudioPage() {
           <div style={{ flex: 1 }} />
 
           {/* Model selector */}
-          <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: 2 }}>
-            {([
-              { key: 'lumen',  label: 'Lumen' },
-              { key: 'animus', label: 'Animus' },
-              { key: 'aether', label: 'Aether' },
-            ] as const).map(m => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {/* Brain icon */}
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/>
+              <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
+            </svg>
+
+            <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: 2 }}>
+              {([
+                { key: 'lumen',  label: 'Lumen' },
+                { key: 'animus', label: 'Animus' },
+                { key: 'aether', label: 'Aether' },
+              ] as const).map(m => (
+                <button
+                  key={m.key}
+                  onClick={() => setSelectedModel(m.key)}
+                  style={{
+                    fontSize: 11, fontWeight: selectedModel === m.key ? 700 : 500,
+                    padding: '3px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                    background: selectedModel === m.key ? 'var(--ink)' : 'transparent',
+                    color: selectedModel === m.key ? 'var(--on-ink)' : 'var(--ink-dim)',
+                    transition: 'all 0.12s',
+                  }}
+                >{m.label}</button>
+              ))}
+            </div>
+
+            {/* Info tooltip */}
+            <div style={{ position: 'relative' }} className="studio-model-info">
               <button
-                key={m.key}
-                onClick={() => setSelectedModel(m.key)}
-                style={{
-                  fontSize: 11, fontWeight: selectedModel === m.key ? 700 : 500,
-                  padding: '3px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
-                  background: selectedModel === m.key ? 'var(--ink)' : 'transparent',
-                  color: selectedModel === m.key ? 'var(--on-ink)' : 'var(--ink-dim)',
-                  transition: 'all 0.12s',
-                }}
-              >{m.label}</button>
-            ))}
+                className="studio-model-info-btn"
+                style={{ width: 18, height: 18, borderRadius: '50%', border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0 }}
+              >
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+              </button>
+              <div className="studio-model-tooltip" style={{
+                position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 12px',
+                minWidth: 220, zIndex: 60, pointerEvents: 'none',
+                opacity: 0, transform: 'translateY(-4px)', transition: 'opacity 0.15s, transform 0.15s',
+              }}>
+                {([
+                  { name: 'Lumen',  sub: 'Fast & efficient',    desc: 'Best for quick generations and simple tasks.' },
+                  { name: 'Animus', sub: 'Balanced · Default',  desc: 'Ideal balance of creativity, speed, and quality.' },
+                  { name: 'Aether', sub: 'Most powerful',       desc: 'Complex creative direction and nuanced output.' },
+                ]).map((m, i) => (
+                  <div key={m.name} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink)', flexShrink: 0, marginTop: 5 }} />
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                        <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{m.name}</span>
+                        <span style={{ fontSize: 10, color: 'var(--ink-mute)', fontWeight: 500 }}>{m.sub}</span>
+                      </div>
+                      <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--ink-dim)', lineHeight: 1.4 }}>{m.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <span style={{ fontSize: 11, color: 'var(--ink-mute)', fontWeight: 500 }}>
