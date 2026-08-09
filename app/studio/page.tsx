@@ -468,6 +468,9 @@ export default function StudioPage() {
   const [brandName, setBrandName] = useState<string | null>(null)
   const [authToken, setAuthToken] = useState<string | null>(null)
 
+  // Model selector
+  const [selectedModel, setSelectedModel] = useState<'flash' | 'studio' | 'director'>('studio')
+
   // Reference image + drag-and-drop
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -599,6 +602,7 @@ export default function StudioPage() {
       const body: Record<string, unknown> = {
         message: text.trim(),
         history: messages.map(m => ({ role: m.role, content: m.content })),
+        model: selectedModel,
       }
       if (sentImage) {
         body.referenceImageBase64 = sentImage.dataUrl.split(',')[1]
@@ -772,6 +776,7 @@ export default function StudioPage() {
         .studio-tool-pill:hover { background: var(--surface) !important; border-color: var(--ink-dim) !important; color: var(--ink) !important; }
         .studio-session-item:hover { background: var(--surface) !important; }
         .studio-example-card:hover { background: var(--surface) !important; border-color: var(--ink-mute) !important; }
+        .studio-model-pill:not([data-active="true"]):hover { background: var(--surface) !important; color: var(--ink) !important; }
         .canvas-node { transition: outline 0.12s; }
         .canvas-node:hover { cursor: grab; }
       `}</style>
@@ -815,6 +820,27 @@ export default function StudioPage() {
           )}
 
           <div style={{ flex: 1 }} />
+
+          {/* Model selector */}
+          <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: 2 }}>
+            {([
+              { key: 'flash',    label: 'Flash' },
+              { key: 'studio',   label: 'Studio' },
+              { key: 'director', label: 'Director' },
+            ] as const).map(m => (
+              <button
+                key={m.key}
+                onClick={() => setSelectedModel(m.key)}
+                style={{
+                  fontSize: 11, fontWeight: selectedModel === m.key ? 700 : 500,
+                  padding: '3px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                  background: selectedModel === m.key ? 'var(--ink)' : 'transparent',
+                  color: selectedModel === m.key ? 'var(--on-ink)' : 'var(--ink-dim)',
+                  transition: 'all 0.12s',
+                }}
+              >{m.label}</button>
+            ))}
+          </div>
 
           <span style={{ fontSize: 11, color: 'var(--ink-mute)', fontWeight: 500 }}>
             <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{displayBalance.toLocaleString()}</span> credits

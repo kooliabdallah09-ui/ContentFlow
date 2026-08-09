@@ -74,6 +74,13 @@ export async function POST(req: NextRequest) {
   const referenceImageBase64: string | undefined = body.referenceImageBase64
   const referenceImageMimeType: string = body.referenceImageMimeType ?? 'image/jpeg'
   const selectedItemContext = body.selectedItemContext as { kind: string; imageUrl?: string; prompt?: string; text?: string } | undefined
+  const modelKey: string = body.model ?? 'studio'
+  const MODEL_MAP: Record<string, string> = {
+    flash:    'claude-haiku-4-5-20251001',
+    studio:   'claude-sonnet-4-6',
+    director: 'claude-opus-4-7',
+  }
+  const claudeModel = MODEL_MAP[modelKey] ?? 'claude-sonnet-4-6'
   if (!message.trim()) return Response.json({ error: 'Message required' }, { status: 400 })
 
   const encoder = new TextEncoder()
@@ -235,7 +242,7 @@ Skip clarification if all key parameters are already clear from the user's messa
         send({ type: 'step', label: 'Reading your request…', icon: 'think', status: 'active' })
 
         const firstResponse = await anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
+          model: claudeModel,
           max_tokens: 2048,
           system: systemPrompt,
           tools,
@@ -392,7 +399,7 @@ Skip clarification if all key parameters are already clear from the user's messa
             send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'active' })
 
             const secondResponse = await anthropic.messages.create({
-              model: 'claude-sonnet-4-6',
+              model: claudeModel,
               max_tokens: 256,
               system: systemPrompt,
               tools,
