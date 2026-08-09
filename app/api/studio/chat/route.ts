@@ -6,7 +6,7 @@ import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { generateVoice } from '@/lib/elevenlabs'
 import { deductCredits } from '@/lib/deduct-credits'
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 // ─── Tavily web search ────────────────────────────────────────────────────────
 
