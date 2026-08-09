@@ -91,6 +91,12 @@ const VOICE_IDS: Record<string, string> = {
 
 function nanoid() { return Math.random().toString(36).slice(2, 10) }
 
+const MODEL_CREDITS: Record<string, number> = {
+  lumen:  1,
+  animus: 3,
+  aether: 10,
+}
+
 // Strip any markdown/URL artifacts from Claude's reply so the chat stays clean
 function cleanReply(text: string): string {
   return text
@@ -343,14 +349,15 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
               if (toolUse.name === 'search_web') {
                 const query = String(input.query ?? '')
                 const includeImages = Boolean(input.include_images)
-                send({ type: 'step', label: `Searching "${query.slice(0, 40)}${query.length > 40 ? '…' : ''}"`, icon: 'think', status: 'active' })
+                const searchLabel = `Searching the web…`
+                send({ type: 'step', label: searchLabel, icon: 'think', status: 'active' })
                 const { text, imageUrls } = await tavilySearch(query, includeImages)
                 let content = text
                 if (imageUrls.length > 0) {
                   content += `\n\nWEB IMAGES AVAILABLE AS REFERENCES (pass as web_reference_urls in generate_image):\n${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}`
                 }
                 toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content })
-                send({ type: 'step', label: `Web search done`, icon: 'think', status: 'done' })
+                send({ type: 'step', label: searchLabel, icon: 'think', status: 'done' })
 
               // ── generate_image ───────────────────────────────────────────
               } else if (toolUse.name === 'generate_image') {
@@ -523,19 +530,28 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
             )
 
             send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'done' })
+            // Deduct conversation credit for this Claude turn
+            const convCost = MODEL_CREDITS[modelKey] ?? 3
+            await deductCredits(supabase, user.id, convCost, balance, packCredits)
             send({ type: 'result', reply: replyText, canvasItems })
           } else {
-            // Question asked — emit result with any canvas items but no reply
+            // Question asked — deduct credits, emit result
+            const convCost = MODEL_CREDITS[modelKey] ?? 3
+            await deductCredits(supabase, user.id, convCost, balance, packCredits)
             if (canvasItems.length > 0) {
               send({ type: 'result', reply: '', canvasItems })
+            } else {
+              send({ type: 'result', reply: '', canvasItems: [] })
             }
           }
 
         } else {
-          // Pure conversational reply — no tools
+          // Pure conversational reply — no tools, deduct credits
           const replyText = cleanReply(
             firstResponse.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('\n')
           )
+          const convCost = MODEL_CREDITS[modelKey] ?? 3
+          await deductCredits(supabase, user.id, convCost, balance, packCredits)
           send({ type: 'result', reply: replyText, canvasItems: [] })
         }
 

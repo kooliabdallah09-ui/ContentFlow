@@ -491,6 +491,20 @@ export default function StudioPage() {
   const panOrigin = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
 
+  // Canvas sensitivity (stored in localStorage)
+  const [panSensitivity, setPanSensitivity] = useState<number>(() => {
+    if (typeof window === 'undefined') return 0.7
+    return parseFloat(localStorage.getItem('cf-pan-sensitivity') ?? '0.7')
+  })
+  const [zoomSensitivity, setZoomSensitivity] = useState<number>(() => {
+    if (typeof window === 'undefined') return 1
+    return parseFloat(localStorage.getItem('cf-zoom-sensitivity') ?? '1')
+  })
+  const panSensRef = useRef(panSensitivity)
+  const zoomSensRef = useRef(zoomSensitivity)
+  useEffect(() => { panSensRef.current = panSensitivity; localStorage.setItem('cf-pan-sensitivity', String(panSensitivity)) }, [panSensitivity])
+  useEffect(() => { zoomSensRef.current = zoomSensitivity; localStorage.setItem('cf-zoom-sensitivity', String(zoomSensitivity)) }, [zoomSensitivity])
+
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const sessionPickerRef = useRef<HTMLDivElement>(null)
@@ -706,9 +720,9 @@ export default function StudioPage() {
                   }
                   return [newNode, ...prev]
                 })
-                refreshCredits()
                 setPanX(24); setPanY(24); setZoom(1)
               }
+              refreshCredits()
               setSteps([])
             } else if (event.type === 'error') {
               setMessages(prev => [...prev, { role: 'assistant', content: event.message ?? 'Something went wrong.' }])
@@ -782,12 +796,10 @@ export default function StudioPage() {
     const handler = (e: WheelEvent) => {
       e.preventDefault()
       if (e.ctrlKey) {
-        // Pinch gesture → zoom (multiplicative, feels natural)
-        setZoom(z => Math.min(3, Math.max(0.25, z * (1 - e.deltaY * 0.004))))
+        setZoom(z => Math.min(3, Math.max(0.25, z * (1 - e.deltaY * 0.004 * zoomSensRef.current))))
       } else {
-        // Two-finger scroll → pan (0.7 damping)
-        setPanX(x => x - e.deltaX * 0.7)
-        setPanY(y => y - e.deltaY * 0.7)
+        setPanX(x => x - e.deltaX * panSensRef.current)
+        setPanY(y => y - e.deltaY * panSensRef.current)
       }
     }
     el.addEventListener('wheel', handler, { passive: false })
@@ -797,6 +809,23 @@ export default function StudioPage() {
   const zoomIn  = () => setZoom(z => Math.min(3, parseFloat((z + 0.2).toFixed(2))))
   const zoomOut = () => setZoom(z => Math.max(0.25, parseFloat((z - 0.2).toFixed(2))))
   const resetView = () => { setPanX(24); setPanY(24); setZoom(1) }
+
+  const fitToContent = () => {
+    if (canvasNodes.length === 0) { resetView(); return }
+    const NODE_W = 440, NODE_H = 320
+    const minX = Math.min(...canvasNodes.map(n => n.x))
+    const minY = Math.min(...canvasNodes.map(n => n.y))
+    const maxX = Math.max(...canvasNodes.map(n => n.x)) + NODE_W
+    const maxY = Math.max(...canvasNodes.map(n => n.y)) + NODE_H
+    const el = canvasRef.current
+    if (!el) return
+    const vw = el.clientWidth, vh = el.clientHeight
+    const contentW = maxX - minX, contentH = maxY - minY
+    const newZoom = Math.min(0.95, Math.min(vw / (contentW + 80), vh / (contentH + 80)))
+    setZoom(newZoom)
+    setPanX((vw - contentW * newZoom) / 2 - minX * newZoom)
+    setPanY((vh - contentH * newZoom) / 2 - minY * newZoom)
+  }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
@@ -826,7 +855,7 @@ export default function StudioPage() {
         .studio-session-item:hover { background: var(--surface) !important; }
         .studio-example-card:hover { background: var(--surface) !important; border-color: var(--ink-mute) !important; }
         .studio-model-pill:not([data-active="true"]):hover { background: var(--surface) !important; color: var(--ink) !important; }
-        .studio-model-info:hover .studio-model-tooltip { opacity: 1 !important; transform: translateY(0) !important; }
+        .studio-model-info:hover .studio-model-tooltip { opacity: 1 !important; transform: translateY(0) !important; pointer-events: auto !important; }
         .studio-model-info-btn:hover { border-color: var(--ink-dim) !important; }
         .canvas-node { transition: outline 0.12s; }
         .canvas-node:hover { cursor: grab; }
@@ -912,27 +941,52 @@ export default function StudioPage() {
               </button>
               <div className="studio-model-tooltip" style={{
                 position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
-                boxShadow: '0 8px 24px rgba(0,0,0,0.12)', padding: '10px 12px',
-                minWidth: 220, zIndex: 60, pointerEvents: 'none',
+                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.14)', padding: '12px 14px',
+                minWidth: 250, zIndex: 60, pointerEvents: 'none',
                 opacity: 0, transform: 'translateY(-4px)', transition: 'opacity 0.15s, transform 0.15s',
               }}>
+                {/* Model tiers */}
                 {([
-                  { name: 'Lumen',  sub: 'Fast & efficient',    desc: 'Best for quick generations and simple tasks.' },
-                  { name: 'Animus', sub: 'Balanced · Default',  desc: 'Ideal balance of creativity, speed, and quality.' },
-                  { name: 'Aether', sub: 'Most powerful',       desc: 'Complex creative direction and nuanced output.' },
+                  { name: 'Lumen',  sub: 'Fast',         desc: 'Quick tasks & drafts.',                credits: 1 },
+                  { name: 'Animus', sub: 'Default',      desc: 'Best balance of quality & speed.',      credits: 3 },
+                  { name: 'Aether', sub: 'Most capable', desc: 'Complex creative direction.',           credits: 10 },
                 ]).map((m, i) => (
-                  <div key={m.name} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none' }}>
-                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink)', flexShrink: 0, marginTop: 5 }} />
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                  <div key={m.name} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i < 2 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
+                    <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink)', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
                         <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{m.name}</span>
                         <span style={{ fontSize: 10, color: 'var(--ink-mute)', fontWeight: 500 }}>{m.sub}</span>
                       </div>
                       <p style={{ margin: '1px 0 0', fontSize: 11, color: 'var(--ink-dim)', lineHeight: 1.4 }}>{m.desc}</p>
                     </div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px', flexShrink: 0 }}>{m.credits} cr</span>
                   </div>
                 ))}
+
+                {/* Sensitivity sliders */}
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--border)', pointerEvents: 'auto' }}>
+                  <p style={{ margin: '0 0 8px', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)' }}>Canvas sensitivity</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {([
+                      { label: 'Scroll speed', value: panSensitivity, setter: setPanSensitivity, min: 0.2, max: 2, step: 0.1, key: 'pan' },
+                      { label: 'Zoom speed',   value: zoomSensitivity, setter: setZoomSensitivity, min: 0.3, max: 3, step: 0.1, key: 'zoom' },
+                    ] as const).map(s => (
+                      <div key={s.key}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
+                          <span style={{ fontSize: 11, color: 'var(--ink-dim)' }}>{s.label}</span>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)' }}>{s.value.toFixed(1)}×</span>
+                        </div>
+                        <input
+                          type="range" min={s.min} max={s.max} step={s.step} value={s.value}
+                          onChange={e => s.setter(parseFloat(e.target.value))}
+                          style={{ width: '100%', accentColor: 'var(--ink)', cursor: 'pointer' }}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -1152,8 +1206,13 @@ export default function StudioPage() {
             {/* Canvas controls */}
             <div style={{ position: 'absolute', bottom: 14, right: 14, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '3px 4px', boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>
               <button onClick={zoomOut} title="Zoom out" style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', fontSize: 16, fontWeight: 400, lineHeight: 1 }}>−</button>
-              <button onClick={resetView} title="Reset view" style={{ minWidth: 42, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', lineHeight: 1 }}>{Math.round(zoom * 100)}%</button>
+              <button onClick={resetView} title="Reset view (100%)" style={{ minWidth: 42, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', lineHeight: 1 }}>{Math.round(zoom * 100)}%</button>
               <button onClick={zoomIn} title="Zoom in" style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', fontSize: 16, fontWeight: 400, lineHeight: 1 }}>+</button>
+              <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 2px' }} />
+              <button onClick={fitToContent} title="Fit content to view" style={{ height: 28, padding: '0 8px', borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
+                Fit
+              </button>
             </div>
           </div>
 
