@@ -3,36 +3,46 @@ import { initializeUserCredits } from '@/lib/credits'
 import { sendWelcomeEmail } from '@/lib/email'
 import { NextRequest } from 'next/server'
 
-const ADMIN_EMAIL = 'kooliabdallah09@gmail.com'
+const ADMIN_EMAIL = 'abdallah.kooli@icloud.com'
+// These two influencers are seeded to every new user account as defaults.
+const DEFAULT_INFLUENCER_NAMES = ['Sloane Mercer', 'Marco Vell']
 
-async function copyDefaultInfluencer(supabase: SupabaseClient, newUserId: string) {
+async function copyDefaultInfluencers(supabase: SupabaseClient, newUserId: string) {
   // Find admin's user ID by email
   const { data: adminList } = await supabase.auth.admin.listUsers({ perPage: 1000 })
   const adminUser = adminList?.users?.find(u => u.email === ADMIN_EMAIL)
-  if (!adminUser) return
+  if (!adminUser) {
+    console.warn('[signup] admin user not found:', ADMIN_EMAIL)
+    return
+  }
 
-  // Find the "Mercel" influencer (case-insensitive)
-  const { data: influencer } = await supabase
+  // Fetch both default influencers in one query
+  const { data: influencers } = await supabase
     .from('user_influencers')
     .select('name, handle, bio, personality, niche, appearance_prompt, portrait_url, character_sheet_url, reference_urls')
     .eq('user_id', adminUser.id)
-    .ilike('name', '%mercel%')
-    .maybeSingle()
+    .in('name', DEFAULT_INFLUENCER_NAMES)
 
-  if (!influencer) return
+  if (!influencers?.length) {
+    console.warn('[signup] default influencers not found in admin account')
+    return
+  }
 
-  await supabase.from('user_influencers').insert({
+  const rows = influencers.map(inf => ({
     user_id: newUserId,
-    name: influencer.name,
-    handle: influencer.handle,
-    bio: influencer.bio,
-    personality: influencer.personality,
-    niche: influencer.niche,
-    appearance_prompt: influencer.appearance_prompt,
-    portrait_url: influencer.portrait_url,
-    character_sheet_url: influencer.character_sheet_url,
-    reference_urls: influencer.reference_urls,
-  })
+    name: inf.name,
+    handle: inf.handle,
+    bio: inf.bio,
+    personality: inf.personality,
+    niche: inf.niche,
+    appearance_prompt: inf.appearance_prompt,
+    portrait_url: inf.portrait_url,
+    character_sheet_url: inf.character_sheet_url,
+    reference_urls: inf.reference_urls,
+  }))
+
+  const { error } = await supabase.from('user_influencers').insert(rows)
+  if (error) console.error('[signup] insert default influencers failed:', error.message)
 }
 
 // Simple in-process rate limiter: max 5 signups per IP per 10 minutes
@@ -119,9 +129,9 @@ export async function POST(request: NextRequest) {
     // Welcome email — fire and forget, never block signup
     sendWelcomeEmail(email, fullName).catch(() => {})
 
-    // Copy the default "Mercel" influencer from the admin account to new users
-    copyDefaultInfluencer(supabase, authData.user.id).catch(err =>
-      console.error('[signup] copyDefaultInfluencer failed:', err)
+    // Copy Sloane Mercer + Marco Vell from admin account to every new user
+    copyDefaultInfluencers(supabase, authData.user.id).catch(err =>
+      console.error('[signup] copyDefaultInfluencers failed:', err)
     )
 
     return Response.json(
