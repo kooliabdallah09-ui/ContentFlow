@@ -119,6 +119,8 @@ STRICT RULES:
 - Be direct and confident — like a creative director, not an assistant.
 - Incorporate the user's brand context automatically without mentioning it.
 ${brandPrompt}${refImageNote}
+CAROUSEL RULE: When generating a carousel, you MUST call generate_image ONCE PER SLIDE in the SAME response — do not call it once and stop. A 6-slide carousel = 6 separate generate_image calls in one response. Each call must include the slide number and total in the prompt (e.g. "Slide 1 of 6: cover — ..."). Maintain a consistent visual style, ratio (1:1 for feed carousels), and color palette across all slides. Slide 1 = bold cover/title. Middle slides = content/comparison/features. Last slide = CTA or ranking/conclusion.
+
 CLARIFICATION RULE: You MUST call ask_clarification before generating images whenever ANY of the following is true:
 1. COUNT is not an explicit number (words like "some", "a few", "photos", "images" without a digit → ALWAYS ask "How many?")
 2. FORMAT/RATIO is not specified and cannot be inferred from a platform name
@@ -250,7 +252,7 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
 
         const firstResponse = await anthropic.messages.create({
           model: claudeModel,
-          max_tokens: 2048,
+          max_tokens: 4096,
           system: systemPrompt,
           tools,
           messages: conversationMessages,
@@ -274,7 +276,10 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
             try {
               // ── generate_image ───────────────────────────────────────────
               if (toolUse.name === 'generate_image') {
-                send({ type: 'step', label: 'Rendering image…', icon: 'image', status: 'active' })
+                const imgNum = canvasItems.filter(i => i.kind === 'image').length + 1
+                const totalImgs = toolUseBlocks.filter(b => b.name === 'generate_image').length
+                const label = totalImgs > 1 ? `Rendering slide ${imgNum} of ${totalImgs}…` : 'Rendering image…'
+                send({ type: 'step', label, icon: 'image', status: 'active' })
 
                 if (balance < 5) {
                   canvasItems.push({ kind: 'error', id: nanoid(), message: 'Insufficient credits — need 5 to generate an image.' })
@@ -305,7 +310,7 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
 
                 canvasItems.push({ kind: 'image', id: nanoid(), url: urlData.publicUrl, prompt, ratio, credits: 5 })
                 toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Image generated and added to canvas.' })
-                send({ type: 'step', label: 'Image ready', icon: 'image', status: 'done' })
+                send({ type: 'step', label: totalImgs > 1 ? `Slide ${imgNum} of ${totalImgs} ready` : 'Image ready', icon: 'image', status: 'done' })
 
               // ── generate_social_captions ────────────────────────────────
               } else if (toolUse.name === 'generate_social_captions') {
@@ -409,7 +414,7 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
               model: claudeModel,
               max_tokens: 256,
               system: systemPrompt,
-              tools,
+              // No tools — force a plain text reply so Claude doesn't try to call tools again
               messages: [
                 ...conversationMessages,
                 { role: 'assistant', content: firstResponse.content },
