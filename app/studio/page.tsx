@@ -7,6 +7,12 @@ import { useCredits } from '@/lib/CreditsContext'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
+type ProgressStep = {
+  label: string
+  icon: 'think' | 'image' | 'social' | 'voice' | 'brief' | 'check'
+  status: 'active' | 'done'
+}
+
 type CanvasItem =
   | { kind: 'image'; id: string; url: string; prompt: string; ratio: string; credits: number }
   | { kind: 'social'; id: string; posts: Record<string, string>; topic: string; credits: number }
@@ -183,11 +189,45 @@ function CanvasItemRenderer({ item }: { item: CanvasItem }) {
   return null
 }
 
-function TypingIndicator() {
+const STEP_ICONS: Record<string, React.ReactNode> = {
+  think: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>,
+  image: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
+  social: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  voice: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>,
+  brief: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>,
+  check: <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>,
+}
+
+function ProgressSteps({ steps }: { steps: ProgressStep[] }) {
   return (
-    <div style={{ display: 'flex', gap: 4, padding: '8px 12px', background: 'var(--surface)', borderRadius: '18px 18px 18px 4px', width: 'fit-content', alignItems: 'center' }}>
-      {[0, 1, 2].map(i => (
-        <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink-mute)', display: 'block', animation: `studio-bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '16px 16px 16px 4px', maxWidth: '84%', minWidth: 200 }}>
+      {steps.map((step, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+          {/* Icon / spinner */}
+          <div style={{
+            width: 22, height: 22, borderRadius: '50%', flexShrink: 0,
+            background: step.status === 'done' ? 'var(--ink)' : 'var(--surface)',
+            border: step.status === 'active' ? '1.5px solid var(--border)' : 'none',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: step.status === 'done' ? 'var(--on-ink)' : 'var(--ink-dim)',
+          }}>
+            {step.status === 'active'
+              ? <span style={{ width: 10, height: 10, borderRadius: '50%', border: '1.5px solid var(--ink-mute)', borderTopColor: 'var(--ink)', display: 'block', animation: 'studio-spin 0.8s linear infinite' }} />
+              : step.status === 'done'
+                ? STEP_ICONS.check
+                : STEP_ICONS[step.icon]
+            }
+          </div>
+          {/* Label */}
+          <span style={{
+            fontSize: 12.5,
+            fontWeight: step.status === 'active' ? 600 : 400,
+            color: step.status === 'active' ? 'var(--ink)' : step.status === 'done' ? 'var(--ink-mute)' : 'var(--ink-dim)',
+            lineHeight: 1.3,
+          }}>
+            {step.label}
+          </span>
+        </div>
       ))}
     </div>
   )
@@ -210,6 +250,7 @@ export default function StudioPage() {
   // UI state
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
+  const [steps, setSteps] = useState<ProgressStep[]>([])
   const [brandName, setBrandName] = useState<string | null>(null)
   const [authToken, setAuthToken] = useState<string | null>(null)
 
@@ -282,36 +323,74 @@ export default function StudioPage() {
     el.style.height = Math.min(el.scrollHeight, 96) + 'px'
   }
 
-  // ── Send message ───────────────────────────────────────────────────────────
+  // ── Send message (reads SSE stream for live progress) ─────────────────────
   const send = useCallback(async (text: string) => {
     if (!text.trim() || loading || !authToken) return
     const userMsg: Message = { role: 'user', content: text.trim() }
     setMessages(prev => [...prev, userMsg])
     setInput('')
+    setSteps([])
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
     setLoading(true)
+
     try {
       const res = await fetch('/api/studio/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
         body: JSON.stringify({ message: text.trim(), history: messages }),
       })
-      if (!res.ok) {
+
+      if (!res.ok || !res.body) {
         const e = await res.json().catch(() => ({}))
-        setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, something went wrong: ${e.error ?? res.status}` }])
+        setMessages(prev => [...prev, { role: 'assistant', content: e.error ?? 'Something went wrong.' }])
+        setLoading(false)
         return
       }
-      const data = await res.json()
-      const { reply, canvasItems: newItems } = data as { reply: string; canvasItems: CanvasItem[] }
-      if (reply) setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-      if (newItems?.length) {
-        setCanvasItems(prev => [...newItems.reverse(), ...prev])
-        refreshCredits()
-        // Auto-reset pan to show new items
-        setPanX(24); setPanY(24)
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buf = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buf += decoder.decode(value, { stream: true })
+        const lines = buf.split('\n')
+        buf = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event = JSON.parse(line.slice(6))
+
+            if (event.type === 'step') {
+              setSteps(prev => {
+                const existing = prev.findIndex(s => s.label === event.label)
+                if (existing >= 0) {
+                  const next = [...prev]
+                  next[existing] = { label: event.label, icon: event.icon, status: event.status }
+                  return next
+                }
+                return [...prev, { label: event.label, icon: event.icon, status: event.status }]
+              })
+            } else if (event.type === 'result') {
+              if (event.reply) setMessages(prev => [...prev, { role: 'assistant', content: event.reply }])
+              if (event.canvasItems?.length) {
+                setCanvasItems(prev => [...[...event.canvasItems].reverse(), ...prev])
+                refreshCredits()
+                setPanX(24); setPanY(24)
+              }
+              setSteps([])
+            } else if (event.type === 'error') {
+              setMessages(prev => [...prev, { role: 'assistant', content: event.message ?? 'Something went wrong.' }])
+              setSteps([])
+            }
+          } catch { /* skip malformed SSE line */ }
+        }
       }
     } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please try again.' }])
+      setSteps([])
     } finally {
       setLoading(false)
     }
@@ -380,6 +459,9 @@ export default function StudioPage() {
         @keyframes studio-bounce {
           0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
           30% { transform: translateY(-4px); opacity: 1; }
+        }
+        @keyframes studio-spin {
+          to { transform: rotate(360deg); }
         }
         @keyframes studio-slide-in {
           from { opacity: 0; transform: translateY(10px); }
@@ -479,7 +561,16 @@ export default function StudioPage() {
                       </div>
                     </div>
                   ))}
-                  {loading && <div style={{ display: 'flex', justifyContent: 'flex-start' }}><TypingIndicator /></div>}
+                  {(loading || steps.length > 0) && (
+                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                      {steps.length > 0
+                        ? <ProgressSteps steps={steps} />
+                        : <div style={{ display: 'flex', gap: 4, padding: '10px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '16px 16px 16px 4px' }}>
+                            {[0,1,2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink-mute)', display: 'block', animation: `studio-bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}
+                          </div>
+                      }
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </>
               )}
