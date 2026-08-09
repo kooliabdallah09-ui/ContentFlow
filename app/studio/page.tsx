@@ -54,7 +54,22 @@ function loadSessions(): Session[] {
 }
 
 function persistSessions(sessions: Session[]) {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS)))
+  // Strip base64 imagePreview from messages before persisting — those can be
+  // several MB each and will blow the 5MB localStorage quota.
+  const slim = sessions.slice(0, MAX_SESSIONS).map(s => ({
+    ...s,
+    messages: s.messages.map(({ imagePreview: _, ...m }) => m),
+  }))
+  try {
+    localStorage.setItem(SESSION_KEY, JSON.stringify(slim))
+  } catch {
+    // Quota still exceeded (e.g. too many sessions) — trim aggressively and retry
+    try {
+      localStorage.setItem(SESSION_KEY, JSON.stringify(slim.slice(0, 5)))
+    } catch {
+      localStorage.removeItem(SESSION_KEY)
+    }
+  }
 }
 
 function sessionNameFrom(messages: Message[]): string {
