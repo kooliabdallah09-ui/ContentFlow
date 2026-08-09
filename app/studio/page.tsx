@@ -356,7 +356,10 @@ function CanvasNodeWrapper({
 
 // ─── Question Card ────────────────────────────────────────────────────────────
 
+const BAD_OPTION_TERMS = /nanobanana|dall-?e|midjourney|stable.?diffusion|flux|ideogram|firefly|imagen|gemini|gpt|openai/i
+
 function QuestionCard({ data, onSelect }: { data: { prompt: string; options: string[] }; onSelect: (opt: string) => void }) {
+  const cleanOptions = data.options.filter(o => !BAD_OPTION_TERMS.test(o))
   const [focused, setFocused] = useState(0)
   const [custom, setCustom] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -364,20 +367,20 @@ function QuestionCard({ data, onSelect }: { data: { prompt: string; options: str
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).tagName === 'TEXTAREA') return
-      if (e.key === 'ArrowDown') { e.preventDefault(); setFocused(f => Math.min(f + 1, data.options.length - 1)) }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setFocused(f => Math.min(f + 1, cleanOptions.length - 1)) }
       if (e.key === 'ArrowUp') { e.preventDefault(); setFocused(f => Math.max(f - 1, 0)) }
-      if (e.key === 'Enter' && !custom) { e.preventDefault(); onSelect(data.options[focused]) }
+      if (e.key === 'Enter' && !custom) { e.preventDefault(); onSelect(cleanOptions[focused]) }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [focused, data.options, onSelect, custom])
+  }, [focused, cleanOptions, onSelect, custom])
 
   return (
     <div style={{ maxWidth: '92%', border: '1px solid var(--border)', borderRadius: '18px 18px 18px 4px', overflow: 'hidden', background: 'var(--bg)' }}>
       <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid var(--border)' }}>
         <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>{data.prompt}</p>
       </div>
-      {data.options.map((opt, i) => (
+      {cleanOptions.map((opt, i) => (
         <button
           key={opt}
           onMouseEnter={() => setFocused(i)}
@@ -385,7 +388,7 @@ function QuestionCard({ data, onSelect }: { data: { prompt: string; options: str
           style={{
             width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px',
             background: focused === i ? 'var(--surface)' : 'transparent',
-            border: 'none', borderBottom: i < data.options.length - 1 ? '1px solid var(--border)' : 'none',
+            border: 'none', borderBottom: i < cleanOptions.length - 1 ? '1px solid var(--border)' : 'none',
             cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
           }}
         >
