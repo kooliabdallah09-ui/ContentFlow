@@ -524,6 +524,9 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
           agentMessages.push({ role: 'assistant', content: loopResponse.content })
           agentMessages.push({ role: 'user', content: toolResults })
 
+          // Show a spinner while Claude decides what to do next (prevents "frozen" appearance)
+          send({ type: 'step', label: 'Thinking…', icon: 'think', status: 'active' })
+
           // Call Claude again — WITH tools so it can continue (e.g. search then generate)
           loopResponse = await anthropic.messages.create({
             model: claudeModel,
@@ -532,6 +535,8 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
             tools,
             messages: agentMessages,
           })
+
+          send({ type: 'step', label: 'Thinking…', icon: 'think', status: 'done' })
         }
 
         // Final text reply
