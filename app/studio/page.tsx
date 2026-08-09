@@ -321,6 +321,7 @@ export default function StudioPage() {
   // Canvas pan
   const [panX, setPanX] = useState(24)
   const [panY, setPanY] = useState(24)
+  const [zoom, setZoom] = useState(1)
   const [isPanning, setIsPanning] = useState(false)
   const panOrigin = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
   const canvasRef = useRef<HTMLDivElement>(null)
@@ -484,7 +485,7 @@ export default function StudioPage() {
               if (event.canvasItems?.length) {
                 setCanvasItems(prev => [...[...event.canvasItems].reverse(), ...prev])
                 refreshCredits()
-                setPanX(24); setPanY(24)
+                setPanX(24); setPanY(24); setZoom(1)
               }
               setSteps([])
             } else if (event.type === 'error') {
@@ -508,7 +509,7 @@ export default function StudioPage() {
     setMessages([])
     setCanvasItems([])
     setSessionName('New session')
-    setPanX(24); setPanY(24)
+    setPanX(24); setPanY(24); setZoom(1)
     setShowSessionList(false)
     setAttachedImage(null)
   }
@@ -518,7 +519,7 @@ export default function StudioPage() {
     setMessages(s.messages)
     setCanvasItems(s.canvasItems)
     setSessionName(s.name)
-    setPanX(24); setPanY(24)
+    setPanX(24); setPanY(24); setZoom(1)
     setShowSessionList(false)
   }
 
@@ -547,6 +548,16 @@ export default function StudioPage() {
     setPanX(touchOrigin.current.panX + t.clientX - touchOrigin.current.x)
     setPanY(touchOrigin.current.panY + t.clientY - touchOrigin.current.y)
   }
+
+  const onWheel = (e: React.WheelEvent) => {
+    e.preventDefault()
+    const delta = e.deltaY > 0 ? -0.08 : 0.08
+    setZoom(z => Math.min(3, Math.max(0.25, z + delta)))
+  }
+
+  const zoomIn  = () => setZoom(z => Math.min(3, parseFloat((z + 0.2).toFixed(2))))
+  const zoomOut = () => setZoom(z => Math.max(0.25, parseFloat((z - 0.2).toFixed(2))))
+  const resetView = () => { setPanX(24); setPanY(24); setZoom(1) }
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
@@ -777,6 +788,7 @@ export default function StudioPage() {
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onCanvasMouseUp}
+            onWheel={onWheel}
             style={{
               flex: 1, overflow: 'hidden', position: 'relative',
               cursor: isPanning ? 'grabbing' : 'grab',
@@ -786,7 +798,7 @@ export default function StudioPage() {
               backgroundSize: '24px 24px',
             }}
           >
-            <div style={{ position: 'absolute', top: 0, left: 0, transform: `translate(${panX}px, ${panY}px)`, willChange: 'transform', transition: isPanning ? 'none' : 'transform 0.12s ease' }}>
+            <div style={{ position: 'absolute', top: 0, left: 0, transformOrigin: '0 0', transform: `translate(${panX}px, ${panY}px) scale(${zoom})`, willChange: 'transform', transition: isPanning ? 'none' : 'transform 0.12s ease' }}>
               {canvasItems.length === 0 ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 340, height: 220, gap: 10, marginTop: 60, marginLeft: 60 }}>
                   <span style={{ fontSize: 30, opacity: 0.2 }}>✦</span>
@@ -803,17 +815,10 @@ export default function StudioPage() {
             </div>
 
             {/* Canvas controls */}
-            <div style={{ position: 'absolute', bottom: 14, right: 14, display: 'flex', gap: 6 }}>
-              {canvasItems.length > 0 && (
-                <button
-                  onClick={() => { setPanX(24); setPanY(24) }}
-                  title="Reset view"
-                  style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '5px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
-                >
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M12 12v.01"/></svg>
-                  Reset view
-                </button>
-              )}
+            <div style={{ position: 'absolute', bottom: 14, right: 14, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '3px 4px', boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>
+              <button onClick={zoomOut} title="Zoom out" style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', fontSize: 16, fontWeight: 400, lineHeight: 1 }}>−</button>
+              <button onClick={resetView} title="Reset view" style={{ minWidth: 42, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', lineHeight: 1 }}>{Math.round(zoom * 100)}%</button>
+              <button onClick={zoomIn} title="Zoom in" style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', fontSize: 16, fontWeight: 400, lineHeight: 1 }}>+</button>
             </div>
           </div>
 
