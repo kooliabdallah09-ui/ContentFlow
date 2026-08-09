@@ -524,15 +524,18 @@ export default function StudioPage() {
     }
   }, [])
 
-  // ── Auto-save session ──────────────────────────────────────────────────────
+  // ── Auto-save session (debounced so messages + canvasNodes always flush together) ──
   useEffect(() => {
     if (messages.length === 0 && canvasNodes.length === 0) return
-    const name = sessionNameFrom(messages)
-    setSessionName(name)
-    const session: Session = { id: currentSessionId, name, createdAt: Date.now(), messages, canvasNodes }
-    const all = loadSessions().filter(s => s.id !== currentSessionId)
-    persistSessions([session, ...all])
-    setSessions(prev => [session, ...prev.filter(s => s.id !== currentSessionId)])
+    const t = setTimeout(() => {
+      const name = sessionNameFrom(messages)
+      setSessionName(name)
+      const session: Session = { id: currentSessionId, name, createdAt: Date.now(), messages, canvasNodes }
+      const all = loadSessions().filter(s => s.id !== currentSessionId)
+      persistSessions([session, ...all])
+      setSessions(prev => [session, ...prev.filter(s => s.id !== currentSessionId)])
+    }, 300)
+    return () => clearTimeout(t)
   }, [messages, canvasNodes, currentSessionId])
 
   // ── Close session list on outside click ───────────────────────────────────
