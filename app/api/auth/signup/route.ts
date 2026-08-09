@@ -1,7 +1,39 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { initializeUserCredits } from '@/lib/credits'
 import { sendWelcomeEmail } from '@/lib/email'
 import { NextRequest } from 'next/server'
+
+const ADMIN_EMAIL = 'kooliabdallah09@gmail.com'
+
+async function copyDefaultInfluencer(supabase: SupabaseClient, newUserId: string) {
+  // Find admin's user ID by email
+  const { data: adminList } = await supabase.auth.admin.listUsers({ perPage: 1000 })
+  const adminUser = adminList?.users?.find(u => u.email === ADMIN_EMAIL)
+  if (!adminUser) return
+
+  // Find the "Mercel" influencer (case-insensitive)
+  const { data: influencer } = await supabase
+    .from('user_influencers')
+    .select('name, handle, bio, personality, niche, appearance_prompt, portrait_url, character_sheet_url, reference_urls')
+    .eq('user_id', adminUser.id)
+    .ilike('name', '%mercel%')
+    .maybeSingle()
+
+  if (!influencer) return
+
+  await supabase.from('user_influencers').insert({
+    user_id: newUserId,
+    name: influencer.name,
+    handle: influencer.handle,
+    bio: influencer.bio,
+    personality: influencer.personality,
+    niche: influencer.niche,
+    appearance_prompt: influencer.appearance_prompt,
+    portrait_url: influencer.portrait_url,
+    character_sheet_url: influencer.character_sheet_url,
+    reference_urls: influencer.reference_urls,
+  })
+}
 
 // Simple in-process rate limiter: max 5 signups per IP per 10 minutes
 const signupAttempts = new Map<string, { count: number; reset: number }>()
@@ -86,6 +118,11 @@ export async function POST(request: NextRequest) {
 
     // Welcome email — fire and forget, never block signup
     sendWelcomeEmail(email, fullName).catch(() => {})
+
+    // Copy the default "Mercel" influencer from the admin account to new users
+    copyDefaultInfluencer(supabase, authData.user.id).catch(err =>
+      console.error('[signup] copyDefaultInfluencer failed:', err)
+    )
 
     return Response.json(
       {
