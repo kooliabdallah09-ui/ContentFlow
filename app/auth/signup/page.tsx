@@ -37,7 +37,8 @@ export default function SignupPage() {
         if (signInError) throw new Error(signInError.message)
       }
 
-      router.push('/onboarding/brand')
+      localStorage.setItem('cf-new-user', '1')
+      router.push('/dashboard')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed')
     } finally {

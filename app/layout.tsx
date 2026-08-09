@@ -7,6 +7,7 @@ import { Sidebar } from '@/components/Sidebar'
 import { TopBar } from '@/components/TopBar'
 import ToastContainer from '@/components/ToastContainer'
 import AppAssistant from '@/components/AppAssistant'
+import OnboardingTour from '@/components/OnboardingTour'
 import { CreditsProvider } from '@/lib/CreditsContext'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
@@ -189,6 +190,7 @@ export default function RootLayout({
               />
               {children}
             </div>
+            <OnboardingTour />
           </div>
         ) : (
           children
