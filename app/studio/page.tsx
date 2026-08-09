@@ -19,6 +19,36 @@ interface Message {
   content: string
 }
 
+interface Session {
+  id: string
+  name: string
+  createdAt: number
+  messages: Message[]
+  canvasItems: CanvasItem[]
+}
+
+// ─── Session persistence (localStorage) ──────────────────────────────────────
+
+const SESSION_STORAGE_KEY = 'cf-studio-sessions'
+const MAX_SESSIONS = 15
+
+function genId() { return Math.random().toString(36).slice(2, 10) }
+
+function loadSessions(): Session[] {
+  if (typeof window === 'undefined') return []
+  try { return JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) ?? '[]') } catch { return [] }
+}
+
+function persistSessions(sessions: Session[]) {
+  localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS)))
+}
+
+function sessionNameFrom(messages: Message[]): string {
+  const first = messages.find(m => m.role === 'user')?.content
+  if (!first) return 'New session'
+  return first.length > 36 ? first.slice(0, 36) + '…' : first
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const EXAMPLE_PROMPTS = [
@@ -37,41 +67,19 @@ const SOCIAL_LABELS: Record<string, string> = {
 
 // ─── Canvas Item Cards ────────────────────────────────────────────────────────
 
-function ImageCard({ item }: { item: Extract<CanvasItem, { kind: 'image' }> }) {
-  const ratioStyle: Record<string, string> = {
-    '1:1': '100%',
-    '4:5': '125%',
-    '9:16': '177.78%',
-    '16:9': '56.25%',
-  }
-  const paddingBottom = ratioStyle[item.ratio] || '100%'
-
-  return (
-    <div style={{ position: 'relative', width: '100%', paddingBottom, borderRadius: 12, overflow: 'hidden', background: 'var(--bg)', marginBottom: 12 }}>
-      <img
-        src={item.url}
-        alt={item.prompt}
-        style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }}
-      />
-    </div>
-  )
-}
-
 function ImageCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'image' }> }) {
+  const ratioMap: Record<string, string> = { '1:1': '100%', '4:5': '125%', '9:16': '177.78%', '16:9': '56.25%' }
+  const pb = ratioMap[item.ratio] || '100%'
   return (
     <div className="canvas-card canvas-card-animate">
-      <ImageCard item={item} />
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
-        <p style={{ flex: 1, fontSize: 12, color: 'var(--ink-mute)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.prompt}</p>
+      <div style={{ position: 'relative', width: '100%', paddingBottom: pb, borderRadius: 12, overflow: 'hidden', background: 'var(--bg)', marginBottom: 10 }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={item.url} alt={item.prompt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 12 }} />
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <p style={{ flex: 1, fontSize: 11.5, color: 'var(--ink-mute)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.prompt}</p>
         <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
-        <a
-          href={item.url}
-          target="_blank"
-          rel="noreferrer"
-          style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px' }}
-        >
-          ↓ Download
-        </a>
+        <a href={item.url} target="_blank" rel="noreferrer" style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px' }}>↓</a>
       </div>
     </div>
   )
@@ -81,79 +89,48 @@ function SocialCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'social'
   const platforms = Object.keys(item.posts)
   const [activeTab, setActiveTab] = useState(platforms[0] ?? 'instagram')
   const [copied, setCopied] = useState(false)
-
   const copy = async () => {
-    const text = item.posts[activeTab] ?? ''
-    await navigator.clipboard.writeText(text)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    await navigator.clipboard.writeText(item.posts[activeTab] ?? '')
+    setCopied(true); setTimeout(() => setCopied(false), 1500)
   }
-
   return (
     <div className="canvas-card canvas-card-animate">
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {platforms.map(p => (
-            <button
-              key={p}
-              onClick={() => setActiveTab(p)}
-              style={{
-                fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 6, border: '1px solid var(--border)', cursor: 'pointer', letterSpacing: '0.04em',
-                background: activeTab === p ? 'var(--ink)' : 'transparent',
-                color: activeTab === p ? 'var(--on-ink)' : 'var(--ink-dim)',
-                transition: 'all 0.15s',
-              }}
-            >
+            <button key={p} onClick={() => setActiveTab(p)} style={{ fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 6, border: '1px solid var(--border)', cursor: 'pointer', background: activeTab === p ? 'var(--ink)' : 'transparent', color: activeTab === p ? 'var(--on-ink)' : 'var(--ink-dim)', transition: 'all 0.12s' }}>
               {SOCIAL_LABELS[p] ?? p.toUpperCase()}
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
-          <button
-            onClick={copy}
-            style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}
-          >
-            {copied ? '✓ Copied' : 'Copy'}
-          </button>
+          <button onClick={copy} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>{copied ? '✓' : 'Copy'}</button>
         </div>
       </div>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: 'var(--ink)', fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', minHeight: 80 }}>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: 'var(--ink)', fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '10px 12px', minHeight: 70 }}>
         {item.posts[activeTab] ?? ''}
       </p>
-      <p style={{ margin: '8px 0 0', fontSize: 11, color: 'var(--ink-mute)' }}>Topic: {item.topic}</p>
+      <p style={{ margin: '6px 0 0', fontSize: 10.5, color: 'var(--ink-mute)' }}>Topic: {item.topic}</p>
     </div>
   )
 }
 
 function VoiceCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'voice' }> }) {
   const [expanded, setExpanded] = useState(false)
-
   return (
     <div className="canvas-card canvas-card-animate">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-dim)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Voiceover</span>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-dim)' }}>Voiceover</span>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
       </div>
-      <audio controls src={item.audioUrl} style={{ width: '100%', height: 36, borderRadius: 8, marginBottom: 10 }} />
-      {item.duration && (
-        <p style={{ margin: '0 0 8px', fontSize: 11, color: 'var(--ink-mute)' }}>~{item.duration}s</p>
-      )}
-      <p
-        style={{
-          margin: 0, fontSize: 12, lineHeight: 1.6, color: 'var(--ink-dim)',
-          display: '-webkit-box', WebkitBoxOrient: 'vertical',
-          WebkitLineClamp: expanded ? undefined : 3,
-          overflow: expanded ? 'visible' : 'hidden',
-        }}
-      >
+      <audio controls src={item.audioUrl} style={{ width: '100%', height: 36, borderRadius: 8, marginBottom: 8 }} />
+      {item.duration && <p style={{ margin: '0 0 6px', fontSize: 10.5, color: 'var(--ink-mute)' }}>~{item.duration}s</p>}
+      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: 'var(--ink-dim)', WebkitLineClamp: expanded ? undefined : 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: expanded ? 'visible' : 'hidden' }}>
         {item.text}
       </p>
       {item.text.length > 120 && (
-        <button
-          onClick={() => setExpanded(e => !e)}
-          style={{ marginTop: 4, fontSize: 11, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
+        <button onClick={() => setExpanded(e => !e)} style={{ marginTop: 4, fontSize: 11, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
           {expanded ? 'Show less' : 'Show more'}
         </button>
       )}
@@ -176,9 +153,7 @@ function BriefCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'brief' }
         <div style={{ marginBottom: 10 }}>
           <p style={{ margin: '0 0 6px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>Scenes</p>
           <ol style={{ margin: 0, paddingLeft: 18 }}>
-            {item.scenes.map((scene, i) => (
-              <li key={i} style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink-dim)', marginBottom: 4 }}>{scene}</li>
-            ))}
+            {item.scenes.map((s, i) => <li key={i} style={{ fontSize: 12, lineHeight: 1.6, color: 'var(--ink-dim)', marginBottom: 4 }}>{s}</li>)}
           </ol>
         </div>
       )}
@@ -186,9 +161,7 @@ function BriefCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'brief' }
         <p style={{ margin: '0 0 3px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>CTA</p>
         <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{item.cta}</p>
       </div>
-      <a href="/generate/ugc" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-        Open in Video Studio →
-      </a>
+      <a href="/generate/ugc" style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none' }}>Open in Video Studio →</a>
     </div>
   )
 }
@@ -210,19 +183,11 @@ function CanvasItemRenderer({ item }: { item: CanvasItem }) {
   return null
 }
 
-// ─── Typing Indicator ────────────────────────────────────────────────────────
-
 function TypingIndicator() {
   return (
     <div style={{ display: 'flex', gap: 4, padding: '8px 12px', background: 'var(--surface)', borderRadius: '18px 18px 18px 4px', width: 'fit-content', alignItems: 'center' }}>
       {[0, 1, 2].map(i => (
-        <span
-          key={i}
-          style={{
-            width: 6, height: 6, borderRadius: '50%', background: 'var(--ink-mute)', display: 'block',
-            animation: `studio-bounce 1.2s ease-in-out ${i * 0.2}s infinite`,
-          }}
-        />
+        <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink-mute)', display: 'block', animation: `studio-bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />
       ))}
     </div>
   )
@@ -234,46 +199,75 @@ export default function StudioPage() {
   const router = useRouter()
   const { balance, refresh: refreshCredits } = useCredits()
 
+  // Session state
+  const [sessions, setSessions] = useState<Session[]>([])
+  const [currentSessionId, setCurrentSessionId] = useState<string>(genId)
   const [messages, setMessages] = useState<Message[]>([])
   const [canvasItems, setCanvasItems] = useState<CanvasItem[]>([])
+  const [sessionName, setSessionName] = useState('New session')
+  const [showSessionList, setShowSessionList] = useState(false)
+
+  // UI state
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [brandName, setBrandName] = useState<string | null>(null)
   const [authToken, setAuthToken] = useState<string | null>(null)
 
+  // Canvas pan state
+  const [panX, setPanX] = useState(24)
+  const [panY, setPanY] = useState(24)
+  const [isPanning, setIsPanning] = useState(false)
+  const panOrigin = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
+  const canvasRef = useRef<HTMLDivElement>(null)
+
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // ── Auth gate + load ───────────────────────────────────────────────────────
+  // ── Auth gate ──────────────────────────────────────────────────────────────
   useEffect(() => {
     ;(async () => {
       const supabase = getSupabase()
       if (!supabase) { router.push('/dashboard'); return }
-
       const { data: sessData } = await supabase.auth.getSession()
       const session = sessData?.session
       if (!session) { router.push('/dashboard'); return }
-
       const email = session.user?.email?.toLowerCase() ?? ''
       const adminEmails = new Set(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
       if (!adminEmails.has(email)) { router.push('/dashboard'); return }
-
       setAuthToken(session.access_token)
-
-      // Load brand name for header pill
       try {
-        const res = await fetch('/api/brand/load', {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        })
-        if (res.ok) {
-          const data = await res.json()
-          if (data.profile?.company_name) setBrandName(data.profile.company_name)
-        }
-      } catch {
-        // brand context is optional
-      }
+        const res = await fetch('/api/brand/load', { headers: { Authorization: `Bearer ${session.access_token}` } })
+        if (res.ok) { const d = await res.json(); if (d.profile?.company_name) setBrandName(d.profile.company_name) }
+      } catch { /* optional */ }
     })()
   }, [router])
+
+  // ── Load sessions from localStorage ───────────────────────────────────────
+  useEffect(() => {
+    const stored = loadSessions()
+    setSessions(stored)
+    if (stored.length > 0) {
+      const last = stored[0]
+      setCurrentSessionId(last.id)
+      setMessages(last.messages)
+      setCanvasItems(last.canvasItems)
+      setSessionName(last.name)
+    }
+  }, [])
+
+  // ── Auto-save session on every change ─────────────────────────────────────
+  useEffect(() => {
+    if (messages.length === 0 && canvasItems.length === 0) return
+    const name = sessionNameFrom(messages)
+    setSessionName(name)
+    const session: Session = { id: currentSessionId, name, createdAt: Date.now(), messages, canvasItems }
+    const all = loadSessions().filter(s => s.id !== currentSessionId)
+    persistSessions([session, ...all])
+    setSessions(prev => {
+      const filtered = prev.filter(s => s.id !== currentSessionId)
+      return [session, ...filtered]
+    })
+  }, [messages, canvasItems, currentSessionId])
 
   // ── Auto-scroll chat ───────────────────────────────────────────────────────
   useEffect(() => {
@@ -291,64 +285,91 @@ export default function StudioPage() {
   // ── Send message ───────────────────────────────────────────────────────────
   const send = useCallback(async (text: string) => {
     if (!text.trim() || loading || !authToken) return
-
     const userMsg: Message = { role: 'user', content: text.trim() }
     setMessages(prev => [...prev, userMsg])
     setInput('')
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto'
-    }
+    if (textareaRef.current) textareaRef.current.style.height = 'auto'
     setLoading(true)
-
     try {
       const res = await fetch('/api/studio/chat', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`,
-        },
-        body: JSON.stringify({
-          message: text.trim(),
-          history: messages,
-        }),
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${authToken}` },
+        body: JSON.stringify({ message: text.trim(), history: messages }),
       })
-
       if (!res.ok) {
-        const errData = await res.json().catch(() => ({}))
-        const errMsg = errData.error ?? `Request failed (${res.status})`
-        setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, something went wrong: ${errMsg}` }])
+        const e = await res.json().catch(() => ({}))
+        setMessages(prev => [...prev, { role: 'assistant', content: `Sorry, something went wrong: ${e.error ?? res.status}` }])
         return
       }
-
       const data = await res.json()
       const { reply, canvasItems: newItems } = data as { reply: string; canvasItems: CanvasItem[] }
-
-      if (reply) {
-        setMessages(prev => [...prev, { role: 'assistant', content: reply }])
-      }
+      if (reply) setMessages(prev => [...prev, { role: 'assistant', content: reply }])
       if (newItems?.length) {
         setCanvasItems(prev => [...newItems.reverse(), ...prev])
         refreshCredits()
+        // Auto-reset pan to show new items
+        setPanX(24); setPanY(24)
       }
-    } catch (err) {
-      console.error('[studio] send error:', err)
+    } catch {
       setMessages(prev => [...prev, { role: 'assistant', content: 'Connection error. Please try again.' }])
     } finally {
       setLoading(false)
     }
   }, [loading, authToken, messages, refreshCredits])
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      send(input)
-    }
-  }
-
-  const clearSession = () => {
+  // ── New session ────────────────────────────────────────────────────────────
+  const newSession = () => {
+    setCurrentSessionId(genId())
     setMessages([])
     setCanvasItems([])
-    setInput('')
+    setSessionName('New session')
+    setPanX(24); setPanY(24)
+    setShowSessionList(false)
+  }
+
+  // ── Load session ───────────────────────────────────────────────────────────
+  const loadSession = (s: Session) => {
+    setCurrentSessionId(s.id)
+    setMessages(s.messages)
+    setCanvasItems(s.canvasItems)
+    setSessionName(s.name)
+    setPanX(24); setPanY(24)
+    setShowSessionList(false)
+  }
+
+  // ── Canvas pan handlers ────────────────────────────────────────────────────
+  const onCanvasMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('.canvas-card')) return
+    setIsPanning(true)
+    panOrigin.current = { x: e.clientX, y: e.clientY, panX, panY }
+    e.preventDefault()
+  }
+
+  const onCanvasMouseMove = (e: React.MouseEvent) => {
+    if (!isPanning) return
+    const dx = e.clientX - panOrigin.current.x
+    const dy = e.clientY - panOrigin.current.y
+    setPanX(panOrigin.current.panX + dx)
+    setPanY(panOrigin.current.panY + dy)
+  }
+
+  const onCanvasMouseUp = () => setIsPanning(false)
+
+  // Touch pan for mobile
+  const touchOrigin = useRef({ x: 0, y: 0, panX: 0, panY: 0 })
+  const onTouchStart = (e: React.TouchEvent) => {
+    if ((e.target as HTMLElement).closest('.canvas-card')) return
+    const t = e.touches[0]
+    touchOrigin.current = { x: t.clientX, y: t.clientY, panX, panY }
+  }
+  const onTouchMove = (e: React.TouchEvent) => {
+    const t = e.touches[0]
+    setPanX(touchOrigin.current.panX + t.clientX - touchOrigin.current.x)
+    setPanY(touchOrigin.current.panY + t.clientY - touchOrigin.current.y)
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
   }
 
   const displayBalance = balance ?? 0
@@ -361,113 +382,90 @@ export default function StudioPage() {
           30% { transform: translateY(-4px); opacity: 1; }
         }
         @keyframes studio-slide-in {
-          from { opacity: 0; transform: translateY(12px); }
+          from { opacity: 0; transform: translateY(10px); }
           to { opacity: 1; transform: translateY(0); }
         }
-        .canvas-card-animate {
-          animation: studio-slide-in 0.25s ease forwards;
-        }
-        .studio-prompt-chip {
-          transition: background 0.15s, border-color 0.15s;
-        }
-        .studio-prompt-chip:hover {
-          background: var(--surface) !important;
-          border-color: var(--ink-mute) !important;
-        }
-        .studio-send-btn:hover:not(:disabled) {
-          opacity: 0.8;
-        }
-        .studio-send-btn:disabled {
-          opacity: 0.4;
-          cursor: not-allowed;
-        }
-        @media (max-width: 767px) {
-          .studio-layout { flex-direction: column !important; }
-          .studio-canvas { height: 300px !important; min-height: 300px !important; }
-          .studio-chat { height: auto !important; flex: 1 !important; }
-          .dot-grid { display: none !important; }
-        }
+        .canvas-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+        .canvas-card-animate { animation: studio-slide-in 0.22s ease forwards; }
+        .studio-send-btn:hover:not(:disabled) { opacity: 0.8; }
+        .studio-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .studio-prompt-chip:hover { background: var(--surface) !important; border-color: var(--ink-mute) !important; }
+        .studio-session-item:hover { background: var(--surface); }
       `}</style>
 
-      <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans, system-ui, sans-serif)' }}>
+      {/* Root fills exactly the available space below the app TopBar (60px) */}
+      <div style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
 
-        {/* ── Header ───────────────────────────────────────────────────────── */}
-        <header style={{
-          height: 48,
-          background: '#1A1916',
-          display: 'flex',
-          alignItems: 'center',
-          padding: '0 16px',
-          gap: 12,
-          flexShrink: 0,
-          borderBottom: '1px solid rgba(255,255,255,0.08)',
-        }}>
-          {/* Left: logo + title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1 }}>
-            <img src="/logo-icon.png" alt="ContentFlow" style={{ width: 22, height: 22, objectFit: 'contain', opacity: 0.9 }} />
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: '#fff', letterSpacing: '-0.01em' }}>
-              Content<em style={{ fontStyle: 'italic', color: '#C8B87A' }}>flow</em> Studio
-            </span>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#1e3a5f', background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6 }}>Alpha</span>
-          </div>
-
-          {/* Center: brand pill */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div style={{
-              fontSize: 11, fontWeight: 500, color: brandName ? '#C8B87A' : 'rgba(255,255,255,0.4)',
-              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
-              borderRadius: 20, padding: '3px 10px',
-            }}>
-              {brandName ? `✦ ${brandName}` : 'No brand set'}
-            </div>
-          </div>
-
-          {/* Right: credits + new session */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, justifyContent: 'flex-end' }}>
-            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', fontWeight: 500 }}>
-              <span style={{ color: '#C8B87A', fontWeight: 700 }}>{displayBalance.toLocaleString()}</span> credits
-            </span>
+        {/* ── Thin sub-header ─────────────────────────────────────────────── */}
+        <div style={{ height: 40, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+          {/* Session picker */}
+          <div style={{ position: 'relative' }}>
             <button
-              onClick={clearSession}
-              style={{
-                fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.7)', background: 'rgba(255,255,255,0.08)',
-                border: '1px solid rgba(255,255,255,0.14)', borderRadius: 8, padding: '4px 10px', cursor: 'pointer',
-                transition: 'background 0.15s',
-              }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.14)')}
-              onMouseLeave={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.08)')}
+              onClick={() => setShowSessionList(s => !s)}
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
             >
-              + New session
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{sessionName}</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M6 9l6 6 6-6"/></svg>
             </button>
-          </div>
-        </header>
 
-        {/* ── Main split ───────────────────────────────────────────────────── */}
-        <div className="studio-layout" style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+            {showSessionList && (
+              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', zIndex: 50, minWidth: 260, maxHeight: 320, overflowY: 'auto', padding: 6 }}>
+                <button onClick={newSession} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink)', background: 'none', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 14 }}>+</span> New session
+                </button>
+                {sessions.length > 0 && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
+                {sessions.map(s => (
+                  <button
+                    key={s.id}
+                    className="studio-session-item"
+                    onClick={() => loadSession(s)}
+                    style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 12, color: 'var(--ink-dim)', background: s.id === currentSessionId ? 'var(--bg)' : 'none', border: 'none', borderRadius: 8, cursor: 'pointer', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: s.id === currentSessionId ? 600 : 400 }}
+                  >
+                    {s.name}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Brand pill */}
+          {brandName && (
+            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 10px' }}>
+              ✦ {brandName}
+            </span>
+          )}
+
+          <div style={{ flex: 1 }} />
+
+          {/* Credits */}
+          <span style={{ fontSize: 11, color: 'var(--ink-mute)', fontWeight: 500 }}>
+            <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{displayBalance.toLocaleString()}</span> credits
+          </span>
+
+          {/* New session shortcut */}
+          <button onClick={newSession} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer' }}>
+            + New
+          </button>
+        </div>
+
+        {/* ── Main split ──────────────────────────────────────────────────── */}
+        <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
           {/* ── Left: Chat panel ─────────────────────────────────────────── */}
-          <div className="studio-chat" style={{ width: 400, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: 'var(--surface)', height: '100%', overflow: 'hidden' }}>
+          <div style={{ width: 380, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden' }}>
 
-            {/* Messages thread */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {/* Messages — fills remaining height, scrollable */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 12px', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {messages.length === 0 && !loading ? (
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, padding: '40px 12px' }}>
-                  <p style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-serif)', textAlign: 'center', lineHeight: 1.3, margin: 0 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 14, padding: '0 4px' }}>
+                  <p style={{ fontSize: 19, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-serif)', textAlign: 'center', lineHeight: 1.3, margin: 0 }}>
                     What do you want<br />to create today?
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-                    {EXAMPLE_PROMPTS.map(prompt => (
-                      <button
-                        key={prompt}
-                        className="studio-prompt-chip"
-                        onClick={() => send(prompt)}
-                        style={{
-                          fontSize: 12, color: 'var(--ink-dim)', background: 'var(--bg)',
-                          border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px',
-                          cursor: 'pointer', textAlign: 'left', fontWeight: 500,
-                        }}
-                      >
-                        {prompt}
+                    {EXAMPLE_PROMPTS.map(p => (
+                      <button key={p} className="studio-prompt-chip" onClick={() => send(p)} style={{ fontSize: 12, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '8px 12px', cursor: 'pointer', textAlign: 'left', fontWeight: 500 }}>
+                        {p}
                       </button>
                     ))}
                   </div>
@@ -476,39 +474,19 @@ export default function StudioPage() {
                 <>
                   {messages.map((msg, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                      <div
-                        style={{
-                          maxWidth: '82%',
-                          padding: '8px 12px',
-                          borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                          background: msg.role === 'user' ? 'var(--ink)' : 'var(--bg)',
-                          color: msg.role === 'user' ? 'var(--on-ink)' : 'var(--ink)',
-                          fontSize: 13,
-                          lineHeight: 1.55,
-                          border: msg.role === 'assistant' ? '1px solid var(--border)' : 'none',
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                        }}
-                      >
+                      <div style={{ maxWidth: '84%', padding: '8px 12px', borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px', background: msg.role === 'user' ? 'var(--ink)' : 'var(--bg)', color: msg.role === 'user' ? 'var(--on-ink)' : 'var(--ink)', fontSize: 13, lineHeight: 1.55, border: msg.role === 'assistant' ? '1px solid var(--border)' : 'none', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                         {msg.content}
                       </div>
                     </div>
                   ))}
-                  {loading && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                      <TypingIndicator />
-                    </div>
-                  )}
+                  {loading && <div style={{ display: 'flex', justifyContent: 'flex-start' }}><TypingIndicator /></div>}
                   <div ref={messagesEndRef} />
                 </>
               )}
             </div>
 
-            {/* Input area */}
-            <div style={{
-              flexShrink: 0, padding: '10px 12px', borderTop: '1px solid var(--border)',
-              background: 'var(--surface)', display: 'flex', gap: 8, alignItems: 'flex-end',
-            }}>
+            {/* Input — always anchored to the bottom */}
+            <div style={{ flexShrink: 0, padding: '10px 12px', borderTop: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea
                 ref={textareaRef}
                 value={input}
@@ -517,74 +495,77 @@ export default function StudioPage() {
                 placeholder="Describe what you want to create…"
                 disabled={loading || !authToken}
                 rows={1}
-                style={{
-                  flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 12,
-                  padding: '8px 12px', fontSize: 13, lineHeight: 1.5, fontFamily: 'inherit',
-                  background: 'var(--bg)', color: 'var(--ink)', outline: 'none',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
-                  boxShadow: 'none',
-                  maxHeight: 96, overflowY: 'auto',
-                }}
-                onFocus={e => {
-                  e.currentTarget.style.borderColor = 'var(--ink)'
-                  e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,0,0,0.08)'
-                }}
-                onBlur={e => {
-                  e.currentTarget.style.borderColor = 'var(--border)'
-                  e.currentTarget.style.boxShadow = 'none'
-                }}
+                style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, lineHeight: 1.5, fontFamily: 'inherit', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', maxHeight: 96, overflowY: 'auto', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,0,0,0.07)' }}
+                onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
               />
               <button
                 className="studio-send-btn"
                 onClick={() => send(input)}
                 disabled={loading || !input.trim() || !authToken}
-                style={{
-                  flexShrink: 0, width: 38, height: 38, borderRadius: 10,
-                  background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
-                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'opacity 0.15s',
-                }}
+                style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.15s' }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M22 2L11 13M22 2L15 22 11 13 2 9z"/>
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* ── Right: Canvas panel ──────────────────────────────────────── */}
-          <div className="studio-canvas" style={{ flex: 1, overflowY: 'auto', padding: 24, position: 'relative', background: 'var(--bg)' }}>
-            {/* Dot grid */}
-            <div
-              className="dot-grid"
-              style={{
-                position: 'fixed',
-                inset: 0,
-                pointerEvents: 'none',
-                zIndex: 0,
-                backgroundImage: 'radial-gradient(circle, var(--border, rgba(0,0,0,0.12)) 1px, transparent 1px)',
-                backgroundSize: '24px 24px',
-                opacity: 0.6,
-              }}
-            />
-            <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* ── Right: Pannable canvas ───────────────────────────────────── */}
+          <div
+            ref={canvasRef}
+            onMouseDown={onCanvasMouseDown}
+            onMouseMove={onCanvasMouseMove}
+            onMouseUp={onCanvasMouseUp}
+            onMouseLeave={onCanvasMouseUp}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onCanvasMouseUp}
+            style={{
+              flex: 1,
+              overflow: 'hidden',
+              position: 'relative',
+              cursor: isPanning ? 'grabbing' : 'grab',
+              userSelect: 'none',
+              background: 'var(--bg)',
+              backgroundImage: 'radial-gradient(circle, var(--border, rgba(0,0,0,0.1)) 1px, transparent 1px)',
+              backgroundSize: '24px 24px',
+            }}
+          >
+            {/* Panning surface */}
+            <div style={{ position: 'absolute', top: 0, left: 0, transform: `translate(${panX}px, ${panY}px)`, willChange: 'transform', transition: isPanning ? 'none' : 'transform 0.12s ease' }}>
               {canvasItems.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '60vh', gap: 12 }}>
-                  <span style={{ fontSize: 32, color: 'var(--ink-mute)', opacity: 0.4 }}>✦</span>
-                  <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0, opacity: 0.6 }}>Generated content appears here</p>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', width: 300, height: 200, gap: 10, marginTop: 60, marginLeft: 60 }}>
+                  <span style={{ fontSize: 28, opacity: 0.25 }}>✦</span>
+                  <p style={{ fontSize: 12.5, color: 'var(--ink-mute)', margin: 0, opacity: 0.5, textAlign: 'center', lineHeight: 1.5 }}>Generated content<br />appears here</p>
+                  <p style={{ fontSize: 11, color: 'var(--ink-mute)', margin: 0, opacity: 0.35, textAlign: 'center' }}>Drag to pan the canvas</p>
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, maxWidth: 600, margin: '0 auto' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 16, width: 380 }}>
                   {canvasItems.map(item => (
                     <CanvasItemRenderer key={item.id} item={item} />
                   ))}
                 </div>
               )}
             </div>
+
+            {/* Pan hint overlay — top right */}
+            {canvasItems.length > 0 && (
+              <div style={{ position: 'absolute', bottom: 12, right: 12, fontSize: 10.5, color: 'var(--ink-mute)', opacity: 0.5, pointerEvents: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M12 12v.01"/></svg>
+                Drag to pan
+              </div>
+            )}
           </div>
 
         </div>
       </div>
+
+      {/* Click-outside to close session list */}
+      {showSessionList && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowSessionList(false)} />
+      )}
     </>
   )
 }
