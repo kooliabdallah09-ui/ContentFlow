@@ -226,7 +226,15 @@ ${brandPrompt}${refImageNote}`
                 const ratio = String(input.ratio ?? '1:1')
                 const style = (input.style ?? 'realistic') as 'realistic' | 'artistic' | 'professional' | 'minimalist'
 
-                const result = await generateNanoBananaImage(prompt, { style, ratio: ratio as '1:1' | '4:5' | '9:16' | '16:9' })
+                const result = await generateNanoBananaImage(prompt, {
+                  style,
+                  ratio: ratio as '1:1' | '4:5' | '9:16' | '16:9',
+                  referenceImageBase64: referenceImageBase64,
+                  referenceImageMimeType: referenceImageMimeType,
+                  referenceHint: referenceImageBase64
+                    ? 'Use the attached reference image as the primary visual style guide — mirror its color palette, lighting quality, background textures, composition, and mood. The generated image should look like it belongs to the same visual world as the reference.'
+                    : undefined,
+                })
                 const fileName = `studio/${user.id}-${Date.now()}.png`
                 await supabase.storage.from('ugc-assets').upload(fileName, Buffer.from(result.imageBase64, 'base64'), { contentType: result.mimeType, upsert: false })
                 const { data: urlData } = supabase.storage.from('ugc-assets').getPublicUrl(fileName)
