@@ -63,21 +63,42 @@ function sessionNameFrom(messages: Message[]): string {
   return first.length > 40 ? first.slice(0, 40) + '…' : first
 }
 
+// ─── SVG icons ───────────────────────────────────────────────────────────────
+
+const Icon = {
+  Image: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>,
+  Caption: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
+  Voice: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>,
+  Brief: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+}
+
 // ─── Tool quick-starters ──────────────────────────────────────────────────────
 
 const TOOL_PILLS = [
-  { emoji: '🖼', label: 'Image',    starter: 'Generate a product photo for Instagram — ' },
-  { emoji: '✍️', label: 'Captions', starter: 'Write social captions for ' },
-  { emoji: '🎙', label: 'Voice',    starter: 'Create a 30-second voiceover for ' },
-  { emoji: '📋', label: 'Brief',    starter: 'Plan a UGC video brief for ' },
+  { icon: Icon.Image,   label: 'Image',    starter: 'Generate a product photo for Instagram — ' },
+  { icon: Icon.Caption, label: 'Captions', starter: 'Write social captions for ' },
+  { icon: Icon.Voice,   label: 'Voice',    starter: 'Create a 30-second voiceover for ' },
+  { icon: Icon.Brief,   label: 'Brief',    starter: 'Plan a UGC video brief for ' },
 ]
 
 const EXAMPLE_PROMPTS = [
-  { emoji: '🖼', label: 'Product photo', text: 'Generate a lifestyle product photo for Instagram, 4:5 ratio, warm tones' },
-  { emoji: '✍️', label: 'Caption pack', text: 'Write Instagram, Facebook and Twitter captions for a new product launch' },
-  { emoji: '🎙', label: 'Ad voiceover', text: 'Create an energetic 30-second voiceover script for a summer campaign' },
-  { emoji: '📋', label: 'UGC brief',    text: 'Plan a TikTok UGC video brief for a skincare product launch' },
+  { icon: Icon.Image,   label: 'Product photo', text: 'Generate a lifestyle product photo for Instagram, 4:5 ratio, warm tones' },
+  { icon: Icon.Caption, label: 'Caption pack',  text: 'Write Instagram, Facebook and Twitter captions for a new product launch' },
+  { icon: Icon.Voice,   label: 'Ad voiceover',  text: 'Create an energetic 30-second voiceover script for a summer campaign' },
+  { icon: Icon.Brief,   label: 'UGC brief',     text: 'Plan a TikTok UGC video brief for a skincare product launch' },
 ]
+
+// Strip markdown artifacts from stored/old messages
+function cleanMessageText(text: string): string {
+  return text
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    .replace(/https?:\/\/\S+/g, '')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+}
 
 const SOCIAL_LABELS: Record<string, string> = { instagram: 'IG', facebook: 'FB', twitter: 'X', linkedin: 'LI' }
 
@@ -154,8 +175,8 @@ function VoiceCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'voice' }
   return (
     <div className="canvas-card canvas-card-animate">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16 }}>🎙</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--ink-dim)' }}>
+          {Icon.Voice(14)}
           <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-dim)' }}>Voiceover</span>
         </div>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
@@ -273,8 +294,9 @@ export default function StudioPage() {
   const [brandName, setBrandName] = useState<string | null>(null)
   const [authToken, setAuthToken] = useState<string | null>(null)
 
-  // Reference image
+  // Reference image + drag-and-drop
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Lightbox
@@ -290,6 +312,7 @@ export default function StudioPage() {
 
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const sessionPickerRef = useRef<HTMLDivElement>(null)
 
   // ── Auth gate ──────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -334,6 +357,16 @@ export default function StudioPage() {
     setSessions(prev => [session, ...prev.filter(s => s.id !== currentSessionId)])
   }, [messages, canvasItems, currentSessionId])
 
+  // ── Close session list on outside click ───────────────────────────────────
+  useEffect(() => {
+    if (!showSessionList) return
+    const handler = (e: MouseEvent) => {
+      if (!sessionPickerRef.current?.contains(e.target as Node)) setShowSessionList(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [showSessionList])
+
   // ── Auto-scroll chat ───────────────────────────────────────────────────────
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -348,16 +381,29 @@ export default function StudioPage() {
   }
 
   // ── Reference image picker ─────────────────────────────────────────────────
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
+  const attachFile = (file: File) => {
+    if (!file.type.startsWith('image/')) return
     const reader = new FileReader()
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string
       setAttachedImage({ dataUrl, mimeType: file.type, name: file.name })
     }
     reader.readAsDataURL(file)
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) { attachFile(file) }
     e.target.value = ''
+  }
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragOver(true) }
+  const handleDragLeave = (e: React.DragEvent) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setIsDragOver(false) }
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    const file = e.dataTransfer.files?.[0]
+    if (file) attachFile(file)
   }
 
   // ── Send message ───────────────────────────────────────────────────────────
@@ -521,7 +567,7 @@ export default function StudioPage() {
 
         {/* ── Sub-header ─────────────────────────────────────────────────── */}
         <div style={{ height: 46, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <div style={{ position: 'relative' }}>
+          <div ref={sessionPickerRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setShowSessionList(s => !s)}
               style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, maxWidth: 210, overflow: 'hidden' }}
@@ -568,7 +614,19 @@ export default function StudioPage() {
         <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
 
           {/* ── Left: Chat panel ──────────────────────────────────────────── */}
-          <div style={{ width: 400, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden' }}>
+          <div
+            style={{ width: 400, flexShrink: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden', position: 'relative' }}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            {/* Drop overlay */}
+            {isDragOver && (
+              <div style={{ position: 'absolute', inset: 0, zIndex: 10, background: 'rgba(0,0,0,0.04)', border: '2px dashed var(--ink-dim)', borderRadius: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, pointerEvents: 'none' }}>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--ink-dim)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink-dim)' }}>Drop image to attach</p>
+              </div>
+            )}
 
             {/* Messages */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -583,8 +641,8 @@ export default function StudioPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}>
                     {EXAMPLE_PROMPTS.map(p => (
                       <button key={p.label} className="studio-example-card" onClick={() => send(p.text)}
-                        style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 12px 10px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s' }}>
-                        <span style={{ fontSize: 18 }}>{p.emoji}</span>
+                        style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '13px 12px 11px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s' }}>
+                        <span style={{ color: 'var(--ink-dim)' }}>{p.icon(16)}</span>
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{p.label}</span>
                         <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', lineHeight: 1.4 }}>{p.text.slice(0, 48)}…</span>
                       </button>
@@ -612,7 +670,7 @@ export default function StudioPage() {
                         whiteSpace: 'pre-wrap',
                         wordBreak: 'break-word',
                       }}>
-                        {msg.content}
+                        {msg.role === 'assistant' ? cleanMessageText(msg.content) : msg.content}
                       </div>
                     </div>
                   ))}
@@ -638,7 +696,7 @@ export default function StudioPage() {
                 {TOOL_PILLS.map(t => (
                   <button key={t.label} className="studio-tool-pill" onClick={() => applyToolPill(t.starter)}
                     style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '4px 10px', cursor: 'pointer' }}>
-                    <span style={{ fontSize: 12 }}>{t.emoji}</span>{t.label}
+                    {t.icon(11)}{t.label}
                   </button>
                 ))}
               </div>
@@ -747,10 +805,6 @@ export default function StudioPage() {
         </div>
       </div>
 
-      {/* Click-outside to close session list */}
-      {showSessionList && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={() => setShowSessionList(false)} />
-      )}
 
       {/* ── Lightbox portal ──────────────────────────────────────────────────── */}
       {lightbox && typeof window !== 'undefined' && createPortal(

@@ -93,6 +93,10 @@ export async function POST(req: NextRequest) {
 
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
+        const refImageNote = referenceImageBase64
+          ? `\nREFERENCE IMAGE PROVIDED: The user has attached a reference image. You can see it above. When calling generate_image, your prompt MUST mirror the reference image's exact visual style — extract and include: the specific color palette, lighting quality, background textures, composition/framing, mood, and any identifiable objects or UI elements. The generated image should look like it was shot in the same style as the reference. Do not write a generic prompt — describe what you actually see in the reference image.`
+          : ''
+
         const systemPrompt = `You are the ContentFlow Studio AI — a creative director that helps brands produce content.
 You have tools to generate images, write social captions, create voiceovers, and plan UGC video briefs.
 
@@ -103,12 +107,12 @@ STRICT RULES:
 - Keep replies to 1-2 sentences max: say what you made, then suggest one natural next step.
 - Be direct and confident — like a creative director, not an assistant.
 - Incorporate the user's brand context automatically without mentioning it.
-${brandPrompt}`
+${brandPrompt}${refImageNote}`
 
         const tools: Anthropic.Tool[] = [
           {
             name: 'generate_image',
-            description: 'Generate an image with AI. The result appears on the canvas — do not include the URL in your reply.',
+            description: `Generate an image with AI. The result appears on the canvas — do not include the URL in your reply.${referenceImageBase64 ? ' A reference image was provided — analyze it carefully and mirror its exact visual style, color palette, lighting, background, and composition in your prompt.' : ''}`,
             input_schema: {
               type: 'object' as const,
               properties: {
