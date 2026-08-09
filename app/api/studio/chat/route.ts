@@ -69,6 +69,7 @@ export type CanvasItem =
   | { kind: 'social'; id: string; posts: Record<string, string>; topic: string; credits: number }
   | { kind: 'voice'; id: string; audioUrl: string; text: string; duration?: number; credits: number }
   | { kind: 'brief'; id: string; title: string; hook: string; scenes: string[]; cta: string; platform: string }
+  | { kind: 'carousel'; id: string; topic: string; platform: string; slides: Array<{ headline: string; body: string; cta: string; imageUrl: string }>; credits: number }
   | { kind: 'error'; id: string; message: string }
 
 export type StepEvent = {
@@ -178,7 +179,7 @@ STRICT RULES:
 ${brandPrompt}${refImageNote}
 WEB SEARCH RULE: Use search_web proactively whenever accuracy matters — competitor comparisons, real brand UI, current pricing/features, trending content, or any fact you're unsure about. For image tasks involving real-world UI or brands, always call search_web with include_images=true first, then pass the returned URLs as web_reference_urls to generate_image so NanoBanana can use them as visual references.
 
-CAROUSEL RULE: When generating a carousel, you MUST call generate_image ONCE PER SLIDE in the SAME response — do not call it once and stop. A 6-slide carousel = 6 separate generate_image calls in one response. Each call must include the slide number and total in the prompt (e.g. "Slide 1 of 6: cover — ..."). Maintain a consistent visual style, ratio (1:1 for feed carousels), and color palette across all slides. Slide 1 = bold cover/title. Middle slides = content/comparison/features. Last slide = CTA or ranking/conclusion.
+CAROUSEL RULE: When asked for a carousel, swipe post, or multi-slide content — ALWAYS call generate_carousel (NOT generate_image). generate_carousel produces premium slides with professional text overlay. If the carousel involves real brands, competitors, or current data, call search_web first and pass the result as search_context to generate_carousel.
 
 CLARIFICATION RULE: You MUST call ask_clarification before generating images whenever ANY of the following is true:
 1. COUNT is not an explicit number (words like "some", "a few", "photos", "images" without a digit → ALWAYS ask "How many?")
@@ -232,6 +233,21 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
                 web_reference_urls: { type: 'array', items: { type: 'string' }, description: 'URLs of real images found via search_web to use as visual references for generation. Max 3.' },
               },
               required: ['prompt', 'ratio', 'style'],
+            },
+          },
+          {
+            name: 'generate_carousel',
+            description: 'Generate a premium multi-slide carousel with professional text overlay. ALWAYS use this instead of calling generate_image multiple times when the user asks for a carousel, swipe post, or multi-slide content. Produces structured slides with headline, body copy, and CTA overlaid on premium images.',
+            input_schema: {
+              type: 'object' as const,
+              properties: {
+                topic: { type: 'string', description: 'The carousel topic, angle, or detailed description' },
+                platform: { type: 'string', enum: ['instagram', 'linkedin', 'tiktok'], description: 'Target platform — affects aspect ratio and copy style' },
+                slideCount: { type: 'number', description: 'Number of slides (3–8)' },
+                tone: { type: 'string', enum: ['bold', 'informative', 'playful', 'professional'] },
+                search_context: { type: 'string', description: 'Optional: paste web search results here to enrich slide copy with real facts (competitor features, pricing, real data). Call search_web first, then pass the result here.' },
+              },
+              required: ['topic', 'platform', 'slideCount', 'tone'],
             },
           },
           {
@@ -397,6 +413,119 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
               canvasItems.push({ kind: 'image', id: nanoid(), url: urlData.publicUrl, prompt, ratio, credits: 5 })
               send({ type: 'step', label, icon: 'image', status: 'done' })
               return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Image generated and added to canvas.' }
+
+            // ── generate_carousel ─────────────────────────────────────────
+            } else if (toolUse.name === 'generate_carousel') {
+              const topic = String(input.topic ?? '')
+              const platform = String(input.platform ?? 'instagram') as 'instagram' | 'linkedin' | 'tiktok'
+              const slideCount = Math.max(3, Math.min(8, Number(input.slideCount ?? 5)))
+              const tone = String(input.tone ?? 'bold')
+              const searchContext = input.search_context ? String(input.search_context) : ''
+              const totalCost = slideCount * 5
+
+              send({ type: 'step', label: `Planning ${slideCount} slides…`, icon: 'image', status: 'active' })
+
+              if (balance < totalCost) {
+                canvasItems.push({ kind: 'error', id: nanoid(), message: `Insufficient credits — need ${totalCost} for a ${slideCount}-slide carousel.` })
+                send({ type: 'step', label: `Planning ${slideCount} slides…`, icon: 'image', status: 'done' })
+                return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: insufficient credits', is_error: true }
+              }
+
+              const toneGuide =
+                tone === 'bold'         ? 'Bold, punchy, attention-grabbing. Short sentences. Strong verbs. No filler.' :
+                tone === 'informative'  ? 'Clear, educational, trustworthy. Lead with facts and value.' :
+                tone === 'playful'      ? 'Fun, energetic, personable. Light tone with wit and personality.' :
+                tone === 'professional' ? 'Polished, credible, authoritative. Formal but engaging.' :
+                                          'Engaging and persuasive.'
+
+              const platformGuide =
+                platform === 'linkedin' ? 'LinkedIn: professionals. Prioritise ROI, career value, industry insights.' :
+                platform === 'tiktok'   ? 'TikTok: Gen-Z, fast-scroll. Ultra-short punchy text (1 line max). Bold hook, quick payoff.' :
+                                          'Instagram: visual-first. Keep text tight — 1-2 punchy lines per slide.'
+
+              const searchBlock = searchContext ? `\nRESEARCH CONTEXT (use these real facts in your copy):\n${searchContext.slice(0, 2000)}\n` : ''
+
+              const haikuClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+              const copyRes = await haikuClient.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 2000,
+                messages: [{
+                  role: 'user',
+                  content: `You are an expert social media carousel creator for ${platform}.
+${brandPrompt}${searchBlock}
+Topic: ${topic}
+Tone: ${toneGuide}
+Platform: ${platformGuide}
+Slides: ${slideCount}
+
+Structure:
+- Slide 1: Hook — bold opening that stops the scroll
+- Slides 2–${slideCount - 1}: Value slides — one key point each, concrete and specific
+- Slide ${slideCount}: CTA / takeaway — clear next action
+
+Return ONLY a JSON array of exactly ${slideCount} objects (no markdown):
+[
+  {
+    "headline": "Short title, max 8 words",
+    "body": "Supporting copy, max 20 words",
+    "cta": "Action phrase max 5 words — only on last slide, empty string on all others",
+    "imagePrompt": "Visual description for AI image generation. Mood, setting, lighting. Premium editorial style. No text in image. 1-2 sentences."
+  }
+]`,
+                }],
+              })
+
+              send({ type: 'step', label: `Planning ${slideCount} slides…`, icon: 'image', status: 'done' })
+
+              const rawText = copyRes.content[0].type === 'text' ? copyRes.content[0].text.trim() : '[]'
+              let slideSpecs: Array<{ headline: string; body: string; cta: string; imagePrompt: string }> = []
+              try {
+                let jsonText = rawText
+                if (jsonText.startsWith('```')) jsonText = jsonText.replace(/^```json?\n?/, '').replace(/\n?```$/, '')
+                const parsed = JSON.parse(jsonText)
+                if (Array.isArray(parsed)) slideSpecs = parsed
+                while (slideSpecs.length < slideCount) slideSpecs.push(slideSpecs[slideSpecs.length - 1] ?? { headline: '', body: '', cta: '', imagePrompt: 'Dark editorial lifestyle photo' })
+                slideSpecs = slideSpecs.slice(0, slideCount)
+              } catch {
+                return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: failed to parse slide specs', is_error: true }
+              }
+
+              send({ type: 'step', label: `Rendering ${slideCount} slides in parallel…`, icon: 'image', status: 'active' })
+
+              const imageResults = await Promise.allSettled(
+                slideSpecs.map(slide =>
+                  generateNanoBananaImage(slide.imagePrompt, {
+                    style: 'professional',
+                    ratio: platform === 'tiktok' ? '9:16' : platform === 'linkedin' ? '1:1' : '4:5',
+                    referenceImages: referenceImageBase64 ? [{ base64: referenceImageBase64, mimeType: referenceImageMimeType }] : undefined,
+                  })
+                )
+              )
+
+              send({ type: 'step', label: `Rendering ${slideCount} slides in parallel…`, icon: 'image', status: 'done' })
+              send({ type: 'step', label: 'Uploading slides…', icon: 'image', status: 'active' })
+
+              const slides: Array<{ headline: string; body: string; cta: string; imageUrl: string }> = []
+              for (let i = 0; i < slideSpecs.length; i++) {
+                const spec = slideSpecs[i]
+                const result = imageResults[i]
+                if (result.status === 'fulfilled') {
+                  const fileName = `studio/${user.id}-carousel-${Date.now()}-${i}.png`
+                  await supabase.storage.from('ugc-assets').upload(fileName, Buffer.from(result.value.imageBase64, 'base64'), { contentType: result.value.mimeType, upsert: false })
+                  const { data: urlData } = supabase.storage.from('ugc-assets').getPublicUrl(fileName)
+                  slides.push({ headline: spec.headline, body: spec.body, cta: spec.cta, imageUrl: urlData.publicUrl })
+                } else {
+                  slides.push({ headline: spec.headline, body: spec.body, cta: spec.cta, imageUrl: '' })
+                }
+              }
+
+              send({ type: 'step', label: 'Uploading slides…', icon: 'image', status: 'done' })
+
+              const d4 = await deductCredits(supabase, user.id, totalCost, balance, packCredits)
+              balance = d4.newBalance; packCredits = d4.newPackCredits
+
+              canvasItems.push({ kind: 'carousel', id: nanoid(), topic, platform, slides, credits: totalCost })
+              return { type: 'tool_result', tool_use_id: toolUse.id, content: `Carousel with ${slideCount} slides generated and added to canvas.` }
 
             // ── generate_social_captions ──────────────────────────────────
             } else if (toolUse.name === 'generate_social_captions') {

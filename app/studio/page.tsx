@@ -19,6 +19,7 @@ type CanvasItem =
   | { kind: 'social'; id: string; posts: Record<string, string>; topic: string; credits: number }
   | { kind: 'voice'; id: string; audioUrl: string; text: string; duration?: number; credits: number }
   | { kind: 'brief'; id: string; title: string; hook: string; scenes: string[]; cta: string; platform: string }
+  | { kind: 'carousel'; id: string; topic: string; platform: string; slides: Array<{ headline: string; body: string; cta: string; imageUrl: string }>; credits: number }
   | { kind: 'error'; id: string; message: string }
 
 type CanvasNode = {
@@ -256,11 +257,65 @@ function ErrorCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'error' }
   )
 }
 
+function CarouselCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'carousel' }> }) {
+  const [activeSlide, setActiveSlide] = useState(0)
+  const slide = item.slides[activeSlide]
+  const total = item.slides.length
+
+  if (!slide) return null
+
+  const ratioMap: Record<string, string> = { instagram: '125%', linkedin: '100%', tiktok: '177.78%' }
+  const pb = ratioMap[item.platform] ?? '125%'
+
+  return (
+    <div className="canvas-card canvas-card-animate">
+      {/* Slide preview with text overlay */}
+      <div style={{ position: 'relative', width: '100%', paddingBottom: pb, borderRadius: 14, overflow: 'hidden', background: '#111', marginBottom: 12 }}>
+        {slide.imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={slide.imageUrl} alt={slide.headline} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }} />
+        )}
+        {/* Gradient overlay */}
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 14, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.92) 100%)' }} />
+        {/* Text overlay */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 18px' }}>
+          <p style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 800, color: '#fff', lineHeight: 1.25, letterSpacing: '-0.02em', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{slide.headline}</p>
+          {slide.body && <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>{slide.body}</p>}
+          {slide.cta && <div style={{ marginTop: 10, display: 'inline-block', background: '#fff', color: '#000', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '5px 14px', letterSpacing: '0.02em' }}>{slide.cta}</div>}
+        </div>
+        {/* Slide counter */}
+        <div style={{ position: 'absolute', top: 12, right: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+          {activeSlide + 1} / {total}
+        </div>
+      </div>
+      {/* Navigation */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <button onClick={() => setActiveSlide(s => Math.max(0, s - 1))} disabled={activeSlide === 0} style={{ fontSize: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: activeSlide === 0 ? 'not-allowed' : 'pointer', opacity: activeSlide === 0 ? 0.35 : 1, color: 'var(--ink)' }}>&#8249;</button>
+        <div style={{ flex: 1, display: 'flex', gap: 4, justifyContent: 'center' }}>
+          {item.slides.map((_, i) => (
+            <button key={i} onClick={() => setActiveSlide(i)} style={{ width: i === activeSlide ? 16 : 6, height: 6, borderRadius: 3, background: i === activeSlide ? 'var(--ink)' : 'var(--border)', border: 'none', cursor: 'pointer', transition: 'all 0.15s', padding: 0 }} />
+          ))}
+        </div>
+        <button onClick={() => setActiveSlide(s => Math.min(total - 1, s + 1))} disabled={activeSlide === total - 1} style={{ fontSize: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: activeSlide === total - 1 ? 'not-allowed' : 'pointer', opacity: activeSlide === total - 1 ? 0.35 : 1, color: 'var(--ink)' }}>&#8250;</button>
+      </div>
+      {/* Footer */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <p style={{ flex: 1, fontSize: 11, color: 'var(--ink-mute)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.topic}</p>
+        <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
+        {slide.imageUrl && (
+          <a href={slide.imageUrl} download target="_blank" rel="noreferrer" style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px' }}>&#8595;</a>
+        )}
+      </div>
+    </div>
+  )
+}
+
 function CanvasItemRenderer({ item, onOpenImage }: { item: CanvasItem; onOpenImage: (url: string, prompt: string) => void }) {
   if (item.kind === 'image') return <ImageCanvasCard item={item} onOpen={onOpenImage} />
   if (item.kind === 'social') return <SocialCanvasCard item={item} />
   if (item.kind === 'voice') return <VoiceCanvasCard item={item} />
   if (item.kind === 'brief') return <BriefCanvasCard item={item} />
+  if (item.kind === 'carousel') return <CarouselCanvasCard item={item} />
   if (item.kind === 'error') return <ErrorCanvasCard item={item} />
   return null
 }
