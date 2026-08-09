@@ -168,6 +168,7 @@ You have tools to generate images, write social captions, create voiceovers, and
 CAPABILITIES: You generate images using ContentFlow's built-in image engine. You do NOT have access to external models or third-party tools — never mention model names like "NanoBanana", "DALL-E", "Midjourney", "Stable Diffusion", or any other. Just say "I'll generate that" and use your generate_image tool.
 
 STRICT RULES:
+- NEVER narrate. NEVER say "I'll generate", "I'm creating", "Now generating", "Got everything I need", "Working on it", or any variation. Saying these words is FORBIDDEN because nothing will happen unless you call a tool. If you need to generate — CALL THE TOOL. Text without a tool call = nothing appears on canvas = you failed.
 - Use tools immediately when intent is clear — never ask "shall I generate that?"
 - Write replies in plain, clean prose only. NO markdown. NO asterisks. NO URLs. NO image links.
 - All generated content (images, audio, captions) appears on the canvas — never reference URLs in your reply.
@@ -318,241 +319,249 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
           { role: 'user', content: lastUserContent },
         ]
 
-        // ── Step 1: Claude processes the request ──────────────────────────
+        // ── Agentic loop: Claude → tools → Claude → tools → … → text reply ──
         send({ type: 'step', label: 'Reading your request…', icon: 'think', status: 'active' })
 
-        const firstResponse = await anthropic.messages.create({
+        const canvasItems: CanvasItem[] = []
+        let askedQuestion = false
+
+        // agentMessages grows as we accumulate tool calls + results across iterations
+        const agentMessages: Anthropic.MessageParam[] = [...conversationMessages]
+
+        // Execute a single tool block and return the tool_result
+        async function runTool(toolUse: Anthropic.ToolUseBlock): Promise<Anthropic.ToolResultBlockParam> {
+          const input = toolUse.input as Record<string, unknown>
+          try {
+            // ── search_web ────────────────────────────────────────────────
+            if (toolUse.name === 'search_web') {
+              const query = String(input.query ?? '')
+              const includeImages = Boolean(input.include_images)
+              const searchLabel = `Searching the web…`
+              send({ type: 'step', label: searchLabel, icon: 'think', status: 'active' })
+              const { text, imageUrls } = await tavilySearch(query, includeImages)
+              let content = text
+              if (imageUrls.length > 0) {
+                content += `\n\nWEB IMAGES AVAILABLE AS REFERENCES (pass as web_reference_urls in generate_image):\n${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}`
+              }
+              send({ type: 'step', label: searchLabel, icon: 'think', status: 'done' })
+              return { type: 'tool_result', tool_use_id: toolUse.id, content }
+
+            // ── generate_image ────────────────────────────────────────────
+            } else if (toolUse.name === 'generate_image') {
+              const imgNum = canvasItems.filter(i => i.kind === 'image').length + 1
+              const label = `Rendering image ${imgNum}…`
+              send({ type: 'step', label, icon: 'image', status: 'active' })
+
+              if (balance < 5) {
+                canvasItems.push({ kind: 'error', id: nanoid(), message: 'Insufficient credits — need 5 to generate an image.' })
+                send({ type: 'step', label, icon: 'image', status: 'done' })
+                return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: insufficient credits', is_error: true }
+              }
+
+              const prompt = String(input.prompt ?? '')
+              const ratio = String(input.ratio ?? '1:1')
+              const style = (input.style ?? 'realistic') as 'realistic' | 'artistic' | 'professional' | 'minimalist'
+              const webRefUrls = Array.isArray(input.web_reference_urls)
+                ? (input.web_reference_urls as string[]).slice(0, 3) : []
+
+              const userRef = referenceImageBase64
+                ? [{ base64: referenceImageBase64, mimeType: referenceImageMimeType }] : []
+              let webRefs: Array<{ base64: string; mimeType: string }> = []
+              if (webRefUrls.length > 0) {
+                send({ type: 'step', label: 'Fetching web references…', icon: 'think', status: 'active' })
+                const fetched = await Promise.all(webRefUrls.map(fetchImageAsBase64))
+                webRefs = fetched.filter(Boolean) as Array<{ base64: string; mimeType: string }>
+                send({ type: 'step', label: 'Fetching web references…', icon: 'think', status: 'done' })
+              }
+              const allRefs = [...userRef, ...webRefs]
+              const hasWebRefs = webRefs.length > 0
+
+              const result = await generateNanoBananaImage(prompt, {
+                style,
+                ratio: ratio as '1:1' | '4:5' | '9:16' | '16:9',
+                referenceImages: allRefs.length > 0 ? allRefs : undefined,
+                referenceHint: allRefs.length > 0
+                  ? hasWebRefs
+                    ? 'Use the attached web reference images as the visual foundation — replicate their color palette, UI layout, design language, and composition as closely as possible in the generated image.'
+                    : 'Use the attached reference image as the primary visual style guide — mirror its color palette, lighting quality, background textures, composition, and mood.'
+                  : undefined,
+              })
+              const fileName = `studio/${user.id}-${Date.now()}-${nanoid()}.png`
+              await supabase.storage.from('ugc-assets').upload(fileName, Buffer.from(result.imageBase64, 'base64'), { contentType: result.mimeType, upsert: false })
+              const { data: urlData } = supabase.storage.from('ugc-assets').getPublicUrl(fileName)
+
+              const d1 = await deductCredits(supabase, user.id, 5, balance, packCredits)
+              balance = d1.newBalance; packCredits = d1.newPackCredits
+
+              canvasItems.push({ kind: 'image', id: nanoid(), url: urlData.publicUrl, prompt, ratio, credits: 5 })
+              send({ type: 'step', label: `Image ${imgNum} ready`, icon: 'image', status: 'done' })
+              return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Image generated and added to canvas.' }
+
+            // ── generate_social_captions ──────────────────────────────────
+            } else if (toolUse.name === 'generate_social_captions') {
+              send({ type: 'step', label: 'Writing captions…', icon: 'social', status: 'active' })
+
+              if (balance < 5) {
+                canvasItems.push({ kind: 'error', id: nanoid(), message: 'Insufficient credits — need 5 to generate captions.' })
+                send({ type: 'step', label: 'Writing captions…', icon: 'social', status: 'done' })
+                return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: insufficient credits', is_error: true }
+              }
+
+              const topic = String(input.topic ?? '')
+              const platforms = Array.isArray(input.platforms) ? input.platforms.map(String) : ['instagram', 'facebook', 'twitter', 'linkedin']
+              const tone = String(input.tone ?? 'bold')
+
+              const haikuClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+              const captionRes = await haikuClient.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 1200,
+                messages: [{
+                  role: 'user',
+                  content: `Write social media captions for: ${platforms.join(', ')}.\nTopic: ${topic}\nTone: ${tone}\n${brandPrompt ? `Brand:\n${brandPrompt}` : ''}\nReturn ONLY a JSON object with platform keys.`,
+                }],
+              })
+
+              const raw = captionRes.content[0].type === 'text' ? captionRes.content[0].text.trim() : '{}'
+              const posts: Record<string, string> = (() => { try { return JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)) } catch { return {} } })()
+
+              const d2 = await deductCredits(supabase, user.id, 5, balance, packCredits)
+              balance = d2.newBalance; packCredits = d2.newPackCredits
+
+              canvasItems.push({ kind: 'social', id: nanoid(), posts, topic, credits: 5 })
+              send({ type: 'step', label: 'Captions ready', icon: 'social', status: 'done' })
+              return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Captions written and added to canvas.' }
+
+            // ── generate_voiceover ────────────────────────────────────────
+            } else if (toolUse.name === 'generate_voiceover') {
+              send({ type: 'step', label: 'Recording voiceover…', icon: 'voice', status: 'active' })
+
+              if (balance < 5) {
+                canvasItems.push({ kind: 'error', id: nanoid(), message: 'Insufficient credits — need 5 to generate a voiceover.' })
+                send({ type: 'step', label: 'Recording voiceover…', icon: 'voice', status: 'done' })
+                return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: insufficient credits', is_error: true }
+              }
+
+              const script = String(input.script ?? '')
+              const voiceId = VOICE_IDS[String(input.voice_style ?? 'professional')] ?? VOICE_IDS.professional
+              const voiceResult = await generateVoice(script, voiceId, 0.5, 0.75)
+
+              const d3 = await deductCredits(supabase, user.id, 5, balance, packCredits)
+              balance = d3.newBalance; packCredits = d3.newPackCredits
+
+              canvasItems.push({ kind: 'voice', id: nanoid(), audioUrl: voiceResult.audioUrl, text: script, duration: voiceResult.duration, credits: 5 })
+              send({ type: 'step', label: 'Voiceover ready', icon: 'voice', status: 'done' })
+              return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Voiceover recorded and added to canvas.' }
+
+            // ── create_ugc_brief ──────────────────────────────────────────
+            } else if (toolUse.name === 'create_ugc_brief') {
+              send({ type: 'step', label: 'Planning UGC brief…', icon: 'brief', status: 'active' })
+
+              const briefClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+              const briefRes = await briefClient.messages.create({
+                model: 'claude-haiku-4-5-20251001',
+                max_tokens: 1000,
+                messages: [{
+                  role: 'user',
+                  content: `UGC video brief.\nProduct: ${input.product}\nGoal: ${input.goal}\nDuration: ${input.duration}\nTone: ${input.tone}\nPlatform: ${input.platform}\n${brandPrompt ? `Brand:\n${brandPrompt}` : ''}\nReturn ONLY JSON: {"title":"...","hook":"...","scenes":["...","...","..."],"cta":"..."}`,
+                }],
+              })
+
+              const rawB = briefRes.content[0].type === 'text' ? briefRes.content[0].text.trim() : '{}'
+              const briefData = (() => { try { return JSON.parse(rawB.slice(rawB.indexOf('{'), rawB.lastIndexOf('}') + 1)) } catch { return { title: 'UGC Brief', hook: '', scenes: [], cta: '' } } })()
+
+              canvasItems.push({ kind: 'brief', id: nanoid(), title: briefData.title ?? 'UGC Brief', hook: briefData.hook ?? '', scenes: Array.isArray(briefData.scenes) ? briefData.scenes : [], cta: briefData.cta ?? '', platform: String(input.platform ?? '') })
+              send({ type: 'step', label: 'Brief ready', icon: 'brief', status: 'done' })
+              return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Brief created and added to canvas.' }
+
+            // ── ask_clarification ─────────────────────────────────────────
+            } else if (toolUse.name === 'ask_clarification') {
+              const q = String(input.question ?? '')
+              const opts = Array.isArray(input.options) ? input.options.map(String) : []
+              send({ type: 'question', prompt: q, options: opts })
+              askedQuestion = true
+              return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Question shown to user.' }
+
+            } else {
+              return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Unknown tool', is_error: true }
+            }
+          } catch (toolErr) {
+            const errMsg = toolErr instanceof Error ? toolErr.message : 'Tool execution failed'
+            canvasItems.push({ kind: 'error', id: nanoid(), message: errMsg })
+            return { type: 'tool_result', tool_use_id: toolUse.id, content: `Error: ${errMsg}`, is_error: true }
+          }
+        }
+
+        // Agentic loop — keep calling Claude with tools until it stops calling tools
+        let loopResponse = await anthropic.messages.create({
           model: claudeModel,
           max_tokens: 4096,
           system: systemPrompt,
           tools,
-          messages: conversationMessages,
+          messages: agentMessages,
         })
-
         send({ type: 'step', label: 'Reading your request…', icon: 'think', status: 'done' })
 
-        const canvasItems: CanvasItem[] = []
-        const toolResults: Anthropic.ToolResultBlockParam[] = []
+        const MAX_ITERATIONS = 8
+        let iterations = 0
 
-        if (firstResponse.stop_reason === 'tool_use') {
-          const toolUseBlocks = firstResponse.content.filter(
+        while (loopResponse.stop_reason === 'tool_use' && iterations < MAX_ITERATIONS) {
+          iterations++
+          const toolUseBlocks = loopResponse.content.filter(
             (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
           )
 
-          let askedQuestion = false
-
+          // Run all tools in this turn (sequentially to preserve order)
+          const toolResults: Anthropic.ToolResultBlockParam[] = []
           for (const toolUse of toolUseBlocks) {
-            const input = toolUse.input as Record<string, unknown>
-
-            try {
-              // ── search_web ───────────────────────────────────────────────
-              if (toolUse.name === 'search_web') {
-                const query = String(input.query ?? '')
-                const includeImages = Boolean(input.include_images)
-                const searchLabel = `Searching the web…`
-                send({ type: 'step', label: searchLabel, icon: 'think', status: 'active' })
-                const { text, imageUrls } = await tavilySearch(query, includeImages)
-                let content = text
-                if (imageUrls.length > 0) {
-                  content += `\n\nWEB IMAGES AVAILABLE AS REFERENCES (pass as web_reference_urls in generate_image):\n${imageUrls.map((u, i) => `${i + 1}. ${u}`).join('\n')}`
-                }
-                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content })
-                send({ type: 'step', label: searchLabel, icon: 'think', status: 'done' })
-
-              // ── generate_image ───────────────────────────────────────────
-              } else if (toolUse.name === 'generate_image') {
-                const imgNum = canvasItems.filter(i => i.kind === 'image').length + 1
-                const totalImgs = toolUseBlocks.filter(b => b.name === 'generate_image').length
-                const label = totalImgs > 1 ? `Rendering slide ${imgNum} of ${totalImgs}…` : 'Rendering image…'
-                send({ type: 'step', label, icon: 'image', status: 'active' })
-
-                if (balance < 5) {
-                  canvasItems.push({ kind: 'error', id: nanoid(), message: 'Insufficient credits — need 5 to generate an image.' })
-                  toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: insufficient credits', is_error: true })
-                  send({ type: 'step', label: 'Rendering image…', icon: 'image', status: 'done' })
-                  continue
-                }
-
-                const prompt = String(input.prompt ?? '')
-                const ratio = String(input.ratio ?? '1:1')
-                const style = (input.style ?? 'realistic') as 'realistic' | 'artistic' | 'professional' | 'minimalist'
-                const webRefUrls = Array.isArray(input.web_reference_urls)
-                  ? (input.web_reference_urls as string[]).slice(0, 3)
-                  : []
-
-                // Build reference images: user-uploaded + web-fetched
-                const userRef = referenceImageBase64
-                  ? [{ base64: referenceImageBase64, mimeType: referenceImageMimeType }]
-                  : []
-                let webRefs: Array<{ base64: string; mimeType: string }> = []
-                if (webRefUrls.length > 0) {
-                  send({ type: 'step', label: 'Fetching web references…', icon: 'think', status: 'active' })
-                  const fetched = await Promise.all(webRefUrls.map(fetchImageAsBase64))
-                  webRefs = fetched.filter(Boolean) as Array<{ base64: string; mimeType: string }>
-                  send({ type: 'step', label: 'Fetching web references…', icon: 'think', status: 'done' })
-                }
-                const allRefs = [...userRef, ...webRefs]
-                const hasWebRefs = webRefs.length > 0
-
-                const result = await generateNanoBananaImage(prompt, {
-                  style,
-                  ratio: ratio as '1:1' | '4:5' | '9:16' | '16:9',
-                  referenceImages: allRefs.length > 0 ? allRefs : undefined,
-                  referenceHint: allRefs.length > 0
-                    ? hasWebRefs
-                      ? 'Use the attached web reference images as the visual foundation — replicate their color palette, UI layout, design language, and composition as closely as possible in the generated image.'
-                      : 'Use the attached reference image as the primary visual style guide — mirror its color palette, lighting quality, background textures, composition, and mood.'
-                    : undefined,
-                })
-                const fileName = `studio/${user.id}-${Date.now()}.png`
-                await supabase.storage.from('ugc-assets').upload(fileName, Buffer.from(result.imageBase64, 'base64'), { contentType: result.mimeType, upsert: false })
-                const { data: urlData } = supabase.storage.from('ugc-assets').getPublicUrl(fileName)
-
-                const d1 = await deductCredits(supabase, user.id, 5, balance, packCredits)
-                balance = d1.newBalance; packCredits = d1.newPackCredits
-
-                canvasItems.push({ kind: 'image', id: nanoid(), url: urlData.publicUrl, prompt, ratio, credits: 5 })
-                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Image generated and added to canvas.' })
-                send({ type: 'step', label: totalImgs > 1 ? `Slide ${imgNum} of ${totalImgs} ready` : 'Image ready', icon: 'image', status: 'done' })
-
-              // ── generate_social_captions ────────────────────────────────
-              } else if (toolUse.name === 'generate_social_captions') {
-                send({ type: 'step', label: 'Writing captions…', icon: 'social', status: 'active' })
-
-                if (balance < 5) {
-                  canvasItems.push({ kind: 'error', id: nanoid(), message: 'Insufficient credits — need 5 to generate captions.' })
-                  toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: insufficient credits', is_error: true })
-                  send({ type: 'step', label: 'Writing captions…', icon: 'social', status: 'done' })
-                  continue
-                }
-
-                const topic = String(input.topic ?? '')
-                const platforms = Array.isArray(input.platforms) ? input.platforms.map(String) : ['instagram', 'facebook', 'twitter', 'linkedin']
-                const tone = String(input.tone ?? 'bold')
-
-                const haikuClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-                const captionRes = await haikuClient.messages.create({
-                  model: 'claude-haiku-4-5-20251001',
-                  max_tokens: 1200,
-                  messages: [{
-                    role: 'user',
-                    content: `Write social media captions for: ${platforms.join(', ')}.\nTopic: ${topic}\nTone: ${tone}\n${brandPrompt ? `Brand:\n${brandPrompt}` : ''}\nReturn ONLY a JSON object with platform keys.`,
-                  }],
-                })
-
-                const raw = captionRes.content[0].type === 'text' ? captionRes.content[0].text.trim() : '{}'
-                const posts: Record<string, string> = (() => { try { return JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1)) } catch { return {} } })()
-
-                const d2 = await deductCredits(supabase, user.id, 5, balance, packCredits)
-                balance = d2.newBalance; packCredits = d2.newPackCredits
-
-                canvasItems.push({ kind: 'social', id: nanoid(), posts, topic, credits: 5 })
-                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Captions written and added to canvas.' })
-                send({ type: 'step', label: 'Captions ready', icon: 'social', status: 'done' })
-
-              // ── generate_voiceover ──────────────────────────────────────
-              } else if (toolUse.name === 'generate_voiceover') {
-                send({ type: 'step', label: 'Recording voiceover…', icon: 'voice', status: 'active' })
-
-                if (balance < 5) {
-                  canvasItems.push({ kind: 'error', id: nanoid(), message: 'Insufficient credits — need 5 to generate a voiceover.' })
-                  toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: insufficient credits', is_error: true })
-                  send({ type: 'step', label: 'Recording voiceover…', icon: 'voice', status: 'done' })
-                  continue
-                }
-
-                const script = String(input.script ?? '')
-                const voiceId = VOICE_IDS[String(input.voice_style ?? 'professional')] ?? VOICE_IDS.professional
-                const voiceResult = await generateVoice(script, voiceId, 0.5, 0.75)
-
-                const d3 = await deductCredits(supabase, user.id, 5, balance, packCredits)
-                balance = d3.newBalance; packCredits = d3.newPackCredits
-
-                canvasItems.push({ kind: 'voice', id: nanoid(), audioUrl: voiceResult.audioUrl, text: script, duration: voiceResult.duration, credits: 5 })
-                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Voiceover recorded and added to canvas.' })
-                send({ type: 'step', label: 'Voiceover ready', icon: 'voice', status: 'done' })
-
-              // ── create_ugc_brief ────────────────────────────────────────
-              } else if (toolUse.name === 'create_ugc_brief') {
-                send({ type: 'step', label: 'Planning UGC brief…', icon: 'brief', status: 'active' })
-
-                const briefClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-                const briefRes = await briefClient.messages.create({
-                  model: 'claude-haiku-4-5-20251001',
-                  max_tokens: 1000,
-                  messages: [{
-                    role: 'user',
-                    content: `UGC video brief.\nProduct: ${input.product}\nGoal: ${input.goal}\nDuration: ${input.duration}\nTone: ${input.tone}\nPlatform: ${input.platform}\n${brandPrompt ? `Brand:\n${brandPrompt}` : ''}\nReturn ONLY JSON: {"title":"...","hook":"...","scenes":["...","...","..."],"cta":"..."}`,
-                  }],
-                })
-
-                const rawB = briefRes.content[0].type === 'text' ? briefRes.content[0].text.trim() : '{}'
-                const briefData = (() => { try { return JSON.parse(rawB.slice(rawB.indexOf('{'), rawB.lastIndexOf('}') + 1)) } catch { return { title: 'UGC Brief', hook: '', scenes: [], cta: '' } } })()
-
-                canvasItems.push({ kind: 'brief', id: nanoid(), title: briefData.title ?? 'UGC Brief', hook: briefData.hook ?? '', scenes: Array.isArray(briefData.scenes) ? briefData.scenes : [], cta: briefData.cta ?? '', platform: String(input.platform ?? '') })
-                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Brief created and added to canvas.' })
-                send({ type: 'step', label: 'Brief ready', icon: 'brief', status: 'done' })
-
-              } else if (toolUse.name === 'ask_clarification') {
-                const q = String(input.question ?? '')
-                const opts = Array.isArray(input.options) ? input.options.map(String) : []
-                send({ type: 'question', prompt: q, options: opts })
-                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Question shown to user.' })
-                askedQuestion = true
-              } else {
-                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Unknown tool', is_error: true })
-              }
-            } catch (toolErr) {
-              const errMsg = toolErr instanceof Error ? toolErr.message : 'Tool execution failed'
-              canvasItems.push({ kind: 'error', id: nanoid(), message: errMsg })
-              toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: `Error: ${errMsg}`, is_error: true })
-            }
+            const result = await runTool(toolUse)
+            toolResults.push(result)
           }
 
-          if (!askedQuestion) {
-            // ── Step N: Final reply from Claude ───────────────────────────
-            send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'active' })
+          if (askedQuestion) break
 
-            const secondResponse = await anthropic.messages.create({
+          // Append this turn's assistant message + tool results to the message chain
+          agentMessages.push({ role: 'assistant', content: loopResponse.content })
+          agentMessages.push({ role: 'user', content: toolResults })
+
+          // Call Claude again — WITH tools so it can continue (e.g. search then generate)
+          loopResponse = await anthropic.messages.create({
+            model: claudeModel,
+            max_tokens: 4096,
+            system: systemPrompt,
+            tools,
+            messages: agentMessages,
+          })
+        }
+
+        // Final text reply
+        if (!askedQuestion) {
+          send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'active' })
+
+          let replyText = cleanReply(
+            loopResponse.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('\n')
+          )
+
+          // If Claude still narrated without generating (no canvas items and no reply), force a real reply
+          if (!replyText && canvasItems.length === 0) {
+            const fallback = await anthropic.messages.create({
               model: claudeModel,
               max_tokens: 256,
               system: systemPrompt,
-              // No tools — force a plain text reply so Claude doesn't try to call tools again
-              messages: [
-                ...conversationMessages,
-                { role: 'assistant', content: firstResponse.content },
-                { role: 'user', content: toolResults },
-              ],
+              messages: [...agentMessages, { role: 'assistant', content: loopResponse.content }, { role: 'user', content: [{ type: 'text', text: 'Please respond to my request now.' }] }],
             })
-
-            const replyText = cleanReply(
-              secondResponse.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('\n')
+            replyText = cleanReply(
+              fallback.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('\n')
             )
-
-            send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'done' })
-            // Deduct conversation credit for this Claude turn
-            const convCost = MODEL_CREDITS[modelKey] ?? 3
-            await deductCredits(supabase, user.id, convCost, balance, packCredits)
-            send({ type: 'result', reply: replyText, canvasItems })
-          } else {
-            // Question asked — deduct credits, emit result
-            const convCost = MODEL_CREDITS[modelKey] ?? 3
-            await deductCredits(supabase, user.id, convCost, balance, packCredits)
-            if (canvasItems.length > 0) {
-              send({ type: 'result', reply: '', canvasItems })
-            } else {
-              send({ type: 'result', reply: '', canvasItems: [] })
-            }
           }
 
-        } else {
-          // Pure conversational reply — no tools, deduct credits
-          const replyText = cleanReply(
-            firstResponse.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('\n')
-          )
+          send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'done' })
           const convCost = MODEL_CREDITS[modelKey] ?? 3
           await deductCredits(supabase, user.id, convCost, balance, packCredits)
-          send({ type: 'result', reply: replyText, canvasItems: [] })
+          send({ type: 'result', reply: replyText, canvasItems })
+        } else {
+          const convCost = MODEL_CREDITS[modelKey] ?? 3
+          await deductCredits(supabase, user.id, convCost, balance, packCredits)
+          send({ type: 'result', reply: '', canvasItems })
         }
 
       } catch (err) {
