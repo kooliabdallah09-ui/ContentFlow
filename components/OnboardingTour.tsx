@@ -54,78 +54,90 @@ function IconZap() {
   )
 }
 
-// ── Mini-mockup illustrations (rendered at 2× then scaled to 380×160) ─────────
-// Card styles copy the exact production code from ProductStudio.tsx + influencers/page.tsx
-function IlluWrap({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ width: '100%', height: 160, overflow: 'hidden', position: 'relative', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
-      <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: 760, height: 320, padding: '18px 22px 0', boxSizing: 'border-box' }}>
-        {children}
-      </div>
-    </div>
-  )
-}
-
-// Shared header row used by most steps
-function IlluHeader({ title, italic, sub, btn }: { title: string; italic?: string; sub?: string; btn: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
-      <div>
-        <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 36, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1, margin: 0 }}>
-          {title}{italic && <> <em>{italic}</em></>}
-        </h1>
-        {sub && <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: '5px 0 0' }}>{sub}</p>}
-      </div>
-      <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
-        {btn}
-      </div>
-    </div>
-  )
-}
+// ── Illustrations — each rendered at 760px inner width, scaled to 380px ──────
 
 function IlluDashboard() {
-  const tiles = [
-    { label: 'UGC Package', sub: 'Talking-head ads', dot: '#D97706' },
-    { label: 'Image', sub: 'AI product shots', dot: '#0EA5E9' },
-    { label: 'Voiceover', sub: 'ElevenLabs', dot: '#6366F1' },
-    { label: 'Blog', sub: 'SEO article', dot: '#10B981' },
-  ]
   return (
-    <IlluWrap>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
-        <div>
-          <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 40, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.05, margin: 0 }}>
-            Good afternoon, S.
-          </h1>
-          <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 40, fontWeight: 400, color: 'var(--ink-dim)', letterSpacing: '-0.02em', lineHeight: 1.05, margin: '4px 0 0', fontStyle: 'italic' }}>
-            What are we making today?
-          </h1>
+    <>
+      <div style={{ padding: '24px 28px' }}>
+        <div style={{ fontSize: 11, color: 'var(--ink-mute)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 20, fontFamily: 'var(--font-mono, monospace)' }}>
+          STUDIO · DASHBOARD
         </div>
-        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 99, padding: '8px 18px', fontSize: 14, fontWeight: 700, flexShrink: 0, marginBottom: 4 }}>30 cr</div>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
-        {tiles.map((t, i) => (
-          <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '16px 14px', background: 'var(--surface)', cursor: 'pointer' }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.dot, marginBottom: 12 }} />
-            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t.label}</div>
-            <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{t.sub}</div>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 52, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.05, margin: '0 0 4px', letterSpacing: '-0.02em' }}>
+          Good afternoon, S.
+        </h1>
+        <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 52, fontWeight: 400, color: 'var(--ink-dim)', fontStyle: 'italic', lineHeight: 1.05, margin: '0 0 24px', letterSpacing: '-0.02em' }}>
+          What are we making today?
+        </h1>
+        <div style={{ background: 'linear-gradient(120deg,#FBF7EC,#F3EBD6)', border: '1px solid #EADFBB', borderRadius: 18, padding: '18px 24px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: '#2C1F0A' }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 4 }}>Available credits</div>
+            <div style={{ fontFamily: 'Georgia, serif', fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1 }}>30</div>
           </div>
-        ))}
+          <div style={{ width: 1, height: 36, background: '#E4D2A0', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 10, color: '#8A8264', marginBottom: 4 }}>Monthly allocation</div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>0 · Free plan</div>
+          </div>
+          <div style={{ width: 1, height: 36, background: '#E4D2A0', flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 10, color: '#8A8264', marginBottom: 4 }}>Reset date</div>
+            <div style={{ fontSize: 15, fontWeight: 600 }}>Sep 1, 2026</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+          {[
+            { l: 'UGC Package', s: 'Talking-head · 9:16', d: '#D97706' },
+            { l: 'Image',       s: 'AI product shots',    d: '#0EA5E9' },
+            { l: 'Voiceover',   s: 'ElevenLabs · per clip', d: '#6366F1' },
+            { l: 'Social',      s: 'AI copywriting',      d: '#F59E0B' },
+          ].map((t, i) => (
+            <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '16px 14px', background: 'var(--surface)', cursor: 'pointer' }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.d, marginBottom: 14 }} />
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, lineHeight: 1.2 }}>{t.l}</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{t.s}</div>
+            </div>
+          ))}
+        </div>
       </div>
-    </IlluWrap>
+    </>
   )
 }
 
 function IlluProductStudio() {
-  // Exact card style from ProductStudio.tsx line 988
   const products = [
-    { name: 'Summer Serum', cat: 'Beauty', grad: 'linear-gradient(135deg,#f5ede0,#d4b896,#b89070)' },
+    { name: 'Summer Serum', cat: 'Beauty',   grad: 'linear-gradient(135deg,#f5ede0,#d4b896,#b89070)' },
     { name: 'Night Cream',  cat: 'Skincare', grad: 'linear-gradient(135deg,#e8f0ec,#c0d4c8,#8aaa98)' },
     { name: 'Face Wash',    cat: 'Cleanser', grad: 'linear-gradient(135deg,#e8eaf5,#b8bce0,#8890c8)' },
   ]
   return (
-    <IlluWrap>
-      <IlluHeader title="Product" italic="studio" sub="Add your product once — shoot it in endless aesthetics." btn="✦ Add product" />
+    <div style={{ padding: '24px 28px' }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 22, borderBottom: '1px solid var(--border)' }}>
+        {['Influencers', 'Products', 'Scenes'].map((tab, i) => (
+          <div key={i} style={{
+            fontSize: 13, fontWeight: i === 1 ? 700 : 500,
+            color: i === 1 ? 'var(--ink)' : 'var(--ink-mute)',
+            padding: '8px 18px',
+            borderBottom: i === 1 ? '2px solid var(--ink)' : '2px solid transparent',
+            marginBottom: -1,
+            cursor: 'pointer',
+          }}>{tab}</div>
+        ))}
+      </div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+        <div>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1, margin: '0 0 6px' }}>
+            Product <em>studio</em>
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>Add your product once — shoot it in endless aesthetics.</p>
+        </div>
+        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+          ✦ Add product
+        </div>
+      </div>
+      {/* Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {products.map((p, i) => (
           <div key={i} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)' }}>
@@ -136,26 +148,51 @@ function IlluProductStudio() {
             </div>
           </div>
         ))}
-        {/* Dashed ghost tile — exact copy from ProductStudio.tsx line 998 */}
+        {/* Dashed ghost tile */}
         <div style={{ border: '1.5px dashed var(--border)', borderRadius: 14, background: 'transparent', minHeight: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/></svg>
           <span style={{ fontSize: 12.5, fontWeight: 600 }}>Add another</span>
         </div>
       </div>
-    </IlluWrap>
+    </div>
   )
 }
 
 function IlluInfluencerStudio() {
-  // Exact card style from influencers/page.tsx lines 1259-1270
   const actors = [
-    { name: 'Tom Harland',   handle: '@tomharland',   niche: 'fitness, film',    grad: 'linear-gradient(to bottom,#c8b8a8 0%,#907868 45%,#3a2c24 100%)' },
-    { name: 'Marcus Vael',   handle: '@marcusvael',   niche: "men's style",      grad: 'linear-gradient(to bottom,#b8a898 0%,#806858 45%,#2e2218 100%)' },
-    { name: 'Mara Soleil',   handle: '@marasoleil',   niche: 'lifestyle, beauty', grad: 'linear-gradient(to bottom,#e0c8b0 0%,#c09880 45%,#6a4838 100%)' },
+    { name: 'Tom Harland',  handle: '@tomharland',  niche: 'fitness, film',     grad: 'linear-gradient(to bottom,#c8b8a8 0%,#907868 45%,#3a2c24 100%)' },
+    { name: 'Marcus Vael',  handle: '@marcusvael',  niche: "men's style",       grad: 'linear-gradient(to bottom,#b8a898 0%,#806858 45%,#2e2218 100%)' },
+    { name: 'Mara Soleil',  handle: '@marasoleil',  niche: 'lifestyle, beauty', grad: 'linear-gradient(to bottom,#e0c8b0 0%,#c09880 45%,#6a4838 100%)' },
+    { name: 'Marco Reyes',  handle: '@marcoreyes',  niche: 'streetwear, art',   grad: 'linear-gradient(to bottom,#a8a0b0 0%,#706880 45%,#302838 100%)' },
   ]
   return (
-    <IlluWrap>
-      <IlluHeader title="Influencer" italic="studio" sub="Describe a character once — get a persistent AI influencer." btn="✦ Create new influencer" />
+    <div style={{ padding: '24px 28px' }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 22, borderBottom: '1px solid var(--border)' }}>
+        {['Influencers BETA', 'Products BETA', 'Scenes'].map((tab, i) => (
+          <div key={i} style={{
+            fontSize: 13, fontWeight: i === 0 ? 700 : 500,
+            color: i === 0 ? 'var(--ink)' : 'var(--ink-mute)',
+            padding: '8px 18px',
+            borderBottom: i === 0 ? '2px solid var(--ink)' : '2px solid transparent',
+            marginBottom: -1,
+            cursor: 'pointer',
+          }}>{tab}</div>
+        ))}
+      </div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+        <div>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1, margin: '0 0 6px' }}>
+            Influencer <em>studio</em>
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>Describe a character once — get a persistent AI influencer.</p>
+        </div>
+        <div style={{ border: '1px solid var(--border)', color: 'var(--ink)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+          ✦ Create new influencer
+        </div>
+      </div>
+      {/* Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {actors.map((a, i) => (
           <div key={i} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)' }}>
@@ -167,92 +204,147 @@ function IlluInfluencerStudio() {
             </div>
           </div>
         ))}
-        {/* Dashed ghost tile — exact copy from influencers/page.tsx line 1272 */}
-        <div style={{ border: '1.5px dashed var(--border)', borderRadius: 14, background: 'transparent', minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>
-          <span style={{ fontSize: 12.5, fontWeight: 600 }}>Create influencer</span>
-        </div>
       </div>
-    </IlluWrap>
+    </div>
   )
 }
 
 function IlluCampaigns() {
   const campaigns = [
-    { name: 'Summer Launch',  meta: 'Beauty · Maya · 12 shots · Launch',    badge: 'ACTIVE', bc: '#16a34a' },
+    { name: 'Summer Launch',   meta: 'Beauty · Maya · 12 shots · Launch',    badge: 'ACTIVE', bc: '#16a34a' },
     { name: 'Fall Collection', meta: 'Fashion · Alex · 8 shots · Awareness', badge: 'DRAFT',  bc: '#6b7280' },
   ]
   return (
-    <IlluWrap>
-      <IlluHeader title="Campaigns" sub="Map out a full content strategy — the AI writes the shot list." btn="New campaign" />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+    <div style={{ padding: '24px 28px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+        <div>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1, margin: '0 0 6px' }}>
+            Campaigns
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>Map out a full content strategy — the AI writes the shot list.</p>
+        </div>
+        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+          New campaign
+        </div>
+      </div>
+      {/* Campaign rows */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {campaigns.map((c, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 14, background: 'var(--surface)' }}>
-            <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--border)', flexShrink: 0 }} />
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', border: '1px solid var(--border)', borderRadius: 14, background: 'var(--surface)' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 10, background: 'var(--border)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</div>
                 <div style={{ background: c.bc + '22', color: c.bc, fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 99, letterSpacing: '0.06em' }}>{c.badge}</div>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{c.meta}</div>
+              <div style={{ fontSize: 12.5, color: 'var(--ink-mute)' }}>{c.meta}</div>
             </div>
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
           </div>
         ))}
       </div>
-    </IlluWrap>
+    </div>
   )
 }
 
 function IlluShooting() {
-  // Mirrors the studio-composer layout from ProductStudio.tsx
   const shots = [
-    { grad: 'linear-gradient(135deg,#f5ede0,#c8a878,#8a6840)' },
-    { grad: 'linear-gradient(135deg,#e8f0ec,#a8c8b0,#507860)' },
-    { grad: 'linear-gradient(135deg,#e8eaf5,#a8b0e0,#485898)' },
-    { grad: 'linear-gradient(135deg,#f8e8e0,#e0a898,#a86050)' },
+    { grad: 'linear-gradient(135deg,#f5ede0,#c8a878,#8a6840)', label: 'Golden hour' },
+    { grad: 'linear-gradient(135deg,#e8f0ec,#a8c8b0,#507860)', label: 'Studio white' },
+    { grad: 'linear-gradient(135deg,#e8eaf5,#a8b0e0,#485898)', label: 'Street editorial' },
+    { grad: 'linear-gradient(135deg,#f8e8e0,#e0a898,#a86050)', label: 'Custom scene' },
   ]
   return (
-    <IlluWrap>
-      <IlluHeader title="Product" italic="studio" sub="Shoot your product in any aesthetic — art-directed by AI." btn="✦ Shoot" />
+    <div style={{ padding: '24px 28px' }}>
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 22, borderBottom: '1px solid var(--border)' }}>
+        {['Influencers', 'Products', 'Scenes'].map((tab, i) => (
+          <div key={i} style={{
+            fontSize: 13, fontWeight: i === 1 ? 700 : 500,
+            color: i === 1 ? 'var(--ink)' : 'var(--ink-mute)',
+            padding: '8px 18px',
+            borderBottom: i === 1 ? '2px solid var(--ink)' : '2px solid transparent',
+            marginBottom: -1,
+            cursor: 'pointer',
+          }}>{tab}</div>
+        ))}
+      </div>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 22 }}>
+        <div>
+          <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1, margin: '0 0 6px' }}>
+            Product <em>studio</em>
+          </h1>
+          <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>Shoot your product in any aesthetic — art-directed by AI.</p>
+        </div>
+        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+          ✦ Shoot
+        </div>
+      </div>
+      {/* Generated photo grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {shots.map((s, i) => (
           <div key={i} style={{ borderRadius: 13, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', position: 'relative' }}>
             <div style={{ width: '100%', aspectRatio: '4/5', background: s.grad }} />
             <span style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 9.5, fontWeight: 600, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '3px 8px', borderRadius: 999 }}>
-              {['Golden hour', 'Studio white', 'Editorial', 'Street'][i]}
+              {s.label}
             </span>
           </div>
         ))}
       </div>
-    </IlluWrap>
+    </div>
   )
 }
 
 function IlluBilling() {
   const plans = [
-    { name: 'Lite',    price: '$6',  credits: '200 cr/mo',   pop: false, current: true },
-    { name: 'Starter', price: '$19', credits: '800 cr/mo',   pop: false, current: false },
-    { name: 'Pro',     price: '$49', credits: '2,000 cr/mo', pop: true,  current: false },
-    { name: 'Agency',  price: '$149',credits: '6,500 cr/mo', pop: false, current: false },
+    { name: 'Lite',    price: '$6',   credits: '200 cr/mo',   pop: false, current: false },
+    { name: 'Starter', price: '$19',  credits: '800 cr/mo',   pop: false, current: true  },
+    { name: 'Pro',     price: '$49',  credits: '2,000 cr/mo', pop: true,  current: false },
+    { name: 'Agency',  price: '$149', credits: '6,500 cr/mo', pop: false, current: false },
   ]
   return (
-    <IlluWrap>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
-        <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 32, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>
-          Billing &amp; <em>Credits</em>
-        </h1>
-        <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>Manage your subscription and credits.</span>
+    <div style={{ padding: '24px 28px' }}>
+      {/* Title */}
+      <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', margin: '0 0 18px', lineHeight: 1.1 }}>
+        Billing &amp; <em>Credits</em>
+      </h1>
+      {/* Credits bar */}
+      <div style={{ background: 'linear-gradient(120deg,#FBF7EC,#F3EBD6)', border: '1px solid #EADFBB', borderRadius: 16, padding: '16px 22px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: '#2C1F0A' }}>
+        <div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 3 }}>Available credits</div>
+          <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, letterSpacing: '-0.02em', lineHeight: 1 }}>30</div>
+        </div>
+        <div style={{ width: 1, height: 34, background: '#E4D2A0', flexShrink: 0 }} />
+        <div>
+          <div style={{ fontSize: 10, color: '#8A8264', marginBottom: 3 }}>Plan</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Starter · $19/mo</div>
+        </div>
+        <div style={{ width: 1, height: 34, background: '#E4D2A0', flexShrink: 0 }} />
+        <div>
+          <div style={{ fontSize: 10, color: '#8A8264', marginBottom: 3 }}>Reset</div>
+          <div style={{ fontSize: 14, fontWeight: 600 }}>Sep 1, 2026</div>
+        </div>
       </div>
+      {/* Monthly/Annual toggle */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 99, display: 'flex', padding: 3, gap: 2 }}>
+          <div style={{ padding: '5px 16px', borderRadius: 99, background: 'var(--ink)', color: 'var(--on-ink, #fff)', fontSize: 12, fontWeight: 600 }}>Monthly</div>
+          <div style={{ padding: '5px 16px', borderRadius: 99, fontSize: 12, fontWeight: 500, color: 'var(--ink-mute)' }}>Annual</div>
+        </div>
+        <div style={{ fontSize: 11.5, color: '#16a34a', fontWeight: 600 }}>Save 20% with annual</div>
+      </div>
+      {/* Plan cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
         {plans.map((p, i) => (
-          <div key={i} style={{ position: 'relative', border: p.pop ? '2px solid var(--ink)' : p.current ? '1.5px solid var(--ink)' : '1px solid var(--border)', borderRadius: 14, padding: '16px 14px', background: 'var(--surface)' }}>
+          <div key={i} style={{ position: 'relative', border: p.pop ? '2px solid var(--ink)' : p.current ? '1.5px solid var(--ink)' : '1px solid var(--border)', borderRadius: 14, padding: '18px 14px', background: 'var(--surface)' }}>
             {(p.pop || p.current) && (
               <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--ink)', color: 'var(--on-ink, #fff)', fontSize: 8, fontWeight: 700, padding: '2px 9px', borderRadius: 99, whiteSpace: 'nowrap', letterSpacing: '0.06em' }}>
                 {p.current ? 'CURRENT PLAN' : 'MOST POPULAR'}
               </div>
             )}
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{p.name}</div>
+            <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'var(--font-mono, monospace)', color: 'var(--ink-mute)', marginBottom: 8 }}>{p.name}</div>
             <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.04em', lineHeight: 1 }}>
               {p.price}<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--ink-mute)' }}>/mo</span>
             </div>
@@ -263,12 +355,21 @@ function IlluBilling() {
           </div>
         ))}
       </div>
-    </IlluWrap>
+    </div>
   )
 }
 
 // ── Step definitions ──────────────────────────────────────────────────────────
-const STEPS: { Icon: () => React.ReactElement; label: string; title: string; body: ReactNode; illustration: React.ReactElement; tip: string | null; cta: string; href: string | null }[] = [
+const STEPS: {
+  Icon: () => React.ReactElement
+  label: string
+  title: string
+  body: ReactNode
+  illustration: React.ReactElement
+  tip: string | null
+  cta: string
+  href: string | null
+}[] = [
   {
     Icon: IconSpark,
     label: 'Welcome',
@@ -359,144 +460,167 @@ export default function OnboardingTour() {
   if (!visible) return null
 
   const current = STEPS[step]
-  const progress = ((step) / (STEPS.length - 1)) * 100
+  const progress = (step / (STEPS.length - 1)) * 100
 
   return (
     <>
       {/* Backdrop */}
       <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(4px)' }} />
 
-      {/* Tour card */}
+      {/* Tour card — two-panel flex container */}
       <div style={{
         position: 'fixed', zIndex: 1000,
         bottom: 32, right: 32,
-        width: 380,
+        display: 'flex', flexDirection: 'row',
         borderRadius: 20,
-        background: 'var(--bg)',
+        overflow: 'hidden',
         border: '1px solid var(--border)',
         boxShadow: '0 32px 80px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.1)',
-        overflow: 'hidden',
         animation: 'tourIn 0.35s cubic-bezier(0.16,1,0.3,1)',
       }}>
 
-        {/* Progress bar */}
-        <div style={{ height: 3, background: 'var(--border)' }}>
-          <div style={{ height: '100%', background: 'var(--ink)', width: `${progress}%`, transition: 'width 0.4s ease' }} />
+        {/* LEFT panel — illustration */}
+        <div className="tour-illu-panel" style={{
+          width: 380, height: 560, flexShrink: 0,
+          borderRight: '1px solid var(--border)',
+          overflow: 'hidden', position: 'relative',
+          background: 'var(--bg)',
+        }}>
+          {/* Slight overlay when confirmSkip is active */}
+          {confirmSkip && (
+            <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.12)', zIndex: 1 }} />
+          )}
+          {/* Scale wrapper: inner content at 760px, scaled 50% → 380px */}
+          <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: 760 }}>
+            {current.illustration}
+          </div>
         </div>
 
-        {/* Step illustration */}
-        {current.illustration}
-
-        <div style={{ padding: '20px 24px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-          {/* Header row */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            {/* Step pills */}
-            <div style={{ display: 'flex', gap: 4 }}>
-              {STEPS.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => setStep(i)}
-                  title={s.label}
-                  style={{
-                    padding: '3px 8px', borderRadius: 999, border: 'none', cursor: 'pointer', fontSize: 10.5, fontWeight: 600,
-                    fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase',
-                    background: i === step ? 'var(--ink)' : i < step ? 'var(--border)' : 'transparent',
-                    color: i === step ? 'var(--on-ink)' : i < step ? 'var(--ink-dim)' : 'var(--ink-mute)',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {i < step ? '✓' : i + 1}
-                </button>
-              ))}
-            </div>
-
-            {/* Skip all */}
-            <button
-              onClick={() => setConfirmSkip(true)}
-              style={{ fontSize: 12, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
-            >
-              Skip all
-            </button>
+        {/* RIGHT panel — step content */}
+        <div style={{
+          width: 380, flexShrink: 0, height: 560,
+          display: 'flex', flexDirection: 'column',
+          overflow: 'hidden',
+          background: 'var(--bg)',
+        }}>
+          {/* Progress bar — 3px full-width at top */}
+          <div style={{ height: 3, background: 'var(--border)', flexShrink: 0 }}>
+            <div style={{ height: '100%', background: 'var(--ink)', width: `${progress}%`, transition: 'width 0.4s ease' }} />
           </div>
 
-          {/* Skip confirmation */}
-          {confirmSkip && (
-            <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(234,88,12,0.06)', border: '1px solid rgba(234,88,12,0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9a3412' }}>Not recommended</div>
-              <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>Skipping the guide means you may miss key setup steps. Your content quality will be lower without a product and actor configured first.</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setConfirmSkip(false)}
-                  style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid rgba(234,88,12,0.3)', background: 'transparent', fontSize: 12, fontWeight: 600, color: '#9a3412', cursor: 'pointer' }}
-                >
-                  Keep going
-                </button>
-                <button
-                  onClick={dismiss}
-                  style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: 'rgba(234,88,12,0.12)', fontSize: 12, fontWeight: 600, color: '#9a3412', cursor: 'pointer' }}
-                >
-                  Skip anyway
-                </button>
-              </div>
-            </div>
-          )}
+          {/* Scrollable content */}
+          <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-          {/* Icon + step label + body + tip + footer */}
-          {!confirmSkip && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', flexShrink: 0 }}>
-                  <current.Icon />
-                </div>
-                <div>
-                  <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', marginBottom: 3 }}>
-                    {step === 0 ? 'Getting started' : `Step ${step} of ${STEPS.length - 1}`}
-                  </div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{current.title}</div>
-                </div>
-              </div>
-
-              {/* Body */}
-              <div style={{ fontSize: 13.5, color: 'var(--ink-dim)', lineHeight: 1.7 }}>{current.body}</div>
-
-              {/* Tip */}
-              {current.tip && (
-                <div style={{ padding: '10px 13px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.6 }}>
-                  <span style={{ fontWeight: 700, color: 'var(--ink)', marginRight: 4 }}>Tip.</span>
-                  {current.tip.replace('Pro tip: ', '')}
-                </div>
-              )}
-
-              {/* Footer */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 }}>
-                {step > 0 ? (
+            {/* Header row: pills + skip */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              {/* Step pills */}
+              <div style={{ display: 'flex', gap: 4 }}>
+                {STEPS.map((s, i) => (
                   <button
-                    onClick={() => setStep(s => s - 1)}
-                    style={{ fontSize: 13, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 5 }}
+                    key={i}
+                    onClick={() => setStep(i)}
+                    title={s.label}
+                    style={{
+                      padding: '3px 8px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                      fontSize: 10.5, fontWeight: 600, fontFamily: 'var(--font-mono)',
+                      letterSpacing: '0.04em', textTransform: 'uppercase',
+                      background: i === step ? 'var(--ink)' : i < step ? 'var(--border)' : 'transparent',
+                      color: i === step ? 'var(--on-ink)' : i < step ? 'var(--ink-dim)' : 'var(--ink-mute)',
+                      transition: 'all 0.2s',
+                    }}
                   >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
-                    Back
+                    {i < step ? '✓' : i + 1}
                   </button>
-                ) : <span />}
-
-                <button
-                  onClick={next}
-                  style={{
-                    padding: '10px 20px', borderRadius: 11, border: 'none',
-                    background: step === STEPS.length - 1 ? '#16a34a' : 'var(--ink)',
-                    color: 'var(--on-ink)',
-                    fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
-                    letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 7,
-                    transition: 'background 0.2s',
-                  }}
-                >
-                  {current.cta}
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                </button>
+                ))}
               </div>
-            </>
-          )}
+
+              {/* Skip all */}
+              <button
+                onClick={() => setConfirmSkip(true)}
+                style={{ fontSize: 12, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 4px' }}
+              >
+                Skip all
+              </button>
+            </div>
+
+            {/* Skip confirmation */}
+            {confirmSkip && (
+              <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(234,88,12,0.06)', border: '1px solid rgba(234,88,12,0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9a3412' }}>Not recommended</div>
+                <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>Skipping the guide means you may miss key setup steps. Your content quality will be lower without a product and actor configured first.</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => setConfirmSkip(false)}
+                    style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid rgba(234,88,12,0.3)', background: 'transparent', fontSize: 12, fontWeight: 600, color: '#9a3412', cursor: 'pointer' }}
+                  >
+                    Keep going
+                  </button>
+                  <button
+                    onClick={dismiss}
+                    style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: 'rgba(234,88,12,0.12)', fontSize: 12, fontWeight: 600, color: '#9a3412', cursor: 'pointer' }}
+                  >
+                    Skip anyway
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Icon + step label + body + tip + footer */}
+            {!confirmSkip && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', flexShrink: 0 }}>
+                    <current.Icon />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-mono)', marginBottom: 3 }}>
+                      {step === 0 ? 'Getting started' : `Step ${step} of ${STEPS.length - 1}`}
+                    </div>
+                    <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.25 }}>{current.title}</div>
+                  </div>
+                </div>
+
+                {/* Body */}
+                <div style={{ fontSize: 13.5, color: 'var(--ink-dim)', lineHeight: 1.7 }}>{current.body}</div>
+
+                {/* Tip */}
+                {current.tip && (
+                  <div style={{ padding: '10px 13px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.6 }}>
+                    <span style={{ fontWeight: 700, color: 'var(--ink)', marginRight: 4 }}>Tip.</span>
+                    {current.tip.replace('Pro tip: ', '')}
+                  </div>
+                )}
+
+                {/* Footer */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 }}>
+                  {step > 0 ? (
+                    <button
+                      onClick={() => setStep(s => s - 1)}
+                      style={{ fontSize: 13, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 5 }}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+                      Back
+                    </button>
+                  ) : <span />}
+
+                  <button
+                    onClick={next}
+                    style={{
+                      padding: '10px 20px', borderRadius: 11, border: 'none',
+                      background: step === STEPS.length - 1 ? '#16a34a' : 'var(--ink)',
+                      color: 'var(--on-ink)',
+                      fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+                      letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 7,
+                      transition: 'background 0.2s',
+                    }}
+                  >
+                    {current.cta}
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -504,6 +628,9 @@ export default function OnboardingTour() {
         @keyframes tourIn {
           from { opacity: 0; transform: translateY(20px) scale(0.96); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @media (max-width: 820px) {
+          .tour-illu-panel { display: none !important; }
         }
       `}</style>
     </>
