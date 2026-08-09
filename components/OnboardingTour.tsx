@@ -7,26 +7,25 @@ const STEPS = [
   {
     icon: '✦',
     title: 'Welcome to ContentFlow',
-    body: 'You have 60 free credits to spend. Make a UGC ad, a podcast spot, or a viral video — all AI-generated, no editing skills needed.',
+    body: 'AI content creation for brands — images, social posts, voiceovers, and more. Start exploring while we finish setting things up.',
     cta: 'Show me around →',
   },
   {
-    icon: '🎬',
-    title: 'Video Studio — your main tool',
-    body: 'Go to Video Studio in the sidebar. Drop in a product photo, pick an actor, and generate a full UGC ad in about 2 minutes.',
+    icon: '🖼️',
+    title: 'Generate AI images',
+    body: 'Go to Image in the sidebar. Drop in a product photo and get studio-quality visuals in seconds — no photographer needed.',
     cta: 'Got it →',
-    action: () => {},
   },
   {
-    icon: '🎭',
-    title: 'Studios — your talent + sets',
-    body: 'Create AI actors and podcast sets in Studios. Save them once, reuse them across every ad you make.',
+    icon: '✍️',
+    title: 'Write social posts + captions',
+    body: 'Head to Social to generate on-brand captions, hashtags, and carousel copy for Instagram, TikTok, X, and more.',
     cta: 'Nice →',
   },
   {
-    icon: '📅',
-    title: 'Dashboard — your command center',
-    body: 'Your dashboard shows your content calendar, recent generations, and analytics. Everything in one place.',
+    icon: '🎙️',
+    title: 'Record AI voiceovers',
+    body: 'Try Voiceover in the sidebar — paste a script and get a natural-sounding voice in 30+ languages within seconds.',
     cta: 'Let\'s go →',
   },
 ]
@@ -53,7 +52,7 @@ export default function OnboardingTour() {
       setStep(s => s + 1)
     } else {
       dismiss()
-      router.push('/generate/ugc')
+      router.push('/generate/image')
     }
   }
 
@@ -127,7 +126,7 @@ export default function OnboardingTour() {
               letterSpacing: '-0.01em',
             }}
           >
-            {isLast ? 'Make my first ad →' : current.cta}
+            {isLast ? 'Generate an image →' : current.cta}
           </button>
         </div>
       </div>
