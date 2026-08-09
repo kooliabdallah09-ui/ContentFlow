@@ -87,6 +87,24 @@ function sessionNameFrom(messages: Message[]): string {
   return first.length > 40 ? first.slice(0, 40) + '…' : first
 }
 
+// ─── Blob download helper (cross-origin Supabase URLs need fetch→blob) ───────
+async function downloadBlob(url: string, filename: string) {
+  try {
+    const res = await fetch(url)
+    const blob = await res.blob()
+    const blobUrl = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = blobUrl
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(blobUrl)
+  } catch {
+    window.open(url, '_blank')
+  }
+}
+
 // ─── SVG icons ───────────────────────────────────────────────────────────────
 
 const Icon = {
@@ -94,15 +112,21 @@ const Icon = {
   Caption: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>,
   Voice: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>,
   Brief: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>,
+  Logo: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v18M3 12h18"/><path d="M5.6 5.6l12.8 12.8M18.4 5.6L5.6 18.4"/></svg>,
+  Carousel: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="5" width="8" height="14" rx="1.5"/><rect x="12" y="5" width="8" height="14" rx="1.5"/><path d="M1 12h1M22 12h1"/></svg>,
+  Post: (s = 13) => <svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="14" y2="13"/></svg>,
 }
 
 // ─── Tool quick-starters ──────────────────────────────────────────────────────
 
 const TOOL_PILLS = [
-  { icon: Icon.Image,   label: 'Image',    starter: 'Generate a product photo for Instagram — ' },
-  { icon: Icon.Caption, label: 'Captions', starter: 'Write social captions for ' },
-  { icon: Icon.Voice,   label: 'Voice',    starter: 'Create a 30-second voiceover for ' },
-  { icon: Icon.Brief,   label: 'Brief',    starter: 'Plan a UGC video brief for ' },
+  { icon: Icon.Image,    label: 'Image',    starter: 'Generate a product photo for Instagram — ' },
+  { icon: Icon.Logo,     label: 'Logo',     starter: 'Generate a logo in 1:1 square format for ' },
+  { icon: Icon.Carousel, label: 'Carousel', starter: 'Make a carousel for Instagram about ' },
+  { icon: Icon.Post,     label: 'Post',     starter: 'Create a single Instagram post (1 slide) about ' },
+  { icon: Icon.Caption,  label: 'Captions', starter: 'Write social captions for ' },
+  { icon: Icon.Voice,    label: 'Voice',    starter: 'Create a 30-second voiceover for ' },
+  { icon: Icon.Brief,    label: 'Brief',    starter: 'Plan a UGC video brief for ' },
 ]
 
 const EXAMPLE_PROMPTS = [
@@ -157,7 +181,7 @@ function ImageCanvasCard({
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <p style={{ flex: 1, fontSize: 11.5, color: 'var(--ink-mute)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>{item.prompt}</p>
         <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
-        <a href={item.url} download target="_blank" rel="noreferrer" style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px', transition: 'background 0.12s' }}>↓</a>
+        <button onClick={() => downloadBlob(item.url, `studio-image-${item.id}.png`)} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer', transition: 'background 0.12s' }}>↓</button>
       </div>
     </div>
   )
@@ -303,7 +327,7 @@ function CarouselCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'carou
         <p style={{ flex: 1, fontSize: 11, color: 'var(--ink-mute)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.topic}</p>
         <span style={{ flexShrink: 0, fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
         {slide.imageUrl && (
-          <a href={slide.imageUrl} download target="_blank" rel="noreferrer" style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px' }}>&#8595;</a>
+          <button onClick={() => downloadBlob(slide.imageUrl, `carousel-slide-${activeSlide + 1}.png`)} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 8px', cursor: 'pointer' }}>&#8595;</button>
         )}
       </div>
     </div>
@@ -1306,15 +1330,12 @@ export default function StudioPage() {
             >
               {lightboxZoom ? '⊖ Zoom out' : '⊕ Zoom in'}
             </button>
-            <a
-              href={lightbox.url}
-              download
-              target="_blank"
-              rel="noreferrer"
-              style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer', textDecoration: 'none' }}
+            <button
+              onClick={() => downloadBlob(lightbox.url, 'studio-image.png')}
+              style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}
             >
               ↓ Download
-            </a>
+            </button>
             <button
               onClick={() => setLightbox(null)}
               style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}

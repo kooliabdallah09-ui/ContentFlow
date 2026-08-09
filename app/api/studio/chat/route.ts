@@ -180,6 +180,8 @@ ${brandPrompt}${refImageNote}
 WEB SEARCH RULE: Use search_web proactively whenever accuracy matters — competitor comparisons, real brand UI, current pricing/features, trending content, or any fact you're unsure about. For image tasks involving real-world UI or brands, always call search_web with include_images=true first, then pass the returned URLs as web_reference_urls to generate_image so NanoBanana can use them as visual references.
 
 CAROUSEL RULE: When asked for a carousel, swipe post, or multi-slide content — ALWAYS call generate_carousel (NOT generate_image). generate_carousel produces premium slides with professional text overlay. If the carousel involves real brands, competitors, or current data, call search_web first and pass the result as search_context to generate_carousel.
+POST RULE: A "post" or "single post" = generate_carousel with slideCount=1. Same premium text-overlay output, just one slide.
+LOGO RULE: When asked to generate a logo, ALWAYS use ratio=1:1 and style=professional. No clarification needed on format.
 
 CLARIFICATION RULE: You MUST call ask_clarification before generating images whenever ANY of the following is true:
 1. COUNT is not an explicit number (words like "some", "a few", "photos", "images" without a digit → ALWAYS ask "How many?")
