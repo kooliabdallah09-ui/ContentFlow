@@ -146,6 +146,20 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose }: SidebarProps
             <span style={{ color: '#fff', fontWeight: 600 }}>Upgrade →</span>
           </div>
         </div>
+        <button
+          onClick={() => {
+            localStorage.setItem('cf-new-user', '1')
+            window.location.reload()
+          }}
+          style={{ width: '100%', marginTop: 10, padding: '7px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, color: 'rgba(255,255,255,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, letterSpacing: '0.01em', transition: 'color 0.15s' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.65)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.35)')}
+        >
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/>
+          </svg>
+          Restart guide
+        </button>
       </div>
     </aside>
   )
