@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       resolution,
       aspect,
       selectedFrameUrl,
+      sceneId,
     } = body as {
       script?: PodcastScript
       hostInfluencerId?: string
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
       resolution?: '720p' | '1080p'
       aspect?: '9:16' | '4:5' | '1:1' | '16:9'
       selectedFrameUrl?: string
+      sceneId?: string
     }
 
     if (!script || typeof script !== 'object') return NextResponse.json({ error: 'Script required' }, { status: 400 })
@@ -70,10 +72,21 @@ export async function POST(request: NextRequest) {
     const expert: PodcastCharacter = { role: 'expert', name: expertRow.name, appearanceLine: expertRow.appearance_prompt.slice(0, 400) }
 
     // Reference images for Seedance — anchor frame first (if chosen), then
-    // character sheet + portrait per person. Cap the list to prevent
-    // overrunning the reference budget.
+    // scene anchor, character sheet + portrait per person. Cap the list to
+    // prevent overrunning the reference budget.
     const refUrls: string[] = []
     if (selectedFrameUrl) refUrls.push(selectedFrameUrl)   // anchor frame first
+    if (sceneId) {
+      try {
+        const { data: sceneRow } = await supabase
+          .from('user_scenes')
+          .select('hero_image_url, scene_prompt')
+          .eq('id', sceneId)
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (sceneRow?.hero_image_url) refUrls.push(sceneRow.hero_image_url)
+      } catch { /* best-effort */ }
+    }
     if (hostRow.character_sheet_url) refUrls.push(hostRow.character_sheet_url)
     if (hostRow.portrait_url) refUrls.push(hostRow.portrait_url)
     if (expertRow.character_sheet_url) refUrls.push(expertRow.character_sheet_url)

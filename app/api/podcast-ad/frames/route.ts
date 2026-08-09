@@ -52,12 +52,15 @@ export async function POST(request: NextRequest) {
     const userId = userData.user.id
 
     const body = await request.json()
-    const { hostInfluencerId, expertInfluencerId, productName, aspect } = body as {
+    const { hostInfluencerId, expertInfluencerId, productName, aspect, sceneId, refImageBase64, refImageMime } = body as {
       hostInfluencerId?: string
       expertInfluencerId?: string
       productName?: string
       productDescription?: string
       aspect?: '9:16' | '4:5' | '1:1' | '16:9'
+      sceneId?: string
+      refImageBase64?: string
+      refImageMime?: string
     }
 
     if (!hostInfluencerId || !expertInfluencerId) {
@@ -95,14 +98,44 @@ export async function POST(request: NextRequest) {
       fetchBase64(expertRow.portrait_url),
     ])
 
+    // Load scene if provided.
+    let scenePrompt: string | null = null
+    let sceneImageBase64: string | null = null
+    let sceneImageMime = 'image/jpeg'
+    if (sceneId) {
+      try {
+        const { data: sceneRow } = await supabase
+          .from('user_scenes')
+          .select('scene_prompt, hero_image_url')
+          .eq('id', sceneId)
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (sceneRow) {
+          scenePrompt = sceneRow.scene_prompt
+          // Fetch + base64 the scene hero image
+          const sceneRes = await fetch(sceneRow.hero_image_url)
+          if (sceneRes.ok) {
+            sceneImageMime = sceneRes.headers.get('content-type') || 'image/jpeg'
+            sceneImageBase64 = Buffer.from(await sceneRes.arrayBuffer()).toString('base64')
+          }
+        }
+      } catch { /* best-effort */ }
+    }
+
     // Generate 4 frames in parallel with different composition prompts.
-    const referenceImages = [
+    const referenceImages: Array<{ base64: string; mimeType: string }> = [
       { base64: hostImg.base64, mimeType: hostImg.mimeType },
       { base64: expertImg.base64, mimeType: expertImg.mimeType },
     ]
+    if (sceneImageBase64) referenceImages.push({ base64: sceneImageBase64, mimeType: sceneImageMime })
+    if (refImageBase64) referenceImages.push({ base64: refImageBase64, mimeType: refImageMime ?? 'image/jpeg' })
+
+    const prompts = VARIANT_PROMPTS.map(p =>
+      scenePrompt ? `${p}\n\nSCENE OVERRIDE — the podcast studio setting MUST match this environment: ${scenePrompt}. Architecture, materials, decor, palette and lighting come from this scene description (and the attached scene reference image if present). Adapt it to fit a premium podcast studio configuration.` : p
+    )
 
     const settled = await Promise.allSettled(
-      VARIANT_PROMPTS.map(prompt =>
+      prompts.map((prompt, i) =>
         generateNanoBananaImage(prompt, {
           raw: true,
           ratio: aspect ?? '9:16',

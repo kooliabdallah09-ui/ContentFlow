@@ -58,13 +58,19 @@ export default function PodcastAdPage() {
   const [selectedFrame, setSelectedFrame] = useState<string | null>(null)
   const [framesLoading, setFramesLoading] = useState(false)
 
+  const [scenes, setScenes] = useState<Array<{ id: string; name: string; category: string; hero_image_url: string; scene_prompt: string }>>([])
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null)
+  const [refImageBase64, setRefImageBase64] = useState<string | null>(null)
+  const [refImageMime, setRefImageMime] = useState<string>('image/jpeg')
+
   useEffect(() => {
     void (async () => {
       const token = await getToken()
       if (!token) return
-      const [p, i] = await Promise.all([
+      const [p, i, s] = await Promise.all([
         fetch('/api/products-studio', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ products: [] })),
         fetch('/api/influencers', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ influencers: [] })),
+        fetch('/api/scenes', { headers: { Authorization: `Bearer ${token}` } }).then(x => x.json()).catch(() => ({ scenes: [] })),
       ])
       // Normalise studio products → { id, name, image_url, description }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,8 +81,23 @@ export default function PodcastAdPage() {
         description: x.description ?? '',
       })))
       setInfluencers(i.influencers ?? [])
+      setScenes(s.scenes ?? [])
     })()
   }, [])
+
+  function handleRefImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = () => {
+      const dataUrl = reader.result as string
+      const [meta, b64] = dataUrl.split(',')
+      const mime = meta.match(/:(.*?);/)?.[1] ?? 'image/jpeg'
+      setRefImageBase64(b64)
+      setRefImageMime(mime)
+    }
+    reader.readAsDataURL(file)
+  }
 
   function selectProduct(id: string) {
     setProductId(id)
@@ -137,7 +158,7 @@ export default function PodcastAdPage() {
       const res = await fetch('/api/podcast-ad/frames', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hostInfluencerId: hostId, expertInfluencerId: expertId, productName, productDescription, aspect }),
+        body: JSON.stringify({ hostInfluencerId: hostId, expertInfluencerId: expertId, productName, productDescription, aspect, sceneId: selectedSceneId || undefined, refImageBase64: refImageBase64 || undefined, refImageMime }),
       })
       const data = await res.json()
       if (!res.ok) { showError(data.error ?? 'Frame generation failed'); return }
@@ -171,6 +192,7 @@ export default function PodcastAdPage() {
           resolution,
           aspect,
           selectedFrameUrl: selectedFrame || undefined,
+          sceneId: selectedSceneId || undefined,
         }),
       })
       const data = await res.json()
@@ -302,6 +324,47 @@ export default function PodcastAdPage() {
               </select>
             </Field>
           </div>
+
+          {/* Reference image */}
+          <Field label="Reference image (optional)">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, border: '1.5px dashed var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 13, color: 'var(--ink-2)', flexShrink: 0 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+                {refImageBase64 ? 'Change image' : 'Upload a reference photo'}
+                <input type="file" accept="image/*" onChange={handleRefImage} style={{ display: 'none' }} />
+              </label>
+              {refImageBase64 && (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={`data:${refImageMime};base64,${refImageBase64}`} alt="ref" style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 6 }} />
+                  <button type="button" onClick={() => { setRefImageBase64(null) }} style={{ fontSize: 12, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer' }}>✕ Remove</button>
+                </>
+              )}
+            </div>
+          </Field>
+
+          {/* Scene selector */}
+          {scenes.length > 0 && (
+            <Field label="Scene (optional) — pick a location from your Studio">
+              <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4 }}>
+                {scenes.map(s => {
+                  const active = selectedSceneId === s.id
+                  return (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => setSelectedSceneId(active ? null : s.id)}
+                      style={{ flexShrink: 0, padding: 5, borderRadius: 10, border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: active ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 5, width: 88 }}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.hero_image_url} alt={s.name} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 7, display: 'block' }} />
+                      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>{s.name}</div>
+                    </button>
+                  )
+                })}
+              </div>
+            </Field>
+          )}
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
             <button
