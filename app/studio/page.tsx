@@ -745,11 +745,26 @@ export default function StudioPage() {
     setPanY(touchOrigin.current.panY + t.clientY - touchOrigin.current.y)
   }
 
-  const onWheel = (e: React.WheelEvent) => {
-    e.preventDefault()
-    const delta = e.deltaY > 0 ? -0.08 : 0.08
-    setZoom(z => Math.min(3, Math.max(0.25, z + delta)))
-  }
+  // Native non-passive wheel listener — React's synthetic onWheel is passive in some browsers
+  // which prevents preventDefault from stopping page scroll.
+  // Two-finger scroll → pan; pinch (ctrlKey) → zoom. Both with reduced sensitivity.
+  useEffect(() => {
+    const el = canvasRef.current
+    if (!el) return
+    const handler = (e: WheelEvent) => {
+      e.preventDefault()
+      if (e.ctrlKey) {
+        // Pinch gesture → zoom (multiplicative, feels natural)
+        setZoom(z => Math.min(3, Math.max(0.25, z * (1 - e.deltaY * 0.004))))
+      } else {
+        // Two-finger scroll → pan (0.7 damping)
+        setPanX(x => x - e.deltaX * 0.7)
+        setPanY(y => y - e.deltaY * 0.7)
+      }
+    }
+    el.addEventListener('wheel', handler, { passive: false })
+    return () => el.removeEventListener('wheel', handler)
+  }, [])
 
   const zoomIn  = () => setZoom(z => Math.min(3, parseFloat((z + 0.2).toFixed(2))))
   const zoomOut = () => setZoom(z => Math.max(0.25, parseFloat((z - 0.2).toFixed(2))))
@@ -1075,7 +1090,6 @@ export default function StudioPage() {
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onCanvasMouseUp}
-            onWheel={onWheel}
             onClick={(e) => { if ((e.target as HTMLElement).closest('.canvas-node')) return; setSelectedNodeId(null) }}
             style={{
               flex: 1, overflow: 'hidden', position: 'relative',
