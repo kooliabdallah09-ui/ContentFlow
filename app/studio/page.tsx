@@ -469,7 +469,7 @@ export default function StudioPage() {
   const [authToken, setAuthToken] = useState<string | null>(null)
 
   // Model selector
-  const [selectedModel, setSelectedModel] = useState<'flash' | 'studio' | 'director'>('studio')
+  const [selectedModel, setSelectedModel] = useState<'lumen' | 'animus' | 'aether'>('animus')
 
   // Reference image + drag-and-drop
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
@@ -602,7 +602,7 @@ export default function StudioPage() {
       const body: Record<string, unknown> = {
         message: text.trim(),
         history: messages.map(m => ({ role: m.role, content: m.content })),
-        model: selectedModel,
+        model: selectedModel as string,
       }
       if (sentImage) {
         body.referenceImageBase64 = sentImage.dataUrl.split(',')[1]
@@ -824,9 +824,9 @@ export default function StudioPage() {
           {/* Model selector */}
           <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: 2 }}>
             {([
-              { key: 'flash',    label: 'Flash' },
-              { key: 'studio',   label: 'Studio' },
-              { key: 'director', label: 'Director' },
+              { key: 'lumen',  label: 'Lumen' },
+              { key: 'animus', label: 'Animus' },
+              { key: 'aether', label: 'Aether' },
             ] as const).map(m => (
               <button
                 key={m.key}

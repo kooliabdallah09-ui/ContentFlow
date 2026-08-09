@@ -76,9 +76,9 @@ export async function POST(req: NextRequest) {
   const selectedItemContext = body.selectedItemContext as { kind: string; imageUrl?: string; prompt?: string; text?: string } | undefined
   const modelKey: string = body.model ?? 'studio'
   const MODEL_MAP: Record<string, string> = {
-    flash:    'claude-haiku-4-5-20251001',
-    studio:   'claude-sonnet-4-6',
-    director: 'claude-opus-4-7',
+    lumen:  'claude-haiku-4-5-20251001',
+    animus: 'claude-sonnet-4-6',
+    aether: 'claude-opus-4-7',
   }
   const claudeModel = MODEL_MAP[modelKey] ?? 'claude-sonnet-4-6'
   if (!message.trim()) return Response.json({ error: 'Message required' }, { status: 400 })
