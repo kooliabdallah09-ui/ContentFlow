@@ -54,38 +54,61 @@ function IconZap() {
   )
 }
 
-// ── Mini-mockup illustrations (rendered at 2× then scaled to 380×138) ─────────
+// ── Mini-mockup illustrations (rendered at 2× then scaled to 380×160) ─────────
+// Card styles copy the exact production code from ProductStudio.tsx + influencers/page.tsx
 function IlluWrap({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ width: '100%', height: 138, overflow: 'hidden', position: 'relative', borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
-      <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: 760, height: 276, padding: '18px 24px', boxSizing: 'border-box' }}>
+    <div style={{ width: '100%', height: 160, overflow: 'hidden', position: 'relative', borderBottom: '1px solid var(--border)', background: 'var(--bg)' }}>
+      <div style={{ transform: 'scale(0.5)', transformOrigin: 'top left', width: 760, height: 320, padding: '18px 22px 0', boxSizing: 'border-box' }}>
         {children}
       </div>
     </div>
   )
 }
 
+// Shared header row used by most steps
+function IlluHeader({ title, italic, sub, btn }: { title: string; italic?: string; sub?: string; btn: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
+      <div>
+        <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 36, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1, margin: 0 }}>
+          {title}{italic && <> <em>{italic}</em></>}
+        </h1>
+        {sub && <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: '5px 0 0' }}>{sub}</p>}
+      </div>
+      <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+        {btn}
+      </div>
+    </div>
+  )
+}
+
 function IlluDashboard() {
+  const tiles = [
+    { label: 'UGC Package', sub: 'Talking-head ads', dot: '#D97706' },
+    { label: 'Image', sub: 'AI product shots', dot: '#0EA5E9' },
+    { label: 'Voiceover', sub: 'ElevenLabs', dot: '#6366F1' },
+    { label: 'Blog', sub: 'SEO article', dot: '#10B981' },
+  ]
   return (
     <IlluWrap>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 18 }}>
         <div>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 30, fontWeight: 400, color: 'var(--ink)', lineHeight: 1.1, letterSpacing: '-0.02em' }}>Good afternoon, <em>S.</em></div>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, fontWeight: 400, color: 'var(--ink-dim)', lineHeight: 1.1, letterSpacing: '-0.02em', fontStyle: 'italic', marginTop: 4 }}>What are we making today?</div>
+          <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 40, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.05, margin: 0 }}>
+            Good afternoon, S.
+          </h1>
+          <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 40, fontWeight: 400, color: 'var(--ink-dim)', letterSpacing: '-0.02em', lineHeight: 1.05, margin: '4px 0 0', fontStyle: 'italic' }}>
+            What are we making today?
+          </h1>
         </div>
-        <div style={{ background: 'var(--ink)', color: '#fff', borderRadius: 99, padding: '7px 16px', fontSize: 13, fontWeight: 700, flexShrink: 0, marginTop: 6 }}>830 cr</div>
+        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 99, padding: '8px 18px', fontSize: 14, fontWeight: 700, flexShrink: 0, marginBottom: 4 }}>30 cr</div>
       </div>
-      <div style={{ display: 'flex', gap: 12 }}>
-        {[
-          { label: 'UGC Package', sub: 'Talking-head ads' },
-          { label: 'Image', sub: 'Product shots' },
-          { label: 'Voice', sub: 'AI voiceover' },
-          { label: 'Blog', sub: 'SEO article' },
-        ].map((item, i) => (
-          <div key={i} style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 12, padding: '14px 12px', background: 'var(--bg)' }}>
-            <div style={{ width: 28, height: 28, background: 'var(--border)', borderRadius: 7, marginBottom: 10 }} />
-            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4, lineHeight: 1.2 }}>{item.label}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink-mute)', lineHeight: 1.3 }}>{item.sub}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        {tiles.map((t, i) => (
+          <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '16px 14px', background: 'var(--surface)', cursor: 'pointer' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.dot, marginBottom: 12 }} />
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{t.label}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{t.sub}</div>
           </div>
         ))}
       </div>
@@ -94,53 +117,86 @@ function IlluDashboard() {
 }
 
 function IlluProductStudio() {
+  // Exact card style from ProductStudio.tsx line 988
+  const products = [
+    { name: 'Summer Serum', cat: 'Beauty', grad: 'linear-gradient(135deg,#f5ede0,#d4b896,#b89070)' },
+    { name: 'Night Cream',  cat: 'Skincare', grad: 'linear-gradient(135deg,#e8f0ec,#c0d4c8,#8aaa98)' },
+    { name: 'Face Wash',    cat: 'Cleanser', grad: 'linear-gradient(135deg,#e8eaf5,#b8bce0,#8890c8)' },
+  ]
   return (
     <IlluWrap>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
-        <div>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em' }}>Product studio</div>
-          <div style={{ fontSize: 12, color: 'var(--ink-mute)', marginTop: 5 }}>Add your product once — shoot it in endless aesthetics.</div>
-        </div>
-        <div style={{ background: 'var(--ink)', color: '#fff', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 700, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ fontSize: 16 }}>+</span> Add product
-        </div>
-      </div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-        {['Summer Serum', 'Night Cream', 'Face Wash'].map((name, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 14px', border: '1px solid var(--border)', borderRadius: 11, background: 'var(--bg)' }}>
-            <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--border)', flexShrink: 0 }} />
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{name}</div>
-              <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>3 photos · Beauty</div>
+      <IlluHeader title="Product" italic="studio" sub="Add your product once — shoot it in endless aesthetics." btn="✦ Add product" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+        {products.map((p, i) => (
+          <div key={i} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)' }}>
+            <div style={{ width: '100%', aspectRatio: '1', background: p.grad }} />
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', marginTop: 2 }}>{p.cat}</div>
             </div>
-            <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Generate →</div>
           </div>
         ))}
+        {/* Dashed ghost tile — exact copy from ProductStudio.tsx line 998 */}
+        <div style={{ border: '1.5px dashed var(--border)', borderRadius: 14, background: 'transparent', minHeight: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/></svg>
+          <span style={{ fontSize: 12.5, fontWeight: 600 }}>Add another</span>
+        </div>
       </div>
     </IlluWrap>
   )
 }
 
 function IlluInfluencerStudio() {
+  // Exact card style from influencers/page.tsx lines 1259-1270
+  const actors = [
+    { name: 'Tom Harland',   handle: '@tomharland',   niche: 'fitness, film',    grad: 'linear-gradient(to bottom,#c8b8a8 0%,#907868 45%,#3a2c24 100%)' },
+    { name: 'Marcus Vael',   handle: '@marcusvael',   niche: "men's style",      grad: 'linear-gradient(to bottom,#b8a898 0%,#806858 45%,#2e2218 100%)' },
+    { name: 'Mara Soleil',   handle: '@marasoleil',   niche: 'lifestyle, beauty', grad: 'linear-gradient(to bottom,#e0c8b0 0%,#c09880 45%,#6a4838 100%)' },
+  ]
   return (
     <IlluWrap>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-        <div style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em' }}>Influencer studio</div>
-        <div style={{ background: 'var(--ink)', color: '#fff', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 700 }}>+ New actor</div>
-      </div>
-      <div style={{ display: 'flex', gap: 12 }}>
-        {[
-          { name: 'Maya', niche: 'Lifestyle', hasPhoto: true },
-          { name: 'Alex', niche: 'Fitness', hasPhoto: true },
-          { name: 'Zoe', niche: 'Beauty', hasPhoto: true },
-          { name: 'Create new', niche: 'AI-generated', dashed: true },
-        ].map((actor, i) => (
-          <div key={i} style={{ flex: 1, border: actor.dashed ? '1.5px dashed var(--border)' : '1px solid var(--border)', borderRadius: 12, padding: '14px 10px', background: 'var(--bg)', textAlign: 'center' }}>
-            <div style={{ width: 48, height: 48, borderRadius: '50%', background: actor.dashed ? 'transparent' : 'var(--border)', margin: '0 auto 10px', border: actor.dashed ? '2px dashed var(--border)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {actor.dashed && <span style={{ fontSize: 22, color: 'var(--ink-mute)', lineHeight: 1 }}>+</span>}
+      <IlluHeader title="Influencer" italic="studio" sub="Describe a character once — get a persistent AI influencer." btn="✦ Create new influencer" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
+        {actors.map((a, i) => (
+          <div key={i} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)' }}>
+            <div style={{ width: '100%', aspectRatio: '4/5', background: a.grad }} />
+            <div style={{ padding: '10px 12px' }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{a.name}</div>
+              <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 1 }}>{a.handle}</div>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', marginTop: 4 }}>{a.niche}</div>
             </div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: actor.dashed ? 'var(--ink-mute)' : 'var(--ink)' }}>{actor.name}</div>
-            <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 3 }}>{actor.niche}</div>
+          </div>
+        ))}
+        {/* Dashed ghost tile — exact copy from influencers/page.tsx line 1272 */}
+        <div style={{ border: '1.5px dashed var(--border)', borderRadius: 14, background: 'transparent', minHeight: 160, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>
+          <span style={{ fontSize: 12.5, fontWeight: 600 }}>Create influencer</span>
+        </div>
+      </div>
+    </IlluWrap>
+  )
+}
+
+function IlluCampaigns() {
+  const campaigns = [
+    { name: 'Summer Launch',  meta: 'Beauty · Maya · 12 shots · Launch',    badge: 'ACTIVE', bc: '#16a34a' },
+    { name: 'Fall Collection', meta: 'Fashion · Alex · 8 shots · Awareness', badge: 'DRAFT',  bc: '#6b7280' },
+  ]
+  return (
+    <IlluWrap>
+      <IlluHeader title="Campaigns" sub="Map out a full content strategy — the AI writes the shot list." btn="New campaign" />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {campaigns.map((c, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 14, background: 'var(--surface)' }}>
+            <div style={{ width: 42, height: 42, borderRadius: 10, background: 'var(--border)', flexShrink: 0 }} />
+            <div style={{ flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</div>
+                <div style={{ background: c.bc + '22', color: c.bc, fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 99, letterSpacing: '0.06em' }}>{c.badge}</div>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{c.meta}</div>
+            </div>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
           </div>
         ))}
       </div>
@@ -148,88 +204,61 @@ function IlluInfluencerStudio() {
   )
 }
 
-function IlluCampaigns() {
-  return (
-    <IlluWrap>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 }}>
-        <div>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 28, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em' }}>Campaigns</div>
-          <div style={{ fontSize: 12, color: 'var(--ink-mute)', marginTop: 5 }}>Plan a full month of content in one place.</div>
-        </div>
-        <div style={{ background: 'var(--ink)', color: '#fff', borderRadius: 10, padding: '9px 18px', fontSize: 13, fontWeight: 700 }}>New campaign</div>
-      </div>
-      {[
-        { name: 'Summer Launch', meta: 'Beauty · Maya · 12 shots', badge: 'ACTIVE', badgeColor: '#16a34a' },
-        { name: 'Fall Collection', meta: 'Fashion · Alex · 8 shots', badge: 'DRAFT', badgeColor: '#6b7280' },
-      ].map((c, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '13px 16px', border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg)', marginBottom: 10 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 9, background: 'var(--border)', flexShrink: 0 }} />
-          <div style={{ flex: 1 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</div>
-              <div style={{ background: c.badgeColor + '22', color: c.badgeColor, fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 99, letterSpacing: '0.06em' }}>{c.badge}</div>
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{c.meta}</div>
-          </div>
-          <div style={{ fontSize: 14, color: 'var(--ink-mute)' }}>→</div>
-        </div>
-      ))}
-    </IlluWrap>
-  )
-}
-
 function IlluShooting() {
+  // Mirrors the studio-composer layout from ProductStudio.tsx
+  const shots = [
+    { grad: 'linear-gradient(135deg,#f5ede0,#c8a878,#8a6840)' },
+    { grad: 'linear-gradient(135deg,#e8f0ec,#a8c8b0,#507860)' },
+    { grad: 'linear-gradient(135deg,#e8eaf5,#a8b0e0,#485898)' },
+    { grad: 'linear-gradient(135deg,#f8e8e0,#e0a898,#a86050)' },
+  ]
   return (
     <IlluWrap>
-      <div style={{ display: 'flex', gap: 18, height: '100%' }}>
-        {/* Left: form */}
-        <div style={{ width: 320, flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 2 }}>Product studio</div>
-          <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', background: 'var(--bg)', fontSize: 12, color: 'var(--ink-dim)', lineHeight: 1.6 }}>
-            Golden hour lifestyle — beach, product held naturally, warm tones, editorial feel...
+      <IlluHeader title="Product" italic="studio" sub="Shoot your product in any aesthetic — art-directed by AI." btn="✦ Shoot" />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
+        {shots.map((s, i) => (
+          <div key={i} style={{ borderRadius: 13, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', position: 'relative' }}>
+            <div style={{ width: '100%', aspectRatio: '4/5', background: s.grad }} />
+            <span style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 9.5, fontWeight: 600, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '3px 8px', borderRadius: 999 }}>
+              {['Golden hour', 'Studio white', 'Editorial', 'Street'][i]}
+            </span>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <div style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 12, color: 'var(--ink-mute)', background: 'var(--bg)' }}>Summer Serum</div>
-            <div style={{ background: 'var(--ink)', color: '#fff', borderRadius: 8, padding: '8px 16px', fontSize: 12, fontWeight: 700, flexShrink: 0 }}>Generate</div>
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {['1 image', '2 images', '4 images'].map((o, i) => (
-              <div key={i} style={{ padding: '5px 10px', borderRadius: 7, border: i === 1 ? '1.5px solid var(--ink)' : '1px solid var(--border)', fontSize: 10, fontWeight: i === 1 ? 700 : 400, color: i === 1 ? 'var(--ink)' : 'var(--ink-mute)', background: 'var(--bg)' }}>{o}</div>
-            ))}
-          </div>
-        </div>
-        {/* Right: image grid */}
-        <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr', gap: 8 }}>
-          {[...Array(4)].map((_, i) => (
-            <div key={i} style={{ background: 'var(--border)', borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.4"><path d="M12 2L9.5 9.5 2 12l7.5 2.5L12 22l2.5-7.5L22 12l-7.5-2.5L12 2z"/></svg>
-            </div>
-          ))}
-        </div>
+        ))}
       </div>
     </IlluWrap>
   )
 }
 
 function IlluBilling() {
+  const plans = [
+    { name: 'Lite',    price: '$6',  credits: '200 cr/mo',   pop: false, current: true },
+    { name: 'Starter', price: '$19', credits: '800 cr/mo',   pop: false, current: false },
+    { name: 'Pro',     price: '$49', credits: '2,000 cr/mo', pop: true,  current: false },
+    { name: 'Agency',  price: '$149',credits: '6,500 cr/mo', pop: false, current: false },
+  ]
   return (
     <IlluWrap>
-      <div style={{ fontFamily: 'Georgia, serif', fontSize: 22, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', marginBottom: 16 }}>Upgrade your plan</div>
-      <div style={{ display: 'flex', gap: 10 }}>
-        {[
-          { name: 'Starter', price: '$49', credits: '800 cr/mo', highlight: false },
-          { name: 'Pro', price: '$99', credits: '2,000 cr/mo', highlight: true },
-          { name: 'Agency', price: '$249', credits: '6,500 cr/mo', highlight: false },
-        ].map((plan, i) => (
-          <div key={i} style={{ flex: 1, border: plan.highlight ? '2px solid var(--ink)' : '1px solid var(--border)', borderRadius: 13, padding: '14px 12px', background: 'var(--bg)', position: 'relative' }}>
-            {plan.highlight && (
-              <div style={{ position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', background: 'var(--ink)', color: '#fff', fontSize: 8, fontWeight: 700, padding: '2px 9px', borderRadius: 99, whiteSpace: 'nowrap', letterSpacing: '0.06em' }}>POPULAR</div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 16 }}>
+        <h1 style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 32, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', margin: 0 }}>
+          Billing &amp; <em>Credits</em>
+        </h1>
+        <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>Manage your subscription and credits.</span>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
+        {plans.map((p, i) => (
+          <div key={i} style={{ position: 'relative', border: p.pop ? '2px solid var(--ink)' : p.current ? '1.5px solid var(--ink)' : '1px solid var(--border)', borderRadius: 14, padding: '16px 14px', background: 'var(--surface)' }}>
+            {(p.pop || p.current) && (
+              <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--ink)', color: 'var(--on-ink, #fff)', fontSize: 8, fontWeight: 700, padding: '2px 9px', borderRadius: 99, whiteSpace: 'nowrap', letterSpacing: '0.06em' }}>
+                {p.current ? 'CURRENT PLAN' : 'MOST POPULAR'}
+              </div>
             )}
-            <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-mute)', marginBottom: 5, letterSpacing: '0.08em', textTransform: 'uppercase', fontFamily: 'monospace' }}>{plan.name}</div>
-            <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.03em', lineHeight: 1 }}>{plan.price}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--ink-mute)' }}>/mo</span></div>
-            <div style={{ fontSize: 10, color: 'var(--ink-mute)', margin: '5px 0 12px' }}>{plan.credits}</div>
-            <div style={{ background: plan.highlight ? 'var(--ink)' : 'transparent', color: plan.highlight ? '#fff' : 'var(--ink)', border: plan.highlight ? 'none' : '1px solid var(--border)', borderRadius: 8, padding: '7px 0', fontSize: 11, fontWeight: 700, textAlign: 'center' }}>
-              {plan.highlight ? 'Upgrade →' : 'Select'}
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>{p.name}</div>
+            <div style={{ fontSize: 26, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.04em', lineHeight: 1 }}>
+              {p.price}<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--ink-mute)' }}>/mo</span>
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 5, marginBottom: 14 }}>{p.credits}</div>
+            <div style={{ background: p.pop ? 'var(--ink)' : 'transparent', color: p.pop ? 'var(--on-ink, #fff)' : 'var(--ink-mute)', border: p.pop ? 'none' : '1px solid var(--border)', borderRadius: 8, padding: '8px 0', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
+              {p.current ? 'Current plan' : p.pop ? 'Upgrade →' : 'Select'}
             </div>
           </div>
         ))}
