@@ -29,7 +29,8 @@ export type StepEvent = {
 }
 export type ResultEvent = { type: 'result'; reply: string; canvasItems: CanvasItem[] }
 export type ErrorEvent  = { type: 'error'; message: string }
-type SSEEvent = StepEvent | ResultEvent | ErrorEvent
+export type QuestionEvent = { type: 'question'; prompt: string; options: string[] }
+type SSEEvent = StepEvent | ResultEvent | ErrorEvent | QuestionEvent
 
 const VOICE_IDS: Record<string, string> = {
   warm: 'EXAVITQu4vr4xnSDxMaL',
@@ -107,9 +108,28 @@ STRICT RULES:
 - Keep replies to 1-2 sentences max: say what you made, then suggest one natural next step.
 - Be direct and confident — like a creative director, not an assistant.
 - Incorporate the user's brand context automatically without mentioning it.
-${brandPrompt}${refImageNote}`
+${brandPrompt}${refImageNote}
+CLARIFICATION RULE: Call ask_clarification before generating when ANY of these is ambiguous:
+- Image count: if user said "some", "a few", or didn't specify → ask "How many images?"
+- Image ratio: if not specified for the context → ask "What format?"
+- Image style or resolution: if quality level matters → ask
+- Caption platforms: if not specified → ask "Which platforms?"
+- Voice style: if not specified → ask "What voice style?"
+Skip clarification if all key parameters are explicit in the user's message.`
 
         const tools: Anthropic.Tool[] = [
+          {
+            name: 'ask_clarification',
+            description: 'Ask the user ONE focused clarifying question before generating. Use when count, ratio, style, platform, or tone is ambiguous. Do NOT use when intent is fully clear (e.g. user said "one 4:5 Instagram photo"). Keep the question short and direct. Provide 3–6 concise options.',
+            input_schema: {
+              type: 'object' as const,
+              properties: {
+                question: { type: 'string', description: 'Short direct question, max 12 words.' },
+                options: { type: 'array', items: { type: 'string' }, description: '3–6 short options (1–5 words each).' },
+              },
+              required: ['question', 'options'],
+            },
+          },
           {
             name: 'generate_image',
             description: `Generate an image with AI. The result appears on the canvas — do not include the URL in your reply.${referenceImageBase64 ? ' A reference image was provided — analyze it carefully and mirror its exact visual style, color palette, lighting, background, and composition in your prompt.' : ''}`,
@@ -206,6 +226,8 @@ ${brandPrompt}${refImageNote}`
           const toolUseBlocks = firstResponse.content.filter(
             (b): b is Anthropic.ToolUseBlock => b.type === 'tool_use'
           )
+
+          let askedQuestion = false
 
           for (const toolUse of toolUseBlocks) {
             const input = toolUse.input as Record<string, unknown>
@@ -324,6 +346,12 @@ ${brandPrompt}${refImageNote}`
                 toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Brief created and added to canvas.' })
                 send({ type: 'step', label: 'Brief ready', icon: 'brief', status: 'done' })
 
+              } else if (toolUse.name === 'ask_clarification') {
+                const q = String(input.question ?? '')
+                const opts = Array.isArray(input.options) ? input.options.map(String) : []
+                send({ type: 'question', prompt: q, options: opts })
+                toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Question shown to user.' })
+                askedQuestion = true
               } else {
                 toolResults.push({ type: 'tool_result', tool_use_id: toolUse.id, content: 'Unknown tool', is_error: true })
               }
@@ -334,27 +362,34 @@ ${brandPrompt}${refImageNote}`
             }
           }
 
-          // ── Step N: Final reply from Claude ───────────────────────────
-          send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'active' })
+          if (!askedQuestion) {
+            // ── Step N: Final reply from Claude ───────────────────────────
+            send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'active' })
 
-          const secondResponse = await anthropic.messages.create({
-            model: 'claude-sonnet-4-6',
-            max_tokens: 256,
-            system: systemPrompt,
-            tools,
-            messages: [
-              ...conversationMessages,
-              { role: 'assistant', content: firstResponse.content },
-              { role: 'user', content: toolResults },
-            ],
-          })
+            const secondResponse = await anthropic.messages.create({
+              model: 'claude-sonnet-4-6',
+              max_tokens: 256,
+              system: systemPrompt,
+              tools,
+              messages: [
+                ...conversationMessages,
+                { role: 'assistant', content: firstResponse.content },
+                { role: 'user', content: toolResults },
+              ],
+            })
 
-          const replyText = cleanReply(
-            secondResponse.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('\n')
-          )
+            const replyText = cleanReply(
+              secondResponse.content.filter((b): b is Anthropic.TextBlock => b.type === 'text').map(b => b.text).join('\n')
+            )
 
-          send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'done' })
-          send({ type: 'result', reply: replyText, canvasItems })
+            send({ type: 'step', label: 'Composing reply…', icon: 'think', status: 'done' })
+            send({ type: 'result', reply: replyText, canvasItems })
+          } else {
+            // Question asked — emit result with any canvas items but no reply
+            if (canvasItems.length > 0) {
+              send({ type: 'result', reply: '', canvasItems })
+            }
+          }
 
         } else {
           // Pure conversational reply — no tools

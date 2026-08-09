@@ -25,6 +25,7 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   imagePreview?: string
+  question?: { prompt: string; options: string[] }
 }
 
 interface Session {
@@ -257,6 +258,67 @@ function CanvasItemRenderer({ item, onOpenImage }: { item: CanvasItem; onOpenIma
   return null
 }
 
+// ─── Question Card ────────────────────────────────────────────────────────────
+
+function QuestionCard({ data, onSelect }: { data: { prompt: string; options: string[] }; onSelect: (opt: string) => void }) {
+  const [focused, setFocused] = useState(0)
+  const [custom, setCustom] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).tagName === 'TEXTAREA') return
+      if (e.key === 'ArrowDown') { e.preventDefault(); setFocused(f => Math.min(f + 1, data.options.length - 1)) }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setFocused(f => Math.max(f - 1, 0)) }
+      if (e.key === 'Enter' && !custom) { e.preventDefault(); onSelect(data.options[focused]) }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [focused, data.options, onSelect, custom])
+
+  return (
+    <div style={{ maxWidth: '92%', border: '1px solid var(--border)', borderRadius: '18px 18px 18px 4px', overflow: 'hidden', background: 'var(--bg)' }}>
+      <div style={{ padding: '12px 14px 10px', borderBottom: '1px solid var(--border)' }}>
+        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>{data.prompt}</p>
+      </div>
+      {data.options.map((opt, i) => (
+        <button
+          key={opt}
+          onMouseEnter={() => setFocused(i)}
+          onClick={() => onSelect(opt)}
+          style={{
+            width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 14px',
+            background: focused === i ? 'var(--surface)' : 'transparent',
+            border: 'none', borderBottom: i < data.options.length - 1 ? '1px solid var(--border)' : 'none',
+            cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s',
+          }}
+        >
+          <span style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: focused === i ? 'var(--ink)' : 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: focused === i ? 'var(--on-ink)' : 'var(--ink-dim)', transition: 'all 0.1s' }}>{i + 1}</span>
+          <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)', fontWeight: 500 }}>{opt}</span>
+          {focused === i && <span style={{ fontSize: 11, color: 'var(--ink-mute)', flexShrink: 0 }}>↵</span>}
+        </button>
+      ))}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderTop: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <input
+          ref={inputRef}
+          value={custom}
+          onChange={e => setCustom(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter' && custom.trim()) { e.preventDefault(); onSelect(custom.trim()) } }}
+          placeholder="Or type a custom answer…"
+          style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12.5, color: 'var(--ink)', fontFamily: 'inherit' }}
+        />
+        {custom && (
+          <button onClick={() => onSelect(custom.trim())} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, padding: '3px 9px', cursor: 'pointer' }}>Send</button>
+        )}
+      </div>
+      <div style={{ padding: '5px 14px 7px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
+        <p style={{ margin: 0, fontSize: 10.5, color: 'var(--ink-mute)' }}>↑↓ navigate · Enter select</p>
+      </div>
+    </div>
+  )
+}
+
 // ─── Progress Steps ───────────────────────────────────────────────────────────
 
 const STEP_ICONS: Record<string, React.ReactNode> = {
@@ -480,6 +542,10 @@ export default function StudioPage() {
                 if (idx >= 0) { const n = [...prev]; n[idx] = { label: event.label, icon: event.icon, status: event.status }; return n }
                 return [...prev, { label: event.label, icon: event.icon, status: event.status }]
               })
+            } else if (event.type === 'question') {
+              setMessages(prev => [...prev, { role: 'assistant', content: '', question: { prompt: event.prompt, options: event.options } }])
+              setSteps([])
+              setLoading(false)
             } else if (event.type === 'result') {
               if (event.reply) setMessages(prev => [...prev, { role: 'assistant', content: event.reply }])
               if (event.canvasItems?.length) {
@@ -679,25 +745,28 @@ export default function StudioPage() {
                 <>
                   {messages.map((msg, i) => (
                     <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 4 }}>
-                      {/* Reference image preview in chat */}
                       {msg.role === 'user' && msg.imagePreview && (
                         /* eslint-disable-next-line @next/next/no-img-element */
                         <img src={msg.imagePreview} alt="Reference" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
                       )}
-                      <div style={{
-                        maxWidth: '86%',
-                        padding: msg.role === 'user' ? '9px 13px' : '10px 13px',
-                        borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                        background: msg.role === 'user' ? 'var(--ink)' : 'var(--bg)',
-                        color: msg.role === 'user' ? 'var(--on-ink)' : 'var(--ink)',
-                        fontSize: 13,
-                        lineHeight: 1.6,
-                        border: msg.role === 'assistant' ? '1px solid var(--border)' : 'none',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-word',
-                      }}>
-                        {msg.role === 'assistant' ? cleanMessageText(msg.content) : msg.content}
-                      </div>
+                      {msg.question ? (
+                        <QuestionCard data={msg.question} onSelect={(opt) => send(opt)} />
+                      ) : msg.content ? (
+                        <div style={{
+                          maxWidth: '86%',
+                          padding: msg.role === 'user' ? '9px 13px' : '10px 13px',
+                          borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                          background: msg.role === 'user' ? 'var(--ink)' : 'var(--bg)',
+                          color: msg.role === 'user' ? 'var(--on-ink)' : 'var(--ink)',
+                          fontSize: 13,
+                          lineHeight: 1.6,
+                          border: msg.role === 'assistant' ? '1px solid var(--border)' : 'none',
+                          whiteSpace: 'pre-wrap',
+                          wordBreak: 'break-word',
+                        }}>
+                          {msg.role === 'assistant' ? cleanMessageText(msg.content) : msg.content}
+                        </div>
+                      ) : null}
                     </div>
                   ))}
                   {(loading || steps.length > 0) && (
