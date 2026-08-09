@@ -490,19 +490,24 @@ Return ONLY a JSON array of exactly ${slideCount} objects (no markdown):
                 return { type: 'tool_result', tool_use_id: toolUse.id, content: 'Error: failed to parse slide specs', is_error: true }
               }
 
-              send({ type: 'step', label: `Rendering ${slideCount} slides in parallel…`, icon: 'image', status: 'active' })
-
-              const imageResults = await Promise.allSettled(
-                slideSpecs.map(slide =>
-                  generateNanoBananaImage(slide.imagePrompt, {
-                    style: 'professional',
-                    ratio: platform === 'tiktok' ? '9:16' : platform === 'linkedin' ? '1:1' : '4:5',
-                    referenceImages: referenceImageBase64 ? [{ base64: referenceImageBase64, mimeType: referenceImageMimeType }] : undefined,
-                  })
+              // Generate in batches of 2 to avoid Vertex AI rate limits
+              const slideRatio = (platform === 'tiktok' ? '9:16' : platform === 'linkedin' ? '1:1' : '4:5') as '1:1' | '4:5' | '9:16' | '16:9'
+              const refImages = referenceImageBase64 ? [{ base64: referenceImageBase64, mimeType: referenceImageMimeType }] : undefined
+              const BATCH = 2
+              const imageResults: PromiseSettledResult<{ imageBase64: string; mimeType: string }>[] = []
+              for (let b = 0; b < slideSpecs.length; b += BATCH) {
+                const end = Math.min(b + BATCH, slideSpecs.length)
+                const batchLabel = end === b + 1 ? `Rendering slide ${b + 1}…` : `Rendering slides ${b + 1}–${end}…`
+                send({ type: 'step', label: batchLabel, icon: 'image', status: 'active' })
+                const batchResults = await Promise.allSettled(
+                  slideSpecs.slice(b, end).map(slide =>
+                    generateNanoBananaImage(slide.imagePrompt, { style: 'professional', ratio: slideRatio, referenceImages: refImages })
+                  )
                 )
-              )
-
-              send({ type: 'step', label: `Rendering ${slideCount} slides in parallel…`, icon: 'image', status: 'done' })
+                imageResults.push(...batchResults)
+                send({ type: 'step', label: batchLabel, icon: 'image', status: 'done' })
+                if (end < slideSpecs.length) await new Promise(r => setTimeout(r, 800))
+              }
               send({ type: 'step', label: 'Uploading slides…', icon: 'image', status: 'active' })
 
               const slides: Array<{ headline: string; body: string; cta: string; imageUrl: string }> = []
