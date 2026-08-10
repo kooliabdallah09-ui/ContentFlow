@@ -165,6 +165,30 @@ a { color: inherit; text-decoration: none; }
   height: 100vh;
   overflow-y: auto;
   flex-shrink: 0;
+  transition: width 0.2s ease;
+}
+
+.rail-collapsed {
+  width: 56px;
+  overflow: hidden;
+}
+
+.rail-collapsed .rail-label,
+.rail-collapsed .rail-section > a > span,
+.rail-collapsed .rail-section > a > .kbd,
+.rail-collapsed .flagship-badge,
+.rail-collapsed .rail-footer,
+.rail-collapsed .brand-name {
+  display: none !important;
+}
+
+.rail-collapsed .nav-item {
+  padding: 8px;
+  justify-content: center;
+}
+
+.rail-collapsed .nav-item svg {
+  margin: 0;
 }
 
 .brand {

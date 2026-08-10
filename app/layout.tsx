@@ -22,6 +22,19 @@ export default function RootLayout({
   const [loading, setLoading] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [isDark, setIsDark] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  useEffect(() => {
+    if (localStorage.getItem('cf-sidebar-collapsed') === '1') setSidebarCollapsed(true)
+  }, [])
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed(c => {
+      const next = !c
+      localStorage.setItem('cf-sidebar-collapsed', next ? '1' : '0')
+      return next
+    })
+  }
   const router = useRouter()
   const pathname = usePathname()
 
@@ -180,6 +193,8 @@ export default function RootLayout({
               currentPath={pathname}
               mobileOpen={mobileMenuOpen}
               onMobileClose={() => setMobileMenuOpen(false)}
+              collapsed={sidebarCollapsed}
+              onToggleCollapse={toggleSidebar}
             />
             <div className="main">
               <TopBar
