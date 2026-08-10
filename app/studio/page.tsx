@@ -925,17 +925,12 @@ export default function StudioPage() {
             } else if (event.type === 'result') {
               if (event.reply) setMessages(prev => [...prev, { role: 'assistant', content: event.reply }])
               if (event.canvasItems?.length) {
-                setCanvasNodes(prev => {
-                  const nodeId = genId()
-                  const newNode: CanvasNode = {
-                    id: nodeId,
-                    items: event.canvasItems,
-                    x: 24 + (prev.length % 3) * 30,
-                    y: 24 + (prev.length % 3) * 30,
-                  }
-                  return [newNode, ...prev]
-                })
-                setPanX(24); setPanY(24); setZoom(1)
+                const nodeW = (items: CanvasItem[]) => items.length > 1 ? Math.min(items.length, 4) * 240 + 32 : 440
+                const nextX = canvasNodes.length === 0 ? 24 : Math.max(...canvasNodes.map(n => n.x + nodeW(n.items))) + 40
+                const nodeId = genId()
+                const newNode: CanvasNode = { id: nodeId, items: event.canvasItems, x: nextX, y: 24 }
+                setCanvasNodes(prev => [newNode, ...prev])
+                setPanX(-nextX + 24); setPanY(24); setZoom(1)
               }
               refreshCredits()
               setSteps([])
@@ -1256,10 +1251,8 @@ export default function StudioPage() {
                   {messages.map((msg, i) => (
                     <div key={i} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: 10 }}>
                       {/* AI avatar */}
-                      {msg.role === 'assistant' && (
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src="/logo-icon.png" alt="ContentFlow" style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, objectFit: 'contain', marginTop: 1 }} />
-                      )}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {msg.role === 'assistant' && <img src="/logo-icon.png" alt="ContentFlow" style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, objectFit: 'contain', marginTop: 1 }} />}
 
                       <div style={{ flex: msg.role === 'assistant' ? 1 : undefined, maxWidth: msg.role === 'user' ? '78%' : undefined, minWidth: 0 }}>
                         {/* Attached image preview (user only) */}
