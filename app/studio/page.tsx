@@ -1257,11 +1257,8 @@ export default function StudioPage() {
                     <div key={i} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: 10 }}>
                       {/* AI avatar */}
                       {msg.role === 'assistant' && (
-                        <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--ink)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
-                          <svg width="14" height="14" viewBox="0 0 32 32" fill="none">
-                            <path d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2zm0 4c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-7 14c0-3.866 3.134-7 7-7s7 3.134 7 7H9z" fill="white" opacity="0.9"/>
-                          </svg>
-                        </div>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src="/logo-icon.png" alt="ContentFlow" style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, objectFit: 'contain', marginTop: 1 }} />
                       )}
 
                       <div style={{ flex: msg.role === 'assistant' ? 1 : undefined, maxWidth: msg.role === 'user' ? '78%' : undefined, minWidth: 0 }}>
