@@ -143,38 +143,68 @@ async function downloadCarouselSlide(slide: { headline: string; body: string; ct
     ctx.fillStyle = '#111'; ctx.fillRect(0, 0, W, H)
   }
 
-  // Gradient overlay
-  const grad = ctx.createLinearGradient(0, H * 0.35, 0, H)
+  // Gradient overlay — bottom 60%
+  const grad = ctx.createLinearGradient(0, H * 0.40, 0, H)
   grad.addColorStop(0, 'rgba(0,0,0,0)')
-  grad.addColorStop(1, 'rgba(0,0,0,0.92)')
+  grad.addColorStop(0.5, 'rgba(0,0,0,0.65)')
+  grad.addColorStop(1, 'rgba(0,0,0,0.95)')
   ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H)
 
-  // Text
   const PAD = 72
   const hasCta = slide.cta?.trim()
-  ctx.textAlign = 'left'
-  ctx.shadowColor = 'rgba(0,0,0,0.4)'; ctx.shadowBlur = 8
+  const HEADLINE_SIZE = 58
+  const BODY_SIZE = 34
+  const LINE_H_HEAD = 72
+  const LINE_H_BODY = 48
+  const BOTTOM_PAD = hasCta ? 220 : 100
 
+  // Measure headline height to position correctly
+  ctx.font = `800 ${HEADLINE_SIZE}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+  const headlineWords = slide.headline.split(' ')
+  let headlineLines = 1, testLine = ''
+  for (const word of headlineWords) {
+    const test = testLine ? `${testLine} ${word}` : word
+    if (ctx.measureText(test).width > W - PAD * 2 && testLine) { headlineLines++; testLine = word } else { testLine = test }
+  }
+  const headlineH = headlineLines * LINE_H_HEAD
+
+  const bodyLines = slide.body?.trim() ? 3 : 0  // estimate
+  const bodyH = bodyLines * LINE_H_BODY
+  const ctaH = hasCta ? 100 : 0
+  const blockH = headlineH + (bodyH > 0 ? 28 + bodyH : 0) + (ctaH > 0 ? 36 + ctaH : 0)
+  const startY = H - BOTTOM_PAD - blockH
+
+  // Headline
+  ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 12
   ctx.fillStyle = '#fff'
-  ctx.font = `800 ${W * 0.052}px -apple-system, system-ui, sans-serif`
-  const headY = H - (hasCta ? 380 : 260)
-  const afterHead = wrapText(ctx, slide.headline, PAD, headY, W - PAD * 2, W * 0.065)
+  ctx.font = `800 ${HEADLINE_SIZE}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+  ctx.textAlign = 'left'
+  const afterHead = wrapText(ctx, slide.headline, PAD, startY, W - PAD * 2, LINE_H_HEAD)
 
+  // Body
+  let afterBody = afterHead
   if (slide.body?.trim()) {
-    ctx.font = `400 ${W * 0.03}px -apple-system, system-ui, sans-serif`
-    ctx.fillStyle = 'rgba(255,255,255,0.82)'
-    wrapText(ctx, slide.body, PAD, afterHead + 24, W - PAD * 2, W * 0.04)
+    ctx.font = `400 ${BODY_SIZE}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+    ctx.fillStyle = 'rgba(255,255,255,0.85)'
+    afterBody = wrapText(ctx, slide.body, PAD, afterHead + 28, W - PAD * 2, LINE_H_BODY)
   }
 
+  // CTA button — auto-size to text
   if (hasCta) {
-    const btnY = H - 140
     ctx.shadowBlur = 0
+    const btnFontSize = 30
+    ctx.font = `700 ${btnFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`
+    const textW = ctx.measureText(hasCta).width
+    const btnW = textW + 80
+    const btnH = 80
+    const btnX = PAD
+    const btnY = afterBody + 36
+
     ctx.fillStyle = '#fff'
-    ctx.beginPath(); ctx.roundRect(PAD, btnY, 340, 80, 40); ctx.fill()
+    ctx.beginPath(); ctx.roundRect(btnX, btnY, btnW, btnH, 40); ctx.fill()
     ctx.fillStyle = '#000'
-    ctx.font = `700 ${W * 0.028}px -apple-system, system-ui, sans-serif`
-    ctx.textAlign = 'center'
-    ctx.fillText(slide.cta, PAD + 170, btnY + 52)
+    ctx.textAlign = 'left'
+    ctx.fillText(hasCta, btnX + 40, btnY + btnFontSize + (btnH - btnFontSize) / 2 - 2)
   }
 
   ctx.shadowBlur = 0
