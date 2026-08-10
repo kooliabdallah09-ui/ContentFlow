@@ -1,0 +1,25 @@
+{
+  "name": "contentflow-mcp",
+  "version": "1.0.0",
+  "description": "ContentFlow MCP server — AI image, carousel, captions & web search via Claude Desktop",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "contentflow-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.91.1",
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "tsx": "^4",
+    "typescript": "^5"
+  }
+}
