@@ -42,27 +42,48 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
 
   return (
     <aside className={`rail${mobileOpen ? ' mobile-open' : ''}${collapsed ? ' rail-collapsed' : ''}`}>
-      <div style={{ display: 'flex', alignItems: 'center', padding: '20px 18px 12px', gap: 10, position: 'relative' }}>
-        <Link href="/" className="brand" style={{ padding: 0, flex: collapsed ? undefined : 1 }}>
-          <span className="brand-mark"><img src="/logo-icon.png" alt="ContentFlow" /></span>
-          {!collapsed && <div className="brand-name">Content<em>flow</em></div>}
-        </Link>
-        {!mobileOpen && (
-          <button
-            onClick={onToggleCollapse}
-            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', transition: 'all 0.15s', marginLeft: 'auto' }}
-            onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--ink)' }}
-            onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--ink-dim)' }}
-          >
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              {collapsed
-                ? <><polyline points="9 18 15 12 9 6"/></>
-                : <><polyline points="15 18 9 12 15 6"/></>}
-            </svg>
-          </button>
-        )}
-      </div>
+      {collapsed ? (
+        /* Collapsed: logo centered + expand button below it, both full-width */
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 0 8px', gap: 6 }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36 }}>
+            <span className="brand-mark" style={{ width: 30, height: 30 }}><img src="/logo-icon.png" alt="ContentFlow" /></span>
+          </Link>
+          {!mobileOpen && (
+            <button
+              onClick={onToggleCollapse}
+              title="Expand sidebar"
+              style={{ width: 36, height: 20, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--ink)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--ink-dim)' }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      ) : (
+        /* Expanded: logo + name + collapse chevron in one row */
+        <div style={{ display: 'flex', alignItems: 'center', padding: '20px 18px 12px', gap: 10 }}>
+          <Link href="/" className="brand" style={{ padding: 0, flex: 1 }}>
+            <span className="brand-mark"><img src="/logo-icon.png" alt="ContentFlow" /></span>
+            <div className="brand-name">Content<em>flow</em></div>
+          </Link>
+          {!mobileOpen && (
+            <button
+              onClick={onToggleCollapse}
+              title="Collapse sidebar"
+              style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', transition: 'all 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--ink)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--ink-dim)' }}
+            >
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 18 9 12 15 6"/>
+              </svg>
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="rail-section">
         <div className="rail-label">Workspace</div>

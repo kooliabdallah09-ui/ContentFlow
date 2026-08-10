@@ -183,12 +183,14 @@ a { color: inherit; text-decoration: none; }
 }
 
 .rail-collapsed .nav-item {
-  padding: 8px;
+  padding: 8px 0;
   justify-content: center;
+  width: 56px;
 }
 
 .rail-collapsed .nav-item svg {
   margin: 0;
+  flex-shrink: 0;
 }
 
 .brand {
