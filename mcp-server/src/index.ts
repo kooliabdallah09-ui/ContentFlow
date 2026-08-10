@@ -7,8 +7,8 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 import Anthropic from '@anthropic-ai/sdk'
-import { createSign } from 'node:crypto'
-import { randomUUID } from 'node:crypto'
+import { createClient } from '@supabase/supabase-js'
+import { createSign, randomUUID } from 'node:crypto'
 
 // ─── Vertex AI / NanoBanana image engine ─────────────────────────────────────
 
@@ -121,6 +121,27 @@ async function generateImage(
     return { imageBase64: img.inlineData.data, mimeType: img.inlineData.mimeType ?? 'image/png' }
   }
   throw new Error('Vertex: too many 429 retries')
+}
+
+// ─── Supabase image upload ────────────────────────────────────────────────────
+
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) return null
+  return createClient(url, key)
+}
+
+async function uploadImage(base64: string, mimeType: string): Promise<string | null> {
+  const supabase = getSupabase()
+  if (!supabase) return null
+  const ext = mimeType.includes('jpeg') ? 'jpg' : 'png'
+  const path = `mcp/${randomUUID()}.${ext}`
+  const buf = Buffer.from(base64, 'base64')
+  const { error } = await supabase.storage.from('ugc-assets').upload(path, buf, { contentType: mimeType, upsert: false })
+  if (error) { console.error('[upload]', error.message); return null }
+  const { data } = supabase.storage.from('ugc-assets').getPublicUrl(path)
+  return data.publicUrl
 }
 
 // ─── Tavily web search ────────────────────────────────────────────────────────
@@ -262,19 +283,15 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       const fullPrompt = `${prompt}\n\n${styleHint} ${ratioHint}`
       const result = await generateImage(fullPrompt, { ratio })
+      const url = await uploadImage(result.imageBase64, result.mimeType)
 
       return {
-        content: [
-          {
-            type: 'image',
-            data: result.imageBase64,
-            mimeType: result.mimeType,
-          },
-          {
-            type: 'text',
-            text: `Image generated successfully (${ratio ?? '1:1'}, ${style ?? 'realistic'} style).`,
-          },
-        ],
+        content: url
+          ? [{ type: 'text', text: `Image generated (${ratio ?? '1:1'}, ${style ?? 'realistic'} style):\n\n${url}` }]
+          : [
+              { type: 'image', data: result.imageBase64, mimeType: result.mimeType },
+              { type: 'text', text: `Image generated (${ratio ?? '1:1'}, ${style ?? 'realistic'} style).` },
+            ],
       }
     }
 
@@ -336,24 +353,21 @@ Each object: { "headline": "...", "body": "...", "cta": "...", "imagePrompt": ".
         }
       }
 
-      // Return all images + the slide data
-      const content: Array<{ type: string; data?: string; mimeType?: string; text?: string }> = []
+      // Upload images and return URLs
+      const uploadedUrls = await Promise.all(
+        imageResults.map(b64 => b64 ? uploadImage(b64, 'image/png') : Promise.resolve(null))
+      )
 
+      const content: Array<{ type: string; text?: string }> = []
       for (let i = 0; i < slides.length; i++) {
         const slide = slides[i]
-        if (imageResults[i]) {
-          content.push({ type: 'image', data: imageResults[i], mimeType: 'image/png' })
-        }
+        const imgLine = uploadedUrls[i] ? `\n🖼 ${uploadedUrls[i]}` : ''
         content.push({
           type: 'text',
-          text: `**Slide ${i + 1}/${slides.length}**\n**${slide.headline}**\n${slide.body}${slide.cta ? `\n→ ${slide.cta}` : ''}`,
+          text: `**Slide ${i + 1}/${slides.length}**\n**${slide.headline}**\n${slide.body}${slide.cta ? `\n→ ${slide.cta}` : ''}${imgLine}`,
         })
       }
-
-      content.push({
-        type: 'text',
-        text: `\n---\nCarousel complete — ${slides.length} slides for ${platform}${brandName ? ` (${brandName})` : ''}.`,
-      })
+      content.push({ type: 'text', text: `\n---\nCarousel complete — ${slides.length} slides for ${platform}${brandName ? ` (${brandName})` : ''}.` })
 
       return { content }
     }
