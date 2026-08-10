@@ -1065,7 +1065,7 @@ export default function StudioPage() {
   }
 
   const insertColor = (hex: string) => {
-    const newVal = input.replace(/(^|\s)\/color\w*$/, (_, pre) => pre + hex)
+    const newVal = input.replace(/(^|\s)\/\w*$/, (_, pre) => pre + hex)
     setInput(newVal)
     setColorPickerOpen(false)
     setSlashMenuOpen(false)
