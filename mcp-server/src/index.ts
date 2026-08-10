@@ -137,7 +137,7 @@ async function uploadImage(base64: string, mimeType: string): Promise<string | n
   try {
     const res = await fetch(`${supabaseUrl}/storage/v1/object/ugc-assets/${path}`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': mimeType },
+      headers: { apikey: serviceKey, Authorization: `Bearer ${serviceKey}`, 'Content-Type': mimeType },
       body: buf,
     })
     const body = await res.text()
