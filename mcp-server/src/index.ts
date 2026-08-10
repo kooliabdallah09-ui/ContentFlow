@@ -127,17 +127,26 @@ async function generateImage(
 async function uploadImage(base64: string, mimeType: string): Promise<string | null> {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!supabaseUrl || !serviceKey) return null
+  if (!supabaseUrl || !serviceKey) {
+    console.error('[upload] Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+    return null
+  }
   const ext = mimeType.includes('jpeg') ? 'jpg' : 'png'
   const path = `mcp/${randomUUID()}.${ext}`
   const buf = Buffer.from(base64, 'base64')
-  const res = await fetch(`${supabaseUrl}/storage/v1/object/ugc-assets/${path}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': mimeType },
-    body: buf,
-  })
-  if (!res.ok) { console.error('[upload]', await res.text()); return null }
-  return `${supabaseUrl}/storage/v1/object/public/ugc-assets/${path}`
+  try {
+    const res = await fetch(`${supabaseUrl}/storage/v1/object/ugc-assets/${path}`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': mimeType },
+      body: buf,
+    })
+    const body = await res.text()
+    if (!res.ok) { console.error('[upload] HTTP', res.status, body); return null }
+    return `${supabaseUrl}/storage/v1/object/public/ugc-assets/${path}`
+  } catch (e) {
+    console.error('[upload] fetch error:', e)
+    return null
+  }
 }
 
 // ─── Tavily web search ────────────────────────────────────────────────────────
@@ -281,13 +290,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const result = await generateImage(fullPrompt, { ratio })
       const url = await uploadImage(result.imageBase64, result.mimeType)
 
+      if (!url) throw new Error('Image generated but Supabase upload failed — check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Claude Desktop MCP config.')
       return {
-        content: url
-          ? [{ type: 'text', text: `Image generated (${ratio ?? '1:1'}, ${style ?? 'realistic'} style):\n\n${url}` }]
-          : [
-              { type: 'image', data: result.imageBase64, mimeType: result.mimeType },
-              { type: 'text', text: `Image generated (${ratio ?? '1:1'}, ${style ?? 'realistic'} style).` },
-            ],
+        content: [{ type: 'text', text: `Image generated (${ratio ?? '1:1'}, ${style ?? 'realistic'} style):\n\n${url}` }],
       }
     }
 
