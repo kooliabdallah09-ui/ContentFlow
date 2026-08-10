@@ -8,6 +8,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js'
 import Anthropic from '@anthropic-ai/sdk'
 import { createSign, randomUUID } from 'node:crypto'
+import sharp from 'sharp'
 
 // ─── Vertex AI / NanoBanana image engine ─────────────────────────────────────
 
@@ -147,6 +148,14 @@ async function uploadImage(base64: string, mimeType: string): Promise<string | n
     console.error('[upload] fetch error:', e)
     return null
   }
+}
+
+// ─── Compress image to JPEG for inline MCP preview (keeps stdio payload small) ─
+
+async function compressForPreview(base64: string): Promise<string> {
+  const buf = Buffer.from(base64, 'base64')
+  const jpeg = await sharp(buf).resize(768, 768, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 82 }).toBuffer()
+  return jpeg.toString('base64')
 }
 
 // ─── Tavily web search ────────────────────────────────────────────────────────
@@ -291,8 +300,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const url = await uploadImage(result.imageBase64, result.mimeType)
 
       if (!url) throw new Error('Image generated but Supabase upload failed — check NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Claude Desktop MCP config.')
+      const previewB64 = await compressForPreview(result.imageBase64)
       return {
-        content: [{ type: 'text', text: `Image generated (${ratio ?? '1:1'}, ${style ?? 'realistic'} style):\n\n${url}` }],
+        content: [
+          { type: 'image', data: previewB64, mimeType: 'image/jpeg' },
+          { type: 'text', text: `**${ratio ?? '1:1'} · ${style ?? 'realistic'}**\n${url}` },
+        ],
       }
     }
 
