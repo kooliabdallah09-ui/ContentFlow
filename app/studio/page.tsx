@@ -1231,7 +1231,7 @@ export default function StudioPage() {
             )}
 
             {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 14px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 22 }}>
               {messages.length === 0 && !loading ? (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 20, padding: '0 4px' }}>
                   <div style={{ textAlign: 'center' }}>
@@ -1254,39 +1254,75 @@ export default function StudioPage() {
               ) : (
                 <>
                   {messages.map((msg, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 4 }}>
-                      {msg.role === 'user' && msg.imagePreview && (
-                        /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={msg.imagePreview} alt="Reference" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)' }} />
-                      )}
-                      {msg.question ? (
-                        <QuestionCard data={msg.question} onSelect={(opt) => send(opt)} />
-                      ) : msg.content ? (
-                        <div style={{
-                          maxWidth: '86%',
-                          padding: msg.role === 'user' ? '9px 13px' : '10px 13px',
-                          borderRadius: msg.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                          background: msg.role === 'user' ? 'var(--ink)' : 'var(--bg)',
-                          color: msg.role === 'user' ? 'var(--on-ink)' : 'var(--ink)',
-                          fontSize: 13,
-                          lineHeight: 1.6,
-                          border: msg.role === 'assistant' ? '1px solid var(--border)' : 'none',
-                          whiteSpace: 'pre-wrap',
-                          wordBreak: 'break-word',
-                        }}>
-                          {msg.role === 'assistant' ? cleanMessageText(msg.content) : msg.content}
+                    <div key={i} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: 10 }}>
+                      {/* AI avatar */}
+                      {msg.role === 'assistant' && (
+                        <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--ink)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                          <svg width="14" height="14" viewBox="0 0 32 32" fill="none">
+                            <path d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2zm0 4c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-7 14c0-3.866 3.134-7 7-7s7 3.134 7 7H9z" fill="white" opacity="0.9"/>
+                          </svg>
                         </div>
-                      ) : null}
+                      )}
+
+                      <div style={{ flex: msg.role === 'assistant' ? 1 : undefined, maxWidth: msg.role === 'user' ? '78%' : undefined, minWidth: 0 }}>
+                        {/* Attached image preview (user only) */}
+                        {msg.role === 'user' && msg.imagePreview && (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img src={msg.imagePreview} alt="Reference" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)', display: 'block', marginBottom: 6, marginLeft: 'auto' }} />
+                        )}
+
+                        {msg.question ? (
+                          <QuestionCard data={msg.question} onSelect={(opt) => send(opt)} />
+                        ) : msg.content ? (
+                          msg.role === 'user' ? (
+                            /* User bubble — subtle pill */
+                            <div style={{
+                              display: 'inline-block',
+                              padding: '10px 15px',
+                              borderRadius: '18px 4px 18px 18px',
+                              background: 'var(--bg)',
+                              border: '1px solid var(--border)',
+                              color: 'var(--ink)',
+                              fontSize: 14,
+                              lineHeight: 1.65,
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                            }}>
+                              {msg.content}
+                            </div>
+                          ) : (
+                            /* AI message — no background, just clean text */
+                            <div style={{
+                              fontSize: 14,
+                              lineHeight: 1.75,
+                              color: 'var(--ink)',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              paddingTop: 3,
+                            }}>
+                              {cleanMessageText(msg.content)}
+                            </div>
+                          )
+                        ) : null}
+                      </div>
                     </div>
                   ))}
                   {(loading || steps.length > 0) && (
-                    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                      {steps.length > 0
-                        ? <ProgressSteps steps={steps} />
-                        : <div style={{ display: 'flex', gap: 4, padding: '11px 15px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: '18px 18px 18px 4px' }}>
-                            {[0,1,2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink-mute)', display: 'block', animation: `studio-bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}
-                          </div>
-                      }
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                      {/* AI avatar for loading state */}
+                      <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--ink)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                        <svg width="14" height="14" viewBox="0 0 32 32" fill="none">
+                          <path d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2zm0 4c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-7 14c0-3.866 3.134-7 7-7s7 3.134 7 7H9z" fill="white" opacity="0.9"/>
+                        </svg>
+                      </div>
+                      <div style={{ paddingTop: 4 }}>
+                        {steps.length > 0
+                          ? <ProgressSteps steps={steps} />
+                          : <div style={{ display: 'flex', gap: 5, alignItems: 'center', paddingTop: 6 }}>
+                              {[0,1,2].map(i => <span key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--ink-mute)', display: 'block', animation: `studio-bounce 1.2s ease-in-out ${i * 0.2}s infinite` }} />)}
+                            </div>
+                        }
+                      </div>
                     </div>
                   )}
                   <div ref={messagesEndRef} />
