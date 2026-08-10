@@ -257,6 +257,15 @@ const MODE_DIRECTIVES: Record<ContentMode, string> = {
   brief:    '[Mode: Brief] Plan a UGC video brief for the following:',
 }
 
+const SLASH_COMMANDS = [
+  { id: 'color', label: '/color', description: 'Pick a color and insert its hex code' },
+]
+
+const PRESET_COLORS = [
+  '#000000', '#FFFFFF', '#FF3B30', '#FF9500', '#FFCC00', '#34C759',
+  '#007AFF', '#5856D6', '#AF52DE', '#FF2D55', '#A2845E', '#636366',
+]
+
 const EXAMPLE_PROMPTS = [
   { icon: Icon.Image,   label: 'Product photo', text: 'Generate a lifestyle product photo for Instagram, 4:5 ratio, warm tones' },
   { icon: Icon.Caption, label: 'Caption pack',  text: 'Write Instagram, Facebook and Twitter captions for a new product launch' },
@@ -683,6 +692,13 @@ export default function StudioPage() {
   // Model selector
   const [selectedModel, setSelectedModel] = useState<'lumen' | 'animus' | 'aether'>('animus')
 
+  // Slash command menu
+  const [slashMenuOpen, setSlashMenuOpen] = useState(false)
+  const [slashQuery, setSlashQuery] = useState('')
+  const [slashFocused, setSlashFocused] = useState(0)
+  const [colorPickerOpen, setColorPickerOpen] = useState(false)
+  const [customColor, setCustomColor] = useState('#000000')
+
   // Reference image + drag-and-drop
   const [attachedImage, setAttachedImage] = useState<AttachedImage | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -1037,7 +1053,43 @@ export default function StudioPage() {
     setPanY((vh - contentH * newZoom) / 2 - minY * newZoom)
   }
 
+  const handleSlashInput = (value: string) => {
+    const slashMatch = value.match(/(^|\s)\/(\w*)$/)
+    if (slashMatch) {
+      setSlashMenuOpen(true)
+      setSlashQuery(slashMatch[2].toLowerCase())
+      setSlashFocused(0)
+    } else {
+      setSlashMenuOpen(false)
+    }
+  }
+
+  const insertColor = (hex: string) => {
+    const newVal = input.replace(/(^|\s)\/color\w*$/, (_, pre) => pre + hex)
+    setInput(newVal)
+    setColorPickerOpen(false)
+    setSlashMenuOpen(false)
+    setTimeout(() => textareaRef.current?.focus(), 0)
+  }
+
+  const selectSlashCommand = (id: string) => {
+    if (id === 'color') {
+      setSlashMenuOpen(false)
+      setColorPickerOpen(true)
+    }
+  }
+
+  const filteredSlashCommands = SLASH_COMMANDS.filter(c =>
+    c.id.startsWith(slashQuery) || c.label.includes(slashQuery)
+  )
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (slashMenuOpen) {
+      if (e.key === 'ArrowDown') { e.preventDefault(); setSlashFocused(f => Math.min(f + 1, filteredSlashCommands.length - 1)); return }
+      if (e.key === 'ArrowUp') { e.preventDefault(); setSlashFocused(f => Math.max(f - 1, 0)); return }
+      if (e.key === 'Enter') { e.preventDefault(); if (filteredSlashCommands[slashFocused]) selectSlashCommand(filteredSlashCommands[slashFocused].id); return }
+      if (e.key === 'Escape') { setSlashMenuOpen(false); return }
+    }
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input) }
   }
 
@@ -1370,6 +1422,66 @@ export default function StudioPage() {
                 </div>
               )}
 
+              {/* Slash command menu */}
+              {slashMenuOpen && filteredSlashCommands.length > 0 && (
+                <div style={{ margin: '0 12px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
+                  {filteredSlashCommands.map((cmd, i) => (
+                    <button
+                      key={cmd.id}
+                      onMouseEnter={() => setSlashFocused(i)}
+                      onMouseDown={e => { e.preventDefault(); selectSlashCommand(cmd.id) }}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: slashFocused === i ? 'var(--bg)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
+                    >
+                      <span style={{ width: 28, height: 28, borderRadius: 8, background: slashFocused === i ? 'var(--ink)' : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13, transition: 'background 0.1s' }}>
+                        {cmd.id === 'color' ? <span style={{ fontSize: 14 }}>🎨</span> : null}
+                      </span>
+                      <div style={{ flex: 1 }}>
+                        <p style={{ margin: 0, fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{cmd.label}</p>
+                        <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-mute)' }}>{cmd.description}</p>
+                      </div>
+                      {slashFocused === i && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>↵</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Color picker popup */}
+              {colorPickerOpen && (
+                <div style={{ margin: '0 12px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                    <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>Pick a color</p>
+                    <button onMouseDown={e => { e.preventDefault(); setColorPickerOpen(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-dim)', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, marginBottom: 10 }}>
+                    {PRESET_COLORS.map(hex => (
+                      <button
+                        key={hex}
+                        onMouseDown={e => { e.preventDefault(); insertColor(hex) }}
+                        title={hex}
+                        style={{ width: '100%', aspectRatio: '1', borderRadius: 8, background: hex, border: hex === '#FFFFFF' ? '1.5px solid var(--border)' : '1.5px solid transparent', cursor: 'pointer', transition: 'transform 0.1s' }}
+                        onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.12)')}
+                        onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
+                      />
+                    ))}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="color"
+                      value={customColor}
+                      onChange={e => setCustomColor(e.target.value)}
+                      style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid var(--border)', cursor: 'pointer', padding: 2, background: 'var(--bg)' }}
+                    />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', fontFamily: 'monospace' }}>{customColor.toUpperCase()}</span>
+                    <button
+                      onMouseDown={e => { e.preventDefault(); insertColor(customColor.toUpperCase()) }}
+                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                    >
+                      Use
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Textarea row */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', padding: '8px 12px 10px' }}>
                 {/* Attach button */}
@@ -1385,7 +1497,7 @@ export default function StudioPage() {
                 <textarea
                   ref={textareaRef}
                   value={input}
-                  onChange={e => { setInput(e.target.value); autoResize() }}
+                  onChange={e => { setInput(e.target.value); autoResize(); handleSlashInput(e.target.value) }}
                   onKeyDown={handleKeyDown}
                   placeholder={activeMode ? TOOL_PILLS.find(p => p.mode === activeMode)?.placeholder ?? 'Describe what you want to create…' : 'Describe what you want to create…'}
                   disabled={loading || !authToken}
