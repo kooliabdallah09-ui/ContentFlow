@@ -7,7 +7,6 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js'
 import Anthropic from '@anthropic-ai/sdk'
-import { createClient } from '@supabase/supabase-js'
 import { createSign, randomUUID } from 'node:crypto'
 
 // ─── Vertex AI / NanoBanana image engine ─────────────────────────────────────
@@ -123,25 +122,22 @@ async function generateImage(
   throw new Error('Vertex: too many 429 retries')
 }
 
-// ─── Supabase image upload ────────────────────────────────────────────────────
-
-function getSupabase() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
-  return createClient(url, key)
-}
+// ─── Supabase image upload (direct REST — no client, no WebSocket) ────────────
 
 async function uploadImage(base64: string, mimeType: string): Promise<string | null> {
-  const supabase = getSupabase()
-  if (!supabase) return null
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!supabaseUrl || !serviceKey) return null
   const ext = mimeType.includes('jpeg') ? 'jpg' : 'png'
   const path = `mcp/${randomUUID()}.${ext}`
   const buf = Buffer.from(base64, 'base64')
-  const { error } = await supabase.storage.from('ugc-assets').upload(path, buf, { contentType: mimeType, upsert: false })
-  if (error) { console.error('[upload]', error.message); return null }
-  const { data } = supabase.storage.from('ugc-assets').getPublicUrl(path)
-  return data.publicUrl
+  const res = await fetch(`${supabaseUrl}/storage/v1/object/ugc-assets/${path}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${serviceKey}`, 'Content-Type': mimeType },
+    body: buf,
+  })
+  if (!res.ok) { console.error('[upload]', await res.text()); return null }
+  return `${supabaseUrl}/storage/v1/object/public/ugc-assets/${path}`
 }
 
 // ─── Tavily web search ────────────────────────────────────────────────────────
