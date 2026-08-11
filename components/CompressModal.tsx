@@ -18,13 +18,6 @@ const FORMAT_LABELS: Record<Format, string> = {
   png: 'PNG (lossless)',
 }
 
-const FORMAT_MIME: Record<Format, string> = {
-  jpeg: 'image/jpeg',
-  webp: 'image/webp',
-  avif: 'image/avif',
-  png: 'image/png',
-}
-
 const FORMAT_EXT: Record<Format, string> = {
   jpeg: 'jpg',
   webp: 'webp',
@@ -38,46 +31,28 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(2)} MB`
 }
 
-async function getImageData(url: string): Promise<{ imageData: ImageData; originalSize: number }> {
+async function loadImageAndGetCanvas(url: string): Promise<{ canvas: HTMLCanvasElement; originalSize: number }> {
   const response = await fetch(url)
   const blob = await response.blob()
   const originalSize = blob.size
-
-  const bitmap = await createImageBitmap(blob)
-  const canvas = new OffscreenCanvas(bitmap.width, bitmap.height)
-  const ctx = canvas.getContext('2d')!
-  ctx.drawImage(bitmap, 0, 0)
-  const imageData = ctx.getImageData(0, 0, bitmap.width, bitmap.height)
-  bitmap.close()
-  return { imageData, originalSize }
+  const bmp = await createImageBitmap(blob)
+  const canvas = document.createElement('canvas')
+  canvas.width = bmp.width
+  canvas.height = bmp.height
+  canvas.getContext('2d')!.drawImage(bmp, 0, 0)
+  bmp.close()
+  return { canvas, originalSize }
 }
 
-async function compressImage(imageData: ImageData, format: Format, quality: number): Promise<ArrayBuffer> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const locateFile = (p: string, dir: string) => p.endsWith('.wasm') ? `/wasm/${format}/${p}` : dir + p
-
-  if (format === 'jpeg') {
-    const { init, default: encode } = await import('@jsquash/jpeg/encode.js')
-    await (init as any)({ locateFile })
-    return encode(imageData, { quality })
-  }
-
-  if (format === 'webp') {
-    const { init, default: encode } = await import('@jsquash/webp/encode.js')
-    await (init as any)({ locateFile })
-    return encode(imageData, { quality })
-  }
-
-  if (format === 'avif') {
-    const { init, default: encode } = await import('@jsquash/avif/encode.js')
-    await (init as any)({ locateFile })
-    return (encode as any)(imageData, { quality })
-  }
-
-  // PNG — lossless, no quality slider
-  const { init, default: encode } = await import('@jsquash/png/encode.js')
-  await init('/wasm/png/squoosh_png_bg.wasm')
-  return encode(imageData)
+async function canvasToBlob(canvas: HTMLCanvasElement, format: Format, quality: number): Promise<Blob> {
+  const mime = format === 'jpeg' ? 'image/jpeg'
+    : format === 'webp' ? 'image/webp'
+    : format === 'avif' ? 'image/avif'
+    : 'image/png'
+  const q = format === 'png' ? undefined : quality / 100
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Encoding failed')), mime, q)
+  })
 }
 
 export default function CompressModal({ imageUrl, filename, onClose }: Props) {
@@ -87,50 +62,43 @@ export default function CompressModal({ imageUrl, filename, onClose }: Props) {
   const [compressedBlob, setCompressedBlob] = useState<Blob | null>(null)
   const [compressing, setCompressing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const imageDataRef = useRef<ImageData | null>(null)
+  const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Load image once on mount
   useEffect(() => {
     let cancelled = false
-    getImageData(imageUrl)
-      .then(({ imageData, originalSize }) => {
+    loadImageAndGetCanvas(imageUrl)
+      .then(({ canvas, originalSize }) => {
         if (cancelled) return
-        imageDataRef.current = imageData
+        canvasRef.current = canvas
         setOriginalSize(originalSize)
+        runCompress(format, quality, canvas)
       })
       .catch(() => setError('Failed to load image'))
     return () => { cancelled = true }
-  }, [imageUrl])
+  }, [imageUrl]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const runCompress = useCallback(async (fmt: Format, q: number) => {
-    if (!imageDataRef.current) return
+  const runCompress = useCallback(async (fmt: Format, q: number, canvas?: HTMLCanvasElement) => {
+    const c = canvas ?? canvasRef.current
+    if (!c) return
     setCompressing(true)
     setError(null)
     try {
-      const buffer = await compressImage(imageDataRef.current, fmt, q)
-      const blob = new Blob([buffer], { type: FORMAT_MIME[fmt] })
+      const blob = await canvasToBlob(c, fmt, q)
       setCompressedBlob(blob)
-    } catch (e) {
-      setError('Compression failed. Try a different format.')
-      console.error(e)
+    } catch {
+      setError(`${fmt.toUpperCase()} not supported in this browser. Try JPEG or WebP.`)
     } finally {
       setCompressing(false)
     }
   }, [])
 
-  // Debounce quality slider; run immediately on format change
   useEffect(() => {
-    if (!imageDataRef.current) return
+    if (!canvasRef.current) return
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(() => runCompress(format, quality), 350)
+    debounceRef.current = setTimeout(() => runCompress(format, quality), 250)
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current) }
   }, [format, quality, runCompress])
-
-  // Re-run once imageData is loaded
-  useEffect(() => {
-    if (imageDataRef.current) runCompress(format, quality)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const savings = originalSize && compressedBlob
     ? Math.round((1 - compressedBlob.size / originalSize) * 100)
@@ -166,7 +134,6 @@ export default function CompressModal({ imageUrl, filename, onClose }: Props) {
         }}
         onClick={e => e.stopPropagation()}
       >
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
           <span style={{ fontWeight: 600, fontSize: 14 }}>Compress Image</span>
           <button className="icon-btn" style={{ padding: 6 }} onClick={onClose}>
@@ -267,13 +234,6 @@ export default function CompressModal({ imageUrl, filename, onClose }: Props) {
             <p style={{ fontSize: 13, color: 'var(--danger)', textAlign: 'center', margin: 0 }}>{error}</p>
           )}
 
-          {format === 'avif' && (
-            <p style={{ fontSize: 12, color: 'var(--ink-mute)', margin: 0, textAlign: 'center' }}>
-              AVIF encoding is slower — please wait a moment
-            </p>
-          )}
-
-          {/* Actions */}
           <button
             className="btn btn-primary"
             disabled={!compressedBlob || compressing}
