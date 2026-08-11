@@ -28,7 +28,7 @@ const plans = [
   {
     name: 'Lite',
     price: { monthly: '$6', annual: '$5' },
-    annualTotal: '$50/yr',
+    annualTotal: '$60/yr',
     credits: '200 credits / month',
     priceId: { monthly: PADDLE_PRICES.lite, annual: PADDLE_PRICES.liteAnnual },
     planKey: 'lite',

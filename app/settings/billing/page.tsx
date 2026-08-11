@@ -135,7 +135,7 @@ export default function BillingPage() {
       name: 'Free', price: { monthly: '$0', annual: '$0' }, annualTotal: null,
       credits: '0/month · +30 signup',
       priceId: { monthly: '', annual: '' },
-      features: ['30 one-time signup credits', '~12 product images', '~7 AI influencer / product photos', 'Try every studio', 'Business card generator', 'No UGC videos (cheapest is 95cr)'],
+      features: ['30 one-time signup credits', '~6 product images', '~3 AI influencer / product photos', 'Try every studio', 'Business card generator', 'No UGC videos (cheapest is 95cr)'],
       planKey: 'free',
     },
     {
@@ -288,7 +288,7 @@ export default function BillingPage() {
               <span style={{ fontSize: 15, fontWeight: 700 }}>Lite</span>
               <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$5' : '$6'}</span>
               <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/mo</span>
-              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $50/yr</span>}
+              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $60/yr</span>}
               <span style={{ fontSize: 11, color: 'var(--ink-dim)', marginLeft: 4 }}>· 200 cr/month · $0.030/cr</span>
             </div>
 
@@ -625,7 +625,7 @@ function getCrEach(type: ContentType, sel: Record<string, string>): number {
   return type.crBase
 }
 
-const PLAN_CAPS: Record<string, number> = { free: 60, starter: 800, pro: 2000, agency: 6500 }
+const PLAN_CAPS: Record<string, number> = { free: 30, starter: 800, pro: 2000, agency: 6500 }
 
 function PlanRecommender({
   goals, setGoals, currentPlan, annual, plans, onUpgrade, upgradeLoading, isAdmin,
