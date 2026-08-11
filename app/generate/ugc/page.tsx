@@ -83,6 +83,7 @@ export default function UGCGeneratorPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [creditsLoading, setCreditsLoading] = useState(true)
+  const [userPlan, setUserPlan] = useState<string>('')
 
   // URL → ad scraper
   const [urlInput, setUrlInput] = useState('')
@@ -187,6 +188,7 @@ export default function UGCGeneratorPage() {
         if (response.ok) {
           const data = await response.json()
           setCreditBalance(data.balance)
+          if (data.plan) setUserPlan(data.plan)
         } else if (response.status === 404) {
           // Initialize credits
           const initResponse = await fetch('/api/credits/init', {
@@ -449,6 +451,26 @@ export default function UGCGeneratorPage() {
     } finally {
       setUrlLoading(false)
     }
+  }
+
+  if (userPlan === 'lite') {
+    return (
+      <main style={{ maxWidth: 1140, margin: '0 auto', padding: '36px 40px 90px' }}>
+        <SectionTabs tabs={VIDEO_STUDIO_TABS} />
+        <div style={{ marginTop: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="15" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/></svg>
+          </div>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 28, letterSpacing: '-0.02em', margin: '0 0 8px' }}>Video is not included in <em>Lite</em></h2>
+            <p style={{ fontSize: 14, color: 'var(--ink-dim)', maxWidth: 380, margin: '0 auto', lineHeight: 1.6 }}>Upgrade to Starter to unlock UGC video generation, AI video, and the video editor.</p>
+          </div>
+          <a href="/settings/billing" style={{ marginTop: 8, padding: '11px 28px', borderRadius: 10, background: '#111', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none', letterSpacing: '-0.01em' }}>
+            Upgrade to Starter →
+          </a>
+        </div>
+      </main>
+    )
   }
 
   return (

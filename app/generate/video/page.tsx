@@ -140,11 +140,17 @@ export default function VideoGeneratorPage() {
   // session — if the user isn't on the ADMIN_EMAILS list the chip isn't
   // rendered and the server would ignore the flag anyway.
   const [showOmniFlash, setShowOmniFlash] = useState(false)
+  const [userPlan, setUserPlan] = useState('')
   useEffect(() => {
     const supabase = getSupabase()
     if (!supabase) return
-    supabase.auth.getSession().then((res: { data: { session: { user?: { email?: string | null } } | null } }) => {
+    supabase.auth.getSession().then(async (res: { data: { session: { user?: { email?: string | null }; access_token?: string } | null } }) => {
       setShowOmniFlash(canAccessOmniFlashVideo(res.data.session?.user?.email ?? null))
+      const token = res.data.session?.access_token
+      if (token) {
+        const r = await fetch('/api/credits/balance', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
+        if (r?.ok) { const d = await r.json(); if (d.plan) setUserPlan(d.plan) }
+      }
     })
   }, [])
   const [prompt, setPrompt] = useState('')
@@ -440,6 +446,26 @@ export default function VideoGeneratorPage() {
     } finally {
       setGenerating(false)
     }
+  }
+
+  if (userPlan === 'lite') {
+    return (
+      <main style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }}>
+        <SectionTabs tabs={VIDEO_STUDIO_TABS} />
+        <div style={{ marginTop: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 16 }}>
+          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
+          </div>
+          <div>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 28, letterSpacing: '-0.02em', margin: '0 0 8px' }}>Video is not included in <em>Lite</em></h2>
+            <p style={{ fontSize: 14, color: 'var(--ink-dim)', maxWidth: 380, margin: '0 auto', lineHeight: 1.6 }}>Upgrade to Starter to unlock AI video generation, UGC videos, and more.</p>
+          </div>
+          <a href="/settings/billing" style={{ marginTop: 8, padding: '11px 28px', borderRadius: 10, background: '#111', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+            Upgrade to Starter →
+          </a>
+        </div>
+      </main>
+    )
   }
 
   return (
