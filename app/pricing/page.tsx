@@ -26,6 +26,24 @@ const plans = [
     ctaHref: '/auth/signup',
   },
   {
+    name: 'Lite',
+    price: { monthly: '$6', annual: '$5' },
+    annualTotal: '$50/yr',
+    credits: '200 credits / month',
+    priceId: { monthly: PADDLE_PRICES.lite, annual: PADDLE_PRICES.liteAnnual },
+    planKey: 'lite',
+    features: [
+      'Product photos & images',
+      'AI Influencer Studio',
+      'Social captions',
+      'Voiceover',
+      'Carousel maker',
+      'Business card generator',
+      'No UGC or AI video',
+    ],
+    cta: 'Get Lite',
+  },
+  {
     name: 'Starter',
     price: { monthly: '$19', annual: '$16' },
     annualTotal: '$190/yr',
@@ -165,7 +183,7 @@ export default function PricingPage() {
         </div>
 
         {/* Plan cards */}
-        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 64 }}>
+        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 64 }}>
           {plans.map(plan => {
             const price = annual ? plan.price.annual : plan.price.monthly
             const isLoading = loading === plan.planKey
@@ -224,8 +242,9 @@ export default function PricingPage() {
           })}
         </div>
         <style>{`
-          @media (max-width: 900px) { .pricing-grid { grid-template-columns: repeat(2, 1fr) !important; } }
-          @media (max-width: 540px) { .pricing-grid { grid-template-columns: 1fr !important; } }
+          @media (max-width: 1100px) { .pricing-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+          @media (max-width: 700px)  { .pricing-grid { grid-template-columns: repeat(2, 1fr) !important; } }
+          @media (max-width: 480px)  { .pricing-grid { grid-template-columns: 1fr !important; } }
         `}</style>
 
         {/* Credit packs */}
@@ -234,6 +253,7 @@ export default function PricingPage() {
           <p style={{ fontSize: 14, color: 'var(--ink-dim, #666)', marginBottom: 24, marginTop: 0 }}>One-off credit packs. No subscription required. Never expire.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             {[
+              { credits: 250,  price: '$8',   perCr: '$0.032/cr' },
               { credits: 500,  price: '$15',  perCr: '$0.030/cr' },
               { credits: 1500, price: '$45',  perCr: '$0.030/cr' },
               { credits: 5000, price: '$120', perCr: '$0.024/cr' },

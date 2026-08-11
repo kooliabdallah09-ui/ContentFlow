@@ -55,7 +55,7 @@ export default function LandingPage() {
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="ls-nav">
             <a href="#features" style={navLink}>Features</a>
-            <a href="#pricing" style={navLink}>Pricing</a>
+            <Link href="/pricing" style={navLink}>Pricing</Link>
             <Link href="/help" style={navLink}>Docs</Link>
           </nav>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="ls-actions">
@@ -101,7 +101,7 @@ export default function LandingPage() {
             background: 'var(--bg)',
           }}>
             <a href="#features" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Features</a>
-            <a href="#pricing" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Pricing</a>
+            <Link href="/pricing" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Pricing</Link>
             <Link href="/help" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Docs</Link>
             <Link href="/auth/login" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Sign in</Link>
             {/* On the smallest phones, the theme toggle and Get started move
@@ -239,53 +239,6 @@ export default function LandingPage() {
       </section>
 
       {/* PRICING */}
-      <section id="pricing" style={{ position: 'relative', overflow: 'hidden' }}>
-        <img src="/images/pricing-peaks.jpg" alt="" aria-hidden
-          style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            objectFit: 'cover', objectPosition: 'center 25%',
-            opacity: 0.15, filter: 'saturate(0.85)', pointerEvents: 'none',
-          }} />
-        <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'linear-gradient(to bottom, var(--bg) 0%, transparent 35%, transparent 60%, var(--bg) 100%)',
-        }} />
-        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '100px 20px' }}>
-        <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto 50px' }}>
-          <h2 style={sectionH2}>Fair pricing.<br/><span style={{ fontStyle: 'italic', color: 'var(--ink-mute)' }}>For everyone.</span></h2>
-          <p style={sectionP}>No hidden fees. No long contracts. Credits roll month to month.</p>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }} className="ls-pricing">
-          <div style={priceCard}>
-            <div style={priceName}>Free</div>
-            <div style={priceRow}><span style={priceAmt}>$0</span><span style={priceUnit}>forever</span></div>
-            <div style={priceMeta}>60 credits at signup · Explore the platform</div>
-            <Link href="/auth/signup" style={btnSecondaryFull}>Get started</Link>
-          </div>
-          <div style={priceCard}>
-            <div style={priceName}>Starter</div>
-            <div style={priceRow}><span style={priceAmt}>$19</span><span style={priceUnit}>/month</span></div>
-            <div style={priceMeta}>800 credits/month · ~6 UGC videos</div>
-            <Link href="/auth/signup?plan=starter" style={btnSecondaryFull}>Get Starter</Link>
-          </div>
-          <div style={{ ...priceCard, border: '2px solid var(--ink)', position: 'relative' }}>
-            <span style={popularBadge}>Most popular</span>
-            <div style={priceName}>Pro</div>
-            <div style={priceRow}><span style={priceAmt}>$49</span><span style={priceUnit}>/month</span></div>
-            <div style={priceMeta}>2,000 credits/month · ~16 UGC videos</div>
-            <Link href="/auth/signup?plan=pro" style={btnPrimaryFull}>Get Pro</Link>
-          </div>
-          <div style={priceCard}>
-            <div style={priceName}>Agency</div>
-            <div style={priceRow}><span style={priceAmt}>$149</span><span style={priceUnit}>/month</span></div>
-            <div style={priceMeta}>6,500 credits/month · ~52 UGC videos</div>
-            <Link href="/auth/signup?plan=agency" style={btnSecondaryFull}>Get Agency</Link>
-          </div>
-        </div>
-        </div>
-      </section>
-
       {/* CTA */}
       <section style={{ maxWidth: 900, margin: '0 auto', padding: '100px 20px', textAlign: 'center' }}>
         <h2 style={{ ...sectionH2, fontSize: 48 }}>Ready to make <span style={{ fontStyle: 'italic' }}>better ads?</span></h2>
@@ -310,7 +263,7 @@ export default function LandingPage() {
               <div style={footH}>Product</div>
               <ul style={footList}>
                 <li><a href="#features" style={footLink}>Features</a></li>
-                <li><a href="#pricing" style={footLink}>Pricing</a></li>
+                <li><Link href="/pricing" style={footLink}>Pricing</Link></li>
                 <li><Link href="/help" style={footLink}>Docs</Link></li>
               </ul>
             </div>
