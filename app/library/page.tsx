@@ -6,6 +6,9 @@ import { getSupabase } from '@/lib/auth'
 import { Icon } from '@/components/Icons'
 import { showError, showSuccess } from '@/lib/notifications'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
+
+const CompressModal = dynamic(() => import('@/components/CompressModal'), { ssr: false })
 
 interface LibraryItem {
   id: string
@@ -43,6 +46,7 @@ export default function LibraryPage() {
   const [filterType, setFilterType] = useState('all')
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [previewItem, setPreviewItem] = useState<LibraryItem | null>(null)
+  const [compressItem, setCompressItem] = useState<LibraryItem | null>(null)
   const [driveConnected, setDriveConnected] = useState<boolean | null>(null)
   const [campaignName, setCampaignName] = useState<string | null>(null)
   const [campaignAssetIds, setCampaignAssetIds] = useState<Set<string> | null>(null)
@@ -633,6 +637,15 @@ export default function LibraryPage() {
                   <Icon.Arrow style={{ width: 14, height: 14 }} />
                   Download
                 </a>
+                {previewItem.content_type === 'image' && (
+                  <button
+                    className="btn btn-ghost"
+                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                    onClick={() => setCompressItem(previewItem)}
+                  >
+                    Compress
+                  </button>
+                )}
                 {(previewItem.content_type === 'video' || previewItem.content_type === 'ugc_package') && previewItem.storage_url && (
                   <Link
                     href={`/editor?videoUrl=${encodeURIComponent(previewItem.storage_url)}`}
@@ -658,6 +671,14 @@ export default function LibraryPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {compressItem && (
+        <CompressModal
+          imageUrl={compressItem.storage_url}
+          filename={compressItem.name}
+          onClose={() => setCompressItem(null)}
+        />
       )}
 
       <style>{`
