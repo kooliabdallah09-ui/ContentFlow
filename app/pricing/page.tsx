@@ -228,14 +228,23 @@ export default function PricingPage() {
                 </button>
 
                 <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: 9 }}>
-                  {plan.features.map(f => (
-                    <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: 'var(--ink-dim, #555)', lineHeight: 1.4 }}>
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
-                        <path d="M20 6L9 17l-5-5"/>
-                      </svg>
-                      {f}
-                    </li>
-                  ))}
+                  {plan.features.map(f => {
+                    const isNegative = f.startsWith('No ')
+                    return (
+                      <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, fontSize: 12.5, color: isNegative ? 'var(--ink-mute, #999)' : 'var(--ink-dim, #555)', lineHeight: 1.4 }}>
+                        {isNegative ? (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                            <path d="M18 6L6 18M6 6l12 12"/>
+                          </svg>
+                        ) : (
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                            <path d="M20 6L9 17l-5-5"/>
+                          </svg>
+                        )}
+                        {f}
+                      </li>
+                    )
+                  })}
                 </ul>
               </div>
             )
