@@ -11,10 +11,6 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  webpack(config) {
-    config.experiments = { ...config.experiments, asyncWebAssembly: true }
-    return config
-  },
   async headers() {
     return [
       {
