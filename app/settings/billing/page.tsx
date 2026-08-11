@@ -133,9 +133,9 @@ export default function BillingPage() {
   const plans = [
     {
       name: 'Free', price: { monthly: '$0', annual: '$0' }, annualTotal: null,
-      credits: '0/month · +60 signup',
+      credits: '0/month · +30 signup',
       priceId: { monthly: '', annual: '' },
-      features: ['60 one-time signup credits', '~12 product images', '~7 AI influencer / product photos', 'Try every studio', 'Business card generator', 'No UGC videos (cheapest is 95cr)'],
+      features: ['30 one-time signup credits', '~12 product images', '~7 AI influencer / product photos', 'Try every studio', 'Business card generator', 'No UGC videos (cheapest is 95cr)'],
       planKey: 'free',
     },
     {

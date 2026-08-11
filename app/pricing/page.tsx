@@ -11,11 +11,11 @@ const plans = [
     name: 'Free',
     price: { monthly: '$0', annual: '$0' },
     annualTotal: null,
-    credits: '60 one-time signup credits',
+    credits: '30 one-time signup credits',
     priceId: { monthly: '', annual: '' },
     planKey: 'free',
     features: [
-      '60 credits on sign-up (~12 images)',
+      '30 credits on sign-up (~6 images)',
       'Try every studio & tool',
       'AI image generator',
       'Social captions',
@@ -112,7 +112,7 @@ const faqs = [
   { q: 'What are credits?', a: 'Credits are consumed when you generate content — images, videos, influencer photos, voiceovers, and more. Each tool has a fixed credit cost shown in the app.' },
   { q: 'Do credits roll over?', a: 'Monthly plan credits reset each billing period. One-time credit pack purchases never expire and survive plan changes.' },
   { q: 'Can I change my plan anytime?', a: 'Yes — upgrade or downgrade at any time. Changes take effect immediately and your balance is adjusted accordingly.' },
-  { q: 'Is there a free trial?', a: 'Yes — sign up for free and receive 60 credits immediately. No credit card required.' },
+  { q: 'Is there a free trial?', a: 'Yes — sign up for free and receive 30 credits immediately. No credit card required.' },
 ]
 
 export default function PricingPage() {

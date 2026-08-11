@@ -38,7 +38,7 @@ const COMPETITORS: Record<CompetitorKey, CompetitorData> = {
       { feature: 'Product Studio (multi-angle shoots)', contentflow: true, competitor: false },
       { feature: 'Written content (blog, email, captions)', contentflow: true, competitor: false },
       { feature: 'Brand profile (feeds all formats)', contentflow: true, competitor: false },
-      { feature: 'Free tier', contentflow: '60 credits', competitor: 'Limited' },
+      { feature: 'Free tier', contentflow: '30 credits', competitor: 'Limited' },
       { feature: 'Number of AI video models', contentflow: 'Seedance 2 + Kling v3', competitor: '50+ models' },
       { feature: 'Mobile app', contentflow: false, competitor: true },
       { feature: 'Camera / motion controls', contentflow: 'Standard', competitor: 'Advanced' },
@@ -60,7 +60,7 @@ const COMPETITORS: Record<CompetitorKey, CompetitorData> = {
       { feature: 'Exclusive identity (not shared)', contentflow: true, competitor: false },
       { feature: 'Product Studio', contentflow: true, competitor: false },
       { feature: 'Written content (blog, email, captions)', contentflow: true, competitor: false },
-      { feature: 'Free tier', contentflow: '60 credits', competitor: false },
+      { feature: 'Free tier', contentflow: '30 credits', competitor: false },
       { feature: 'Actor realism', contentflow: 'AI-generated', competitor: 'Motion-capture (more realistic)' },
       { feature: 'Motion-broll & cinematic formats', contentflow: true, competitor: false },
       { feature: 'Google Drive backup', contentflow: true, competitor: false },
@@ -83,7 +83,7 @@ const COMPETITORS: Record<CompetitorKey, CompetitorData> = {
       { feature: 'UGC ad formats (28 formats)', contentflow: true, competitor: false },
       { feature: 'Written content (blog, email, captions)', contentflow: true, competitor: false },
       { feature: 'Video translation', contentflow: false, competitor: true },
-      { feature: 'Free tier', contentflow: '60 credits', competitor: 'Limited' },
+      { feature: 'Free tier', contentflow: '30 credits', competitor: 'Limited' },
       { feature: 'Brand profile', contentflow: true, competitor: false },
       { feature: 'Product-to-video workflow', contentflow: true, competitor: false },
       { feature: 'Google Drive backup', contentflow: true, competitor: false },
@@ -105,7 +105,7 @@ const COMPETITORS: Record<CompetitorKey, CompetitorData> = {
       { feature: 'Product Studio', contentflow: true, competitor: false },
       { feature: 'Written content (blog, email, captions)', contentflow: true, competitor: false },
       { feature: 'Cinematic creative control', contentflow: 'Standard', competitor: 'Advanced' },
-      { feature: 'Free tier', contentflow: '60 credits', competitor: 'Limited credits' },
+      { feature: 'Free tier', contentflow: '30 credits', competitor: 'Limited credits' },
       { feature: 'Brand profile', contentflow: true, competitor: false },
       { feature: 'Time to finished ad', contentflow: '~2 minutes', competitor: 'Hours (requires editing)' },
       { feature: 'No creative skill required', contentflow: true, competitor: false },
@@ -210,7 +210,7 @@ export default async function VsPage({ params }: { params: Promise<{ competitor:
         <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 32, margin: '0 0 10px' }}>
           Try Content<em>flow</em> free
         </h2>
-        <p style={{ fontSize: 15, color: 'var(--ink-dim)', margin: '0 0 28px' }}>60 credits at signup. No credit card required.</p>
+        <p style={{ fontSize: 15, color: 'var(--ink-dim)', margin: '0 0 28px' }}>30 credits at signup. No credit card required.</p>
         <Link href="/auth/signup" style={{ display: 'inline-block', padding: '13px 32px', borderRadius: 11, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 15, fontWeight: 600, textDecoration: 'none' }}>
           Get started free
         </Link>

@@ -59,7 +59,7 @@ export default function SignupPage() {
             Start <span style={{ fontStyle: 'italic' }}>here</span>.
           </h1>
           <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: 0 }}>
-            60 credits at signup — make your first UGC ad in minutes.
+            30 credits at signup — make your first UGC ad in minutes.
           </p>
         </div>
 
