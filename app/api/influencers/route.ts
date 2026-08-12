@@ -82,17 +82,33 @@ Return ONLY valid JSON, no markdown, exactly this shape:
   "appearance_prompt": "a detailed Nano Banana Pro image prompt for their canonical portrait"
 }
 
-appearance_prompt rules:
-- Adult in their early-to-mid 20s, attractive and photogenic — but a REAL-person kind of attractive, not a retouched model
-- Describe: gender presentation, ethnicity, hair (color/length/texture), eye color, distinctive features (freckles, dimples, glasses…), build, one signature style element
-- Head-and-shoulders portrait, looking directly at the camera lens, natural expression with warmth
-- Hyper-realistic candid snapshot with the look of a casual smartphone photo: bright even natural window light, deep focus (no bokeh, no shallow depth of field), true-to-life colours. Skin is CLEAR, HEALTHY, and EVEN in tone — no visible moles, no active blemishes, no red patches on the nose or cheeks, no dark under-eyes. Very subtle real-skin micro-texture is fine (barely-there pores, soft natural sheen) — but do NOT add freckles, moles, redness, or "character marks" to the face unless the client explicitly asked for them. This is what separates a REAL beautiful person from AI-slop with random imperfections tacked on.\n- The person should feel SPECIFIC and INDIVIDUAL through STRUCTURE, not through flaws — describe distinctive bone structure (sharp cheekbones, defined jawline, elegant nose bridge, expressive brow, gentle chin), eye shape, lip shape, hair fall, and posture. Slight facial asymmetry is human and welcome. AVOID: adding moles, blemishes, red noses, freckle clusters, uneven skin, tired eyes; ALSO avoid the opposite extreme — plastic-glossy skin, dead-symmetrical features, filter-smoothed complexion, wax-doll perfection. AIM FOR: a genuinely attractive person who could book a real modelling job — polished but human.
-- If the character presents as female (or the client didn't specify), give her LIGHT, FLATTERING natural makeup — clean skin-toned base evening out complexion, mascara defining the lashes, subtle soft eyeliner or tightlined lash line, groomed and lightly filled brows, a soft rose or peach blush lifting the cheekbones, a subtle highlight on cheekbones + brow bone + cupid's bow, and a nude satin lip with a hint of colour. Not full glam — no dramatic eyeshadow, no heavy contour, no cut crease, no false lashes — but noticeably polished, the way an attractive UGC creator posts on a good-lighting day. Skin should look healthy and radiant, not matte or flat. If the character presents as male, groom him meticulously — clear even skin, well-shaped brows, moisturised lips, healthy well-cut hair, a subtle hint of tinted lip balm is fine.
+appearance_prompt rules — write a prompt that produces a STUNNING, HIGHLY ATTRACTIVE portrait:
+
+PERSON:
+- Conventionally beautiful/handsome — the kind of face that stops scrolling on Instagram. Strong bone structure: sharp defined cheekbones, clean jawline, symmetrical features, full lips, expressive eyes with natural depth. This person could book editorial campaigns.
+- Describe: gender presentation, ethnicity/cultural background, eye color, build/physique, one standout feature (strong jaw, striking eyes, full lips, defined collarbone, etc.)
+- For any trait NOT specified, make the best creative choice — never leave gaps
+
+HAIR:
+- Voluminous, full of movement and texture. For females: long wavy or beachy layers, slightly tousled with natural volume, hair that moves. For males: textured, styled-but-effortless — pushed back, slightly messy, defined with natural hold. Describe: color with dimension (e.g. rich chocolate brown with warm auburn tones in the light, or dark walnut with subtle caramel highlights), length, specific texture and movement.
+
+SKIN & MAKEUP:
+- Skin looks luminous and dewy — a warm golden glow, like morning light is kissing it. Healthy and even, with the soft radiance of someone who actually takes care of themselves.
+- For female/unspecified: clean dewy base, brows groomed and defined, lashes lifted and separated, soft peachy-rose cheek flush, glossy or satin nude lip. The "effortless beauty" look — polished but not overdone.
+- For male: clear even skin with healthy texture, groomed brows, a few days of light stubble if it suits them, moisturised lips.
+
+FRAMING & SETTING:
+- Chest-to-head framing (show face + upper body / outfit context) — not just a tight headshot
+- Looking directly into the lens with natural warmth, or caught in a candid half-smile
+- Warm directional natural window light, soft and flattering — golden morning or afternoon light washing over one side of the face. Airy bright lifestyle setting: a clean bedroom with white linen and light wood, a sun-lit kitchen, a bright open living room. Feels like a high-end creator's home.
+- Wearing a fitted, flattering casual outfit that shows their figure: crop top + lounge pants, an off-shoulder ribbed sweater, a fitted tee, a cosy open cardigan over a tank — something an attractive 20s lifestyle creator would wear in a casual post.
+
+TECHNICAL:
+- Hyper-realistic smartphone photo aesthetic — wide-angle phone lens, natural depth, no studio lighting, no airbrushing. Feels like a real candid from a beautiful person's camera roll.
 - The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
-- NEVER use the words 'phone camera', 'selfie', or 'screenshot' — they cause camera-app UI to render into the image
+- NEVER use the words 'phone camera', 'selfie', or 'screenshot'
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
 - Honor every physical trait the client explicitly asked for
-- For any trait NOT specified by the client (ethnicity, hairstyle, gender, etc.) make the best creative choice that fits the overall vibe — fill every gap, never leave a detail ambiguous
 `
 
 const IDENTITY_SYSTEM_V2 = `You are a creative director writing scene briefs for hyper-realistic UGC influencer portraits.
@@ -109,15 +125,15 @@ Return exactly this JSON shape:
   "appearance_prompt": "scene brief text here"
 }
 
-The appearance_prompt must be one continuous string written in 4 dense paragraphs (no labels or headers, just the paragraphs separated by newlines):
+The appearance_prompt must be one continuous string written in 4 dense paragraphs (no labels or headers, just paragraphs separated by newlines). The goal is a STUNNING, STOP-THE-SCROLL portrait of a highly attractive person:
 
-First paragraph: Ultra-realistic vertical smartphone photo of [person: build, cultural background, hair color/length/texture, skin tone, eyes, lips, natural details like pores or slight imperfections]. They are [mid-action posture: leaning, reaching, gesturing — candid not posed]. Wearing [specific outfit: fabric, color, cut — e.g. a fitted cream ribbed crop top and loose black drawstring pants].
+First paragraph: Ultra-realistic vertical smartphone photo of a strikingly attractive [cultural background] [gender] — [specific facial features that make them beautiful: e.g. "sharp defined cheekbones, a clean strong jawline, full slightly-parted lips, and warm deep-set brown eyes with natural shadow"]. [Voluminous, textured hair description: e.g. "Long dark chocolate wavy hair with warm auburn depth in the light, slightly tousled with natural volume and a few strands falling across the face"]. [Skin: e.g. "Olive-toned skin with a warm luminous golden glow — dewy and radiant, catching the morning light"]. [Build/posture hint: e.g. "Lean and toned, standing with relaxed confident posture"]. Wearing [specific flattering outfit: e.g. "a fitted sage green off-shoulder ribbed long-sleeve top and light grey jogger pants — casual but figure-flattering"].
 
-Second paragraph: Expression is [candid: mid-sentence, mid-laugh, direct eye contact with relaxed mouth open, shoulders loose]. Posture feels unposed and real — like a creator who just hit record and is already talking. [One individual detail: jawline, hair flyaways, collarbone, etc.]
+Second paragraph: [Expression: e.g. "Looking directly into the camera with soft direct eye contact and a relaxed natural half-smile — warm and approachable without being posed. Lips slightly parted, completely at ease"]. The energy is that of a creator who just hit record mid-morning and looks effortlessly good. [One specific beautiful detail: e.g. "Her collarbone is visible, hair has a natural wave and volume that frames her face perfectly"].
 
-Third paragraph: Setting is [specific home/lifestyle space: kitchen, bathroom, coffee shop — described with materials, colors, light source]. Feels lived-in and real, not staged. [2-3 specific props or background details: marble counter, brass tap, a plant, a mug.]
+Third paragraph: [Lifestyle setting in detail: e.g. "Bright airy bedroom — white textured linen duvet, warm natural wood headboard, morning light pouring through sheer white curtains creating a soft warm glow across the room. A small plant on the nightstand, a glass of water. Clean and aspirational but lived-in"]. The light is warm and directional, casting soft shadows that are flattering to the face.
 
-Fourth paragraph: Shot on an iPhone-style camera, vertical 9:16, [close medium or chest-height crop], wide-angle phone lens, realistic distortion, natural daylight from [direction], soft shadows, no studio lighting, no airbrushed skin, no beauty filter. Hyper-realistic skin texture with visible pores, natural hair flyaways, realistic fabric texture. Raw phone photo realism, high resolution, 9:16 aspect ratio.
+Fourth paragraph: Shot on an iPhone-style wide-angle camera, vertical 9:16, chest-height medium crop showing face and upper body. Realistic lens distortion, warm natural window light from the left or right, no studio lighting, no ring light, no airbrushed skin, no beauty filter. Skin has natural luminous texture — healthy and glowing, not filtered. Hair has natural movement and shine. Fabric texture is realistic. High resolution, raw candid smartphone aesthetic, 9:16 aspect ratio.
 
 HARD RULES:
 - Your entire response must be valid JSON starting with { — do not write any words before the opening brace
