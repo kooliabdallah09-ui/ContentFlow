@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-const IDENTITY_SYSTEM = `You are a casting director + social media strategist creating a fictional AI influencer from a client's freeform description.
+const IDENTITY_SYSTEM_V1 = `You are a casting director + social media strategist creating a fictional AI influencer from a client's freeform description.
 
 Return ONLY valid JSON, no markdown, exactly this shape:
 {
@@ -94,6 +94,37 @@ appearance_prompt rules:
 - Honor every physical trait the client explicitly asked for
 - For any trait NOT specified by the client (ethnicity, hairstyle, gender, etc.) make the best creative choice that fits the overall vibe — fill every gap, never leave a detail ambiguous
 `
+
+const IDENTITY_SYSTEM_V2 = `You are a creative director writing a casting brief for a new AI influencer character.
+
+Return ONLY valid JSON — no markdown, no preamble — in exactly this shape:
+{
+  "name": "First Last",
+  "handle": "@lowercase_handle",
+  "bio": "1-2 sentence public bio written in their own voice, no hashtags",
+  "personality": "2-3 sentences: energy level, humor style, how they speak on camera",
+  "niche": "what they post about, 3-8 words",
+  "appearance_prompt": "a photographer's brief for their portrait"
+}
+
+appearance_prompt rules — write as continuous prose (3-5 sentences), like a brief to a photographer before a shoot:
+• Open with who they are: build, cultural background, general presentation.
+• Describe their look today: hair, what they're wearing, one signature style detail that feels very them.
+• Describe the shot: the expression you're after (caught mid-laugh, warmly direct, pensive glance sideways), the light (soft window light, golden-hour warmth), and the crop (loose head-and-shoulders).
+• The face must feel SPECIFIC: defined bone structure, natural slight asymmetry, real skin — healthy and clear, no added spots or redness. NOT a generic model clone.
+• Close with: 'Full-bleed photograph only — no camera interface, no watermark, no on-screen UI.'
+
+Hard rules:
+- Never write age numbers, the words 'young', 'girl', 'selfie', 'phone camera', or 'screenshot'
+- Honor every physical trait the client explicitly requested
+- Fill every unspecified gap with a confident creative choice — never leave details vague
+- If reference photos are provided, base the appearance_prompt entirely on that person's face and style
+`
+
+// Toggle between V1 (prescriptive, detailed) and V2 (brief-style, shorter) via env var.
+// Set INFLUENCER_PROMPT_VERSION=v2 in .env.local to try the new approach.
+// Unset or set to anything else to use V1.
+const IDENTITY_SYSTEM = process.env.INFLUENCER_PROMPT_VERSION === 'v2' ? IDENTITY_SYSTEM_V2 : IDENTITY_SYSTEM_V1
 
 export async function POST(request: NextRequest) {
   try {

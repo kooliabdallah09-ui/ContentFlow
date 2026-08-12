@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
       additionalTalkingHeadUrls,
       aspect,
       musicMood,
+      audioOverlayUrl,
     } = await request.json()
 
     if (!talkingHeadUrl) {
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
       watermark: false,
       aspect: typeof aspect === 'string' ? aspect as 'portrait' | 'square' | 'landscape' : undefined,
       music: track ? { url: track.url, volume: track.volume } : undefined,
+      audioOverlayUrl: typeof audioOverlayUrl === 'string' && audioOverlayUrl.startsWith('http') ? audioOverlayUrl : undefined,
     })
     return NextResponse.json({ renderId })
   } catch (error) {

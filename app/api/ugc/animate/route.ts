@@ -62,6 +62,7 @@ export async function POST(request: NextRequest) {
       resolution: resolutionRaw,
       engine: engineRaw,
       extraProductImages,
+      voiceId: voiceIdRaw,
     } = body as Record<string, unknown>
     const extraProductRefs: Array<{ base64: string; mimeType: string }> = Array.isArray(extraProductImages)
       ? extraProductImages
@@ -310,6 +311,30 @@ export async function POST(request: NextRequest) {
       extraProductImages: extraProductRefs.length ? extraProductRefs : undefined,
     })
 
+    // ElevenLabs voiceover — generate before Seedance so audioUrl is available
+    // to return in the response and pass to Shotstack stitch.
+    let elevenLabsAudioUrl: string | undefined
+    const voiceId = typeof voiceIdRaw === 'string' ? voiceIdRaw.trim() : undefined
+    if (voiceId) {
+      try {
+        const { extractSpokenLines } = await import('@/lib/ugc-script')
+        const spokenText = extractSpokenLines(typeof script === 'string' ? script : '').trim()
+        if (spokenText.length > 3) {
+          const { generateSpeech } = await import('@/lib/tts')
+          const audioBuf = await generateSpeech(spokenText, voiceId)
+          const audioFilename = `voiceover/${userId}-${Date.now()}-ugc.mp3`
+          const { error: audioUpErr } = await supabase.storage
+            .from('ugc-assets')
+            .upload(audioFilename, audioBuf, { contentType: 'audio/mpeg', upsert: false })
+          if (!audioUpErr) {
+            elevenLabsAudioUrl = supabase.storage.from('ugc-assets').getPublicUrl(audioFilename).data.publicUrl
+          }
+        }
+      } catch (voiceErr) {
+        console.warn('[animate] ElevenLabs audio failed, continuing without:', voiceErr instanceof Error ? voiceErr.message : voiceErr)
+      }
+    }
+
     // Seedance submission with sensitivity retry across the grid ladder.
     // Omni Flash is admin-only and skips the ladder — it goes through Vertex
     // and doesn't share Seedance's E006 / reference-images edge cases.
@@ -331,7 +356,7 @@ export async function POST(request: NextRequest) {
         durationSeconds: Math.min(60, Math.max(3, Number(duration) || 10)),
         aspectRatio: aspect.nanoBananaRatio === '3:4' ? '9:16' : aspect.nanoBananaRatio,
         resolution: resolution === '1080p' ? '1080p' : '720p',
-        enableAudio: true,
+        enableAudio: !elevenLabsAudioUrl,
         startImageBase64,
         startImageMimeType,
       })
@@ -344,7 +369,7 @@ export async function POST(request: NextRequest) {
             aspectRatio: aspect.nanoBananaRatio,
             startImageUrl: currentGridUrl,
             resolution,
-            enableAudio: true,
+            enableAudio: !elevenLabsAudioUrl,
             engine,
           })
           break
@@ -392,6 +417,8 @@ export async function POST(request: NextRequest) {
         duration,
         estimatedDuration: duration,
       },
+      elevenLabsAudioUrl: elevenLabsAudioUrl ?? undefined,
+      voiceId: voiceId ?? undefined,
       cutaways: cutawayJobs.length ? cutawayJobs : undefined,
       multiShot: cutawayJobs.length > 0,
       grid: {
@@ -452,6 +479,7 @@ export async function POST(request: NextRequest) {
       ugcType,
       components,
       script,
+      elevenLabsAudioUrl,
       creditDeducted: totalCost,
       newBalance,
     }, { status: 201 })
