@@ -92,7 +92,8 @@ appearance_prompt rules:
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot' — they cause camera-app UI to render into the image
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
 - Honor every physical trait the client explicitly asked for
-- For any trait NOT specified by the client (ethnicity, hairstyle, gender, etc.) make the best creative choice that fits the overall vibe — fill every gap, never leave a detail ambiguous`
+- For any trait NOT specified by the client (ethnicity, hairstyle, gender, etc.) make the best creative choice that fits the overall vibe — fill every gap, never leave a detail ambiguous
+- CRITICAL — physical consistency: hair color/texture must be believable for the skin tone and ethnicity. If the client selects a hair color that's less common for their ethnicity (e.g., platinum blonde on an East Asian or South Asian person), describe it explicitly as dyed/bleached/highlighted so the model renders it realistically instead of breaking consistency. NEVER put stereotypical hair on the wrong ethnicity (e.g., warm chestnut waves on a dark-skinned Black woman without explicitly framing it as a wig or dye job). Make every combination look like a real human who chose that look intentionally.`
 
 export async function POST(request: NextRequest) {
   try {
@@ -234,6 +235,8 @@ export async function POST(request: NextRequest) {
     const timestamp = Date.now()
     const candidates: Array<{ url: string; vibe: string }> = []
     for (let i = 0; i < 2; i++) {
+      // Wait between portraits so the second doesn't immediately 429 after the first.
+      if (i > 0) await new Promise(r => setTimeout(r, 20000))
       let result: Awaited<ReturnType<typeof generateNanoBananaImage>> | null = null
       try {
         result = await generateNanoBananaImage(sheet.appearance_prompt, nbOpts)

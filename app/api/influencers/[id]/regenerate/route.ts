@@ -44,7 +44,8 @@ appearance_prompt rules:
 - The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot'.
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'.
-- Honor every physical trait present in the existing appearance description below — only refine the language, don't swap the character out.`
+- Honor every physical trait present in the existing appearance description below — only refine the language, don't swap the character out.
+- CRITICAL — physical consistency: ensure hair color/texture is believable for the skin tone and ethnicity. If the combination is atypical (e.g., light hair on a dark-skinned person), describe it as dyed/highlighted so it reads as an intentional human choice, not an AI inconsistency.`
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -135,6 +136,7 @@ ${influencer.appearance_prompt}`
     const timestamp = Date.now()
     const candidates: Array<{ url: string; vibe: string }> = []
     for (let i = 0; i < 2; i++) {
+      if (i > 0) await new Promise(r => setTimeout(r, 20000))
       let result: Awaited<ReturnType<typeof generateNanoBananaImage>> | null = null
       try {
         result = await generateNanoBananaImage(sheet.appearance_prompt, nbOpts)
