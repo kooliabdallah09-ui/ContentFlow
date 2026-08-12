@@ -12,6 +12,7 @@ import UGCPackagePreview from '@/components/UGCPackagePreview'
 import { Icon } from '@/components/Icons'
 import { showSuccess, showError } from '@/lib/notifications'
 import { useAutoSave } from '@/lib/useAutoSave'
+import { GeneratingOverlay } from '@/components/GeneratingOverlay'
 
 const BATCH_HOOK_ANGLES = [
   { id: 'problem',        label: 'Problem → Solution',  desc: 'Open with the pain point the product solves' },
@@ -481,7 +482,16 @@ export default function UGCGeneratorPage() {
     )
   }
 
+  const UGC_STEPS = [
+    { label: 'Setting the scene', sub: 'Preparing your UGC brief…' },
+    { label: 'Generating video', sub: 'Rendering with Seedance AI…' },
+    { label: 'Adding voiceover', sub: 'Syncing audio to the clip…' },
+    { label: 'Stitching together', sub: 'Finalising your UGC video…' },
+  ]
+
   return (
+    <>
+    <GeneratingOverlay active={loading} steps={UGC_STEPS} tipSeconds={60} />
     <main style={{ maxWidth: 1140, margin: '0 auto', padding: '36px 40px 90px' }} className="ugc-page">
       <SectionTabs tabs={VIDEO_STUDIO_TABS} />
       <DriveConnectBanner />
@@ -726,5 +736,6 @@ export default function UGCGeneratorPage() {
         }
       `}</style>
     </main>
+    </>
   )
 }

@@ -9,6 +9,7 @@ import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
 import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { Download, Play, Upload, X } from 'lucide-react'
+import { GeneratingOverlay } from '@/components/GeneratingOverlay'
 import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
 
 type Model = 'seedance-2' | 'seedance-mini' | 'omni-flash'
@@ -476,7 +477,16 @@ export default function VideoGeneratorPage() {
     )
   }
 
+  const VIDEO_STEPS = [
+    { label: 'Preparing your clip', sub: 'Analysing the prompt and reference…' },
+    { label: 'Generating video', sub: 'Running Seedance motion model…' },
+    { label: 'Processing frames', sub: 'Upscaling and colour grading…' },
+    { label: 'Almost done', sub: 'Finalising the export…' },
+  ]
+
   return (
+    <>
+    <GeneratingOverlay active={generating} steps={VIDEO_STEPS} tipSeconds={45} />
     <main style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }} className="vid-page">
       <SectionTabs tabs={VIDEO_STUDIO_TABS} />
       <DriveConnectBanner />
@@ -1143,5 +1153,6 @@ export default function VideoGeneratorPage() {
         }
       `}</style>
     </main>
+    </>
   )
 }

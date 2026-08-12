@@ -10,6 +10,7 @@ import { Loader2, Download, Image as ImageIcon, X, Trash2 } from 'lucide-react'
 import { useImageDrop } from '@/hooks/useImageDrop'
 import { showError, showSuccess } from '@/lib/notifications'
 import { canAccessPovStudio } from '@/lib/pov-access'
+import { GeneratingOverlay } from '@/components/GeneratingOverlay'
 
 // Editorial image generator matching the Claude Design export.
 // Single composer card with prompt textarea + style chips + ratio + count
@@ -196,7 +197,16 @@ export default function ImageGeneratorPage() {
   }
 
 
+  const IMAGE_STEPS = [
+    { label: 'Reading your prompt', sub: 'Interpreting the scene brief…' },
+    { label: 'Composing the shot', sub: 'Lighting, composition, framing…' },
+    { label: 'Rendering image', sub: 'Hyper-realistic generation in progress…' },
+    { label: 'Finishing touches', sub: 'Sharpening details…' },
+  ]
+
   return (
+    <>
+    <GeneratingOverlay active={loading} steps={IMAGE_STEPS} tipSeconds={20} />
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: '42px 40px 90px' }} className="img-page">
       <DriveConnectBanner />
       <header style={{ marginBottom: 28 }}>
@@ -546,5 +556,6 @@ export default function ImageGeneratorPage() {
         }
       `}</style>
     </main>
+    </>
   )
 }
