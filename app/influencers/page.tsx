@@ -270,11 +270,35 @@ export default function InfluencersPage() {
       // User picks one, then
       // we call /finalize to render the sheet + save the row.
       if (Array.isArray(data.candidates) && data.identity) {
-        setCandidates(data.candidates)
-        setCandidateIdentity(data.identity)
-        setCandidateReferenceUrls(Array.isArray(data.referenceUrls) ? data.referenceUrls : [])
-        setCandidateModel(data.model === 'nb2' ? 'nb2' : 'pro')
-        showSuccess('Pick your favorite', 'Two looks generated — click the one that feels right.')
+        if (data.candidates.length === 1) {
+          // Single candidate — auto-finalize directly without showing a picker.
+          const chosenUrl = data.candidates[0].url
+          const fRes = await fetch('/api/influencers/finalize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              identity: data.identity,
+              chosenUrl,
+              unusedUrls: [],
+              referenceUrls: Array.isArray(data.referenceUrls) ? data.referenceUrls : [],
+              model: data.model === 'nb2' ? 'nb2' : 'pro',
+            }),
+          })
+          const fData = await fRes.json()
+          if (!fRes.ok) throw new Error(fData.error || 'Finalize failed')
+          setList(prev => [fData.influencer, ...prev])
+          setDescription(''); setRefImages([])
+          setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([]); setTraitEthnicity('')
+          setShowCreate(false)
+          showSuccess('Influencer created', `${fData.influencer.name} is ready.`)
+          openDetail(fData.influencer)
+        } else {
+          setCandidates(data.candidates)
+          setCandidateIdentity(data.identity)
+          setCandidateReferenceUrls(Array.isArray(data.referenceUrls) ? data.referenceUrls : [])
+          setCandidateModel(data.model === 'nb2' ? 'nb2' : 'pro')
+          showSuccess('Pick your favorite', 'Two looks generated — click the one that feels right.')
+        }
       }
     } catch (err) {
       showError('Creation failed', err instanceof Error ? err.message : 'Try again')
@@ -349,12 +373,34 @@ export default function InfluencersPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Regenerate failed')
       if (!Array.isArray(data.candidates) || !data.identity) throw new Error('Malformed regenerate response')
-      setCandidates(data.candidates)
-      setCandidateIdentity(data.identity)
-      setCandidateReferenceUrls(Array.isArray(data.referenceUrls) ? data.referenceUrls : [])
-      setCandidateModel(data.model === 'nb2' ? 'nb2' : 'pro')
-      setCandidateUpdateId(typeof data.updateInfluencerId === 'string' ? data.updateInfluencerId : selected.id)
-      showSuccess('Pick your favorite', 'Two fresh looks — click the one that fits.')
+      if (data.candidates.length === 1) {
+        // Single candidate — auto-finalize directly.
+        const updateId = typeof data.updateInfluencerId === 'string' ? data.updateInfluencerId : selected.id
+        const fRes = await fetch('/api/influencers/finalize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({
+            identity: data.identity,
+            chosenUrl: data.candidates[0].url,
+            unusedUrls: [],
+            referenceUrls: Array.isArray(data.referenceUrls) ? data.referenceUrls : [],
+            model: data.model === 'nb2' ? 'nb2' : 'pro',
+            updateInfluencerId: updateId,
+          }),
+        })
+        const fData = await fRes.json()
+        if (!fRes.ok) throw new Error(fData.error || 'Finalize failed')
+        setList(prev => prev.map(i => i.id === fData.influencer.id ? fData.influencer : i))
+        if (selected?.id === fData.influencer.id) setSelected(fData.influencer)
+        showSuccess('Look regenerated', `${fData.influencer.name} has a fresh portrait.`)
+      } else {
+        setCandidates(data.candidates)
+        setCandidateIdentity(data.identity)
+        setCandidateReferenceUrls(Array.isArray(data.referenceUrls) ? data.referenceUrls : [])
+        setCandidateModel(data.model === 'nb2' ? 'nb2' : 'pro')
+        setCandidateUpdateId(typeof data.updateInfluencerId === 'string' ? data.updateInfluencerId : selected.id)
+        showSuccess('Pick your favorite', 'Two fresh looks — click the one that fits.')
+      }
     } catch (err) {
       showError('Regenerate failed', err instanceof Error ? err.message : 'Try again')
     } finally {

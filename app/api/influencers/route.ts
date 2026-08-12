@@ -234,9 +234,7 @@ export async function POST(request: NextRequest) {
     }
     const timestamp = Date.now()
     const candidates: Array<{ url: string; vibe: string }> = []
-    for (let i = 0; i < 2; i++) {
-      // Wait between portraits so the second doesn't immediately 429 after the first.
-      if (i > 0) await new Promise(r => setTimeout(r, 20000))
+    for (let i = 0; i < 1; i++) {
       let result: Awaited<ReturnType<typeof generateNanoBananaImage>> | null = null
       try {
         result = await generateNanoBananaImage(sheet.appearance_prompt, nbOpts)
