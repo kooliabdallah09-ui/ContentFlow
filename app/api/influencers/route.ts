@@ -95,36 +95,45 @@ appearance_prompt rules:
 - For any trait NOT specified by the client (ethnicity, hairstyle, gender, etc.) make the best creative choice that fits the overall vibe — fill every gap, never leave a detail ambiguous
 `
 
-const IDENTITY_SYSTEM_V2 = `You are a creative director writing a casting brief for a new AI influencer character.
+const IDENTITY_SYSTEM_V2 = `You are a creative director writing a full scene brief for a hyper-realistic UGC influencer portrait. Your appearance_prompt must read like the detailed creative brief a director sends to a production team — specifying the person, outfit, setting, shot, and technical look in full.
 
-Return ONLY valid JSON — no markdown, no preamble — in exactly this shape:
+Return ONLY valid JSON — no markdown, no preamble — exactly this shape:
 {
   "name": "First Last",
   "handle": "@lowercase_handle",
-  "bio": "1-2 sentence public bio written in their own voice, no hashtags",
-  "personality": "2-3 sentences: energy level, humor style, how they speak on camera",
+  "bio": "1-2 sentence public bio in their own voice, no hashtags",
+  "personality": "2-3 sentences: energy, humor, how they talk on camera",
   "niche": "what they post about, 3-8 words",
-  "appearance_prompt": "a photographer's brief for their portrait"
+  "appearance_prompt": "full scene brief — see rules below"
 }
 
-appearance_prompt rules — write as continuous prose (3-5 sentences), like a brief to a photographer before a shoot:
-• Open with who they are: build, cultural background, general presentation.
-• Describe their look today: hair, what they're wearing, one signature style detail that feels very them.
-• Describe the shot: the expression you're after (caught mid-laugh, warmly direct, pensive glance sideways), the light (soft window light, golden-hour warmth), and the crop (loose head-and-shoulders).
-• The face must feel SPECIFIC: defined bone structure, natural slight asymmetry, real skin — healthy and clear, no added spots or redness. NOT a generic model clone.
-• Close with: 'Full-bleed photograph only — no camera interface, no watermark, no on-screen UI.'
+appearance_prompt must be written as 4 dense paragraphs in this exact order:
 
-Hard rules:
-- Never write age numbers, the words 'young', 'girl', 'selfie', 'phone camera', or 'screenshot'
+PARAGRAPH 1 — PERSON & OUTFIT
+Ultra-realistic vertical smartphone photo of [person description: build, cultural background, hair (color, length, texture — messy/damp/styled), skin tone, eyes, lips, any natural skin details like freckles or pores or slight imperfections — these make them feel real]. They are [posture: leaning, reaching, gesturing — something casual and mid-action, not posed]. They are wearing [full outfit: specific fabric, color, cut — e.g. "a fitted cream ribbed long-sleeve crop top with a wide scoop neckline and loose black drawstring lounge pants"].
+
+PARAGRAPH 2 — EXPRESSION & BODY
+Their expression is [candid descriptor: mid-sentence, mid-laugh, direct eye contact with relaxed mouth slightly open, one hip angled, shoulders relaxed]. The posture feels unposed and real — like a creator who just hit record and is already talking. [One specific physical detail that makes them feel individual: a particular jawline, hair flyaways, the way their collarbone shows, etc.]
+
+PARAGRAPH 3 — SETTING
+The setting is [specific realistic home/lifestyle environment: kitchen, bathroom, bedroom, coffee shop — described in detail: materials, colors, props, light source]. The room should feel lived-in but clean, believable and warm, not staged or generic. [2-3 specific props or background details: marble counter, brass tap, a plant, towel rack, mug — make it feel real.]
+
+PARAGRAPH 4 — CAMERA & TECHNICAL
+Shot on an iPhone-style camera, vertical 9:16, [crop: close medium shot / medium shot / chest-height], wide-angle phone lens perspective, subject centered [slight lean or offset], realistic lens distortion, natural daylight from [direction], soft shadows, no studio lighting, no airbrushed skin, no beauty filter. Hyper-realistic skin texture with visible pores, natural hair flyaways, realistic fabric texture, slight motion softness. Candid social-media aesthetic, raw phone photo realism, high resolution. Make the aspect ratio 9:16.
+
+HARD RULES:
 - Honor every physical trait the client explicitly requested
-- Fill every unspecified gap with a confident creative choice — never leave details vague
-- If reference photos are provided, base the appearance_prompt entirely on that person's face and style
+- Fill every unspecified detail with a strong, specific creative choice — no vague generalities
+- Never write age numbers, brand names, 'young', 'girl', 'selfie', 'phone camera', or 'screenshot'
+- If reference photos are attached, base the person description entirely on that person's face and style
+- The prompt must feel like a real production brief, not a list of adjectives
 `
 
-// Toggle between V1 (prescriptive, detailed) and V2 (brief-style, shorter) via env var.
-// Set INFLUENCER_PROMPT_VERSION=v2 in .env.local to try the new approach.
-// Unset or set to anything else to use V1.
-const IDENTITY_SYSTEM = process.env.INFLUENCER_PROMPT_VERSION === 'v2' ? IDENTITY_SYSTEM_V2 : IDENTITY_SYSTEM_V1
+// ─── Toggle: change to false to revert to V1 ─────────────────────────────
+const USE_V2_PROMPTING = true
+// ─────────────────────────────────────────────────────────────────────────
+
+const IDENTITY_SYSTEM = USE_V2_PROMPTING ? IDENTITY_SYSTEM_V2 : IDENTITY_SYSTEM_V1
 
 export async function POST(request: NextRequest) {
   try {
