@@ -123,25 +123,21 @@ ${influencer.appearance_prompt}`
     }
 
     // 2) Render 4 candidate portraits with the same expression cues as create.
-    // Always use nb2 for candidate previews — finalize renders at the chosen quality.
     const nbOpts = {
       style: 'realistic' as const,
       ratio: '4:5' as const,
-      model: 'nb2' as const,
+      model,
       referenceImages: originalRefs.length ? originalRefs : undefined,
       referenceHint: originalRefs.length
         ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
         : undefined,
     }
-    // Generate candidates sequentially — Vertex quota can't handle parallel bursts.
     const timestamp = Date.now()
     const candidates: Array<{ url: string; vibe: string }> = []
-    for (let i = 0; i < CANDIDATE_VIBES.length; i++) {
-      const v = CANDIDATE_VIBES[i]
-      const prompt = `${sheet.appearance_prompt}\n\n${v.cue}`
+    for (let i = 0; i < 2; i++) {
       let result: Awaited<ReturnType<typeof generateNanoBananaImage>> | null = null
       try {
-        result = await generateNanoBananaImage(prompt, nbOpts)
+        result = await generateNanoBananaImage(sheet.appearance_prompt, nbOpts)
       } catch (err) {
         console.warn('[influencers/regenerate] portrait', i, 'failed:', err instanceof Error ? err.message : err)
         continue
@@ -156,7 +152,7 @@ ${influencer.appearance_prompt}`
       }
       candidates.push({
         url: supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl,
-        vibe: CANDIDATE_VIBES[i].key,
+        vibe: `option-${i + 1}`,
       })
     }
     if (!candidates.length) {

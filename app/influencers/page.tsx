@@ -81,8 +81,8 @@ export default function InfluencersPage() {
   // Create form
   const [description, setDescription] = useState('')
   const [creating, setCreating] = useState(false)
-  // 4-candidate portrait picker: after the initial create, we hold the
-  // Sonnet identity draft + the four rendered candidates here, and only
+  // 2-candidate portrait picker: after the initial create, we hold the
+  // Sonnet identity draft + the two rendered candidates here, and only
   // finalise once the user clicks one.
   const [candidates, setCandidates] = useState<Array<{ url: string; vibe: string }>>([])
   const [candidateIdentity, setCandidateIdentity] = useState<{ name?: string; handle?: string | null; bio?: string | null; personality?: string | null; niche?: string | null; appearance_prompt?: string } | null>(null)
@@ -266,15 +266,15 @@ export default function InfluencersPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Creation failed')
-      // NEW two-step flow: server rendered 4 candidate portraits with
-      // different expressions/vibes and returned them. User picks one, then
+      // Two-step flow: server rendered 2 candidate portraits and returned them.
+      // User picks one, then
       // we call /finalize to render the sheet + save the row.
       if (Array.isArray(data.candidates) && data.identity) {
         setCandidates(data.candidates)
         setCandidateIdentity(data.identity)
         setCandidateReferenceUrls(Array.isArray(data.referenceUrls) ? data.referenceUrls : [])
         setCandidateModel(data.model === 'nb2' ? 'nb2' : 'pro')
-        showSuccess('Pick your favorite', 'Four looks generated — click the one that feels right.')
+        showSuccess('Pick your favorite', 'Two looks generated — click the one that feels right.')
       }
     } catch (err) {
       showError('Creation failed', err instanceof Error ? err.message : 'Try again')
@@ -354,7 +354,7 @@ export default function InfluencersPage() {
       setCandidateReferenceUrls(Array.isArray(data.referenceUrls) ? data.referenceUrls : [])
       setCandidateModel(data.model === 'nb2' ? 'nb2' : 'pro')
       setCandidateUpdateId(typeof data.updateInfluencerId === 'string' ? data.updateInfluencerId : selected.id)
-      showSuccess('Pick your favorite', 'Four fresh looks — click the one that fits.')
+      showSuccess('Pick your favorite', 'Two fresh looks — click the one that fits.')
     } catch (err) {
       showError('Regenerate failed', err instanceof Error ? err.message : 'Try again')
     } finally {

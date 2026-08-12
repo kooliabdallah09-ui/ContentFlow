@@ -20,10 +20,10 @@ export const maxDuration = 120
 
 export const INFLUENCER_CREATE_CR = 18        // Sonnet + 2× NB Pro (portrait + sheet) ≈ $0.32 raw × 1.4
 export const INFLUENCER_CREATE_NB2_CR = 11    // same flow on Nano Banana 2 ≈ $0.19 raw × 1.4
-// 4-candidate picker flow: 4 portraits upfront, only chosen one keeps its
-// sheet render. ≈ 4 NB Pro + 1 sheet vs 1 portrait + 1 sheet in the old flow.
-export const INFLUENCER_CANDIDATES_CR = 34
-export const INFLUENCER_CANDIDATES_NB2_CR = 20
+// 2-candidate picker flow: 2 portraits upfront, chosen one gets sheet render.
+// ≈ 2 NB Pro + 1 sheet.
+export const INFLUENCER_CANDIDATES_CR = 20
+export const INFLUENCER_CANDIDATES_NB2_CR = 13
 
 // Four expression / vibe cues that give the user real choice between the
 // candidates instead of four identical direct-look portraits. Each is a
@@ -220,31 +220,23 @@ export async function POST(request: NextRequest) {
     // Client-picked name always wins over Sonnet's invention.
     if (traits.name) sheet.name = traits.name
 
-    // 2) Nano Banana renders FOUR candidate portraits with distinct emotion
-    // cues so the user gets meaningful choice instead of four near-identical
-    // direct-look portraits. User picks one → /finalize renders the sheet
-    // from that pick and saves the influencer.
-    // Always use nb2 for candidate previews regardless of final model selection.
-    // nb2 is faster, uses separate quota, and candidates are just for picking —
-    // the finalize step renders the confirmed portrait at the user's chosen quality.
+    // 2) Render 2 candidate portraits using the same prompt — NB Pro naturally
+    // produces variation between runs. User picks the best one.
     const nbOpts = {
       style: 'realistic' as const,
       ratio: '4:5' as const,
-      model: 'nb2' as const,
+      model,
       referenceImages: referenceImages.length ? referenceImages : undefined,
       referenceHint: referenceImages.length
         ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
         : undefined,
     }
-    // Generate candidates sequentially — Vertex quota can't handle parallel bursts.
     const timestamp = Date.now()
     const candidates: Array<{ url: string; vibe: string }> = []
-    for (let i = 0; i < CANDIDATE_VIBES.length; i++) {
-      const v = CANDIDATE_VIBES[i]
-      const prompt = `${sheet.appearance_prompt}\n\n${v.cue}`
+    for (let i = 0; i < 2; i++) {
       let result: Awaited<ReturnType<typeof generateNanoBananaImage>> | null = null
       try {
-        result = await generateNanoBananaImage(prompt, nbOpts)
+        result = await generateNanoBananaImage(sheet.appearance_prompt, nbOpts)
       } catch (err) {
         console.warn('[influencers/candidates] portrait', i, 'failed:', err instanceof Error ? err.message : err)
         continue
@@ -259,7 +251,7 @@ export async function POST(request: NextRequest) {
       }
       candidates.push({
         url: supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl,
-        vibe: CANDIDATE_VIBES[i].key,
+        vibe: `option-${i + 1}`,
       })
     }
     if (!candidates.length) {
