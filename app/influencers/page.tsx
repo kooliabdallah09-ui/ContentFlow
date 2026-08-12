@@ -128,12 +128,56 @@ export default function InfluencersPage() {
       document.removeEventListener('mousedown', outside)
     }
   }, [regenMenuAnchor, sheetMenuAnchor])
-  // Casting overlay step timing — advances through steps while creating
+  // Casting overlay step timing + typewriter
+  const [typedLines, setTypedLines] = useState<string[]>([])
+  const [currentTyped, setCurrentTyped] = useState('')
+
   useEffect(() => {
-    if (!creating) { setCastingStep(0); return }
+    if (!creating) { setCastingStep(0); setTypedLines([]); setCurrentTyped(''); return }
     const delays = [0, 4500, 10000, 18000, 26000]
     const timers = delays.map((d, i) => setTimeout(() => setCastingStep(i), d))
     return () => timers.forEach(clearTimeout)
+  }, [creating])
+
+  // Typewriter effect — cycles through brief lines while creating
+  useEffect(() => {
+    if (!creating) return
+    const LINES = [
+      'Building identity profile...',
+      'Crafting personality & backstory...',
+      'Writing appearance brief...',
+      'Composing portrait prompt...',
+      'Submitting to image model...',
+      'Rendering hyper-realistic portrait...',
+      'Uploading to your roster...',
+    ]
+    let lineIdx = 0
+    let charIdx = 0
+    let currentLine = ''
+    let finishedLines: string[] = []
+    let pausing = false
+
+    const tick = setInterval(() => {
+      if (pausing) return
+      if (charIdx < LINES[lineIdx].length) {
+        currentLine += LINES[lineIdx][charIdx]
+        charIdx++
+        setCurrentTyped(currentLine)
+      } else {
+        pausing = true
+        setTimeout(() => {
+          finishedLines = [...finishedLines, currentLine].slice(-5)
+          setTypedLines([...finishedLines])
+          currentLine = ''
+          charIdx = 0
+          lineIdx = (lineIdx + 1) % LINES.length
+          setCurrentTyped('')
+          pausing = false
+        }, 900)
+      }
+    }, 38)
+
+    return () => clearInterval(tick)
   }, [creating])
 
   const [showCreate, setShowCreate] = useState(false)
@@ -1056,90 +1100,81 @@ export default function InfluencersPage() {
     { label: 'Almost ready', sub: 'Uploading to your roster…' },
   ]
   if (creating) {
-    const step = CASTING_STEPS[Math.min(castingStep, CASTING_STEPS.length - 1)]
     return (
       <div style={{
         position: 'fixed', inset: 0, zIndex: 9999,
-        background: '#0f0f0f',
+        background: '#0a0a0a',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        gap: 0,
       }}>
         <style>{`
-          @keyframes cf-orbit-a { from { transform: rotate(0deg) translateX(54px) rotate(0deg); } to { transform: rotate(360deg) translateX(54px) rotate(-360deg); } }
-          @keyframes cf-orbit-b { from { transform: rotate(120deg) translateX(38px) rotate(-120deg); } to { transform: rotate(480deg) translateX(38px) rotate(-480deg); } }
-          @keyframes cf-orbit-c { from { transform: rotate(240deg) translateX(66px) rotate(-240deg); } to { transform: rotate(600deg) translateX(66px) rotate(-600deg); } }
-          @keyframes cf-pulse-ring { 0%,100%{ opacity:0.18; transform:scale(1); } 50%{ opacity:0.06; transform:scale(1.18); } }
-          @keyframes cf-fade-in { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+          @keyframes cf-orbit-a { from{transform:rotate(0deg) translateX(40px) rotate(0deg)} to{transform:rotate(360deg) translateX(40px) rotate(-360deg)} }
+          @keyframes cf-orbit-b { from{transform:rotate(120deg) translateX(28px) rotate(-120deg)} to{transform:rotate(480deg) translateX(28px) rotate(-480deg)} }
+          @keyframes cf-orbit-c { from{transform:rotate(240deg) translateX(50px) rotate(-240deg)} to{transform:rotate(600deg) translateX(50px) rotate(-600deg)} }
+          @keyframes cf-pulse-ring { 0%,100%{opacity:.14;transform:scale(1)} 50%{opacity:.05;transform:scale(1.2)} }
+          @keyframes cf-blink { 0%,100%{opacity:1} 50%{opacity:0} }
+          @keyframes cf-line-in { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
         `}</style>
 
-        {/* Orbital animation */}
-        <div style={{ position: 'relative', width: 160, height: 160, marginBottom: 44 }}>
-          <div style={{
-            position: 'absolute', inset: 0, borderRadius: '50%',
-            border: '1px solid rgba(255,255,255,0.12)',
-            animation: 'cf-pulse-ring 2.8s ease-in-out infinite',
-          }} />
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%,-50%)',
-            width: 14, height: 14, borderRadius: '50%',
-            background: '#fff', opacity: 0.9,
-          }} />
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%', marginTop: -5, marginLeft: -5,
-            width: 10, height: 10, borderRadius: '50%',
-            background: '#c8a97e',
-            animation: 'cf-orbit-a 3.2s linear infinite',
-          }} />
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%', marginTop: -4, marginLeft: -4,
-            width: 8, height: 8, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.5)',
-            animation: 'cf-orbit-b 2.1s linear infinite',
-          }} />
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%', marginTop: -3, marginLeft: -3,
-            width: 6, height: 6, borderRadius: '50%',
-            background: 'rgba(255,255,255,0.22)',
-            animation: 'cf-orbit-c 4.5s linear infinite',
-          }} />
+        {/* Small orbital top */}
+        <div style={{ position: 'relative', width: 90, height: 90, marginBottom: 52, flexShrink: 0 }}>
+          <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', animation: 'cf-pulse-ring 3s ease-in-out infinite' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 8, height: 8, borderRadius: '50%', background: '#fff', opacity: .85 }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -4, marginLeft: -4, width: 8, height: 8, borderRadius: '50%', background: '#c8a97e', animation: 'cf-orbit-a 2.8s linear infinite' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -3, marginLeft: -3, width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,.4)', animation: 'cf-orbit-b 1.9s linear infinite' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -2.5, marginLeft: -2.5, width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,.18)', animation: 'cf-orbit-c 4s linear infinite' }} />
         </div>
 
-        {/* Step label */}
-        <div key={castingStep} style={{
-          textAlign: 'center',
-          animation: 'cf-fade-in 0.4s ease forwards',
+        {/* Typewriter document */}
+        <div style={{
+          width: 480, maxWidth: 'calc(100vw - 48px)',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 16,
+          padding: '28px 32px 24px',
         }}>
-          <div style={{
-            fontFamily: 'Georgia, serif',
-            fontSize: 22, fontWeight: 400, letterSpacing: '-0.01em',
-            color: '#fff', marginBottom: 8,
-          }}>
-            {step.label}
+          {/* Doc header */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 22, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#c8a97e', opacity: .8 }} />
+            <span style={{ fontFamily: 'monospace', fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
+              AI Identity Brief — generating
+            </span>
           </div>
-          <div style={{
-            fontSize: 13, color: 'rgba(255,255,255,0.38)',
-            letterSpacing: '0.02em',
-          }}>
-            {step.sub}
+
+          {/* Completed lines */}
+          <div style={{ minHeight: 120, display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {typedLines.map((line, i) => (
+              <div key={i} style={{
+                fontFamily: 'monospace', fontSize: 12.5,
+                color: 'rgba(255,255,255,0.22)',
+                animation: 'cf-line-in 0.25s ease forwards',
+                whiteSpace: 'pre',
+              }}>
+                {line}
+              </div>
+            ))}
+            {/* Current typing line */}
+            <div style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: 0 }}>
+              <span style={{ whiteSpace: 'pre' }}>{currentTyped}</span>
+              <span style={{ display: 'inline-block', width: 2, height: 14, background: '#c8a97e', marginLeft: 1, animation: 'cf-blink 1s ease-in-out infinite', borderRadius: 1 }} />
+            </div>
           </div>
         </div>
 
-        {/* Step dots */}
-        <div style={{ display: 'flex', gap: 8, marginTop: 44 }}>
+        {/* Progress dots */}
+        <div style={{ display: 'flex', gap: 7, marginTop: 40 }}>
           {CASTING_STEPS.map((_, i) => (
             <div key={i} style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: i <= castingStep ? '#fff' : 'rgba(255,255,255,0.18)',
+              width: 5, height: 5, borderRadius: '50%',
+              background: i <= castingStep ? '#fff' : 'rgba(255,255,255,0.15)',
               transition: 'background 0.4s ease',
             }} />
           ))}
         </div>
 
         <div style={{
-          position: 'absolute', bottom: 36,
-          fontSize: 11.5, color: 'rgba(255,255,255,0.2)',
-          letterSpacing: '0.05em', textTransform: 'uppercase',
+          position: 'absolute', bottom: 32,
+          fontSize: 11, color: 'rgba(255,255,255,0.15)',
+          letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>
           This takes about 30 seconds
         </div>
