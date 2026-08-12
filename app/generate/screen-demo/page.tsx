@@ -151,6 +151,11 @@ export default function ScreenDemoPage() {
           contentType: 'screen-demo',
           metadata: { script: script.slice(0, 200) },
         })
+        fetch('/api/library/save-video', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ videoUrl: data.url, source: 'screen-demo', title: 'Screen Demo', metadata: { script: script.slice(0, 200) } }),
+        }).catch(() => {})
       } else if (data.status === 'failed') {
         setStatus('failed')
         showError(data.error || 'Render failed')

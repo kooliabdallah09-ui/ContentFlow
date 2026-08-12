@@ -6,35 +6,28 @@ import { getSupabase } from '@/lib/auth'
 import { Icon } from '@/components/Icons'
 import { showError, showSuccess } from '@/lib/notifications'
 import Link from 'next/link'
-import dynamic from 'next/dynamic'
-
-const CompressModal = dynamic(() => import('@/components/CompressModal'), { ssr: false })
 
 interface LibraryItem {
   id: string
   name?: string
   content_type: string
   storage_url: string
-  external_id: string
   metadata: any
   credit_cost: number
   created_at: string
   status: string
-  drive_view_link?: string
 }
 
-// Turn raw filenames into human titles: 'contentflow-edit-2026-07-17.webm'
-// -> 'Editor export', 'ugc-2026-07-17-6wnt086k.mp4' -> 'UGC video'.
-function prettifyName(raw?: string): string | null {
-  if (!raw) return null
-  const base = raw.replace(/\.[a-z0-9]{2,5}$/i, '')
-  if (/^contentflow-edit/i.test(base)) return 'Editor export'
-  if (/^ugc-/i.test(base)) return 'UGC video'
-  if (/^screen-demo/i.test(base)) return 'Screen demo'
-  if (/^voiceover/i.test(base)) return 'Voiceover'
-  // Strip trailing dates + hash junk from anything else.
-  const cleaned = base.replace(/[-_]\d{4}-\d{2}-\d{2}.*$/, '').replace(/[-_]+/g, ' ').trim()
-  return cleaned ? cleaned.charAt(0).toUpperCase() + cleaned.slice(1) : null
+function getVideoTitle(item: LibraryItem): string {
+  if (item.name && item.name !== 'Video' && item.name !== 'unknown') return item.name
+  const src = item.metadata?.source
+  if (src === 'ugc') return 'UGC Video'
+  if (src === 'video') return 'AI Video'
+  if (src === 'podcast-ad') return 'Podcast Ad'
+  if (src === 'screen-demo') return 'Screen Demo'
+  if (src === 'scroll-stop') return 'Scroll-Stop Hook'
+  if (src === 'editor') return 'Editor Export'
+  return item.metadata?.productName || item.metadata?.prompt?.slice(0, 40) || 'Generated Video'
 }
 
 export default function LibraryPage() {
@@ -43,11 +36,8 @@ export default function LibraryPage() {
   const [items, setItems] = useState<LibraryItem[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState('all')
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
   const [previewItem, setPreviewItem] = useState<LibraryItem | null>(null)
-  const [compressItem, setCompressItem] = useState<LibraryItem | null>(null)
-  const [driveConnected, setDriveConnected] = useState<boolean | null>(null)
   const [campaignName, setCampaignName] = useState<string | null>(null)
   const [campaignAssetIds, setCampaignAssetIds] = useState<Set<string> | null>(null)
 
@@ -55,34 +45,18 @@ export default function LibraryPage() {
     try {
       setLoading(true)
       const supabase = getSupabase()
-      if (!supabase) {
-        setLoading(false)
-        return
-      }
+      if (!supabase) { setLoading(false); return }
 
       const { data: sessionData } = await supabase.auth.getSession()
-      if (!sessionData?.session?.user?.id) {
-        setLoading(false)
-        return
-      }
+      if (!sessionData?.session?.access_token) { setLoading(false); return }
 
       const response = await fetch('/api/library', {
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       })
 
       if (response.ok) {
         const data = await response.json()
-        // Append auth token to proxy URLs so <video> can load Drive files
-        const accessToken = sessionData.session.access_token
-        const items = (data.items || []).map((item: LibraryItem) =>
-          item.storage_url?.startsWith('/api/drive/file/')
-            ? { ...item, storage_url: `${item.storage_url}?token=${encodeURIComponent(accessToken)}` }
-            : item
-        )
-        setItems(items)
-        setDriveConnected(data.driveConnected ?? false)
+        setItems(data.items ?? [])
       } else {
         showError('Failed to load library')
       }
@@ -95,21 +69,11 @@ export default function LibraryPage() {
   }
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchLibrary()
-    }, 500)
-
-    return () => clearTimeout(timer)
+    fetchLibrary()
   }, [])
 
-  // Load campaign metadata when ?campaign=<id> is set so we can filter to just
-  // the shots that have rendered into this library.
   useEffect(() => {
-    if (!campaignId) {
-      setCampaignName(null)
-      setCampaignAssetIds(null)
-      return
-    }
+    if (!campaignId) { setCampaignName(null); setCampaignAssetIds(null); return }
     void (async () => {
       try {
         const supabase = getSupabase()
@@ -120,10 +84,7 @@ export default function LibraryPage() {
         const res = await fetch(`/api/campaigns/${campaignId}`, {
           headers: { Authorization: `Bearer ${token}` },
         })
-        if (!res.ok) {
-          showError('Failed to load campaign')
-          return
-        }
+        if (!res.ok) { showError('Failed to load campaign'); return }
         const data = await res.json()
         setCampaignName(data?.campaign?.name ?? 'Campaign')
         const ids = new Set<string>(
@@ -140,58 +101,46 @@ export default function LibraryPage() {
 
   const filteredItems = items.filter((item) => {
     const q = searchTerm.toLowerCase()
+    const title = getVideoTitle(item).toLowerCase()
     const matchesSearch = !q ||
+      title.includes(q) ||
       item.metadata?.prompt?.toLowerCase().includes(q) ||
-      item.metadata?.text?.toLowerCase().includes(q) ||
-      item.metadata?.script?.toLowerCase().includes(q) ||
-      item.metadata?.productName?.toLowerCase().includes(q) ||
-      item.name?.toLowerCase().includes(q)
-    const matchesFilter = filterType === 'all' || item.content_type === filterType
+      item.metadata?.productName?.toLowerCase().includes(q)
     const matchesCampaign = !campaignId || (campaignAssetIds?.has(item.id) ?? false)
-    return matchesSearch && matchesFilter && matchesCampaign
+    return matchesSearch && matchesCampaign
   })
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this item?')) return
-
+    if (!confirm('Delete this video?')) return
     try {
       const supabase = getSupabase()
       if (!supabase) return
-
       const { data: sessionData } = await supabase.auth.getSession()
       if (!sessionData?.session?.access_token) return
 
       const response = await fetch(`/api/library/${id}`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${sessionData.session.access_token}`,
-        },
+        headers: { Authorization: `Bearer ${sessionData.session.access_token}` },
       })
 
       if (response.ok) {
-        setItems((prev) => prev.filter((item) => item.id !== id))
-        setSelectedItems((prev) => {
-          const newSet = new Set(prev)
-          newSet.delete(id)
-          return newSet
-        })
-        showSuccess('Item deleted')
+        setItems(prev => prev.filter(item => item.id !== id))
+        setSelectedItems(prev => { const s = new Set(prev); s.delete(id); return s })
+        setPreviewItem(null)
+        showSuccess('Video deleted')
       } else {
-        showError('Failed to delete item')
+        showError('Failed to delete video')
       }
-    } catch (err) {
-      console.error('Failed to delete:', err)
-      showError('Failed to delete item')
+    } catch {
+      showError('Failed to delete video')
     }
   }
 
   const handleBulkDelete = async () => {
-    if (!confirm(`Delete ${selectedItems.size} items?`)) return
-
+    if (!confirm(`Delete ${selectedItems.size} videos?`)) return
     try {
       const supabase = getSupabase()
       if (!supabase) return
-
       const { data: sessionData } = await supabase.auth.getSession()
       if (!sessionData?.session?.access_token) return
 
@@ -205,36 +154,24 @@ export default function LibraryPage() {
       })
 
       if (response.ok) {
-        setItems((prev) => prev.filter((item) => !selectedItems.has(item.id)))
+        setItems(prev => prev.filter(item => !selectedItems.has(item.id)))
         setSelectedItems(new Set())
-        showSuccess(`${selectedItems.size} items deleted`)
+        showSuccess(`${selectedItems.size} videos deleted`)
       } else {
-        showError('Failed to delete items')
+        showError('Failed to delete videos')
       }
-    } catch (err) {
-      console.error('Failed to bulk delete:', err)
-      showError('Failed to delete items')
+    } catch {
+      showError('Failed to delete videos')
     }
-  }
-
-  const getTypeLabel = (type: string) => {
-    const labels: Record<string, string> = {
-      image: 'Image',
-      voice: 'Voice',
-      video: 'Video',
-      ugc_package: 'UGC Package',
-    }
-    return labels[type] || type
   }
 
   return (
     <div className="content">
       <div className="page-head">
-        <h1 className="page-title">Content <em>Library</em></h1>
-        <p className="page-sub">View and manage all your generated content</p>
+        <h1 className="page-title">Video <em>Library</em></h1>
+        <p className="page-sub">All your generated videos in one place</p>
       </div>
 
-      {/* Campaign filter banner */}
       {campaignId && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -250,175 +187,97 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {/* Drive connection banner */}
-      {driveConnected === false && (
-        <div style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 12, padding: '14px 18px', marginBottom: 20, gap: 16,
-        }}>
-          <div>
-            <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>
-              Connect Google Drive to see your library
-            </p>
-            <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: '3px 0 0' }}>
-              Every generation is automatically saved to a ContentFlow folder in your Drive.
-            </p>
-          </div>
-          <a
-            href="/settings/integrations"
-            style={{
-              flexShrink: 0, padding: '8px 16px', borderRadius: 8,
-              background: 'var(--ink)', color: '#fff', fontSize: 13,
-              fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
-            }}
-          >
-            Connect Drive
-          </a>
-        </div>
-      )}
-
-      {/* Search and Filter Bar */}
       <div className="lib-search">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flex: 1 }}>
           <Icon.Search style={{ width: 16, height: 16, color: 'var(--ink-mute)' }} />
           <input
             type="text"
-            placeholder="Search content..."
+            placeholder="Search videos…"
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={e => setSearchTerm(e.target.value)}
             className="input"
             style={{ flex: 1, background: 'transparent', border: 'none', padding: 0 }}
           />
         </div>
-
-        <div style={{ display: 'flex', gap: '12px' }}>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="select"
-            style={{ padding: '10px 12px' }}
+        {selectedItems.size > 0 && (
+          <button
+            onClick={handleBulkDelete}
+            className="btn btn-ghost"
+            style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 6 }}
           >
-            <option value="all">All Types</option>
-            <option value="image">Images</option>
-            <option value="voice">Voices</option>
-            <option value="video">Videos</option>
-            <option value="ugc_package">UGC Packages</option>
-          </select>
-
-          {selectedItems.size > 0 && (
-            <button
-              onClick={handleBulkDelete}
-              className="btn btn-ghost"
-              style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <Icon.X style={{ width: 14, height: 14 }} />
-              Delete {selectedItems.size}
-            </button>
-          )}
-        </div>
+            <Icon.X style={{ width: 14, height: 14 }} />
+            Delete {selectedItems.size}
+          </button>
+        )}
       </div>
 
-      {/* Content Grid */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.6 }}>
-          Loading your library...
+        <div style={{ textAlign: 'center', padding: '80px 20px', opacity: 0.5, fontSize: 14 }}>
+          Loading your videos…
         </div>
       ) : filteredItems.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '60px 20px', opacity: 0.6 }}>
-          {campaignId ? (
-            <>
-              <p>No renders from this campaign yet.</p>
-              <p style={{ fontSize: '13px', opacity: 0.7 }}>Open shots in the Builder to generate them.</p>
-            </>
-          ) : (
-            <>
-              <p>No content found</p>
-              {items.length === 0 && (
-                <p style={{ fontSize: '13px', opacity: 0.7 }}>Start generating content to see it here</p>
-              )}
-            </>
+        <div style={{ textAlign: 'center', padding: '80px 20px' }}>
+          <div style={{ fontSize: 40, marginBottom: 16 }}>🎬</div>
+          <p style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', margin: '0 0 6px' }}>
+            {campaignId ? 'No videos from this campaign yet' : 'No videos yet'}
+          </p>
+          <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>
+            {campaignId
+              ? 'Open shots in the Builder to generate them.'
+              : 'Generate a video and it will appear here automatically.'}
+          </p>
+          {!campaignId && (
+            <Link
+              href="/generate/ugc"
+              style={{ display: 'inline-block', marginTop: 20, padding: '10px 22px', borderRadius: 10, background: 'var(--ink)', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+            >
+              Go to Video Studio
+            </Link>
           )}
         </div>
       ) : (
         <div className="lib-grid">
-          {filteredItems.map((item) => (
+          {filteredItems.map(item => (
             <div
               key={item.id}
               className="lib-card"
               style={{ textAlign: 'left', cursor: 'pointer' }}
               onClick={() => setPreviewItem(item)}
             >
-              {/* Thumbnail */}
               <div className="lib-thumb">
-                {item.content_type === 'image' ? (
-                  <img
-                    src={item.storage_url}
-                    alt="Generated content"
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                  />
-                ) : item.content_type === 'video' ? (
-                  <video
-                    src={`${item.storage_url}${item.storage_url.includes('#') ? '' : '#t=0.1'}`}
-                    preload="metadata"
-                    muted
-                    loop
-                    playsInline
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onMouseEnter={e => { e.currentTarget.play().catch(() => {}) }}
-                    onMouseLeave={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0.1 }}
-                  />
-                ) : item.content_type === 'voice' ? (
-                  <div className="lib-thumb-label">Audio</div>
-                ) : (
-                  <div className="lib-thumb-label">Package</div>
-                )}
+                <video
+                  src={`${item.storage_url}${item.storage_url.includes('#') ? '' : '#t=0.1'}`}
+                  preload="metadata"
+                  muted
+                  loop
+                  playsInline
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onMouseEnter={e => { e.currentTarget.play().catch(() => {}) }}
+                  onMouseLeave={e => { e.currentTarget.pause(); e.currentTarget.currentTime = 0.1 }}
+                />
 
-                {/* Checkbox */}
                 <input
                   type="checkbox"
                   checked={selectedItems.has(item.id)}
-                  onChange={(e) => {
+                  onChange={e => {
                     e.stopPropagation()
-                    const newSet = new Set(selectedItems)
-                    if (e.target.checked) {
-                      newSet.add(item.id)
-                    } else {
-                      newSet.delete(item.id)
-                    }
-                    setSelectedItems(newSet)
+                    const s = new Set(selectedItems)
+                    if (e.target.checked) s.add(item.id); else s.delete(item.id)
+                    setSelectedItems(s)
                   }}
-                  style={{
-                    position: 'absolute',
-                    top: '10px',
-                    left: '10px',
-                    width: '18px',
-                    height: '18px',
-                    cursor: 'pointer',
-                    accentColor: 'var(--accent)',
-                  }}
-                  onClick={(e) => e.stopPropagation()}
+                  style={{ position: 'absolute', top: 10, left: 10, width: 18, height: 18, cursor: 'pointer', accentColor: 'var(--accent)' }}
+                  onClick={e => e.stopPropagation()}
                 />
 
-                {/* Actions Overlay */}
                 <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  background: 'rgba(0,0,0,0.6)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '8px',
-                  opacity: 0,
-                  transition: 'opacity 0.2s',
+                  position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.6)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+                  opacity: 0, transition: 'opacity 0.2s',
                 }} className="lib-card-overlay">
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      setPreviewItem(item)
-                    }}
+                    onClick={e => { e.stopPropagation(); setPreviewItem(item) }}
                     className="icon-btn"
-                    style={{ padding: '8px', background: 'rgba(255,255,255,0.15)' }}
+                    style={{ padding: 8, background: 'rgba(255,255,255,0.15)' }}
                   >
                     <Icon.Search style={{ width: 16, height: 16 }} />
                   </button>
@@ -426,243 +285,87 @@ export default function LibraryPage() {
                     href={item.storage_url}
                     download
                     className="icon-btn"
-                    style={{ padding: '8px', background: 'rgba(255,255,255,0.15)' }}
-                    onClick={(e) => e.stopPropagation()}
+                    style={{ padding: 8, background: 'rgba(255,255,255,0.15)' }}
+                    onClick={e => e.stopPropagation()}
                   >
                     <Icon.Arrow style={{ width: 16, height: 16 }} />
                   </a>
                   <button
-                    title="Rename"
-                    onClick={async (e) => {
-                      e.stopPropagation()
-                      const current = item.name?.replace(/\.[a-z0-9]{2,5}$/i, '') ?? ''
-                      const next = window.prompt('Rename this item:', current)
-                      if (!next || !next.trim() || next.trim() === current) return
-                      const ext = item.name?.match(/\.[a-z0-9]{2,5}$/i)?.[0] ?? ''
-                      const newName = `${next.trim()}${ext}`
-                      try {
-                        const supabase = getSupabase()
-                        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
-                        const token = sess?.session?.access_token
-                        if (!token) throw new Error('Not signed in')
-                        const res = await fetch(`/api/library/${item.id}`, {
-                          method: 'PATCH',
-                          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                          body: JSON.stringify({ name: newName }),
-                        })
-                        if (!res.ok) throw new Error((await res.json()).error || 'Rename failed')
-                        setItems(prev => prev.map(it => it.id === item.id ? { ...it, name: newName } : it))
-                      } catch (err) {
-                        alert(err instanceof Error ? err.message : 'Rename failed')
-                      }
-                    }}
+                    onClick={e => { e.stopPropagation(); handleDelete(item.id) }}
                     className="icon-btn"
-                    style={{ padding: '8px', background: 'rgba(255,255,255,0.15)' }}
-                  >
-                    <Icon.Scissors style={{ width: 16, height: 16 }} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleDelete(item.id)
-                    }}
-                    className="icon-btn"
-                    style={{ padding: '8px', background: 'rgba(200,0,0,0.3)', color: 'var(--danger)' }}
+                    style={{ padding: 8, background: 'rgba(200,0,0,0.3)', color: 'var(--danger)' }}
                   >
                     <Icon.X style={{ width: 16, height: 16 }} />
                   </button>
                 </div>
               </div>
 
-              {/* Metadata */}
               <div className="lib-meta">
                 <div className="lib-type-row">
-                  <span className="tag" style={{ padding: '4px 8px', fontSize: '11px' }}>
-                    {getTypeLabel(item.content_type)}
-                  </span>
+                  <span className="tag" style={{ padding: '4px 8px', fontSize: 11 }}>Video</span>
                   {item.credit_cost > 0 && (
-                    <span style={{ fontSize: '12px', color: 'var(--accent)' }}>
-                      {item.credit_cost} cr
-                    </span>
+                    <span style={{ fontSize: 12, color: 'var(--accent)' }}>{item.credit_cost} cr</span>
                   )}
                 </div>
-
-                <p className="lib-title">
-                  {item.metadata?.prompt ||
-                    item.metadata?.text ||
-                    item.metadata?.script ||
-                    item.metadata?.productName ||
-                    prettifyName(item.name) ||
-                    'Generated content'}
-                </p>
-
-                <p className="lib-meta-row">
-                  {new Date(item.created_at).toLocaleDateString()}
-                </p>
+                <p className="lib-title">{getVideoTitle(item)}</p>
+                <p className="lib-meta-row">{new Date(item.created_at).toLocaleDateString()}</p>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Preview Modal */}
       {previewItem && (
         <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(0,0,0,0.8)',
-            zIndex: 50,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            padding: '16px',
-          }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', zIndex: 50, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}
           onClick={() => setPreviewItem(null)}
         >
           <div
-            style={{
-              background: 'var(--bg)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--r-lg)',
-              maxWidth: '600px',
-              width: '100%',
-              maxHeight: '80vh',
-              overflowY: 'auto',
-            }}
-            onClick={(e) => e.stopPropagation()}
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, maxWidth: 680, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+            onClick={e => e.stopPropagation()}
           >
-            {/* Modal Header */}
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '16px 20px',
-              borderBottom: '1px solid var(--border)',
-              position: 'sticky',
-              top: 0,
-              background: 'var(--bg)',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '16px 20px', borderBottom: '1px solid var(--border)',
+              position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 1,
             }}>
-              <h2 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--ink)' }}>
-                {getTypeLabel(previewItem.content_type)}
+              <h2 style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>
+                {getVideoTitle(previewItem)}
               </h2>
-              <button
-                onClick={() => setPreviewItem(null)}
-                className="icon-btn"
-                style={{ padding: '6px' }}
-              >
+              <button onClick={() => setPreviewItem(null)} className="icon-btn" style={{ padding: 6 }}>
                 <Icon.X style={{ width: 18, height: 18 }} />
               </button>
             </div>
-
-            {/* Modal Content */}
-            <div style={{ padding: '20px' }}>
-              {previewItem.content_type === 'image' && (
-                <img
-                  src={previewItem.storage_url}
-                  alt="Preview"
-                  style={{ width: '100%', borderRadius: 'var(--r-md)' }}
-                />
-              )}
-
-              {previewItem.content_type === 'video' && (
-                <video
-                  src={previewItem.storage_url}
-                  controls
-                  style={{ width: '100%', borderRadius: 'var(--r-md)' }}
-                />
-              )}
-
-              {previewItem.content_type === 'voice' && (
-                <audio
-                  src={previewItem.storage_url}
-                  controls
-                  style={{ width: '100%' }}
-                />
-              )}
-
-              {previewItem.content_type === 'ugc_package' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  {previewItem.metadata?.image && (
-                    <div>
-                      <span className="eyebrow">Image</span>
-                      <img
-                        src={previewItem.metadata.image}
-                        alt="Package image"
-                        style={{ width: '100%', borderRadius: 'var(--r-md)', marginTop: '8px', maxHeight: '200px', objectFit: 'cover' }}
-                      />
-                    </div>
-                  )}
-
-                  {previewItem.metadata?.voice && (
-                    <div>
-                      <span className="eyebrow">Voiceover</span>
-                      <audio
-                        src={previewItem.metadata.voice}
-                        controls
-                        style={{ width: '100%', marginTop: '8px' }}
-                      />
-                    </div>
-                  )}
-
-                  {previewItem.metadata?.video && (
-                    <div>
-                      <span className="eyebrow">Video</span>
-                      <video
-                        src={previewItem.metadata.video}
-                        controls
-                        style={{ width: '100%', borderRadius: 'var(--r-md)', marginTop: '8px', maxHeight: '200px', objectFit: 'cover' }}
-                      />
-                    </div>
-                  )}
-
-                  {previewItem.metadata?.productName && (
-                    <div style={{ background: 'var(--surface)', borderRadius: 'var(--r-sm)', padding: '12px', fontSize: '13px' }}>
-                      <span style={{ color: 'var(--ink-fade)' }}>Product: </span>
-                      <span style={{ color: 'var(--ink)' }}>{previewItem.metadata.productName}</span>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: '12px', marginTop: '20px', flexWrap: 'wrap' }}>
+            <div style={{ padding: 20 }}>
+              <video
+                src={previewItem.storage_url}
+                controls
+                autoPlay
+                style={{ width: '100%', borderRadius: 12, background: '#000' }}
+              />
+              <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
                 <a
                   href={previewItem.storage_url}
                   download
                   className="btn btn-primary"
-                  style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                  onClick={(e) => e.stopPropagation()}
+                  style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  onClick={e => e.stopPropagation()}
                 >
                   <Icon.Arrow style={{ width: 14, height: 14 }} />
                   Download
                 </a>
-                {previewItem.content_type === 'image' && (
-                  <button
-                    className="btn btn-ghost"
-                    style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    onClick={() => setCompressItem(previewItem)}
-                  >
-                    Compress
-                  </button>
-                )}
-                {(previewItem.content_type === 'video' || previewItem.content_type === 'ugc_package') && previewItem.storage_url && (
-                  <Link
-                    href={`/editor?videoUrl=${encodeURIComponent(previewItem.storage_url)}`}
-                    className="btn btn-ghost"
-                    style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    Edit in Editor
-                  </Link>
-                )}
-                <button
-                  onClick={() => {
-                    handleDelete(previewItem.id)
-                    setPreviewItem(null)
-                  }}
+                <Link
+                  href={`/editor?videoUrl=${encodeURIComponent(previewItem.storage_url)}`}
                   className="btn btn-ghost"
-                  style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: '8px' }}
+                  style={{ flex: 1, textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  onClick={e => e.stopPropagation()}
+                >
+                  Edit in Editor
+                </Link>
+                <button
+                  onClick={() => handleDelete(previewItem.id)}
+                  className="btn btn-ghost"
+                  style={{ color: 'var(--danger)', display: 'flex', alignItems: 'center', gap: 8 }}
                 >
                   <Icon.X style={{ width: 14, height: 14 }} />
                   Delete
@@ -673,18 +376,8 @@ export default function LibraryPage() {
         </div>
       )}
 
-      {compressItem && (
-        <CompressModal
-          imageUrl={compressItem.storage_url}
-          filename={compressItem.name}
-          onClose={() => setCompressItem(null)}
-        />
-      )}
-
       <style>{`
-        .lib-card:hover .lib-card-overlay {
-          opacity: 1;
-        }
+        .lib-card:hover .lib-card-overlay { opacity: 1; }
       `}</style>
     </div>
   )

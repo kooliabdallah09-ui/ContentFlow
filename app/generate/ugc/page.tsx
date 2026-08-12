@@ -421,7 +421,15 @@ export default function UGCGeneratorPage() {
         if (!res.ok || data.error) {
           setBatchJobs(prev => prev.map((j, i) => i === idx ? { ...j, status: 'error', error: data.error || 'Failed', progress: 0, progressLabel: '' } : j))
         } else {
-          setBatchJobs(prev => prev.map((j, i) => i === idx ? { ...j, status: 'done', videoUrl: data.components?.video?.videoUrl, progress: 100, progressLabel: 'Done' } : j))
+          const videoUrl = data.components?.video?.videoUrl
+          setBatchJobs(prev => prev.map((j, i) => i === idx ? { ...j, status: 'done', videoUrl, progress: 100, progressLabel: 'Done' } : j))
+          if (videoUrl) {
+            fetch('/api/library/save-video', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ videoUrl, source: 'ugc', title: `UGC — ${batchProductName}`, metadata: { productName: batchProductName, angle: angle.label } }),
+            }).catch(() => {})
+          }
         }
       } catch (err) {
         clearInterval(stepTimer)

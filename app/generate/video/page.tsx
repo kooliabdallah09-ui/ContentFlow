@@ -313,18 +313,26 @@ export default function VideoGeneratorPage() {
           if (v.status === 'completed') showSuccess('Video ready', 'Your video has been generated')
           clearInterval(pollRef.current!)
 
-          // Call /api/video/complete
           try {
             const supabase = getSupabase()
             if (supabase) {
               const { data: sess } = await supabase.auth.getSession()
               const token = sess?.session?.access_token
-              if (token && contentId) {
-                await fetch('/api/video/complete', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                  body: JSON.stringify({ contentId, videoUrl: v.videoUrl, status: v.status, error: v.error }),
-                })
+              if (token) {
+                if (contentId) {
+                  fetch('/api/video/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ contentId, videoUrl: v.videoUrl, status: v.status, error: v.error }),
+                  }).catch(() => {})
+                }
+                if (v.status === 'completed' && v.videoUrl) {
+                  fetch('/api/library/save-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                    body: JSON.stringify({ videoUrl: v.videoUrl, source: 'video', title: 'AI Video', metadata: { prompt } }),
+                  }).catch(() => {})
+                }
               }
             }
           } catch {}

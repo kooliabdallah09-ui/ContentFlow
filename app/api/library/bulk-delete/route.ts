@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js'
-import { getValidDriveToken } from '@/lib/google-drive'
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization')
@@ -25,37 +24,15 @@ export async function POST(request: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const userId = userData.user.id
-    const accessToken = await getValidDriveToken(userId, supabase)
+    const { error } = await supabase
+      .from('ugc_content')
+      .delete()
+      .in('id', ids)
+      .eq('user_id', userData.user.id)
 
-    // Delete each file from Drive (and clean up Supabase storage if applicable)
-    const results = await Promise.allSettled(ids.map(async (id: string) => {
-      // Fetch metadata to get storagePath
-      const metaRes = await fetch(
-        `https://www.googleapis.com/drive/v3/files/${id}?fields=id,appProperties`,
-        { headers: { Authorization: `Bearer ${accessToken}` } }
-      )
-      if (metaRes.ok) {
-        const meta = await metaRes.json()
-        const storagePath = meta.appProperties?.storagePath
-        if (storagePath) {
-          supabase.storage.from('ugc-assets').remove([storagePath]).catch(() => {})
-        }
-      }
-
-      const delRes = await fetch(`https://www.googleapis.com/drive/v3/files/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-      if (!delRes.ok && delRes.status !== 204) {
-        throw new Error(`Drive delete failed for ${id}: ${delRes.status}`)
-      }
-    }))
-
-    const failed = results.filter(r => r.status === 'rejected').length
-    if (failed > 0) {
-      console.error('[bulk-delete] Some deletions failed:', results)
-      return Response.json({ error: `${failed} item(s) could not be deleted` }, { status: 500 })
+    if (error) {
+      console.error('[bulk-delete]', error)
+      return Response.json({ error: 'Failed to delete items' }, { status: 500 })
     }
 
     return Response.json({ success: true, deleted: ids.length })

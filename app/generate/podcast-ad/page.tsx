@@ -231,6 +231,11 @@ export default function PodcastAdPage() {
           if (data.status === 'completed' && data.videoUrl) {
             setJobs(prev => prev.map(j => j.shot === job.shot ? { ...j, status: 'completed', videoUrl: data.videoUrl } : j))
             pollingRef.current.delete(job.shot)
+            fetch('/api/library/save-video', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+              body: JSON.stringify({ videoUrl: data.videoUrl, source: 'podcast-ad', title: `Podcast Ad — Shot ${job.shot}` }),
+            }).catch(() => {})
             return
           }
           if (data.status === 'failed') {
