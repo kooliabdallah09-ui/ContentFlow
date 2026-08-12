@@ -233,20 +233,12 @@ export async function POST(request: NextRequest) {
         ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
         : undefined,
     }
+    // Stagger candidate requests by 3s each to avoid Vertex quota bursts.
     const portraitResults = await Promise.allSettled(
-      CANDIDATE_VIBES.map(async v => {
+      CANDIDATE_VIBES.map(async (v, idx) => {
+        if (idx > 0) await new Promise(r => setTimeout(r, idx * 3000))
         const prompt = `${sheet.appearance_prompt}\n\n${v.cue}`
-        for (let attempt = 0; attempt < 3; attempt++) {
-          try {
-            return await generateNanoBananaImage(prompt, nbOpts)
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err)
-            console.warn(`[influencers/candidates] vibe=${v.key} attempt=${attempt} failed:`, msg)
-            if (attempt < 2) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)))
-            else throw err
-          }
-        }
-        throw new Error('exhausted retries')
+        return generateNanoBananaImage(prompt, nbOpts)
       }),
     )
     // Upload every successful candidate to storage in parallel.
