@@ -105,9 +105,9 @@ a { color: inherit; text-decoration: none; }
 .btn-ghost:hover .arr { transform: translateX(4px); }
 
 /* ─── Fade in ─────────────────────────────────────────────────────────── */
-.fi { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
-.fi.on { opacity: 1; transform: none; }
-.d1{transition-delay:.07s} .d2{transition-delay:.14s} .d3{transition-delay:.21s} .d4{transition-delay:.3s}
+.fi { opacity: 0; transform: translateY(24px); filter: blur(6px); transition: opacity 0.7s cubic-bezier(0.22,1,0.36,1), transform 0.7s cubic-bezier(0.22,1,0.36,1), filter 0.7s cubic-bezier(0.22,1,0.36,1); }
+.fi.on { opacity: 1; transform: none; filter: blur(0); }
+.d1{transition-delay:.1s} .d2{transition-delay:.2s} .d3{transition-delay:.32s} .d4{transition-delay:.46s}
 
 /* ─── Nav ─────────────────────────────────────────────────────────────── */
 .nav-outer {
@@ -154,31 +154,41 @@ nav {
 .nav-cta {
   background: var(--accent); color: #fff; padding: 9px 20px; border-radius: 100px;
   font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.14s;
-  font-family: var(--font-b); display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-b); display: flex; align-items: center; gap: 8px;
 }
 .nav-cta:hover { background: var(--accent2); }
-.nav-cta .arr { display: inline-block; transition: transform 0.2s ease; }
-.nav-cta:hover .arr { transform: translateX(3px); }
+.nav-cta-icon {
+  width: 22px; height: 22px; border-radius: 50%;
+  background: rgba(255,255,255,0.2);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.22s cubic-bezier(0.34,1.15,0.64,1);
+}
+.nav-cta:hover .nav-cta-icon { transform: translateX(2px) translateY(-1px); }
 
 /* ─── Hero ────────────────────────────────────────────────────────────── */
 .hero-section {
-  padding: 150px 0 100px; text-align: center;
+  padding: 180px 0 0; text-align: center;
 }
 .hero-section h1 {
   font-family: var(--font-d);
-  font-size: clamp(44px, 5.5vw, 70px);
-  line-height: 1.06; letter-spacing: -0.01em; font-weight: 400;
-  max-width: 780px; margin: 0 auto 22px;
+  font-size: clamp(52px, 7.5vw, 96px);
+  line-height: 1.02; letter-spacing: -0.02em; font-weight: 400;
+  max-width: 900px; margin: 0 auto 28px;
 }
 .hero-section h1 em { font-style: italic; color: var(--accent); }
 .hero-sub {
-  font-size: 17px; color: var(--muted); line-height: 1.7;
+  font-size: 18px; color: var(--muted); line-height: 1.7;
   max-width: 490px; margin: 0 auto 44px;
 }
 .hero-actions { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .hero-proof {
   margin-top: 28px; display: flex; align-items: center; justify-content: center; gap: 12px;
   font-size: 13px; color: var(--muted);
+}
+.hero-glow {
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 900px; height: 500px; pointer-events: none;
+  background: radial-gradient(ellipse 60% 60% at 50% 30%, rgba(200,96,32,0.07) 0%, transparent 70%);
 }
 .proof-ava { display: flex; }
 .pav {
@@ -243,6 +253,20 @@ nav {
 .pp-btn {
   background: var(--accent); color: #fff; border-radius: 7px;
   padding: 6px 14px; font-size: 10px; font-weight: 700; white-space: nowrap;
+}
+
+/* ─── Preview bezel ──────────────────────────────────────────────────── */
+.preview-bezel {
+  background: rgba(30,25,18,0.06);
+  border: 1px solid rgba(30,25,18,0.1);
+  border-radius: 22px;
+  padding: 8px 8px 0;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.12), 0 8px 20px rgba(0,0,0,0.06);
+}
+.preview-bezel .preview-window {
+  border-radius: 14px 14px 0 0;
+  box-shadow: none;
+  border-color: rgba(255,255,255,0.04);
 }
 
 /* ─── Model strip ─────────────────────────────────────────────────────── */
@@ -528,6 +552,8 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; background: 
 </head>
 <body>
 
+<div style="position:fixed;inset:0;z-index:9999;pointer-events:none;background-image:url(\"data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\");opacity:0.028;"></div>
+
 <!-- ─── Nav ────────────────────────────────────────────────────────────── -->
 <div class="nav-outer">
   <nav>
@@ -547,14 +573,15 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; background: 
     </ul>
     <div class="nav-right">
       <a href="#" class="nav-signin">Sign in</a>
-      <a href="#" class="nav-cta">Get started <span class="arr">→</span></a>
+      <a href="#" class="nav-cta">Get started <span class="nav-cta-icon"><svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 6h8M7 3l3 3-3 3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>
     </div>
   </nav>
 </div>
 
 <!-- ─── Hero ───────────────────────────────────────────────────────────── -->
-<section class="hero-section">
+<section class="hero-section" style="position:relative;">
   <div class="wrap">
+    <div class="hero-glow"></div>
     <h1 class="fi">
       Your brand. <em>Real creators.</em><br/>Zero cameras.
     </h1>
@@ -584,6 +611,7 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; background: 
 
     <!-- App preview -->
     <div class="hero-preview fi d4">
+      <div class="preview-bezel">
       <div class="preview-window">
         <div class="preview-bar">
           <div class="wd wd-r"></div><div class="wd wd-y"></div><div class="wd wd-g"></div>
@@ -607,6 +635,7 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; background: 
             </div>
           </div>
         </div>
+      </div>
       </div>
     </div>
   </div>
@@ -1124,6 +1153,12 @@ const statObs = new IntersectionObserver(es => {
   });
 }, { threshold: 0.5 });
 statVals.forEach(el => statObs.observe(el));
+
+// Nav scroll
+const navOuter = document.querySelector('.nav-outer');
+window.addEventListener('scroll', () => {
+  navOuter.style.paddingTop = window.scrollY > 40 ? '8px' : '14px';
+}, { passive: true });
 </script>
 </body>
 </html>
