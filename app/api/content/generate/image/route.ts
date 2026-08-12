@@ -238,8 +238,8 @@ export async function POST(request: NextRequest) {
         : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it. Apply the prompt as the scene and styling around it.'
     }
 
-    // Generate N images in batches of 2 to avoid hitting Vertex rate limits.
-    // Promise.allSettled so a single failure doesn't kill the whole batch.
+    // Generate all images in parallel — NB Pro can take 130-250s per call so
+    // sequential batches blow the 300s Vercel limit for count > 1.
     const generationId = `nb-${Date.now()}`
     const imagePrompt = promptPrefix ? `${promptPrefix}${prompt}` : prompt
     const imageOpts = {
@@ -253,12 +253,9 @@ export async function POST(request: NextRequest) {
       referenceImageBase64: featureRefs.length ? undefined : safeRefBase64,
       referenceImageMimeType: featureRefs.length ? undefined : safeRefMime,
     }
-    const settled: PromiseSettledResult<Awaited<ReturnType<typeof generateNanoBananaImage>>>[] = []
-    for (let i = 0; i < safeQuantity; i += 2) {
-      if (i > 0) await new Promise(r => setTimeout(r, 600))
-      const batch = Array.from({ length: Math.min(2, safeQuantity - i) }, () => generateNanoBananaImage(imagePrompt, imageOpts))
-      settled.push(...await Promise.allSettled(batch))
-    }
+    const settled = await Promise.allSettled(
+      Array.from({ length: safeQuantity }, () => generateNanoBananaImage(imagePrompt, imageOpts))
+    )
     const generated = settled.flatMap(r => r.status === 'fulfilled' ? [r.value] : [])
 
     const urls: string[] = []
