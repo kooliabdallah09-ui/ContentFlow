@@ -104,21 +104,20 @@ SKIN & MAKEUP — choose ONE of these two looks based on the vibe:
 - "Effortless polish" look (use for bedroom, lifestyle, golden-hour settings): clean dewy base, naturally defined brows, lifted lashes, faint peachy flush, soft nude-rose lip. Still light — not glamour, not overdone.
 - Male: clear even skin, light to medium stubble, groomed brows, natural texture.
 
-CAMERA ANGLE & POSE — this is the #1 thing that makes faces look beautiful in phone photos:
-- Camera held SLIGHTLY BELOW eye level, angled gently upward — this naturally defines the jawline, lifts the cheekbones, and elongates the neck. Do not shoot straight-on or from above.
-- Head position: subtly tilted back and turned slightly to the side — not a full profile, just enough that the cheekbones catch light from the side and the jawline has definition. Eyes can look slightly upward (pensive, daydreaming) or meet the camera from that tilted angle.
-- This angle combination is why bone structure looks defined in the best phone portraits — describe it explicitly in the prompt.
+CAMERA ANGLE & POSE:
+- Camera at eye level or just barely below — NOT shooting steeply upward. A slight upward angle is enough to subtly define the jawline. Overdoing this makes people look worse.
+- Head turned just slightly to the side — a gentle 3/4 turn, not a full tilt. Eyes can look toward camera or just slightly off it. Natural, relaxed, candid.
+- Framing: shoulders-up or tight on the face (face filling most of the frame). Both work.
 
-FRAMING & SETTING — be creative:
-- Crop: tight on the face (face fills 80% of frame) for the most striking portraits. Or shoulders-up. Rarely lower than chest.
-- Setting: bedroom, car interior (with side window light — the car setting produces some of the most realistic portraits), sun-lit kitchen, outdoor with soft diffused light, coffee shop. Pick what fits the vibe.
-- Light: soft directional natural light from a side window — creates gentle highlights on cheekbones and nose with no harsh shadows. Feels unplanned and real. No ring light, no studio, no golden-hour filter unless explicitly requested.
-- Outfit: casual — black crewneck, fitted crop top, off-shoulder sweater, fitted tee, open cardigan.
+FRAMING & SETTING:
+- Setting: bright airy bedroom, sun-lit kitchen, soft outdoor light, or car interior with side window light. Pick what fits the vibe.
+- Light: soft, even, natural daylight from one side — gentle highlights on cheekbones and nose, no harsh shadows. Warm golden morning light OR soft overcast window light. Never ring light or studio.
+- Outfit: casual and flattering — crop top, off-shoulder ribbed top, fitted tee, crewneck, open cardigan.
 
-SKIN & TECHNICAL:
-- Skin texture is FULLY PRESERVED — visible pores, natural blush, very slight real-skin unevenness. No smoothing, no artificial glow, no filters. This is what makes a portrait look genuinely real, not AI. The slight imperfections read as human and are more beautiful than filtered perfection.
-- Makeup: minimal and natural — defined lashes, soft natural lip color, faint brow definition. Nothing heavy.
-- Hyper-realistic smartphone photo aesthetic — slight natural grain, true-to-life color, realistic perspective distortion. Indistinguishable from a real UGC photo taken in the moment.
+SKIN & MAKEUP:
+- Skin is healthy, clean, and even-toned with a natural soft glow — not matte, not flat, but also NOT heavily dewy or glowing like a filter. Barely-there natural skin texture — the kind of skin a beautiful person actually has. No heavy airbrushing, no excessive redness, no dramatic pores, no rough texture. Just clean healthy human skin.
+- Makeup: minimal and natural — defined lashes, groomed brows, soft nude or rose lip. Light, effortless. Not heavy, not bare.
+- Hyper-realistic smartphone photo — natural depth, true-to-life color, slight grain. Looks like a real candid from an attractive person's camera roll.
 - The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot'
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
@@ -147,7 +146,7 @@ Second paragraph: [Expression: e.g. "Looking directly into the camera with soft 
 
 Third paragraph: [Lifestyle setting in detail: e.g. "Bright airy bedroom — white textured linen duvet, warm natural wood headboard, morning light pouring through sheer white curtains creating a soft warm glow across the room. A small plant on the nightstand, a glass of water. Clean and aspirational but lived-in"]. The light is warm and directional, casting soft shadows that are flattering to the face.
 
-Fourth paragraph: Shot on a smartphone camera held slightly below eye level, angled gently upward — this angle defines the jawline and lifts the cheekbones naturally. Subject's head is subtly tilted back and turned slightly to the side, eyes looking upward or meeting the camera from that tilted angle. [Crop: tight on the face, or shoulders-up]. Soft directional natural light from a side window — gentle even illumination with natural highlights on the cheeks and nose, no harsh shadows. No ring light, no studio, no artificial glow. Skin texture fully preserved: visible pores, natural blush, very slight real-skin unevenness — no smoothing, no filters. Realistic grain, true-to-life color, slight wide-angle lens distortion. Indistinguishable from a real UGC photo taken in the moment. 9:16 aspect ratio.
+Fourth paragraph: Shot on a smartphone camera at eye level or barely below, subject's head turned just slightly to the side with a natural relaxed expression. [Crop: face filling the frame, or shoulders-up]. Soft even natural daylight from a side window — gentle highlights on cheekbones and nose, no harsh shadows, no ring light. Skin looks healthy, clean, and naturally even — subtle texture, not airbrushed but not rough. Minimal natural makeup: defined lashes, groomed brows, soft lip. Natural grain, true-to-life color, realistic phone lens perspective. Candid and real — indistinguishable from a photo taken in the moment. 9:16 aspect ratio.
 
 HARD RULES:
 - Your entire response must be valid JSON starting with { — do not write any words before the opening brace
