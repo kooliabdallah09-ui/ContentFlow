@@ -135,23 +135,20 @@ export default function LandingPage() {
         )}
       </header>
 
-      {/* HERO — Hokusai's Great Wave (public domain) as a soft backdrop */}
+      {/* HERO */}
       <section style={{ position: 'relative', overflow: 'hidden' }}>
-        <img src="/images/hero-wave.jpg" alt="" aria-hidden
-          style={{
-            position: 'absolute', inset: 0, width: '100%', height: '100%',
-            objectFit: 'cover', objectPosition: 'center 30%',
-            opacity: 0.16, filter: 'saturate(0.85)', pointerEvents: 'none',
-          }} />
+        {/* Subtle crimson radial glow behind the text */}
         <div style={{
-          position: 'absolute', inset: 0, pointerEvents: 'none',
-          background: 'linear-gradient(to bottom, var(--bg) 0%, transparent 40%, transparent 62%, var(--bg) 100%)',
+          position: 'absolute', top: -80, left: '50%', transform: 'translateX(-50%)',
+          width: 700, height: 400, borderRadius: '50%',
+          background: 'radial-gradient(ellipse, rgba(185,28,28,0.13) 0%, transparent 70%)',
+          pointerEvents: 'none',
         }} />
-        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '100px 20px 120px', textAlign: 'center' }}>
+        <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '100px 20px 80px', textAlign: 'center' }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
             <div style={heroEyebrow}>The future of UGC</div>
             <h1 style={heroH1} className="ls-hero-h1">
-              Turn any product into a <span style={{ fontStyle: 'italic' }}>scroll-stopping ad.</span>
+              Turn any product into a <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>scroll-stopping ad.</span>
             </h1>
             <p style={heroP}>Script. Character. Voice. Captions. B-roll. Product photos. Social copy. Blog. Email.<br />One brand profile. Every format. 2 minutes.</p>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
@@ -159,7 +156,19 @@ export default function LandingPage() {
               <a href="#features" style={btnSecondaryLg}>See how it works</a>
             </div>
           </div>
-          <UGCMockup />
+          {/* Real app screenshot */}
+          <div style={{
+            marginTop: 72, maxWidth: 960, marginLeft: 'auto', marginRight: 'auto',
+            borderRadius: 18, border: '1px solid var(--border)',
+            boxShadow: '0 30px 80px -20px rgba(185,28,28,0.18), 0 4px 16px rgba(0,0,0,0.12)',
+            overflow: 'hidden',
+          }}>
+            <img
+              src="/hero-screenshot.png"
+              alt="ContentFlow app"
+              style={{ width: '100%', display: 'block' }}
+            />
+          </div>
         </div>
       </section>
 
@@ -382,15 +391,15 @@ const FEATURES = [
 // ---- Inline styles ----
 const navLink: React.CSSProperties = { padding: '9px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-mute)' }
 const mobileNavItem: React.CSSProperties = { display: 'block', padding: '13px 4px', fontSize: 16, color: 'var(--ink)', fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid var(--border-soft)' }
-const btnPrimaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 14, fontWeight: 600, border: 0, whiteSpace: 'nowrap' }
+const btnPrimaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: '#b91c1c', color: '#fff', fontSize: 14, fontWeight: 600, border: 0, whiteSpace: 'nowrap' }
 const btnSecondaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)', whiteSpace: 'nowrap' }
 
 const heroEyebrow: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 14 }
 const heroH1: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 64, lineHeight: 1.05, letterSpacing: '-0.02em', margin: '0 0 20px' }
 const heroP: React.CSSProperties = { fontSize: 18, color: 'var(--ink-dim)', margin: '0 0 36px', lineHeight: 1.7 }
-const btnPrimaryLg: React.CSSProperties = { padding: '13px 28px', borderRadius: 11, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 14, fontWeight: 600, border: 0 }
+const btnPrimaryLg: React.CSSProperties = { padding: '13px 28px', borderRadius: 11, background: '#b91c1c', color: '#fff', fontSize: 14, fontWeight: 600, border: 0 }
 const btnSecondaryLg: React.CSSProperties = { padding: '13px 28px', borderRadius: 11, background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }
-const btnPrimaryXL: React.CSSProperties = { padding: '14px 32px', borderRadius: 11, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 15, fontWeight: 600, border: 0 }
+const btnPrimaryXL: React.CSSProperties = { padding: '14px 32px', borderRadius: 11, background: '#b91c1c', color: '#fff', fontSize: 15, fontWeight: 600, border: 0 }
 
 const heroPreview: React.CSSProperties = {
   marginTop: 80, aspectRatio: '1.6',
