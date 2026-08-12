@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { PADDLE_PRICES } from '@/lib/paddle'
-import { openPaddleCheckout } from '@/lib/paddle-client'
 import { getSupabase } from '@/lib/auth'
 
 const plans = [
@@ -30,7 +28,10 @@ const plans = [
     price: { monthly: '$6', annual: '$5' },
     annualTotal: '$60/yr',
     credits: '200 credits / month',
-    priceId: { monthly: PADDLE_PRICES.lite, annual: PADDLE_PRICES.liteAnnual },
+    priceId: {
+      monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_LITE ?? '',
+      annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_LITE_ANNUAL ?? '',
+    },
     planKey: 'lite',
     features: [
       'Product photos & images',
@@ -48,7 +49,10 @@ const plans = [
     price: { monthly: '$19', annual: '$16' },
     annualTotal: '$190/yr',
     credits: '800 credits / month',
-    priceId: { monthly: PADDLE_PRICES.starter, annual: PADDLE_PRICES.starterAnnual },
+    priceId: {
+      monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
+      annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? '',
+    },
     planKey: 'starter',
     features: [
       '~6 UGC videos/mo at 5s',
@@ -66,7 +70,10 @@ const plans = [
     price: { monthly: '$49', annual: '$41' },
     annualTotal: '$490/yr',
     credits: '2,000 credits / month',
-    priceId: { monthly: PADDLE_PRICES.pro, annual: PADDLE_PRICES.proAnnual },
+    priceId: {
+      monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
+      annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '',
+    },
     planKey: 'pro',
     popular: true,
     features: [
@@ -84,7 +91,10 @@ const plans = [
     price: { monthly: '$149', annual: '$124' },
     annualTotal: '$1,490/yr',
     credits: '6,500 credits / month',
-    priceId: { monthly: PADDLE_PRICES.agency, annual: PADDLE_PRICES.agencyAnnual },
+    priceId: {
+      monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
+      annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? '',
+    },
     planKey: 'agency',
     features: [
       '~52 UGC videos/mo at 5s',
@@ -128,13 +138,20 @@ export default function PricingPage() {
     try {
       const supabase = getSupabase()
       const { data } = await supabase!.auth.getSession()
-      const user = data?.session?.user
-      if (!user) {
-        window.location.href = '/auth/login?redirect=/settings/billing'
+      const token = data?.session?.access_token
+      if (!token) {
+        window.location.href = '/auth/login?redirect=/pricing'
         return
       }
       const priceId = annual ? plan.priceId.annual : plan.priceId.monthly
-      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId, mode: 'subscription' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Checkout failed')
+      window.location.href = json.url
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Something went wrong')
     } finally {

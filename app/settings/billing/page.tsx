@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
-import { PADDLE_PRICES } from '@/lib/paddle'
-import { openPaddleCheckout } from '@/lib/paddle-client'
 
 const ADMIN_EMAILS = new Set(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
 
@@ -40,10 +38,16 @@ export default function BillingPage() {
     if (!priceId) return
     setUpgradeLoading(priceId)
     try {
-      const { data } = await getSupabase()!.auth.getSession()
-      const user = data?.session?.user
-      if (!user) { window.location.href = '/auth/login'; return }
-      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
+      const token = await getToken()
+      if (!token) { window.location.href = '/auth/login'; return }
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId, mode: 'subscription' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Checkout failed')
+      window.location.href = json.url
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {
@@ -54,10 +58,16 @@ export default function BillingPage() {
   async function handlePackCheckout(priceId: string) {
     setPackLoading(priceId)
     try {
-      const { data } = await getSupabase()!.auth.getSession()
-      const user = data?.session?.user
-      if (!user) { window.location.href = '/auth/login'; return }
-      await openPaddleCheckout({ priceId, userId: user.id, email: user.email ?? undefined })
+      const token = await getToken()
+      if (!token) { window.location.href = '/auth/login'; return }
+      const res = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceId, mode: 'payment' }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error ?? 'Checkout failed')
+      window.location.href = json.url
     } catch (e) {
       alert(e instanceof Error ? e.message : 'Checkout failed')
     } finally {
@@ -69,7 +79,7 @@ export default function BillingPage() {
     setUpgradeLoading('portal')
     try {
       const token = await getToken()
-      const res = await fetch('/api/paddle/portal', {
+      const res = await fetch('/api/stripe/portal', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       })
@@ -141,14 +151,14 @@ export default function BillingPage() {
     {
       name: 'Starter', price: { monthly: '$19', annual: '$16' }, annualTotal: '$190/yr',
       credits: '800/month · $0.024/cr',
-      priceId: { monthly: PADDLE_PRICES.starter, annual: PADDLE_PRICES.starterAnnual },
+      priceId: { monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '', annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? '' },
       features: ['~6 UGC videos/mo at 5s · ~4 at 10s', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer Studio & Product Studio', 'No watermark · Video editor · Priority support'],
       planKey: 'starter',
     },
     {
       name: 'Pro', price: { monthly: '$49', annual: '$41' }, annualTotal: '$490/yr',
       credits: '2,000/month · $0.025/cr',
-      priceId: { monthly: PADDLE_PRICES.pro, annual: PADDLE_PRICES.proAnnual },
+      priceId: { monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '', annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '' },
       features: ['~16 UGC videos/mo at 5s · ~10 at 10s', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
       planKey: 'pro',
       popular: true,
@@ -156,20 +166,20 @@ export default function BillingPage() {
     {
       name: 'Agency', price: { monthly: '$149', annual: '$124' }, annualTotal: '$1,490/yr',
       credits: '6,500/month · $0.023/cr',
-      priceId: { monthly: PADDLE_PRICES.agency, annual: PADDLE_PRICES.agencyAnnual },
+      priceId: { monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '', annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? '' },
       features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
       planKey: 'agency',
     },
   ]
 
   const creditPacks = [
-    { credits: 250,  price: '$8',   perCr: '$0.032/cr', priceId: PADDLE_PRICES.pack250 },
-    { credits: 500,  price: '$15',  perCr: '$0.030/cr', priceId: PADDLE_PRICES.pack500 },
-    { credits: 1500, price: '$45',  perCr: '$0.030/cr', priceId: PADDLE_PRICES.pack1500 },
-    { credits: 5000, price: '$120', perCr: '$0.024/cr', priceId: PADDLE_PRICES.pack5000 },
+    { credits: 250,  price: '$8',   perCr: '$0.032/cr', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_250 ?? '' },
+    { credits: 500,  price: '$15',  perCr: '$0.030/cr', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '' },
+    { credits: 1500, price: '$45',  perCr: '$0.030/cr', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '' },
+    { credits: 5000, price: '$120', perCr: '$0.024/cr', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '' },
   ]
 
-  const litePriceId = annual ? PADDLE_PRICES.liteAnnual : PADDLE_PRICES.lite
+  const litePriceId = annual ? (process.env.NEXT_PUBLIC_STRIPE_PRICE_LITE_ANNUAL ?? '') : (process.env.NEXT_PUBLIC_STRIPE_PRICE_LITE ?? '')
   const isLitePlan = currentPlan === 'lite'
 
   return (
