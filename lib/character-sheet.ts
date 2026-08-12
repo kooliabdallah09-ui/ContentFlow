@@ -29,7 +29,7 @@ Panel 6 (bottom-right): Candid close-up — laughing or mid-expression, eyes cri
 Critical rules:
 - The EXACT same person must appear in every panel: same face shape, cheekbones, eye shape, nose, lips, skin tone, hair color and texture. Identity must be unmistakable across all panels.
 - Every panel must look like a real candid photo taken with a smartphone. Natural light only.
-- Skin looks healthy and naturally even. Not airbrushed, not rough. Barely-there natural texture.
+- Skin looks healthy, smooth, and youthful — the plump unlined skin of someone in their early 20s. No sun spots, no fine lines, no wrinkles, no age texture. Clean and radiant.
 - No text, no labels, no numbers, no watermarks, no UI anywhere in the image.`
 
 export async function generateCharacterSheet(input: {

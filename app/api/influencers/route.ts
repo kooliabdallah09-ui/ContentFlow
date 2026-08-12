@@ -85,15 +85,16 @@ Return ONLY valid JSON, no markdown, exactly this shape:
 appearance_prompt rules — write a prompt that produces a STUNNING, HIGHLY ATTRACTIVE portrait:
 
 PERSON & FACE — this is the most important section:
+- AGE: This person is in their EARLY-TO-MID 20S — fresh-faced, unlined skin with zero wrinkles or sun damage, plump youthful cheeks, bright eyes with no heaviness or under-eye shadow. Think university-age energy. The skin must look genuinely young — not mature or weathered. NO fine lines, NO crow's feet, NO sun spots, NO forehead lines. This is the #1 thing to get right.
 - This person has a STRIKING, MODEL-TIER face — the kind of face that stops scrolling on Instagram. Describe in detail:
   - Face shape (oval, heart-shaped, or sculpted angular)
   - Cheekbones: HIGH and SHARPLY DEFINED — create natural shadow and dimension
   - Jawline: CLEAN and DEFINED — not soft, not round, but sculpted
   - Eyes: describe the EXACT shape (almond, slightly upturned, hooded with depth, wide-set doe eyes), color with warmth (e.g. "warm honey-brown with golden flecks", "deep olive-green", "dark espresso with a natural gleam"), and lashes (naturally long and lifted)
-  - Lips: FULL with a pronounced cupid's bow and defined vermillion border — naturally pigmented in a soft rose or nude-pink
+  - Lips: FULL with a pronounced cupid's bow — naturally pigmented in a soft rose or nude-pink. Plump and youthful.
   - Nose: straight or slightly softly curved — proportional and refined
-  - Symmetry: near-perfect symmetry with the slight natural variation that reads as human
-- Ethnicity/cultural background: be specific (e.g. Latina, Mediterranean, East Asian, South Asian, Mixed West African and European) — this drives a specific beautiful face
+  - Skin: SMOOTH, PLUMP, YOUTHFUL — the unlined radiant skin of someone in their early 20s. No texture that reads as age. Clean and glowing.
+- Ethnicity/cultural background: be specific (e.g. Latina, Mediterranean, East Asian, South Asian, Mixed) — this drives a specific beautiful face
 - For any trait NOT specified, make the most attractive creative choice — never leave gaps
 
 HAIR:
