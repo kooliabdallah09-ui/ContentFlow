@@ -1352,7 +1352,7 @@ export default function InfluencersPage() {
         <div>
           <div style={traitLabel}>Hairstyle</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {['Long straight', 'Long wavy', 'Curly', 'Coily', 'Bob', 'Pixie cut', 'Shoulder-length', 'Ponytail', 'Messy bun', 'Braids', 'Slicked back', 'Buzz cut', 'Short textured', 'Man bun'].map(h => (
+            {['Long straight', 'Long wavy', 'Curly', 'Coily', 'Bob', 'Pixie cut', 'Shoulder-length', 'Ponytail', 'Messy bun', 'Braids', 'Slicked back', 'Buzz cut', 'Short textured', 'Man bun', 'Fade', 'Skin fade', 'Taper fade', 'Undercut', 'Pompadour', 'Quiff', 'Crew cut', 'French crop', 'Side part', 'Curtains', 'Textured crop', 'Waves', 'Locs', 'Shag', 'Afro', 'Coiled locs'].map(h => (
               <button key={h} onClick={() => setTraitHairstyle(traitHairstyle === h ? '' : h)} style={chip(traitHairstyle === h)}>{h}</button>
             ))}
           </div>
