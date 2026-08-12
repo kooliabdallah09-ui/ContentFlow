@@ -15,7 +15,7 @@ import { deductCredits } from '@/lib/deduct-credits'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
 import { CANDIDATE_VIBES, INFLUENCER_CANDIDATES_CR, INFLUENCER_CANDIDATES_NB2_CR } from '@/app/api/influencers/route'
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 function supa() {
   return createClient(

@@ -16,7 +16,7 @@ import { generateCharacterSheet } from '@/lib/character-sheet'
 import { deductCredits } from '@/lib/deduct-credits'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 export const INFLUENCER_CREATE_CR = 18        // Sonnet + 2× NB Pro (portrait + sheet) ≈ $0.32 raw × 1.4
 export const INFLUENCER_CREATE_NB2_CR = 11    // same flow on Nano Banana 2 ≈ $0.19 raw × 1.4

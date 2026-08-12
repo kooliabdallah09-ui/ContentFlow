@@ -215,15 +215,15 @@ async function callNanoBanana(
   const sa = getVertexSA()
   if (!sa) throw new Error('Vertex AI not configured — GOOGLE_VERTEX_SA_JSON missing')
   let lastErr: unknown
-  for (let attempt = 0; attempt < 3; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, 5000 * attempt))  // 5s, 10s
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise(r => setTimeout(r, 5000))
     try {
       return await callNanoBananaVertex(prompt, referenceImages, aspectRatio, model, resolution, sa)
     } catch (e) {
       lastErr = e
       const msg = e instanceof Error ? e.message : ''
       if (!msg.includes('429')) throw e   // non-rate-limit errors → fail fast
-      console.warn(`[nanobanana] Vertex 429, retry ${attempt + 1}/3`)
+      console.warn(`[nanobanana] Vertex 429, retry ${attempt + 1}/2`)
     }
   }
   throw lastErr
