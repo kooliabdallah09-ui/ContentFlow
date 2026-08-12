@@ -134,7 +134,7 @@ export default function InfluencersPage() {
 
   useEffect(() => {
     if (!creating) { setCastingStep(0); setTypedLines([]); setCurrentTyped(''); return }
-    const delays = [0, 4500, 10000, 18000, 26000]
+    const delays = [0, 8000, 25000, 55000, 90000]
     const timers = delays.map((d, i) => setTimeout(() => setCastingStep(i), d))
     return () => timers.forEach(clearTimeout)
   }, [creating])
@@ -1176,7 +1176,7 @@ export default function InfluencersPage() {
           fontSize: 11, color: 'rgba(255,255,255,0.15)',
           letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>
-          This takes about 30 seconds
+          This takes about 1–2 minutes
         </div>
       </div>
     )
