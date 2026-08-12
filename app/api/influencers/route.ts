@@ -104,15 +104,21 @@ SKIN & MAKEUP — choose ONE of these two looks based on the vibe:
 - "Effortless polish" look (use for bedroom, lifestyle, golden-hour settings): clean dewy base, naturally defined brows, lifted lashes, faint peachy flush, soft nude-rose lip. Still light — not glamour, not overdone.
 - Male: clear even skin, light to medium stubble, groomed brows, natural texture.
 
-FRAMING & SETTING — be creative, don't always default to bedroom:
-- Vary the crop: sometimes VERY CLOSE on the face (face fills 80% of frame) for high-impact portraits — these often look the most real and striking. Other times chest-height or medium crop.
-- Vary the gaze: direct eye contact is powerful, but 3/4 angle (looking slightly off-camera with a pensive or soft expression) often looks more natural and candid.
-- Vary the setting: bedroom with white linen, sun-lit kitchen, car interior with window light, outdoor with soft diffused daylight, coffee shop with morning light. Pick what fits the vibe.
-- Light: warm golden window light for lifestyle settings; soft overcast daylight for raw/candid looks; all from one natural source — no ring light, no studio.
-- Outfit: fitted and flattering, casual. Crop top, off-shoulder sweater, fitted tee, crewneck sweatshirt, open cardigan.
+CAMERA ANGLE & POSE — this is the #1 thing that makes faces look beautiful in phone photos:
+- Camera held SLIGHTLY BELOW eye level, angled gently upward — this naturally defines the jawline, lifts the cheekbones, and elongates the neck. Do not shoot straight-on or from above.
+- Head position: subtly tilted back and turned slightly to the side — not a full profile, just enough that the cheekbones catch light from the side and the jawline has definition. Eyes can look slightly upward (pensive, daydreaming) or meet the camera from that tilted angle.
+- This angle combination is why bone structure looks defined in the best phone portraits — describe it explicitly in the prompt.
 
-TECHNICAL:
-- Hyper-realistic smartphone photo aesthetic — wide-angle phone lens, natural depth, no studio lighting, no airbrushing. Feels like a real candid from a beautiful person's camera roll.
+FRAMING & SETTING — be creative:
+- Crop: tight on the face (face fills 80% of frame) for the most striking portraits. Or shoulders-up. Rarely lower than chest.
+- Setting: bedroom, car interior (with side window light — the car setting produces some of the most realistic portraits), sun-lit kitchen, outdoor with soft diffused light, coffee shop. Pick what fits the vibe.
+- Light: soft directional natural light from a side window — creates gentle highlights on cheekbones and nose with no harsh shadows. Feels unplanned and real. No ring light, no studio, no golden-hour filter unless explicitly requested.
+- Outfit: casual — black crewneck, fitted crop top, off-shoulder sweater, fitted tee, open cardigan.
+
+SKIN & TECHNICAL:
+- Skin texture is FULLY PRESERVED — visible pores, natural blush, very slight real-skin unevenness. No smoothing, no artificial glow, no filters. This is what makes a portrait look genuinely real, not AI. The slight imperfections read as human and are more beautiful than filtered perfection.
+- Makeup: minimal and natural — defined lashes, soft natural lip color, faint brow definition. Nothing heavy.
+- Hyper-realistic smartphone photo aesthetic — slight natural grain, true-to-life color, realistic perspective distortion. Indistinguishable from a real UGC photo taken in the moment.
 - The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot'
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
@@ -141,7 +147,7 @@ Second paragraph: [Expression: e.g. "Looking directly into the camera with soft 
 
 Third paragraph: [Lifestyle setting in detail: e.g. "Bright airy bedroom — white textured linen duvet, warm natural wood headboard, morning light pouring through sheer white curtains creating a soft warm glow across the room. A small plant on the nightstand, a glass of water. Clean and aspirational but lived-in"]. The light is warm and directional, casting soft shadows that are flattering to the face.
 
-Fourth paragraph: Shot on an iPhone-style wide-angle camera, vertical 9:16, chest-height medium crop showing face and upper body. Realistic lens distortion, warm natural window light from the left or right, no studio lighting, no ring light, no airbrushed skin, no beauty filter. Skin has natural luminous texture — healthy and glowing, not filtered. Hair has natural movement and shine. Fabric texture is realistic. High resolution, raw candid smartphone aesthetic, 9:16 aspect ratio.
+Fourth paragraph: Shot on a smartphone camera held slightly below eye level, angled gently upward — this angle defines the jawline and lifts the cheekbones naturally. Subject's head is subtly tilted back and turned slightly to the side, eyes looking upward or meeting the camera from that tilted angle. [Crop: tight on the face, or shoulders-up]. Soft directional natural light from a side window — gentle even illumination with natural highlights on the cheeks and nose, no harsh shadows. No ring light, no studio, no artificial glow. Skin texture fully preserved: visible pores, natural blush, very slight real-skin unevenness — no smoothing, no filters. Realistic grain, true-to-life color, slight wide-angle lens distortion. Indistinguishable from a real UGC photo taken in the moment. 9:16 aspect ratio.
 
 HARD RULES:
 - Your entire response must be valid JSON starting with { — do not write any words before the opening brace
