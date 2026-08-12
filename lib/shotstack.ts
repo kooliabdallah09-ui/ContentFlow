@@ -337,7 +337,7 @@ export async function submitScreenDemoJob({
   voiceoverDuration?: number  // actual audio duration in seconds (from buffer size)
   spokenScript?: string
   watermark?: boolean
-  aspect?: 'portrait' | 'square' | 'landscape'
+  aspect?: 'portrait' | 'tall' | 'square' | 'landscape'
 }): Promise<{ renderId: string }> {
   const apiKey = process.env.SHOTSTACK_API_KEY
   if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
@@ -350,6 +350,7 @@ export async function submitScreenDemoJob({
 
   const outputSize =
     aspect === 'square'    ? { width: 1080, height: 1080 } :
+    aspect === 'tall'      ? { width: 1080, height: 1440 } :
     aspect === 'portrait'  ? { width: 1080, height: 1920 } :
                              { width: 1920, height: 1080 }  // landscape default
 

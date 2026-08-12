@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
       productDescription?: string
       productImageUrl?: string
       resolution?: '720p' | '1080p'
-      aspect?: '9:16' | '4:5' | '1:1' | '16:9'
+      aspect?: '9:16' | '3:4' | '4:5' | '1:1' | '16:9'
       selectedFrameUrl?: string
       sceneId?: string
     }

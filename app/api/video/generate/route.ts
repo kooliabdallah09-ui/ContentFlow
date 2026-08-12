@@ -163,10 +163,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // aspect: portrait=9:16, square=1:1, landscape=16:9
+    // aspect: portrait=9:16, tall=3:4, square=1:1, landscape=16:9
     const aspectRaw = body.aspect as string | undefined
-    const aspectRatio: '9:16' | '1:1' | '16:9' =
-      aspectRaw === 'landscape' ? '16:9' : aspectRaw === 'square' ? '1:1' : '9:16'
+    const aspectRatio: '9:16' | '3:4' | '1:1' | '16:9' =
+      aspectRaw === 'landscape' ? '16:9' : aspectRaw === 'square' ? '1:1' : aspectRaw === 'tall' ? '3:4' : '9:16'
 
     // Accept either new multi-image array or legacy single-image fields
     const referenceImages: Array<{ base64: string; mimeType: string }> = Array.isArray(body.referenceImages)
@@ -313,7 +313,7 @@ OUTPUT: return ONLY valid JSON, no markdown:
             {
               model: 'pro',
               style: 'realistic',
-              ratio: aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16',
+              ratio: aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : aspectRatio === '3:4' ? '3:4' : '9:16',
               referenceImages: referenceImages.slice(0, 3),
               referenceHint: 'The attached reference photos show the EXACT product — preserve its print, label text, colours, shape, materials and proportions perfectly; surfaces not visible in the photos are plain. Apply the prompt as the environment, lighting and framing around it.',
             },

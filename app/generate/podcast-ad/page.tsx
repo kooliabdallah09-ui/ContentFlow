@@ -46,7 +46,7 @@ export default function PodcastAdPage() {
   const [brief, setBrief] = useState('')
   const [offer, setOffer] = useState('')
   const [resolution, setResolution] = useState<'720p' | '1080p'>('720p')
-  const [aspect, setAspect] = useState<'9:16' | '4:5' | '1:1' | '16:9'>('9:16')
+  const [aspect, setAspect] = useState<'9:16' | '3:4' | '4:5' | '1:1' | '16:9'>('9:16')
 
   const [planning, setPlanning] = useState(false)
   const [script, setScript] = useState<PodcastScript | null>(null)
@@ -306,6 +306,7 @@ export default function PodcastAdPage() {
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {([
                   { value: '9:16', label: '9:16', sub: 'Reels · TikTok' },
+                  { value: '3:4', label: '3:4', sub: 'Tall' },
                   { value: '4:5', label: '4:5', sub: 'Instagram' },
                   { value: '1:1', label: '1:1', sub: 'Square' },
                   { value: '16:9', label: '16:9', sub: 'YouTube' },

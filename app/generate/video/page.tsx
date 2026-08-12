@@ -212,7 +212,7 @@ export default function VideoGeneratorPage() {
   const [duration, setDuration] = useState(5)
   const [resolution, setResolution] = useState<Resolution>('720p')
   const [withAudio, setWithAudio] = useState(true)
-  const [aspect, setAspect] = useState<'portrait' | 'square' | 'landscape'>('portrait')
+  const [aspect, setAspect] = useState<'portrait' | 'tall' | 'square' | 'landscape'>('portrait')
   const [refImages, setRefImages] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
 
   const [generating, setGenerating] = useState(false)
@@ -631,6 +631,7 @@ export default function VideoGeneratorPage() {
           <div style={{ display: 'flex', gap: 10 }}>
             {([
               { id: 'portrait',  label: 'Portrait',  sub: '9:16',  icon: '▯' },
+              { id: 'tall',      label: 'Tall',      sub: '3:4',   icon: '▯' },
               { id: 'square',    label: 'Square',    sub: '1:1',   icon: '□' },
               { id: 'landscape', label: 'Landscape', sub: '16:9',  icon: '▭' },
             ] as const).map(f => {

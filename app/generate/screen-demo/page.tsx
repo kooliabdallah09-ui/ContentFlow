@@ -32,6 +32,7 @@ const VOICES = [
 const FORMATS = [
   { id: 'landscape', label: 'Landscape', sub: '16:9', icon: '▭' },
   { id: 'portrait',  label: 'Portrait',  sub: '9:16', icon: '▯' },
+  { id: 'tall',      label: 'Tall',      sub: '3:4',  icon: '▯' },
   { id: 'square',    label: 'Square',    sub: '1:1',  icon: '□' },
 ] as const
 
@@ -62,7 +63,7 @@ export default function ScreenDemoPage() {
     setPlayingVoice(id)
     audio.play().catch(() => setPlayingVoice(null))
   }
-  const [aspect, setAspect] = useState<'landscape' | 'portrait' | 'square'>('landscape')
+  const [aspect, setAspect] = useState<'landscape' | 'portrait' | 'tall' | 'square'>('landscape')
   const [status, setStatus] = useState<RenderStatus>('idle')
   const [resultUrl, setResultUrl] = useState<string | null>(null)
   const [dragOver, setDragOver] = useState(false)

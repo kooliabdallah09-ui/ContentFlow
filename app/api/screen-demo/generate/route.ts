@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     if (script.length > MAX_CHARS) {
       return NextResponse.json({ error: `Script must be under ${MAX_CHARS} characters` }, { status: 400 })
     }
-    if (!['portrait', 'square', 'landscape'].includes(aspect)) {
+    if (!['portrait', 'tall', 'square', 'landscape'].includes(aspect)) {
       return NextResponse.json({ error: 'Invalid aspect ratio' }, { status: 400 })
     }
 
@@ -97,7 +97,7 @@ export async function POST(req: NextRequest) {
       voiceoverDuration,
       spokenScript: script,
       watermark: credits.plan === 'free',
-      aspect: aspect as 'portrait' | 'square' | 'landscape',
+      aspect: aspect as 'portrait' | 'tall' | 'square' | 'landscape',
     })
 
     // Deduct credits

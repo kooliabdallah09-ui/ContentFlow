@@ -29,6 +29,7 @@ const IMAGE_MODELS = [
 
 const RATIOS = [
   { id: '1:1',  label: '1:1',  size: '1024x1024' },
+  { id: '3:4',  label: '3:4',  size: '768x1024' },
   { id: '4:5',  label: '4:5',  size: '1024x1280' },
   { id: '9:16', label: '9:16', size: '720x1280' },
   { id: '16:9', label: '16:9', size: '1280x720' },
@@ -432,7 +433,7 @@ export default function ImageGeneratorPage() {
         {loading && Array.from({ length: count }).map((_, i) => (
           <div key={`ph-${i}`} style={{
             breakInside: 'avoid', marginBottom: 14, borderRadius: 13,
-            aspectRatio: ratio === '16:9' ? '16/9' : ratio === '1:1' ? '1' : ratio === '9:16' ? '9/16' : '4/5',
+            aspectRatio: ratio === '16:9' ? '16/9' : ratio === '1:1' ? '1' : ratio === '9:16' ? '9/16' : ratio === '3:4' ? '3/4' : '4/5',
             background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
             border: '1px solid var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
