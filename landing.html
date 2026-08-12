@@ -27,80 +27,143 @@
   --max:      1140px;
 }
 
-/* ─── Palette: Slate (cool gray + indigo) ─────────────────────────────── */
+/* ─── Extra palettes ──────────────────────────────────────────────────── */
 [data-palette="slate"] {
-  --bg:       #F0F2F7;
-  --bg2:      #E4E8F0;
-  --card:     #FFFFFF;
-  --border:   rgba(15,20,60,0.1);
-  --text:     #0F1420;
-  --muted:    #5A6278;
-  --dim:      #9AA2B8;
-  --accent:   #4F46E5;
-  --accent2:  #6055F0;
-  --accentbg: rgba(79,70,229,0.07);
-  --nav-bg:   rgba(255,255,255,0.92);
+  --bg:#F0F2F7;--bg2:#E4E8F0;--card:#FFF;--border:rgba(15,20,60,.1);
+  --text:#0F1420;--muted:#5A6278;--dim:#9AA2B8;
+  --accent:#4F46E5;--accent2:#6055F0;--accentbg:rgba(79,70,229,.07);
+  --nav-bg:rgba(255,255,255,.92);
 }
-
-/* ─── Palette: Sage (green-white + forest) ────────────────────────────── */
 [data-palette="sage"] {
-  --bg:       #EFF5F1;
-  --bg2:      #E2EDE5;
-  --card:     #FFFFFF;
-  --border:   rgba(20,48,28,0.1);
-  --text:     #14201A;
-  --muted:    #4E6458;
-  --dim:      #8AA498;
-  --accent:   #2A5C45;
-  --accent2:  #336B52;
-  --accentbg: rgba(42,92,69,0.08);
-  --nav-bg:   rgba(255,255,255,0.92);
+  --bg:#EFF5F1;--bg2:#E2EDE5;--card:#FFF;--border:rgba(20,48,28,.1);
+  --text:#14201A;--muted:#4E6458;--dim:#8AA498;
+  --accent:#2A5C45;--accent2:#336B52;--accentbg:rgba(42,92,69,.08);
+  --nav-bg:rgba(255,255,255,.92);
 }
-
-/* ─── Palette: Dusk (dark warm + gold) ────────────────────────────────── */
 [data-palette="dusk"] {
-  --bg:       #181410;
-  --bg2:      #221C16;
-  --card:     #271F18;
-  --border:   rgba(255,225,185,0.08);
-  --text:     #F5EDE0;
-  --muted:    #9A8870;
-  --dim:      #5A4E40;
-  --accent:   #D4A040;
-  --accent2:  #E0B050;
-  --accentbg: rgba(212,160,64,0.1);
-  --nav-bg:   rgba(39,31,24,0.92);
+  --bg:#181410;--bg2:#221C16;--card:#271F18;--border:rgba(255,225,185,.08);
+  --text:#F5EDE0;--muted:#9A8870;--dim:#5A4E40;
+  --accent:#D4A040;--accent2:#E0B050;--accentbg:rgba(212,160,64,.1);
+  --nav-bg:rgba(39,31,24,.92);
+}
+[data-palette="rose"] {
+  --bg:#FBF0F4;--bg2:#F3E2EA;--card:#FFF;--border:rgba(80,10,30,.1);
+  --text:#2A0818;--muted:#7A5060;--dim:#B89098;
+  --accent:#C2185B;--accent2:#D81B60;--accentbg:rgba(194,24,91,.07);
+  --nav-bg:rgba(255,255,255,.92);
+}
+[data-palette="arctic"] {
+  --bg:#F0F6FA;--bg2:#E2EEF5;--card:#FFF;--border:rgba(5,30,70,.09);
+  --text:#061828;--muted:#4A6278;--dim:#8AACC0;
+  --accent:#0277BD;--accent2:#0288D1;--accentbg:rgba(2,119,189,.07);
+  --nav-bg:rgba(255,255,255,.92);
+}
+[data-palette="crimson"] {
+  --bg:#FDF2F2;--bg2:#F5E4E4;--card:#FFF;--border:rgba(80,10,10,.1);
+  --text:#280808;--muted:#7A5050;--dim:#B89090;
+  --accent:#C62828;--accent2:#D32F2F;--accentbg:rgba(198,40,40,.07);
+  --nav-bg:rgba(255,255,255,.92);
+}
+[data-palette="lavender"] {
+  --bg:#F3F0F8;--bg2:#E8E2F4;--card:#FFF;--border:rgba(40,15,80,.1);
+  --text:#180830;--muted:#6A5878;--dim:#A898B8;
+  --accent:#6B2FA0;--accent2:#7B35B5;--accentbg:rgba(107,47,160,.07);
+  --nav-bg:rgba(255,255,255,.92);
+}
+[data-palette="midnight"] {
+  --bg:#0D1117;--bg2:#161B22;--card:#1C2330;--border:rgba(200,220,255,.08);
+  --text:#E6EDF3;--muted:#8B949E;--dim:#484F58;
+  --accent:#58A6FF;--accent2:#79B8FF;--accentbg:rgba(88,166,255,.1);
+  --nav-bg:rgba(13,17,23,.92);
+}
+[data-palette="mint"] {
+  --bg:#F0F9F6;--bg2:#E0F2EC;--card:#FFF;--border:rgba(0,50,40,.09);
+  --text:#012018;--muted:#3A6858;--dim:#78B0A0;
+  --accent:#00897B;--accent2:#00A090;--accentbg:rgba(0,137,123,.07);
+  --nav-bg:rgba(255,255,255,.92);
+}
+[data-palette="peach"] {
+  --bg:#FEF5F0;--bg2:#FCE8DC;--card:#FFF;--border:rgba(80,30,10,.1);
+  --text:#2C1008;--muted:#7A5040;--dim:#C09880;
+  --accent:#E64A19;--accent2:#F4511E;--accentbg:rgba(230,74,25,.07);
+  --nav-bg:rgba(255,255,255,.92);
+}
+[data-palette="emerald"] {
+  --bg:#F0FCF7;--bg2:#DCFAED;--card:#FFF;--border:rgba(5,50,30,.09);
+  --text:#012818;--muted:#2E6850;--dim:#68B090;
+  --accent:#065F46;--accent2:#047857;--accentbg:rgba(6,95,70,.07);
+  --nav-bg:rgba(255,255,255,.92);
+}
+[data-palette="noir"] {
+  --bg:#080808;--bg2:#111111;--card:#181818;--border:rgba(255,255,255,.07);
+  --text:#F0EDE8;--muted:#888078;--dim:#444038;
+  --accent:#E8E2DA;--accent2:#FFF;--accentbg:rgba(232,226,218,.06);
+  --nav-bg:rgba(8,8,8,.92);
+}
+[data-palette="sand"] {
+  --bg:#F9F5EC;--bg2:#F0E8D4;--card:#FFF;--border:rgba(70,40,10,.1);
+  --text:#2A1A08;--muted:#7A6448;--dim:#B0A080;
+  --accent:#92400E;--accent2:#A44F12;--accentbg:rgba(146,64,14,.07);
+  --nav-bg:rgba(255,255,255,.92);
+}
+[data-palette="cobalt"] {
+  --bg:#F0F4FB;--bg2:#E2EAF7;--card:#FFF;--border:rgba(10,20,80,.1);
+  --text:#080F30;--muted:#445080;--dim:#8898C0;
+  --accent:#1565C0;--accent2:#1976D2;--accentbg:rgba(21,101,192,.07);
+  --nav-bg:rgba(255,255,255,.92);
 }
 
 /* ─── Palette switcher ────────────────────────────────────────────────── */
-.pal-switcher {
-  position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+.pal-trigger {
+  position: fixed; bottom: 24px; right: 24px; z-index: 1001;
+  width: 46px; height: 46px; border-radius: 50%; border: none;
+  background: var(--text); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.22);
+  transition: transform 0.22s cubic-bezier(0.34,1.15,0.64,1), box-shadow 0.2s;
+}
+.pal-trigger:hover { transform: scale(1.1); box-shadow: 0 6px 28px rgba(0,0,0,0.28); }
+.pal-trigger svg { transition: transform 0.3s cubic-bezier(0.34,1.15,0.64,1); }
+.pal-trigger.open svg { transform: rotate(45deg); }
+
+.pal-panel {
+  position: fixed; bottom: 80px; right: 24px; z-index: 1000;
   background: var(--card); border: 1px solid var(--border);
-  border-radius: 100px; padding: 8px 14px 8px 10px;
-  display: flex; align-items: center; gap: 10px;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.12), 0 1px 4px rgba(0,0,0,0.06);
-  backdrop-filter: blur(12px);
+  border-radius: 20px; padding: 14px;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08);
+  width: 232px;
+  opacity: 0; transform: translateY(10px) scale(0.95);
+  pointer-events: none;
+  transition: opacity 0.22s cubic-bezier(0.22,1,0.36,1), transform 0.22s cubic-bezier(0.22,1,0.36,1);
+  transform-origin: bottom right;
 }
-.pal-label {
-  font-size: 11px; font-weight: 600; color: var(--dim);
-  text-transform: uppercase; letter-spacing: .08em;
-  padding-right: 2px;
+.pal-panel.open { opacity: 1; transform: none; pointer-events: all; }
+.pal-panel-title {
+  font-size: 10px; font-weight: 700; color: var(--dim);
+  text-transform: uppercase; letter-spacing: .1em;
+  margin-bottom: 12px; padding: 0 2px;
 }
-.pal-dots { display: flex; gap: 6px; }
-.pal-dot {
-  width: 22px; height: 22px; border-radius: 50%; cursor: pointer;
-  border: 2px solid transparent;
-  transition: transform 0.18s cubic-bezier(0.34,1.15,0.64,1), border-color 0.14s;
-  position: relative;
+.pal-grid {
+  display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
 }
-.pal-dot:hover { transform: scale(1.15); }
-.pal-dot.active {
-  border-color: var(--text);
-  transform: scale(1.1);
+.pal-swatch {
+  display: flex; flex-direction: column; align-items: center; gap: 5px;
+  cursor: pointer; padding: 5px 2px; border-radius: 10px;
+  border: none; background: none;
+  transition: background 0.14s;
 }
-.pal-dot::after {
-  content: ''; position: absolute; inset: 2px; border-radius: 50%;
-  background: inherit; border-radius: 50%;
+.pal-swatch:hover { background: var(--bg2); }
+.pal-swatch-dot {
+  width: 30px; height: 30px; border-radius: 50%;
+  outline: 2.5px solid transparent; outline-offset: 2px;
+  transition: transform 0.18s cubic-bezier(0.34,1.15,0.64,1), outline-color 0.14s;
+}
+.pal-swatch:hover .pal-swatch-dot { transform: scale(1.1); }
+.pal-swatch.active .pal-swatch-dot { outline-color: var(--text); transform: scale(1.05); }
+.pal-swatch-name {
+  font-size: 8.5px; font-weight: 600; color: var(--dim);
+  text-transform: uppercase; letter-spacing: .05em;
+  white-space: nowrap;
 }
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -1177,13 +1240,37 @@ footer { border-top: 1px solid var(--border); padding: 48px 0 36px; background: 
 </footer>
 
 <!-- ─── Palette switcher ───────────────────────────────────────────────── -->
-<div class="pal-switcher">
-  <span class="pal-label">Theme</span>
-  <div class="pal-dots">
-    <button class="pal-dot active" data-pal="warm"  style="background:#C86020;" title="Warm"></button>
-    <button class="pal-dot"       data-pal="slate" style="background:#4F46E5;" title="Slate"></button>
-    <button class="pal-dot"       data-pal="sage"  style="background:#2A5C45;" title="Sage"></button>
-    <button class="pal-dot"       data-pal="dusk"  style="background:#D4A040;" title="Dusk"></button>
+<button class="pal-trigger" id="palTrigger" aria-label="Switch theme">
+  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+    <circle cx="9" cy="9" r="3.5" fill="var(--bg)"/>
+    <circle cx="9" cy="3" r="2"   fill="var(--bg)" opacity=".8"/>
+    <circle cx="9" cy="15" r="2"  fill="var(--bg)" opacity=".8"/>
+    <circle cx="3" cy="9" r="2"   fill="var(--bg)" opacity=".8"/>
+    <circle cx="15" cy="9" r="2"  fill="var(--bg)" opacity=".8"/>
+    <circle cx="4.9" cy="4.9" r="1.5" fill="var(--bg)" opacity=".5"/>
+    <circle cx="13.1" cy="13.1" r="1.5" fill="var(--bg)" opacity=".5"/>
+    <circle cx="13.1" cy="4.9" r="1.5" fill="var(--bg)" opacity=".5"/>
+    <circle cx="4.9" cy="13.1" r="1.5" fill="var(--bg)" opacity=".5"/>
+  </svg>
+</button>
+<div class="pal-panel" id="palPanel">
+  <div class="pal-panel-title">Theme</div>
+  <div class="pal-grid">
+    <button class="pal-swatch active" data-pal="warm"><div class="pal-swatch-dot" style="background:#C86020;"></div><span class="pal-swatch-name">Warm</span></button>
+    <button class="pal-swatch" data-pal="slate"><div class="pal-swatch-dot" style="background:#4F46E5;"></div><span class="pal-swatch-name">Slate</span></button>
+    <button class="pal-swatch" data-pal="sage"><div class="pal-swatch-dot" style="background:#2A5C45;"></div><span class="pal-swatch-name">Sage</span></button>
+    <button class="pal-swatch" data-pal="dusk"><div class="pal-swatch-dot" style="background:#D4A040;"></div><span class="pal-swatch-name">Dusk</span></button>
+    <button class="pal-swatch" data-pal="rose"><div class="pal-swatch-dot" style="background:#C2185B;"></div><span class="pal-swatch-name">Rose</span></button>
+    <button class="pal-swatch" data-pal="arctic"><div class="pal-swatch-dot" style="background:#0277BD;"></div><span class="pal-swatch-name">Arctic</span></button>
+    <button class="pal-swatch" data-pal="crimson"><div class="pal-swatch-dot" style="background:#C62828;"></div><span class="pal-swatch-name">Crimson</span></button>
+    <button class="pal-swatch" data-pal="lavender"><div class="pal-swatch-dot" style="background:#6B2FA0;"></div><span class="pal-swatch-name">Lavender</span></button>
+    <button class="pal-swatch" data-pal="midnight"><div class="pal-swatch-dot" style="background:#58A6FF;"></div><span class="pal-swatch-name">Midnight</span></button>
+    <button class="pal-swatch" data-pal="mint"><div class="pal-swatch-dot" style="background:#00897B;"></div><span class="pal-swatch-name">Mint</span></button>
+    <button class="pal-swatch" data-pal="peach"><div class="pal-swatch-dot" style="background:#E64A19;"></div><span class="pal-swatch-name">Peach</span></button>
+    <button class="pal-swatch" data-pal="emerald"><div class="pal-swatch-dot" style="background:#065F46;"></div><span class="pal-swatch-name">Emerald</span></button>
+    <button class="pal-swatch" data-pal="noir"><div class="pal-swatch-dot" style="background:#E8E2DA; outline: 1px solid #555;"></div><span class="pal-swatch-name">Noir</span></button>
+    <button class="pal-swatch" data-pal="sand"><div class="pal-swatch-dot" style="background:#92400E;"></div><span class="pal-swatch-name">Sand</span></button>
+    <button class="pal-swatch" data-pal="cobalt"><div class="pal-swatch-dot" style="background:#1565C0;"></div><span class="pal-swatch-name">Cobalt</span></button>
   </div>
 </div>
 
@@ -1249,16 +1336,31 @@ window.addEventListener('scroll', () => {
 }, { passive: true });
 
 // ─── Palette switcher ─────────────────────────────────────────────────── //
-document.querySelectorAll('.pal-dot').forEach(dot => {
-  dot.addEventListener('click', () => {
-    const pal = dot.dataset.pal;
+const palTrigger = document.getElementById('palTrigger');
+const palPanel   = document.getElementById('palPanel');
+
+palTrigger.addEventListener('click', () => {
+  const isOpen = palPanel.classList.toggle('open');
+  palTrigger.classList.toggle('open', isOpen);
+});
+
+document.addEventListener('click', e => {
+  if (!palTrigger.contains(e.target) && !palPanel.contains(e.target)) {
+    palPanel.classList.remove('open');
+    palTrigger.classList.remove('open');
+  }
+});
+
+document.querySelectorAll('.pal-swatch').forEach(swatch => {
+  swatch.addEventListener('click', () => {
+    const pal = swatch.dataset.pal;
     if (pal === 'warm') {
       document.documentElement.removeAttribute('data-palette');
     } else {
       document.documentElement.setAttribute('data-palette', pal);
     }
-    document.querySelectorAll('.pal-dot').forEach(d => d.classList.remove('active'));
-    dot.classList.add('active');
+    document.querySelectorAll('.pal-swatch').forEach(s => s.classList.remove('active'));
+    swatch.classList.add('active');
   });
 });
 </script>
