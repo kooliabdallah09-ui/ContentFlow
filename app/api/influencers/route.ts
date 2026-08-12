@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
       type: 'text',
       text: (referenceImages.length
         ? `Client note: "${description || '(use the photos)'}"\n\nThe attached photo${referenceImages.length > 1 ? 's are' : ' is'} the VISUAL REFERENCE — base the appearance_prompt entirely on THIS person's face, hair, features, build, and style as seen in the photos. The client note may just be a name or a short hint; that's fine, the photos carry the visual identity. Invent a plausible handle, bio, personality, and niche that fit the look. Write the appearance_prompt to faithfully describe what you see (adult framing, no age numbers).`
-        : `Client description of the influencer:\n${description || '(traits only — build the character from the locked traits below)'}`) + traitsBlock,
+        : `Client description / additional details — MUST be honored in the identity sheet and appearance_prompt with equal weight to the locked traits below:\n${description || '(traits only — build the character from the locked traits below)'}`) + traitsBlock,
     })
     // Retry Sonnet on transient 5xx / overloaded — Anthropic occasionally returns
     // api_error "Internal server error" and eating the credits + failing the
