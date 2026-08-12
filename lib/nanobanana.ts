@@ -127,7 +127,7 @@ async function callNanoBananaVertex(
     method: 'POST',
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
-    signal: AbortSignal.timeout(130000),
+    signal: AbortSignal.timeout(250000),
   })
   if (!res.ok) {
     const err = await res.text()
