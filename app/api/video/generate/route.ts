@@ -352,10 +352,11 @@ OUTPUT: return ONLY valid JSON, no markdown:
           }
         } catch { /* soft fail — text-only render */ }
       }
+      const omniAspect: '9:16' | '16:9' | '1:1' = aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16'
       const omni = await submitOmniFlashJob({
         prompt,
         durationSeconds: duration,
-        aspectRatio,
+        aspectRatio: omniAspect,
         resolution: resolution === '4k' || resolution === '480p' ? '1080p' : (resolution as '720p' | '1080p'),
         enableAudio: withAudio,
         startImageBase64,
