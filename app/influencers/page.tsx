@@ -1300,7 +1300,7 @@ export default function InfluencersPage() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{createModel === 'nb2' ? '12' : '20'} cr — identity sheet + portrait + turnaround</span>
+          <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{createModel === 'nb2' ? '12' : '20'} cr — identity + portrait</span>
           <button onClick={create} disabled={creating} className="btn btn-primary" style={{ padding: '11px 22px', fontSize: 13.5, display: 'inline-flex', alignItems: 'center', gap: 7, marginLeft: 'auto' }}>
             {creating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {creating ? 'Casting…' : 'Create influencer'}
           </button>
