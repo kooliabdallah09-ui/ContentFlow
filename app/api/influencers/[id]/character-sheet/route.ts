@@ -8,7 +8,7 @@ import { generateCharacterSheet } from '@/lib/character-sheet'
 import { deductCredits } from '@/lib/deduct-credits'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
-export const maxDuration = 120
+export const maxDuration = 300
 
 export const SHEET_CR = 8      // 2K NB Pro turnaround ≈ $0.14 raw × 1.4
 export const SHEET_4K_CR = 14  // 4K NB Pro turnaround ≈ $0.24 raw × 1.4
