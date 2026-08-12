@@ -24,10 +24,8 @@ function supa() {
   )
 }
 
-// System prompt for the regeneration Sonnet call. The key difference from
-// the create IDENTITY_SYSTEM is that we anchor to the EXISTING character's
-// name/handle/personality/niche and only rewrite the appearance_prompt
-// with the new "real individual, minimal makeup" language.
+// System prompt for a full regeneration — rewrites the appearance prompt
+// with fresh language while preserving all physical traits.
 const REGEN_SYSTEM = `You are rewriting the visual APPEARANCE PROMPT for an existing AI influencer. Their name, handle, bio, personality, and niche are already locked and must be preserved — you only rewrite the appearance description with fresh photorealistic language.
 
 Return ONLY valid JSON, no markdown:
@@ -45,6 +43,24 @@ appearance_prompt rules:
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot'.
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'.
 - Honor every physical trait present in the existing appearance description below — only refine the language, don't swap the character out.
+`
+
+// Surgical-edit mode: used when the user provides a specific tweak note.
+// Copies the existing prompt nearly verbatim — only the noted detail changes.
+const TWEAK_SYSTEM = `You are making a SINGLE SURGICAL EDIT to an existing AI influencer's appearance prompt. Your job is to copy the appearance_prompt almost word-for-word and change ONLY the one specific detail mentioned in the USER TWEAK REQUEST. Every other feature — face shape, skin tone, hair, eyes, build, expression, framing, lighting, ending line — must remain IDENTICAL to the original.
+
+Return ONLY valid JSON, no markdown:
+{
+  "appearance_prompt": "the updated appearance prompt with only the requested detail changed"
+}
+
+CRITICAL RULES:
+- Do NOT rewrite, rephrase, or "improve" any other part of the prompt. Copy it verbatim except for the one change.
+- Do NOT alter the person's face, body shape, skin tone, hair color/length/texture, or any feature not explicitly mentioned in the tweak.
+- If the tweak says "remove the dimple", delete that word/phrase from the original and nothing else.
+- If the tweak says "add glasses", insert a description of glasses and nothing else changes.
+- The ending line ('Full-bleed photograph only — no camera interface...') must remain exactly as-is.
+- NEVER invent new features. NEVER drop existing features unless the tweak explicitly asks to.
 `
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -98,20 +114,25 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     }
 
-    // 1) Sonnet rewrites the appearance prompt only, preserving the rest.
+    // 1) Sonnet rewrites (or surgically tweaks) the appearance prompt only.
+    // When a note is provided we use TWEAK_SYSTEM so Sonnet copies the prompt
+    // verbatim and changes ONLY the requested detail — nothing else moves.
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const contextBlock = `EXISTING CHARACTER:
+    const systemPrompt = note ? TWEAK_SYSTEM : REGEN_SYSTEM
+    const contextBlock = note
+      ? `EXISTING APPEARANCE PROMPT (copy this verbatim, change ONLY what the tweak says):\n${influencer.appearance_prompt}\n\nUSER TWEAK REQUEST — change ONLY this, nothing else:\n${note}`
+      : `EXISTING CHARACTER:
 Name: ${influencer.name}
 Handle: ${influencer.handle ?? '(none)'}
 Bio: ${influencer.bio ?? '(none)'}
 Personality: ${influencer.personality ?? '(none)'}
 Niche: ${influencer.niche ?? '(none)'}
 Current appearance description (rewrite this — preserve the physical traits, refresh the language):
-${influencer.appearance_prompt}${note ? `\n\nUSER TWEAK REQUEST — apply this change to the new appearance_prompt:\n${note}` : ''}`
+${influencer.appearance_prompt}`
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 800,
-      system: REGEN_SYSTEM,
+      system: systemPrompt,
       messages: [{ role: 'user', content: contextBlock }],
     })
     const raw = (msg.content[0] as { type: 'text'; text: string }).text.trim()
