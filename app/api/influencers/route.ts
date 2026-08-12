@@ -91,7 +91,8 @@ appearance_prompt rules:
 - The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
 - NEVER use the words 'phone camera', 'selfie', or 'screenshot' — they cause camera-app UI to render into the image
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
-- Honor every physical trait the client explicitly asked for`
+- Honor every physical trait the client explicitly asked for
+- For any trait NOT specified by the client (ethnicity, hairstyle, gender, etc.) make the best creative choice that fits the overall vibe — fill every gap, never leave a detail ambiguous`
 
 export async function POST(request: NextRequest) {
   try {
@@ -223,16 +224,30 @@ export async function POST(request: NextRequest) {
     // cues so the user gets meaningful choice instead of four near-identical
     // direct-look portraits. User picks one → /finalize renders the sheet
     // from that pick and saves the influencer.
+    const nbOpts = {
+      style: 'realistic' as const,
+      ratio: '4:5' as const,
+      model,
+      referenceImages: referenceImages.length ? referenceImages : undefined,
+      referenceHint: referenceImages.length
+        ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
+        : undefined,
+    }
     const portraitResults = await Promise.allSettled(
-      CANDIDATE_VIBES.map(v => generateNanoBananaImage(`${sheet.appearance_prompt}\n\n${v.cue}`, {
-        style: 'realistic',
-        ratio: '4:5',
-        model,
-        referenceImages: referenceImages.length ? referenceImages : undefined,
-        referenceHint: referenceImages.length
-          ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
-          : undefined,
-      })),
+      CANDIDATE_VIBES.map(async v => {
+        const prompt = `${sheet.appearance_prompt}\n\n${v.cue}`
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            return await generateNanoBananaImage(prompt, nbOpts)
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err)
+            console.warn(`[influencers/candidates] vibe=${v.key} attempt=${attempt} failed:`, msg)
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)))
+            else throw err
+          }
+        }
+        throw new Error('exhausted retries')
+      }),
     )
     // Upload every successful candidate to storage in parallel.
     const timestamp = Date.now()
@@ -240,21 +255,24 @@ export async function POST(request: NextRequest) {
     for (let i = 0; i < portraitResults.length; i++) {
       const r = portraitResults[i]
       if (r.status !== 'fulfilled') {
-        console.warn('[influencers/candidates] portrait', i, 'failed:', r.reason instanceof Error ? r.reason.message : r.reason)
+        console.warn('[influencers/candidates] portrait', i, 'ultimately failed:', r.reason instanceof Error ? r.reason.message : r.reason)
         continue
       }
       const filename = `influencers/${auth.userId}-${timestamp}-candidate-${i}.png`
       const { error: upErr } = await supabase.storage
         .from('ugc-assets')
         .upload(filename, Buffer.from(r.value.imageBase64, 'base64'), { contentType: r.value.mimeType, upsert: false })
-      if (upErr) continue
+      if (upErr) {
+        console.warn('[influencers/candidates] upload failed for', i, upErr.message)
+        continue
+      }
       candidates.push({
         url: supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl,
         vibe: CANDIDATE_VIBES[i].key,
       })
     }
     if (!candidates.length) {
-      return NextResponse.json({ error: 'All candidate portraits failed — try again.' }, { status: 500 })
+      return NextResponse.json({ error: 'Portrait generation failed — please try again.' }, { status: 500 })
     }
 
     // 3) Persist the original user reference photos to storage so future

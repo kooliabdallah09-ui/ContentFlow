@@ -123,37 +123,54 @@ ${influencer.appearance_prompt}`
     }
 
     // 2) Render 4 candidate portraits with the same expression cues as create.
+    const nbOpts = {
+      style: 'realistic' as const,
+      ratio: '4:5' as const,
+      model,
+      referenceImages: originalRefs.length ? originalRefs : undefined,
+      referenceHint: originalRefs.length
+        ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
+        : undefined,
+    }
     const results = await Promise.allSettled(
-      CANDIDATE_VIBES.map(v => generateNanoBananaImage(`${sheet.appearance_prompt}\n\n${v.cue}`, {
-        style: 'realistic',
-        ratio: '4:5',
-        model,
-        referenceImages: originalRefs.length ? originalRefs : undefined,
-        referenceHint: originalRefs.length
-          ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
-          : undefined,
-      })),
+      CANDIDATE_VIBES.map(async v => {
+        const prompt = `${sheet.appearance_prompt}\n\n${v.cue}`
+        for (let attempt = 0; attempt < 3; attempt++) {
+          try {
+            return await generateNanoBananaImage(prompt, nbOpts)
+          } catch (err) {
+            const msg = err instanceof Error ? err.message : String(err)
+            console.warn(`[influencers/regenerate] vibe=${v.key} attempt=${attempt} failed:`, msg)
+            if (attempt < 2) await new Promise(r => setTimeout(r, 1200 * (attempt + 1)))
+            else throw err
+          }
+        }
+        throw new Error('exhausted retries')
+      }),
     )
     const timestamp = Date.now()
     const candidates: Array<{ url: string; vibe: string }> = []
     for (let i = 0; i < results.length; i++) {
       const r = results[i]
       if (r.status !== 'fulfilled') {
-        console.warn('[influencers/regenerate] portrait', i, 'failed:', r.reason instanceof Error ? r.reason.message : r.reason)
+        console.warn('[influencers/regenerate] portrait', i, 'ultimately failed:', r.reason instanceof Error ? r.reason.message : r.reason)
         continue
       }
       const filename = `influencers/${userId}-${timestamp}-regen-${i}.png`
       const { error: upErr } = await supabase.storage
         .from('ugc-assets')
         .upload(filename, Buffer.from(r.value.imageBase64, 'base64'), { contentType: r.value.mimeType, upsert: false })
-      if (upErr) continue
+      if (upErr) {
+        console.warn('[influencers/regenerate] upload failed for', i, upErr.message)
+        continue
+      }
       candidates.push({
         url: supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl,
         vibe: CANDIDATE_VIBES[i].key,
       })
     }
     if (!candidates.length) {
-      return NextResponse.json({ error: 'All candidate portraits failed — try again.' }, { status: 500 })
+      return NextResponse.json({ error: 'Portrait generation failed — please try again.' }, { status: 500 })
     }
 
     // 3) Charge upfront. /finalize will update the row and clean up old
