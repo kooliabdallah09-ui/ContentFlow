@@ -84,18 +84,25 @@ Return ONLY valid JSON, no markdown, exactly this shape:
 
 appearance_prompt rules — write a prompt that produces a STUNNING, HIGHLY ATTRACTIVE portrait:
 
-PERSON:
-- Conventionally beautiful/handsome — the kind of face that stops scrolling on Instagram. Strong bone structure: sharp defined cheekbones, clean jawline, symmetrical features, full lips, expressive eyes with natural depth. This person could book editorial campaigns.
-- Describe: gender presentation, ethnicity/cultural background, eye color, build/physique, one standout feature (strong jaw, striking eyes, full lips, defined collarbone, etc.)
-- For any trait NOT specified, make the best creative choice — never leave gaps
+PERSON & FACE — this is the most important section:
+- This person has a STRIKING, MODEL-TIER face — the kind of face that stops scrolling on Instagram. Describe in detail:
+  - Face shape (oval, heart-shaped, or sculpted angular)
+  - Cheekbones: HIGH and SHARPLY DEFINED — create natural shadow and dimension
+  - Jawline: CLEAN and DEFINED — not soft, not round, but sculpted
+  - Eyes: describe the EXACT shape (almond, slightly upturned, hooded with depth, wide-set doe eyes), color with warmth (e.g. "warm honey-brown with golden flecks", "deep olive-green", "dark espresso with a natural gleam"), and lashes (naturally long and lifted)
+  - Lips: FULL with a pronounced cupid's bow and defined vermillion border — naturally pigmented in a soft rose or nude-pink
+  - Nose: straight or slightly softly curved — proportional and refined
+  - Symmetry: near-perfect symmetry with the slight natural variation that reads as human
+- Ethnicity/cultural background: be specific (e.g. Latina, Mediterranean, East Asian, South Asian, Mixed West African and European) — this drives a specific beautiful face
+- For any trait NOT specified, make the most attractive creative choice — never leave gaps
 
 HAIR:
-- Voluminous, full of movement and texture. For females: long wavy or beachy layers, slightly tousled with natural volume, hair that moves. For males: textured, styled-but-effortless — pushed back, slightly messy, defined with natural hold. Describe: color with dimension (e.g. rich chocolate brown with warm auburn tones in the light, or dark walnut with subtle caramel highlights), length, specific texture and movement.
+- Voluminous, full of movement. For females: long wavy or beachy layers, glossy with depth — not limp or flat. For males: textured and effortlessly styled. Describe: color with dimension (rich chocolate brown with warm auburn, dark walnut with caramel highlights, warm blonde with honey tones), length, and movement.
 
 SKIN & MAKEUP:
-- Skin looks luminous and dewy — a warm golden glow, like morning light is kissing it. Healthy and even, with the soft radiance of someone who actually takes care of themselves.
-- For female/unspecified: clean dewy base, brows groomed and defined, lashes lifted and separated, soft peachy-rose cheek flush, glossy or satin nude lip. The "effortless beauty" look — polished but not overdone.
-- For male: clear even skin with healthy texture, groomed brows, a few days of light stubble if it suits them, moisturised lips.
+- Skin is LUMINOUS and DEWY — a warm golden-hour glow, radiant and healthy. Not matte, not flat. The kind of skin that looks lit from within.
+- Female/unspecified: softly defined brows, lashes naturally lifted and separated, faint peachy-rose flush on cheeks, glossy soft nude lip. Effortless polished beauty.
+- Male: smooth even skin, light stubble if it suits, groomed brows, healthy texture.
 
 FRAMING & SETTING:
 - Chest-to-head framing (show face + upper body / outfit context) — not just a tight headshot
@@ -127,7 +134,7 @@ Return exactly this JSON shape:
 
 The appearance_prompt must be one continuous string written in 4 dense paragraphs (no labels or headers, just paragraphs separated by newlines). The goal is a STUNNING, STOP-THE-SCROLL portrait of a highly attractive person:
 
-First paragraph: Ultra-realistic vertical smartphone photo of a strikingly attractive [cultural background] [gender] — [specific facial features that make them beautiful: e.g. "sharp defined cheekbones, a clean strong jawline, full slightly-parted lips, and warm deep-set brown eyes with natural shadow"]. [Voluminous, textured hair description: e.g. "Long dark chocolate wavy hair with warm auburn depth in the light, slightly tousled with natural volume and a few strands falling across the face"]. [Skin: e.g. "Olive-toned skin with a warm luminous golden glow — dewy and radiant, catching the morning light"]. [Build/posture hint: e.g. "Lean and toned, standing with relaxed confident posture"]. Wearing [specific flattering outfit: e.g. "a fitted sage green off-shoulder ribbed long-sleeve top and light grey jogger pants — casual but figure-flattering"].
+First paragraph: Ultra-realistic vertical smartphone photo of a strikingly beautiful [specific cultural background, e.g. "Latina", "Mediterranean", "East Asian", "South Asian"] [gender]. Face: [be very specific — e.g. "sharply defined high cheekbones that cast a subtle natural shadow, a clean sculpted jawline, near-symmetrical oval face, full lips with a pronounced cupid's bow and natural rose-nude pigment, warm almond-shaped honey-brown eyes with naturally long lifted lashes and a faint inner-eye highlight, a straight refined nose"]. [Voluminous hair: e.g. "Long rich chocolate-brown wavy hair with warm auburn depth in sunlight, voluminous and full with soft natural waves and a few strands brushing her collarbone — not flat, full of movement and gloss"]. [Skin: e.g. "Warm olive skin with a luminous golden-hour glow — dewy and radiant, lit from within, not filtered or matte"]. Wearing [specific flattering outfit].
 
 Second paragraph: [Expression: e.g. "Looking directly into the camera with soft direct eye contact and a relaxed natural half-smile — warm and approachable without being posed. Lips slightly parted, completely at ease"]. The energy is that of a creator who just hit record mid-morning and looks effortlessly good. [One specific beautiful detail: e.g. "Her collarbone is visible, hair has a natural wave and volume that frames her face perfectly"].
 
