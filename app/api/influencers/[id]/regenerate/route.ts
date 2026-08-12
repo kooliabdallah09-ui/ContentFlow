@@ -123,10 +123,11 @@ ${influencer.appearance_prompt}`
     }
 
     // 2) Render 4 candidate portraits with the same expression cues as create.
+    // Always use nb2 for candidate previews — finalize renders at the chosen quality.
     const nbOpts = {
       style: 'realistic' as const,
       ratio: '4:5' as const,
-      model,
+      model: 'nb2' as const,
       referenceImages: originalRefs.length ? originalRefs : undefined,
       referenceHint: originalRefs.length
         ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'

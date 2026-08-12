@@ -224,10 +224,13 @@ export async function POST(request: NextRequest) {
     // cues so the user gets meaningful choice instead of four near-identical
     // direct-look portraits. User picks one → /finalize renders the sheet
     // from that pick and saves the influencer.
+    // Always use nb2 for candidate previews regardless of final model selection.
+    // nb2 is faster, uses separate quota, and candidates are just for picking —
+    // the finalize step renders the confirmed portrait at the user's chosen quality.
     const nbOpts = {
       style: 'realistic' as const,
       ratio: '4:5' as const,
-      model,
+      model: 'nb2' as const,
       referenceImages: referenceImages.length ? referenceImages : undefined,
       referenceHint: referenceImages.length
         ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
