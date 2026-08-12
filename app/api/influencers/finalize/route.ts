@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js'
 import { generateCharacterSheet } from '@/lib/character-sheet'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
-export const maxDuration = 90
+export const maxDuration = 300
 
 function supa() {
   return createClient(
