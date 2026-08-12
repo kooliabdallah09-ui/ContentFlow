@@ -233,27 +233,23 @@ export async function POST(request: NextRequest) {
         ? 'The person in the attached reference photo(s) IS this character — preserve their exact face, hair, skin tone, and distinctive features. Apply the prompt as framing + expression around them; do NOT invent a different person.'
         : undefined,
     }
-    // Stagger candidate requests by 3s each to avoid Vertex quota bursts.
-    const portraitResults = await Promise.allSettled(
-      CANDIDATE_VIBES.map(async (v, idx) => {
-        if (idx > 0) await new Promise(r => setTimeout(r, idx * 3000))
-        const prompt = `${sheet.appearance_prompt}\n\n${v.cue}`
-        return generateNanoBananaImage(prompt, nbOpts)
-      }),
-    )
-    // Upload every successful candidate to storage in parallel.
+    // Generate candidates sequentially — Vertex quota can't handle parallel bursts.
     const timestamp = Date.now()
     const candidates: Array<{ url: string; vibe: string }> = []
-    for (let i = 0; i < portraitResults.length; i++) {
-      const r = portraitResults[i]
-      if (r.status !== 'fulfilled') {
-        console.warn('[influencers/candidates] portrait', i, 'ultimately failed:', r.reason instanceof Error ? r.reason.message : r.reason)
+    for (let i = 0; i < CANDIDATE_VIBES.length; i++) {
+      const v = CANDIDATE_VIBES[i]
+      const prompt = `${sheet.appearance_prompt}\n\n${v.cue}`
+      let result: Awaited<ReturnType<typeof generateNanoBananaImage>> | null = null
+      try {
+        result = await generateNanoBananaImage(prompt, nbOpts)
+      } catch (err) {
+        console.warn('[influencers/candidates] portrait', i, 'failed:', err instanceof Error ? err.message : err)
         continue
       }
       const filename = `influencers/${auth.userId}-${timestamp}-candidate-${i}.png`
       const { error: upErr } = await supabase.storage
         .from('ugc-assets')
-        .upload(filename, Buffer.from(r.value.imageBase64, 'base64'), { contentType: r.value.mimeType, upsert: false })
+        .upload(filename, Buffer.from(result.imageBase64, 'base64'), { contentType: result.mimeType, upsert: false })
       if (upErr) {
         console.warn('[influencers/candidates] upload failed for', i, upErr.message)
         continue
