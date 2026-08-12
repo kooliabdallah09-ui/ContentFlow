@@ -102,6 +102,7 @@ export default function InfluencersPage() {
   // uses overflow:hidden to clip the portrait, which was also clipping any
   // absolutely-positioned popovers rendered inside it.
   const [regenMenuAnchor, setRegenMenuAnchor] = useState<DOMRect | null>(null)
+  const [regenNote, setRegenNote] = useState('')
   const [sheetMenuAnchor, setSheetMenuAnchor] = useState<DOMRect | null>(null)
   const regenBtnRef = useRef<HTMLButtonElement | null>(null)
   const sheetBtnRef = useRef<HTMLButtonElement | null>(null)
@@ -357,17 +358,17 @@ export default function InfluencersPage() {
 
   async function regenerateLook(model: 'pro' | 'nb2' = 'pro') {
     if (!selected) return
-    const label = model === 'pro' ? 'Nano Banana Pro · 32 cr' : 'Nano Banana 2 · 20 cr (cheaper, slightly less accurate)'
-    if (!confirm(`Regenerate ${selected.name}'s look with the new visual guidelines using ${label}?\n\nYour existing photos and identity stay the same — only the portrait + character sheet get replaced.`)) return
+    const note = regenNote.trim()
     setRegenerating(true)
     setRegenMenuAnchor(null)
+    setRegenNote('')
     try {
       const token = await getToken()
       if (!token) throw new Error('Not signed in')
       const res = await fetch(`/api/influencers/${selected.id}/regenerate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ model }),
+        body: JSON.stringify({ model, note: note || undefined }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Regenerate failed')
@@ -567,8 +568,20 @@ export default function InfluencersPage() {
       {typeof document !== 'undefined' && regenMenuAnchor && createPortal(
         <div
           id="influencer-detail-popover"
-          style={{ position: 'fixed', top: regenMenuAnchor.bottom + 4, left: regenMenuAnchor.left, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 12px 40px rgba(0,0,0,0.22)', overflow: 'hidden', minWidth: 240 }}
+          style={{ position: 'fixed', top: regenMenuAnchor.bottom + 4, left: regenMenuAnchor.left, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 12px 40px rgba(0,0,0,0.22)', overflow: 'hidden', minWidth: 260 }}
         >
+          <div style={{ padding: '10px 12px 8px' }}>
+            <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginBottom: 6 }}>Optional tweak before regenerating</div>
+            <textarea
+              autoFocus
+              value={regenNote}
+              onChange={e => setRegenNote(e.target.value)}
+              placeholder="e.g. make her hair darker, add glasses…"
+              rows={2}
+              style={{ width: '100%', resize: 'none', fontSize: 12, padding: '6px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2, #1a1a1a)', color: 'var(--ink)', outline: 'none', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div style={{ height: 1, background: 'var(--border)' }} />
           <button
             onClick={() => regenerateLook('pro')}
             style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}

@@ -61,6 +61,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const body = await request.json().catch(() => ({}))
     const model: 'pro' | 'nb2' = body?.model === 'nb2' ? 'nb2' : 'pro'
+    const note = typeof body?.note === 'string' ? body.note.trim().slice(0, 300) : ''
     const cost = model === 'nb2' ? INFLUENCER_CANDIDATES_NB2_CR : INFLUENCER_CANDIDATES_CR
 
     const { data: influencer } = await supabase
@@ -106,7 +107,7 @@ Bio: ${influencer.bio ?? '(none)'}
 Personality: ${influencer.personality ?? '(none)'}
 Niche: ${influencer.niche ?? '(none)'}
 Current appearance description (rewrite this — preserve the physical traits, refresh the language):
-${influencer.appearance_prompt}`
+${influencer.appearance_prompt}${note ? `\n\nUSER TWEAK REQUEST — apply this change to the new appearance_prompt:\n${note}` : ''}`
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 800,
