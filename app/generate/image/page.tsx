@@ -49,7 +49,7 @@ export default function ImageGeneratorPage() {
   const [imgModel, setImgModel] = useState<'pro' | 'nb2'>('pro')
   const [imgResolution, setImgResolution] = useState<'2K' | '4K'>('2K')
   const [ratio, setRatio] = useState(RATIOS[1].id) // default 4:5 to match the design
-  const [count, setCount] = useState<number>(4)
+  const [count, setCount] = useState<number>(2)
   const [images, setImages] = useState<string[]>([])
   // Persistent gallery — every image ever generated here, like the studios.
   const [gallery, setGallery] = useState<Array<{ url: string; prompt: string }>>([])
