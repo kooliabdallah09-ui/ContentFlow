@@ -31,6 +31,7 @@ interface ChatRequest {
   history?: ChatMessage[]
   currentPath?: string
   agentId?: string
+  plain?: boolean  // skip ContentFlow system prompt — raw Claude conversation
 }
 
 interface ChatResponse {
@@ -329,11 +330,14 @@ export async function POST(request: NextRequest) {
       ? `\n[User is currently on: ${body.currentPath}]`
       : ''
 
+    const plain = body.plain === true
     const agentId = body.agentId ?? ''
-    const systemPrompt = agentId
-      ? findAgent(agentId).systemPrompt
-      : ASSISTANT_SYSTEM_PROMPT
-    const tools = toolsFor(agentId)
+    const systemPrompt = plain
+      ? undefined
+      : agentId
+        ? findAgent(agentId).systemPrompt
+        : ASSISTANT_SYSTEM_PROMPT
+    const tools = plain ? [] : toolsFor(agentId)
 
     const userId = await getUserId(request)
 
@@ -352,7 +356,9 @@ export async function POST(request: NextRequest) {
       const msg = await anthropic.messages.create({
         model: 'claude-haiku-4-5-20251001',
         max_tokens: 800,
-        system: systemPrompt + (tools.length ? '\n\nYou have tools available. When the user asks you to generate an image or captions, CALL THE TOOL immediately with a strong prompt derived from what they said — do NOT ask clarifying questions unless the prompt is truly unusable. After a tool has run, reply with ONE short natural-language sentence confirming what happened. Never wrap that confirmation in JSON, never use markdown code fences, never repeat the tool output.' : ''),
+        system: systemPrompt
+          ? systemPrompt + (tools.length ? '\n\nYou have tools available. When the user asks you to generate an image or captions, CALL THE TOOL immediately with a strong prompt derived from what they said — do NOT ask clarifying questions unless the prompt is truly unusable. After a tool has run, reply with ONE short natural-language sentence confirming what happened. Never wrap that confirmation in JSON, never use markdown code fences, never repeat the tool output.' : '')
+          : undefined,
         tools: tools.length ? tools : undefined,
         messages: anthMessages,
       })

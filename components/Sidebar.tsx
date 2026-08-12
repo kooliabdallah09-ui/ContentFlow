@@ -104,7 +104,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
         </Link>
         <Link href="/ask" className={`nav-item ${isActive('/ask') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Ask />
-          <span style={{ flex: 1 }}>Ask AI</span>
+          <span style={{ flex: 1 }}>Chat</span>
           <span className="kbd">A</span>
         </Link>
         <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`} onClick={handleNavClick}>

@@ -60,7 +60,7 @@ export default function RootLayout({
       '/generate/image': 'Image — Contentflow Web',
       '/generate/voice': 'Voiceover — Contentflow Web',
       '/generate/video': 'Video — Contentflow Web',
-      '/ask': 'Ask AI — Contentflow Web',
+      '/ask': 'Chat — Contentflow Web',
       '/generate/ugc': 'UGC Package — Contentflow Web',
       '/generate/business-card': 'Business Card — Contentflow Web',
       '/editor': 'Video Editor — Contentflow Web',

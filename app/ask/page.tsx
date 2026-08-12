@@ -72,6 +72,11 @@ export default function AskPage() {
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = 'auto'
+    el.style.height = `${Math.min(el.scrollHeight, 240)}px`
+  }
+
   useEffect(() => {
     try {
       const raw = sessionStorage.getItem(STORAGE_KEY)
@@ -134,6 +139,7 @@ export default function AskPage() {
           history: messages.slice(-8).map(m => ({ role: m.role, content: m.content })),
           currentPath: pathname,
           agentId: multiAgent ? agentIdOverride : undefined,
+          plain: true,
         }),
       })
       const data = await res.json()
@@ -356,14 +362,17 @@ export default function AskPage() {
           <textarea
             ref={inputRef}
             value={input}
-            onChange={e => setInput(e.target.value.slice(0, 2000))}
+            onChange={e => {
+              setInput(e.target.value.slice(0, 4000))
+              autoResize(e.target)
+            }}
             onKeyDown={e => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault()
                 send(input)
               }
             }}
-            placeholder="Ask anything…"
+            placeholder="Message Claude…"
             disabled={sending}
             rows={1}
             style={{
@@ -371,7 +380,7 @@ export default function AskPage() {
               padding: '6px 0', background: 'transparent',
               border: 'none', outline: 'none',
               color: 'var(--ink)', fontSize: 15, fontFamily: 'inherit',
-              lineHeight: 1.55, maxHeight: 150,
+              lineHeight: 1.55, maxHeight: 240, overflowY: 'auto',
             }}
           />
           {multiAgent && (
