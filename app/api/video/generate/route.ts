@@ -313,7 +313,7 @@ OUTPUT: return ONLY valid JSON, no markdown:
             {
               model: 'pro',
               style: 'realistic',
-              ratio: aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : aspectRatio === '3:4' ? '3:4' : '9:16',
+              ratio: aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16',
               referenceImages: referenceImages.slice(0, 3),
               referenceHint: 'The attached reference photos show the EXACT product — preserve its print, label text, colours, shape, materials and proportions perfectly; surfaces not visible in the photos are plain. Apply the prompt as the environment, lighting and framing around it.',
             },
