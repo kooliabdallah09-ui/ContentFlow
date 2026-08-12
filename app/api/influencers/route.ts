@@ -95,38 +95,36 @@ appearance_prompt rules:
 - For any trait NOT specified by the client (ethnicity, hairstyle, gender, etc.) make the best creative choice that fits the overall vibe — fill every gap, never leave a detail ambiguous
 `
 
-const IDENTITY_SYSTEM_V2 = `You are a creative director writing a full scene brief for a hyper-realistic UGC influencer portrait. Your appearance_prompt must read like the detailed creative brief a director sends to a production team — specifying the person, outfit, setting, shot, and technical look in full.
+const IDENTITY_SYSTEM_V2 = `You are a creative director writing scene briefs for hyper-realistic UGC influencer portraits.
 
-Return ONLY valid JSON — no markdown, no preamble — exactly this shape:
+OUTPUT ONLY VALID JSON. Start your response with { and end with }. No text before or after the JSON object. No markdown. No explanation.
+
+Return exactly this JSON shape:
 {
   "name": "First Last",
   "handle": "@lowercase_handle",
   "bio": "1-2 sentence public bio in their own voice, no hashtags",
   "personality": "2-3 sentences: energy, humor, how they talk on camera",
   "niche": "what they post about, 3-8 words",
-  "appearance_prompt": "full scene brief — see rules below"
+  "appearance_prompt": "scene brief text here"
 }
 
-appearance_prompt must be written as 4 dense paragraphs in this exact order:
+The appearance_prompt must be one continuous string written in 4 dense paragraphs (no labels or headers, just the paragraphs separated by newlines):
 
-PARAGRAPH 1 — PERSON & OUTFIT
-Ultra-realistic vertical smartphone photo of [person description: build, cultural background, hair (color, length, texture — messy/damp/styled), skin tone, eyes, lips, any natural skin details like freckles or pores or slight imperfections — these make them feel real]. They are [posture: leaning, reaching, gesturing — something casual and mid-action, not posed]. They are wearing [full outfit: specific fabric, color, cut — e.g. "a fitted cream ribbed long-sleeve crop top with a wide scoop neckline and loose black drawstring lounge pants"].
+First paragraph: Ultra-realistic vertical smartphone photo of [person: build, cultural background, hair color/length/texture, skin tone, eyes, lips, natural details like pores or slight imperfections]. They are [mid-action posture: leaning, reaching, gesturing — candid not posed]. Wearing [specific outfit: fabric, color, cut — e.g. a fitted cream ribbed crop top and loose black drawstring pants].
 
-PARAGRAPH 2 — EXPRESSION & BODY
-Their expression is [candid descriptor: mid-sentence, mid-laugh, direct eye contact with relaxed mouth slightly open, one hip angled, shoulders relaxed]. The posture feels unposed and real — like a creator who just hit record and is already talking. [One specific physical detail that makes them feel individual: a particular jawline, hair flyaways, the way their collarbone shows, etc.]
+Second paragraph: Expression is [candid: mid-sentence, mid-laugh, direct eye contact with relaxed mouth open, shoulders loose]. Posture feels unposed and real — like a creator who just hit record and is already talking. [One individual detail: jawline, hair flyaways, collarbone, etc.]
 
-PARAGRAPH 3 — SETTING
-The setting is [specific realistic home/lifestyle environment: kitchen, bathroom, bedroom, coffee shop — described in detail: materials, colors, props, light source]. The room should feel lived-in but clean, believable and warm, not staged or generic. [2-3 specific props or background details: marble counter, brass tap, a plant, towel rack, mug — make it feel real.]
+Third paragraph: Setting is [specific home/lifestyle space: kitchen, bathroom, coffee shop — described with materials, colors, light source]. Feels lived-in and real, not staged. [2-3 specific props or background details: marble counter, brass tap, a plant, a mug.]
 
-PARAGRAPH 4 — CAMERA & TECHNICAL
-Shot on an iPhone-style camera, vertical 9:16, [crop: close medium shot / medium shot / chest-height], wide-angle phone lens perspective, subject centered [slight lean or offset], realistic lens distortion, natural daylight from [direction], soft shadows, no studio lighting, no airbrushed skin, no beauty filter. Hyper-realistic skin texture with visible pores, natural hair flyaways, realistic fabric texture, slight motion softness. Candid social-media aesthetic, raw phone photo realism, high resolution. Make the aspect ratio 9:16.
+Fourth paragraph: Shot on an iPhone-style camera, vertical 9:16, [close medium or chest-height crop], wide-angle phone lens, realistic distortion, natural daylight from [direction], soft shadows, no studio lighting, no airbrushed skin, no beauty filter. Hyper-realistic skin texture with visible pores, natural hair flyaways, realistic fabric texture. Raw phone photo realism, high resolution, 9:16 aspect ratio.
 
 HARD RULES:
+- Your entire response must be valid JSON starting with { — do not write any words before the opening brace
 - Honor every physical trait the client explicitly requested
-- Fill every unspecified detail with a strong, specific creative choice — no vague generalities
-- Never write age numbers, brand names, 'young', 'girl', 'selfie', 'phone camera', or 'screenshot'
-- If reference photos are attached, base the person description entirely on that person's face and style
-- The prompt must feel like a real production brief, not a list of adjectives
+- Fill every detail with a specific creative choice — no vague generalities
+- Never write age numbers, brand names, the words young, girl, selfie, phone camera, or screenshot
+- If reference photos are attached, base the person description on that person's face and style
 `
 
 // ─── Toggle: change to false to revert to V1 ─────────────────────────────
@@ -228,7 +226,7 @@ export async function POST(request: NextRequest) {
       try {
         msg = await anthropic.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 800,
+          max_tokens: 1500,
           system: IDENTITY_SYSTEM,
           messages: [{ role: 'user', content: userContent }],
         })

@@ -81,6 +81,7 @@ export default function InfluencersPage() {
   // Create form
   const [description, setDescription] = useState('')
   const [creating, setCreating] = useState(false)
+  const [castingStep, setCastingStep] = useState(0)
   // 2-candidate portrait picker: after the initial create, we hold the
   // Sonnet identity draft + the two rendered candidates here, and only
   // finalise once the user clicks one.
@@ -127,6 +128,14 @@ export default function InfluencersPage() {
       document.removeEventListener('mousedown', outside)
     }
   }, [regenMenuAnchor, sheetMenuAnchor])
+  // Casting overlay step timing — advances through steps while creating
+  useEffect(() => {
+    if (!creating) { setCastingStep(0); return }
+    const delays = [0, 4500, 10000, 18000, 26000]
+    const timers = delays.map((d, i) => setTimeout(() => setCastingStep(i), d))
+    return () => timers.forEach(clearTimeout)
+  }, [creating])
+
   const [showCreate, setShowCreate] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
   const [refImages, setRefImages] = useState<CompressedImage[]>([])
@@ -244,6 +253,7 @@ export default function InfluencersPage() {
       return
     }
     setCreating(true)
+    setCastingStep(0)
     try {
       const token = await getToken()
       if (!token) throw new Error('Not signed in')
@@ -1034,6 +1044,113 @@ export default function InfluencersPage() {
           </div>
         )}
       </main>
+    )
+  }
+
+  // ── Casting overlay — full-screen during influencer creation ─────────
+  const CASTING_STEPS = [
+    { label: 'Casting your influencer', sub: 'Writing identity & backstory…' },
+    { label: 'Designing their look', sub: 'Building the visual brief…' },
+    { label: 'Rendering portrait', sub: 'Hyper-realistic generation in progress…' },
+    { label: 'Adding finishing touches', sub: 'Polishing the character sheet…' },
+    { label: 'Almost ready', sub: 'Uploading to your roster…' },
+  ]
+  if (creating) {
+    const step = CASTING_STEPS[Math.min(castingStep, CASTING_STEPS.length - 1)]
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'var(--bg, #0d0d0d)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        gap: 0,
+      }}>
+        <style>{`
+          @keyframes cf-orbit-a { from { transform: rotate(0deg) translateX(54px) rotate(0deg); } to { transform: rotate(360deg) translateX(54px) rotate(-360deg); } }
+          @keyframes cf-orbit-b { from { transform: rotate(120deg) translateX(38px) rotate(-120deg); } to { transform: rotate(480deg) translateX(38px) rotate(-480deg); } }
+          @keyframes cf-orbit-c { from { transform: rotate(240deg) translateX(66px) rotate(-240deg); } to { transform: rotate(600deg) translateX(66px) rotate(-600deg); } }
+          @keyframes cf-pulse-ring { 0%,100%{ opacity:0.18; transform:scale(1); } 50%{ opacity:0.07; transform:scale(1.18); } }
+          @keyframes cf-fade-in { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
+          @keyframes cf-dot-bounce { 0%,80%,100%{ opacity:0.25; transform:scale(0.7); } 40%{ opacity:1; transform:scale(1); } }
+        `}</style>
+
+        {/* Orbital animation */}
+        <div style={{ position: 'relative', width: 160, height: 160, marginBottom: 44 }}>
+          {/* Pulse ring */}
+          <div style={{
+            position: 'absolute', inset: 0, borderRadius: '50%',
+            border: '1px solid var(--ink-dim, rgba(255,255,255,0.12))',
+            animation: 'cf-pulse-ring 2.8s ease-in-out infinite',
+          }} />
+          {/* Center dot */}
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%',
+            transform: 'translate(-50%,-50%)',
+            width: 14, height: 14, borderRadius: '50%',
+            background: 'var(--ink, #fff)', opacity: 0.9,
+          }} />
+          {/* Orbit A */}
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%', marginTop: -5, marginLeft: -5,
+            width: 10, height: 10, borderRadius: '50%',
+            background: 'var(--accent, #c8a97e)',
+            animation: 'cf-orbit-a 3.2s linear infinite',
+          }} />
+          {/* Orbit B */}
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%', marginTop: -4, marginLeft: -4,
+            width: 8, height: 8, borderRadius: '50%',
+            background: 'var(--ink-2, rgba(255,255,255,0.5))',
+            animation: 'cf-orbit-b 2.1s linear infinite',
+          }} />
+          {/* Orbit C */}
+          <div style={{
+            position: 'absolute', top: '50%', left: '50%', marginTop: -3, marginLeft: -3,
+            width: 6, height: 6, borderRadius: '50%',
+            background: 'var(--ink-dim, rgba(255,255,255,0.25))',
+            animation: 'cf-orbit-c 4.5s linear infinite',
+          }} />
+        </div>
+
+        {/* Step label */}
+        <div key={castingStep} style={{
+          textAlign: 'center',
+          animation: 'cf-fade-in 0.4s ease forwards',
+        }}>
+          <div style={{
+            fontFamily: 'var(--font-serif, Georgia, serif)',
+            fontSize: 22, fontWeight: 400, letterSpacing: '-0.01em',
+            color: 'var(--ink, #fff)', marginBottom: 8,
+          }}>
+            {step.label}
+          </div>
+          <div style={{
+            fontSize: 13, color: 'var(--ink-dim, rgba(255,255,255,0.38))',
+            letterSpacing: '0.02em',
+          }}>
+            {step.sub}
+          </div>
+        </div>
+
+        {/* Step dots */}
+        <div style={{ display: 'flex', gap: 8, marginTop: 44 }}>
+          {CASTING_STEPS.map((_, i) => (
+            <div key={i} style={{
+              width: 6, height: 6, borderRadius: '50%',
+              background: i <= castingStep ? 'var(--ink, #fff)' : 'var(--ink-dim, rgba(255,255,255,0.18))',
+              transition: 'background 0.4s ease',
+            }} />
+          ))}
+        </div>
+
+        {/* Subtle tip */}
+        <div style={{
+          position: 'absolute', bottom: 36,
+          fontSize: 11.5, color: 'var(--ink-dim, rgba(255,255,255,0.22))',
+          letterSpacing: '0.05em', textTransform: 'uppercase',
+        }}>
+          This takes about 30 seconds
+        </div>
+      </div>
     )
   }
 
