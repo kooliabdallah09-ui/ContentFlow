@@ -99,16 +99,17 @@ PERSON & FACE — this is the most important section:
 HAIR:
 - Voluminous, full of movement. For females: long wavy or beachy layers, glossy with depth — not limp or flat. For males: textured and effortlessly styled. Describe: color with dimension (rich chocolate brown with warm auburn, dark walnut with caramel highlights, warm blonde with honey tones), length, and movement.
 
-SKIN & MAKEUP:
-- Skin is LUMINOUS and DEWY — a warm golden-hour glow, radiant and healthy. Not matte, not flat. The kind of skin that looks lit from within.
-- Female/unspecified: softly defined brows, lashes naturally lifted and separated, faint peachy-rose flush on cheeks, glossy soft nude lip. Effortless polished beauty.
-- Male: smooth even skin, light stubble if it suits, groomed brows, healthy texture.
+SKIN & MAKEUP — choose ONE of these two looks based on the vibe:
+- "Natural / no makeup" look (use when client says raw, real, minimal, no makeup, or car/street vibe): bare skin with natural texture — visible pores, healthy real skin with slight natural variation. No makeup at all. Brows naturally shaped, lips their natural color. Skin tone is even and healthy but not filtered. This look is often MORE striking than the made-up version. Use it for candid, authentic, raw aesthetics.
+- "Effortless polish" look (use for bedroom, lifestyle, golden-hour settings): clean dewy base, naturally defined brows, lifted lashes, faint peachy flush, soft nude-rose lip. Still light — not glamour, not overdone.
+- Male: clear even skin, light to medium stubble, groomed brows, natural texture.
 
-FRAMING & SETTING:
-- Chest-to-head framing (show face + upper body / outfit context) — not just a tight headshot
-- Looking directly into the lens with natural warmth, or caught in a candid half-smile
-- Warm directional natural window light, soft and flattering — golden morning or afternoon light washing over one side of the face. Airy bright lifestyle setting: a clean bedroom with white linen and light wood, a sun-lit kitchen, a bright open living room. Feels like a high-end creator's home.
-- Wearing a fitted, flattering casual outfit that shows their figure: crop top + lounge pants, an off-shoulder ribbed sweater, a fitted tee, a cosy open cardigan over a tank — something an attractive 20s lifestyle creator would wear in a casual post.
+FRAMING & SETTING — be creative, don't always default to bedroom:
+- Vary the crop: sometimes VERY CLOSE on the face (face fills 80% of frame) for high-impact portraits — these often look the most real and striking. Other times chest-height or medium crop.
+- Vary the gaze: direct eye contact is powerful, but 3/4 angle (looking slightly off-camera with a pensive or soft expression) often looks more natural and candid.
+- Vary the setting: bedroom with white linen, sun-lit kitchen, car interior with window light, outdoor with soft diffused daylight, coffee shop with morning light. Pick what fits the vibe.
+- Light: warm golden window light for lifestyle settings; soft overcast daylight for raw/candid looks; all from one natural source — no ring light, no studio.
+- Outfit: fitted and flattering, casual. Crop top, off-shoulder sweater, fitted tee, crewneck sweatshirt, open cardigan.
 
 TECHNICAL:
 - Hyper-realistic smartphone photo aesthetic — wide-angle phone lens, natural depth, no studio lighting, no airbrushing. Feels like a real candid from a beautiful person's camera roll.
