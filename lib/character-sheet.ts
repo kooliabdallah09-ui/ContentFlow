@@ -1,83 +1,45 @@
-// Character turnaround sheet — a single 16:9 image containing a multi-angle
-// grid of the same person (full-body front / three-quarter / profile / back
-// on the top row, head close-ups at matching angles on the bottom row) on a
-// neutral studio background. Downstream Nano Banana calls use this sheet as
-// the identity reference, which anchors the face + body far better than a
-// single head-and-shoulders portrait.
+// Identity reference sheet — a 16:9 mood-board collage of the same influencer
+// in 6 different real-life candid situations. Used as the identity anchor for
+// downstream photo shoots. Looks like a social media mood board, not a clinical
+// 3D character turnaround — multiple angles/expressions help lock the face.
 
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { SupabaseClient } from '@supabase/supabase-js'
 
-const SHEET_PROMPT = (appearancePrompt: string) => `Create a professional photorealistic character turnaround sheet using the uploaded character image as the main identity reference. The uploaded image is the source of truth for the character's face, body proportions, hairstyle, hair colour, skin tone, outfit, materials, accessories, silhouette, personality, and overall visual style. Preserve the character exactly apart from any changes made in the character description area. Do not change the costume, colours, hairstyle, age, build, or facial structure unless specifically instructed.
+const SHEET_PROMPT = (appearancePrompt: string) => `Create a photorealistic identity reference sheet for a social media influencer. Use the uploaded portrait as the source of truth for this person's exact face, hair, skin tone, and features. Reproduce them faithfully across every panel.
 
-Character description: ${appearancePrompt}
+Character: ${appearancePrompt}
 
-Background: Neutral plain studio background. Clean lighting. No environment, no props unless part of the character design. The character must be easy to read clearly from every angle.
+Layout: A clean 3x2 grid (3 columns, 2 rows) of 6 photo panels, each showing the SAME person in a different real-life candid moment. Thin neutral dividers between panels. No text, no labels, no watermarks, no UI elements anywhere.
 
-Canvas layout: Create one clean character sheet arranged in six vertical columns with thin, clean borders between each column. Each column must contain two stacked images of the same character:
-Top section: full-body view
-Bottom section: matching close-up portrait
+Each panel is a hyper-realistic smartphone-style photo — natural light only, no studio flash, candid and authentic. The person looks like a real attractive social media creator in every panel.
 
-The close-up portrait in each column must match the exact same rotation and facing direction as the full-body view directly above it. The portrait inherits the full-body rotation. The portrait must not use an independent camera angle, independent pose, or different facing direction.
+Panel 1 (top-left): Close portrait — face filling most of the frame, looking directly at camera with a soft natural expression. Warm window light. Natural makeup, healthy glowing skin.
 
-Use even spacing, consistent scale, clean silhouettes, and a professional model-sheet layout. No text. No labels. No numbers. No logos. No captions.
+Panel 2 (top-center): Lifestyle shot — shoulders up, in a bright airy bedroom or kitchen, holding a coffee mug, relaxed candid pose, soft smile or neutral expression.
 
-Column order from LEFT to RIGHT:
+Panel 3 (top-right): Outdoor — walking or standing outside in soft daylight, three-quarter body shot, casual outfit, hair catching the light naturally.
 
-Column 1 — FRONT VIEW, 0° rotation
-Full body facing directly toward the camera. Portrait facing directly toward the camera. No rotation on the vertical axis. Both eyes visible. Chest, hips, knees, and feet facing forward.
+Panel 4 (bottom-left): Close-up at 3/4 angle — face turned slightly to the side, eyes looking just off-camera, pensive or relaxed expression. Tight crop showing the face structure clearly.
 
-Column 2 — 45° LEFT TURN
-Character rotated exactly 45° toward screen-left. Rotation happens only on the vertical axis. Nose angled 45° toward screen-left. Both eyes visible. Torso, hips, knees, and feet rotated 45° toward screen-left. Portrait must match the exact same 45° left rotation. Portrait must face screen-left. Portrait must not rotate toward screen-right.
+Panel 5 (bottom-center): Full lifestyle — waist-up or full body, in a casual home setting, natural posture, showing their signature style and outfit.
 
-Column 3 — 90° LEFT PROFILE
-Character facing fully toward screen-left in a strict side profile. Exact 90° rotation. Only one eye visible. Chest, hips, knees, and feet aligned toward screen-left. Portrait must be the exact same 90° left profile. Portrait must face screen-left only.
+Panel 6 (bottom-right): Candid close-up — laughing or mid-expression, eyes crinkled naturally, very close crop on the face. Feels like a real spontaneous moment.
 
-Column 4 — 90° RIGHT PROFILE
-Character facing fully toward screen-right in a strict side profile. Exact 90° rotation. Only one eye visible. Chest, hips, knees, and feet aligned toward screen-right. Portrait must be the exact same 90° right profile. Portrait must face screen-right only.
-
-Column 5 — 45° RIGHT TURN
-Character rotated exactly 45° toward screen-right. Rotation happens only on the vertical axis. Nose angled 45° toward screen-right. Both eyes visible. Torso, hips, knees, and feet rotated 45° toward screen-right. Portrait must match the exact same 45° right rotation. Portrait must face screen-right. Portrait must not rotate toward screen-left.
-
-Column 6 — BACK VIEW, 180° rotation
-Character facing completely away from the camera. Full body shows the back of the outfit, back of the hair, back silhouette, and rear-facing posture. Portrait shows the back of the head only. No face visible in this column.
-
-Critical consistency rules:
-- The same character must appear in every column.
-- The same outfit must appear in every column.
-- The same hairstyle must appear in every column.
-- The same body proportions must appear in every column.
-- The same facial identity must appear in every visible portrait.
-- The portrait rotation must exactly match the full-body rotation in the same column.
-- Left-facing angles must never appear in right-facing columns.
-- Right-facing angles must never appear in left-facing columns.
-- Do not mirror the portraits incorrectly.
-- Do not flip angles.
-- Do not create mismatched rotations between full body and portrait.
-- Do not change the costume between columns.
-- Do not change the face between columns.
-- Do not change the hairstyle between columns.
-- Do not change the character's age, gender presentation, body type, or ethnicity.
-- Do not add text, labels, numbers, watermarks, or UI elements.
-
-Camera and style: Strict orthographic turnaround. No dramatic perspective distortion. No wide-angle lens distortion. Consistent camera height across all full-body views. Consistent portrait crop across all close-ups. Photorealistic DSLR studio lighting. Sharp detail. Clean professional character reference sheet. Cinematic realism with realistic fabric, skin, hair, and material detail.
-
-Exact rotational progression across the sheet: 0° front → 45° left → 90° left profile → 90° right profile → 45° right → 180° back.`
+Critical rules:
+- The EXACT same person must appear in every panel: same face shape, cheekbones, eye shape, nose, lips, skin tone, hair color and texture. Identity must be unmistakable across all panels.
+- Every panel must look like a real candid photo taken with a smartphone. Natural light only.
+- Skin looks healthy and naturally even. Not airbrushed, not rough. Barely-there natural texture.
+- No text, no labels, no numbers, no watermarks, no UI anywhere in the image.`
 
 export async function generateCharacterSheet(input: {
   supabase: SupabaseClient
   userId: string
   influencerId: string
   appearancePrompt: string
-  portraitUrl?: string          // just-rendered NB portrait — added as an anchor when no user refs exist
+  portraitUrl?: string
   model?: 'pro' | 'nb2'
-  // Original user-uploaded reference photos. When present these become the
-  // PRIMARY identity anchor for the sheet — the user's real photos, not the
-  // AI's interpretation of them. Prevents cumulative drift across future
-  // photoshoots.
   userReferenceImages?: Array<{ base64: string; mimeType: string }>
-  // '2K' (default, cheap) or '4K' (sharper close-ups — better identity
-  // anchor for downstream shoots, but roughly 1.7× the NB Pro cost).
   resolution?: '2K' | '4K'
 }): Promise<string> {
   const refs: Array<{ base64: string; mimeType: string }> = []
@@ -96,9 +58,6 @@ export async function generateCharacterSheet(input: {
     } catch { /* sheet still works text-only */ }
   }
 
-  // Character sheets are ALWAYS NB Pro at 4K — the sheet is the identity
-  // anchor for every downstream shoot, and the 2K / NB2 variants shipped
-  // visibly cheap-looking renders. Model + resolution inputs are ignored.
   const model = 'pro' as const
   const resolution = '4K' as const
   const sheet = await generateNanoBananaImage(SHEET_PROMPT(input.appearancePrompt), {
