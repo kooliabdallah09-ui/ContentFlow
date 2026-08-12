@@ -93,7 +93,7 @@ appearance_prompt rules:
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
 - Honor every physical trait the client explicitly asked for
 - For any trait NOT specified by the client (ethnicity, hairstyle, gender, etc.) make the best creative choice that fits the overall vibe — fill every gap, never leave a detail ambiguous
-- CRITICAL — physical consistency: hair color/texture must be believable for the skin tone and ethnicity. If the client selects a hair color that's less common for their ethnicity (e.g., platinum blonde on an East Asian or South Asian person), describe it explicitly as dyed/bleached/highlighted so the model renders it realistically instead of breaking consistency. NEVER put stereotypical hair on the wrong ethnicity (e.g., warm chestnut waves on a dark-skinned Black woman without explicitly framing it as a wig or dye job). Make every combination look like a real human who chose that look intentionally.`
+`
 
 export async function POST(request: NextRequest) {
   try {
@@ -112,13 +112,12 @@ export async function POST(request: NextRequest) {
       styles: Array.isArray(body?.styles) ? body.styles.map(String).slice(0, 5) : [],
       hairColor: typeof body?.hairColor === 'string' ? body.hairColor.slice(0, 30) : '',
       eyeColor: typeof body?.eyeColor === 'string' ? body.eyeColor.slice(0, 30) : '',
-      ethnicity: typeof body?.ethnicity === 'string' ? body.ethnicity.slice(0, 40) : '',
       hairstyle: typeof body?.hairstyle === 'string' ? body.hairstyle.slice(0, 40) : '',
       faceFeatures: Array.isArray(body?.faceFeatures) ? body.faceFeatures.map(String).slice(0, 6) : [],
     }
     const model: 'pro' | 'nb2' = body?.model === 'nb2' ? 'nb2' : 'pro'
     const createCost = model === 'nb2' ? INFLUENCER_CANDIDATES_NB2_CR : INFLUENCER_CANDIDATES_CR
-    const hasTraits = !!(traits.gender || traits.ageRange || traits.styles.length || traits.hairColor || traits.eyeColor || traits.hairstyle || traits.faceFeatures.length || traits.ethnicity)
+    const hasTraits = !!(traits.gender || traits.ageRange || traits.styles.length || traits.hairColor || traits.eyeColor || traits.hairstyle || traits.faceFeatures.length)
     if (description.length < 10 && !hasTraits) {
       return NextResponse.json({ error: 'Pick some traits or describe your influencer' }, { status: 400 })
     }
@@ -165,7 +164,6 @@ export async function POST(request: NextRequest) {
     const traitLines: string[] = []
     if (traits.name) traitLines.push(`- Name: "${traits.name}" — use this EXACT name`)
     if (traits.gender) traitLines.push(`- Gender: ${traits.gender}`)
-    if (traits.ethnicity) traitLines.push(`- Ethnicity: ${traits.ethnicity}`)
     if (traits.ageRange) traitLines.push(`- Age range: ${traits.ageRange} (express as a life-stage vibe in the appearance_prompt — never numeric ages)`)
     if (traits.styles.length) traitLines.push(`- Style & aesthetic: ${traits.styles.join(', ')}`)
     if (traits.hairColor) traitLines.push(`- Hair color: ${traits.hairColor}`)

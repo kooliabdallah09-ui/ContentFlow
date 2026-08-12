@@ -237,7 +237,7 @@ export default function InfluencersPage() {
   }
 
   async function create() {
-    const hasTraits = createMode === 'traits' && !!(traitGender || traitAge || traitStyles.length || traitHair || traitEyes || traitHairstyle || traitFeatures.length || traitEthnicity)
+    const hasTraits = createMode === 'traits' && !!(traitGender || traitAge || traitStyles.length || traitHair || traitEyes || traitHairstyle || traitFeatures.length)
     if (description.trim().length < 10 && !hasTraits) {
       showError('Nothing to work with', createMode === 'traits' ? 'Pick some traits or add details' : 'Describe your influencer in at least a sentence')
       return
@@ -257,7 +257,6 @@ export default function InfluencersPage() {
           styles: createMode === 'traits' ? traitStyles : [],
           hairColor: createMode === 'traits' ? (traitHair || undefined) : undefined,
           eyeColor: createMode === 'traits' ? (traitEyes || undefined) : undefined,
-          ethnicity: createMode === 'traits' ? (traitEthnicity || undefined) : undefined,
           hairstyle: createMode === 'traits' ? (traitHairstyle || undefined) : undefined,
           faceFeatures: createMode === 'traits' ? traitFeatures : [],
           model: createModel,
@@ -288,7 +287,7 @@ export default function InfluencersPage() {
           if (!fRes.ok) throw new Error(fData.error || 'Finalize failed')
           setList(prev => [fData.influencer, ...prev])
           setDescription(''); setRefImages([])
-          setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([]); setTraitEthnicity('')
+          setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([])
           setShowCreate(false)
           showSuccess('Influencer created', `${fData.influencer.name} is ready.`)
           openDetail(fData.influencer)
@@ -337,7 +336,7 @@ export default function InfluencersPage() {
         setList(prev => [data.influencer, ...prev])
         // Wipe create form on new-create only — regen preserves the composer.
         setDescription(''); setRefImages([])
-        setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([]); setTraitEthnicity('')
+        setTraitName(''); setTraitGender(''); setTraitAge(''); setTraitStyles([]); setTraitHair(''); setTraitEyes(''); setTraitHairstyle(''); setTraitFeatures([])
         setShowCreate(false)
         showSuccess('Influencer created', `${data.influencer.name} is ready.`)
         openDetail(data.influencer)
@@ -1191,14 +1190,6 @@ export default function InfluencersPage() {
           </div>
         </div>
 
-        <div>
-          <div style={traitLabel}>Ethnicity</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {['White / Caucasian', 'Black / African', 'Latina / Hispanic', 'East Asian', 'South Asian', 'Southeast Asian', 'Middle Eastern', 'Native American', 'Pacific Islander', 'Mixed'].map(e => (
-              <button key={e} onClick={() => setTraitEthnicity(traitEthnicity === e ? '' : e)} style={chip(traitEthnicity === e)}>{e}</button>
-            ))}
-          </div>
-        </div>
 
         <div>
           <div style={traitLabel}>Hairstyle</div>
