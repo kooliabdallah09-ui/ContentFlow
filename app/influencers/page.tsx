@@ -1230,6 +1230,53 @@ export default function InfluencersPage() {
         </div>
       )}
 
+      {/* How it works + Persona ideas — hidden behind the ⓘ button */}
+      {showInfo && !showCreate && (
+        <div style={{ marginBottom: 28, padding: '24px 28px', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>How it works</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 28 }}>
+            {[
+              ['1', 'Cast them once', 'Pick traits or describe them freely — the AI locks in a face, a handle, and a personality that never drifts.'],
+              ['2', 'Shoot them anywhere', 'Beach, gym, Tokyo in the rain — every photo keeps their exact identity, anchored to their character sheet.'],
+              ['3', 'Put them to work', 'Drop them into UGC ads, social carousels, or product shoots — the same face across your whole brand.'],
+            ].map(([n, title, desc]) => (
+              <div key={n} style={{ padding: '16px 18px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+                <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--ink)', color: 'var(--on-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>{n}</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.55 }}>{desc}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Need a persona idea?</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
+            {[
+              ['🧖‍♀️', 'The skincare realist', 'A no-nonsense reviewer in her late 20s with visible texture and freckles who tests products for a month before talking. Dry humor, zero filter.'],
+              ['🏋️', 'The everyday lifter', 'A friendly gym regular who films between sets — approachable physique, sweaty honesty, hates fitness-bro clichés.'],
+              ['🍳', 'The 15-minute cook', 'A chaotic-but-charming home cook who makes fast weeknight meals in a small apartment kitchen and talks with their hands.'],
+              ['💻', 'The desk-setup guy', 'A calm tech minimalist who reviews gear from a moody desk corner, speaks quietly and precisely, obsessed with cable management.'],
+              ['✈️', 'The budget traveler', 'A backpacker in her early 20s filming from hostels and street markets — sun-faded clothes, infectious energy, always mid-adventure.'],
+              ['🛋️', 'The cozy-home curator', 'A soft-spoken interiors lover restyling corners of their apartment — warm lamp light, plants, tactile close-ups.'],
+            ].map(([emoji, title, desc]) => (
+              <button
+                key={title}
+                onClick={() => {
+                  setCreateMode('describe')
+                  setDescription(String(desc))
+                  setShowCreate(true)
+                  setShowInfo(false)
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                }}
+                style={{ textAlign: 'left', padding: '14px 16px', borderRadius: 13, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
+              >
+                <span style={{ fontSize: 20 }}>{emoji}</span>
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{title}</span>
+                <span style={{ fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>{desc}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Candidate picker — after create returns 4 portraits with different
           vibes, user picks the one they like most. */}
       {candidates.length > 0 && candidateIdentity && (
@@ -1498,53 +1545,6 @@ export default function InfluencersPage() {
         </div>
       )}
 
-      {/* How it works + Persona ideas — hidden behind the ⓘ button */}
-      {showInfo && (
-        <div style={{ marginBottom: 36, padding: '24px 28px', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)' }}>
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>How it works</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 28 }}>
-            {[
-              ['1', 'Cast them once', 'Pick traits or describe them freely — the AI locks in a face, a handle, and a personality that never drifts.'],
-              ['2', 'Shoot them anywhere', 'Beach, gym, Tokyo in the rain — every photo keeps their exact identity, anchored to their character sheet.'],
-              ['3', 'Put them to work', 'Drop them into UGC ads, social carousels, or product shoots — the same face across your whole brand.'],
-            ].map(([n, title, desc]) => (
-              <div key={n} style={{ padding: '16px 18px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg)' }}>
-                <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--ink)', color: 'var(--on-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>{n}</div>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{title}</div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.55 }}>{desc}</div>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Need a persona idea?</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 10 }}>
-            {[
-              ['🧖‍♀️', 'The skincare realist', 'A no-nonsense reviewer in her late 20s with visible texture and freckles who tests products for a month before talking. Dry humor, zero filter.'],
-              ['🏋️', 'The everyday lifter', 'A friendly gym regular who films between sets — approachable physique, sweaty honesty, hates fitness-bro clichés.'],
-              ['🍳', 'The 15-minute cook', 'A chaotic-but-charming home cook who makes fast weeknight meals in a small apartment kitchen and talks with their hands.'],
-              ['💻', 'The desk-setup guy', 'A calm tech minimalist who reviews gear from a moody desk corner, speaks quietly and precisely, obsessed with cable management.'],
-              ['✈️', 'The budget traveler', 'A backpacker in her early 20s filming from hostels and street markets — sun-faded clothes, infectious energy, always mid-adventure.'],
-              ['🛋️', 'The cozy-home curator', 'A soft-spoken interiors lover restyling corners of their apartment — warm lamp light, plants, tactile close-ups.'],
-            ].map(([emoji, title, desc]) => (
-              <button
-                key={title}
-                onClick={() => {
-                  setCreateMode('describe')
-                  setDescription(String(desc))
-                  setShowCreate(true)
-                  setShowInfo(false)
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
-                }}
-                style={{ textAlign: 'left', padding: '14px 16px', borderRadius: 13, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
-              >
-                <span style={{ fontSize: 20 }}>{emoji}</span>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{title}</span>
-                <span style={{ fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>{desc}</span>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
     </main>
   )
 }
