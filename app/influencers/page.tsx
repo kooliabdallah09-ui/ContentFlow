@@ -492,7 +492,7 @@ export default function InfluencersPage() {
     }
   }
 
-  async function generateSheet(resolution: '2K' | '4K' = '2K') {
+  async function generateSheet(resolution: '2K' | '4K' = '4K', style: 'lifestyle' | 'turnaround' = 'lifestyle') {
     if (!selected) return
     setSheetLoading(true)
     setSheetMenuAnchor(null)
@@ -502,7 +502,7 @@ export default function InfluencersPage() {
       const res = await fetch(`/api/influencers/${selected.id}/character-sheet`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ resolution }),
+        body: JSON.stringify({ resolution, style }),
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Sheet generation failed')
@@ -676,20 +676,16 @@ export default function InfluencersPage() {
           id="influencer-detail-popover"
           style={{ position: 'fixed', top: sheetMenuAnchor.bottom + 4, left: sheetMenuAnchor.left, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 12px 40px rgba(0,0,0,0.22)', overflow: 'hidden', minWidth: 240 }}
         >
-          <button
-            onClick={() => generateSheet('2K')}
-            style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
-          >
-            <span style={{ fontWeight: 600 }}>2K · 8 cr</span>
-            <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Default — fine for downstream shoots</span>
+          <div style={{ padding: '8px 14px 4px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink-mute)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Lifestyle mood board</div>
+          <button onClick={() => generateSheet('4K', 'lifestyle')} style={{ width: '100%', textAlign: 'left', padding: '8px 14px 10px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={{ fontWeight: 600 }}>4K · 14 cr</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>6 candid lifestyle shots — best for UGC shoots</span>
           </button>
           <div style={{ height: 1, background: 'var(--border)' }} />
-          <button
-            onClick={() => generateSheet('4K')}
-            style={{ width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}
-          >
+          <div style={{ padding: '8px 14px 4px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink-mute)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Classic turnaround</div>
+          <button onClick={() => generateSheet('4K', 'turnaround')} style={{ width: '100%', textAlign: 'left', padding: '8px 14px 10px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}>
             <span style={{ fontWeight: 600 }}>4K · 14 cr</span>
-            <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Sharper face close-ups, best identity anchor</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>Front / 45° / profile angles — precise face reference</span>
           </button>
         </div>,
         document.body,

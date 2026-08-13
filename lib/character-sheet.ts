@@ -6,6 +6,32 @@
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { SupabaseClient } from '@supabase/supabase-js'
 
+const TURNAROUND_PROMPT = (appearancePrompt: string) => `Create a photorealistic character reference sheet for a social media influencer. Use the uploaded portrait as the strict source of truth for this person's exact face, hair, skin tone, and features.
+
+Character: ${appearancePrompt}
+
+Layout: A clean 3x2 grid (3 columns, 2 rows) of 6 panels showing the SAME person from different angles and distances. Thin neutral dividers between panels. No text, no labels, no watermarks, no UI elements.
+
+Each panel is a hyper-realistic portrait photo — neutral studio or soft natural light, clean background. The person looks like a real attractive social media creator.
+
+Panel 1 (top-left): Dead-center front view — face and shoulders, looking straight at camera. Neutral expression. Clean light.
+
+Panel 2 (top-center): 45° left angle — face turned slightly left, still seeing both eyes, three-quarter view.
+
+Panel 3 (top-right): Full 90° left profile — pure side view, showing the exact ear, nose bridge, and jaw silhouette.
+
+Panel 4 (bottom-left): 45° right angle — face turned slightly right, mirror of panel 2.
+
+Panel 5 (bottom-center): Full 90° right profile — pure side view from the right side.
+
+Panel 6 (bottom-right): Slight downward angle from above — chin slightly down, showing the face from slightly elevated perspective.
+
+Critical rules:
+- The EXACT same person must appear in every panel: same face shape, cheekbones, eye shape, nose, lips, skin tone, hair color and texture.
+- Consistent neutral background across all panels (soft white, grey, or studio tone).
+- Skin looks healthy, smooth, and youthful — the plump unlined skin of someone in their early 20s.
+- No text, no labels, no numbers, no watermarks anywhere.`
+
 const SHEET_PROMPT = (appearancePrompt: string) => `Create a photorealistic identity reference sheet for a social media influencer. Use the uploaded portrait as the source of truth for this person's exact face, hair, skin tone, and features. Reproduce them faithfully across every panel.
 
 Character: ${appearancePrompt}
@@ -41,6 +67,7 @@ export async function generateCharacterSheet(input: {
   model?: 'pro' | 'nb2'
   userReferenceImages?: Array<{ base64: string; mimeType: string }>
   resolution?: '2K' | '4K'
+  style?: 'lifestyle' | 'turnaround'
 }): Promise<string> {
   const refs: Array<{ base64: string; mimeType: string }> = []
   if (input.userReferenceImages?.length) {
@@ -60,7 +87,10 @@ export async function generateCharacterSheet(input: {
 
   const model = 'pro' as const
   const resolution = '4K' as const
-  const sheet = await generateNanoBananaImage(SHEET_PROMPT(input.appearancePrompt), {
+  const prompt = input.style === 'turnaround'
+    ? TURNAROUND_PROMPT(input.appearancePrompt)
+    : SHEET_PROMPT(input.appearancePrompt)
+  const sheet = await generateNanoBananaImage(prompt, {
     style: 'realistic',
     ratio: '16:9',
     model,

@@ -31,7 +31,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Character sheets are always NB Pro at 4K now — the identity anchor
     // for every downstream shoot needs sharp face detail, and the 2K
     // fallback shipped visibly cheap renders. Body params are ignored.
-    await request.json().catch(() => ({}))
+    const body = await request.json().catch(() => ({}))
+    const style: 'lifestyle' | 'turnaround' = body.style === 'turnaround' ? 'turnaround' : 'lifestyle'
     const resolution: '2K' | '4K' = '4K'
     const cost = SHEET_4K_CR
 
@@ -58,6 +59,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       appearancePrompt: influencer.appearance_prompt,
       portraitUrl: influencer.portrait_url,
       resolution,
+      style,
     })
 
     const { newBalance, newPackCredits } = await deductCredits(
