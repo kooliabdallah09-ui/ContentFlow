@@ -187,7 +187,7 @@ export default function LandingPage() {
         </div>
         <div style={{ position: 'relative', overflow: 'hidden' }}>
           <div className="pb-track">
-            {[...POWERED_BY, ...POWERED_BY].map((item, i) => (
+            {[...POWERED_BY, ...POWERED_BY, ...POWERED_BY, ...POWERED_BY].map((item, i) => (
               <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 40px', flexShrink: 0 }}>
                 <div style={{ width: 28, height: 28, flexShrink: 0 }}>{item.logo}</div>
                 <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{item.name}</span>
