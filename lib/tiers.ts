@@ -53,7 +53,7 @@ export const DEFAULT_DURATION: UGCDuration = 10
 // 1 credit = $0.025 USD.
 export const CREDIT_USD_VALUE = 0.025
 
-// === Credit math — 1.4× markup on Seedance 2.0 + NB Pro cost ===
+// === Credit math — flat +$0.50 markup on Seedance 2.0 + NB Pro cost ===
 //
 // Seedance 2.0 token pricing (BytePlus):
 //   tokens = duration × width × height × fps / 1024
@@ -62,15 +62,15 @@ export const CREDIT_USD_VALUE = 0.025
 //
 // NB Pro hero frame: ~$0.075 (one per video, reused for chained clips)
 // Claude prompt overhead: ~$0.010
-// Markup: 1.4×
+// Flat margin: +$0.50 per video
 
 const SEEDANCE_USD_PER_S = (720 * 1280 * 24) / 1024 / 1_000_000 * 7   // $0.1512/s at 720p 9:16
 const NBPRO_USD          = 0.075  // NB Pro reference frame (one per video)
 const CLAUDE_USD         = 0.010  // Claude scripting overhead
-const MARKUP             = 1.4
+const FLAT_MARGIN_USD    = 0.50   // flat per-video margin
 
 export function calculateVideoCredits(_tier: UGCTier, duration: UGCDuration): number {
-  const totalUSD = (SEEDANCE_USD_PER_S * duration + NBPRO_USD + CLAUDE_USD) * MARKUP
+  const totalUSD = SEEDANCE_USD_PER_S * duration + NBPRO_USD + CLAUDE_USD + FLAT_MARGIN_USD
   return Math.ceil(totalUSD / CREDIT_USD_VALUE)
 }
 
