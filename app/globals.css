@@ -1526,3 +1526,33 @@ img, video, svg { max-width: 100%; }
   padding: 20px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 4px 16px rgba(0, 0, 0, 0.04);
 }
+
+/* ── Marquee animations (landing page) ──────────────────────────────── */
+.pb-track {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  animation: pb-scroll 28s linear infinite;
+  will-change: transform;
+}
+.pb-track:hover { animation-play-state: paused; }
+@keyframes pb-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+.ls-marquee { width: 100%; overflow: hidden; }
+.ls-marquee-track {
+  display: flex;
+  gap: 18px;
+  width: max-content;
+  animation: ls-scroll 70s linear infinite;
+  will-change: transform;
+}
+.ls-marquee:hover .ls-marquee-track { animation-play-state: paused; }
+@keyframes ls-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.ls-demo-card { width: 240px; flex-shrink: 0; }
+@media (max-width: 640px) { .ls-demo-card { width: 180px; } }

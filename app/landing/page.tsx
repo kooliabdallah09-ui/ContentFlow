@@ -195,18 +195,6 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-        <style>{`
-          .pb-track {
-            display: flex; align-items: center;
-            width: max-content;
-            animation: pb-scroll 28s linear infinite;
-          }
-          .pb-track:hover { animation-play-state: paused; }
-          @keyframes pb-scroll {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
-          }
-        `}</style>
       </section>
 
       {/* MADE WITH CONTENTFLOW — auto-scrolling marquee (hidden until curated demos exist) */}
@@ -234,21 +222,6 @@ export default function LandingPage() {
             ))}
           </div>
         </div>
-        <style>{`
-          .ls-marquee { width: 100%; overflow: hidden; }
-          .ls-marquee-track {
-            display: flex; gap: 18px; width: max-content;
-            animation: ls-scroll 70s linear infinite;
-            will-change: transform;
-          }
-          .ls-marquee:hover .ls-marquee-track { animation-play-state: paused; }
-          @keyframes ls-scroll {
-            from { transform: translateX(0); }
-            to { transform: translateX(-50%); }
-          }
-          .ls-demo-card { width: 240px; flex-shrink: 0; }
-          @media (max-width: 640px) { .ls-demo-card { width: 180px; } }
-        `}</style>
       </section>
       )}
 
