@@ -1205,7 +1205,7 @@ export default function InfluencersPage() {
     <main style={{ maxWidth: 980, margin: '0 auto', padding: '48px 32px' }}>
       <SectionTabs tabs={STUDIOS_TABS} />
       <DriveConnectBanner />
-      <div style={{ marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)' }}>ADMIN · BETA</div>
+      <div className="admin-beta-label" style={{ marginBottom: 8, fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em', color: 'var(--ink-dim)' }}>ADMIN · BETA</div>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 34, fontWeight: 400, margin: '0 0 6px' }}>Influencer <em>studio</em></h1>
       <p style={{ fontSize: 14, color: 'var(--ink-dim)', margin: '0 0 28px', maxWidth: 560, lineHeight: 1.6 }}>
         Describe a character once — get a persistent AI influencer with a face, a handle, and a personality. Shoot photos of them anywhere, or drop them into a UGC ad.

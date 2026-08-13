@@ -28,6 +28,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
   const [influencerAccess, setInfluencerAccess] = useState(false)
   const [brandLaunchAccess, setBrandLaunchAccess] = useState(false)
   const [studioAccess, setStudioAccess] = useState(false)
+  const [screenshotMode, setScreenshotMode] = useState(false)
   useEffect(() => {
     (async () => {
       const supabase = getSupabase()
@@ -39,6 +40,13 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
       setStudioAccess(canAccessStudio(email))
     })()
   }, [])
+
+  const toggleScreenshotMode = () => {
+    const next = !screenshotMode
+    setScreenshotMode(next)
+    if (next) document.documentElement.setAttribute('data-screenshot', 'true')
+    else document.documentElement.removeAttribute('data-screenshot')
+  }
 
   return (
     <aside className={`rail${mobileOpen ? ' mobile-open' : ''}${collapsed ? ' rail-collapsed' : ''}`}>
@@ -119,7 +127,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
           <Link href="/studio" className={`nav-item ${isActive('/studio') ? 'active' : ''}`} onClick={handleNavClick}>
             <Icon.Sparkle />
             <span style={{ flex: 1 }}>Studio</span>
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1e3a5f', background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Alpha</span>
+            <span className="admin-beta-label" style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1e3a5f', background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Alpha</span>
           </Link>
         )}
         {brandLaunchAccess && (
@@ -179,7 +187,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
         <Link href="/editor" className={`nav-item ${isActive('/editor') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Scissors />
           <span style={{ flex: 1 }}>Video Editor</span>
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Beta</span>
+          <span className="admin-beta-label" style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#b45309', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Beta</span>
         </Link>
       </div>
 
@@ -209,6 +217,18 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
           </svg>
           Restart guide
         </button>
+        {studioAccess && (
+          <button
+            onClick={toggleScreenshotMode}
+            title={screenshotMode ? 'Exit screenshot mode' : 'Screenshot mode — hides admin labels'}
+            style={{ width: '100%', marginTop: 4, padding: '6px 0', background: screenshotMode ? 'rgba(185,28,28,0.12)' : 'none', border: screenshotMode ? '1px solid rgba(185,28,28,0.3)' : 'none', borderRadius: 8, cursor: 'pointer', fontSize: 11.5, color: screenshotMode ? '#b91c1c' : 'var(--ink-mute)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, letterSpacing: '0.01em', transition: 'all 0.15s' }}
+          >
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+            </svg>
+            {screenshotMode ? 'Exit screenshot mode' : 'Screenshot mode'}
+          </button>
+        )}
       </div>
     </aside>
   )

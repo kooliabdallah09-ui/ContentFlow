@@ -1548,3 +1548,10 @@ img, video, svg { max-width: 100%; }
 }
 .ls-demo-card { width: 240px; flex-shrink: 0; }
 @media (max-width: 640px) { .ls-demo-card { width: 180px; } }
+
+/* ── Screenshot mode — hide admin/beta labels ──────────────────────── */
+[data-screenshot="true"] .flagship-badge,
+[data-screenshot="true"] [data-admin-label],
+[data-screenshot="true"] .admin-beta-label {
+  display: none !important;
+}
