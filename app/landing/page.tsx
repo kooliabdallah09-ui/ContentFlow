@@ -250,56 +250,109 @@ export default function LandingPage() {
           transform: featureVisible ? 'translateY(0)' : 'translateY(10px)',
           transition: 'opacity 0.22s ease, transform 0.22s ease',
         }}>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="ls-feat-showcase">
-            {/* Big card — left */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
-              <div style={{
-                aspectRatio: '4/3',
-                background: FEATURE_TABS[activeFeatureTab].cards[0].gradient,
-                overflow: 'hidden', position: 'relative',
-              }}>
-                {FEATURE_TABS[activeFeatureTab].cards[0].img && (
-                  <img src={FEATURE_TABS[activeFeatureTab].cards[0].img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: FEATURE_TABS[activeFeatureTab].cards[0].imgPosition ?? 'top center' }} />
-                )}
-              </div>
-              <div style={{ padding: '24px 28px 28px' }}>
-                <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, margin: '0 0 10px', letterSpacing: '-0.02em' }}>
-                  {FEATURE_TABS[activeFeatureTab].cards[0].title}
-                </h3>
-                <p style={{ fontSize: 14, color: 'var(--ink-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
-                  {FEATURE_TABS[activeFeatureTab].cards[0].body}
-                </p>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {FEATURE_TABS[activeFeatureTab].cards[0].tags?.map(t => (
-                    <span key={t} style={{ fontSize: 11.5, padding: '4px 12px', borderRadius: 999, border: '1px solid var(--border)', color: 'var(--ink-mute)', fontWeight: 500 }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-            </div>
-            {/* Two stacked cards — right */}
+          {activeFeatureTab === 0 ? (
+            /* ── Influencer Studio: form → arrow → portrait, then studio below ── */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {FEATURE_TABS[activeFeatureTab].cards.slice(1, 3).map((card, j) => (
-                <div key={j} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', flex: 1 }}>
-                  <div style={{
-                    height: 160,
-                    background: card.gradient,
-                    overflow: 'hidden', position: 'relative',
-                  }}>
-                    {card.img && (
-                      <img src={card.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: card.imgPosition ?? 'top center' }} />
-                    )}
-                  </div>
+              {/* Top row */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} className="ls-inf-row">
+                {/* Form card */}
+                <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
+                  <img src="/feat-create-influencer.png" alt="Create influencer form" style={{ width: '100%', display: 'block' }} />
                   <div style={{ padding: '20px 24px 24px' }}>
-                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>{card.title}</h3>
-                    <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }}>{card.body}</p>
+                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>Build your AI creator in minutes</h3>
+                    <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>Pick a name, niche, look, and aesthetic from chips — or just describe them. ContentFlow generates a photorealistic portrait and 4K character sheet.</p>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      {['NB Pro 4K', 'Character sheets', 'Reference upload'].map(t => (
+                        <span key={t} style={{ fontSize: 11.5, padding: '4px 12px', borderRadius: 999, border: '1px solid var(--border)', color: 'var(--ink-mute)', fontWeight: 500 }}>{t}</span>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              ))}
+
+                {/* Arrow */}
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--ink-mute)' }}>
+                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 12h14"/>
+                    <path d="M13 6l6 6-6 6"/>
+                  </svg>
+                  <span style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', opacity: 0.6 }}>Result</span>
+                </div>
+
+                {/* Portrait card */}
+                <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
+                  <img src="/feat-influencer-portrait.png" alt="AI influencer portrait" style={{ width: '100%', display: 'block' }} />
+                  <div style={{ padding: '20px 24px 24px' }}>
+                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>Photorealistic results</h3>
+                    <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }}>Real skin texture, natural light, genuine expressions. Looks like a real person — because the model was built for it.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom card — studio dashboard */}
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
+                <img src="/feat-influencer-studio.png" alt="Influencer studio dashboard" style={{ width: '100%', display: 'block' }} />
+                <div style={{ padding: '18px 24px 22px' }}>
+                  <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 400, margin: '0 0 6px', letterSpacing: '-0.02em' }}>Full studio at your fingertips</h3>
+                  <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.55 }}>Manage all your AI creators, shoot UGC, and generate character sheets — all from one dashboard.</p>
+                </div>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* ── Generic layout for all other tabs ── */
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }} className="ls-feat-showcase">
+              {/* Big card — left */}
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
+                <div style={{
+                  aspectRatio: '4/3',
+                  background: FEATURE_TABS[activeFeatureTab].cards[0].gradient,
+                  overflow: 'hidden', position: 'relative',
+                }}>
+                  {FEATURE_TABS[activeFeatureTab].cards[0].img && (
+                    <img src={FEATURE_TABS[activeFeatureTab].cards[0].img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: FEATURE_TABS[activeFeatureTab].cards[0].imgPosition ?? 'top center' }} />
+                  )}
+                </div>
+                <div style={{ padding: '24px 28px 28px' }}>
+                  <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, margin: '0 0 10px', letterSpacing: '-0.02em' }}>
+                    {FEATURE_TABS[activeFeatureTab].cards[0].title}
+                  </h3>
+                  <p style={{ fontSize: 14, color: 'var(--ink-dim)', margin: '0 0 16px', lineHeight: 1.6 }}>
+                    {FEATURE_TABS[activeFeatureTab].cards[0].body}
+                  </p>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {FEATURE_TABS[activeFeatureTab].cards[0].tags?.map(t => (
+                      <span key={t} style={{ fontSize: 11.5, padding: '4px 12px', borderRadius: 999, border: '1px solid var(--border)', color: 'var(--ink-mute)', fontWeight: 500 }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              {/* Two stacked cards — right */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {FEATURE_TABS[activeFeatureTab].cards.slice(1, 3).map((card, j) => (
+                  <div key={j} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', flex: 1 }}>
+                    <div style={{
+                      height: 160,
+                      background: card.gradient,
+                      overflow: 'hidden', position: 'relative',
+                    }}>
+                      {card.img && (
+                        <img src={card.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: card.imgPosition ?? 'top center' }} />
+                      )}
+                    </div>
+                    <div style={{ padding: '20px 24px 24px' }}>
+                      <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>{card.title}</h3>
+                      <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }}>{card.body}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
         <style>{`
-          @media (max-width: 720px) { .ls-feat-showcase { grid-template-columns: 1fr !important; } }
+          @media (max-width: 720px) {
+            .ls-feat-showcase { grid-template-columns: 1fr !important; }
+            .ls-inf-row { flex-direction: column !important; }
+          }
         `}</style>
       </section>
 
