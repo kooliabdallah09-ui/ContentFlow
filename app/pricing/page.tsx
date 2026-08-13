@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 
@@ -129,6 +129,13 @@ export default function PricingPage() {
   const [annual, setAnnual] = useState(false)
   const [loading, setLoading] = useState<string | null>(null)
 
+  useEffect(() => {
+    const saved = localStorage.getItem('cf-theme')
+    const shouldDark = saved ? saved === 'dark' : true
+    if (shouldDark) document.documentElement.setAttribute('data-theme', 'dark')
+    else document.documentElement.removeAttribute('data-theme')
+  }, [])
+
   async function handleCta(plan: typeof plans[number]) {
     if (!plan.priceId.monthly) {
       window.location.href = plan.ctaHref ?? '/auth/signup'
@@ -162,16 +169,23 @@ export default function PricingPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg, #fff)', color: 'var(--ink, #111)', fontFamily: 'var(--font-sans, system-ui)' }}>
 
       {/* Nav */}
-      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 32px', borderBottom: '1px solid var(--border, #e5e7eb)', maxWidth: 1200, margin: '0 auto' }}>
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-          <img src="/logo-icon.png" alt="ContentFlow" style={{ width: 28, height: 28 }} />
-          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink, #111)' }}>Content<em style={{ fontStyle: 'italic' }}>flow</em></span>
-        </Link>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <Link href="/auth/login" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-dim, #555)', textDecoration: 'none' }}>Sign in</Link>
-          <Link href="/auth/signup" style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#111', borderRadius: 8, padding: '7px 16px', textDecoration: 'none' }}>Get started free</Link>
+      <header style={{ position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', background: 'color-mix(in srgb, var(--bg) 82%, transparent)', borderBottom: '1px solid var(--border)' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink)', textDecoration: 'none' }}>
+            <span style={{ width: 28, height: 28, borderRadius: 6, overflow: 'hidden', background: '#000', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><img src="/logo.png" alt="Contentflow" style={{ width: 22, height: 22, objectFit: 'contain' }} /></span>
+            <span style={{ fontSize: 15, color: 'var(--ink)' }}>Content<em>flow</em></span>
+          </Link>
+          <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Link href="/#features" style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink-mute)', textDecoration: 'none', padding: '6px 12px', borderRadius: 8 }}>Features</Link>
+            <Link href="/pricing" style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', textDecoration: 'none', padding: '6px 12px', borderRadius: 8 }}>Pricing</Link>
+            <Link href="/help" style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink-mute)', textDecoration: 'none', padding: '6px 12px', borderRadius: 8 }}>Docs</Link>
+          </nav>
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <Link href="/auth/login" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-mute)', textDecoration: 'none' }}>Sign in</Link>
+            <Link href="/auth/signup" style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#b91c1c', borderRadius: 9, padding: '9px 18px', textDecoration: 'none', whiteSpace: 'nowrap' }}>Get started</Link>
+          </div>
         </div>
-      </nav>
+      </header>
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 80px' }}>
 
@@ -220,7 +234,7 @@ export default function PricingPage() {
                 )}
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{plan.name}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
-                  <span style={{ fontSize: 32, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{price}</span>
+                  <span style={{ fontFamily: 'var(--font-serif, Georgia)', fontStyle: 'italic', fontSize: 36, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1 }}>{price}</span>
                   {plan.planKey !== 'free' && <span style={{ fontSize: 13, color: 'var(--ink-mute, #999)' }}>/mo</span>}
                 </div>
                 {annual && plan.annualTotal && (
