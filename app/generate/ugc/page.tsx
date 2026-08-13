@@ -681,30 +681,6 @@ export default function UGCGeneratorPage() {
         </div>
       )}
 
-      {/* Saved actor quick-select strip */}
-      {!batchMode && topActors.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, fontFamily: 'var(--font-mono)' }}>
-            Your saved actors — click to pre-select
-          </div>
-          <div style={{ display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 4 }}>
-            {topActors.map(a => {
-              const active = selectedActorId === a.id
-              return (
-                <button
-                  key={a.id}
-                  type="button"
-                  onClick={() => setSelectedActorId(active ? undefined : a.id)}
-                  style={{ flexShrink: 0, padding: 5, borderRadius: 10, border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: active ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 5, width: 80 }}
-                >
-                  <img src={a.hero_frame_url} alt={a.name} style={{ width: '100%', aspectRatio: '3/4', objectFit: 'cover', borderRadius: 7, display: 'block' }} />
-                  <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.name}</div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      )}
 
       <div style={{ display: batchMode ? 'none' : 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
