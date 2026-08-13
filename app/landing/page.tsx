@@ -330,8 +330,8 @@ export default function LandingPage() {
 
               {/* Bottom card — studio dashboard */}
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
-                <div style={{ aspectRatio: '16/6', overflow: 'hidden' }}>
-                  <img src="/feat-influencer-studio.png" alt="Influencer studio dashboard" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+                <div style={{ overflow: 'hidden' }}>
+                  <img src="/feat-influencer-studio.png" alt="Influencer studio dashboard" style={{ width: '100%', display: 'block' }} />
                 </div>
                 <div style={{ padding: '18px 24px 22px' }}>
                   <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 400, margin: '0 0 6px', letterSpacing: '-0.02em' }}>Full studio at your fingertips</h3>
