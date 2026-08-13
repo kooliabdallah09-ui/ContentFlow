@@ -259,7 +259,7 @@ export default function LandingPage() {
                 overflow: 'hidden', position: 'relative',
               }}>
                 {FEATURE_TABS[activeFeatureTab].cards[0].img && (
-                  <img src={FEATURE_TABS[activeFeatureTab].cards[0].img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+                  <img src={FEATURE_TABS[activeFeatureTab].cards[0].img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: FEATURE_TABS[activeFeatureTab].cards[0].imgPosition ?? 'top center' }} />
                 )}
               </div>
               <div style={{ padding: '24px 28px 28px' }}>
@@ -286,7 +286,7 @@ export default function LandingPage() {
                     overflow: 'hidden', position: 'relative',
                   }}>
                     {card.img && (
-                      <img src={card.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top' }} />
+                      <img src={card.img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: card.imgPosition ?? 'top center' }} />
                     )}
                   </div>
                   <div style={{ padding: '20px 24px 24px' }}>
@@ -427,23 +427,26 @@ const FEATURE_TABS = [
     label: 'Influencer Studio',
     cards: [
       {
-        title: 'Design your AI creator',
-        body: 'Describe a character — name, niche, look, personality. ContentFlow builds a photorealistic portrait and 4K character sheet in under 3 minutes. Yours forever.',
+        title: 'Build your AI creator in minutes',
+        body: 'Pick a name, niche, look, and aesthetic from chips — or just describe them. ContentFlow generates a photorealistic portrait and 4K character sheet. Your creator, yours forever.',
         tags: ['NB Pro 4K', 'Character sheets', 'Reference upload'],
         gradient: 'linear-gradient(135deg, #c8a060 0%, #7a3a10 100%)',
-        img: undefined as string | undefined,
+        img: '/feat-create-influencer.png',
+        imgPosition: 'top center',
       },
       {
-        title: 'Surgical tweaks',
-        body: 'Type "add glasses" — only that changes. Face, hair, skin stay exactly as they were.',
+        title: 'Photorealistic results',
+        body: 'Real skin texture, natural light, genuine expressions. Looks like a real person — because the model was built for it.',
         gradient: 'linear-gradient(135deg, #1e3a5f 0%, #0f1f36 100%)',
-        img: undefined as string | undefined,
+        img: '/feat-influencer-portrait.png',
+        imgPosition: 'top center',
       },
       {
-        title: 'One-click regenerate',
-        body: "Don't love the result? Add an optional note and get a fresh portrait in minutes.",
+        title: 'Full studio at your fingertips',
+        body: 'Manage all your AI creators, shoot UGC, and generate character sheets — all from one dashboard.',
         gradient: 'linear-gradient(135deg, #2d5a3d 0%, #142a1c 100%)',
-        img: undefined as string | undefined,
+        img: '/feat-influencer-studio.png',
+        imgPosition: 'top center',
       },
     ],
   },
@@ -451,23 +454,26 @@ const FEATURE_TABS = [
     label: 'Video Generator',
     cards: [
       {
-        title: 'UGC in 2 minutes',
+        title: 'UGC ads that look real',
         body: 'Drop a product photo, pick your AI creator, choose a hook. Get a finished 9:16 UGC ad with voice, captions, and b-roll — ready to post.',
         tags: ['Seedance 2.0', 'Kling v3', '9:16 & 16:9'],
-        gradient: 'linear-gradient(135deg, #3b1f5e 0%, #1a0d2e 100%)',
-        img: undefined as string | undefined,
+        gradient: 'linear-gradient(135deg, #1a2a1a 0%, #0a180a 100%)',
+        img: '/feat-ugc-video.png',
+        imgPosition: 'center',
       },
       {
         title: 'Native captions',
         body: 'Word-synced captions burned directly into the video. No editor needed.',
         gradient: 'linear-gradient(135deg, #1a3a5c 0%, #0a1a2e 100%)',
         img: undefined as string | undefined,
+        imgPosition: 'top center',
       },
       {
         title: 'Multiple formats',
         body: 'Generate 5s hooks, 10s demos, or 30s full ads — same product, different angles.',
         gradient: 'linear-gradient(135deg, #4a1a1a 0%, #2a0a0a 100%)',
         img: undefined as string | undefined,
+        imgPosition: 'top center',
       },
     ],
   },
@@ -480,18 +486,21 @@ const FEATURE_TABS = [
         tags: ['NB Pro 4K', '4K resolution', 'Batch generate'],
         gradient: 'linear-gradient(135deg, #5a3a1a 0%, #2a1a0a 100%)',
         img: undefined as string | undefined,
+        imgPosition: 'top center',
       },
       {
         title: 'Brand-consistent',
         body: 'Lock your color palette, tone, and style. Every image stays on-brand automatically.',
         gradient: 'linear-gradient(135deg, #1a4a3a 0%, #0a2a1a 100%)',
         img: undefined as string | undefined,
+        imgPosition: 'top center',
       },
       {
         title: 'Instant variations',
         body: 'Generate 4 versions at once. Pick the best, tweak, regenerate.',
         gradient: 'linear-gradient(135deg, #3a3a5a 0%, #1a1a3a 100%)',
         img: undefined as string | undefined,
+        imgPosition: 'top center',
       },
     ],
   },
@@ -504,18 +513,21 @@ const FEATURE_TABS = [
         tags: ['Remove background', 'Custom scenes', 'Batch export'],
         gradient: 'linear-gradient(135deg, #1a3a5a 0%, #0a1a3a 100%)',
         img: undefined as string | undefined,
+        imgPosition: 'top center',
       },
       {
         title: 'Physics-driven motion',
         body: 'Turn your product shot into a cinematic CGI commercial with real motion and lighting.',
         gradient: 'linear-gradient(135deg, #3a1a4a 0%, #1a0a2a 100%)',
         img: undefined as string | undefined,
+        imgPosition: 'top center',
       },
       {
         title: 'Feed every format',
         body: 'Product photos feed your UGC ads, captions, blog posts, and emails automatically.',
         gradient: 'linear-gradient(135deg, #1a4a2a 0%, #0a2a10 100%)',
         img: undefined as string | undefined,
+        imgPosition: 'top center',
       },
     ],
   },
