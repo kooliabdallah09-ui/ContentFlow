@@ -130,8 +130,8 @@ export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null)
 
   useEffect(() => {
-    // Pricing page always defaults to dark to match landing page feel
-    document.documentElement.setAttribute('data-theme', 'dark')
+    // Pricing page uses light mode
+    document.documentElement.removeAttribute('data-theme')
   }, [])
 
   async function handleCta(plan: typeof plans[number]) {
