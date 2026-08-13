@@ -143,11 +143,10 @@ export default function PricingPage() {
         window.location.href = '/auth/login?redirect=/pricing'
         return
       }
-      const priceId = annual ? plan.priceId.annual : plan.priceId.monthly
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await fetch('/api/dodo/checkout', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId, mode: 'subscription' }),
+        body: JSON.stringify({ planKey: plan.planKey, annual }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Checkout failed')
