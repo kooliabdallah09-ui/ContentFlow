@@ -119,11 +119,16 @@ export default function InfluencersPage() {
       if (menu?.contains(t)) return
       close()
     }
-    window.addEventListener('scroll', close, true)
+    const onScroll = (e: Event) => {
+      const menu = document.getElementById('influencer-detail-popover')
+      if (menu?.contains(e.target as Node)) return
+      close()
+    }
+    window.addEventListener('scroll', onScroll, true)
     window.addEventListener('resize', close)
     document.addEventListener('mousedown', outside)
     return () => {
-      window.removeEventListener('scroll', close, true)
+      window.removeEventListener('scroll', onScroll, true)
       window.removeEventListener('resize', close)
       document.removeEventListener('mousedown', outside)
     }
