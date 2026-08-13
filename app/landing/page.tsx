@@ -251,43 +251,79 @@ export default function LandingPage() {
           transition: 'opacity 0.22s ease, transform 0.22s ease',
         }}>
           {activeFeatureTab === 0 ? (
-            /* ── Influencer Studio: form → arrow → portrait, then studio below ── */
+            /* ── Influencer Studio: portrait hero + floating chips ── */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              {/* Top row */}
-              <div style={{ display: 'flex', alignItems: 'stretch', gap: 12 }} className="ls-inf-row">
-                {/* Form card */}
-                <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ aspectRatio: '16/10', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src="/feat-create-chips.png" alt="Create influencer form" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+              {/* Top: full-width portrait hero card */}
+              <div style={{
+                background: '#0d0d0d',
+                border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 20,
+                overflow: 'hidden',
+                position: 'relative',
+                display: 'flex',
+                minHeight: 400,
+              }}>
+                {/* Left: chips + text */}
+                <div style={{
+                  flex: '0 0 48%',
+                  padding: '40px 44px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  position: 'relative',
+                  zIndex: 2,
+                }}>
+                  {/* Attribute chips */}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    {['Luxury', 'Lifestyle', 'Fitness', 'Blonde', '18–24', 'Brown eyes', 'Long straight', 'Female'].map(chip => (
+                      <span key={chip} style={{
+                        fontSize: 12, padding: '6px 14px', borderRadius: 999,
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.1)',
+                        color: 'rgba(255,255,255,0.65)',
+                        fontWeight: 500,
+                      }}>{chip}</span>
+                    ))}
                   </div>
-                  <div style={{ padding: '20px 24px 24px', flex: 1 }}>
-                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>Build your AI creator in minutes</h3>
-                    <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>Pick a name, niche, look, and aesthetic from chips — or just describe them. ContentFlow generates a photorealistic portrait and 4K character sheet.</p>
+                  {/* Text block */}
+                  <div>
+                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, fontWeight: 400, margin: '0 0 12px', letterSpacing: '-0.03em', color: '#fff', lineHeight: 1.2 }}>
+                      Build your AI creator<br />in minutes
+                    </h3>
+                    <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', margin: '0 0 22px', lineHeight: 1.65, maxWidth: 320 }}>
+                      Pick a name, niche, look, and aesthetic from chips — or just describe them. ContentFlow generates a photorealistic portrait and 4K character sheet.
+                    </p>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {['NB Pro 4K', 'Character sheets', 'Reference upload'].map(t => (
-                        <span key={t} style={{ fontSize: 11.5, padding: '4px 12px', borderRadius: 999, border: '1px solid var(--border)', color: 'var(--ink-mute)', fontWeight: 500 }}>{t}</span>
+                        <span key={t} style={{ fontSize: 11.5, padding: '4px 12px', borderRadius: 999, border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.35)', fontWeight: 500 }}>{t}</span>
                       ))}
                     </div>
                   </div>
                 </div>
 
-                {/* Arrow */}
-                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--ink-mute)', paddingBottom: 110 }}>
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M5 12h14"/>
-                    <path d="M13 6l6 6-6 6"/>
-                  </svg>
-                  <span style={{ fontSize: 10, letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', opacity: 0.6 }}>Result</span>
-                </div>
-
-                {/* Portrait card */}
-                <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ aspectRatio: '16/10', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src="/feat-influencer-profile.png" alt="AI influencer portrait" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top left', display: 'block' }} />
-                  </div>
-                  <div style={{ padding: '20px 24px 24px', flex: 1 }}>
-                    <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>Photorealistic results</h3>
-                    <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }}>Real skin texture, natural light, genuine expressions. Looks like a real person — because the model was built for it.</p>
+                {/* Right: portrait */}
+                <div style={{ flex: 1, position: 'relative' }}>
+                  {/* Gradient bleed from left */}
+                  <div style={{
+                    position: 'absolute', left: 0, top: 0, bottom: 0, width: '55%',
+                    background: 'linear-gradient(to right, #0d0d0d 0%, transparent 100%)',
+                    zIndex: 1, pointerEvents: 'none',
+                  }} />
+                  {/* Gradient at bottom */}
+                  <div style={{
+                    position: 'absolute', left: 0, right: 0, bottom: 0, height: '30%',
+                    background: 'linear-gradient(to top, #0d0d0d 0%, transparent 100%)',
+                    zIndex: 1, pointerEvents: 'none',
+                  }} />
+                  <img
+                    src="/feat-influencer-portrait.png"
+                    alt="AI influencer portrait"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
+                  />
+                  {/* Floating labels on portrait */}
+                  <div style={{ position: 'absolute', top: 28, right: 28, zIndex: 2, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+                    <span style={{ fontSize: 11.5, padding: '5px 13px', borderRadius: 999, background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(12px)', fontWeight: 500 }}>Photorealistic · 4K</span>
+                    <span style={{ fontSize: 11.5, padding: '5px 13px', borderRadius: 999, background: 'rgba(0,0,0,0.55)', border: '1px solid rgba(255,255,255,0.12)', color: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(12px)', fontWeight: 500 }}>NB Pro</span>
                   </div>
                 </div>
               </div>
