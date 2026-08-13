@@ -18,7 +18,9 @@ const PRODUCT_MAP: Record<string, string> = {
   agencyAnnual:  POLAR_PRODUCTS.agencyAnnual,
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
+  return NextResponse.json({ error: 'Payments are temporarily unavailable. Please try again later.' }, { status: 503 })
+  // eslint-disable-next-line no-unreachable
   try {
     const apiKey = process.env.POLAR_API_KEY
     if (!apiKey) return NextResponse.json({ error: 'Not configured' }, { status: 500 })
