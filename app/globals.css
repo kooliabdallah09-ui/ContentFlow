@@ -1478,11 +1478,9 @@ img, video, svg { max-width: 100%; }
   }
 }
 
-/* The "⌄ Options" mobile toggle button. Always hidden on desktop —
-   there's no clutter to hide there — and pops on phones as a slim
-   summary chip. */
+/* Composer options toggle — visible on all screen sizes */
 .studio-options-toggle {
-  display: none;
+  display: flex;
   width: 100%;
   padding: 8px 10px;
   margin: 4px 0 8px;
@@ -1498,19 +1496,13 @@ img, video, svg { max-width: 100%; }
 }
 .studio-options-toggle:hover { background: var(--hover); }
 
-@media (max-width: 640px) {
-  /* Reveal the summary toggle. */
-  .studio-options-toggle { display: flex; }
-  /* Hide the wrapped controls + the bottom chip row while options is closed. */
-  .studio-composer[data-options-open="false"] .studio-options,
-  .studio-composer[data-options-open="false"] .ps-controls-row {
-    display: none !important;
-  }
-  /* Smooth fold-in when opening. */
-  .studio-composer[data-options-open="true"] .studio-options,
-  .studio-composer[data-options-open="true"] .ps-controls-row {
-    animation: studio-options-fade 180ms ease-out;
-  }
+/* Hide only the options panel when collapsed — controls row stays visible. */
+.studio-composer[data-options-open="false"] .studio-options {
+  display: none !important;
+}
+/* Smooth fold-in when opening. */
+.studio-composer[data-options-open="true"] .studio-options {
+  animation: studio-options-fade 180ms ease-out;
 }
 
 @keyframes studio-options-fade {
