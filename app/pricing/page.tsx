@@ -130,10 +130,8 @@ export default function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null)
 
   useEffect(() => {
-    const saved = localStorage.getItem('cf-theme')
-    const shouldDark = saved ? saved === 'dark' : true
-    if (shouldDark) document.documentElement.setAttribute('data-theme', 'dark')
-    else document.documentElement.removeAttribute('data-theme')
+    // Pricing page always defaults to dark to match landing page feel
+    document.documentElement.setAttribute('data-theme', 'dark')
   }, [])
 
   async function handleCta(plan: typeof plans[number]) {
@@ -192,7 +190,7 @@ export default function PricingPage() {
         {/* Hero */}
         <div style={{ textAlign: 'center', padding: '64px 0 48px' }}>
           <h1 style={{ fontFamily: 'var(--font-serif, Georgia)', fontSize: 'clamp(36px, 5vw, 56px)', fontWeight: 400, letterSpacing: '-0.03em', margin: '0 0 16px', lineHeight: 1.1 }}>
-            Simple, transparent <em>pricing</em>
+            Simple, transparent <em style={{ color: '#b91c1c' }}>pricing</em>
           </h1>
           <p style={{ fontSize: 17, color: 'var(--ink-dim, #666)', maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.6 }}>
             One platform for AI images, UGC videos, social captions, carousels, voiceovers, and more.
@@ -220,7 +218,7 @@ export default function PricingPage() {
             return (
               <div key={plan.planKey} style={{
                 position: 'relative',
-                border: `1.5px solid ${plan.popular ? '#111' : 'var(--border, #e5e7eb)'}`,
+                border: `1.5px solid ${plan.popular ? '#b91c1c' : 'var(--border, #e5e7eb)'}`,
                 borderRadius: 18,
                 padding: '24px 20px',
                 background: 'var(--surface, #fff)',
@@ -228,7 +226,7 @@ export default function PricingPage() {
                 flexDirection: 'column',
               }}>
                 {plan.popular && (
-                  <span style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: '#111', color: '#fff', borderRadius: 999, padding: '3px 12px', whiteSpace: 'nowrap' }}>
+                  <span style={{ position: 'absolute', top: -11, left: '50%', transform: 'translateX(-50%)', fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: '#b91c1c', color: '#fff', borderRadius: 999, padding: '3px 12px', whiteSpace: 'nowrap' }}>
                     Most popular
                   </span>
                 )}
@@ -248,7 +246,7 @@ export default function PricingPage() {
                   style={{
                     width: '100%', padding: '10px', borderRadius: 10, marginBottom: 22,
                     border: plan.popular ? 'none' : '1.5px solid var(--border, #e5e7eb)',
-                    background: plan.popular ? '#111' : 'transparent',
+                    background: plan.popular ? '#b91c1c' : 'transparent',
                     color: plan.popular ? '#fff' : 'var(--ink, #111)',
                     fontWeight: 600, fontSize: 13, cursor: 'pointer',
                     opacity: isLoading ? 0.6 : 1,
@@ -267,7 +265,7 @@ export default function PricingPage() {
                             <path d="M18 6L6 18M6 6l12 12"/>
                           </svg>
                         ) : (
-                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}>
                             <path d="M20 6L9 17l-5-5"/>
                           </svg>
                         )}
