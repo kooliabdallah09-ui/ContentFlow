@@ -277,6 +277,23 @@ export default function InfluencersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Re-fetch when user comes back to the tab — catches silent failures during generation
+  useEffect(() => {
+    const onVisible = () => { if (document.visibilityState === 'visible') load() }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Warn before closing/navigating away while generating
+  useEffect(() => {
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (creating) { e.preventDefault(); e.returnValue = '' }
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [creating])
+
   async function load() {
     setLoading(true)
     try {
@@ -1176,7 +1193,7 @@ export default function InfluencersPage() {
           fontSize: 11, color: 'rgba(255,255,255,0.15)',
           letterSpacing: '0.06em', textTransform: 'uppercase',
         }}>
-          This takes about 1–2 minutes
+          This takes about 1–2 minutes · Stay on this tab
         </div>
       </div>
     )
