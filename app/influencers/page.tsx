@@ -762,9 +762,9 @@ export default function InfluencersPage() {
             /* Masonry via CSS columns — mixed aspect ratios (4:5 next to
                9:16) each keep their natural height and fill the column
                width, no letterboxing. */
-            <div style={{ columns: '3 280px', columnGap: 14 }}>
+            <div style={{ columns: '4 220px', columnGap: 10 }}>
               {photos.map(p => (
-                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene, photoId: p.id }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', marginBottom: 14, breakInside: 'avoid', borderRadius: 14, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
+                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene, photoId: p.id }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', marginBottom: 10, breakInside: 'avoid', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image_url} alt={p.scene} style={{ width: '100%', display: 'block' }} />
                 </button>
