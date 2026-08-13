@@ -172,6 +172,35 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* POWERED BY — scrolling logo marquee */}
+      <section style={{ padding: '36px 0', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{ marginBottom: 16, textAlign: 'center', fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.13em', textTransform: 'uppercase', color: 'var(--ink-fade)' }}>
+          Powered by the world&apos;s best AI
+        </div>
+        <div style={{ position: 'relative', overflow: 'hidden' }}>
+          <div className="pb-track">
+            {[...POWERED_BY, ...POWERED_BY].map((item, i) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0 40px', flexShrink: 0 }}>
+                <div style={{ width: 28, height: 28, flexShrink: 0 }}>{item.logo}</div>
+                <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', whiteSpace: 'nowrap' }}>{item.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <style>{`
+          .pb-track {
+            display: flex; align-items: center;
+            width: max-content;
+            animation: pb-scroll 28s linear infinite;
+          }
+          .pb-track:hover { animation-play-state: paused; }
+          @keyframes pb-scroll {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+          }
+        `}</style>
+      </section>
+
       {/* MADE WITH CONTENTFLOW — auto-scrolling marquee (hidden until curated demos exist) */}
       {DEMO_VIDEOS.length > 0 && (
       <section style={{ padding: '0 0 100px', overflow: 'hidden' }}>
@@ -332,6 +361,79 @@ export default function LandingPage() {
     </div>
   )
 }
+
+// ---- Powered-by logos ----
+const POWERED_BY = [
+  {
+    name: 'Nanobanana Pro',
+    logo: (
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M6 14C6 9.58 9.58 6 14 6s8 3.58 8 8-3.58 8-8 8-8-3.58-8-8z" fill="none"/>
+        <path d="M14 5.5A8.5 8.5 0 0 1 22.5 14" stroke="#EA4335" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M22.5 14A8.5 8.5 0 0 1 14 22.5" stroke="#FBBC05" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M14 22.5A8.5 8.5 0 0 1 5.5 14" stroke="#34A853" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M5.5 14A8.5 8.5 0 0 1 14 5.5" stroke="#4285F4" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="14" cy="14" r="3.5" fill="#4285F4"/>
+      </svg>
+    ),
+  },
+  {
+    name: 'Nanobanana 2',
+    logo: (
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 5.5A8.5 8.5 0 0 1 22.5 14" stroke="#EA4335" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M22.5 14A8.5 8.5 0 0 1 14 22.5" stroke="#FBBC05" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M14 22.5A8.5 8.5 0 0 1 5.5 14" stroke="#34A853" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M5.5 14A8.5 8.5 0 0 1 14 5.5" stroke="#4285F4" strokeWidth="2.5" strokeLinecap="round"/>
+        <circle cx="14" cy="14" r="3.5" fill="#34A853"/>
+      </svg>
+    ),
+  },
+  {
+    name: 'Seedance 2.0',
+    logo: (
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="28" height="28" rx="6" fill="#1A1A1A"/>
+        <rect x="6" y="10" width="3" height="12" rx="1.5" fill="white"/>
+        <rect x="11" y="6" width="3" height="16" rx="1.5" fill="white"/>
+        <rect x="16" y="9" width="3" height="13" rx="1.5" fill="white"/>
+        <rect x="21" y="12" width="3" height="10" rx="1.5" fill="white"/>
+      </svg>
+    ),
+  },
+  {
+    name: 'Claude',
+    logo: (
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="28" height="28" rx="6" fill="#CC785C"/>
+        <path d="M9 18.5l2.5-9 2.5 6 2-4 2.5 7" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+      </svg>
+    ),
+  },
+  {
+    name: 'ElevenLabs',
+    logo: (
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="28" height="28" rx="6" fill="#000"/>
+        <rect x="9" y="6" width="3" height="16" rx="1.5" fill="white"/>
+        <rect x="16" y="6" width="3" height="16" rx="1.5" fill="white"/>
+      </svg>
+    ),
+  },
+  {
+    name: 'Whisper',
+    logo: (
+      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="28" height="28" rx="6" fill="#000"/>
+        <path d="M8 14a6 6 0 0 1 12 0" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M10.5 14a3.5 3.5 0 0 1 7 0" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+        <circle cx="14" cy="14" r="1.5" fill="white"/>
+        <path d="M14 16v4" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+        <path d="M11 20h6" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
+      </svg>
+    ),
+  },
+]
 
 // ---- Static content ----
 const FEATURES = [
