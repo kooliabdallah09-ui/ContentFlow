@@ -107,6 +107,7 @@ export async function POST(request: NextRequest) {
       ratio,
       referenceImageBase64,
       referenceImageMimeType,
+      userRefImages, // new: array of { base64, mimeType } for multi-ref upload
     } = await request.json()
 
     if (!prompt || typeof prompt !== 'string' || prompt.trim().length === 0) {
@@ -128,26 +129,35 @@ export async function POST(request: NextRequest) {
       ? (ratio as '1:1' | '4:5' | '9:16' | '16:9')
       : '1:1'
 
-    // If a reference image was uploaded, run it through sharp once to normalize
-    // (strip metadata, cap dimensions, re-encode) so Nano Banana sees a sane input.
-    let safeRefBase64: string | undefined
-    let safeRefMime: string | undefined
-    if (typeof referenceImageBase64 === 'string' && typeof referenceImageMimeType === 'string') {
+    // Normalize uploaded reference images (single legacy path + new multi-ref array).
+    async function normalizeRef(b64: string): Promise<{ base64: string; mimeType: string } | null> {
       try {
-        const buf = Buffer.from(referenceImageBase64, 'base64')
-        if (buf.length > 20 * 1024 * 1024) {
-          return NextResponse.json({ error: 'Reference image must be under 20MB' }, { status: 400 })
-        }
+        const buf = Buffer.from(b64, 'base64')
+        if (buf.length > 20 * 1024 * 1024) return null
         const resized = await sharp(buf)
           .resize(1280, 1280, { fit: 'inside', withoutEnlargement: true })
           .png()
           .toBuffer()
-        safeRefBase64 = resized.toString('base64')
-        safeRefMime = 'image/png'
-      } catch (err) {
-        console.warn('[image gen] reference normalize failed, skipping:', err instanceof Error ? err.message : err)
-      }
+        return { base64: resized.toString('base64'), mimeType: 'image/png' }
+      } catch { return null }
     }
+
+    // Collect all user-uploaded refs (new array format takes priority; legacy single also supported).
+    const uploadedRefs: Array<{ base64: string; mimeType: string }> = []
+    if (Array.isArray(userRefImages) && userRefImages.length > 0) {
+      for (const r of userRefImages.slice(0, 3)) {
+        if (typeof r?.base64 === 'string') {
+          const norm = await normalizeRef(r.base64)
+          if (norm) uploadedRefs.push(norm)
+        }
+      }
+    } else if (typeof referenceImageBase64 === 'string' && typeof referenceImageMimeType === 'string') {
+      const norm = await normalizeRef(referenceImageBase64)
+      if (norm) uploadedRefs.push(norm)
+    }
+    // Keep legacy compat vars for the featureRefs path below
+    const safeRefBase64 = uploadedRefs[0]?.base64
+    const safeRefMime = uploadedRefs[0]?.mimeType
 
     // Per-image pricing: NB2 5cr · Pro 2K 10cr · Pro 4K 18cr (1.8× markup
     // on $0.075 / $0.139 / $0.24 raw).
@@ -248,10 +258,10 @@ export async function POST(request: NextRequest) {
       model,
       resolution: model === 'pro' ? resolution : undefined,
       raw: rawMode,
-      referenceImages: featureRefs.length ? featureRefs : undefined,
+      referenceImages: featureRefs.length ? featureRefs : uploadedRefs.length ? uploadedRefs : undefined,
       referenceHint: featureHint || undefined,
-      referenceImageBase64: featureRefs.length ? undefined : safeRefBase64,
-      referenceImageMimeType: featureRefs.length ? undefined : safeRefMime,
+      referenceImageBase64: (featureRefs.length || uploadedRefs.length > 1) ? undefined : safeRefBase64,
+      referenceImageMimeType: (featureRefs.length || uploadedRefs.length > 1) ? undefined : safeRefMime,
     }
     const settled = await Promise.allSettled(
       Array.from({ length: safeQuantity }, () => generateNanoBananaImage(imagePrompt, imageOpts))

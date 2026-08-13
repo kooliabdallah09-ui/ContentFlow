@@ -60,9 +60,9 @@ export default function ImageGeneratorPage() {
   const [error, setError] = useState('')
   const { balance: rawBalance, refresh: refreshCredits } = useCredits()
   const creditBalance = rawBalance ?? 0
-  // Reference image — optional. When set, the API runs Nano Banana 2 image-to-image
-  // so the user's photo (e.g. their actual product) carries through to the output.
-  const [reference, setReference] = useState<{ base64: string; mimeType: string; preview: string } | null>(null)
+  // Reference images — up to 3. Passed to NB so the subject/product carries through.
+  const [references, setReferences] = useState<Array<{ base64: string; mimeType: string; preview: string }>>([])
+  const MAX_REFS = 3
   const [isAdmin, setIsAdmin] = useState(false)
   const [confirmDeleteUrl, setConfirmDeleteUrl] = useState<string | null>(null)
 
@@ -93,8 +93,8 @@ export default function ImageGeneratorPage() {
     })()
   }, [])
 
-  function pickReference(file: File | null) {
-    if (!file) { setReference(null); return }
+  function addReference(file: File) {
+    if (references.length >= MAX_REFS) return
     const maxBytes = isAdmin ? 20 * 1024 * 1024 : 5 * 1024 * 1024
     const maxLabel = isAdmin ? '20MB' : '5MB'
     if (file.size > maxBytes) { setError(`Reference image must be under ${maxLabel}`); return }
@@ -102,8 +102,6 @@ export default function ImageGeneratorPage() {
     reader.onload = ev => {
       const result = ev.target?.result as string
       const preview = result
-      // Resize client-side to max 1280px so the base64 payload stays under
-      // Vercel's 4.5MB function body limit regardless of original file size.
       const img = new Image()
       img.onload = () => {
         const MAX = 1280
@@ -116,15 +114,15 @@ export default function ImageGeneratorPage() {
         canvas.width = width; canvas.height = height
         canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
         const resized = canvas.toDataURL('image/jpeg', 0.88)
-        setReference({ base64: resized.split(',')[1] ?? '', mimeType: 'image/jpeg', preview })
+        setReferences(prev => [...prev, { base64: resized.split(',')[1] ?? '', mimeType: 'image/jpeg', preview }])
       }
       img.src = result
     }
     reader.readAsDataURL(file)
   }
   const referenceDrop = useImageDrop({
-    multiple: false,
-    onFiles: files => pickReference(files[0]),
+    multiple: true,
+    onFiles: files => files.slice(0, MAX_REFS - references.length).forEach(addReference),
     disabled: loading,
   })
 
@@ -173,8 +171,7 @@ export default function ImageGeneratorPage() {
           ratio,
           size,
           quantity: count,
-          referenceImageBase64: reference?.base64,
-          referenceImageMimeType: reference?.mimeType,
+          userRefImages: references.length > 0 ? references.map(r => ({ base64: r.base64, mimeType: r.mimeType })) : undefined,
         }),
       })
       const text = await res.text()
@@ -240,48 +237,51 @@ export default function ImageGeneratorPage() {
           }}
         />
 
-        {/* Reference image — optional */}
-        {reference ? (
-          <div style={{
-            display: 'flex', alignItems: 'center', gap: 12,
-            padding: '8px 12px', borderRadius: 12,
-            background: 'var(--bg-elev)', border: '1px solid var(--border)',
-          }}>
-            <img src={reference.preview} alt="reference"
-              style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Reference image attached</p>
-              <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '2px 0 0' }}>Our AI will preserve this subject in the output.</p>
+        {/* Reference images — up to 3 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {references.map((ref, idx) => (
+            <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
+              <img src={ref.preview} alt={`ref ${idx + 1}`}
+                style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', display: 'block', border: '1.5px solid var(--border)' }} />
+              <button type="button" onClick={() => setReferences(prev => prev.filter((_, i) => i !== idx))} disabled={loading}
+                style={{
+                  position: 'absolute', top: -6, right: -6,
+                  width: 18, height: 18, borderRadius: '50%',
+                  background: 'var(--danger)', border: 'none', color: '#fff',
+                  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 0,
+                }}>
+                <X size={10} />
+              </button>
             </div>
-            <button type="button" onClick={() => setReference(null)} disabled={loading}
-              aria-label="Remove reference"
-              style={{
-                background: 'transparent', border: 'none',
-                color: 'var(--ink-mute)', cursor: 'pointer',
-                padding: 4, display: 'flex',
-              }}>
-              <X size={16} />
-            </button>
-          </div>
-        ) : (
-          <label {...referenceDrop.dropzoneProps} style={{
-            display: 'flex', alignItems: 'center', gap: 10,
-            padding: '10px 14px', borderRadius: 12,
-            border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
-            background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
-            cursor: loading ? 'not-allowed' : 'pointer',
-            color: referenceDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13,
-            alignSelf: 'flex-start',
-            transition: 'background 120ms, border-color 120ms, color 120ms',
-          }}>
-            <ImageIcon size={16} />
-            <span>{referenceDrop.isDragging ? 'Drop to add reference' : <>Add a reference image <span style={{ color: 'var(--ink-faint)', fontSize: 11.5, marginLeft: 4 }}>(optional · drag & drop works)</span></>}</span>
-            <input type="file" accept="image/jpeg,image/png,image/webp"
-              onChange={e => pickReference(e.target.files?.[0] ?? null)}
-              disabled={loading}
-              style={{ display: 'none' }} />
-          </label>
-        )}
+          ))}
+          {references.length < MAX_REFS && (
+            <label {...referenceDrop.dropzoneProps} style={{
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+              padding: '8px 14px', borderRadius: 10,
+              border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
+              background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              color: referenceDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13,
+              transition: 'background 120ms, border-color 120ms, color 120ms',
+            }}>
+              <ImageIcon size={15} />
+              <span>
+                {references.length === 0
+                  ? <>{referenceDrop.isDragging ? 'Drop images' : <>Add reference images <span style={{ color: 'var(--ink-faint)', fontSize: 11.5 }}>(optional · up to {MAX_REFS})</span></>}</>
+                  : `+ Add another (${references.length}/${MAX_REFS})`}
+              </span>
+              <input type="file" accept="image/jpeg,image/png,image/webp" multiple
+                onChange={e => Array.from(e.target.files ?? []).forEach(addReference)}
+                disabled={loading}
+                style={{ display: 'none' }} />
+            </label>
+          )}
+          {references.length > 0 && (
+            <span style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginLeft: 4 }}>
+              AI will carry {references.length === 1 ? 'this subject' : 'these subjects'} into the output
+            </span>
+          )}
+        </div>
 
         {/* Style chips */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
