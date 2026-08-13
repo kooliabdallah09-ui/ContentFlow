@@ -10,7 +10,7 @@ import { Loader2, Download, Image as ImageIcon, X, Trash2 } from 'lucide-react'
 import { useImageDrop } from '@/hooks/useImageDrop'
 import { showError, showSuccess } from '@/lib/notifications'
 import { canAccessPovStudio } from '@/lib/pov-access'
-import { GeneratingOverlay } from '@/components/GeneratingOverlay'
+// GeneratingOverlay intentionally removed from image page — only used for influencer creation and UGC
 
 // Editorial image generator matching the Claude Design export.
 // Single composer card with prompt textarea + style chips + ratio + count
@@ -206,7 +206,6 @@ export default function ImageGeneratorPage() {
 
   return (
     <>
-    <GeneratingOverlay active={loading} steps={IMAGE_STEPS} tipSeconds={20} />
     <main style={{ maxWidth: 1080, margin: '0 auto', padding: '42px 40px 90px' }} className="img-page">
       <DriveConnectBanner />
       <header style={{ marginBottom: 28 }}>

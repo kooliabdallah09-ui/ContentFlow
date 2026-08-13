@@ -553,9 +553,15 @@ const POWERED_BY = [
   {
     name: 'Nanobanana Pro',
     logo: (
-      // Official Google G — viewBox 0 0 24 24
+      // Official Google Gemini star logo
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path fill="#4285F4" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+        <defs>
+          <linearGradient id="gemini-grad-1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor="#4285F4"/>
+            <stop offset="100%" stopColor="#9C27B0"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#gemini-grad-1)" d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/>
       </svg>
     ),
   },
@@ -563,19 +569,25 @@ const POWERED_BY = [
     name: 'Nanobanana 2',
     logo: (
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path fill="#EA4335" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+        <defs>
+          <linearGradient id="gemini-grad-2" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stopColor="#EA4335"/>
+            <stop offset="100%" stopColor="#FBBC05"/>
+          </linearGradient>
+        </defs>
+        <path fill="url(#gemini-grad-2)" d="M11.04 19.32Q12 21.51 12 24q0-2.49.93-4.68.96-2.19 2.58-3.81t3.81-2.55Q21.51 12 24 12q-2.49 0-4.68-.93a12.3 12.3 0 0 1-3.81-2.58 12.3 12.3 0 0 1-2.58-3.81Q12 2.49 12 0q0 2.49-.96 4.68-.93 2.19-2.55 3.81a12.3 12.3 0 0 1-3.81 2.58Q2.49 12 0 12q2.49 0 4.68.96 2.19.93 3.81 2.55t2.55 3.81"/>
       </svg>
     ),
   },
   {
     name: 'Seedance 2.0',
     logo: (
-      <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="28" height="28" rx="6" fill="#1A1A1A"/>
-        <rect x="6" y="10" width="3" height="12" rx="1.5" fill="white"/>
-        <rect x="11" y="6" width="3" height="16" rx="1.5" fill="white"/>
-        <rect x="16" y="9" width="3" height="13" rx="1.5" fill="white"/>
-        <rect x="21" y="12" width="3" height="10" rx="1.5" fill="white"/>
+      // Official ByteDance logo (Seedance is a ByteDance model)
+      <svg viewBox="0 0 28 28" xmlns="http://www.w3.org/2000/svg">
+        <rect width="28" height="28" rx="6" fill="#000"/>
+        <g transform="translate(2,3.5) scale(1.0)">
+          <path fill="white" transform="scale(0.979) translate(0.1,0.1)" d="M19.8772 1.4685L24 2.5326v18.9426l-4.1228 1.0563V1.4685zm-13.3481 9.428l4.115 1.0641v8.9786l-4.115 1.0642v-11.107zM0 2.572l4.115 1.0642v16.7354L0 21.428V2.572zm17.4553 5.6205v11.107l-4.1228-1.0642V9.2568l4.1228-1.0642z"/>
+        </g>
       </svg>
     ),
   },
