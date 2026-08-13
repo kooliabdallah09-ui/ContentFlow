@@ -632,7 +632,7 @@ export default function InfluencersPage() {
       { id: '16:9' as const, w: 24, h: 13.5 },
     ]
     return (
-      <main style={{ maxWidth: 1080, margin: '0 auto', padding: '40px 32px 24px', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 60px)' }}>
+      <main style={{ maxWidth: 1600, margin: '0 auto', padding: '40px 32px 24px', display: 'flex', flexDirection: 'column', minHeight: 'calc(100vh - 60px)' }}>
       <SectionTabs tabs={STUDIOS_TABS} />
       {/* Portalled popovers for Regenerate look / Regenerate sheet — escape
           the identity card's overflow:hidden clipping. */}
