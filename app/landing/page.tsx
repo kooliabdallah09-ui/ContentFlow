@@ -258,7 +258,7 @@ export default function LandingPage() {
                 {/* Form card */}
                 <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ aspectRatio: '16/10', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src="/feat-create-influencer.png" alt="Create influencer form" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+                    <img src="/feat-create-chips.png" alt="Create influencer form" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
                   </div>
                   <div style={{ padding: '20px 24px 24px', flex: 1 }}>
                     <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>Build your AI creator in minutes</h3>
@@ -283,7 +283,7 @@ export default function LandingPage() {
                 {/* Portrait card */}
                 <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ aspectRatio: '16/10', overflow: 'hidden', flexShrink: 0 }}>
-                    <img src="/feat-influencer-portrait.png" alt="AI influencer portrait" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '20% center', display: 'block' }} />
+                    <img src="/feat-influencer-profile.png" alt="AI influencer portrait" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
                   </div>
                   <div style={{ padding: '20px 24px 24px', flex: 1 }}>
                     <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>Photorealistic results</h3>
