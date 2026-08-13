@@ -254,11 +254,13 @@ export default function LandingPage() {
             /* ── Influencer Studio: form → arrow → portrait, then studio below ── */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Top row */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} className="ls-inf-row">
+              <div style={{ display: 'flex', alignItems: 'stretch', gap: 12 }} className="ls-inf-row">
                 {/* Form card */}
-                <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
-                  <img src="/feat-create-influencer.png" alt="Create influencer form" style={{ width: '100%', display: 'block' }} />
-                  <div style={{ padding: '20px 24px 24px' }}>
+                <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ aspectRatio: '16/10', overflow: 'hidden', flexShrink: 0 }}>
+                    <img src="/feat-create-influencer.png" alt="Create influencer form" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+                  </div>
+                  <div style={{ padding: '20px 24px 24px', flex: 1 }}>
                     <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>Build your AI creator in minutes</h3>
                     <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: '0 0 14px', lineHeight: 1.6 }}>Pick a name, niche, look, and aesthetic from chips — or just describe them. ContentFlow generates a photorealistic portrait and 4K character sheet.</p>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -270,8 +272,8 @@ export default function LandingPage() {
                 </div>
 
                 {/* Arrow */}
-                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, color: 'var(--ink-mute)' }}>
-                  <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6, color: 'var(--ink-mute)', paddingBottom: 110 }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M5 12h14"/>
                     <path d="M13 6l6 6-6 6"/>
                   </svg>
@@ -279,9 +281,11 @@ export default function LandingPage() {
                 </div>
 
                 {/* Portrait card */}
-                <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
-                  <img src="/feat-influencer-portrait.png" alt="AI influencer portrait" style={{ width: '100%', display: 'block' }} />
-                  <div style={{ padding: '20px 24px 24px' }}>
+                <div style={{ flex: 1, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ aspectRatio: '16/10', overflow: 'hidden', flexShrink: 0 }}>
+                    <img src="/feat-influencer-portrait.png" alt="AI influencer portrait" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: '20% center', display: 'block' }} />
+                  </div>
+                  <div style={{ padding: '20px 24px 24px', flex: 1 }}>
                     <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>Photorealistic results</h3>
                     <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }}>Real skin texture, natural light, genuine expressions. Looks like a real person — because the model was built for it.</p>
                   </div>
@@ -290,7 +294,9 @@ export default function LandingPage() {
 
               {/* Bottom card — studio dashboard */}
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, overflow: 'hidden' }}>
-                <img src="/feat-influencer-studio.png" alt="Influencer studio dashboard" style={{ width: '100%', display: 'block' }} />
+                <div style={{ aspectRatio: '16/6', overflow: 'hidden' }}>
+                  <img src="/feat-influencer-studio.png" alt="Influencer studio dashboard" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center', display: 'block' }} />
+                </div>
                 <div style={{ padding: '18px 24px 22px' }}>
                   <h3 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, fontWeight: 400, margin: '0 0 6px', letterSpacing: '-0.02em' }}>Full studio at your fingertips</h3>
                   <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.55 }}>Manage all your AI creators, shoot UGC, and generate character sheets — all from one dashboard.</p>
