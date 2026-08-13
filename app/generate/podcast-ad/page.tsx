@@ -474,7 +474,7 @@ export default function PodcastAdPage() {
                     style={{ padding: 0, border: `2.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 12, background: 'var(--surface)', cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s' }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={f.url} alt={f.label} style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', display: 'block' }} />
+                    <img src={f.url} alt={f.label} style={{ width: '100%', aspectRatio: aspect.replace(':', '/'), objectFit: 'cover', display: 'block' }} />
                     <div style={{ padding: '8px 12px', fontSize: 12.5, fontWeight: active ? 700 : 500, color: active ? 'var(--ink)' : 'var(--ink-mute)', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 6 }}>
                       {active && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
                       {f.label}
@@ -513,12 +513,12 @@ export default function PodcastAdPage() {
                   </span>
                 </div>
                 {job.status === 'processing' && (
-                  <div style={{ aspectRatio: '9/16', background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
+                  <div style={{ aspectRatio: aspect.replace(':', '/'), background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
                     <Loader2 size={22} className="spin" style={{ color: 'var(--ink-2)' }} />
                   </div>
                 )}
                 {job.status === 'completed' && job.videoUrl && (
-                  <video src={job.videoUrl} controls playsInline style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: 8, background: '#000' }} />
+                  <video src={job.videoUrl} controls playsInline style={{ width: '100%', aspectRatio: aspect.replace(':', '/'), objectFit: 'cover', borderRadius: 8, background: '#000' }} />
                 )}
                 {job.status === 'failed' && (
                   <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#991b1b' }}>{job.error ?? 'Render failed'}</div>

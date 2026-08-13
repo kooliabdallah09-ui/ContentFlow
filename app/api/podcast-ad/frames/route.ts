@@ -4,39 +4,52 @@ import { generateNanoBananaImage } from '@/lib/nanobanana'
 
 export const maxDuration = 180
 
-const VARIANT_PROMPTS = [
-  // Variant 0 — Wide two-shot
-  `Two people seated in a premium podcast studio in mid-conversation. Use image 1 as the EXACT appearance of the LEFT person (host) and image 2 as the EXACT appearance of the RIGHT person (expert) — preserve their faces, hair, and features with pixel-level fidelity.
+function framingText(aspect: string): string {
+  if (aspect === '16:9') return 'Horizontal 16:9 widescreen landscape framing'
+  if (aspect === '1:1') return 'Square 1:1 framing'
+  if (aspect === '4:5') return 'Vertical 4:5 portrait framing'
+  if (aspect === '3:4') return 'Vertical 3:4 portrait framing'
+  return 'Vertical 9:16 portrait framing'
+}
+
+function getVariantPrompts(aspect: string): string[] {
+  const fr = framingText(aspect)
+  return [
+    // Variant 0 — Wide two-shot A (frontal, centred)
+    `Two people seated facing camera in a premium podcast studio in mid-conversation. Use image 1 as the EXACT appearance of the LEFT person (host) and image 2 as the EXACT appearance of the RIGHT person (expert) — preserve their faces, hair, and features with pixel-level fidelity.
 
 SETTING: Corner of a professional podcast studio. Cream boucle sofa. Soft directional key light from large diffused studio softboxes, warm neutral colour temperature. Matte neutral gallery wall with abstract framed art behind them. Two RODE mic-arm booms positioned toward each speaker.
 
-FRAME: Medium-wide two-shot, camera centred and level, both people visible from torso up, both in sharp focus. Authentic candid mid-conversation moment — real facial expressions, caught mid-gesture. Vertical 9:16 framing.
+FRAME: Medium-wide two-shot, camera centred and level, both people visible from torso up, both in sharp focus. Authentic candid mid-conversation moment — real facial expressions, caught mid-gesture. ${fr}.
 
 REALISM: Photoreal skin, visible pores, natural micro-imperfections, not airbrushed or CGI-smooth. Should read as a still frame paused from a real podcast video recording.`,
 
-  // Variant 1 — Host foreground
-  `Two people in a premium podcast studio. Use image 1 as the LEFT person (host) and image 2 as the RIGHT person (expert) — preserve both faces exactly.
+    // Variant 1 — Wide two-shot B (slightly off-axis, warmer depth)
+    `Two people seated in a premium podcast studio sharing an animated exchange. Use image 1 as the LEFT person (host) and image 2 as the RIGHT person (expert) — preserve both faces exactly.
 
-FRAME: Over-the-shoulder shot — image 2 (expert) in sharp foreground right-of-frame facing left, image 1 (host) softly out-of-focus over the shoulder in the background left. Camera at chest height, slight upward tilt. RODE mic booms visible. Warm studio key light. Vertical 9:16.
+SETTING: Modern podcast studio. Dark walnut desk between them. Large sound-dampening panels on the walls. Warm tungsten key light from the left, cooler fill from right. Two RODE NT-USB mics on desk stands between the hosts.
 
-REALISM: Photoreal, not airbrushed. Real pores. Candid mid-speech expression on foreground person.`,
+FRAME: Medium-wide two-shot, camera placed slightly right of centre, mild rack focus keeping both faces sharp. Both people visible from mid-chest up. One person leaning in animatedly, the other reacting with interest. ${fr}.
 
-  // Variant 2 — Expert foreground
-  `Two people in a premium podcast studio. Use image 1 as the LEFT person (host) and image 2 as the RIGHT person (expert) — preserve both faces exactly.
+REALISM: Photoreal, not airbrushed. Natural pores and micro-expressions. Feels like a real documentary or podcast recording moment.`,
 
-FRAME: Over-the-shoulder shot — image 1 (host) in sharp foreground left-of-frame facing right, image 2 (expert) softly out-of-focus over the shoulder in the background right. Camera at chest height, slight upward tilt. RODE mic booms visible. Warm studio key light. Vertical 9:16.
+    // Variant 2 — Lateral angle (from the left side)
+    `Two people in a premium podcast studio, camera positioned to their LEFT at a 45–50° angle. Use image 1 as the person nearer to camera (host) and image 2 as the person further from camera (expert) — preserve both appearances exactly.
 
-REALISM: Photoreal, not airbrushed. Real pores. Candid mid-speech expression on foreground person.`,
+FRAME: Camera to the left side of the sofa, catching both people in partial 3/4 profile. The near person's face is mostly visible; the far person is seen from the side. Gallery wall with framed abstract art behind them, studio softbox light from the far side. Authentic mid-conversation moment. ${fr}.
 
-  // Variant 3 — Lateral wide
-  `Two people seated side-by-side at a 40° lateral angle to camera in a premium podcast studio. Use image 1 as the person nearer to camera and image 2 as the person further from camera — preserve both appearances exactly.
+REALISM: Photoreal skin. Not airbrushed. Candid energy.`,
 
-FRAME: Camera to one side, catching the studio sofa and both people in 3/4 profile. Gallery wall visible behind them. Studio softbox light from far side. Authentic mid-conversation gesture — one person leaning in, the other reacting. Vertical 9:16.
+    // Variant 3 — Lateral angle (from the right side)
+    `Two people in a premium podcast studio, camera positioned to their RIGHT at a 45–50° angle. Use image 1 as the person nearer to camera (expert) and image 2 as the person further from camera (host) — preserve both appearances exactly.
 
-REALISM: Photoreal skin. Not airbrushed. Candid moment.`,
-]
+FRAME: Camera to the right side of the sofa, catching both people in partial 3/4 profile from the opposite side. The near person's face is mostly visible; the far person is seen from the side. Warm studio lighting from overhead softboxes. Both people in active conversation, one gesturing naturally. ${fr}.
 
-const VARIANT_LABELS = ['Wide two-shot', 'Host foreground', 'Expert foreground', 'Lateral angle']
+REALISM: Photoreal skin. Not airbrushed. Real candid podcast atmosphere.`,
+  ]
+}
+
+const VARIANT_LABELS = ['Wide two-shot A', 'Wide two-shot B', 'Lateral angle (left)', 'Lateral angle (right)']
 
 export async function POST(request: NextRequest) {
   try {
@@ -130,7 +143,7 @@ export async function POST(request: NextRequest) {
     if (sceneImageBase64) referenceImages.push({ base64: sceneImageBase64, mimeType: sceneImageMime })
     if (refImageBase64) referenceImages.push({ base64: refImageBase64, mimeType: refImageMime ?? 'image/jpeg' })
 
-    const prompts = VARIANT_PROMPTS.map(p =>
+    const prompts = getVariantPrompts(aspect ?? '9:16').map(p =>
       scenePrompt ? `${p}\n\nSCENE OVERRIDE — the podcast studio setting MUST match this environment: ${scenePrompt}. Architecture, materials, decor, palette and lighting come from this scene description (and the attached scene reference image if present). Adapt it to fit a premium podcast studio configuration.` : p
     )
 
