@@ -104,6 +104,66 @@ function IlluDashboard() {
   )
 }
 
+function IlluBrand() {
+  return (
+    <div style={{ padding: '24px 28px' }}>
+      <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 40, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.02em', lineHeight: 1.1, margin: '0 0 22px' }}>
+        Brand <em>profile</em>
+      </h1>
+      {/* Section 1: Identity */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px', marginBottom: 14, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+          <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--ink)', color: 'var(--on-ink, #fff)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>1</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Brand identity</div>
+        </div>
+        {/* Logo row */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 10, border: '1.5px dashed var(--border-strong)', background: 'var(--bg-elev)' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          </div>
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Upload logo</div>
+            <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>PNG · JPG · WEBP</div>
+          </div>
+        </div>
+        {/* Name + Description */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ height: 38, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
+            <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>ContentFlow</span>
+          </div>
+          <div style={{ height: 60, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '10px 12px' }}>
+            <span style={{ fontSize: 12.5, color: 'var(--ink-mute)' }}>AI content studio for brand marketers…</span>
+          </div>
+        </div>
+        {/* Colors */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Brand colors</span>
+          {['#111','#fff','#2563eb'].map((c, i) => (
+            <div key={i} style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: '1.5px solid var(--border)' }} />
+          ))}
+          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '1.5px dashed var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+          </div>
+        </div>
+      </div>
+      {/* Section 2: Audience + Tone */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 16, padding: '20px 22px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 2 }}>
+          <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--ink-dim)' }}>2</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Voice &amp; audience</div>
+        </div>
+        <div style={{ height: 38, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <span style={{ fontSize: 13, color: 'var(--ink)' }}>Friendly &amp; Approachable</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
+        </div>
+        <div style={{ height: 38, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
+          <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>Busy founders in their 30s, indie creators…</span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function IlluProductStudio() {
   const products = [
     { name: 'Summer Serum', cat: 'Beauty',   grad: 'linear-gradient(135deg,#f5ede0,#d4b896,#b89070)' },
@@ -384,7 +444,7 @@ const STEPS: {
     Icon: IconSpark,
     label: 'Brand',
     title: 'Set up your brand identity.',
-    illustration: <IlluDashboard />,
+    illustration: <IlluBrand />,
     body: <><strong>Brand</strong> is your identity layer — your logo, company name, description, colors, tone of voice, and target audience. Everything you fill in here <strong>auto-populates the UGC builder, scripts, and captions</strong> so you never retype it. <strong>Your individual products live separately in Product Studio</strong> — Brand describes who you are, Product Studio is where you add what you sell.</>,
     tip: 'Tip: fill in your tone of voice and target audience — these two fields have the biggest impact on how your AI-generated scripts and captions sound.',
     cta: 'Set up brand',
@@ -460,10 +520,14 @@ export default function OnboardingTour() {
     setConfirmSkip(false)
   }
 
+  function goToStep(i: number) {
+    setStep(i)
+    const target = STEPS[i]
+    if (target.href) router.push(target.href)
+  }
+
   function next() {
-    const current = STEPS[step]
-    if (current.href) router.push(current.href)
-    if (step < STEPS.length - 1) setStep(s => s + 1)
+    if (step < STEPS.length - 1) goToStep(step + 1)
     else dismiss()
   }
 
@@ -528,7 +592,7 @@ export default function OnboardingTour() {
                 {STEPS.map((s, i) => (
                   <button
                     key={i}
-                    onClick={() => setStep(i)}
+                    onClick={() => goToStep(i)}
                     title={s.label}
                     style={{
                       padding: '3px 8px', borderRadius: 999, border: 'none', cursor: 'pointer',
@@ -605,7 +669,7 @@ export default function OnboardingTour() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: 2 }}>
                   {step > 0 ? (
                     <button
-                      onClick={() => setStep(s => s - 1)}
+                      onClick={() => goToStep(step - 1)}
                       style={{ fontSize: 13, color: 'var(--ink-mute)', background: 'none', border: 'none', cursor: 'pointer', padding: '8px 0', display: 'flex', alignItems: 'center', gap: 5 }}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
