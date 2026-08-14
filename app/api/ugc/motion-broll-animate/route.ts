@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import Anthropic from '@anthropic-ai/sdk'
 import { deductCredits } from '@/lib/deduct-credits'
 import { submitSeedanceJob } from '@/lib/replicate'
 import { getCampaignFormat } from '@/lib/campaign-formats'
@@ -98,12 +99,50 @@ export async function POST(request: NextRequest) {
     const safeVideoDirection = typeof videoDirection === 'string' ? videoDirection.slice(0, 500).trim() : ''
     void safeProductDescription
 
-    const seedancePrompt = buildMotionBrollSeedancePrompt({
-      formatKey,
-      productName: safeProductName,
-      durationSeconds: duration,
-      videoDirection: safeVideoDirection || undefined,
-    })
+    let seedancePrompt: string
+    if (formatKey === 'aesthetic-broll' && typeof productImageBase64 === 'string' && productImageBase64.length > 100) {
+      // Use Claude to generate a custom Seedance 2.0 prompt from the actual product image.
+      try {
+        const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+        const mime = (typeof productImageMimeType === 'string' ? productImageMimeType : 'image/png') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
+        const msg = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1000,
+          messages: [{
+            role: 'user',
+            content: [
+              { type: 'image', source: { type: 'base64', media_type: mime, data: productImageBase64 } },
+              { type: 'text', text: `I'm attaching an image of my product.
+
+Act as an expert UGC ad director and Seedance 2.0 prompt engineer.
+
+Create one polished ${duration}-second fast-paced B-roll only product ad prompt for TikTok/Reels in vertical 9:16.
+
+Study the product image carefully and preserve the exact shape, colour, packaging, label/branding, texture, size, proportions, logo, text, and unique details.
+
+The video should feel like a real creator filmed quick handheld product shots on their phone, not a polished commercial or AI demo. Just b-roll.
+
+The video must have a new cut every 1-2 seconds: fast product grabs, close-up label/details, texture shots, realistic hand interaction, product use/demo, satisfying movement, lifestyle context, and a final clean hero shot.
+
+Include natural daylight or realistic indoor lighting, handheld camera movement, quick push-ins, whip pans, snap zooms, rack focus, realistic hands with natural grip and finger movement, believable product interaction, ambient sound effects only, product-specific sound effects, no music, no voiceover, no dialogue, no on-screen text, no floating product shots, no warped labels, no fake AI hands, no studio background, no exaggerated claims or unrealistic transformations.
+
+Output only the final Seedance 2.0 prompt, ready to paste directly into the video generator.${safeVideoDirection ? `\n\nDirector note: ${safeVideoDirection}` : ''}` },
+            ],
+          }],
+        })
+        seedancePrompt = (msg.content[0] as { type: 'text'; text: string }).text.trim()
+      } catch (err) {
+        console.warn('[motion-broll-animate] Claude b-roll prompt failed, falling back to template:', err instanceof Error ? err.message : err)
+        seedancePrompt = buildMotionBrollSeedancePrompt({ formatKey, productName: safeProductName, durationSeconds: duration, videoDirection: safeVideoDirection || undefined })
+      }
+    } else {
+      seedancePrompt = buildMotionBrollSeedancePrompt({
+        formatKey,
+        productName: safeProductName,
+        durationSeconds: duration,
+        videoDirection: safeVideoDirection || undefined,
+      })
+    }
 
     // Product appearance anchor — gives Seedance the real product to bind
     // to. Especially matters for unboxing / mystery-box where the first

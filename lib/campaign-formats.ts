@@ -245,7 +245,7 @@ export const CAMPAIGN_FORMATS: CampaignFormat[] = [
   },
   {
     key: 'hyper-motion',
-    label: 'Hyper Motion',
+    label: 'Kinetic Burst',
     tagline: 'High-energy bursts, drops + spins.',
     category: 'motion', pipeline: 'motion-broll',
     defaultAspect: '9:16', defaultDuration: 6,
