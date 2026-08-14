@@ -10,7 +10,6 @@ const plans = [
     price: { monthly: '$0', annual: '$0' },
     annualTotal: null,
     credits: '30 one-time signup credits',
-    priceId: { monthly: '', annual: '' },
     planKey: 'free',
     features: [
       '30 credits on sign-up (~6 images)',
@@ -25,13 +24,9 @@ const plans = [
   },
   {
     name: 'Lite',
-    price: { monthly: '$6', annual: '$5' },
-    annualTotal: '$60/yr',
+    price: { monthly: '$7', annual: '$6' },
+    annualTotal: '$72/yr',
     credits: '200 credits / month',
-    priceId: {
-      monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_LITE ?? '',
-      annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_LITE_ANNUAL ?? '',
-    },
     planKey: 'lite',
     features: [
       'Product photos & images',
@@ -46,13 +41,9 @@ const plans = [
   },
   {
     name: 'Starter',
-    price: { monthly: '$19', annual: '$16' },
-    annualTotal: '$190/yr',
+    price: { monthly: '$21', annual: '$18' },
+    annualTotal: '$216/yr',
     credits: '800 credits / month',
-    priceId: {
-      monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '',
-      annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? '',
-    },
     planKey: 'starter',
     features: [
       '~6 UGC videos/mo at 5s',
@@ -67,13 +58,9 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: { monthly: '$49', annual: '$41' },
-    annualTotal: '$490/yr',
+    price: { monthly: '$55', annual: '$46' },
+    annualTotal: '$552/yr',
     credits: '2,000 credits / month',
-    priceId: {
-      monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '',
-      annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '',
-    },
     planKey: 'pro',
     popular: true,
     features: [
@@ -88,13 +75,9 @@ const plans = [
   },
   {
     name: 'Agency',
-    price: { monthly: '$149', annual: '$124' },
-    annualTotal: '$1,490/yr',
+    price: { monthly: '$165', annual: '$138' },
+    annualTotal: '$1,656/yr',
     credits: '6,500 credits / month',
-    priceId: {
-      monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '',
-      annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? '',
-    },
     planKey: 'agency',
     features: [
       '~52 UGC videos/mo at 5s',
@@ -106,10 +89,26 @@ const plans = [
     ],
     cta: 'Get Agency',
   },
+  {
+    name: 'Enterprise',
+    price: { monthly: '$665', annual: '$555' },
+    annualTotal: '$6,660/yr',
+    credits: '25,000 credits / month',
+    planKey: 'enterprise',
+    features: [
+      '~200 UGC videos/mo at 5s',
+      '~5,000 product images/mo',
+      'Everything in Agency',
+      'API access · White-label',
+      '5 team seats · Priority queue',
+      'Dedicated Slack & account manager',
+    ],
+    cta: 'Get Enterprise',
+  },
 ]
 
 const comparison = [
-  ['Starting price',    '$19/mo', '$110/mo', '$39/mo',  '$29/mo',  '$15/mo'],
+  ['Starting price (taxes incl.)', '$21/mo', '$110/mo', '$39/mo',  '$29/mo',  '$15/mo'],
   ['UGC video',         '✓',      '✓',       '✓',       '~',       '✓'],
   ['Product photos',    '✓',      '✗',       '✗',       '✗',       '✗'],
   ['Social copy',       '✓',      '✗',       '✗',       '✗',       '✗'],
@@ -135,7 +134,7 @@ export default function PricingPage() {
   }, [])
 
   async function handleCta(plan: typeof plans[number]) {
-    if (!plan.priceId.monthly) {
+    if (plan.planKey === 'free') {
       window.location.href = plan.ctaHref ?? '/auth/signup'
       return
     }
@@ -208,10 +207,14 @@ export default function PricingPage() {
             <span style={{ fontSize: 13, fontWeight: annual ? 700 : 400 }}>Annual</span>
             <span style={{ fontSize: 10, fontWeight: 700, background: '#F1E6C9', color: '#8A6420', borderRadius: 6, padding: '3px 9px', letterSpacing: '0.04em' }}>2 months free</span>
           </div>
+          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, background: '#fef3c7', color: '#92400e', borderRadius: 6, padding: '3px 10px', letterSpacing: '0.04em' }}>Early launch pricing</span>
+            <span style={{ fontSize: 11, color: 'var(--ink-mute, #999)' }}>All prices include taxes &amp; payment fees</span>
+          </div>
         </div>
 
         {/* Plan cards */}
-        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 64 }}>
+        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, marginBottom: 64 }}>
           {plans.map(plan => {
             const price = annual ? plan.price.annual : plan.price.monthly
             const isLoading = loading === plan.planKey
@@ -232,6 +235,9 @@ export default function PricingPage() {
                 )}
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{plan.name}</div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
+                  {annual && plan.planKey !== 'free' && (
+                    <span style={{ fontSize: 16, color: 'var(--ink-mute, #aaa)', textDecoration: 'line-through', fontWeight: 400, lineHeight: 1 }}>{plan.price.monthly}</span>
+                  )}
                   <span style={{ fontFamily: 'var(--font-serif, Georgia)', fontStyle: 'italic', fontSize: 36, fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1 }}>{price}</span>
                   {plan.planKey !== 'free' && <span style={{ fontSize: 13, color: 'var(--ink-mute, #999)' }}>/mo</span>}
                 </div>
@@ -279,7 +285,7 @@ export default function PricingPage() {
           })}
         </div>
         <style>{`
-          @media (max-width: 1100px) { .pricing-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+          @media (max-width: 1300px) { .pricing-grid { grid-template-columns: repeat(3, 1fr) !important; } }
           @media (max-width: 700px)  { .pricing-grid { grid-template-columns: repeat(2, 1fr) !important; } }
           @media (max-width: 480px)  { .pricing-grid { grid-template-columns: 1fr !important; } }
         `}</style>

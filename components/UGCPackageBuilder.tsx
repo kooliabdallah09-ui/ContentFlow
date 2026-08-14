@@ -645,7 +645,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         if (first) {
           setSelectedProductId(first.id)
           setProductName(first.name)
-          if (first.product_type === 'app') setProductType('website')
+          if (first.product_type === 'app') { setProductType('website') } else { setProductType('physical'); setWebsiteUrl('') }
           if (first.image_url) {
             loadBrandImage(first.image_url).then(img => {
               if (!cancelled && img) setProductImage(img)
@@ -2186,12 +2186,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       if (sp.description) setProductDescription(sp.description)
                       const urls = Array.isArray(sp.photo_urls) ? sp.photo_urls : []
                       const angles = Array.isArray(sp.photo_angles) ? sp.photo_angles : []
-                      // If the studio product is an app, flip productType so the
-                      // routes render the reference on a device screen.
+                      // Sync productType to the selected product's type.
                       if (sp.product_type === 'app') {
                         setProductType('website')
-                        // Pre-fill website URL from the studio product's saved URL.
                         if (sp.website_url) setWebsiteUrl(sp.website_url)
+                      } else {
+                        setProductType('physical')
+                        setWebsiteUrl('')
                       }
                       // Pick primary based on the picked format's framing needs:
                       // POV/interview → mobile screenshot (phone framing);
