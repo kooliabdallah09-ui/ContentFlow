@@ -231,13 +231,13 @@ async function callNanoBanana(
     // Vertex exhausted — try AI Studio fallback before giving up
     if (genaiKey) {
       console.warn('[nanobanana] Vertex quota exhausted, falling back to AI Studio')
-      return await callNanoBananaGemini(prompt, referenceImages, aspectRatio, model, resolution)
+      return await callNanoBananaGoogle(prompt, referenceImages, aspectRatio, model, resolution)
     }
     throw lastErr
   }
 
   if (genaiKey) {
-    return await callNanoBananaGemini(prompt, referenceImages, aspectRatio, model, resolution)
+    return await callNanoBananaGoogle(prompt, referenceImages, aspectRatio, model, resolution)
   }
 
   throw new Error('No image provider configured — set GOOGLE_VERTEX_SA_JSON or GOOGLE_GENAI_API_KEY')
