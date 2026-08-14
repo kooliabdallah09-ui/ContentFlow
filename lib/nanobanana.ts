@@ -211,23 +211,36 @@ async function callNanoBanana(
   model: 'pro' | 'nb2' = 'pro',
   resolution?: '1K' | '2K' | '4K',
 ): Promise<NanoBananaResult> {
-  // Provider: Vertex AI only. Retry up to 3× on 429 with exponential backoff.
+  // Provider: Vertex AI with fallback to AI Studio (GOOGLE_GENAI_API_KEY) on 429.
   const sa = getVertexSA()
-  if (!sa) throw new Error('Vertex AI not configured — GOOGLE_VERTEX_SA_JSON missing')
-  let lastErr: unknown
-  for (let attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) await new Promise(r => setTimeout(r, 5000))
-    try {
-      return await callNanoBananaVertex(prompt, referenceImages, aspectRatio, model, resolution, sa)
-    } catch (e) {
-      lastErr = e
-      const msg = e instanceof Error ? e.message : ''
-      if (!msg.includes('429')) throw e   // non-rate-limit errors → fail fast
-      console.warn(`[nanobanana] Vertex 429, retry ${attempt + 1}/2`)
-    }
-  }
-  throw lastErr
+  const genaiKey = process.env.GOOGLE_GENAI_API_KEY
 
+  if (sa) {
+    let lastErr: unknown
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) await new Promise(r => setTimeout(r, 3000))
+      try {
+        return await callNanoBananaVertex(prompt, referenceImages, aspectRatio, model, resolution, sa)
+      } catch (e) {
+        lastErr = e
+        const msg = e instanceof Error ? e.message : ''
+        if (!msg.includes('429')) throw e   // non-rate-limit errors → fail fast
+        console.warn(`[nanobanana] Vertex 429, retry ${attempt + 1}/2`)
+      }
+    }
+    // Vertex exhausted — try AI Studio fallback before giving up
+    if (genaiKey) {
+      console.warn('[nanobanana] Vertex quota exhausted, falling back to AI Studio')
+      return await callNanoBananaGemini(prompt, referenceImages, aspectRatio, model, resolution)
+    }
+    throw lastErr
+  }
+
+  if (genaiKey) {
+    return await callNanoBananaGemini(prompt, referenceImages, aspectRatio, model, resolution)
+  }
+
+  throw new Error('No image provider configured — set GOOGLE_VERTEX_SA_JSON or GOOGLE_GENAI_API_KEY')
 }
 
 // Generate a first frame for Sora 2 from a plain text prompt — no reference image.
