@@ -134,26 +134,26 @@ export default function BillingPage() {
       planKey: 'free',
     },
     {
-      name: 'Starter', price: { monthly: '$19', annual: '$16' }, annualTotal: '$190/yr',
+      name: 'Starter', price: { monthly: '$21', annual: '$18' }, annualTotal: '$216/yr',
       credits: '800/month · $0.024/cr',
       features: ['~6 UGC videos/mo at 5s · ~4 at 10s', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer Studio & Product Studio', 'No watermark · Video editor · Priority support'],
       planKey: 'starter',
     },
     {
-      name: 'Pro', price: { monthly: '$49', annual: '$41' }, annualTotal: '$490/yr',
+      name: 'Pro', price: { monthly: '$55', annual: '$46' }, annualTotal: '$552/yr',
       credits: '2,000/month · $0.025/cr',
       features: ['~16 UGC videos/mo at 5s · ~10 at 10s', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
       planKey: 'pro',
       popular: true,
     },
     {
-      name: 'Agency', price: { monthly: '$149', annual: '$124' }, annualTotal: '$1,490/yr',
+      name: 'Agency', price: { monthly: '$165', annual: '$138' }, annualTotal: '$1,656/yr',
       credits: '6,500/month · $0.023/cr',
       features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
       planKey: 'agency',
     },
     {
-      name: 'Enterprise', price: { monthly: '$599', annual: '$499' }, annualTotal: '$5,990/yr',
+      name: 'Enterprise', price: { monthly: '$665', annual: '$555' }, annualTotal: '$6,660/yr',
       credits: '25,000/month · $0.024/cr',
       features: ['~200 UGC videos/mo at 5s · ~130 at 10s', '~5,000 images · ~3,000 influencer/product photos', 'Everything in Agency', 'API access · White-label (no ContentFlow branding)', '5 team seats · Priority render queue · Dedicated Slack'],
       planKey: 'enterprise',
@@ -241,7 +241,7 @@ export default function BillingPage() {
       {/* Plans */}
       <div style={{ marginBottom: 32 }}>
         {/* Toggle */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 13, fontWeight: annual ? 400 : 700, color: 'var(--ink)', transition: 'font-weight 0.15s' }}>Monthly</span>
           <button
             onClick={() => setAnnual(a => !a)}
@@ -266,6 +266,12 @@ export default function BillingPage() {
             background: '#F1E6C9', color: '#8A6420',
             borderRadius: 6, padding: '3px 9px',
           }}>2 months free</span>
+          <span style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+            background: 'linear-gradient(90deg,#111,#333)', color: '#fff',
+            borderRadius: 6, padding: '3px 9px',
+          }}>Early launch pricing</span>
+          <span style={{ fontSize: 11, color: 'var(--ink-mute)', marginLeft: 'auto' }}>All prices include taxes &amp; payment fees</span>
         </div>
 
         {/* ── Lite plan — restricted micro-tier ────────────────────────────── */}
@@ -281,11 +287,12 @@ export default function BillingPage() {
           )}
           {/* Top row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '18px 22px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 15, fontWeight: 700 }}>Lite</span>
-              <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$5' : '$6'}</span>
+              {annual && <span style={{ fontSize: 14, color: 'var(--ink-mute)', textDecoration: 'line-through', fontWeight: 600 }}>$7</span>}
+              <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$6' : '$7'}</span>
               <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/mo</span>
-              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $60/yr</span>}
+              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $72/yr</span>}
               <span style={{ fontSize: 11, color: 'var(--ink-dim)', marginLeft: 4 }}>· 200 cr/month · $0.030/cr</span>
             </div>
 
@@ -351,7 +358,10 @@ export default function BillingPage() {
                   </span>
                 )}
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
-                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 2, flexWrap: 'wrap' }}>
+                  {annual && plan.planKey !== 'free' && (
+                    <span style={{ fontSize: 15, color: 'var(--ink-mute)', textDecoration: 'line-through', fontWeight: 600 }}>{plan.price.monthly}</span>
+                  )}
                   <span style={{ fontSize: 26, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{displayPrice}</span>
                   <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>{plan.planKey === 'free' ? '' : '/mo'}</span>
                 </div>
@@ -469,7 +479,7 @@ export default function BillingPage() {
       {/* Competitor comparison table */}
       <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', overflowX: 'auto' }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, marginTop: 0, letterSpacing: '-0.01em' }}>How we compare</h3>
-        <p style={{ fontSize: 12.5, color: 'var(--ink-mute)', marginTop: 0, marginBottom: 16 }}>ContentFlow vs. the alternatives — same job, half the cost.</p>
+        <p style={{ fontSize: 12.5, color: 'var(--ink-mute)', marginTop: 0, marginBottom: 16 }}>ContentFlow vs. the alternatives — more features, taxes included, a fraction of the price.</p>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--border)' }}>
@@ -480,7 +490,7 @@ export default function BillingPage() {
           </thead>
           <tbody>
             {[
-              ['Starting price', '$19/mo', '$110/mo', '$39/mo', '$29/mo', '$15/mo'],
+              ['Starting price (taxes incl.)', '$21/mo', '$110/mo', '$39/mo', '$29/mo', '$15/mo'],
               ['Monthly credits', '800 cr', 'Pay per video', '~100 cr', '200 cr', '200 cr'],
               ['UGC video', '✓', '✓', '✓', '~', '✓'],
               ['Product photos', '✓', '✗', '✗', '✗', '✗'],
