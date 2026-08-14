@@ -25,11 +25,6 @@ export default function BrandSettingsPage() {
     logoUrl:            '',
   })
 
-  interface Product { id: string; name: string; image_url: string | null; created_at: string }
-  const [products, setProducts]           = useState<Product[]>([])
-  const [migrationPending, setMigrationPending] = useState(false)
-  const [productsBusy, setProductsBusy]   = useState(false)
-
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -62,25 +57,6 @@ export default function BrandSettingsPage() {
       } finally {
         if (!cancelled) setLoading(false)
       }
-    })()
-    return () => { cancelled = true }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-    ;(async () => {
-      try {
-        const supabase = getSupabase()
-        if (!supabase) return
-        const { data: sess } = await supabase.auth.getSession()
-        const token = sess?.session?.access_token
-        if (!token) return
-        const res = await fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } })
-        const data = await res.json()
-        if (cancelled) return
-        if (data?.migrationPending) setMigrationPending(true)
-        setProducts(Array.isArray(data?.products) ? data.products : [])
-      } catch {}
     })()
     return () => { cancelled = true }
   }, [])
@@ -119,70 +95,6 @@ export default function BrandSettingsPage() {
     } finally {
       setUploading(false)
     }
-  }
-
-  async function uploadProductPhoto(file: File): Promise<string | null> {
-    if (file.size > 5 * 1024 * 1024) { setError('Image must be under 5MB'); return null }
-    const supabase = getSupabase()
-    if (!supabase) return null
-    const { data: sess } = await supabase.auth.getSession()
-    const token = sess?.session?.access_token
-    if (!token) return null
-    const fd = new FormData()
-    fd.append('file', file)
-    const res = await fetch('/api/brand/upload-image', {
-      method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd,
-    })
-    const data = await res.json()
-    if (!res.ok) { setError(data?.error || 'Upload failed'); return null }
-    return data?.url ?? null
-  }
-
-  async function saveProductsList(next: Product[]) {
-    setProductsBusy(true)
-    setError('')
-    try {
-      const supabase = getSupabase()
-      if (!supabase) return
-      const { data: sess } = await supabase.auth.getSession()
-      const token = sess?.session?.access_token
-      if (!token) return
-      const res = await fetch('/api/brand/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ products: next }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data?.error || 'Save failed')
-      setProducts(data.products ?? next)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Save failed')
-    } finally {
-      setProductsBusy(false)
-    }
-  }
-
-  async function addProduct(file: File, name: string) {
-    const url = await uploadProductPhoto(file)
-    if (!url) return
-    const newProduct: Product = {
-      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      name: name.trim() || 'Untitled product',
-      image_url: url,
-      created_at: new Date().toISOString(),
-    }
-    await saveProductsList([...products, newProduct])
-  }
-
-  async function renameProduct(id: string, name: string) {
-    const next = products.map(p => p.id === id ? { ...p, name } : p)
-    setProducts(next)
-    await saveProductsList(next)
-  }
-
-  async function deleteProduct(id: string) {
-    if (!confirm('Remove this product?')) return
-    await saveProductsList(products.filter(p => p.id !== id))
   }
 
   async function save() {
@@ -346,51 +258,21 @@ export default function BrandSettingsPage() {
           </div>
         </section>
 
-        {/* Section 2: Products */}
+        {/* Products — link to Product Studio */}
+        <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>Your products live in Product Studio</div>
+            <p className="help" style={{ margin: 0 }}>Brand is your identity — logo, name, description, audience. Each individual product you sell lives in Product Studio, where you upload photos from every angle and generate AI shoots. Campaigns and the UGC builder pull products from there.</p>
+          </div>
+          <a href="/generate/products" style={{ flexShrink: 0, padding: '9px 16px', borderRadius: 10, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            Open Product Studio →
+          </a>
+        </div>
+
+        {/* Section 2: Positioning */}
         <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="section-step-head" style={{ marginBottom: 0 }}>
             <span className="step-circle">2</span>
-            <h3>Products <span style={{ color: 'var(--ink-mute)', fontWeight: 400, fontSize: 12.5, marginLeft: 4 }}>({products.length})</span></h3>
-          </div>
-          <p className="help" style={{ margin: 0 }}>Add a photo + name for each product. The UGC builder lets you pick which one to advertise on each video.</p>
-
-          {migrationPending && (
-            <div style={{ padding: '10px 14px', borderRadius: 11, background: 'rgba(184,58,53,0.06)', border: '1px solid var(--danger)', color: 'var(--danger)', fontSize: 12.5 }}>
-              Multi-product storage isn&apos;t enabled yet. Run <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--surface)', padding: '1px 5px', borderRadius: 4 }}>migrations/005_add_brand_products.sql</code> in Supabase SQL editor, then refresh.
-            </div>
-          )}
-
-          {products.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
-              {products.map(p => (
-                <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: 10, borderRadius: 12, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
-                  {p.image_url && (
-                    <div style={{ aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)', border: '1px solid var(--border-soft)' }}>
-                      <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    </div>
-                  )}
-                  <input className="input"
-                    value={p.name}
-                    onChange={e => setProducts(prev => prev.map(x => x.id === p.id ? { ...x, name: e.target.value } : x))}
-                    onBlur={e => renameProduct(p.id, e.target.value)}
-                    disabled={productsBusy || saving}
-                    style={{ fontSize: 13, padding: '8px 10px' }} />
-                  <button type="button" onClick={() => deleteProduct(p.id)} disabled={productsBusy || saving}
-                    style={{ background: 'transparent', border: 'none', color: 'var(--ink-mute)', fontSize: 12, cursor: 'pointer', padding: '4px 6px', textAlign: 'left' }}>
-                    Remove
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <AddProductButton onAdd={addProduct} busy={productsBusy || migrationPending} />
-        </section>
-
-        {/* Section 3: Positioning */}
-        <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div className="section-step-head" style={{ marginBottom: 0 }}>
-            <span className="step-circle">3</span>
             <h3>Positioning</h3>
           </div>
 
@@ -416,10 +298,10 @@ export default function BrandSettingsPage() {
           </div>
         </section>
 
-        {/* Section 4: Voice & Audience */}
+        {/* Section 3: Voice & Audience */}
         <section className="card" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div className="section-step-head" style={{ marginBottom: 0 }}>
-            <span className="step-circle">4</span>
+            <span className="step-circle">3</span>
             <h3>Voice &amp; audience</h3>
           </div>
 
@@ -460,102 +342,3 @@ export default function BrandSettingsPage() {
   )
 }
 
-function AddProductButton({ onAdd, busy }: { onAdd: (file: File, name: string) => Promise<void>; busy: boolean }) {
-  const [open, setOpen]           = useState(false)
-  const [name, setName]           = useState('')
-  const [file, setFile]           = useState<File | null>(null)
-  const [preview, setPreview]     = useState('')
-  const [submitting, setSubmitting] = useState(false)
-
-  const pickDrop = useImageDrop({
-    multiple: false,
-    onFiles: files => pick(files[0]),
-    disabled: submitting,
-  })
-
-  function pick(f: File | null) {
-    setFile(f)
-    if (f) {
-      const reader = new FileReader()
-      reader.onload = ev => setPreview(ev.target?.result as string)
-      reader.readAsDataURL(f)
-    } else {
-      setPreview('')
-    }
-  }
-
-  async function submit() {
-    if (!file || !name.trim()) return
-    setSubmitting(true)
-    try {
-      await onAdd(file, name.trim())
-      setOpen(false); setName(''); setFile(null); setPreview('')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  if (!open) {
-    return (
-      <button type="button" onClick={() => setOpen(true)} disabled={busy}
-        style={{
-          display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '10px 16px', borderRadius: 10,
-          background: 'var(--ink)', color: 'var(--on-ink)',
-          border: 'none', fontSize: 13, fontWeight: 600,
-          cursor: busy ? 'not-allowed' : 'pointer',
-          opacity: busy ? 0.5 : 1, alignSelf: 'flex-start',
-        }}>
-        + Add product
-      </button>
-    )
-  }
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 10, padding: 14, borderRadius: 12, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
-      <input className="input" value={name} onChange={e => setName(e.target.value)}
-        placeholder="Product name (e.g. Vintage Linen Tee)" disabled={submitting} />
-      <label {...pickDrop.dropzoneProps} style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        padding: '12px 14px', borderRadius: 10,
-        border: `1.5px dashed ${pickDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
-        background: pickDrop.isDragging ? 'var(--hover)' : 'var(--surface)',
-        cursor: submitting ? 'wait' : 'pointer',
-        transition: 'background 120ms, border-color 120ms',
-      }}>
-        {preview ? (
-          <img src={preview} alt="preview" style={{ width: 44, height: 44, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }} />
-        ) : (
-          <div style={{ width: 44, height: 44, borderRadius: 6, background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
-          </div>
-        )}
-        <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>{file ? file.name : 'Pick a photo'}</p>
-          <p style={{ fontSize: 11, color: 'var(--ink-mute)', margin: '2px 0 0' }}>PNG · JPG · WEBP · ≤ 5MB</p>
-        </div>
-        <input type="file" accept="image/jpeg,image/png,image/webp"
-          onChange={e => pick(e.target.files?.[0] ?? null)}
-          disabled={submitting} style={{ display: 'none' }} />
-      </label>
-      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button type="button" onClick={() => { setOpen(false); setName(''); setFile(null); setPreview('') }}
-          disabled={submitting}
-          style={{ padding: '8px 14px', borderRadius: 9, background: 'transparent', border: 'none', color: 'var(--ink-mute)', fontSize: 13, cursor: 'pointer' }}>
-          Cancel
-        </button>
-        <button type="button" onClick={submit}
-          disabled={submitting || !file || !name.trim()}
-          style={{
-            padding: '8px 18px', borderRadius: 9,
-            background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
-            fontSize: 13, fontWeight: 600,
-            cursor: submitting || !file || !name.trim() ? 'not-allowed' : 'pointer',
-            opacity: submitting || !file || !name.trim() ? 0.5 : 1,
-          }}>
-          {submitting ? 'Adding…' : 'Add product'}
-        </button>
-      </div>
-    </div>
-  )
-}

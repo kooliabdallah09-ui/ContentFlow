@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-// List + replace the user's product catalog. Each product is { id, name, image_url, created_at }.
-// Stored in brand_profiles.products (JSONB) — see migrations/005_add_brand_products.sql.
+// Returns the user's products from user_studio_products (Product Studio).
+// Brand settings no longer manages products — Product Studio is the canonical source.
 //
-// GET  → { products: [...] }
-// POST → upserts the full array { products: [...] } (caller sends the whole list)
-
-interface Product {
-  id: string
-  name: string
-  image_url: string | null
-  created_at: string
-}
+// GET → { products: [{ id, name, image_url, created_at }] }
 
 async function authedClient(req: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -30,59 +22,21 @@ export async function GET(req: NextRequest) {
   try {
     const { supabase, userId } = await authedClient(req)
     const { data, error } = await supabase
-      .from('brand_profiles')
-      .select('products')
+      .from('user_studio_products')
+      .select('id, name, photo_urls, created_at')
       .eq('user_id', userId)
-      .maybeSingle()
-    if (error) {
-      // If `products` column doesn't exist yet (migration not run), return empty.
-      if (error.code === '42703' || /column.*products/i.test(error.message)) {
-        return NextResponse.json({ products: [], migrationPending: true })
-      }
-      throw error
-    }
-    const products: Product[] = Array.isArray(data?.products) ? data!.products : []
+      .order('last_used_at', { ascending: false, nullsFirst: false })
+    if (error) throw error
+    const products = (data ?? []).map(p => ({
+      id: p.id,
+      name: p.name,
+      image_url: Array.isArray(p.photo_urls) && p.photo_urls.length > 0 ? p.photo_urls[0] : null,
+      created_at: p.created_at,
+    }))
     return NextResponse.json({ products })
   } catch (err) {
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Failed to load products' },
-      { status: 500 },
-    )
-  }
-}
-
-export async function POST(req: NextRequest) {
-  try {
-    const { supabase, userId } = await authedClient(req)
-    const body = await req.json()
-    const list = Array.isArray(body?.products) ? body.products : []
-    // Sanitize: cap at 50, validate fields.
-    const sanitized: Product[] = list.slice(0, 50).map((p: Product) => ({
-      id: String(p.id ?? crypto.randomUUID()),
-      name: String(p.name ?? '').slice(0, 120).trim() || 'Untitled product',
-      image_url: typeof p.image_url === 'string' ? p.image_url : null,
-      created_at: String(p.created_at ?? new Date().toISOString()),
-    }))
-
-    // Ensure the brand_profiles row exists (Brand page creates it). Upsert products only.
-    const { error } = await supabase
-      .from('brand_profiles')
-      .upsert({ user_id: userId, products: sanitized, updated_at: new Date().toISOString() }, { onConflict: 'user_id' })
-
-    if (error) {
-      if (error.code === '42703' || /column.*products/i.test(error.message)) {
-        return NextResponse.json(
-          { error: 'The products column has not been added yet — run migrations/005_add_brand_products.sql in Supabase first.' },
-          { status: 400 },
-        )
-      }
-      throw error
-    }
-
-    return NextResponse.json({ success: true, products: sanitized })
-  } catch (err) {
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : 'Save failed' },
       { status: 500 },
     )
   }
