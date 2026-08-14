@@ -628,7 +628,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           description: p.description ?? '',
           keyBenefits: p.unique_value_prop ?? '',
           defaultCta: p.brand_mission ?? 'Try it today',
-          productImageUrl: p.logo_url ?? undefined,
+          productImageUrl: undefined,
         }
         setBrand(profile)
         setUseBrand(true)

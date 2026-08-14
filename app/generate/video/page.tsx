@@ -275,7 +275,6 @@ export default function VideoGeneratorPage() {
           const productImageUrl: string | undefined =
             products.find(p => typeof p?.image_url === 'string' && p.image_url)?.image_url
             ?? brand?.product_image_url
-            ?? brand?.logo_url
           if (!productImageUrl) return
           const imgRes = await fetch(productImageUrl)
           if (!imgRes.ok) return
