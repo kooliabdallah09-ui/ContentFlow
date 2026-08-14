@@ -34,16 +34,16 @@ export default function BillingPage() {
     return data?.session?.access_token ?? null
   }
 
-  async function handleUpgrade(priceId: string) {
-    if (!priceId) return
-    setUpgradeLoading(priceId)
+  async function handleUpgrade(planKey: string) {
+    if (!planKey || planKey === 'free') return
+    setUpgradeLoading(planKey)
     try {
       const token = await getToken()
       if (!token) { window.location.href = '/auth/login'; return }
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await fetch('/api/dodo/checkout', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId, mode: 'subscription' }),
+        body: JSON.stringify({ planKey, annual }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Checkout failed')
@@ -55,15 +55,15 @@ export default function BillingPage() {
     }
   }
 
-  async function handlePackCheckout(priceId: string) {
-    setPackLoading(priceId)
+  async function handlePackCheckout(packKey: string) {
+    setPackLoading(packKey)
     try {
       const token = await getToken()
       if (!token) { window.location.href = '/auth/login'; return }
-      const res = await fetch('/api/stripe/checkout', {
+      const res = await fetch('/api/dodo/checkout', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ priceId, mode: 'payment' }),
+        body: JSON.stringify({ planKey: packKey, annual: false }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error ?? 'Checkout failed')
@@ -75,22 +75,8 @@ export default function BillingPage() {
     }
   }
 
-  async function handleManageSubscription() {
-    setUpgradeLoading('portal')
-    try {
-      const token = await getToken()
-      const res = await fetch('/api/stripe/portal', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const { url, error } = await res.json()
-      if (error) throw new Error(error)
-      window.location.href = url
-    } catch (e) {
-      alert(e instanceof Error ? e.message : 'Portal failed')
-    } finally {
-      setUpgradeLoading(null)
-    }
+  function handleManageSubscription() {
+    window.open('mailto:support@contentflow-web.com?subject=Subscription%20management', '_blank')
   }
 
   const loadCreditsInfo = async () => {
@@ -144,21 +130,18 @@ export default function BillingPage() {
     {
       name: 'Free', price: { monthly: '$0', annual: '$0' }, annualTotal: null,
       credits: '0/month · +30 signup',
-      priceId: { monthly: '', annual: '' },
       features: ['30 one-time signup credits', '~6 product images', '~3 AI influencer / product photos', 'Try every studio', 'Business card generator', 'No UGC videos (cheapest is 95cr)'],
       planKey: 'free',
     },
     {
       name: 'Starter', price: { monthly: '$19', annual: '$16' }, annualTotal: '$190/yr',
       credits: '800/month · $0.024/cr',
-      priceId: { monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER ?? '', annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_STARTER_ANNUAL ?? '' },
       features: ['~6 UGC videos/mo at 5s · ~4 at 10s', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer Studio & Product Studio', 'No watermark · Video editor · Priority support'],
       planKey: 'starter',
     },
     {
       name: 'Pro', price: { monthly: '$49', annual: '$41' }, annualTotal: '$490/yr',
       credits: '2,000/month · $0.025/cr',
-      priceId: { monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO ?? '', annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_PRO_ANNUAL ?? '' },
       features: ['~16 UGC videos/mo at 5s · ~10 at 10s', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
       planKey: 'pro',
       popular: true,
@@ -166,20 +149,18 @@ export default function BillingPage() {
     {
       name: 'Agency', price: { monthly: '$149', annual: '$124' }, annualTotal: '$1,490/yr',
       credits: '6,500/month · $0.023/cr',
-      priceId: { monthly: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY ?? '', annual: process.env.NEXT_PUBLIC_STRIPE_PRICE_AGENCY_ANNUAL ?? '' },
       features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
       planKey: 'agency',
     },
   ]
 
   const creditPacks = [
-    { credits: 250,  price: '$8',   perCr: '$0.032/cr', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_250 ?? '' },
-    { credits: 500,  price: '$15',  perCr: '$0.030/cr', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_500 ?? '' },
-    { credits: 1500, price: '$45',  perCr: '$0.030/cr', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_1500 ?? '' },
-    { credits: 5000, price: '$120', perCr: '$0.024/cr', priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_PACK_5000 ?? '' },
+    { credits: 250,  price: '$8',   perCr: '$0.032/cr', packKey: 'pack_250' },
+    { credits: 500,  price: '$15',  perCr: '$0.030/cr', packKey: 'pack_500' },
+    { credits: 1500, price: '$45',  perCr: '$0.030/cr', packKey: 'pack_1500' },
+    { credits: 5000, price: '$120', perCr: '$0.024/cr', packKey: 'pack_5000' },
   ]
 
-  const litePriceId = annual ? (process.env.NEXT_PUBLIC_STRIPE_PRICE_LITE_ANNUAL ?? '') : (process.env.NEXT_PUBLIC_STRIPE_PRICE_LITE ?? '')
   const isLitePlan = currentPlan === 'lite'
 
   return (
@@ -315,10 +296,10 @@ export default function BillingPage() {
             {/* CTA */}
             {isLitePlan ? (
               <div style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: 9, border: '1px solid var(--border)', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)', flexShrink: 0 }}>Current plan</div>
-            ) : litePriceId && isAdmin ? (
-              <button onClick={() => handleUpgrade(litePriceId)} disabled={upgradeLoading === litePriceId}
-                style={{ marginLeft: 'auto', padding: '8px 20px', borderRadius: 9, border: 'none', background: '#111', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: upgradeLoading === litePriceId ? 0.5 : 1 }}>
-                {upgradeLoading === litePriceId ? 'Redirecting…' : 'Get Lite'}
+            ) : isAdmin ? (
+              <button onClick={() => handleUpgrade('lite')} disabled={upgradeLoading === 'lite'}
+                style={{ marginLeft: 'auto', padding: '8px 20px', borderRadius: 9, border: 'none', background: '#111', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: upgradeLoading === 'lite' ? 0.5 : 1 }}>
+                {upgradeLoading === 'lite' ? 'Redirecting…' : 'Get Lite'}
               </button>
             ) : (
               <div style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: 9, border: '1px solid var(--border)', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)', flexShrink: 0 }}>Coming soon</div>
@@ -340,8 +321,7 @@ export default function BillingPage() {
         <div className="billing-plan-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
           {plans.map((plan) => {
             const isCurrent = currentPlan === plan.planKey
-            const activePriceId = annual ? plan.priceId.annual : plan.priceId.monthly
-            const isLoading = upgradeLoading === activePriceId
+            const isLoading = upgradeLoading === plan.planKey
             const displayPrice = annual ? plan.price.annual : plan.price.monthly
             const showPopular = plan.popular && !isCurrent
             return (
@@ -378,9 +358,9 @@ export default function BillingPage() {
                   <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
                     Current plan
                   </div>
-                ) : activePriceId && isAdmin ? (
+                ) : plan.planKey !== 'free' && isAdmin ? (
                   <button
-                    onClick={() => handleUpgrade(activePriceId)}
+                    onClick={() => handleUpgrade(plan.planKey)}
                     disabled={isLoading}
                     style={{
                       display: 'block', width: '100%', padding: '9px 12px', borderRadius: 9,
@@ -391,7 +371,7 @@ export default function BillingPage() {
                   >
                     {isLoading ? 'Redirecting…' : 'Upgrade'}
                   </button>
-                ) : activePriceId && !isAdmin ? (
+                ) : plan.planKey !== 'free' ? (
                   <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
                     Coming soon
                   </div>
@@ -643,7 +623,7 @@ function PlanRecommender({
   goals: string[], setGoals: (g: string[]) => void,
   volume?: string, setVolume?: (v: string) => void,
   currentPlan: string, annual: boolean,
-  plans: { name: string, price: { monthly: string, annual: string }, credits: string, priceId: { monthly: string, annual: string }, planKey: string, popular?: boolean, annualTotal?: string | null }[],
+  plans: { name: string, price: { monthly: string, annual: string }, credits: string, planKey: string, popular?: boolean, annualTotal?: string | null }[],
   onUpgrade: (id: string) => void, upgradeLoading: string | null,
   isAdmin?: boolean,
 }) {
@@ -891,13 +871,9 @@ function PlanRecommender({
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', marginRight: 5 }}><path d="M20 6L9 17l-5-5"/></svg>
                   You're already on this plan
                 </div>
-              ) : recPlan.priceId.monthly && !isAdmin ? (
-                <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ink-mute)', fontWeight: 500, padding: '10px 0' }}>
-                  Upgrades coming soon
-                </div>
-              ) : recPlan.priceId.monthly ? (
+              ) : recPlan.planKey !== 'free' ? (
                 <button
-                  onClick={() => onUpgrade(annual ? recPlan.priceId.annual : recPlan.priceId.monthly)}
+                  onClick={() => onUpgrade(recPlan.planKey)}
                   disabled={!!upgradeLoading}
                   style={{
                     width: '100%', padding: '11px', borderRadius: 10, marginTop: 'auto',
