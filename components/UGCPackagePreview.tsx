@@ -1,8 +1,9 @@
 'use client'
 
 import { Download, Copy, Loader, Film } from 'lucide-react'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
+import { getSupabase } from '@/lib/auth'
 
 interface VideoComponent {
   videoId?: string
@@ -107,6 +108,9 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [stitchError, setStitchError] = useState<string | null>(null)
   const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null)
   const [audioOverlayUrl, setAudioOverlayUrl] = useState<string | undefined>(undefined)
+  const [brandLogoUrl, setBrandLogoUrl] = useState<string | null>(null)
+  const [brandCompanyName, setBrandCompanyName] = useState<string | null>(null)
+  const [endCardUrl, setEndCardUrl] = useState<string | null>(null)
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   // Prediction ids we've already auto-retried for an async E005 flag —
   // prevents double-firing the retry endpoint from overlapping polls.
@@ -154,6 +158,58 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   const [hookStitchStatus, setHookStitchStatus] = useState<'idle' | 'stitching' | 'completed' | 'failed'>('idle')
   const hookStitchStartedRef = useRef(false)
   const hookStitchPollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const res = await fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok || cancelled) return
+      const data = await res.json()
+      const p = data.profile
+      if (p?.logo_url) setBrandLogoUrl(p.logo_url)
+      if (p?.company_name) setBrandCompanyName(p.company_name)
+    })()
+    return () => { cancelled = true }
+  }, [])
+
+  const generateEndCard = useCallback(async () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 1080; canvas.height = 1920
+    const ctx = canvas.getContext('2d')!
+    ctx.fillStyle = '#0d0d0d'
+    ctx.fillRect(0, 0, 1080, 1920)
+
+    if (brandLogoUrl) {
+      const logo = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image(); i.crossOrigin = 'anonymous'
+        i.onload = () => resolve(i); i.onerror = reject; i.src = brandLogoUrl
+      }).catch(() => null)
+      if (logo) {
+        const maxW = 280; const scale = Math.min(maxW / logo.width, 200 / logo.height)
+        const lw = logo.width * scale; const lh = logo.height * scale
+        ctx.drawImage(logo, (1080 - lw) / 2, 780, lw, lh)
+      }
+    }
+
+    if (brandCompanyName) {
+      ctx.fillStyle = '#ffffff'
+      ctx.font = '700 72px Georgia, serif'
+      ctx.textAlign = 'center'
+      ctx.fillText(brandCompanyName, 540, 1040)
+    }
+
+    ctx.fillStyle = 'rgba(255,255,255,0.35)'
+    ctx.font = '400 36px -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.fillText('contentflow-web.com', 540, 1820)
+
+    setEndCardUrl(canvas.toDataURL('image/png'))
+  }, [brandLogoUrl, brandCompanyName])
 
   useEffect(() => {
     if (components?.video) setVideo(components.video)
@@ -797,6 +853,28 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
                 <Film style={{ width: 14, height: 14 }} />
                 Edit in Editor
               </Link>
+
+              {(brandLogoUrl || brandCompanyName) && (
+                <div style={{ marginTop: 12, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--bg-elev)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Brand end card</div>
+                  {endCardUrl ? (
+                    <>
+                      <img src={endCardUrl} alt="End card" style={{ width: '100%', aspectRatio: '9/16', objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />
+                      <a
+                        href={endCardUrl}
+                        download={`end-card-${Date.now()}.png`}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '8px 0', borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+                      >
+                        <Download style={{ width: 13, height: 13 }} /> Download end card
+                      </a>
+                    </>
+                  ) : (
+                    <button onClick={generateEndCard} style={{ padding: '8px 0', borderRadius: 9, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>
+                      Generate end card
+                    </button>
+                  )}
+                </div>
+              )}
             </>
           )}
         </div>

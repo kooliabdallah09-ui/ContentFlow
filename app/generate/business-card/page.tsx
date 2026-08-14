@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { showError, showSuccess } from '@/lib/notifications'
+import { getSupabase } from '@/lib/auth'
 
 const STYLES = [
   { id: 'minimal',  label: 'Minimal' },
@@ -180,8 +181,28 @@ export default function BusinessCardPage() {
   const [logoSrc, setLogoSrc] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [brandFilledLogo, setBrandFilledLogo] = useState(false)
   const logoInputRef = useRef<HTMLInputElement>(null)
   const cardRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const res = await fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } })
+      if (!res.ok) return
+      const data = await res.json()
+      const profile = data.profile
+      if (cancelled || !profile) return
+      if (profile.company_name) setForm(prev => ({ ...prev, company: prev.company || profile.company_name }))
+      if (profile.logo_url) { setLogoSrc(profile.logo_url); setBrandFilledLogo(true) }
+    })()
+    return () => { cancelled = true }
+  }, [])
 
   const accentHex = ACCENT_COLORS.find(a => a.id === accentId)?.hex ?? '#5B6BFF'
   const canExport = form.name.trim().length >= 1
@@ -343,7 +364,10 @@ export default function BusinessCardPage() {
             {logoSrc ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <img src={logoSrc} alt="logo" style={{ height: 40, maxWidth: 100, objectFit: 'contain', borderRadius: 6 }} />
-                <button type="button" onClick={() => setLogoSrc(null)} style={{ fontSize: 12, color: 'var(--ink-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>Remove</button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {brandFilledLogo && <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 6px', width: 'fit-content' }}>From brand</span>}
+                  <button type="button" onClick={() => { setLogoSrc(null); setBrandFilledLogo(false) }} style={{ fontSize: 12, color: 'var(--ink-dim)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline', textAlign: 'left' }}>Remove</button>
+                </div>
               </div>
             ) : (
               <label style={{

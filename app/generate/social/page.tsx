@@ -103,8 +103,37 @@ export default function SocialPage() {
   const [capLoading, setCapLoading] = useState(false)
   const [posts, setPosts]           = useState<Record<string, string>>({})
   const [postImage, setPostImage]   = useState<string | null>(null)
+  const [watermarkedImage, setWatermarkedImage] = useState<string | null>(null)
   const [activeTab, setActiveTab]   = useState('')
   const [copied, setCopied]         = useState<string | null>(null)
+
+  async function applyLogoWatermark(imageUrl: string, logoUrl: string): Promise<string> {
+    try {
+      const loadImg = (src: string) => new Promise<HTMLImageElement>((resolve, reject) => {
+        const i = new Image(); i.crossOrigin = 'anonymous'
+        i.onload = () => resolve(i); i.onerror = reject; i.src = src
+      })
+      const [img, logo] = await Promise.all([loadImg(imageUrl), loadImg(logoUrl)])
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width; canvas.height = img.height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+      const logoW = Math.min(img.width * 0.14, 90)
+      const logoH = (logo.height / logo.width) * logoW
+      const pad = 16
+      const x = img.width - logoW - pad
+      const y = img.height - logoH - pad
+      ctx.save(); ctx.globalAlpha = 0.5; ctx.fillStyle = '#000'
+      ctx.beginPath()
+      if (ctx.roundRect) ctx.roundRect(x - 8, y - 6, logoW + 16, logoH + 12, 8)
+      else ctx.rect(x - 8, y - 6, logoW + 16, logoH + 12)
+      ctx.fill(); ctx.restore()
+      ctx.drawImage(logo, x, y, logoW, logoH)
+      return canvas.toDataURL('image/jpeg', 0.92)
+    } catch {
+      return imageUrl
+    }
+  }
 
   // ── Brand context (loaded once) ──
   interface BrandInfo {
@@ -114,8 +143,10 @@ export default function SocialPage() {
     unique_value_prop?: string
     target_audience?: string
     tone_of_voice?: string
+    logo_url?: string
   }
   const [brand, setBrand] = useState<BrandInfo | null>(null)
+  const [watermarkEnabled, setWatermarkEnabled] = useState(true)
 
   useEffect(() => {
     let cancelled = false
@@ -128,7 +159,7 @@ export default function SocialPage() {
       const res = await fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } })
       if (!res.ok) return
       const data = await res.json()
-      if (!cancelled) setBrand(data.brand ?? data)
+      if (!cancelled) setBrand(data.profile ?? data.brand ?? data)
     })()
     return () => { cancelled = true }
   }, [])
@@ -208,6 +239,7 @@ export default function SocialPage() {
     setCapLoading(true)
     setPosts({})
     setPostImage(null)
+    setWatermarkedImage(null)
     setActiveTab('')
     try {
       const supabase = getSupabase()
@@ -260,7 +292,11 @@ export default function SocialPage() {
           })
           const imgData = await imgRes.json()
           if (imgRes.ok && imgData.images?.[0]) {
-            setPostImage(imgData.images[0])
+            const rawUrl = imgData.images[0]
+            setPostImage(rawUrl)
+            if (watermarkEnabled && brand?.logo_url) {
+              applyLogoWatermark(rawUrl, brand.logo_url).then(wm => setWatermarkedImage(wm))
+            }
           } else if (!imgRes.ok) {
             console.error('Image gen failed:', imgData.error)
           }
@@ -722,9 +758,9 @@ export default function SocialPage() {
                     {postImage && (
                       <div style={{ padding: '14px 20px 0' }}>
                         <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
-                          <img src={postImage} alt="Post visual" style={{ width: '100%', display: 'block', maxHeight: 380, objectFit: 'cover' }} />
+                          <img src={watermarkedImage ?? postImage} alt="Post visual" style={{ width: '100%', display: 'block', maxHeight: 380, objectFit: 'cover' }} />
                           <a
-                            href={postImage}
+                            href={watermarkedImage ?? postImage}
                             download="post-image.png"
                             style={{
                               position: 'absolute', top: 10, right: 10,
@@ -737,6 +773,16 @@ export default function SocialPage() {
                             <Download size={12} /> Save
                           </a>
                         </div>
+                        {brand?.logo_url && (
+                          <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12, color: 'var(--ink-mute)', cursor: 'pointer', userSelect: 'none' }}>
+                            <input type="checkbox" checked={watermarkEnabled} onChange={e => {
+                              setWatermarkEnabled(e.target.checked)
+                              if (e.target.checked && postImage) applyLogoWatermark(postImage, brand.logo_url!).then(wm => setWatermarkedImage(wm))
+                              else setWatermarkedImage(null)
+                            }} style={{ cursor: 'pointer' }} />
+                            Brand watermark
+                          </label>
+                        )}
                       </div>
                     )}
 

@@ -43,6 +43,8 @@ export default function DashboardPage() {
   const [recentItems, setRecentItems] = useState<LibraryItem[]>([])
   const [recentLoading, setRecentLoading] = useState(true)
   const [credits, setCredits] = useState<CreditsData | null>(null)
+  const [brandLogo, setBrandLogo] = useState<string | null>(null)
+  const [brandName, setBrandName] = useState<string | null>(null)
 
   const today = new Date()
   const dayStr = today.toLocaleDateString('en-US', { weekday: 'long' })
@@ -65,9 +67,10 @@ export default function DashboardPage() {
       if (!token) { setRecentLoading(false); return }
 
       // Parallel fetches
-      const [libRes, creditsRes] = await Promise.allSettled([
+      const [libRes, creditsRes, brandRes] = await Promise.allSettled([
         fetch('/api/library', { headers: { Authorization: `Bearer ${token}` } }),
         fetch('/api/credits/balance', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } }),
       ])
 
       if (libRes.status === 'fulfilled' && libRes.value.ok) {
@@ -76,6 +79,12 @@ export default function DashboardPage() {
       }
       if (creditsRes.status === 'fulfilled' && creditsRes.value.ok) {
         setCredits(await creditsRes.value.json())
+      }
+      if (brandRes.status === 'fulfilled' && brandRes.value.ok) {
+        const bd = await brandRes.value.json()
+        const p = bd.profile
+        if (p?.logo_url) setBrandLogo(p.logo_url)
+        if (p?.company_name) setBrandName(p.company_name)
       }
 
       setRecentLoading(false)
@@ -87,7 +96,12 @@ export default function DashboardPage() {
   return (
     <main className="content">
       <DriveConnectBanner />
-      <div className="page-meta">{dayStr} · {dateStr} · {yearStr}</div>
+      <div className="page-meta" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {brandLogo && (
+          <img src={brandLogo} alt={brandName ?? 'Brand'} style={{ height: 20, maxWidth: 64, objectFit: 'contain', borderRadius: 4, opacity: 0.85 }} />
+        )}
+        {dayStr} · {dateStr} · {yearStr}
+      </div>
       <h1 className="page-title">
         {greeting}, {userName.charAt(0).toUpperCase() + userName.slice(1)}.<br/>
         <span style={{ color: 'var(--ink-mute)' }}>What are we making <em>today?</em></span>
