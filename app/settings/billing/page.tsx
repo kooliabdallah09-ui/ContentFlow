@@ -440,16 +440,16 @@ export default function BillingPage() {
               </div>
               {isAdmin ? (
                 <button
-                  onClick={() => handlePackCheckout(pack.priceId)}
-                  disabled={packLoading === pack.priceId}
+                  onClick={() => handlePackCheckout(pack.packKey)}
+                  disabled={packLoading === pack.packKey}
                   style={{
                     padding: '8px 16px', borderRadius: 8,
                     border: 'none', background: '#111', color: '#fff',
                     fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
-                    opacity: packLoading === pack.priceId ? 0.5 : 1,
+                    opacity: packLoading === pack.packKey ? 0.5 : 1,
                   }}
                 >
-                  {packLoading === pack.priceId ? '…' : 'Buy'}
+                  {packLoading === pack.packKey ? '…' : 'Buy'}
                 </button>
               ) : (
                 <div style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink-mute)', flexShrink: 0 }}>Soon</div>
