@@ -10,7 +10,7 @@ const PLAN_CREDITS: Record<string, number> = {
   starter: 800,
   pro:     2000,
   agency:  6500,
-  enterprise: 20000,
+  enterprise: 25000,
 }
 
 export async function POST(request: NextRequest) {
