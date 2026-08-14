@@ -96,16 +96,18 @@ export default function DashboardPage() {
   return (
     <main className="content">
       <DriveConnectBanner />
-      <div className="page-meta" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div className="page-meta">{dayStr} · {dateStr} · {yearStr}</div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginTop: 4 }}>
         {brandLogo && (
-          <img src={brandLogo} alt={brandName ?? 'Brand'} style={{ height: 20, maxWidth: 64, objectFit: 'contain', borderRadius: 4, opacity: 0.85 }} />
+          <div style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: 6 }}>
+            <img src={brandLogo} alt={brandName ?? 'Brand'} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }} />
+          </div>
         )}
-        {dayStr} · {dateStr} · {yearStr}
+        <h1 className="page-title" style={{ margin: 0 }}>
+          {greeting}, {userName.charAt(0).toUpperCase() + userName.slice(1)}.<br/>
+          <span style={{ color: 'var(--ink-mute)' }}>What are we making <em>today?</em></span>
+        </h1>
       </div>
-      <h1 className="page-title">
-        {greeting}, {userName.charAt(0).toUpperCase() + userName.slice(1)}.<br/>
-        <span style={{ color: 'var(--ink-mute)' }}>What are we making <em>today?</em></span>
-      </h1>
 
       {/* Credits banner */}
       <div style={{
