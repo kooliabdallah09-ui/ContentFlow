@@ -9,7 +9,8 @@ const DODO_PRODUCTS: Record<string, { monthly: string; annual: string }> = {
   lite:    { monthly: process.env.DODO_PRODUCT_LITE_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_LITE_ANNUAL ?? '' },
   starter: { monthly: process.env.DODO_PRODUCT_STARTER_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_STARTER_ANNUAL ?? '' },
   pro:     { monthly: process.env.DODO_PRODUCT_PRO_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_PRO_ANNUAL ?? '' },
-  agency:  { monthly: process.env.DODO_PRODUCT_AGENCY_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_AGENCY_ANNUAL ?? '' },
+  agency:      { monthly: process.env.DODO_PRODUCT_AGENCY_MONTHLY ?? '',     annual: process.env.DODO_PRODUCT_AGENCY_ANNUAL ?? '' },
+  enterprise:  { monthly: process.env.DODO_PRODUCT_ENTERPRISE_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_ENTERPRISE_ANNUAL ?? '' },
 }
 
 export async function POST(request: NextRequest) {

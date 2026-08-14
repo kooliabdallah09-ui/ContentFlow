@@ -152,6 +152,12 @@ export default function BillingPage() {
       features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
       planKey: 'agency',
     },
+    {
+      name: 'Enterprise', price: { monthly: '$399', annual: '$332' }, annualTotal: '$3,990/yr',
+      credits: '20,000/month · $0.020/cr',
+      features: ['~160 UGC videos/mo at 5s · ~105 at 10s', '~4,000 images · ~2,500 influencer/product photos', 'Everything in Agency', 'Custom onboarding · SLA · Dedicated account manager'],
+      planKey: 'enterprise',
+    },
   ]
 
   const creditPacks = [
@@ -615,7 +621,7 @@ function getCrEach(type: ContentType, sel: Record<string, string>): number {
   return type.crBase
 }
 
-const PLAN_CAPS: Record<string, number> = { free: 30, starter: 800, pro: 2000, agency: 6500 }
+const PLAN_CAPS: Record<string, number> = { free: 30, starter: 800, pro: 2000, agency: 6500, enterprise: 20000 }
 
 function PlanRecommender({
   goals, setGoals, currentPlan, annual, plans, onUpgrade, upgradeLoading, isAdmin,
@@ -656,6 +662,7 @@ function PlanRecommender({
 
   function getRecKey(): string {
     if (!selected.length) return ''
+    if (totalCr > PLAN_CAPS.agency) return 'enterprise'
     if (totalCr > PLAN_CAPS.pro) return 'agency'
     if (totalCr > PLAN_CAPS.starter) return 'pro'
     if (totalCr > PLAN_CAPS.free) return 'starter'
