@@ -267,7 +267,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
     defaultCta: string
     productImageUrl?: string
   }
-  interface BrandProduct { id: string; name: string; image_url: string | null }
+  interface BrandProduct { id: string; name: string; image_url: string | null; product_type?: string }
   const [brand, setBrand] = useState<BrandProfile | null>(null)
   const [products, setProducts] = useState<BrandProduct[]>([])
   const [selectedProductId, setSelectedProductId] = useState<string | null>(campaignShotPrefill?.productId ?? null)
@@ -645,6 +645,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         if (first) {
           setSelectedProductId(first.id)
           setProductName(first.name)
+          if (first.product_type === 'app') setProductType('website')
           if (first.image_url) {
             loadBrandImage(first.image_url).then(img => {
               if (!cancelled && img) setProductImage(img)
@@ -2187,7 +2188,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       const angles = Array.isArray(sp.photo_angles) ? sp.photo_angles : []
                       // If the studio product is an app, flip productType so the
                       // routes render the reference on a device screen.
-                      if (sp.product_type === 'app') setProductType('website')
+                      if (sp.product_type === 'app') {
+                        setProductType('website')
+                        // Pre-fill website URL from the studio product's saved URL.
+                        if (sp.website_url) setWebsiteUrl(sp.website_url)
+                      }
                       // Pick primary based on the picked format's framing needs:
                       // POV/interview → mobile screenshot (phone framing);
                       // everything else → landing page (laptop framing).
@@ -2195,10 +2200,33 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                         { photo_urls: urls, photo_angles: angles, product_type: sp.product_type },
                         activeFormatKey ?? null,
                       )
+                      let loadedMain = false
                       if (primaryUrl) {
                         const main = await loadBrandImage(primaryUrl)
-                        if (main) setProductImage(main)
+                        if (main) { setProductImage(main); loadedMain = true }
                         setPrimaryPhotoAngle(primaryAngle ?? '')
+                      }
+                      // If the app product has no uploaded screenshots but has a URL,
+                      // auto-fetch the screenshot so the user doesn't have to click manually.
+                      if (!loadedMain && sp.product_type === 'app' && sp.website_url) {
+                        setWebsiteFetching(true)
+                        setWebsiteError(null)
+                        try {
+                          const res = await fetch('/api/screenshot', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ url: sp.website_url }),
+                          })
+                          const data = await res.json()
+                          if (res.ok) {
+                            setProductImage({
+                              base64: data.imageBase64,
+                              mimeType: data.mimeType || 'image/png',
+                              preview: `data:${data.mimeType || 'image/png'};base64,${data.imageBase64}`,
+                            })
+                          }
+                        } catch { /* silent — user can still click Fetch */ }
+                        finally { setWebsiteFetching(false) }
                       }
                       const extras: Array<{ base64: string; mimeType: string; preview: string; angle?: string }> = []
                       for (const i of restIndices.slice(0, 2)) {

@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
     const { supabase, userId } = await authedClient(req)
     const { data, error } = await supabase
       .from('user_studio_products')
-      .select('id, name, photo_urls, created_at')
+      .select('id, name, photo_urls, product_type, created_at')
       .eq('user_id', userId)
       .order('last_used_at', { ascending: false, nullsFirst: false })
     if (error) throw error
@@ -31,6 +31,7 @@ export async function GET(req: NextRequest) {
       id: p.id,
       name: p.name,
       image_url: Array.isArray(p.photo_urls) && p.photo_urls.length > 0 ? p.photo_urls[0] : null,
+      product_type: p.product_type ?? 'physical',
       created_at: p.created_at,
     }))
     return NextResponse.json({ products })
