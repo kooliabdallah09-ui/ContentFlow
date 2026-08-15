@@ -6,7 +6,7 @@ export const maxDuration = 60
 
 // Credits granted per plan per month
 const PLAN_CREDITS: Record<string, number> = {
-  lite:    200,
+  lite:    300,
   starter: 800,
   pro:     2000,
   agency:  6500,

@@ -289,11 +289,11 @@ export default function BillingPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '18px 22px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 15, fontWeight: 700 }}>Lite</span>
-              {annual && <span style={{ fontSize: 14, color: 'var(--ink-mute)', textDecoration: 'line-through', fontWeight: 600 }}>$6</span>}
-              <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$5' : '$6'}</span>
+              {annual && <span style={{ fontSize: 14, color: 'var(--ink-mute)', textDecoration: 'line-through', fontWeight: 600 }}>$8</span>}
+              <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$7' : '$8'}</span>
               <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/mo</span>
-              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $60/yr</span>}
-              <span style={{ fontSize: 11, color: 'var(--ink-dim)', marginLeft: 4 }}>· 200 cr/month</span>
+              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $80/yr</span>}
+              <span style={{ fontSize: 11, color: 'var(--ink-dim)', marginLeft: 4 }}>· 300 cr/month</span>
             </div>
 
             {/* Included */}
@@ -622,7 +622,7 @@ function getCrEach(type: ContentType, sel: Record<string, string>): number {
   return type.crBase
 }
 
-const PLAN_CAPS: Record<string, number> = { free: 30, lite: 200, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
+const PLAN_CAPS: Record<string, number> = { free: 30, lite: 300, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
 
 function PlanRecommender({
   goals, setGoals, currentPlan, annual, plans, onUpgrade, upgradeLoading, isAdmin,

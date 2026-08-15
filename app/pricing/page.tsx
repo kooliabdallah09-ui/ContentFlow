@@ -24,9 +24,9 @@ const plans = [
   },
   {
     name: 'Lite',
-    price: { monthly: '$6', annual: '$5' },
-    annualTotal: '$60/yr',
-    credits: '200 credits/month',
+    price: { monthly: '$8', annual: '$7' },
+    annualTotal: '$80/yr',
+    credits: '300 credits/month',
     planKey: 'lite',
     features: [
       'Product photos & images',
@@ -146,9 +146,9 @@ function pubGetCrEach(t: PubContentType, sel: Record<string, string>): number {
   return t.crBase
 }
 
-const PUB_CAPS: Record<string, number> = { lite: 200, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
+const PUB_CAPS: Record<string, number> = { lite: 300, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
 const PUB_PRICES: Record<string, { name: string; monthly: string; annual: string; planKey: string }> = {
-  lite:       { name: 'Lite',       monthly: '$6',   annual: '$5',   planKey: 'lite'       },
+  lite:       { name: 'Lite',       monthly: '$8',   annual: '$7',   planKey: 'lite'       },
   starter:    { name: 'Starter',    monthly: '$19',  annual: '$16',  planKey: 'starter'    },
   pro:        { name: 'Pro',        monthly: '$49',  annual: '$41',  planKey: 'pro'        },
   agency:     { name: 'Agency',     monthly: '$149', annual: '$124', planKey: 'agency'     },
