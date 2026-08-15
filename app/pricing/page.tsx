@@ -108,17 +108,47 @@ const plans = [
 ]
 
 // ─── Plan Recommender (public) ──────────────────────────────────────────────
-const CONTENT_TYPES_PUB = [
-  { key: 'ugc',      label: 'UGC Video',      sub: 'Talking-head · 9:16',    color: '#D97706', crBase: 48  },
-  { key: 'budget',   label: 'Budget UGC',     sub: 'Seedance Mini · 9:16',   color: '#7C3AED', crBase: 40  },
-  { key: 'image',    label: 'Product Image',  sub: 'AI photo · studio shot',  color: '#0EA5E9', crBase: 5   },
-  { key: 'influencer', label: 'AI Influencer', sub: 'Lifestyle · portrait',   color: '#EC4899', crBase: 8   },
-  { key: 'cinematic', label: 'Cinematic Video', sub: 'Kling · scene video',   color: '#10B981', crBase: 140 },
-  { key: 'voiceover', label: 'Voiceover',     sub: 'ElevenLabs · per clip',  color: '#6366F1', crBase: 10  },
-  { key: 'social',   label: 'Social Caption', sub: 'AI copywriting',          color: '#F59E0B', crBase: 2   },
+type PubCTOption = { key: string; choices: string[]; default: string }
+type PubContentType = { key: string; label: string; sub: string; color: string; crBase: number; opts?: PubCTOption[]; crMod?: (s: Record<string, string>) => number }
+
+const _SD_720P  = (720  * 1280  * 24) / 1024 / 1_000_000 * 7
+const _SD_1080P = (1080 * 1920  * 24) / 1024 / 1_000_000 * 7.7
+const _SD_4K    = (2160 * 3840  * 24) / 1024 / 1_000_000 * 4.0
+const _SD_480P  = (480  * 854   * 24) / 1024 / 1_000_000 * 5.5
+const _PUB_MARKUP = 1.4; const _PUB_CR = 0.025; const _PUB_NB = 0.075; const _PUB_CL = 0.010
+function pubSdCr(dur: number, perS: number) { return Math.ceil(((perS * dur) + _PUB_NB + _PUB_CL) * _PUB_MARKUP / _PUB_CR) }
+const PUB_DUR: Record<string, number> = { '5s': 5, '8s': 8, '10s': 10, '15s': 15, '30s': 30 }
+
+const CONTENT_TYPES_PUB: PubContentType[] = [
+  { key: 'ugc', label: 'UGC Video', sub: 'Talking-head · 9:16', color: '#D97706', crBase: 48,
+    opts: [{ key: 'duration', choices: ['5s','10s','15s','30s'], default: '5s' }, { key: 'quality', choices: ['480p','720p','1080p','4K'], default: '720p' }],
+    crMod: (s) => { const perS = s.quality === '4K' ? _SD_4K : s.quality === '1080p' ? _SD_1080P : s.quality === '480p' ? _SD_480P : _SD_720P; return pubSdCr(PUB_DUR[s.duration] ?? 5, perS) } },
+  { key: 'budget-ugc', label: 'Budget UGC', sub: 'Seedance Mini · 9:16', color: '#7C3AED', crBase: 40,
+    opts: [{ key: 'duration', choices: ['5s','8s','10s'], default: '5s' }],
+    crMod: (s) => s.duration === '10s' ? 72 : s.duration === '8s' ? 60 : 40 },
+  { key: 'image', label: 'Product Image', sub: 'AI photo · studio shot', color: '#0EA5E9', crBase: 5,
+    opts: [{ key: 'quality', choices: ['Standard','HD','4K'], default: 'Standard' }],
+    crMod: (s) => s.quality === '4K' ? 18 : s.quality === 'HD' ? 9 : 5 },
+  { key: 'influencer', label: 'AI Influencer', sub: 'Lifestyle · portrait', color: '#EC4899', crBase: 8,
+    opts: [{ key: 'quality', choices: ['Standard','HD','4K'], default: 'Standard' }],
+    crMod: (s) => s.quality === '4K' ? 26 : s.quality === 'HD' ? 14 : 8 },
+  { key: 'cinematic', label: 'Cinematic Video', sub: 'Kling · scene video', color: '#10B981', crBase: 140,
+    opts: [{ key: 'duration', choices: ['5s','10s','15s'], default: '5s' }, { key: 'quality', choices: ['720p','1080p','4K'], default: '720p' }],
+    crMod: (s) => Math.round(140 * (s.duration === '15s' ? 2 : s.duration === '10s' ? 1.5 : 1) * (s.quality === '4K' ? 2.2 : s.quality === '1080p' ? 1.35 : 1)) },
+  { key: 'voiceover', label: 'Voiceover', sub: 'ElevenLabs · per clip', color: '#6366F1', crBase: 10,
+    opts: [{ key: 'duration', choices: ['30s','60s','90s','120s'], default: '30s' }],
+    crMod: (s) => s.duration === '120s' ? 28 : s.duration === '90s' ? 22 : s.duration === '60s' ? 16 : 10 },
+  { key: 'social', label: 'Social Caption', sub: 'AI copywriting', color: '#F59E0B', crBase: 2 },
 ]
-const PUB_CAPS: Record<string, number> = { starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
+
+function pubGetCrEach(t: PubContentType, sel: Record<string, string>): number {
+  if (t.crMod) { const defs = Object.fromEntries((t.opts ?? []).map(o => [o.key, o.default])); return t.crMod({ ...defs, ...sel }) }
+  return t.crBase
+}
+
+const PUB_CAPS: Record<string, number> = { lite: 200, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
 const PUB_PRICES: Record<string, { name: string; monthly: string; annual: string; planKey: string }> = {
+  lite:       { name: 'Lite',       monthly: '$7',   annual: '$6',   planKey: 'lite'       },
   starter:    { name: 'Starter',    monthly: '$21',  annual: '$18',  planKey: 'starter'    },
   pro:        { name: 'Pro',        monthly: '$55',  annual: '$46',  planKey: 'pro'        },
   agency:     { name: 'Agency',     monthly: '$165', annual: '$138', planKey: 'agency'     },
@@ -128,14 +158,23 @@ const PUB_PRICES: Record<string, { name: string; monthly: string; annual: string
 function PlanRecommenderPub({ annual }: { annual: boolean }) {
   const [selected, setSelected] = useState<string[]>([])
   const [qty, setQty] = useState<Record<string, number>>({})
+  const [typeOpts, setTypeOpts] = useState<Record<string, Record<string, string>>>({})
   const [step, setStep] = useState(1)
 
+  function getOpts(key: string): Record<string, string> {
+    const t = CONTENT_TYPES_PUB.find(x => x.key === key)!
+    return { ...Object.fromEntries((t.opts ?? []).map(o => [o.key, o.default])), ...(typeOpts[key] ?? {}) }
+  }
+
   const selTypes = CONTENT_TYPES_PUB.filter(t => selected.includes(t.key))
-  const totalCr = selTypes.reduce((s, t) => s + t.crBase * (qty[t.key] ?? 1), 0)
+  const totalCr = selTypes.reduce((s, t) => s + pubGetCrEach(t, getOpts(t.key)) * (qty[t.key] ?? 1), 0)
 
   function toggle(key: string) {
     setSelected(p => p.includes(key) ? p.filter(k => k !== key) : [...p, key])
     if (!qty[key]) setQty(q => ({ ...q, [key]: 1 }))
+  }
+  function setOpt(typeKey: string, optKey: string, val: string) {
+    setTypeOpts(prev => ({ ...prev, [typeKey]: { ...getOpts(typeKey), [optKey]: val } }))
   }
   function bump(key: string, d: number) { setQty(q => ({ ...q, [key]: Math.max(1, (q[key] ?? 1) + d) })) }
 
@@ -144,7 +183,8 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
     if (totalCr > PUB_CAPS.agency) return 'enterprise'
     if (totalCr > PUB_CAPS.pro) return 'agency'
     if (totalCr > PUB_CAPS.starter) return 'pro'
-    return 'starter'
+    if (totalCr > PUB_CAPS.lite) return 'starter'
+    return 'lite'
   }
   const recKey = getRecKey()
   const rec = recKey ? PUB_PRICES[recKey] : null
@@ -174,25 +214,41 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
                 {CONTENT_TYPES_PUB.map(t => {
                   const active = selected.includes(t.key)
+                  const opts = getOpts(t.key)
+                  const crNow = pubGetCrEach(t, opts)
                   return (
-                    <button key={t.key} onClick={() => toggle(t.key)} style={{
-                      borderRadius: 12, border: `1.5px solid ${active ? t.color : '#e5e7eb'}`,
-                      background: active ? `${t.color}12` : '#f9fafb',
-                      padding: '12px 14px', textAlign: 'left', cursor: 'pointer',
-                      display: 'flex', alignItems: 'flex-start', gap: 10, position: 'relative',
-                    }}>
-                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0, marginTop: 4 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111', marginBottom: 2 }}>{t.label}</div>
-                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{t.sub}</div>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: t.color, marginTop: 4, fontFamily: 'monospace' }}>{t.crBase} cr each</div>
-                      </div>
-                      {active && (
-                        <div style={{ width: 16, height: 16, borderRadius: '50%', background: t.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                    <div key={t.key} style={{ borderRadius: 12, border: `1.5px solid ${active ? t.color : '#e5e7eb'}`, background: active ? `${t.color}12` : '#f9fafb', overflow: 'hidden', transition: 'border-color 0.15s' }}>
+                      <button onClick={() => toggle(t.key)} style={{ width: '100%', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px 10px', textAlign: 'left', cursor: 'pointer', background: 'transparent', border: 'none', position: 'relative' }}>
+                        <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0, marginTop: 4 }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 600, color: '#111', marginBottom: 2 }}>{t.label}</div>
+                          <div style={{ fontSize: 11, color: '#9ca3af' }}>{t.sub}</div>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: t.color, marginTop: 4, fontFamily: 'monospace' }}>{crNow} cr each</div>
+                        </div>
+                        {active && (
+                          <div style={{ width: 16, height: 16, borderRadius: '50%', background: t.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                          </div>
+                        )}
+                      </button>
+                      {active && t.opts && t.opts.length > 0 && (
+                        <div style={{ padding: '0 12px 10px', display: 'flex', flexWrap: 'wrap', gap: 6 }} onClick={e => e.stopPropagation()}>
+                          {t.opts.map(opt => (
+                            <div key={opt.key} style={{ display: 'flex', gap: 3 }}>
+                              {opt.choices.map(choice => {
+                                const sel = opts[opt.key] === choice
+                                return (
+                                  <button key={choice} onClick={e => { e.stopPropagation(); setOpt(t.key, opt.key, choice) }} style={{
+                                    padding: '3px 8px', borderRadius: 5, fontSize: 10.5, fontWeight: 600, cursor: 'pointer', transition: 'all 0.12s',
+                                    border: `1px solid ${sel ? t.color : '#e5e7eb'}`, background: sel ? t.color : 'transparent', color: sel ? '#fff' : '#6b7280',
+                                  }}>{choice}</button>
+                                )
+                              })}
+                            </div>
+                          ))}
                         </div>
                       )}
-                    </button>
+                    </div>
                   )
                 })}
               </div>
@@ -208,12 +264,15 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {selTypes.map(t => {
                   const q = qty[t.key] ?? 1
+                  const opts = getOpts(t.key)
+                  const crNow = pubGetCrEach(t, opts)
+                  const optSummary = t.opts ? t.opts.map(o => opts[o.key]).join(' · ') : ''
                   return (
                     <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#f9fafb' }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 600 }}>{t.label}</div>
-                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{t.crBase} cr × {q} = <span style={{ fontWeight: 700, color: t.color }}>{t.crBase * q} cr</span></div>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{t.label}{optSummary ? <span style={{ fontSize: 11, fontWeight: 400, color: '#9ca3af', marginLeft: 6 }}>{optSummary}</span> : null}</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{crNow} cr × {q} = <span style={{ fontWeight: 700, color: t.color }}>{crNow * q} cr</span></div>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
                         <button onClick={() => bump(t.key, -1)} style={{ width: 32, height: 32, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16 }}>−</button>
@@ -257,11 +316,7 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
                   </div>
                 </div>
               </div>
-              <Link href="/auth/signup" style={{
-                display: 'block', textAlign: 'center', width: '100%', padding: '11px', borderRadius: 10,
-                border: 'none', background: '#111', color: '#fff', fontWeight: 600, fontSize: 13,
-                cursor: 'pointer', letterSpacing: '-0.01em', textDecoration: 'none', marginTop: 'auto',
-              }}>
+              <Link href="/auth/signup" style={{ display: 'block', textAlign: 'center', width: '100%', padding: '11px', borderRadius: 10, border: 'none', background: '#111', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', letterSpacing: '-0.01em', textDecoration: 'none', marginTop: 'auto' }}>
                 Get {rec.name} →
               </Link>
             </>

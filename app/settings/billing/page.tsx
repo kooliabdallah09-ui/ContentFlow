@@ -622,7 +622,7 @@ function getCrEach(type: ContentType, sel: Record<string, string>): number {
   return type.crBase
 }
 
-const PLAN_CAPS: Record<string, number> = { free: 30, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
+const PLAN_CAPS: Record<string, number> = { free: 30, lite: 200, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
 
 function PlanRecommender({
   goals, setGoals, currentPlan, annual, plans, onUpgrade, upgradeLoading, isAdmin,
@@ -666,7 +666,8 @@ function PlanRecommender({
     if (totalCr > PLAN_CAPS.agency) return 'enterprise'
     if (totalCr > PLAN_CAPS.pro) return 'agency'
     if (totalCr > PLAN_CAPS.starter) return 'pro'
-    if (totalCr > PLAN_CAPS.free) return 'starter'
+    if (totalCr > PLAN_CAPS.lite) return 'starter'
+    if (totalCr > PLAN_CAPS.free) return 'lite'
     return 'free'
   }
 
