@@ -461,16 +461,27 @@ export default function ImageGeneratorPage() {
               position: 'absolute', top: 8, right: 8,
               display: 'flex', gap: 6,
             }}>
-              <a href={img.url} download target="_blank" rel="noopener noreferrer"
-                onClick={e => e.stopPropagation()}
+              <button type="button" onClick={async e => {
+                  e.stopPropagation()
+                  try {
+                    const res = await fetch(img.url)
+                    const blob = await res.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `image-${Date.now()}.png`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  } catch { window.open(img.url, '_blank') }
+                }}
                 style={{
                   width: 32, height: 32, borderRadius: 8,
-                  background: 'rgba(20,18,12,0.75)', color: '#fff',
+                  background: 'rgba(20,18,12,0.75)', color: '#fff', border: 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  backdropFilter: 'blur(4px)',
+                  backdropFilter: 'blur(4px)', cursor: 'pointer',
                 }}>
                 <Download size={14} />
-              </a>
+              </button>
               <button type="button" onClick={e => { e.stopPropagation(); setConfirmDeleteUrl(img.url) }}
                 style={{
                   width: 32, height: 32, borderRadius: 8,
