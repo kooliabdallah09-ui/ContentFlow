@@ -516,7 +516,7 @@ export default function PricingPage() {
         {/* Credit packs */}
         <div style={{ marginBottom: 64 }}>
           <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 6 }}>Pay as you go</h2>
-          <p style={{ fontSize: 14, color: 'var(--ink-dim, #666)', marginBottom: 24, marginTop: 0 }}>One-off credit packs. No subscription required. Never expire.</p>
+          <p style={{ fontSize: 14, color: 'var(--ink-dim, #666)', marginBottom: 24, marginTop: 0 }}>One-off credit boosts — stack on top of any plan, or use standalone on the free tier. Credits never expire and survive plan changes.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             {[
               { credits: 250,  price: '$8',   perCr: '$0.032/cr' },

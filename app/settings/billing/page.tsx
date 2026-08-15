@@ -432,7 +432,7 @@ export default function BillingPage() {
       <div style={{ marginBottom: 40 }}>
         <div style={{ marginBottom: 16 }}>
           <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 3 }}>Prefer to pay as you go?</div>
-          <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0 }}>One-off credit packs. No subscription, never expire.</p>
+          <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0 }}>One-off credit boosts — add on top of any plan, or use on the free tier. Credits never expire and survive plan changes.</p>
         </div>
         <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
           {creditPacks.map((pack) => (
