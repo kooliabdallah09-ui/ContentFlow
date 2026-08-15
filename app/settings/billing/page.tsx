@@ -575,17 +575,17 @@ const CONTENT_TYPES: ContentType[] = [
     key: 'image', label: 'Product Image', sub: 'AI photo · studio shot', color: '#0EA5E9',
     crBase: 5,
     opts: [
-      { key: 'quality', choices: ['Standard', 'HD', '4K'], default: 'Standard' },
+      { key: 'quality', choices: ['Budget (NB2)', 'Standard (NBPro 2K)', '4K (NBPro 4K)'], default: 'Budget (NB2)' },
     ],
-    crMod: (s) => s.quality === '4K' ? 18 : s.quality === 'HD' ? 9 : 5,
+    crMod: (s) => s.quality === '4K (NBPro 4K)' ? 18 : s.quality === 'Standard (NBPro 2K)' ? 9 : 5,
   },
   {
     key: 'influencer', label: 'AI Influencer', sub: 'Lifestyle · portrait', color: '#EC4899',
     crBase: 8,
     opts: [
-      { key: 'quality', choices: ['Standard', 'HD', '4K'], default: 'Standard' },
+      { key: 'quality', choices: ['Budget (NB2)', 'Standard (NBPro 2K)', '4K (NBPro 4K)'], default: 'Budget (NB2)' },
     ],
-    crMod: (s) => s.quality === '4K' ? 26 : s.quality === 'HD' ? 14 : 8,
+    crMod: (s) => s.quality === '4K (NBPro 4K)' ? 26 : s.quality === 'Standard (NBPro 2K)' ? 14 : 8,
   },
   {
     key: 'cinematic', label: 'Cinematic Video', sub: 'Kling · scene video', color: '#10B981',
