@@ -107,6 +107,171 @@ const plans = [
   },
 ]
 
+// ─── Plan Recommender (public) ──────────────────────────────────────────────
+const CONTENT_TYPES_PUB = [
+  { key: 'ugc',      label: 'UGC Video',      sub: 'Talking-head · 9:16',    color: '#D97706', crBase: 48  },
+  { key: 'budget',   label: 'Budget UGC',     sub: 'Seedance Mini · 9:16',   color: '#7C3AED', crBase: 40  },
+  { key: 'image',    label: 'Product Image',  sub: 'AI photo · studio shot',  color: '#0EA5E9', crBase: 5   },
+  { key: 'influencer', label: 'AI Influencer', sub: 'Lifestyle · portrait',   color: '#EC4899', crBase: 8   },
+  { key: 'cinematic', label: 'Cinematic Video', sub: 'Kling · scene video',   color: '#10B981', crBase: 140 },
+  { key: 'voiceover', label: 'Voiceover',     sub: 'ElevenLabs · per clip',  color: '#6366F1', crBase: 10  },
+  { key: 'social',   label: 'Social Caption', sub: 'AI copywriting',          color: '#F59E0B', crBase: 2   },
+]
+const PUB_CAPS: Record<string, number> = { starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
+const PUB_PRICES: Record<string, { name: string; monthly: string; annual: string; planKey: string }> = {
+  starter:    { name: 'Starter',    monthly: '$21',  annual: '$18',  planKey: 'starter'    },
+  pro:        { name: 'Pro',        monthly: '$55',  annual: '$46',  planKey: 'pro'        },
+  agency:     { name: 'Agency',     monthly: '$165', annual: '$138', planKey: 'agency'     },
+  enterprise: { name: 'Enterprise', monthly: '$665', annual: '$555', planKey: 'enterprise' },
+}
+
+function PlanRecommenderPub({ annual }: { annual: boolean }) {
+  const [selected, setSelected] = useState<string[]>([])
+  const [qty, setQty] = useState<Record<string, number>>({})
+  const [step, setStep] = useState(1)
+
+  const selTypes = CONTENT_TYPES_PUB.filter(t => selected.includes(t.key))
+  const totalCr = selTypes.reduce((s, t) => s + t.crBase * (qty[t.key] ?? 1), 0)
+
+  function toggle(key: string) {
+    setSelected(p => p.includes(key) ? p.filter(k => k !== key) : [...p, key])
+    if (!qty[key]) setQty(q => ({ ...q, [key]: 1 }))
+  }
+  function bump(key: string, d: number) { setQty(q => ({ ...q, [key]: Math.max(1, (q[key] ?? 1) + d) })) }
+
+  function getRecKey() {
+    if (!selTypes.length) return ''
+    if (totalCr > PUB_CAPS.agency) return 'enterprise'
+    if (totalCr > PUB_CAPS.pro) return 'agency'
+    if (totalCr > PUB_CAPS.starter) return 'pro'
+    return 'starter'
+  }
+  const recKey = getRecKey()
+  const rec = recKey ? PUB_PRICES[recKey] : null
+  const cap = recKey ? PUB_CAPS[recKey] : 0
+  const pct = cap ? Math.min((totalCr / cap) * 100, 100) : 0
+
+  return (
+    <div style={{ marginBottom: 64, borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border, #e5e7eb)', background: 'var(--surface, #fff)' }}>
+      <div style={{ padding: '22px 28px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 3 }}>Find the right plan for you</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-dim, #666)' }}>Select what you create — we'll calculate the credits you need.</div>
+        </div>
+        {selTypes.length > 0 && (
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={() => setStep(1)} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none', background: step === 1 ? '#111' : '#f3f4f6', color: step === 1 ? '#fff' : '#6b7280' }}>1 · Content</button>
+            <button onClick={() => setStep(2)} style={{ padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none', background: step === 2 ? '#111' : '#f3f4f6', color: step === 2 ? '#fff' : '#6b7280' }}>2 · Volume</button>
+          </div>
+        )}
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 300px' }}>
+        {/* Left */}
+        <div style={{ padding: '24px 28px', borderRight: '1px solid var(--border, #e5e7eb)' }}>
+          {step === 1 ? (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 14 }}>What do you want to create?</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 10 }}>
+                {CONTENT_TYPES_PUB.map(t => {
+                  const active = selected.includes(t.key)
+                  return (
+                    <button key={t.key} onClick={() => toggle(t.key)} style={{
+                      borderRadius: 12, border: `1.5px solid ${active ? t.color : '#e5e7eb'}`,
+                      background: active ? `${t.color}12` : '#f9fafb',
+                      padding: '12px 14px', textAlign: 'left', cursor: 'pointer',
+                      display: 'flex', alignItems: 'flex-start', gap: 10, position: 'relative',
+                    }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0, marginTop: 4 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: '#111', marginBottom: 2 }}>{t.label}</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{t.sub}</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: t.color, marginTop: 4, fontFamily: 'monospace' }}>{t.crBase} cr each</div>
+                      </div>
+                      {active && (
+                        <div style={{ width: 16, height: 16, borderRadius: '50%', background: t.color, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                        </div>
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+              {selTypes.length > 0 && (
+                <button onClick={() => setStep(2)} style={{ marginTop: 18, padding: '9px 20px', borderRadius: 9, fontSize: 13, fontWeight: 600, background: '#111', color: '#fff', border: 'none', cursor: 'pointer' }}>
+                  Set quantities →
+                </button>
+              )}
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 14 }}>How many per month?</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {selTypes.map(t => {
+                  const q = qty[t.key] ?? 1
+                  return (
+                    <div key={t.key} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderRadius: 12, border: '1px solid #e5e7eb', background: '#f9fafb' }}>
+                      <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600 }}>{t.label}</div>
+                        <div style={{ fontSize: 11, color: '#9ca3af' }}>{t.crBase} cr × {q} = <span style={{ fontWeight: 700, color: t.color }}>{t.crBase * q} cr</span></div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid #e5e7eb', borderRadius: 8, overflow: 'hidden' }}>
+                        <button onClick={() => bump(t.key, -1)} style={{ width: 32, height: 32, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16 }}>−</button>
+                        <span style={{ minWidth: 28, textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{q}</span>
+                        <button onClick={() => bump(t.key, 1)} style={{ width: 32, height: 32, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16 }}>+</button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 12, background: '#f3f4f6', border: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: 13, color: '#6b7280' }}>Estimated monthly credits</span>
+                <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em', fontFamily: 'monospace' }}>{totalCr.toLocaleString()} cr</span>
+              </div>
+            </>
+          )}
+        </div>
+        {/* Right */}
+        <div style={{ padding: '24px 22px', display: 'flex', flexDirection: 'column' }}>
+          {!selTypes.length ? (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', textAlign: 'center', gap: 10 }}>
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 12h6M12 9v6"/></svg>
+              <span style={{ fontSize: 13 }}>Select content types<br/>to see a recommendation</span>
+            </div>
+          ) : rec ? (
+            <>
+              <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#9ca3af', marginBottom: 14 }}>We recommend</div>
+              <div style={{ background: '#f9fafb', borderRadius: 14, padding: '18px', border: '1.5px solid #111', marginBottom: 14 }}>
+                <div style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>{rec.name}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 10 }}>
+                  <span style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? rec.annual : rec.monthly}</span>
+                  <span style={{ fontSize: 12, color: '#9ca3af' }}>/mo</span>
+                </div>
+                <div style={{ marginBottom: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#9ca3af', marginBottom: 5 }}>
+                    <span>Expected usage</span>
+                    <span style={{ fontWeight: 700, color: pct > 80 ? '#EF4444' : pct > 60 ? '#F59E0B' : '#10B981' }}>{totalCr.toLocaleString()} / {cap.toLocaleString()} cr</span>
+                  </div>
+                  <div style={{ height: 5, background: '#e5e7eb', borderRadius: 99, overflow: 'hidden' }}>
+                    <div style={{ height: '100%', borderRadius: 99, width: `${pct}%`, background: pct > 80 ? '#EF4444' : pct > 60 ? '#F59E0B' : '#10B981', transition: 'width 0.35s ease' }} />
+                  </div>
+                </div>
+              </div>
+              <Link href="/auth/signup" style={{
+                display: 'block', textAlign: 'center', width: '100%', padding: '11px', borderRadius: 10,
+                border: 'none', background: '#111', color: '#fff', fontWeight: 600, fontSize: 13,
+                cursor: 'pointer', letterSpacing: '-0.01em', textDecoration: 'none', marginTop: 'auto',
+              }}>
+                Get {rec.name} →
+              </Link>
+            </>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const comparison = [
   ['Starting price (taxes incl.)', '$21/mo', '$110/mo', '$39/mo',  '$29/mo',  '$15/mo'],
   ['UGC video',         '✓',      '✓',       '✓',       '~',       '✓'],
@@ -289,6 +454,9 @@ export default function PricingPage() {
           @media (max-width: 700px)  { .pricing-grid { grid-template-columns: repeat(2, 1fr) !important; } }
           @media (max-width: 480px)  { .pricing-grid { grid-template-columns: 1fr !important; } }
         `}</style>
+
+        {/* Plan recommender */}
+        <PlanRecommenderPub annual={annual} />
 
         {/* Credit packs */}
         <div style={{ marginBottom: 64 }}>
