@@ -161,10 +161,10 @@ export default function BillingPage() {
   ]
 
   const creditPacks = [
-    { credits: 250,  price: '$8',   perCr: '$0.032/cr', packKey: 'pack_250' },
-    { credits: 500,  price: '$15',  perCr: '$0.030/cr', packKey: 'pack_500' },
-    { credits: 1500, price: '$45',  perCr: '$0.030/cr', packKey: 'pack_1500' },
-    { credits: 5000, price: '$120', perCr: '$0.024/cr', packKey: 'pack_5000' },
+    { credits: 350,  price: '$8',   perCr: '$0.023/cr', packKey: 'pack_250' },
+    { credits: 700,  price: '$15',  perCr: '$0.021/cr', packKey: 'pack_500' },
+    { credits: 2000, price: '$45',  perCr: '$0.023/cr', packKey: 'pack_1500' },
+    { credits: 6000, price: '$120', perCr: '$0.020/cr', packKey: 'pack_5000' },
   ]
 
   const isLitePlan = currentPlan === 'lite'
@@ -431,40 +431,52 @@ export default function BillingPage() {
       {/* Pay as you go */}
       <div style={{ marginBottom: 40 }}>
         <div style={{ marginBottom: 16 }}>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 3 }}>Prefer to pay as you go?</div>
-          <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0 }}>One-off credit boosts — add on top of any plan, or use on the free tier. Credits never expire and survive plan changes.</p>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 3 }}>Need more credits?</div>
+          <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0 }}>One-off credit boosts for Starter and above. Credits never expire and survive plan changes.</p>
         </div>
-        <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-          {creditPacks.map((pack) => (
-            <div key={pack.credits} style={{
-              border: '1px solid var(--border)', borderRadius: 14,
-              padding: '16px 18px', background: 'var(--surface)',
-              display: 'flex', alignItems: 'center', gap: 12,
-            }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{pack.credits.toLocaleString()} credits</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{pack.price}</div>
-              </div>
-              {isAdmin ? (
-                <button
-                  onClick={() => handlePackCheckout(pack.packKey)}
-                  disabled={packLoading === pack.packKey}
-                  style={{
-                    padding: '8px 16px', borderRadius: 8,
-                    border: 'none', background: '#111', color: '#fff',
-                    fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
-                    opacity: packLoading === pack.packKey ? 0.5 : 1,
-                  }}
-                >
-                  {packLoading === pack.packKey ? '…' : 'Buy'}
-                </button>
-              ) : (
-                <div style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink-mute)', flexShrink: 0 }}>Soon</div>
-              )}
+        {(currentPlan === 'free' || currentPlan === 'lite') ? (
+          <div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '24px 20px', background: 'var(--surface)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
+            <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Credit packs are available on Starter and above</div>
+            <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0, maxWidth: 340 }}>Upgrade to Starter to unlock one-off credit boosts — more credits, no subscription commitment.</p>
+            <a href="/settings/billing" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ marginTop: 4, padding: '9px 22px', borderRadius: 9, background: '#111', color: '#fff', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+              Upgrade to Starter →
+            </a>
+          </div>
+        ) : (
+          <>
+            <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              {creditPacks.map((pack) => (
+                <div key={pack.credits} style={{
+                  border: '1px solid var(--border)', borderRadius: 14,
+                  padding: '16px 18px', background: 'var(--surface)',
+                  display: 'flex', alignItems: 'center', gap: 12,
+                }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{pack.credits.toLocaleString()} credits</div>
+                    <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{pack.price}</div>
+                  </div>
+                  {isAdmin ? (
+                    <button
+                      onClick={() => handlePackCheckout(pack.packKey)}
+                      disabled={packLoading === pack.packKey}
+                      style={{
+                        padding: '8px 16px', borderRadius: 8,
+                        border: 'none', background: '#111', color: '#fff',
+                        fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
+                        opacity: packLoading === pack.packKey ? 0.5 : 1,
+                      }}
+                    >
+                      {packLoading === pack.packKey ? '…' : 'Buy'}
+                    </button>
+                  ) : (
+                    <div style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink-mute)', flexShrink: 0 }}>Soon</div>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-        <style>{`@media (max-width: 700px) { .billing-pack-grid { grid-template-columns: 1fr !important; } }`}</style>
+            <style>{`@media (max-width: 700px) { .billing-pack-grid { grid-template-columns: 1fr !important; } }`}</style>
+          </>
+        )}
       </div>
 
       {/* Competitor comparison table */}

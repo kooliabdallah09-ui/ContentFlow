@@ -515,14 +515,18 @@ export default function PricingPage() {
 
         {/* Credit packs */}
         <div style={{ marginBottom: 64 }}>
-          <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 6 }}>Pay as you go</h2>
-          <p style={{ fontSize: 14, color: 'var(--ink-dim, #666)', marginBottom: 24, marginTop: 0 }}>One-off credit boosts — stack on top of any plan, or use standalone on the free tier. Credits never expire and survive plan changes.</p>
+          <h2 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 6 }}>Need more credits?</h2>
+          <p style={{ fontSize: 14, color: 'var(--ink-dim, #666)', marginBottom: 8, marginTop: 0 }}>One-off credit boosts — stack on top of your monthly allowance, never expire, and survive plan changes.</p>
+          <p style={{ fontSize: 13, color: 'var(--ink-dim, #666)', marginBottom: 24, marginTop: 0, display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            Available on <strong>Starter plan and above</strong> — not available on Free or Lite.
+          </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             {[
-              { credits: 250,  price: '$8',   perCr: '$0.032/cr' },
-              { credits: 500,  price: '$15',  perCr: '$0.030/cr' },
-              { credits: 1500, price: '$45',  perCr: '$0.030/cr' },
-              { credits: 5000, price: '$120', perCr: '$0.024/cr' },
+              { credits: 350,  price: '$8',   perCr: '$0.023/cr' },
+              { credits: 700,  price: '$15',  perCr: '$0.021/cr' },
+              { credits: 2000, price: '$45',  perCr: '$0.023/cr' },
+              { credits: 6000, price: '$120', perCr: '$0.020/cr' },
             ].map(pack => (
               <div key={pack.credits} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, padding: '18px 20px', background: 'var(--surface, #fff)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 700 }}>{pack.credits.toLocaleString()} credits</div>
