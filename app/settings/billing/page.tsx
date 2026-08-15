@@ -135,26 +135,26 @@ export default function BillingPage() {
     },
     {
       name: 'Starter', price: { monthly: '$21', annual: '$18' }, annualTotal: '$216/yr',
-      credits: '800/month · $0.024/cr',
+      credits: '800/month',
       features: ['~6 UGC videos/mo at 5s · ~4 at 10s', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer Studio & Product Studio', 'No watermark · Video editor · Priority support'],
       planKey: 'starter',
     },
     {
       name: 'Pro', price: { monthly: '$55', annual: '$46' }, annualTotal: '$552/yr',
-      credits: '2,000/month · $0.025/cr',
+      credits: '2,000/month',
       features: ['~16 UGC videos/mo at 5s · ~10 at 10s', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
       planKey: 'pro',
       popular: true,
     },
     {
       name: 'Agency', price: { monthly: '$165', annual: '$138' }, annualTotal: '$1,656/yr',
-      credits: '6,500/month · $0.023/cr',
+      credits: '6,500/month',
       features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
       planKey: 'agency',
     },
     {
       name: 'Enterprise', price: { monthly: '$665', annual: '$555' }, annualTotal: '$6,660/yr',
-      credits: '25,000/month · $0.024/cr',
+      credits: '25,000/month',
       features: ['~200 UGC videos/mo at 5s · ~130 at 10s', '~5,000 images · ~3,000 influencer/product photos', 'Everything in Agency', 'API access · White-label (no ContentFlow branding)', '5 team seats · Priority render queue · Dedicated Slack'],
       planKey: 'enterprise',
     },
@@ -293,7 +293,7 @@ export default function BillingPage() {
               <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$6' : '$7'}</span>
               <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/mo</span>
               {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $72/yr</span>}
-              <span style={{ fontSize: 11, color: 'var(--ink-dim)', marginLeft: 4 }}>· 200 cr/month · $0.030/cr</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-dim)', marginLeft: 4 }}>· 200 cr/month</span>
             </div>
 
             {/* Included */}
@@ -319,15 +319,6 @@ export default function BillingPage() {
             )}
           </div>
 
-          {/* Restriction banner — unmissable */}
-          <div style={{ background: '#fef3c7', borderTop: '1px solid #fde68a', padding: '10px 22px', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#92400e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-            <div>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#92400e' }}>Video generation is not included: </span>
-              <span style={{ fontSize: 12, color: '#92400e' }}>UGC video · AI Video generation · Video editor are disabled on this plan. </span>
-              <span style={{ fontSize: 12, fontWeight: 600, color: '#92400e' }}>Upgrade to Starter ($19/mo) to unlock video.</span>
-            </div>
-          </div>
         </div>
 
         {/* Plan cards */}

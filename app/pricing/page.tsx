@@ -26,7 +26,7 @@ const plans = [
     name: 'Lite',
     price: { monthly: '$7', annual: '$6' },
     annualTotal: '$72/yr',
-    credits: '200 credits / month',
+    credits: '200 credits/month',
     planKey: 'lite',
     features: [
       'Product photos & images',
@@ -35,7 +35,7 @@ const plans = [
       'Voiceover',
       'Carousel maker',
       'Business card generator',
-      'No UGC or AI video',
+      'UGC & AI video generation',
     ],
     cta: 'Get Lite',
   },
@@ -43,7 +43,7 @@ const plans = [
     name: 'Starter',
     price: { monthly: '$21', annual: '$18' },
     annualTotal: '$216/yr',
-    credits: '800 credits / month',
+    credits: '800 credits/month',
     planKey: 'starter',
     features: [
       '~6 UGC videos/mo at 5s',
@@ -60,7 +60,7 @@ const plans = [
     name: 'Pro',
     price: { monthly: '$55', annual: '$46' },
     annualTotal: '$552/yr',
-    credits: '2,000 credits / month',
+    credits: '2,000 credits/month',
     planKey: 'pro',
     popular: true,
     features: [
@@ -77,7 +77,7 @@ const plans = [
     name: 'Agency',
     price: { monthly: '$165', annual: '$138' },
     annualTotal: '$1,656/yr',
-    credits: '6,500 credits / month',
+    credits: '6,500 credits/month',
     planKey: 'agency',
     features: [
       '~52 UGC videos/mo at 5s',
@@ -93,7 +93,7 @@ const plans = [
     name: 'Enterprise',
     price: { monthly: '$665', annual: '$555' },
     annualTotal: '$6,660/yr',
-    credits: '25,000 credits / month',
+    credits: '25,000 credits/month',
     planKey: 'enterprise',
     features: [
       '~200 UGC videos/mo at 5s',
