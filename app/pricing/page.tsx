@@ -304,7 +304,6 @@ export default function PricingPage() {
               <div key={pack.credits} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, padding: '18px 20px', background: 'var(--surface, #fff)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 700 }}>{pack.credits.toLocaleString()} credits</div>
                 <div style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.03em' }}>{pack.price}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-mute, #999)', marginBottom: 10 }}>{pack.perCr}</div>
                 <Link href="/auth/signup" style={{ display: 'block', textAlign: 'center', padding: '8px', borderRadius: 8, border: '1.5px solid var(--border, #e5e7eb)', fontSize: 13, fontWeight: 600, color: 'var(--ink, #111)', textDecoration: 'none' }}>
                   Buy credits
                 </Link>

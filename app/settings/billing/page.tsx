@@ -452,7 +452,7 @@ export default function BillingPage() {
             }}>
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{pack.credits.toLocaleString()} credits</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{pack.price} · {pack.perCr}</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{pack.price}</div>
               </div>
               {isAdmin ? (
                 <button
