@@ -296,10 +296,10 @@ export default function PricingPage() {
           <p style={{ fontSize: 14, color: 'var(--ink-dim, #666)', marginBottom: 24, marginTop: 0 }}>One-off credit packs. No subscription required. Never expire.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             {[
-              { credits: 250,  price: '$8',   perCr: '$0.032/cr' },
-              { credits: 500,  price: '$15',  perCr: '$0.030/cr' },
-              { credits: 1500, price: '$45',  perCr: '$0.030/cr' },
-              { credits: 5000, price: '$120', perCr: '$0.024/cr' },
+              { credits: 250,  price: '$9',   perCr: '$0.036/cr' },
+              { credits: 500,  price: '$17',  perCr: '$0.034/cr' },
+              { credits: 1500, price: '$50',  perCr: '$0.033/cr' },
+              { credits: 5000, price: '$132', perCr: '$0.026/cr' },
             ].map(pack => (
               <div key={pack.credits} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, padding: '18px 20px', background: 'var(--surface, #fff)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 700 }}>{pack.credits.toLocaleString()} credits</div>
