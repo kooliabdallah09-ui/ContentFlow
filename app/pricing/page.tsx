@@ -24,8 +24,8 @@ const plans = [
   },
   {
     name: 'Lite',
-    price: { monthly: '$7', annual: '$6' },
-    annualTotal: '$72/yr',
+    price: { monthly: '$6', annual: '$5' },
+    annualTotal: '$60/yr',
     credits: '200 credits/month',
     planKey: 'lite',
     features: [
@@ -41,8 +41,8 @@ const plans = [
   },
   {
     name: 'Starter',
-    price: { monthly: '$21', annual: '$18' },
-    annualTotal: '$216/yr',
+    price: { monthly: '$19', annual: '$16' },
+    annualTotal: '$190/yr',
     credits: '800 credits/month',
     planKey: 'starter',
     features: [
@@ -58,8 +58,8 @@ const plans = [
   },
   {
     name: 'Pro',
-    price: { monthly: '$55', annual: '$46' },
-    annualTotal: '$552/yr',
+    price: { monthly: '$49', annual: '$41' },
+    annualTotal: '$490/yr',
     credits: '2,000 credits/month',
     planKey: 'pro',
     popular: true,
@@ -75,8 +75,8 @@ const plans = [
   },
   {
     name: 'Agency',
-    price: { monthly: '$165', annual: '$138' },
-    annualTotal: '$1,656/yr',
+    price: { monthly: '$149', annual: '$124' },
+    annualTotal: '$1,490/yr',
     credits: '6,500 credits/month',
     planKey: 'agency',
     features: [
@@ -91,8 +91,8 @@ const plans = [
   },
   {
     name: 'Enterprise',
-    price: { monthly: '$665', annual: '$555' },
-    annualTotal: '$6,660/yr',
+    price: { monthly: '$605', annual: '$500' },
+    annualTotal: '$6,000/yr',
     credits: '25,000 credits/month',
     planKey: 'enterprise',
     features: [
@@ -148,11 +148,11 @@ function pubGetCrEach(t: PubContentType, sel: Record<string, string>): number {
 
 const PUB_CAPS: Record<string, number> = { lite: 200, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
 const PUB_PRICES: Record<string, { name: string; monthly: string; annual: string; planKey: string }> = {
-  lite:       { name: 'Lite',       monthly: '$7',   annual: '$6',   planKey: 'lite'       },
-  starter:    { name: 'Starter',    monthly: '$21',  annual: '$18',  planKey: 'starter'    },
-  pro:        { name: 'Pro',        monthly: '$55',  annual: '$46',  planKey: 'pro'        },
-  agency:     { name: 'Agency',     monthly: '$165', annual: '$138', planKey: 'agency'     },
-  enterprise: { name: 'Enterprise', monthly: '$665', annual: '$555', planKey: 'enterprise' },
+  lite:       { name: 'Lite',       monthly: '$6',   annual: '$5',   planKey: 'lite'       },
+  starter:    { name: 'Starter',    monthly: '$19',  annual: '$16',  planKey: 'starter'    },
+  pro:        { name: 'Pro',        monthly: '$49',  annual: '$41',  planKey: 'pro'        },
+  agency:     { name: 'Agency',     monthly: '$149', annual: '$124', planKey: 'agency'     },
+  enterprise: { name: 'Enterprise', monthly: '$605', annual: '$500', planKey: 'enterprise' },
 }
 
 function PlanRecommenderPub({ annual }: { annual: boolean }) {
@@ -328,7 +328,7 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
 }
 
 const comparison = [
-  ['Starting price (taxes incl.)', '$21/mo', '$110/mo', '$39/mo',  '$29/mo',  '$15/mo'],
+  ['Starting price', '$19/mo', '$110/mo', '$39/mo',  '$29/mo',  '$15/mo'],
   ['UGC video',         '✓',      '✓',       '✓',       '~',       '✓'],
   ['Product photos',    '✓',      '✗',       '✗',       '✗',       '✗'],
   ['Social copy',       '✓',      '✗',       '✗',       '✗',       '✗'],
@@ -519,10 +519,10 @@ export default function PricingPage() {
           <p style={{ fontSize: 14, color: 'var(--ink-dim, #666)', marginBottom: 24, marginTop: 0 }}>One-off credit packs. No subscription required. Never expire.</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             {[
-              { credits: 250,  price: '$9',   perCr: '$0.036/cr' },
-              { credits: 500,  price: '$17',  perCr: '$0.034/cr' },
-              { credits: 1500, price: '$50',  perCr: '$0.033/cr' },
-              { credits: 5000, price: '$132', perCr: '$0.026/cr' },
+              { credits: 250,  price: '$8',   perCr: '$0.032/cr' },
+              { credits: 500,  price: '$15',  perCr: '$0.030/cr' },
+              { credits: 1500, price: '$45',  perCr: '$0.030/cr' },
+              { credits: 5000, price: '$120', perCr: '$0.024/cr' },
             ].map(pack => (
               <div key={pack.credits} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, padding: '18px 20px', background: 'var(--surface, #fff)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 700 }}>{pack.credits.toLocaleString()} credits</div>

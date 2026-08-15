@@ -134,26 +134,26 @@ export default function BillingPage() {
       planKey: 'free',
     },
     {
-      name: 'Starter', price: { monthly: '$21', annual: '$18' }, annualTotal: '$216/yr',
+      name: 'Starter', price: { monthly: '$19', annual: '$16' }, annualTotal: '$190/yr',
       credits: '800/month',
       features: ['~6 UGC videos/mo at 5s · ~4 at 10s', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer Studio & Product Studio', 'No watermark · Video editor · Priority support'],
       planKey: 'starter',
     },
     {
-      name: 'Pro', price: { monthly: '$55', annual: '$46' }, annualTotal: '$552/yr',
+      name: 'Pro', price: { monthly: '$49', annual: '$41' }, annualTotal: '$490/yr',
       credits: '2,000/month',
       features: ['~16 UGC videos/mo at 5s · ~10 at 10s', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
       planKey: 'pro',
       popular: true,
     },
     {
-      name: 'Agency', price: { monthly: '$165', annual: '$138' }, annualTotal: '$1,656/yr',
+      name: 'Agency', price: { monthly: '$149', annual: '$124' }, annualTotal: '$1,490/yr',
       credits: '6,500/month',
       features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
       planKey: 'agency',
     },
     {
-      name: 'Enterprise', price: { monthly: '$665', annual: '$555' }, annualTotal: '$6,660/yr',
+      name: 'Enterprise', price: { monthly: '$605', annual: '$500' }, annualTotal: '$6,000/yr',
       credits: '25,000/month',
       features: ['~200 UGC videos/mo at 5s · ~130 at 10s', '~5,000 images · ~3,000 influencer/product photos', 'Everything in Agency', 'API access · White-label (no ContentFlow branding)', '5 team seats · Priority render queue · Dedicated Slack'],
       planKey: 'enterprise',
@@ -161,10 +161,10 @@ export default function BillingPage() {
   ]
 
   const creditPacks = [
-    { credits: 250,  price: '$9',   perCr: '$0.036/cr', packKey: 'pack_250' },
-    { credits: 500,  price: '$17',  perCr: '$0.034/cr', packKey: 'pack_500' },
-    { credits: 1500, price: '$50',  perCr: '$0.033/cr', packKey: 'pack_1500' },
-    { credits: 5000, price: '$132', perCr: '$0.026/cr', packKey: 'pack_5000' },
+    { credits: 250,  price: '$8',   perCr: '$0.032/cr', packKey: 'pack_250' },
+    { credits: 500,  price: '$15',  perCr: '$0.030/cr', packKey: 'pack_500' },
+    { credits: 1500, price: '$45',  perCr: '$0.030/cr', packKey: 'pack_1500' },
+    { credits: 5000, price: '$120', perCr: '$0.024/cr', packKey: 'pack_5000' },
   ]
 
   const isLitePlan = currentPlan === 'lite'
@@ -289,10 +289,10 @@ export default function BillingPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 20, padding: '18px 22px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 15, fontWeight: 700 }}>Lite</span>
-              {annual && <span style={{ fontSize: 14, color: 'var(--ink-mute)', textDecoration: 'line-through', fontWeight: 600 }}>$7</span>}
-              <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$6' : '$7'}</span>
+              {annual && <span style={{ fontSize: 14, color: 'var(--ink-mute)', textDecoration: 'line-through', fontWeight: 600 }}>$6</span>}
+              <span style={{ fontSize: 24, fontWeight: 800, letterSpacing: '-0.04em', lineHeight: 1 }}>{annual ? '$5' : '$6'}</span>
               <span style={{ fontSize: 12, color: 'var(--ink-mute)' }}>/mo</span>
-              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $72/yr</span>}
+              {annual && <span style={{ fontSize: 11, color: 'var(--ink-mute)' }}>billed $60/yr</span>}
               <span style={{ fontSize: 11, color: 'var(--ink-dim)', marginLeft: 4 }}>· 200 cr/month</span>
             </div>
 
