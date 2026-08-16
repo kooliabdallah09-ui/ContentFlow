@@ -81,6 +81,7 @@ export async function submitStitchJob({
       type: 'video',
       src,
       volume: audioOverlayUrl ? 0 : 1,
+      trim: 0.1,
     },
     start: talkingHeadStart + perClipLength * i,
     length: perClipLength,
@@ -100,6 +101,7 @@ export async function submitStitchJob({
         type: 'video',
         src,
         volume: audioOverlayUrl ? 0 : 1,
+        trim: 0.1,
         chromaKey: {
           color: '#00B140',
           threshold: 0.35,
