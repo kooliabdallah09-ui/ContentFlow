@@ -622,7 +622,16 @@ const CONTENT_TYPES: ContentType[] = [
   },
   {
     key: 'social', label: 'Social Caption', sub: 'AI copywriting', color: '#F59E0B',
-    crBase: 2,
+    crBase: 5,
+  },
+  {
+    key: 'carousel', label: 'Carousel', sub: 'AI slides · per carousel', color: '#EC4899',
+    crBase: 30,
+    opts: [
+      { key: 'slides', choices: ['4', '6', '8', '10'], default: '6' },
+      { key: 'model', choices: ['Budget (NB2)', 'Standard (NBPro)'], default: 'Standard (NBPro)' },
+    ],
+    crMod: (s) => (parseInt(s.slides) || 6) * (s.model === 'Budget (NB2)' ? 3 : 5),
   },
 ]
 
