@@ -85,7 +85,7 @@ export default function BillingPage() {
       if (!token) return
       const res = await fetch('/api/dodo/portal', {
         method: 'POST',
-        headers: { authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}` },
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
