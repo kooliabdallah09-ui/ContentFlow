@@ -621,7 +621,7 @@ const CONTENT_TYPES: ContentType[] = [
     crMod: (s) => s.duration === '120s' ? 28 : s.duration === '90s' ? 22 : s.duration === '60s' ? 16 : 10,
   },
   {
-    key: 'social', label: 'Social Caption', sub: 'AI copywriting', color: '#F59E0B',
+    key: 'social', label: 'Social Post', sub: 'AI copywriting', color: '#F59E0B',
     crBase: 5,
   },
   {

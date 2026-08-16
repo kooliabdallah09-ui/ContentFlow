@@ -138,7 +138,7 @@ const CONTENT_TYPES_PUB: PubContentType[] = [
   { key: 'voiceover', label: 'Voiceover', sub: 'ElevenLabs · per clip', color: '#6366F1', crBase: 10,
     opts: [{ key: 'duration', choices: ['30s','60s','90s','120s'], default: '30s' }],
     crMod: (s) => s.duration === '120s' ? 28 : s.duration === '90s' ? 22 : s.duration === '60s' ? 16 : 10 },
-  { key: 'social', label: 'Social Caption', sub: 'AI copywriting', color: '#F59E0B', crBase: 5 },
+  { key: 'social', label: 'Social Post', sub: 'AI copywriting', color: '#F59E0B', crBase: 5 },
   { key: 'carousel', label: 'Carousel', sub: 'AI slides · per carousel', color: '#EC4899', crBase: 30,
     opts: [{ key: 'slides', choices: ['4','6','8','10'], default: '6' }, { key: 'model', choices: ['Budget (NB2)','Standard (NBPro)'], default: 'Standard (NBPro)' }],
     crMod: (s) => (parseInt(s.slides) || 6) * (s.model === 'Budget (NB2)' ? 3 : 5) },
