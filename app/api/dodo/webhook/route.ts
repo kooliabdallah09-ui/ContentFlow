@@ -53,6 +53,8 @@ export async function POST(request: NextRequest) {
           plan: planKey,
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           dodo_subscription_id: (sub as any).subscription_id ?? null,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          dodo_customer_id: (sub as any).customer_id ?? null,
           status: 'active',
           updated_at: new Date().toISOString(),
         }, { onConflict: 'user_id' }),

@@ -75,8 +75,26 @@ export default function BillingPage() {
     }
   }
 
-  function handleManageSubscription() {
-    window.open('mailto:support@contentflow-web.com?subject=Subscription%20management', '_blank')
+  async function handleManageSubscription() {
+    try {
+      setUpgradeLoading('portal')
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sessionData } = await supabase.auth.getSession()
+      const token = sessionData?.session?.access_token
+      if (!token) return
+      const res = await fetch('/api/dodo/portal', {
+        method: 'POST',
+        headers: { authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (data.url) window.location.href = data.url
+      else alert('Could not open subscription portal. Please contact support.')
+    } catch {
+      alert('Could not open subscription portal. Please contact support.')
+    } finally {
+      setUpgradeLoading(null)
+    }
   }
 
   const loadCreditsInfo = async () => {
