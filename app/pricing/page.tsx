@@ -529,7 +529,7 @@ export default function PricingPage() {
               { credits: 350,  price: '$8',   perCr: '$0.023/cr' },
               { credits: 700,  price: '$15',  perCr: '$0.021/cr' },
               { credits: 2000, price: '$45',  perCr: '$0.023/cr' },
-              { credits: 6000, price: '$120', perCr: '$0.020/cr' },
+              { credits: 6000, price: '$130', perCr: '$0.022/cr' },
             ].map(pack => (
               <div key={pack.credits} style={{ border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, padding: '18px 20px', background: 'var(--surface, #fff)', display: 'flex', flexDirection: 'column', gap: 4 }}>
                 <div style={{ fontSize: 15, fontWeight: 700 }}>{pack.credits.toLocaleString()} credits</div>

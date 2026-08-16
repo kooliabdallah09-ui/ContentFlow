@@ -164,7 +164,7 @@ export default function BillingPage() {
     { credits: 350,  price: '$8',   perCr: '$0.023/cr', packKey: 'pack_250' },
     { credits: 700,  price: '$15',  perCr: '$0.021/cr', packKey: 'pack_500' },
     { credits: 2000, price: '$45',  perCr: '$0.023/cr', packKey: 'pack_1500' },
-    { credits: 6000, price: '$120', perCr: '$0.020/cr', packKey: 'pack_5000' },
+    { credits: 6000, price: '$130', perCr: '$0.022/cr', packKey: 'pack_5000' },
   ]
 
   const isLitePlan = currentPlan === 'lite'
