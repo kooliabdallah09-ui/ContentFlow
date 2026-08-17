@@ -48,6 +48,44 @@ export async function POST(request: NextRequest) {
       environment: process.env.DODO_ENV === 'production' ? 'live_mode' : 'test_mode',
     })
 
+    // If this is a subscription plan (not a one-time pack), cancel any existing active
+    // subscription for this user so they aren't double-charged after upgrading.
+    const isPackPurchase = planKey.startsWith('pack_')
+    if (!isPackPurchase) {
+      const { data: existingSub } = await supabase
+        .from('user_subscriptions')
+        .select('dodo_subscription_id, dodo_customer_id, status')
+        .eq('user_id', userData.user.id)
+        .maybeSingle()
+      if (existingSub?.dodo_subscription_id && existingSub.status !== 'cancelled') {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          await dodo.subscriptions.update(existingSub.dodo_subscription_id, { status: 'cancelled' } as any)
+          console.log(`[dodo/checkout] cancelled prior sub ${existingSub.dodo_subscription_id} for user ${userData.user.id}`)
+        } catch (cancelErr) {
+          console.warn(`[dodo/checkout] could not cancel prior sub ${existingSub.dodo_subscription_id}:`, cancelErr)
+        }
+      }
+      // Also fetch any other active subs for this customer (in case there were multiple from earlier bugs)
+      if (existingSub?.dodo_customer_id) {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const subs = await dodo.subscriptions.list({ customer_id: existingSub.dodo_customer_id, status: 'active' } as any) as any
+          const items: Array<{ subscription_id: string }> = subs?.items ?? subs?.data ?? []
+          for (const s of items) {
+            if (s.subscription_id === existingSub.dodo_subscription_id) continue
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              await dodo.subscriptions.update(s.subscription_id, { status: 'cancelled' } as any)
+              console.log(`[dodo/checkout] also cancelled stray sub ${s.subscription_id}`)
+            } catch { /* ignore individual failures */ }
+          }
+        } catch (listErr) {
+          console.warn('[dodo/checkout] stray-sub sweep failed:', listErr)
+        }
+      }
+    }
+
     const origin = request.headers.get('origin') ?? 'https://contentflow-web.com'
     const session = await dodo.checkoutSessions.create({
       product_cart: [{ product_id: productId, quantity: 1 }],
