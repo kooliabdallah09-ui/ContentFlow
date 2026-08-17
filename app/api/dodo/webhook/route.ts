@@ -35,12 +35,23 @@ export async function POST(request: NextRequest) {
     if (event.type === 'subscription.active') {
       const sub = event.data
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const meta = (sub as any).metadata as Record<string, string> | undefined
-      const userId = meta?.supabase_user_id
+      const subAny = sub as any
+      const meta = subAny.metadata as Record<string, string> | undefined
+      let userId = meta?.supabase_user_id
       const planKey = meta?.plan_key ?? 'starter'
 
+      // Portal-initiated changes have no metadata — fall back to customer_id lookup
+      if (!userId && subAny.customer_id) {
+        const { data: found } = await supabase
+          .from('user_subscriptions')
+          .select('user_id')
+          .eq('dodo_customer_id', subAny.customer_id)
+          .maybeSingle()
+        userId = found?.user_id
+      }
+
       if (!userId) {
-        console.warn('[dodo/webhook] subscription.active missing supabase_user_id', sub)
+        console.warn('[dodo/webhook] subscription.active: could not resolve user', subAny)
         return NextResponse.json({ ok: true })
       }
 
@@ -79,13 +90,18 @@ export async function POST(request: NextRequest) {
     if (event.type === 'subscription.renewed') {
       const sub = event.data
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const meta = (sub as any).metadata as Record<string, string> | undefined
-      const userId = meta?.supabase_user_id
+      const subAny = sub as any
+      const meta = subAny.metadata as Record<string, string> | undefined
+      let userId = meta?.supabase_user_id
       const planKey = meta?.plan_key ?? 'starter'
+
+      if (!userId && subAny.customer_id) {
+        const { data: found } = await supabase.from('user_subscriptions').select('user_id').eq('dodo_customer_id', subAny.customer_id).maybeSingle()
+        userId = found?.user_id
+      }
 
       if (userId) {
         const credits = PLAN_CREDITS[planKey] ?? 800
-        // Reset monthly credits (don't accumulate — overwrite balance)
         await supabase.from('user_credits')
           .update({ balance: credits, updated_at: new Date().toISOString() })
           .eq('user_id', userId)
@@ -96,8 +112,15 @@ export async function POST(request: NextRequest) {
     if (event.type === 'subscription.cancelled') {
       const sub = event.data
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const meta = (sub as any).metadata as Record<string, string> | undefined
-      const userId = meta?.supabase_user_id
+      const subAny = sub as any
+      const meta = subAny.metadata as Record<string, string> | undefined
+      let userId = meta?.supabase_user_id
+
+      if (!userId && subAny.customer_id) {
+        const { data: found } = await supabase.from('user_subscriptions').select('user_id').eq('dodo_customer_id', subAny.customer_id).maybeSingle()
+        userId = found?.user_id
+      }
+
       if (userId) {
         await supabase.from('user_subscriptions')
           .update({ status: 'cancelled', updated_at: new Date().toISOString() })
