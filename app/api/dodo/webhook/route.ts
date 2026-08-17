@@ -290,8 +290,6 @@ export async function POST(request: NextRequest) {
       }
 
       console.log(`[dodo/webhook] payment.succeeded: not a pack or known plan (planKey=${planKeyFromMeta}), ignoring`)
-
-      console.log(`[dodo/webhook] pack ${packKey} (+${creditsToAdd}cr) for user ${userId} (balance → ${newBalance}, pack_credits → ${newPackCredits})`)
     }
 
     return NextResponse.json({ ok: true })
