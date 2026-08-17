@@ -184,6 +184,13 @@ export default function BillingPage() {
     { credits: 6000, price: '$130', perCr: '$0.022/cr', packKey: 'pack_5000' },
   ]
 
+  // Used by the recommender — includes Lite so `plans.find(p => p.planKey === 'lite')` works
+  const allPlans = [
+    ...plans.slice(0, 1),
+    { name: 'Lite', price: { monthly: '$8', annual: '$7' }, annualTotal: '$80/yr', credits: '300/month', features: [], planKey: 'lite' },
+    ...plans.slice(1),
+  ]
+
   const isLitePlan = currentPlan === 'lite'
 
   return (

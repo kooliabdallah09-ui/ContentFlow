@@ -59,19 +59,33 @@ async function resolvePlanKey(
   userId: string | undefined,
 ): Promise<string | null> {
   const metaPlan = subAny.metadata?.plan_key
-  if (metaPlan && PLAN_CREDITS[metaPlan]) return metaPlan
+  if (metaPlan && PLAN_CREDITS[metaPlan]) {
+    console.log(`[dodo/webhook] resolvePlanKey → ${metaPlan} (via metadata)`)
+    return metaPlan
+  }
 
   const productIdMap = getProductIdToPlanKey()
-  if (subAny.product_id && productIdMap[subAny.product_id]) return productIdMap[subAny.product_id]
+  console.log(`[dodo/webhook] resolvePlanKey product_id=${subAny.product_id} map_keys=${Object.keys(productIdMap).join(',')}`)
+  if (subAny.product_id && productIdMap[subAny.product_id]) {
+    const p = productIdMap[subAny.product_id]
+    console.log(`[dodo/webhook] resolvePlanKey → ${p} (via product_id)`)
+    return p
+  }
 
   const cartPlan = subAny.product_cart?.map(i => productIdMap[i.product_id]).find(Boolean)
-  if (cartPlan) return cartPlan
+  if (cartPlan) {
+    console.log(`[dodo/webhook] resolvePlanKey → ${cartPlan} (via cart)`)
+    return cartPlan
+  }
 
-  // Last resort: look up current plan from DB (so we don't wipe on renewal with missing metadata)
   if (userId) {
     const { data } = await supabase.from('user_credits').select('plan').eq('user_id', userId).maybeSingle()
-    if (data?.plan && PLAN_CREDITS[data.plan]) return data.plan
+    if (data?.plan && PLAN_CREDITS[data.plan]) {
+      console.log(`[dodo/webhook] resolvePlanKey → ${data.plan} (via DB fallback)`)
+      return data.plan
+    }
   }
+  console.warn(`[dodo/webhook] resolvePlanKey → null (all fallbacks exhausted)`)
   return null
 }
 
@@ -91,7 +105,7 @@ export async function POST(request: NextRequest) {
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const debugData = event.data as any
-    console.log(`[dodo/webhook] event=${event.type} sub_id=${debugData?.subscription_id ?? debugData?.payment_id ?? 'n/a'} customer_id=${debugData?.customer_id ?? 'n/a'} metadata=${JSON.stringify(debugData?.metadata ?? {})}`)
+    console.log(`[dodo/webhook] event=${event.type} sub_id=${debugData?.subscription_id ?? debugData?.payment_id ?? 'n/a'} product_id=${debugData?.product_id ?? 'n/a'} customer_id=${debugData?.customer_id ?? 'n/a'} metadata=${JSON.stringify(debugData?.metadata ?? {})}`)
 
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
