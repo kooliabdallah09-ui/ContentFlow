@@ -71,7 +71,10 @@ export async function POST(request: NextRequest) {
       return_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://contentflow-web.com'}/settings/billing`,
     })
 
-    return NextResponse.json({ url: (session as any).url })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const url = (session as any).link ?? (session as any).url
+    if (!url) return NextResponse.json({ error: 'Dodo portal session missing link' }, { status: 500 })
+    return NextResponse.json({ url })
   } catch (err) {
     console.error('[dodo/portal] error:', err)
     const msg = err instanceof Error ? err.message : 'Failed to create portal session'
