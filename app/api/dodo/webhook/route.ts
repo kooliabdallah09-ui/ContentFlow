@@ -13,6 +13,28 @@ const PLAN_CREDITS: Record<string, number> = {
   enterprise: 25000,
 }
 
+// Credits granted per one-time credit pack
+const PACK_CREDITS: Record<string, number> = {
+  pack_250:  250,
+  pack_500:  500,
+  pack_1500: 1500,
+  pack_5000: 5000,
+}
+
+// Build reverse map: Dodo product ID → pack key (checked at runtime so env vars are resolved)
+function getProductIdToPackKey(): Record<string, string> {
+  const isTest = process.env.DODO_ENV !== 'production'
+  const map: Record<string, string> = {}
+  for (const packKey of Object.keys(PACK_CREDITS)) {
+    const envKey = isTest
+      ? `DODO_TEST_${packKey.toUpperCase()}`
+      : `DODO_${packKey.toUpperCase()}`
+    const productId = process.env[envKey]
+    if (productId) map[productId] = packKey
+  }
+  return map
+}
+
 export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const headers: Record<string, string> = {}
@@ -103,10 +125,13 @@ export async function POST(request: NextRequest) {
 
       if (userId) {
         const credits = PLAN_CREDITS[planKey] ?? 800
+        const { data: existing } = await supabase
+          .from('user_credits').select('pack_credits').eq('user_id', userId).maybeSingle()
+        const packCredits = existing?.pack_credits ?? 0
         await supabase.from('user_credits')
-          .update({ balance: credits, plan: planKey, monthly_credits: credits, updated_at: new Date().toISOString() })
+          .update({ balance: credits + packCredits, pack_credits: packCredits, plan: planKey, monthly_credits: credits, updated_at: new Date().toISOString() })
           .eq('user_id', userId)
-        console.log(`[dodo/webhook] renewed ${planKey} for user ${userId} (${credits} cr reset)`)
+        console.log(`[dodo/webhook] renewed ${planKey} for user ${userId} (${credits} + ${packCredits} pack cr)`)
       }
     }
 
@@ -127,6 +152,57 @@ export async function POST(request: NextRequest) {
           .update({ status: 'cancelled', updated_at: new Date().toISOString() })
           .eq('user_id', userId)
       }
+    }
+
+    if (event.type === 'payment.succeeded') {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payment = event.data as any
+      const meta = payment.metadata as Record<string, string> | undefined
+      let userId = meta?.supabase_user_id
+      const planKeyFromMeta = meta?.plan_key
+
+      // Resolve user via customer_id if metadata missing
+      if (!userId && payment.customer_id) {
+        const { data: found } = await supabase
+          .from('user_subscriptions')
+          .select('user_id')
+          .eq('dodo_customer_id', payment.customer_id)
+          .maybeSingle()
+        userId = found?.user_id
+      }
+
+      if (!userId) {
+        console.warn('[dodo/webhook] payment.succeeded: could not resolve user', payment.payment_id)
+        return NextResponse.json({ ok: true })
+      }
+
+      // Determine which pack was purchased by matching product IDs in the cart
+      const productIdToPackKey = getProductIdToPackKey()
+      const cart: Array<{ product_id: string }> = payment.product_cart ?? []
+      const packKey = planKeyFromMeta ?? cart.map(item => productIdToPackKey[item.product_id]).find(Boolean)
+
+      if (!packKey || !PACK_CREDITS[packKey]) {
+        // Not a credit pack purchase (could be a subscription payment) — ignore
+        console.log(`[dodo/webhook] payment.succeeded: not a pack (packKey=${packKey}), ignoring`)
+        return NextResponse.json({ ok: true })
+      }
+
+      const creditsToAdd = PACK_CREDITS[packKey]
+
+      const { data: existing } = await supabase
+        .from('user_credits')
+        .select('balance, pack_credits')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      const newPackCredits = (existing?.pack_credits ?? 0) + creditsToAdd
+      const newBalance = (existing?.balance ?? 0) + creditsToAdd
+
+      await supabase.from('user_credits')
+        .update({ balance: newBalance, pack_credits: newPackCredits, updated_at: new Date().toISOString() })
+        .eq('user_id', userId)
+
+      console.log(`[dodo/webhook] pack ${packKey} (+${creditsToAdd}cr) for user ${userId} (balance → ${newBalance}, pack_credits → ${newPackCredits})`)
     }
 
     return NextResponse.json({ ok: true })
