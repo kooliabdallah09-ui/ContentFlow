@@ -78,11 +78,8 @@ export default function BillingPage() {
   async function handleManageSubscription() {
     try {
       setUpgradeLoading('portal')
-      const supabase = getSupabase()
-      if (!supabase) return
-      const { data: sessionData } = await supabase.auth.getSession()
-      const token = sessionData?.session?.access_token
-      if (!token) return
+      const token = await getToken()
+      if (!token) { window.location.href = '/auth/login'; return }
       const res = await fetch('/api/dodo/portal', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },

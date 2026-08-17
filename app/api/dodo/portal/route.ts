@@ -21,11 +21,11 @@ export async function POST(request: NextRequest) {
 
     const { data: sub } = await supabase
       .from('user_subscriptions')
-      .select('dodo_customer_id')
+      .select('dodo_customer_id, dodo_subscription_id')
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (!sub?.dodo_customer_id) {
+    if (!sub) {
       return NextResponse.json({ error: 'No active subscription found' }, { status: 404 })
     }
 
@@ -34,7 +34,25 @@ export async function POST(request: NextRequest) {
       environment: process.env.DODO_ENV === 'production' ? 'live_mode' : 'test_mode',
     })
 
-    const session = await dodo.customers.customerPortal.create(sub.dodo_customer_id, {
+    // Fall back to fetching customer_id from Dodo using the subscription ID
+    let customerId = sub.dodo_customer_id
+    if (!customerId && sub.dodo_subscription_id) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dodSub = await dodo.subscriptions.retrieve(sub.dodo_subscription_id) as any
+      customerId = dodSub?.customer_id ?? null
+      // Backfill so future calls don't need the lookup
+      if (customerId) {
+        await supabase.from('user_subscriptions')
+          .update({ dodo_customer_id: customerId })
+          .eq('user_id', user.id)
+      }
+    }
+
+    if (!customerId) {
+      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 })
+    }
+
+    const session = await dodo.customers.customerPortal.create(customerId, {
       return_url: `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://contentflow-web.com'}/settings/billing`,
     })
 
