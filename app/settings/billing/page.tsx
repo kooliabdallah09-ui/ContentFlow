@@ -86,9 +86,9 @@ export default function BillingPage() {
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
-      else alert('Could not open subscription portal. Please contact support.')
-    } catch {
-      alert('Could not open subscription portal. Please contact support.')
+      else alert(`Could not open subscription portal: ${data.error ?? 'unknown error'}`)
+    } catch (e) {
+      alert(`Could not open subscription portal: ${e instanceof Error ? e.message : 'network error'}`)
     } finally {
       setUpgradeLoading(null)
     }

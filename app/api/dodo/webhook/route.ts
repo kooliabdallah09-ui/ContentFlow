@@ -135,6 +135,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (event.type === 'subscription.plan_changed') {
+      // Treat exactly like subscription.active — new plan is now in effect
+      const sub = event.data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subAny = sub as any
+      const meta = subAny.metadata as Record<string, string> | undefined
+      let userId = meta?.supabase_user_id
+      const planKey = meta?.plan_key ?? subAny.plan?.name?.toLowerCase() ?? 'starter'
+
+      if (!userId && subAny.customer_id) {
+        const { data: found } = await supabase
+          .from('user_subscriptions')
+          .select('user_id')
+          .eq('dodo_customer_id', subAny.customer_id)
+          .maybeSingle()
+        userId = found?.user_id
+      }
+
+      if (userId) {
+        const newCredits = PLAN_CREDITS[planKey] ?? 800
+        const { data: existing } = await supabase
+          .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
+        const currentBalance = existing?.balance ?? 0
+        const newBalance = newCredits > currentBalance ? newCredits : currentBalance + newCredits
+
+        await Promise.all([
+          supabase.from('user_subscriptions').upsert({
+            user_id: userId, plan: planKey,
+            dodo_subscription_id: subAny.subscription_id ?? null,
+            dodo_customer_id: subAny.customer_id ?? null,
+            status: 'active', updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' }),
+          supabase.from('user_credits').upsert({
+            user_id: userId, balance: newBalance,
+            pack_credits: existing?.pack_credits ?? 0,
+            plan: planKey, monthly_credits: newCredits,
+          }, { onConflict: 'user_id' }),
+        ])
+        console.log(`[dodo/webhook] plan_changed → ${planKey} for user ${userId} (balance → ${newBalance})`)
+      }
+    }
+
     if (event.type === 'subscription.cancelled') {
       const sub = event.data
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

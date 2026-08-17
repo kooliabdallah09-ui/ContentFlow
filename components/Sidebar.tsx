@@ -20,8 +20,10 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/')
   const handleNavClick = () => onMobileClose?.()
   const router = useRouter()
-  const { balance: creditBalance } = useCredits()
+  const { balance: creditBalance, plan: creditPlan } = useCredits()
   const displayBalance = creditBalance ?? 0
+  const planLabel = creditPlan ? creditPlan.charAt(0).toUpperCase() + creditPlan.slice(1) + ' plan' : 'Free plan'
+  const isPaidPlan = creditPlan && creditPlan !== 'free'
 
   const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
 
@@ -199,8 +201,8 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
             <div style={{ height: '100%', width: `${creditPercentage}%`, background: '#D8B978', borderRadius: 99 }} />
           </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: '#B5B29E' }}>
-            <span>Free plan</span>
-            <span style={{ color: '#fff', fontWeight: 600 }}>Upgrade →</span>
+            <span>{planLabel}</span>
+            {!isPaidPlan && <span style={{ color: '#fff', fontWeight: 600 }}>Upgrade →</span>}
           </div>
         </div>
         <button

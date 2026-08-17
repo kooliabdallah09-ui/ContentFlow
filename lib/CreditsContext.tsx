@@ -5,13 +5,15 @@ import { getSupabase } from './auth'
 
 interface CreditsCtx {
   balance: number | null   // null = still loading
+  plan: string | null
   refresh: () => void
 }
 
-const Ctx = createContext<CreditsCtx>({ balance: null, refresh: () => {} })
+const Ctx = createContext<CreditsCtx>({ balance: null, plan: null, refresh: () => {} })
 
 export function CreditsProvider({ children }: { children: React.ReactNode }) {
   const [balance, setBalance] = useState<number | null>(null)
+  const [plan, setPlan] = useState<string | null>(null)
   const fetchingRef = useRef(false)
 
   const fetchBalance = useCallback(async () => {
@@ -52,6 +54,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       if (!res.ok) return
       const data = await res.json().catch(() => ({}))
       if (typeof data?.balance === 'number') setBalance(data.balance)
+      if (typeof data?.plan === 'string') setPlan(data.plan)
     } catch (err) {
       console.error('[credits] fetch failed:', err)
     } finally {
@@ -73,7 +76,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [fetchBalance])
 
-  return <Ctx.Provider value={{ balance, refresh: fetchBalance }}>{children}</Ctx.Provider>
+  return <Ctx.Provider value={{ balance, plan, refresh: fetchBalance }}>{children}</Ctx.Provider>
 }
 
 export function useCredits() {
