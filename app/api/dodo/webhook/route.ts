@@ -49,6 +49,10 @@ export async function POST(request: NextRequest) {
 
     const event = dodo.webhooks.unwrap(rawBody, { headers })
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const debugData = event.data as any
+    console.log(`[dodo/webhook] event=${event.type} sub_id=${debugData?.subscription_id ?? debugData?.payment_id ?? 'n/a'} customer_id=${debugData?.customer_id ?? 'n/a'} metadata=${JSON.stringify(debugData?.metadata ?? {})}`)
+
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
@@ -72,8 +76,17 @@ export async function POST(request: NextRequest) {
         userId = found?.user_id
       }
 
+      // Last resort: look up user by email from the subscription's customer info
+      const custEmail = subAny.customer?.email ?? subAny.customer_email
+      if (!userId && custEmail) {
+        const { data: usersData } = await supabase.auth.admin.listUsers()
+        const match = usersData?.users?.find(u => u.email?.toLowerCase() === custEmail.toLowerCase())
+        userId = match?.id
+        if (userId) console.log(`[dodo/webhook] resolved user via email ${custEmail}`)
+      }
+
       if (!userId) {
-        console.warn('[dodo/webhook] subscription.active: could not resolve user', subAny)
+        console.warn(`[dodo/webhook] subscription.active: could not resolve user. meta=${JSON.stringify(meta)} customer_id=${subAny.customer_id} email=${custEmail}`)
         return NextResponse.json({ ok: true })
       }
 
