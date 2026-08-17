@@ -112,175 +112,58 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
     )
 
-    if (event.type === 'subscription.active') {
-      const sub = event.data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subAny = sub as any
-      const meta = subAny.metadata as Record<string, string> | undefined
+    // Helper: resolve user via metadata, then customer_id, then email
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async function resolveUser(anyData: any): Promise<string | undefined> {
+      const meta = anyData?.metadata as Record<string, string> | undefined
       let userId = meta?.supabase_user_id
-      const planKeyRaw = meta?.plan_key
-
-      // Portal-initiated changes have no metadata — fall back to customer_id lookup
-      if (!userId && subAny.customer_id) {
-        const { data: found } = await supabase
-          .from('user_subscriptions')
-          .select('user_id')
-          .eq('dodo_customer_id', subAny.customer_id)
-          .maybeSingle()
+      if (!userId && anyData?.customer_id) {
+        const { data: found } = await supabase.from('user_subscriptions').select('user_id').eq('dodo_customer_id', anyData.customer_id).maybeSingle()
         userId = found?.user_id
       }
-
-      // Last resort: look up user by email from the subscription's customer info
-      const custEmail = subAny.customer?.email ?? subAny.customer_email
+      const custEmail = anyData?.customer?.email ?? anyData?.customer_email
       if (!userId && custEmail) {
         const { data: usersData } = await supabase.auth.admin.listUsers()
         const match = usersData?.users?.find(u => u.email?.toLowerCase() === custEmail.toLowerCase())
         userId = match?.id
-        if (userId) console.log(`[dodo/webhook] resolved user via email ${custEmail}`)
       }
+      return userId
+    }
 
+    // Sync subscription row (status/plan/ids) without touching credit balance.
+    // subscription.active / .renewed / .plan_changed / .updated all just call this.
+    // Credits are handled ONLY by payment.succeeded to avoid race conditions.
+    if (
+      event.type === 'subscription.active' ||
+      event.type === 'subscription.renewed' ||
+      event.type === 'subscription.plan_changed' ||
+      event.type === 'subscription.updated'
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subAny = event.data as any
+      const userId = await resolveUser(subAny)
       if (!userId) {
-        console.warn(`[dodo/webhook] subscription.active: could not resolve user. meta=${JSON.stringify(meta)} customer_id=${subAny.customer_id} email=${custEmail}`)
+        console.warn(`[dodo/webhook] ${event.type}: could not resolve user, skipping`)
         return NextResponse.json({ ok: true })
       }
-
-      const planKey = (planKeyRaw && PLAN_CREDITS[planKeyRaw]) ? planKeyRaw : await resolvePlanKey(subAny, supabase, userId)
-      if (!planKey) {
-        console.warn(`[dodo/webhook] subscription.active: could not resolve plan for user ${userId}`)
-        return NextResponse.json({ ok: true })
-      }
-      const newCredits = PLAN_CREDITS[planKey]
-
-      // Check current balance so we don't wipe credits on downgrade
-      const { data: existing } = await supabase
-        .from('user_credits')
-        .select('balance, pack_credits')
-        .eq('user_id', userId)
-        .maybeSingle()
-
-      const currentBalance = existing?.balance ?? 0
-      // Always stack: new plan's allocation is added on top of existing balance,
-      // whether it's an upgrade or a downgrade. Users never lose credits on plan change.
-      const newBalance = currentBalance + newCredits
-
-      await Promise.all([
-        supabase.from('user_subscriptions').upsert({
-          user_id: userId,
-          plan: planKey,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dodo_subscription_id: (sub as any).subscription_id ?? null,
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          dodo_customer_id: (sub as any).customer_id ?? null,
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' }),
-
-        supabase.from('user_credits')
-          .upsert({ user_id: userId, balance: newBalance, pack_credits: existing?.pack_credits ?? 0, plan: planKey, monthly_credits: newCredits }, { onConflict: 'user_id' }),
-      ])
-
-      console.log(`[dodo/webhook] activated ${planKey} for user ${userId} (balance: ${currentBalance} → ${newBalance} cr)`)
-    }
-
-    if (event.type === 'subscription.renewed') {
-      const sub = event.data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subAny = sub as any
-      const meta = subAny.metadata as Record<string, string> | undefined
-      let userId = meta?.supabase_user_id
-
-      if (!userId && subAny.customer_id) {
-        const { data: found } = await supabase.from('user_subscriptions').select('user_id').eq('dodo_customer_id', subAny.customer_id).maybeSingle()
-        userId = found?.user_id
-      }
-
       const planKey = await resolvePlanKey(subAny, supabase, userId)
       if (!planKey) {
-        console.warn(`[dodo/webhook] renewed: could not resolve plan for user ${userId}, skipping`)
+        console.warn(`[dodo/webhook] ${event.type}: could not resolve plan for user ${userId}`)
         return NextResponse.json({ ok: true })
       }
-
-      if (userId) {
-        const credits = PLAN_CREDITS[planKey]
-        const { data: existing } = await supabase
-          .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
-        const packCredits = existing?.pack_credits ?? 0
-        const currentBalance = existing?.balance ?? 0
-        const monthlyReset = credits + packCredits
-        const newBalance = Math.max(currentBalance, monthlyReset)
-        await supabase.from('user_credits')
-          .update({ balance: newBalance, pack_credits: packCredits, plan: planKey, monthly_credits: credits, updated_at: new Date().toISOString() })
-          .eq('user_id', userId)
-        console.log(`[dodo/webhook] renewed ${planKey} for user ${userId} (balance → ${newBalance})`)
-      }
-    }
-
-    if (event.type === 'subscription.plan_changed') {
-      // Treat exactly like subscription.active — new plan is now in effect
-      const sub = event.data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subAny = sub as any
-      const meta = subAny.metadata as Record<string, string> | undefined
-      let userId = meta?.supabase_user_id
-      if (!userId && subAny.customer_id) {
-        const { data: found } = await supabase
-          .from('user_subscriptions')
-          .select('user_id')
-          .eq('dodo_customer_id', subAny.customer_id)
-          .maybeSingle()
-        userId = found?.user_id
-      }
-
-      const planKey = await resolvePlanKey(subAny, supabase, userId)
-      if (userId && planKey) {
-        const newCredits = PLAN_CREDITS[planKey]
-        const { data: existing } = await supabase
-          .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
-        const currentBalance = existing?.balance ?? 0
-        const newBalance = currentBalance + newCredits
-
-        await Promise.all([
-          supabase.from('user_subscriptions').upsert({
-            user_id: userId, plan: planKey,
-            dodo_subscription_id: subAny.subscription_id ?? null,
-            dodo_customer_id: subAny.customer_id ?? null,
-            status: 'active', updated_at: new Date().toISOString(),
-          }, { onConflict: 'user_id' }),
-          supabase.from('user_credits').upsert({
-            user_id: userId, balance: newBalance,
-            pack_credits: existing?.pack_credits ?? 0,
-            plan: planKey, monthly_credits: newCredits,
-          }, { onConflict: 'user_id' }),
-        ])
-        console.log(`[dodo/webhook] plan_changed → ${planKey} for user ${userId} (balance → ${newBalance})`)
-      }
-    }
-
-    if (event.type === 'subscription.updated') {
-      // Sync latest plan info without touching credit balance
-      const sub = event.data
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const subAny = sub as any
-      const meta = subAny.metadata as Record<string, string> | undefined
-      let userId = meta?.supabase_user_id
-      if (!userId && subAny.customer_id) {
-        const { data: found } = await supabase.from('user_subscriptions').select('user_id').eq('dodo_customer_id', subAny.customer_id).maybeSingle()
-        userId = found?.user_id
-      }
-      const planKey = await resolvePlanKey(subAny, supabase, userId)
-      if (userId && planKey) {
-        await supabase.from('user_subscriptions').upsert({
-          user_id: userId, plan: planKey,
-          dodo_subscription_id: subAny.subscription_id ?? null,
-          dodo_customer_id: subAny.customer_id ?? null,
-          status: subAny.status ?? 'active', updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
-        // Only update plan/monthly_credits in user_credits, not balance
-        await supabase.from('user_credits').update({
-          plan: planKey, monthly_credits: PLAN_CREDITS[planKey], updated_at: new Date().toISOString(),
-        }).eq('user_id', userId)
-        console.log(`[dodo/webhook] updated ${planKey} for user ${userId}`)
-      }
+      await supabase.from('user_subscriptions').upsert({
+        user_id: userId,
+        plan: planKey,
+        dodo_subscription_id: subAny.subscription_id ?? null,
+        dodo_customer_id: subAny.customer_id ?? null,
+        status: subAny.status ?? 'active',
+        updated_at: new Date().toISOString(),
+      }, { onConflict: 'user_id' })
+      // Only sync plan+monthly_credits in user_credits (no balance write)
+      await supabase.from('user_credits').update({
+        plan: planKey, monthly_credits: PLAN_CREDITS[planKey], updated_at: new Date().toISOString(),
+      }).eq('user_id', userId)
+      console.log(`[dodo/webhook] ${event.type} synced ${planKey} for user ${userId} (no balance change)`)
     }
 
     if (event.type === 'subscription.cancelled') {
@@ -306,30 +189,11 @@ export async function POST(request: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payment = event.data as any
       const meta = payment.metadata as Record<string, string> | undefined
-      let userId = meta?.supabase_user_id
       const planKeyFromMeta = meta?.plan_key
-
-      // Resolve user via customer_id if metadata missing
-      if (!userId && payment.customer_id) {
-        const { data: found } = await supabase
-          .from('user_subscriptions')
-          .select('user_id')
-          .eq('dodo_customer_id', payment.customer_id)
-          .maybeSingle()
-        userId = found?.user_id
-      }
-
-      // Email fallback
-      const payEmail = payment.customer?.email ?? payment.customer_email
-      if (!userId && payEmail) {
-        const { data: usersData } = await supabase.auth.admin.listUsers()
-        const match = usersData?.users?.find(u => u.email?.toLowerCase() === payEmail.toLowerCase())
-        userId = match?.id
-        if (userId) console.log(`[dodo/webhook] payment: resolved user via email ${payEmail}`)
-      }
+      const userId = await resolveUser(payment)
 
       if (!userId) {
-        console.warn(`[dodo/webhook] payment.succeeded: could not resolve user. meta=${JSON.stringify(meta)} customer_id=${payment.customer_id} email=${payEmail}`)
+        console.warn(`[dodo/webhook] payment.succeeded: could not resolve user. meta=${JSON.stringify(meta)}`)
         return NextResponse.json({ ok: true })
       }
 

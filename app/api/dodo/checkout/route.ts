@@ -60,7 +60,9 @@ export async function POST(request: NextRequest) {
       if (existingSub?.dodo_subscription_id && existingSub.status !== 'cancelled') {
         try {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          await dodo.subscriptions.update(existingSub.dodo_subscription_id, { status: 'cancelled' } as any)
+          // Cancel at period end so annual subscribers don't lose prepaid time.
+          // Monthly subscribers effectively get the same behaviour (cancel takes effect at next billing).
+          await dodo.subscriptions.update(existingSub.dodo_subscription_id, { cancel_at_next_billing_date: true } as any)
           console.log(`[dodo/checkout] cancelled prior sub ${existingSub.dodo_subscription_id} for user ${userData.user.id}`)
         } catch (cancelErr) {
           console.warn(`[dodo/checkout] could not cancel prior sub ${existingSub.dodo_subscription_id}:`, cancelErr)
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
             if (s.subscription_id === existingSub.dodo_subscription_id) continue
             try {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              await dodo.subscriptions.update(s.subscription_id, { status: 'cancelled' } as any)
+              await dodo.subscriptions.update(s.subscription_id, { cancel_at_next_billing_date: true } as any)
               console.log(`[dodo/checkout] also cancelled stray sub ${s.subscription_id}`)
             } catch { /* ignore individual failures */ }
           }
