@@ -139,12 +139,17 @@ export async function POST(request: NextRequest) {
       if (userId) {
         const credits = PLAN_CREDITS[planKey] ?? 800
         const { data: existing } = await supabase
-          .from('user_credits').select('pack_credits').eq('user_id', userId).maybeSingle()
+          .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
         const packCredits = existing?.pack_credits ?? 0
+        const currentBalance = existing?.balance ?? 0
+        // Never wipe credits: if user has accumulated more than monthly allocation
+        // (e.g. from downgrade carryover), keep that balance. Otherwise reset to fresh monthly + pack.
+        const monthlyReset = credits + packCredits
+        const newBalance = Math.max(currentBalance, monthlyReset)
         await supabase.from('user_credits')
-          .update({ balance: credits + packCredits, pack_credits: packCredits, plan: planKey, monthly_credits: credits, updated_at: new Date().toISOString() })
+          .update({ balance: newBalance, pack_credits: packCredits, plan: planKey, monthly_credits: credits, updated_at: new Date().toISOString() })
           .eq('user_id', userId)
-        console.log(`[dodo/webhook] renewed ${planKey} for user ${userId} (${credits} + ${packCredits} pack cr)`)
+        console.log(`[dodo/webhook] renewed ${planKey} for user ${userId} (balance → ${newBalance})`)
       }
     }
 
@@ -226,36 +231,65 @@ export async function POST(request: NextRequest) {
         userId = found?.user_id
       }
 
+      // Email fallback
+      const payEmail = payment.customer?.email ?? payment.customer_email
+      if (!userId && payEmail) {
+        const { data: usersData } = await supabase.auth.admin.listUsers()
+        const match = usersData?.users?.find(u => u.email?.toLowerCase() === payEmail.toLowerCase())
+        userId = match?.id
+        if (userId) console.log(`[dodo/webhook] payment: resolved user via email ${payEmail}`)
+      }
+
       if (!userId) {
-        console.warn('[dodo/webhook] payment.succeeded: could not resolve user', payment.payment_id)
+        console.warn(`[dodo/webhook] payment.succeeded: could not resolve user. meta=${JSON.stringify(meta)} customer_id=${payment.customer_id} email=${payEmail}`)
         return NextResponse.json({ ok: true })
       }
 
       // Determine which pack was purchased by matching product IDs in the cart
       const productIdToPackKey = getProductIdToPackKey()
       const cart: Array<{ product_id: string }> = payment.product_cart ?? []
-      const packKey = planKeyFromMeta ?? cart.map(item => productIdToPackKey[item.product_id]).find(Boolean)
+      const cartPackKey = cart.map(item => productIdToPackKey[item.product_id]).find(Boolean)
+      const packKey = (planKeyFromMeta && PACK_CREDITS[planKeyFromMeta]) ? planKeyFromMeta : cartPackKey
 
-      if (!packKey || !PACK_CREDITS[packKey]) {
-        // Not a credit pack purchase (could be a subscription payment) — ignore
-        console.log(`[dodo/webhook] payment.succeeded: not a pack (packKey=${packKey}), ignoring`)
+      if (packKey && PACK_CREDITS[packKey]) {
+        const creditsToAdd = PACK_CREDITS[packKey]
+        const { data: existing } = await supabase
+          .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
+        const newPackCredits = (existing?.pack_credits ?? 0) + creditsToAdd
+        const newBalance = (existing?.balance ?? 0) + creditsToAdd
+        await supabase.from('user_credits')
+          .update({ balance: newBalance, pack_credits: newPackCredits, updated_at: new Date().toISOString() })
+          .eq('user_id', userId)
+        console.log(`[dodo/webhook] pack ${packKey} (+${creditsToAdd}cr) for user ${userId}`)
         return NextResponse.json({ ok: true })
       }
 
-      const creditsToAdd = PACK_CREDITS[packKey]
+      // Fallback: if planKey matches a subscription plan (e.g. Lite configured as one-time in Dodo)
+      // treat this as a subscription activation — sync the plan and top up credits like subscription.active
+      if (planKeyFromMeta && PLAN_CREDITS[planKeyFromMeta]) {
+        const newCredits = PLAN_CREDITS[planKeyFromMeta]
+        const { data: existing } = await supabase
+          .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
+        const currentBalance = existing?.balance ?? 0
+        const newBalance = newCredits > currentBalance ? newCredits : currentBalance + newCredits
+        await Promise.all([
+          supabase.from('user_subscriptions').upsert({
+            user_id: userId, plan: planKeyFromMeta,
+            dodo_subscription_id: payment.subscription_id ?? null,
+            dodo_customer_id: payment.customer_id ?? null,
+            status: 'active', updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' }),
+          supabase.from('user_credits').upsert({
+            user_id: userId, balance: newBalance,
+            pack_credits: existing?.pack_credits ?? 0,
+            plan: planKeyFromMeta, monthly_credits: newCredits,
+          }, { onConflict: 'user_id' }),
+        ])
+        console.log(`[dodo/webhook] payment→plan ${planKeyFromMeta} for user ${userId} (balance → ${newBalance})`)
+        return NextResponse.json({ ok: true })
+      }
 
-      const { data: existing } = await supabase
-        .from('user_credits')
-        .select('balance, pack_credits')
-        .eq('user_id', userId)
-        .maybeSingle()
-
-      const newPackCredits = (existing?.pack_credits ?? 0) + creditsToAdd
-      const newBalance = (existing?.balance ?? 0) + creditsToAdd
-
-      await supabase.from('user_credits')
-        .update({ balance: newBalance, pack_credits: newPackCredits, updated_at: new Date().toISOString() })
-        .eq('user_id', userId)
+      console.log(`[dodo/webhook] payment.succeeded: not a pack or known plan (planKey=${planKeyFromMeta}), ignoring`)
 
       console.log(`[dodo/webhook] pack ${packKey} (+${creditsToAdd}cr) for user ${userId} (balance → ${newBalance}, pack_credits → ${newPackCredits})`)
     }
