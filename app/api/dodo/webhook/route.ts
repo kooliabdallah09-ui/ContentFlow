@@ -65,8 +65,9 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       const currentBalance = existing?.balance ?? 0
-      // On upgrade: give the new (higher) allocation. On downgrade: keep existing balance.
-      const newBalance = newCredits > currentBalance ? newCredits : currentBalance
+      // On upgrade: give the new (higher) allocation.
+      // On downgrade: keep existing balance AND add the new plan's allocation on top.
+      const newBalance = newCredits > currentBalance ? newCredits : currentBalance + newCredits
 
       await Promise.all([
         supabase.from('user_subscriptions').upsert({
