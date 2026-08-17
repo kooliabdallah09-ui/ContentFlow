@@ -44,9 +44,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      const credits = PLAN_CREDITS[planKey] ?? 800
+      const newCredits = PLAN_CREDITS[planKey] ?? 800
 
-      // Upsert the user's subscription record and top up credits
+      // Check current balance so we don't wipe credits on downgrade
+      const { data: existing } = await supabase
+        .from('user_credits')
+        .select('balance, pack_credits')
+        .eq('user_id', userId)
+        .maybeSingle()
+
+      const currentBalance = existing?.balance ?? 0
+      // On upgrade: give the new (higher) allocation. On downgrade: keep existing balance.
+      const newBalance = newCredits > currentBalance ? newCredits : currentBalance
+
       await Promise.all([
         supabase.from('user_subscriptions').upsert({
           user_id: userId,
@@ -60,10 +70,10 @@ export async function POST(request: NextRequest) {
         }, { onConflict: 'user_id' }),
 
         supabase.from('user_credits')
-          .upsert({ user_id: userId, balance: credits, pack_credits: 0 }, { onConflict: 'user_id' }),
+          .upsert({ user_id: userId, balance: newBalance, pack_credits: existing?.pack_credits ?? 0 }, { onConflict: 'user_id' }),
       ])
 
-      console.log(`[dodo/webhook] activated ${planKey} for user ${userId} (${credits} cr)`)
+      console.log(`[dodo/webhook] activated ${planKey} for user ${userId} (balance: ${currentBalance} → ${newBalance} cr)`)
     }
 
     if (event.type === 'subscription.renewed') {
