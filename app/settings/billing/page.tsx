@@ -11,6 +11,7 @@ interface CreditsInfo {
   monthlyCredits: number
   resetDate: string
   hasSubscription: boolean
+  hasDodoSubscription: boolean
 }
 
 export default function BillingPage() {
@@ -112,6 +113,7 @@ export default function BillingPage() {
           monthlyCredits: data.monthlyCredits || 0,
           resetDate: data.resetDate || '',
           hasSubscription: !!(data.plan && data.plan !== 'free'),
+          hasDodoSubscription: !!data.hasDodoSubscription,
         })
       }
     } catch (error) {
@@ -236,7 +238,7 @@ export default function BillingPage() {
             {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
           </div>
         </div>
-        {creditsInfo?.hasSubscription && (
+        {creditsInfo?.hasDodoSubscription && (
           <button onClick={handleManageSubscription} disabled={upgradeLoading === 'portal'} style={{
             marginLeft: 'auto', padding: '9px 18px', borderRadius: 9,
             border: '1px solid #D4B97A', background: 'rgba(255,255,255,0.6)',

@@ -22,11 +22,10 @@ export async function GET(request: Request) {
       return Response.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: credits, error: creditsError } = await supabase
-      .from('user_credits')
-      .select('balance, plan, monthly_credits, reset_date')
-      .eq('user_id', userData.user.id)
-      .single()
+    const [{ data: credits, error: creditsError }, { data: sub }] = await Promise.all([
+      supabase.from('user_credits').select('balance, plan, monthly_credits, reset_date').eq('user_id', userData.user.id).single(),
+      supabase.from('user_subscriptions').select('dodo_customer_id').eq('user_id', userData.user.id).maybeSingle(),
+    ])
 
     if (creditsError || !credits) {
       return Response.json({ error: 'Credits not initialized' }, { status: 404 })
@@ -37,6 +36,7 @@ export async function GET(request: Request) {
       plan: credits.plan,
       monthlyCredits: credits.monthly_credits,
       resetDate: credits.reset_date,
+      hasDodoSubscription: !!(sub?.dodo_customer_id),
     })
   } catch (error) {
     return Response.json(
