@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
   try {
     const dodo = new DodoPayments({
       bearerToken: (process.env.DODO_ENV !== 'production' ? process.env.DODO_TEST_API_KEY : process.env.DODO_API_KEY)!,
-      webhookKey: process.env.DODO_WEBHOOK_SECRET!,
+      webhookKey: (process.env.DODO_ENV !== 'production' ? process.env.DODO_TEST_WEBHOOK_SECRET : process.env.DODO_WEBHOOK_SECRET)!,
       environment: process.env.DODO_ENV === 'production' ? 'live_mode' : 'test_mode',
     })
 
