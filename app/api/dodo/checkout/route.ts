@@ -4,13 +4,16 @@ import DodoPayments from 'dodopayments'
 
 export const maxDuration = 30
 
-// Map plan keys to Dodo product IDs (set via env vars after Dodo approval)
+// Map plan keys to Dodo product IDs — prefix switches between test and live sets
+const isTest = process.env.DODO_ENV !== 'production'
+const p = (live: string, test: string) => (isTest ? process.env[test] : process.env[live]) ?? ''
+
 const DODO_PRODUCTS: Record<string, { monthly: string; annual: string }> = {
-  lite:    { monthly: process.env.DODO_PRODUCT_LITE_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_LITE_ANNUAL ?? '' },
-  starter: { monthly: process.env.DODO_PRODUCT_STARTER_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_STARTER_ANNUAL ?? '' },
-  pro:     { monthly: process.env.DODO_PRODUCT_PRO_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_PRO_ANNUAL ?? '' },
-  agency:      { monthly: process.env.DODO_PRODUCT_AGENCY_MONTHLY ?? '',     annual: process.env.DODO_PRODUCT_AGENCY_ANNUAL ?? '' },
-  enterprise:  { monthly: process.env.DODO_PRODUCT_ENTERPRISE_MONTHLY ?? '', annual: process.env.DODO_PRODUCT_ENTERPRISE_ANNUAL ?? '' },
+  lite:       { monthly: p('DODO_PRODUCT_LITE_MONTHLY',       'DODO_TEST_PRODUCT_LITE_MONTHLY'),       annual: p('DODO_PRODUCT_LITE_ANNUAL',       'DODO_TEST_PRODUCT_LITE_ANNUAL') },
+  starter:    { monthly: p('DODO_PRODUCT_STARTER_MONTHLY',    'DODO_TEST_PRODUCT_STARTER_MONTHLY'),    annual: p('DODO_PRODUCT_STARTER_ANNUAL',    'DODO_TEST_PRODUCT_STARTER_ANNUAL') },
+  pro:        { monthly: p('DODO_PRODUCT_PRO_MONTHLY',        'DODO_TEST_PRODUCT_PRO_MONTHLY'),        annual: p('DODO_PRODUCT_PRO_ANNUAL',        'DODO_TEST_PRODUCT_PRO_ANNUAL') },
+  agency:     { monthly: p('DODO_PRODUCT_AGENCY_MONTHLY',     'DODO_TEST_PRODUCT_AGENCY_MONTHLY'),     annual: p('DODO_PRODUCT_AGENCY_ANNUAL',     'DODO_TEST_PRODUCT_AGENCY_ANNUAL') },
+  enterprise: { monthly: p('DODO_PRODUCT_ENTERPRISE_MONTHLY', 'DODO_TEST_PRODUCT_ENTERPRISE_MONTHLY'), annual: p('DODO_PRODUCT_ENTERPRISE_ANNUAL', 'DODO_TEST_PRODUCT_ENTERPRISE_ANNUAL') },
 }
 
 export async function POST(request: NextRequest) {
