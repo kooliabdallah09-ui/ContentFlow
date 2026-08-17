@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         }, { onConflict: 'user_id' }),
 
         supabase.from('user_credits')
-          .upsert({ user_id: userId, balance: newBalance, pack_credits: existing?.pack_credits ?? 0 }, { onConflict: 'user_id' }),
+          .upsert({ user_id: userId, balance: newBalance, pack_credits: existing?.pack_credits ?? 0, plan: planKey, monthly_credits: newCredits }, { onConflict: 'user_id' }),
       ])
 
       console.log(`[dodo/webhook] activated ${planKey} for user ${userId} (balance: ${currentBalance} → ${newBalance} cr)`)
@@ -103,7 +103,7 @@ export async function POST(request: NextRequest) {
       if (userId) {
         const credits = PLAN_CREDITS[planKey] ?? 800
         await supabase.from('user_credits')
-          .update({ balance: credits, updated_at: new Date().toISOString() })
+          .update({ balance: credits, plan: planKey, monthly_credits: credits, updated_at: new Date().toISOString() })
           .eq('user_id', userId)
         console.log(`[dodo/webhook] renewed ${planKey} for user ${userId} (${credits} cr reset)`)
       }
