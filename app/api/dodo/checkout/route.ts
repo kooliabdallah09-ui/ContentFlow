@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     }
 
     const dodo = new DodoPayments({
-      bearerToken: process.env.DODO_API_KEY!,
+      bearerToken: (isTest ? process.env.DODO_TEST_API_KEY : process.env.DODO_API_KEY)!,
       environment: process.env.DODO_ENV === 'production' ? 'live_mode' : 'test_mode',
     })
 
