@@ -7,18 +7,36 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { getSupabase } from '@/lib/auth'
+import { useEffect, useState } from 'react'
+
+const ADMIN_EMAILS = new Set(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
 
 export interface SectionTab {
   label: string
   href: string
   badge?: string
+  adminOnly?: boolean
 }
 
 export function SectionTabs({ tabs }: { tabs: SectionTab[] }) {
   const pathname = usePathname() ?? ''
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
+    const sb = getSupabase()
+    if (!sb) return
+    sb.auth.getSession().then(({ data }) => {
+      const email = data?.session?.user?.email ?? ''
+      setIsAdmin(ADMIN_EMAILS.has(email.toLowerCase()))
+    })
+  }, [])
+
+  const visibleTabs = tabs.filter(t => !t.adminOnly || isAdmin)
+
   return (
     <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap', marginBottom: 20, borderBottom: '1px solid var(--border)', paddingBottom: 0 }}>
-      {tabs.map(t => {
+      {visibleTabs.map(t => {
         const active = pathname === t.href || pathname.startsWith(t.href + '/')
         return (
           <Link
@@ -59,7 +77,7 @@ export const STUDIOS_TABS: SectionTab[] = [
 
 export const VIDEO_STUDIO_TABS: SectionTab[] = [
   { label: 'UGC Package', href: '/generate/ugc', badge: 'Flagship' },
-  { label: 'Vox', href: '/generate/vox', badge: 'Alpha' },
+  { label: 'Vox', href: '/generate/vox', badge: 'Alpha', adminOnly: true },
   { label: 'Podcast Ad', href: '/generate/podcast-ad', badge: 'New' },
   { label: 'Video', href: '/generate/video' },
   { label: 'Screen Demo', href: '/generate/screen-demo' },

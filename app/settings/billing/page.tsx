@@ -324,13 +324,11 @@ export default function BillingPage() {
             {/* CTA */}
             {isLitePlan ? (
               <div style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: 9, border: '1px solid var(--border)', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)', flexShrink: 0 }}>Current plan</div>
-            ) : isAdmin ? (
+            ) : (
               <button onClick={() => handleUpgrade('lite')} disabled={upgradeLoading === 'lite'}
                 style={{ marginLeft: 'auto', padding: '8px 20px', borderRadius: 9, border: 'none', background: '#111', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: upgradeLoading === 'lite' ? 0.5 : 1 }}>
                 {upgradeLoading === 'lite' ? 'Redirecting…' : 'Get Lite'}
               </button>
-            ) : (
-              <div style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: 9, border: '1px solid var(--border)', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)', flexShrink: 0 }}>Coming soon</div>
             )}
           </div>
 
@@ -380,7 +378,7 @@ export default function BillingPage() {
                   <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
                     Current plan
                   </div>
-                ) : plan.planKey !== 'free' && isAdmin ? (
+                ) : plan.planKey !== 'free' ? (
                   <button
                     onClick={() => handleUpgrade(plan.planKey)}
                     disabled={isLoading}
@@ -393,10 +391,6 @@ export default function BillingPage() {
                   >
                     {isLoading ? 'Redirecting…' : 'Upgrade'}
                   </button>
-                ) : plan.planKey !== 'free' ? (
-                  <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
-                    Coming soon
-                  </div>
                 ) : (
                   <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
                     Free forever
@@ -470,22 +464,18 @@ export default function BillingPage() {
                     <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 2 }}>{pack.credits.toLocaleString()} credits</div>
                     <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>{pack.price}</div>
                   </div>
-                  {isAdmin ? (
-                    <button
-                      onClick={() => handlePackCheckout(pack.packKey)}
-                      disabled={packLoading === pack.packKey}
-                      style={{
-                        padding: '8px 16px', borderRadius: 8,
-                        border: 'none', background: '#111', color: '#fff',
-                        fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
-                        opacity: packLoading === pack.packKey ? 0.5 : 1,
-                      }}
-                    >
-                      {packLoading === pack.packKey ? '…' : 'Buy'}
-                    </button>
-                  ) : (
-                    <div style={{ padding: '8px 16px', borderRadius: 8, border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink-mute)', flexShrink: 0 }}>Soon</div>
-                  )}
+                  <button
+                    onClick={() => handlePackCheckout(pack.packKey)}
+                    disabled={packLoading === pack.packKey}
+                    style={{
+                      padding: '8px 16px', borderRadius: 8,
+                      border: 'none', background: '#111', color: '#fff',
+                      fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
+                      opacity: packLoading === pack.packKey ? 0.5 : 1,
+                    }}
+                  >
+                    {packLoading === pack.packKey ? '…' : 'Buy'}
+                  </button>
                 </div>
               ))}
             </div>
