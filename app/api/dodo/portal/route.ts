@@ -44,20 +44,27 @@ export async function POST(request: NextRequest) {
 
     // Fall back 2: search Dodo customers by email
     if (!customerId && user.email) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const list = await dodo.customers.list({ email: user.email } as any).catch(() => null) as any
-      const found = list?.items?.[0] ?? list?.data?.[0]
-      customerId = found?.customer_id ?? null
-      if (customerId) {
-        await supabase.from('user_subscriptions').upsert({
-          user_id: user.id, dodo_customer_id: customerId, status: 'active', updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
-        console.log(`[dodo/portal] resolved customer via email ${user.email} → ${customerId}`)
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const page = await dodo.customers.list({ email: user.email } as any) as any
+        const items: Array<{ customer_id?: string; email?: string }> = page?.items ?? page?.data ?? []
+        const found = items.find(c => c.email?.toLowerCase() === user.email?.toLowerCase()) ?? items[0]
+        customerId = found?.customer_id ?? null
+        if (customerId) {
+          await supabase.from('user_subscriptions').upsert({
+            user_id: user.id, dodo_customer_id: customerId, status: 'active', updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' })
+          console.log(`[dodo/portal] resolved customer via email ${user.email} → ${customerId}`)
+        } else {
+          console.warn(`[dodo/portal] no customer with email ${user.email} in Dodo (${items.length} results)`)
+        }
+      } catch (searchErr) {
+        console.error('[dodo/portal] email search failed:', searchErr)
       }
     }
 
     if (!customerId) {
-      return NextResponse.json({ error: 'No Dodo customer found for this account. If you subscribed, please contact support.' }, { status: 404 })
+      return NextResponse.json({ error: `No Dodo customer found for ${user.email}. Contact support to link your account.` }, { status: 404 })
     }
 
     const session = await dodo.customers.customerPortal.create(customerId, {
@@ -67,6 +74,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: (session as any).url })
   } catch (err) {
     console.error('[dodo/portal] error:', err)
-    return NextResponse.json({ error: 'Failed to create portal session' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : 'Failed to create portal session'
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 }
