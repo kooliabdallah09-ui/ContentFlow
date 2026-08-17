@@ -14,6 +14,11 @@ const DODO_PRODUCTS: Record<string, { monthly: string; annual: string }> = {
   pro:        { monthly: p('DODO_PRODUCT_PRO_MONTHLY',        'DODO_TEST_PRODUCT_PRO_MONTHLY'),        annual: p('DODO_PRODUCT_PRO_ANNUAL',        'DODO_TEST_PRODUCT_PRO_ANNUAL') },
   agency:     { monthly: p('DODO_PRODUCT_AGENCY_MONTHLY',     'DODO_TEST_PRODUCT_AGENCY_MONTHLY'),     annual: p('DODO_PRODUCT_AGENCY_ANNUAL',     'DODO_TEST_PRODUCT_AGENCY_ANNUAL') },
   enterprise: { monthly: p('DODO_PRODUCT_ENTERPRISE_MONTHLY', 'DODO_TEST_PRODUCT_ENTERPRISE_MONTHLY'), annual: p('DODO_PRODUCT_ENTERPRISE_ANNUAL', 'DODO_TEST_PRODUCT_ENTERPRISE_ANNUAL') },
+  // Credit packs (one-time, annual unused)
+  pack_250:  { monthly: p('DODO_PACK_250',  'DODO_TEST_PACK_250'),  annual: '' },
+  pack_500:  { monthly: p('DODO_PACK_500',  'DODO_TEST_PACK_500'),  annual: '' },
+  pack_1500: { monthly: p('DODO_PACK_1500', 'DODO_TEST_PACK_1500'), annual: '' },
+  pack_5000: { monthly: p('DODO_PACK_5000', 'DODO_TEST_PACK_5000'), annual: '' },
 }
 
 export async function POST(request: NextRequest) {
