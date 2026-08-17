@@ -25,31 +25,39 @@ export async function POST(request: NextRequest) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    if (!sub) {
-      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 })
-    }
-
     const dodo = new DodoPayments({
       bearerToken: (process.env.DODO_ENV !== 'production' ? process.env.DODO_TEST_API_KEY : process.env.DODO_API_KEY)!,
       environment: process.env.DODO_ENV === 'production' ? 'live_mode' : 'test_mode',
     })
 
-    // Fall back to fetching customer_id from Dodo using the subscription ID
-    let customerId = sub.dodo_customer_id
-    if (!customerId && sub.dodo_subscription_id) {
+    let customerId = sub?.dodo_customer_id
+
+    // Fall back 1: fetch customer_id from Dodo using subscription ID
+    if (!customerId && sub?.dodo_subscription_id) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const dodSub = await dodo.subscriptions.retrieve(sub.dodo_subscription_id) as any
       customerId = dodSub?.customer_id ?? null
-      // Backfill so future calls don't need the lookup
       if (customerId) {
-        await supabase.from('user_subscriptions')
-          .update({ dodo_customer_id: customerId })
-          .eq('user_id', user.id)
+        await supabase.from('user_subscriptions').update({ dodo_customer_id: customerId }).eq('user_id', user.id)
+      }
+    }
+
+    // Fall back 2: search Dodo customers by email
+    if (!customerId && user.email) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const list = await dodo.customers.list({ email: user.email } as any).catch(() => null) as any
+      const found = list?.items?.[0] ?? list?.data?.[0]
+      customerId = found?.customer_id ?? null
+      if (customerId) {
+        await supabase.from('user_subscriptions').upsert({
+          user_id: user.id, dodo_customer_id: customerId, status: 'active', updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+        console.log(`[dodo/portal] resolved customer via email ${user.email} → ${customerId}`)
       }
     }
 
     if (!customerId) {
-      return NextResponse.json({ error: 'No active subscription found' }, { status: 404 })
+      return NextResponse.json({ error: 'No Dodo customer found for this account. If you subscribed, please contact support.' }, { status: 404 })
     }
 
     const session = await dodo.customers.customerPortal.create(customerId, {

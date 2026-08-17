@@ -100,9 +100,9 @@ export async function POST(request: NextRequest) {
         .maybeSingle()
 
       const currentBalance = existing?.balance ?? 0
-      // On upgrade: give the new (higher) allocation.
-      // On downgrade: keep existing balance AND add the new plan's allocation on top.
-      const newBalance = newCredits > currentBalance ? newCredits : currentBalance + newCredits
+      // Always stack: new plan's allocation is added on top of existing balance,
+      // whether it's an upgrade or a downgrade. Users never lose credits on plan change.
+      const newBalance = currentBalance + newCredits
 
       await Promise.all([
         supabase.from('user_subscriptions').upsert({
@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
         const { data: existing } = await supabase
           .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
         const currentBalance = existing?.balance ?? 0
-        const newBalance = newCredits > currentBalance ? newCredits : currentBalance + newCredits
+        const newBalance = currentBalance + newCredits
 
         await Promise.all([
           supabase.from('user_subscriptions').upsert({
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
         const { data: existing } = await supabase
           .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
         const currentBalance = existing?.balance ?? 0
-        const newBalance = newCredits > currentBalance ? newCredits : currentBalance + newCredits
+        const newBalance = currentBalance + newCredits
         await Promise.all([
           supabase.from('user_subscriptions').upsert({
             user_id: userId, plan: planKeyFromMeta,

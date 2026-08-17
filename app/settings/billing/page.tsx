@@ -238,7 +238,7 @@ export default function BillingPage() {
             {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
           </div>
         </div>
-        {creditsInfo?.hasDodoSubscription && (
+        {creditsInfo?.hasSubscription && (
           <button onClick={handleManageSubscription} disabled={upgradeLoading === 'portal'}
             title="Update payment method, cancel subscription, view invoices"
             style={{
