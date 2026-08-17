@@ -26,7 +26,7 @@ export function SectionTabs({ tabs }: { tabs: SectionTab[] }) {
   useEffect(() => {
     const sb = getSupabase()
     if (!sb) return
-    sb.auth.getSession().then(({ data }) => {
+    sb.auth.getSession().then(({ data }: { data: { session: { user: { email?: string } } | null } }) => {
       const email = data?.session?.user?.email ?? ''
       setIsAdmin(ADMIN_EMAILS.has(email.toLowerCase()))
     })
