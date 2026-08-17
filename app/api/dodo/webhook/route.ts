@@ -35,6 +35,46 @@ function getProductIdToPackKey(): Record<string, string> {
   return map
 }
 
+// Build reverse map: Dodo product ID → subscription plan key
+function getProductIdToPlanKey(): Record<string, string> {
+  const isTest = process.env.DODO_ENV !== 'production'
+  const map: Record<string, string> = {}
+  for (const planKey of Object.keys(PLAN_CREDITS)) {
+    for (const period of ['MONTHLY', 'ANNUAL']) {
+      const envKey = isTest
+        ? `DODO_TEST_PRODUCT_${planKey.toUpperCase()}_${period}`
+        : `DODO_PRODUCT_${planKey.toUpperCase()}_${period}`
+      const productId = process.env[envKey]
+      if (productId) map[productId] = planKey
+    }
+  }
+  return map
+}
+
+// Resolve plan from subscription payload, trying metadata first, then product_id, then DB fallback
+async function resolvePlanKey(
+  subAny: { metadata?: Record<string, string>; product_id?: string; product_cart?: Array<{ product_id: string }> },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  supabase: any,
+  userId: string | undefined,
+): Promise<string | null> {
+  const metaPlan = subAny.metadata?.plan_key
+  if (metaPlan && PLAN_CREDITS[metaPlan]) return metaPlan
+
+  const productIdMap = getProductIdToPlanKey()
+  if (subAny.product_id && productIdMap[subAny.product_id]) return productIdMap[subAny.product_id]
+
+  const cartPlan = subAny.product_cart?.map(i => productIdMap[i.product_id]).find(Boolean)
+  if (cartPlan) return cartPlan
+
+  // Last resort: look up current plan from DB (so we don't wipe on renewal with missing metadata)
+  if (userId) {
+    const { data } = await supabase.from('user_credits').select('plan').eq('user_id', userId).maybeSingle()
+    if (data?.plan && PLAN_CREDITS[data.plan]) return data.plan
+  }
+  return null
+}
+
 export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const headers: Record<string, string> = {}
@@ -64,7 +104,7 @@ export async function POST(request: NextRequest) {
       const subAny = sub as any
       const meta = subAny.metadata as Record<string, string> | undefined
       let userId = meta?.supabase_user_id
-      const planKey = meta?.plan_key ?? 'starter'
+      const planKeyRaw = meta?.plan_key
 
       // Portal-initiated changes have no metadata — fall back to customer_id lookup
       if (!userId && subAny.customer_id) {
@@ -90,7 +130,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      const newCredits = PLAN_CREDITS[planKey] ?? 800
+      const planKey = (planKeyRaw && PLAN_CREDITS[planKeyRaw]) ? planKeyRaw : await resolvePlanKey(subAny, supabase, userId)
+      if (!planKey) {
+        console.warn(`[dodo/webhook] subscription.active: could not resolve plan for user ${userId}`)
+        return NextResponse.json({ ok: true })
+      }
+      const newCredits = PLAN_CREDITS[planKey]
 
       // Check current balance so we don't wipe credits on downgrade
       const { data: existing } = await supabase
@@ -129,21 +174,24 @@ export async function POST(request: NextRequest) {
       const subAny = sub as any
       const meta = subAny.metadata as Record<string, string> | undefined
       let userId = meta?.supabase_user_id
-      const planKey = meta?.plan_key ?? 'starter'
 
       if (!userId && subAny.customer_id) {
         const { data: found } = await supabase.from('user_subscriptions').select('user_id').eq('dodo_customer_id', subAny.customer_id).maybeSingle()
         userId = found?.user_id
       }
 
+      const planKey = await resolvePlanKey(subAny, supabase, userId)
+      if (!planKey) {
+        console.warn(`[dodo/webhook] renewed: could not resolve plan for user ${userId}, skipping`)
+        return NextResponse.json({ ok: true })
+      }
+
       if (userId) {
-        const credits = PLAN_CREDITS[planKey] ?? 800
+        const credits = PLAN_CREDITS[planKey]
         const { data: existing } = await supabase
           .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
         const packCredits = existing?.pack_credits ?? 0
         const currentBalance = existing?.balance ?? 0
-        // Never wipe credits: if user has accumulated more than monthly allocation
-        // (e.g. from downgrade carryover), keep that balance. Otherwise reset to fresh monthly + pack.
         const monthlyReset = credits + packCredits
         const newBalance = Math.max(currentBalance, monthlyReset)
         await supabase.from('user_credits')
@@ -160,8 +208,6 @@ export async function POST(request: NextRequest) {
       const subAny = sub as any
       const meta = subAny.metadata as Record<string, string> | undefined
       let userId = meta?.supabase_user_id
-      const planKey = meta?.plan_key ?? subAny.plan?.name?.toLowerCase() ?? 'starter'
-
       if (!userId && subAny.customer_id) {
         const { data: found } = await supabase
           .from('user_subscriptions')
@@ -171,8 +217,9 @@ export async function POST(request: NextRequest) {
         userId = found?.user_id
       }
 
-      if (userId) {
-        const newCredits = PLAN_CREDITS[planKey] ?? 800
+      const planKey = await resolvePlanKey(subAny, supabase, userId)
+      if (userId && planKey) {
+        const newCredits = PLAN_CREDITS[planKey]
         const { data: existing } = await supabase
           .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
         const currentBalance = existing?.balance ?? 0
@@ -192,6 +239,33 @@ export async function POST(request: NextRequest) {
           }, { onConflict: 'user_id' }),
         ])
         console.log(`[dodo/webhook] plan_changed → ${planKey} for user ${userId} (balance → ${newBalance})`)
+      }
+    }
+
+    if (event.type === 'subscription.updated') {
+      // Sync latest plan info without touching credit balance
+      const sub = event.data
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const subAny = sub as any
+      const meta = subAny.metadata as Record<string, string> | undefined
+      let userId = meta?.supabase_user_id
+      if (!userId && subAny.customer_id) {
+        const { data: found } = await supabase.from('user_subscriptions').select('user_id').eq('dodo_customer_id', subAny.customer_id).maybeSingle()
+        userId = found?.user_id
+      }
+      const planKey = await resolvePlanKey(subAny, supabase, userId)
+      if (userId && planKey) {
+        await supabase.from('user_subscriptions').upsert({
+          user_id: userId, plan: planKey,
+          dodo_subscription_id: subAny.subscription_id ?? null,
+          dodo_customer_id: subAny.customer_id ?? null,
+          status: subAny.status ?? 'active', updated_at: new Date().toISOString(),
+        }, { onConflict: 'user_id' })
+        // Only update plan/monthly_credits in user_credits, not balance
+        await supabase.from('user_credits').update({
+          plan: planKey, monthly_credits: PLAN_CREDITS[planKey], updated_at: new Date().toISOString(),
+        }).eq('user_id', userId)
+        console.log(`[dodo/webhook] updated ${planKey} for user ${userId}`)
       }
     }
 
