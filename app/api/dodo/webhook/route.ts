@@ -151,7 +151,7 @@ export async function POST(request: NextRequest) {
         console.warn(`[dodo/webhook] ${event.type}: could not resolve plan for user ${userId}`)
         return NextResponse.json({ ok: true })
       }
-      await supabase.from('user_subscriptions').upsert({
+      const subUpsert = await supabase.from('user_subscriptions').upsert({
         user_id: userId,
         plan: planKey,
         dodo_subscription_id: subAny.subscription_id ?? null,
@@ -159,11 +159,10 @@ export async function POST(request: NextRequest) {
         status: subAny.status ?? 'active',
         updated_at: new Date().toISOString(),
       }, { onConflict: 'user_id' })
-      // Only sync plan+monthly_credits in user_credits (no balance write)
-      await supabase.from('user_credits').update({
+      const credUpdate = await supabase.from('user_credits').update({
         plan: planKey, monthly_credits: PLAN_CREDITS[planKey], updated_at: new Date().toISOString(),
       }).eq('user_id', userId)
-      console.log(`[dodo/webhook] ${event.type} synced ${planKey} for user ${userId} (no balance change)`)
+      console.log(`[dodo/webhook] ${event.type} synced ${planKey} for user ${userId} — sub_err=${subUpsert.error?.message ?? 'ok'} cred_err=${credUpdate.error?.message ?? 'ok'}`)
     }
 
     if (event.type === 'subscription.cancelled') {
@@ -220,11 +219,11 @@ export async function POST(request: NextRequest) {
       // treat this as a subscription activation — sync the plan and top up credits like subscription.active
       if (planKeyFromMeta && PLAN_CREDITS[planKeyFromMeta]) {
         const newCredits = PLAN_CREDITS[planKeyFromMeta]
-        const { data: existing } = await supabase
+        const { data: existing, error: readErr } = await supabase
           .from('user_credits').select('balance, pack_credits').eq('user_id', userId).maybeSingle()
         const currentBalance = existing?.balance ?? 0
         const newBalance = currentBalance + newCredits
-        await Promise.all([
+        const [subRes, credRes] = await Promise.all([
           supabase.from('user_subscriptions').upsert({
             user_id: userId, plan: planKeyFromMeta,
             dodo_subscription_id: payment.subscription_id ?? null,
@@ -237,7 +236,7 @@ export async function POST(request: NextRequest) {
             plan: planKeyFromMeta, monthly_credits: newCredits,
           }, { onConflict: 'user_id' }),
         ])
-        console.log(`[dodo/webhook] payment→plan ${planKeyFromMeta} for user ${userId} (balance → ${newBalance})`)
+        console.log(`[dodo/webhook] payment→plan ${planKeyFromMeta} for user ${userId} (${currentBalance} → ${newBalance}) — read_err=${readErr?.message ?? 'ok'} sub_err=${subRes.error?.message ?? 'ok'} cred_err=${credRes.error?.message ?? 'ok'}`)
         return NextResponse.json({ ok: true })
       }
 
