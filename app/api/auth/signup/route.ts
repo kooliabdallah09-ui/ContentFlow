@@ -40,6 +40,7 @@ async function copyDefaultInfluencers(supabase: SupabaseClient, newUserId: strin
     portrait_url: influencer.portrait_url,
     character_sheet_url: influencer.character_sheet_url,
     reference_urls: influencer.reference_urls,
+    is_seed: true,
   })
   if (error) console.error('[signup] insert default influencer failed:', error.message)
 }

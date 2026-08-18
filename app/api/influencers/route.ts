@@ -200,11 +200,13 @@ export async function POST(request: NextRequest) {
           .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
       : []
 
-    // First influencer is always free — check existing count.
+    // First influencer is always free — count only user-created rows, not the
+    // seeded default (Sloane Mercer). is_seed=true is set by the signup route.
     const { count: existingCount } = await supabase
       .from('user_influencers')
       .select('id', { count: 'exact', head: true })
       .eq('user_id', auth.userId)
+      .or('is_seed.is.null,is_seed.eq.false')
     const isFreeFirstInfluencer = (existingCount ?? 0) === 0
 
     // Credits check — skipped for the free first influencer.
