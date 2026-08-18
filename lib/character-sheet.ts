@@ -6,31 +6,24 @@
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { SupabaseClient } from '@supabase/supabase-js'
 
-const TURNAROUND_PROMPT = (appearancePrompt: string) => `Create a photorealistic character reference sheet for a social media influencer. Use the uploaded portrait as the strict source of truth for this person's exact face, hair, skin tone, and features.
+const TURNAROUND_PROMPT = (appearancePrompt: string) => `Create a photorealistic character reference sheet for a social media influencer. Use the uploaded portrait as the strict source of truth for this person's exact face, hair, skin tone, and features. Reproduce them faithfully across all 3 panels.
 
 Character: ${appearancePrompt}
 
-Layout: A clean 3x2 grid (3 columns, 2 rows) of 6 panels showing the SAME person from different angles and distances. Thin neutral dividers between panels. No text, no labels, no watermarks, no UI elements.
+Layout: A single 16:9 image split vertically into exactly 3 panels of equal width, separated by thin dark seams. No text, no labels, no numbers, no watermarks, no UI anywhere.
 
-Each panel is a hyper-realistic portrait photo — neutral studio or soft natural light, clean background. The person looks like a real attractive social media creator.
+Panel 1 (left third): FULL-BODY FRONT VIEW — the person standing centered against a plain neutral studio backdrop (soft grey or warm neutral), looking straight at camera, arms relaxed at sides, natural upright posture, feet visible. Full head-to-toe framing with a bit of headroom above and floor beneath. Wearing a well-fitted casual outfit that showcases their body shape.
 
-Panel 1 (top-left): Dead-center front view — face and shoulders, looking straight at camera. Neutral expression. Clean light.
+Panel 2 (middle third): FULL-BODY BACK VIEW — the SAME person from directly behind, standing in the same pose against the SAME neutral backdrop. Full head-to-toe framing matching Panel 1. Shows the exact back of the head, hair from behind, and back silhouette. Same outfit as Panel 1.
 
-Panel 2 (top-center): 45° left angle — face turned slightly left, still seeing both eyes, three-quarter view.
-
-Panel 3 (top-right): Full 90° left profile — pure side view, showing the exact ear, nose bridge, and jaw silhouette.
-
-Panel 4 (bottom-left): 45° right angle — face turned slightly right, mirror of panel 2.
-
-Panel 5 (bottom-center): Full 90° right profile — pure side view from the right side.
-
-Panel 6 (bottom-right): Slight downward angle from above — chin slightly down, showing the face from slightly elevated perspective.
+Panel 3 (right third): TIGHT FACE CLOSE-UP — head-and-shoulders portrait of the same person, face filling most of the frame, looking straight at camera with a neutral expression. Same lighting and neutral backdrop. Every facial detail sharp: eyes, brows, nose, lips, jaw structure, skin texture, hair around the face.
 
 Critical rules:
-- The EXACT same person must appear in every panel: same face shape, cheekbones, eye shape, nose, lips, skin tone, hair color and texture.
-- Consistent neutral background across all panels (soft white, grey, or studio tone).
-- Skin looks healthy, smooth, and youthful — the plump unlined skin of someone in their early 20s.
-- No text, no labels, no numbers, no watermarks anywhere.`
+- The EXACT same person must appear in all 3 panels: identical face, hair, skin tone, outfit, and body proportions.
+- Studio-quality soft even light across all 3 panels. Same backdrop tone in all three so the sheet feels like one continuous shoot.
+- Skin looks healthy, smooth, and youthful — plump unlined skin of someone in their early 20s. No age texture.
+- Panels are perfectly aligned horizontally; the horizon/floor line is consistent across the two full-body panels.
+- No text, no labels, no numbers, no watermarks, no on-image UI.`
 
 const SHEET_PROMPT = (appearancePrompt: string) => `Create a photorealistic identity reference sheet for a social media influencer. Use the uploaded portrait as the source of truth for this person's exact face, hair, skin tone, and features. Reproduce them faithfully across every panel.
 
@@ -87,9 +80,9 @@ export async function generateCharacterSheet(input: {
 
   const model = 'pro' as const
   const resolution = '4K' as const
-  const prompt = input.style === 'turnaround'
-    ? TURNAROUND_PROMPT(input.appearancePrompt)
-    : SHEET_PROMPT(input.appearancePrompt)
+  const prompt = input.style === 'lifestyle'
+    ? SHEET_PROMPT(input.appearancePrompt)
+    : TURNAROUND_PROMPT(input.appearancePrompt)
   const sheet = await generateNanoBananaImage(prompt, {
     style: 'realistic',
     ratio: '16:9',

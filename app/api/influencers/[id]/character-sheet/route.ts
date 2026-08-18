@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // for every downstream shoot needs sharp face detail, and the 2K
     // fallback shipped visibly cheap renders. Body params are ignored.
     const body = await request.json().catch(() => ({}))
-    const style: 'lifestyle' | 'turnaround' = body.style === 'turnaround' ? 'turnaround' : 'lifestyle'
+    const style: 'lifestyle' | 'turnaround' = body.style === 'lifestyle' ? 'lifestyle' : 'turnaround'
     const resolution: '2K' | '4K' = '4K'
     const cost = SHEET_4K_CR
 
