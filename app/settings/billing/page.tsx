@@ -303,7 +303,8 @@ export default function BillingPage() {
         {/* ── Lite plan — restricted micro-tier ────────────────────────────── */}
         <div style={{
           border: isLitePlan ? '2px solid #111' : '1.5px solid var(--border)',
-          borderRadius: 16, marginBottom: 16, overflow: 'hidden',
+          borderRadius: 16, marginBottom: 16,
+          marginTop: isLitePlan ? 14 : 0,
           background: 'var(--surface)', position: 'relative',
         }}>
           {isLitePlan && (
