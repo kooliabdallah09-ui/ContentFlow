@@ -1220,6 +1220,12 @@ export default function InfluencersPage() {
             style={{ padding: '12px 22px', fontSize: 14, borderRadius: 11, display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             <Sparkles size={15} /> Create new influencer
+            {list.length === 0 && (
+              <span style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                background: '#16a34a', color: '#fff', borderRadius: 6, padding: '2px 7px', marginLeft: 4,
+              }}>Free — first one</span>
+            )}
           </button>
           <button
             onClick={() => setShowInfo(v => !v)}
@@ -1333,7 +1339,15 @@ export default function InfluencersPage() {
       <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', padding: 22, marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Create new influencer</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Create new influencer</div>
+              {list.length === 0 && (
+                <span style={{
+                  fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
+                  background: '#16a34a', color: '#fff', borderRadius: 6, padding: '2px 7px',
+                }}>Free — first one on us</span>
+              )}
+            </div>
             <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', marginTop: 2 }}>Define your AI persona&apos;s identity and visual style — every pick is locked in exactly.</div>
           </div>
           <button onClick={() => setShowCreate(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 4 }} title="Close">
