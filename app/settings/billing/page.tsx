@@ -76,6 +76,27 @@ export default function BillingPage() {
     }
   }
 
+  async function handleCancelAll() {
+    if (!confirm('Cancel ALL active/pending Dodo subscriptions for this account? This is immediate and cannot be undone.')) return
+    try {
+      setUpgradeLoading('cancel-all')
+      const token = await getToken()
+      if (!token) return
+      const res = await fetch('/api/dodo/cancel-all', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Failed')
+      alert(`Cancelled ${data.cancelled}/${data.total} subscriptions.`)
+      loadCreditsInfo()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Cancel-all failed')
+    } finally {
+      setUpgradeLoading(null)
+    }
+  }
+
   async function handleManageSubscription() {
     try {
       setUpgradeLoading('portal')
@@ -245,11 +266,24 @@ export default function BillingPage() {
             {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
           </div>
         </div>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexShrink: 0 }}>
+          {isAdmin && (
+            <button onClick={handleCancelAll} disabled={upgradeLoading === 'cancel-all'}
+              title="Admin: cancel every active + pending Dodo subscription for this account"
+              style={{
+                padding: '9px 14px', borderRadius: 9,
+                border: '1px solid #b91c1c', background: 'rgba(185,28,28,0.08)',
+                fontSize: 12, fontWeight: 600, color: '#b91c1c', cursor: 'pointer',
+                opacity: upgradeLoading === 'cancel-all' ? 0.5 : 1,
+              }}>
+              {upgradeLoading === 'cancel-all' ? 'Cancelling…' : 'Cancel ALL subs (admin)'}
+            </button>
+          )}
         {creditsInfo?.hasSubscription && (
           <button onClick={handleManageSubscription} disabled={upgradeLoading === 'portal'}
             title="Update payment method, cancel subscription, view invoices"
             style={{
-              marginLeft: 'auto', padding: '9px 18px', borderRadius: 9,
+              padding: '9px 18px', borderRadius: 9,
               border: '1px solid #D4B97A', background: 'rgba(255,255,255,0.6)',
               fontSize: 13, fontWeight: 600, color: '#6E4E17', cursor: 'pointer',
               opacity: upgradeLoading === 'portal' ? 0.5 : 1, flexShrink: 0,
@@ -262,6 +296,7 @@ export default function BillingPage() {
             )}
           </button>
         )}
+        </div>
       </div>
 
       {/* Plans */}
