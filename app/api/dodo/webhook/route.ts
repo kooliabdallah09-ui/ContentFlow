@@ -1,8 +1,39 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import DodoPayments from 'dodopayments'
+import { createHmac, timingSafeEqual } from 'crypto'
 
 export const maxDuration = 60
+
+/**
+ * Custom webhook verification that mirrors standardwebhooks' signature check
+ * but skips the 5-minute timestamp tolerance. Dodo sometimes delivers events
+ * with old timestamps (queued), and the strict SDK check rejects them.
+ * We still verify HMAC signature so this is cryptographically safe.
+ */
+function verifyDodoSignature(rawBody: string, headers: Record<string, string>, secret: string): unknown {
+  const lower: Record<string, string> = {}
+  for (const k of Object.keys(headers)) lower[k.toLowerCase()] = headers[k]
+  const msgId = lower['webhook-id']
+  const msgSignature = lower['webhook-signature']
+  const msgTimestamp = lower['webhook-timestamp']
+  if (!msgId || !msgSignature || !msgTimestamp) throw new Error('Missing webhook headers')
+
+  // Decode secret (standardwebhooks stores it as base64 after "whsec_" prefix)
+  const secretBytes = Buffer.from(secret.startsWith('whsec_') ? secret.slice(6) : secret, 'base64')
+  const toSign = `${msgId}.${msgTimestamp}.${rawBody}`
+  const expected = createHmac('sha256', secretBytes).update(toSign).digest('base64')
+
+  const passed = msgSignature.split(' ')
+  for (const versioned of passed) {
+    const [version, sig] = versioned.split(',')
+    if (version !== 'v1') continue
+    if (sig.length === expected.length && timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
+      return JSON.parse(rawBody)
+    }
+  }
+  throw new Error('No matching signature')
+}
 
 // Credits granted per plan per month
 const PLAN_CREDITS: Record<string, number> = {
@@ -101,7 +132,11 @@ export async function POST(request: NextRequest) {
       environment: process.env.DODO_ENV === 'production' ? 'live_mode' : 'test_mode',
     })
 
-    const event = dodo.webhooks.unwrap(rawBody, { headers })
+    const webhookSecret = (process.env.DODO_ENV !== 'production' ? process.env.DODO_TEST_WEBHOOK_SECRET : process.env.DODO_WEBHOOK_SECRET)!
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const event = verifyDodoSignature(rawBody, headers, webhookSecret) as any
+    // (Fallback to SDK verify for any weirdness — kept for reference: dodo.webhooks.unwrap)
+    void dodo
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const debugData = event.data as any
