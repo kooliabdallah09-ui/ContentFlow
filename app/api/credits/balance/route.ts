@@ -24,19 +24,26 @@ export async function GET(request: Request) {
 
     const [{ data: credits, error: creditsError }, { data: sub }] = await Promise.all([
       supabase.from('user_credits').select('balance, plan, monthly_credits, reset_date').eq('user_id', userData.user.id).single(),
-      supabase.from('user_subscriptions').select('dodo_customer_id').eq('user_id', userData.user.id).maybeSingle(),
+      supabase.from('user_subscriptions').select('dodo_customer_id, status').eq('user_id', userData.user.id).maybeSingle(),
     ])
 
     if (creditsError || !credits) {
       return Response.json({ error: 'Credits not initialized' }, { status: 404 })
     }
 
+    // A user is only "on a plan" if they have an ACTIVE Dodo subscription.
+    // Cancelled / missing subscription → show as Free plan regardless of the
+    // stale user_credits.plan value (which lingers from earlier tests).
+    const hasActiveSub = !!(sub?.dodo_customer_id) && sub.status !== 'cancelled'
+    const effectivePlan = hasActiveSub ? credits.plan : 'free'
+    const effectiveMonthly = hasActiveSub ? credits.monthly_credits : 0
+
     return Response.json({
       balance: credits.balance,
-      plan: credits.plan,
-      monthlyCredits: credits.monthly_credits,
+      plan: effectivePlan,
+      monthlyCredits: effectiveMonthly,
       resetDate: credits.reset_date,
-      hasDodoSubscription: !!(sub?.dodo_customer_id),
+      hasDodoSubscription: hasActiveSub,
     })
   } catch (error) {
     return Response.json(
