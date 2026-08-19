@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ContentFlow — Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet"/>
+<style>
+/* ─── Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --bg:      #F3F0EB; --bg2:    #EBE8E2; --card:   #FFFFFF;
+  --border:  rgba(30,25,18,0.1); --text:  #1A1612;
+  --muted:   #6B6560; --dim:    #A8A49E;
+  --accent:  #C86020; --accent2:#D97535; --accentbg:rgba(200,96,32,0.08);
+  --nav-bg:  rgba(255,255,255,0.96);
+  --sidebar: #FFFFFF;
+  --font-d:  'Instrument Serif', serif;
+  --font-b:  'DM Sans', sans-serif;
+  --r:       12px;
+}
+[data-palette="slate"]   { --bg:#F0F2F7;--bg2:#E4E8F0;--card:#FFF;--border:rgba(15,20,60,.1);--text:#0F1420;--muted:#5A6278;--dim:#9AA2B8;--accent:#4F46E5;--accent2:#6055F0;--accentbg:rgba(79,70,229,.07);--sidebar:#FFF; }
+[data-palette="sage"]    { --bg:#EFF5F1;--bg2:#E2EDE5;--card:#FFF;--border:rgba(20,48,28,.1);--text:#14201A;--muted:#4E6458;--dim:#8AA498;--accent:#2A5C45;--accent2:#336B52;--accentbg:rgba(42,92,69,.08);--sidebar:#FFF; }
+[data-palette="dusk"]    { --bg:#181410;--bg2:#221C16;--card:#271F18;--border:rgba(255,225,185,.08);--text:#F5EDE0;--muted:#9A8870;--dim:#5A4E40;--accent:#D4A040;--accent2:#E0B050;--accentbg:rgba(212,160,64,.1);--sidebar:#221C16; }
+[data-palette="rose"]    { --bg:#FBF0F4;--bg2:#F3E2EA;--card:#FFF;--border:rgba(80,10,30,.1);--text:#2A0818;--muted:#7A5060;--dim:#B89098;--accent:#C2185B;--accent2:#D81B60;--accentbg:rgba(194,24,91,.07);--sidebar:#FFF; }
+[data-palette="arctic"]  { --bg:#F0F6FA;--bg2:#E2EEF5;--card:#FFF;--border:rgba(5,30,70,.09);--text:#061828;--muted:#4A6278;--dim:#8AACC0;--accent:#0277BD;--accent2:#0288D1;--accentbg:rgba(2,119,189,.07);--sidebar:#FFF; }
+[data-palette="crimson"] { --bg:#FDF2F2;--bg2:#F5E4E4;--card:#FFF;--border:rgba(80,10,10,.1);--text:#280808;--muted:#7A5050;--dim:#B89090;--accent:#C62828;--accent2:#D32F2F;--accentbg:rgba(198,40,40,.07);--sidebar:#FFF; }
+[data-palette="lavender"]{ --bg:#F3F0F8;--bg2:#E8E2F4;--card:#FFF;--border:rgba(40,15,80,.1);--text:#180830;--muted:#6A5878;--dim:#A898B8;--accent:#6B2FA0;--accent2:#7B35B5;--accentbg:rgba(107,47,160,.07);--sidebar:#FFF; }
+[data-palette="midnight"]{ --bg:#0D1117;--bg2:#161B22;--card:#1C2330;--border:rgba(200,220,255,.08);--text:#E6EDF3;--muted:#8B949E;--dim:#484F58;--accent:#58A6FF;--accent2:#79B8FF;--accentbg:rgba(88,166,255,.1);--sidebar:#161B22; }
+[data-palette="mint"]    { --bg:#F0F9F6;--bg2:#E0F2EC;--card:#FFF;--border:rgba(0,50,40,.09);--text:#012018;--muted:#3A6858;--dim:#78B0A0;--accent:#00897B;--accent2:#00A090;--accentbg:rgba(0,137,123,.07);--sidebar:#FFF; }
+[data-palette="peach"]   { --bg:#FEF5F0;--bg2:#FCE8DC;--card:#FFF;--border:rgba(80,30,10,.1);--text:#2C1008;--muted:#7A5040;--dim:#C09880;--accent:#E64A19;--accent2:#F4511E;--accentbg:rgba(230,74,25,.07);--sidebar:#FFF; }
+[data-palette="emerald"] { --bg:#F0FCF7;--bg2:#DCFAED;--card:#FFF;--border:rgba(5,50,30,.09);--text:#012818;--muted:#2E6850;--dim:#68B090;--accent:#065F46;--accent2:#047857;--accentbg:rgba(6,95,70,.07);--sidebar:#FFF; }
+[data-palette="noir"]    { --bg:#080808;--bg2:#111;--card:#181818;--border:rgba(255,255,255,.07);--text:#F0EDE8;--muted:#888078;--dim:#444038;--accent:#E8E2DA;--accent2:#FFF;--accentbg:rgba(232,226,218,.06);--sidebar:#111; }
+[data-palette="sand"]    { --bg:#F9F5EC;--bg2:#F0E8D4;--card:#FFF;--border:rgba(70,40,10,.1);--text:#2A1A08;--muted:#7A6448;--dim:#B0A080;--accent:#92400E;--accent2:#A44F12;--accentbg:rgba(146,64,14,.07);--sidebar:#FFF; }
+[data-palette="cobalt"]  { --bg:#F0F4FB;--bg2:#E2EAF7;--card:#FFF;--border:rgba(10,20,80,.1);--text:#080F30;--muted:#445080;--dim:#8898C0;--accent:#1565C0;--accent2:#1976D2;--accentbg:rgba(21,101,192,.07);--sidebar:#FFF; }
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html,body { height:100%; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:var(--font-b); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased; overflow:hidden;
+}
+a { color:inherit; text-decoration:none; }
+button { font-family:var(--font-b); }
+
+/* ─── App shell ─────────────────────────────────────────────────────── */
+.app { display:flex; height:100vh; overflow:hidden; }
+
+/* ─── Sidebar ────────────────────────────────────────────────────────── */
+.sidebar {
+  width:228px; flex-shrink:0;
+  background:var(--sidebar);
+  border-right:1px solid var(--border);
+  display:flex; flex-direction:column;
+  overflow:hidden;
+}
+.sb-logo {
+  height:58px; display:flex; align-items:center;
+  padding:0 18px; gap:9px; flex-shrink:0;
+  border-bottom:1px solid var(--border);
+}
+.sb-logo-mark {
+  width:26px; height:26px; border-radius:7px;
+  background:var(--accent); display:flex; align-items:center; justify-content:center;
+  flex-shrink:0;
+}
+.sb-logo-name { font-family:var(--font-d); font-style:italic; font-size:17px; }
+
+.sb-nav { flex:1; padding:10px 10px; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+.sb-section-label {
+  font-size:9.5px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.1em; color:var(--dim); padding:10px 8px 4px;
+}
+.sb-item {
+  display:flex; align-items:center; gap:9px;
+  padding:8px 10px; border-radius:9px; cursor:pointer;
+  font-size:13.5px; font-weight:500; color:var(--muted);
+  transition:background .14s, color .14s; border:none; background:none;
+  width:100%; text-align:left;
+}
+.sb-item:hover { background:var(--bg2); color:var(--text); }
+.sb-item.active { background:var(--accentbg); color:var(--accent); font-weight:600; }
+.sb-item svg { flex-shrink:0; opacity:.65; }
+.sb-item.active svg { opacity:1; }
+.sb-count {
+  margin-left:auto; font-size:11px; font-weight:700;
+  background:var(--bg2); color:var(--dim); border-radius:100px;
+  padding:1px 7px; min-width:22px; text-align:center;
+}
+.sb-item.active .sb-count { background:var(--accentbg); color:var(--accent); }
+
+.sb-footer { padding:12px; border-top:1px solid var(--border); }
+.sb-credits {
+  background:var(--bg); border-radius:10px; padding:11px 13px; margin-bottom:8px;
+}
+.sb-credits-label { font-size:10px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.07em; margin-bottom:5px; }
+.sb-credits-val { font-family:var(--font-d); font-style:italic; font-size:22px; color:var(--accent); line-height:1; }
+.sb-credits-sub { font-size:11px; color:var(--muted); margin-top:3px; }
+.sb-credits-bar { height:3px; background:var(--border); border-radius:2px; margin-top:8px; overflow:hidden; }
+.sb-credits-fill { height:100%; background:var(--accent); border-radius:2px; width:62%; }
+
+.sb-user {
+  display:flex; align-items:center; gap:9px;
+  padding:7px 3px; cursor:pointer; border-radius:9px;
+  transition:background .14s;
+}
+.sb-user:hover { background:var(--bg2); }
+.sb-avatar {
+  width:30px; height:30px; border-radius:50%; flex-shrink:0;
+  background:linear-gradient(135deg, var(--accent2), var(--accent));
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; color:#fff;
+}
+.sb-user-info { flex:1; min-width:0; }
+.sb-user-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sb-user-plan { font-size:11px; color:var(--dim); }
+
+/* ─── Main ───────────────────────────────────────────────────────────── */
+.main { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+
+.topbar {
+  height:58px; flex-shrink:0; background:var(--card);
+  border-bottom:1px solid var(--border);
+  display:flex; align-items:center; padding:0 24px; gap:14px;
+}
+.topbar-title { font-family:var(--font-d); font-size:19px; font-weight:400; flex:1; }
+.topbar-title em { font-style:italic; color:var(--accent); }
+
+.search-wrap {
+  position:relative; flex-shrink:0;
+}
+.search-wrap svg { position:absolute; left:10px; top:50%; transform:translateY(-50%); pointer-events:none; }
+.search-input {
+  background:var(--bg); border:1px solid var(--border); border-radius:9px;
+  padding:7px 12px 7px 32px; font-size:13px; color:var(--text);
+  outline:none; width:220px; transition:border-color .14s;
+  font-family:var(--font-b);
+}
+.search-input::placeholder { color:var(--dim); }
+.search-input:focus { border-color:var(--accent); }
+
+.tb-btn {
+  display:flex; align-items:center; gap:6px;
+  background:var(--accent); color:#fff;
+  padding:8px 16px; border-radius:9px; border:none;
+  font-size:13px; font-weight:600; cursor:pointer;
+  transition:background .15s, transform .15s;
+  white-space:nowrap;
+}
+.tb-btn:hover { background:var(--accent2); transform:translateY(-1px); }
+.tb-btn-ghost {
+  display:flex; align-items:center; gap:6px;
+  background:var(--bg); border:1px solid var(--border); color:var(--text);
+  padding:7px 14px; border-radius:9px;
+  font-size:13px; font-weight:500; cursor:pointer;
+  transition:background .14s; white-space:nowrap;
+}
+.tb-btn-ghost:hover { background:var(--bg2); }
+
+.content {
+  flex:1; overflow-y:auto; background:var(--bg);
+}
+
+/* ─── Sections ───────────────────────────────────────────────────────── */
+.section { display:none; padding:24px; }
+.section.active { display:flex; flex-direction:column; gap:20px; }
+
+/* ─── Influencer Studio ──────────────────────────────────────────────── */
+.inf-filters { display:flex; gap:6px; flex-wrap:wrap; }
+.filter-chip {
+  padding:6px 14px; border-radius:100px; font-size:12px; font-weight:500;
+  cursor:pointer; border:1.5px solid var(--border); background:none;
+  color:var(--muted); transition:all .14s;
+}
+.filter-chip:hover { background:var(--card); color:var(--text); }
+.filter-chip.active { background:var(--card); border-color:var(--accent); color:var(--accent); font-weight:600; }
+
+.inf-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:14px; }
+
+.inf-card {
+  background:var(--card); border-radius:14px; overflow:hidden;
+  border:1px solid var(--border);
+  transition:transform .22s cubic-bezier(.22,1,.36,1), box-shadow .22s;
+  cursor:pointer; position:relative;
+}
+.inf-card:hover { transform:translateY(-4px); box-shadow:0 12px 40px rgba(0,0,0,0.1); }
+.inf-card:hover .inf-actions { opacity:1; }
+
+.inf-portrait {
+  height:200px; position:relative; overflow:hidden;
+}
+.inf-portrait-img { width:100%; height:100%; object-fit:cover; }
+.ig1 { background:linear-gradient(160deg,#c49060 0%,#7a4020 50%,#4a1808 100%); }
+.ig2 { background:linear-gradient(160deg,#3a5a7a 0%,#1a2a4a 60%,#0a1028 100%); }
+.ig3 { background:linear-gradient(160deg,#4a608a 0%,#28386a 60%,#101838 100%); }
+.ig4 { background:linear-gradient(160deg,#5a8a6a 0%,#2a4a3a 60%,#0a2018 100%); }
+.ig5 { background:linear-gradient(160deg,#c47030 0%,#8a3a10 50%,#501800 100%); }
+.ig6 { background:linear-gradient(160deg,#3a8a9a 0%,#1a4a5a 60%,#082028 100%); }
+
+/* portrait accent shape */
+.inf-portrait::after {
+  content:''; position:absolute; bottom:-10px; left:50%; transform:translateX(-50%);
+  width:56px; height:56px; border-radius:50%;
+  background:rgba(255,255,255,0.08); border:1.5px solid rgba(255,255,255,0.15);
+}
+
+.inf-actions {
+  position:absolute; top:10px; right:10px;
+  display:flex; flex-direction:column; gap:5px;
+  opacity:0; transition:opacity .18s;
+}
+.inf-act-btn {
+  width:30px; height:30px; border-radius:8px;
+  background:rgba(10,8,5,0.65); backdrop-filter:blur(8px);
+  border:1px solid rgba(255,255,255,0.12);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:#fff; transition:background .14s;
+}
+.inf-act-btn:hover { background:rgba(10,8,5,0.85); }
+
+.inf-info { padding:13px 14px 14px; }
+.inf-handle { font-size:11px; color:var(--accent); font-weight:600; margin-bottom:3px; }
+.inf-name { font-size:14px; font-weight:700; margin-bottom:2px; }
+.inf-niche {
+  display:inline-block; font-size:10.5px; font-weight:600; color:var(--muted);
+  background:var(--bg); border-radius:100px; padding:2px 9px;
+  border:1px solid var(--border); margin-bottom:11px;
+}
+.inf-stats { display:flex; gap:12px; }
+.inf-stat { }
+.inf-stat-val { font-size:13px; font-weight:700; }
+.inf-stat-lbl { font-size:10px; color:var(--dim); }
+
+.inf-card-footer {
+  display:flex; gap:6px; padding:0 14px 14px;
+}
+.inf-footer-btn {
+  flex:1; padding:7px 0; border-radius:8px; border:none;
+  font-size:11px; font-weight:600; cursor:pointer; transition:all .14s;
+  display:flex; align-items:center; justify-content:center; gap:4px;
+}
+.inf-footer-btn.primary { background:var(--accent); color:#fff; }
+.inf-footer-btn.primary:hover { background:var(--accent2); }
+.inf-footer-btn.ghost { background:var(--bg); border:1px solid var(--border); color:var(--muted); }
+.inf-footer-btn.ghost:hover { background:var(--bg2); color:var(--text); }
+
+/* New influencer card */
+.inf-card-new {
+  background:var(--card); border-radius:14px;
+  border:2px dashed var(--border); min-height:340px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:12px; cursor:pointer; transition:border-color .18s, background .18s;
+}
+.inf-card-new:hover { border-color:var(--accent); background:var(--accentbg); }
+.inf-card-new-icon {
+  width:48px; height:48px; border-radius:12px;
+  background:var(--bg2); display:flex; align-items:center; justify-content:center;
+  transition:background .18s;
+}
+.inf-card-new:hover .inf-card-new-icon { background:var(--accentbg); }
+.inf-card-new span { font-size:13px; font-weight:600; color:var(--muted); }
+.inf-card-new:hover span { color:var(--accent); }
+
+/* ─── Two-column generator layout ────────────────────────────────────── */
+.gen-layout { display:grid; grid-template-columns:360px 1fr; gap:16px; height:calc(100vh - 58px - 48px); }
+
+.gen-panel {
+  background:var(--card); border-radius:14px;
+  border:1px solid var(--border);
+  overflow-y:auto; display:flex; flex-direction:column;
+}
+.gen-panel-title {
+  font-size:11px; font-weight:700; text-transform:uppercase;
+  letter-spacing:.09em; color:var(--dim);
+  padding:16px 18px 12px; border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.gen-body { padding:16px 18px; display:flex; flex-direction:column; gap:16px; flex:1; }
+
+.gen-label { font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px; }
+
+/* Influencer picker strip */
+.inf-picker { display:flex; gap:8px; overflow-x:auto; padding-bottom:4px; }
+.inf-picker::-webkit-scrollbar { display:none; }
+.inf-chip {
+  flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:5px;
+  cursor:pointer; padding:4px;
+}
+.inf-chip-ava {
+  width:44px; height:44px; border-radius:12px; overflow:hidden;
+  border:2px solid transparent;
+  transition:border-color .14s, transform .14s;
+}
+.inf-chip:hover .inf-chip-ava { transform:scale(1.05); }
+.inf-chip.active .inf-chip-ava { border-color:var(--accent); }
+.inf-chip-name { font-size:9.5px; font-weight:600; color:var(--dim); white-space:nowrap; }
+.inf-chip.active .inf-chip-name { color:var(--accent); }
+
+/* Prompt textarea */
+.gen-textarea {
+  width:100%; background:var(--bg); border:1px solid var(--border);
+  border-radius:10px; padding:12px 14px;
+  font-size:13px; color:var(--text); line-height:1.6;
+  resize:none; outline:none; min-height:90px;
+  transition:border-color .14s; font-family:var(--font-b);
+}
+.gen-textarea::placeholder { color:var(--dim); }
+.gen-textarea:focus { border-color:var(--accent); }
+
+/* Option row (duration, ratio, etc) */
+.opt-row { display:flex; gap:6px; flex-wrap:wrap; }
+.opt-btn {
+  padding:6px 14px; border-radius:8px; font-size:12.5px; font-weight:600;
+  border:1.5px solid var(--border); background:none; cursor:pointer;
+  color:var(--muted); transition:all .14s;
+}
+.opt-btn:hover { background:var(--bg2); color:var(--text); }
+.opt-btn.active { background:var(--accentbg); border-color:var(--accent); color:var(--accent); }
+
+/* Generate button */
+.gen-submit {
+  display:flex; align-items:center; justify-content:center; gap:8px;
+  background:var(--accent); color:#fff; border:none;
+  padding:13px; border-radius:10px; font-size:14px; font-weight:700;
+  cursor:pointer; transition:background .15s, transform .15s;
+  margin-top:auto;
+}
+.gen-submit:hover { background:var(--accent2); transform:translateY(-1px); }
+.gen-submit-cost {
+  background:rgba(255,255,255,0.18); border-radius:100px;
+  padding:2px 8px; font-size:11px; font-weight:700;
+}
+
+/* Output panel */
+.gen-output {
+  background:var(--card); border-radius:14px;
+  border:1px solid var(--border);
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:16px; position:relative; overflow:hidden;
+}
+.gen-output-empty {
+  display:flex; flex-direction:column; align-items:center;
+  justify-content:center; gap:14px; text-align:center;
+  padding:40px;
+}
+.gen-output-icon {
+  width:56px; height:56px; border-radius:14px;
+  background:var(--bg2); display:flex; align-items:center; justify-content:center;
+}
+.gen-output-title { font-size:15px; font-weight:600; }
+.gen-output-sub { font-size:13px; color:var(--muted); max-width:280px; line-height:1.6; }
+
+/* Image output grid */
+.img-output-grid {
+  width:100%; height:100%;
+  display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; gap:8px;
+  padding:16px;
+}
+.img-out-slot {
+  border-radius:10px; overflow:hidden; position:relative;
+  border:1px solid var(--border);
+}
+.img-out-slot-img { width:100%; height:100%; object-fit:cover; }
+.img-out-action {
+  position:absolute; top:8px; right:8px;
+  background:rgba(10,8,5,0.6); backdrop-filter:blur(6px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:7px; padding:5px 9px;
+  font-size:11px; font-weight:600; color:#fff; cursor:pointer;
+  opacity:0; transition:opacity .14s;
+}
+.img-out-slot:hover .img-out-action { opacity:1; }
+
+/* ─── Product Studio ─────────────────────────────────────────────────── */
+.prod-layout { display:grid; grid-template-columns:280px 1fr; gap:16px; height:calc(100vh - 58px - 48px); }
+
+.prod-list { background:var(--card); border-radius:14px; border:1px solid var(--border); overflow:hidden; display:flex; flex-direction:column; }
+.prod-list-head { padding:14px 16px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+.prod-list-title { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); }
+.prod-upload-btn {
+  display:flex; align-items:center; gap:5px;
+  background:var(--accent); color:#fff; border:none;
+  padding:6px 11px; border-radius:7px; font-size:11.5px; font-weight:600;
+  cursor:pointer; transition:background .14s;
+}
+.prod-upload-btn:hover { background:var(--accent2); }
+
+.prod-items { flex:1; overflow-y:auto; padding:10px; display:flex; flex-direction:column; gap:6px; }
+.prod-item {
+  display:flex; align-items:center; gap:10px;
+  padding:9px 10px; border-radius:9px; cursor:pointer;
+  border:1.5px solid transparent; transition:all .14s;
+}
+.prod-item:hover { background:var(--bg); }
+.prod-item.active { background:var(--accentbg); border-color:var(--accent); }
+.prod-thumb {
+  width:38px; height:38px; border-radius:7px; flex-shrink:0; overflow:hidden;
+}
+.pt1 { background:linear-gradient(135deg,#e8c480,#c09040); }
+.pt2 { background:linear-gradient(135deg,#90c8e0,#4090b8); }
+.pt3 { background:linear-gradient(135deg,#e0a0a0,#c06060); }
+.pt4 { background:linear-gradient(135deg,#a0e0a0,#60a860); }
+.pt5 { background:linear-gradient(135deg,#d0a0e8,#9060c0); }
+.prod-item-info { flex:1; min-width:0; }
+.prod-item-name { font-size:13px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.prod-item-cat { font-size:11px; color:var(--dim); }
+
+.prod-right { display:flex; flex-direction:column; gap:14px; }
+.prod-right-top { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+
+/* ─── History / Recent panel ─────────────────────────────────────────── */
+.history-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px; }
+.hist-item {
+  border-radius:10px; overflow:hidden; position:relative; cursor:pointer;
+  transition:transform .18s;
+}
+.hist-item:hover { transform:scale(1.02); }
+.hist-thumb { height:140px; }
+.hist-overlay {
+  position:absolute; bottom:0; left:0; right:0;
+  padding:10px 10px 9px;
+  background:linear-gradient(to top, rgba(10,8,5,.7) 0%, transparent 100%);
+}
+.hist-name { font-size:11px; font-weight:600; color:#fff; }
+.hist-date { font-size:10px; color:rgba(255,255,255,.55); }
+
+.hg1 { background:linear-gradient(145deg,#c49060,#7a4020); }
+.hg2 { background:linear-gradient(145deg,#3a5a7a,#1a2a4a); }
+.hg3 { background:linear-gradient(145deg,#6a4a8a,#3a2a5a); }
+.hg4 { background:linear-gradient(145deg,#5a8a6a,#2a4a3a); }
+.hg5 { background:linear-gradient(145deg,#c47030,#8a3a10); }
+.hg6 { background:linear-gradient(145deg,#3a8a9a,#1a4a5a); }
+.hg7 { background:linear-gradient(145deg,#8a6040,#4a2010); }
+.hg8 { background:linear-gradient(145deg,#4a6090,#1a2858); }
+
+/* ─── Empty state ────────────────────────────────────────────────────── */
+.empty-state {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:14px; text-align:center; padding:60px 24px;
+}
+.empty-icon {
+  width:52px; height:52px; border-radius:14px;
+  background:var(--bg2); display:flex; align-items:center; justify-content:center;
+}
+.empty-title { font-size:16px; font-weight:600; }
+.empty-sub { font-size:13px; color:var(--muted); max-width:260px; line-height:1.6; }
+
+/* ─── Notification badge ──────────────────────────────────────────────── */
+.badge {
+  display:inline-flex; align-items:center; justify-content:center;
+  background:var(--accentbg); color:var(--accent);
+  font-size:10px; font-weight:700; border-radius:100px;
+  padding:2px 8px;
+}
+
+/* ─── Section: Video Generator ───────────────────────────────────────── */
+.vid-aspect-preview {
+  background:var(--bg); border-radius:10px;
+  border:1px solid var(--border); overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  min-height:80px; position:relative;
+}
+.vid-aspect-inner {
+  background:linear-gradient(135deg, rgba(30,25,18,0.12), rgba(30,25,18,0.04));
+  border-radius:6px; display:flex; align-items:center; justify-content:center;
+}
+.vid-play-icon {
+  width:32px; height:32px; border-radius:50%;
+  background:rgba(255,255,255,0.9); display:flex; align-items:center; justify-content:center;
+}
+
+/* Waveform placeholder */
+.waveform {
+  display:flex; align-items:center; gap:2px; height:24px;
+}
+.wave-bar {
+  width:3px; border-radius:2px; background:var(--accent); opacity:.4;
+  animation:wave 1.2s ease-in-out infinite alternate;
+}
+@keyframes wave {
+  from { height:4px; opacity:.3; }
+  to   { height:20px; opacity:.9; }
+}
+
+/* ─── Palette switcher ────────────────────────────────────────────────── */
+.pal-trigger {
+  position:fixed; bottom:24px; right:24px; z-index:1001;
+  width:42px; height:42px; border-radius:50%; border:none;
+  background:var(--text); cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 18px rgba(0,0,0,0.22);
+  transition:transform .22s cubic-bezier(.34,1.15,.64,1), box-shadow .2s;
+}
+.pal-trigger:hover { transform:scale(1.1); }
+.pal-trigger svg { transition:transform .3s cubic-bezier(.34,1.15,.64,1); }
+.pal-trigger.open svg { transform:rotate(45deg); }
+.pal-panel {
+  position:fixed; bottom:76px; right:24px; z-index:1000;
+  background:var(--card); border:1px solid var(--border);
+  border-radius:18px; padding:13px;
+  box-shadow:0 12px 48px rgba(0,0,0,0.15), 0 2px 8px rgba(0,0,0,0.08);
+  width:228px;
+  opacity:0; transform:translateY(8px) scale(0.95); pointer-events:none;
+  transition:opacity .2s cubic-bezier(.22,1,.36,1), transform .2s cubic-bezier(.22,1,.36,1);
+  transform-origin:bottom right;
+}
+.pal-panel.open { opacity:1; transform:none; pointer-events:all; }
+.pal-panel-title { font-size:10px; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:.1em; margin-bottom:11px; padding:0 2px; }
+.pal-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:7px; }
+.pal-swatch { display:flex; flex-direction:column; align-items:center; gap:4px; cursor:pointer; padding:4px 2px; border-radius:9px; border:none; background:none; transition:background .14s; }
+.pal-swatch:hover { background:var(--bg2); }
+.pal-swatch-dot { width:28px; height:28px; border-radius:50%; outline:2.5px solid transparent; outline-offset:2px; transition:transform .18s cubic-bezier(.34,1.15,.64,1), outline-color .14s; }
+.pal-swatch:hover .pal-swatch-dot { transform:scale(1.1); }
+.pal-swatch.active .pal-swatch-dot { outline-color:var(--text); transform:scale(1.05); }
+.pal-swatch-name { font-size:8px; font-weight:600; color:var(--dim); text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ─── Sidebar ─────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-mark">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
+          <path d="M2 7l3.5 3.5 6.5-7" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="sb-logo-name">ContentFlow</span>
+    </div>
+
+    <nav class="sb-nav">
+      <div class="sb-section-label">Studio</div>
+
+      <button class="sb-item active" data-section="influencer">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+          <circle cx="10" cy="7" r="3.5"/>
+          <path d="M3 18c0-3.3 3.1-6 7-6s7 2.7 7 6"/>
+        </svg>
+        Influencer Studio
+        <span class="sb-count">6</span>
+      </button>
+
+      <button class="sb-item" data-section="video">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="2" y="5" width="13" height="10" rx="2"/>
+          <path d="M15 8l3-2v8l-3-2"/>
+        </svg>
+        Video Generator
+      </button>
+
+      <button class="sb-item" data-section="image">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="14" height="14" rx="2"/>
+          <circle cx="7.5" cy="7.5" r="1.5"/>
+          <path d="M3 14l4-4 3 3 2-2 5 5"/>
+        </svg>
+        Image Generator
+      </button>
+
+      <button class="sb-item" data-section="product">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M10 2L3 6v8l7 4 7-4V6l-7-4z"/>
+          <path d="M3 6l7 4 7-4M10 10v8"/>
+        </svg>
+        Product Studio
+      </button>
+
+      <div class="sb-section-label" style="margin-top:8px;">Library</div>
+
+      <button class="sb-item" data-section="history">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="5" width="14" height="12" rx="2"/>
+          <path d="M7 5V3.5a1 1 0 011-1h4a1 1 0 011 1V5"/>
+          <path d="M7 10h6M7 13h4"/>
+        </svg>
+        All Generations
+        <span class="sb-count">24</span>
+      </button>
+
+      <button class="sb-item">
+        <svg width="15" height="15" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="10" cy="10" r="7"/>
+          <path d="M10 7v3l2 2"/>
+        </svg>
+        Scheduled
+        <span class="sb-count badge" style="background:var(--accentbg);color:var(--accent);">3</span>
+      </button>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-credits">
+        <div class="sb-credits-label">Credits remaining</div>
+        <div class="sb-credits-val">450</div>
+        <div class="sb-credits-sub">of 750 this month</div>
+        <div class="sb-credits-bar"><div class="sb-credits-fill"></div></div>
+      </div>
+      <div class="sb-user">
+        <div class="sb-avatar">AK</div>
+        <div class="sb-user-info">
+          <div class="sb-user-name">Abdallah K.</div>
+          <div class="sb-user-plan">Growth Plan</div>
+        </div>
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--dim)" stroke-width="1.6" stroke-linecap="round">
+          <circle cx="8" cy="8" r="1.5"/><circle cx="8" cy="3" r="1.5"/><circle cx="8" cy="13" r="1.5"/>
+        </svg>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ─── Main ──────────────────────────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- Top bar -->
+    <div class="topbar" id="topbar">
+      <span class="topbar-title" id="topbarTitle">Influencer <em>Studio</em></span>
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="var(--dim)" stroke-width="1.7" stroke-linecap="round"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5l3 3"/></svg>
+        <input class="search-input" id="searchInput" placeholder="Search influencers…" type="text"/>
+      </div>
+      <button class="tb-btn" id="topbarCta">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 2v10M2 7h10"/></svg>
+        <span id="topbarCtaText">New Influencer</span>
+      </button>
+    </div>
+
+    <!-- Content -->
+    <div class="content">
+
+      <!-- ── Influencer Studio ─────────────────────────────────────────── -->
+      <section class="section active" id="section-influencer">
+        <div class="inf-filters">
+          <button class="filter-chip active">All (6)</button>
+          <button class="filter-chip">Wellness</button>
+          <button class="filter-chip">Fashion</button>
+          <button class="filter-chip">Tech</button>
+          <button class="filter-chip">Fitness</button>
+          <button class="filter-chip">Food</button>
+          <button class="filter-chip">Travel</button>
+        </div>
+
+        <div class="inf-grid">
+
+          <!-- New influencer card -->
+          <div class="inf-card-new">
+            <div class="inf-card-new-icon">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="var(--muted)" stroke-width="1.8" stroke-linecap="round"><path d="M10 3v14M3 10h14"/></svg>
+            </div>
+            <span>Create New Influencer</span>
+          </div>
+
+          <!-- Influencer 1 -->
+          <div class="inf-card">
+            <div class="inf-portrait ig1">
+              <div class="inf-actions">
+                <button class="inf-act-btn" title="Edit">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"/></svg>
+                </button>
+                <button class="inf-act-btn" title="Regenerate">
+                  <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 7A5 5 0 112 7M12 7V4M12 7H9"/></svg>
+                </button>
+              </div>
+            </div>
+            <div class="inf-info">
+              <div class="inf-handle">@alex.creates</div>
+              <div class="inf-name">Alexandra R.</div>
+              <div class="inf-niche">Wellness</div>
+              <div class="inf-stats">
+                <div class="inf-stat"><div class="inf-stat-val">34</div><div class="inf-stat-lbl">generations</div></div>
+                <div class="inf-stat"><div class="inf-stat-val">12</div><div class="inf-stat-lbl">videos</div></div>
+              </div>
+            </div>
+            <div class="inf-card-footer">
+              <button class="inf-footer-btn primary">
+                <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1L5 7M11 1H7M11 1V5"/></svg>
+                Generate
+              </button>
+              <button class="inf-footer-btn ghost">Edit</button>
+            </div>
+          </div>
+
+          <!-- Influencer 2 -->
+          <div class="inf-card">
+            <div class="inf-portrait ig2">
+              <div class="inf-actions">
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"/></svg></button>
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 7A5 5 0 112 7M12 7V4M12 7H9"/></svg></button>
+              </div>
+            </div>
+            <div class="inf-info">
+              <div class="inf-handle">@mia.style</div>
+              <div class="inf-name">Mia Laurent</div>
+              <div class="inf-niche">Fashion</div>
+              <div class="inf-stats">
+                <div class="inf-stat"><div class="inf-stat-val">58</div><div class="inf-stat-lbl">generations</div></div>
+                <div class="inf-stat"><div class="inf-stat-val">21</div><div class="inf-stat-lbl">videos</div></div>
+              </div>
+            </div>
+            <div class="inf-card-footer">
+              <button class="inf-footer-btn primary"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1L5 7M11 1H7M11 1V5"/></svg>Generate</button>
+              <button class="inf-footer-btn ghost">Edit</button>
+            </div>
+          </div>
+
+          <!-- Influencer 3 -->
+          <div class="inf-card">
+            <div class="inf-portrait ig3">
+              <div class="inf-actions">
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"/></svg></button>
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 7A5 5 0 112 7M12 7V4M12 7H9"/></svg></button>
+              </div>
+            </div>
+            <div class="inf-info">
+              <div class="inf-handle">@kai.tech</div>
+              <div class="inf-name">Kai Nakamura</div>
+              <div class="inf-niche">Tech</div>
+              <div class="inf-stats">
+                <div class="inf-stat"><div class="inf-stat-val">19</div><div class="inf-stat-lbl">generations</div></div>
+                <div class="inf-stat"><div class="inf-stat-val">7</div><div class="inf-stat-lbl">videos</div></div>
+              </div>
+            </div>
+            <div class="inf-card-footer">
+              <button class="inf-footer-btn primary"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1L5 7M11 1H7M11 1V5"/></svg>Generate</button>
+              <button class="inf-footer-btn ghost">Edit</button>
+            </div>
+          </div>
+
+          <!-- Influencer 4 -->
+          <div class="inf-card">
+            <div class="inf-portrait ig4">
+              <div class="inf-actions">
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"/></svg></button>
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 7A5 5 0 112 7M12 7V4M12 7H9"/></svg></button>
+              </div>
+            </div>
+            <div class="inf-info">
+              <div class="inf-handle">@luna.fit</div>
+              <div class="inf-name">Luna Ortega</div>
+              <div class="inf-niche">Fitness</div>
+              <div class="inf-stats">
+                <div class="inf-stat"><div class="inf-stat-val">41</div><div class="inf-stat-lbl">generations</div></div>
+                <div class="inf-stat"><div class="inf-stat-val">16</div><div class="inf-stat-lbl">videos</div></div>
+              </div>
+            </div>
+            <div class="inf-card-footer">
+              <button class="inf-footer-btn primary"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1L5 7M11 1H7M11 1V5"/></svg>Generate</button>
+              <button class="inf-footer-btn ghost">Edit</button>
+            </div>
+          </div>
+
+          <!-- Influencer 5 -->
+          <div class="inf-card">
+            <div class="inf-portrait ig5">
+              <div class="inf-actions">
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"/></svg></button>
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 7A5 5 0 112 7M12 7V4M12 7H9"/></svg></button>
+              </div>
+            </div>
+            <div class="inf-info">
+              <div class="inf-handle">@emma.eats</div>
+              <div class="inf-name">Emma Dior</div>
+              <div class="inf-niche">Food</div>
+              <div class="inf-stats">
+                <div class="inf-stat"><div class="inf-stat-val">27</div><div class="inf-stat-lbl">generations</div></div>
+                <div class="inf-stat"><div class="inf-stat-val">9</div><div class="inf-stat-lbl">videos</div></div>
+              </div>
+            </div>
+            <div class="inf-card-footer">
+              <button class="inf-footer-btn primary"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1L5 7M11 1H7M11 1V5"/></svg>Generate</button>
+              <button class="inf-footer-btn ghost">Edit</button>
+            </div>
+          </div>
+
+          <!-- Influencer 6 -->
+          <div class="inf-card">
+            <div class="inf-portrait ig6">
+              <div class="inf-actions">
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9.5 2.5l2 2-7 7H2.5v-2l7-7z"/></svg></button>
+                <button class="inf-act-btn"><svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 7A5 5 0 112 7M12 7V4M12 7H9"/></svg></button>
+              </div>
+            </div>
+            <div class="inf-info">
+              <div class="inf-handle">@neo.travel</div>
+              <div class="inf-name">Neo Vasquez</div>
+              <div class="inf-niche">Travel</div>
+              <div class="inf-stats">
+                <div class="inf-stat"><div class="inf-stat-val">15</div><div class="inf-stat-lbl">generations</div></div>
+                <div class="inf-stat"><div class="inf-stat-val">4</div><div class="inf-stat-lbl">videos</div></div>
+              </div>
+            </div>
+            <div class="inf-card-footer">
+              <button class="inf-footer-btn primary"><svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 1L5 7M11 1H7M11 1V5"/></svg>Generate</button>
+              <button class="inf-footer-btn ghost">Edit</button>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Video Generator ────────────────────────────────────────────── -->
+      <section class="section" id="section-video">
+        <div class="gen-layout">
+
+          <!-- Settings -->
+          <div class="gen-panel">
+            <div class="gen-panel-title">Settings</div>
+            <div class="gen-body">
+
+              <div>
+                <div class="gen-label">Influencer</div>
+                <div class="inf-picker">
+                  <div class="inf-chip active">
+                    <div class="inf-chip-ava ig1"></div>
+                    <span class="inf-chip-name">@alex</span>
+                  </div>
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig2"></div>
+                    <span class="inf-chip-name">@mia</span>
+                  </div>
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig3"></div>
+                    <span class="inf-chip-name">@kai</span>
+                  </div>
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig4"></div>
+                    <span class="inf-chip-name">@luna</span>
+                  </div>
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig5"></div>
+                    <span class="inf-chip-name">@emma</span>
+                  </div>
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig6"></div>
+                    <span class="inf-chip-name">@neo</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="gen-label">Product (optional)</div>
+                <div class="opt-row">
+                  <button class="opt-btn active">Vitamin C Serum</button>
+                  <button class="opt-btn">None</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="gen-label">Scene description</div>
+                <textarea class="gen-textarea" placeholder="Describe the scene — e.g. Morning skincare routine in bright bathroom, holding product up to camera, speaking naturally, natural light from window...">Morning skincare routine in bright bathroom, holding product up to camera, speaking naturally about results, warm natural light from window.</textarea>
+              </div>
+
+              <div>
+                <div class="gen-label">Duration</div>
+                <div class="opt-row">
+                  <button class="opt-btn active">5 seconds</button>
+                  <button class="opt-btn">10 seconds</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="gen-label">Aspect ratio</div>
+                <div class="opt-row">
+                  <button class="opt-btn active">9:16 Portrait</button>
+                  <button class="opt-btn">16:9 Landscape</button>
+                  <button class="opt-btn">1:1 Square</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="gen-label">Quality</div>
+                <div class="opt-row">
+                  <button class="opt-btn">Standard</button>
+                  <button class="opt-btn active">High</button>
+                </div>
+              </div>
+
+              <button class="gen-submit">
+                Generate Video
+                <span class="gen-submit-cost">25 cr</span>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- Output -->
+          <div class="gen-output">
+            <div class="gen-output-empty">
+              <div class="gen-output-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="4" width="15" height="12" rx="2"/>
+                  <path d="M17 8l5-3v10l-5-3"/>
+                </svg>
+              </div>
+              <div class="gen-output-title">Your video will appear here</div>
+              <div class="gen-output-sub">Configure your influencer, scene, and options on the left, then hit Generate.</div>
+              <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--dim);">
+                <div class="waveform">
+                  <div class="wave-bar" style="animation-delay:0s"></div>
+                  <div class="wave-bar" style="animation-delay:.1s"></div>
+                  <div class="wave-bar" style="animation-delay:.2s"></div>
+                  <div class="wave-bar" style="animation-delay:.3s"></div>
+                  <div class="wave-bar" style="animation-delay:.4s"></div>
+                  <div class="wave-bar" style="animation-delay:.15s"></div>
+                  <div class="wave-bar" style="animation-delay:.25s"></div>
+                </div>
+                Powered by Seedance 2.0
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Image Generator ────────────────────────────────────────────── -->
+      <section class="section" id="section-image">
+        <div class="gen-layout">
+
+          <!-- Settings -->
+          <div class="gen-panel">
+            <div class="gen-panel-title">Settings</div>
+            <div class="gen-body">
+
+              <div>
+                <div class="gen-label">Influencer</div>
+                <div class="inf-picker">
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig1"></div>
+                    <span class="inf-chip-name">@alex</span>
+                  </div>
+                  <div class="inf-chip active">
+                    <div class="inf-chip-ava ig2"></div>
+                    <span class="inf-chip-name">@mia</span>
+                  </div>
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig3"></div>
+                    <span class="inf-chip-name">@kai</span>
+                  </div>
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig4"></div>
+                    <span class="inf-chip-name">@luna</span>
+                  </div>
+                  <div class="inf-chip">
+                    <div class="inf-chip-ava ig5"></div>
+                    <span class="inf-chip-name">@emma</span>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="gen-label">Scene prompt</div>
+                <textarea class="gen-textarea" placeholder="Describe the image — e.g. Holding product in a Parisian café, natural morning light, wearing white linen shirt, relaxed smile...">Flat lay product photo in a Parisian café setting, marble table, natural morning light, matcha latte nearby, fashion editorial aesthetic.</textarea>
+              </div>
+
+              <div>
+                <div class="gen-label">Aspect ratio</div>
+                <div class="opt-row">
+                  <button class="opt-btn">9:16</button>
+                  <button class="opt-btn active">4:5</button>
+                  <button class="opt-btn">1:1</button>
+                  <button class="opt-btn">16:9</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="gen-label">Batch size</div>
+                <div class="opt-row">
+                  <button class="opt-btn">1</button>
+                  <button class="opt-btn">2</button>
+                  <button class="opt-btn active">4</button>
+                </div>
+              </div>
+
+              <div>
+                <div class="gen-label">Model</div>
+                <div class="opt-row">
+                  <button class="opt-btn active">NB Pro — 4K</button>
+                  <button class="opt-btn">NB 2 — Fast</button>
+                </div>
+              </div>
+
+              <button class="gen-submit">
+                Generate Images
+                <span class="gen-submit-cost">4 × 8 cr</span>
+              </button>
+
+            </div>
+          </div>
+
+          <!-- Output grid (4 placeholders) -->
+          <div class="gen-output" style="padding:16px;align-items:stretch;justify-content:stretch;">
+            <div class="img-output-grid">
+              <div class="img-out-slot" style="border-radius:10px;overflow:hidden;">
+                <div style="height:100%;background:linear-gradient(145deg,#3a5a7a,#1a2a4a);"></div>
+                <button class="img-out-action">↓ Save</button>
+              </div>
+              <div class="img-out-slot">
+                <div style="height:100%;background:linear-gradient(145deg,#5a3a7a,#2a1a4a);"></div>
+                <button class="img-out-action">↓ Save</button>
+              </div>
+              <div class="img-out-slot">
+                <div style="height:100%;background:linear-gradient(145deg,#3a7a5a,#1a4a2a);"></div>
+                <button class="img-out-action">↓ Save</button>
+              </div>
+              <div class="img-out-slot">
+                <div style="height:100%;background:linear-gradient(145deg,#7a5a3a,#4a2a1a);"></div>
+                <button class="img-out-action">↓ Save</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── Product Studio ─────────────────────────────────────────────── -->
+      <section class="section" id="section-product">
+        <div class="prod-layout">
+
+          <!-- Product list -->
+          <div class="prod-list">
+            <div class="prod-list-head">
+              <span class="prod-list-title">Products (5)</span>
+              <button class="prod-upload-btn">
+                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 1v10M1 6h10"/></svg>
+                Upload
+              </button>
+            </div>
+            <div class="prod-items">
+              <div class="prod-item active">
+                <div class="prod-thumb pt1"></div>
+                <div class="prod-item-info">
+                  <div class="prod-item-name">Vitamin C Serum</div>
+                  <div class="prod-item-cat">Skincare</div>
+                </div>
+              </div>
+              <div class="prod-item">
+                <div class="prod-thumb pt2"></div>
+                <div class="prod-item-info">
+                  <div class="prod-item-name">Hydra Moisturiser</div>
+                  <div class="prod-item-cat">Skincare</div>
+                </div>
+              </div>
+              <div class="prod-item">
+                <div class="prod-thumb pt3"></div>
+                <div class="prod-item-info">
+                  <div class="prod-item-name">Matte Lip Set</div>
+                  <div class="prod-item-cat">Makeup</div>
+                </div>
+              </div>
+              <div class="prod-item">
+                <div class="prod-thumb pt4"></div>
+                <div class="prod-item-info">
+                  <div class="prod-item-name">Protein Shake</div>
+                  <div class="prod-item-cat">Wellness</div>
+                </div>
+              </div>
+              <div class="prod-item">
+                <div class="prod-thumb pt5"></div>
+                <div class="prod-item-info">
+                  <div class="prod-item-name">Lavender Candle</div>
+                  <div class="prod-item-cat">Lifestyle</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: settings + output -->
+          <div class="prod-right">
+            <div class="gen-panel" style="max-height:none;">
+              <div class="gen-panel-title">Generate Lifestyle Images</div>
+              <div class="gen-body" style="flex-direction:row;flex-wrap:wrap;gap:14px;">
+                <div style="flex:1;min-width:180px;">
+                  <div class="gen-label">Influencer</div>
+                  <div class="inf-picker">
+                    <div class="inf-chip active"><div class="inf-chip-ava ig1"></div><span class="inf-chip-name">@alex</span></div>
+                    <div class="inf-chip"><div class="inf-chip-ava ig2"></div><span class="inf-chip-name">@mia</span></div>
+                    <div class="inf-chip"><div class="inf-chip-ava ig4"></div><span class="inf-chip-name">@luna</span></div>
+                  </div>
+                </div>
+                <div style="flex:2;min-width:240px;">
+                  <div class="gen-label">Scene</div>
+                  <textarea class="gen-textarea" style="min-height:68px;" placeholder="Describe the setting…">Morning routine, bathroom counter setting, soft light, minimalist aesthetic, holding serum.</textarea>
+                </div>
+                <div style="width:100%;display:flex;gap:10px;align-items:flex-end;">
+                  <div style="flex:1;">
+                    <div class="gen-label">Ratio</div>
+                    <div class="opt-row"><button class="opt-btn active">9:16</button><button class="opt-btn">4:5</button><button class="opt-btn">1:1</button></div>
+                  </div>
+                  <button class="gen-submit" style="flex:1;margin-top:0;">
+                    Generate <span class="gen-submit-cost">8 cr</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Output grid -->
+            <div>
+              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);margin-bottom:10px;">Recent — Vitamin C Serum</div>
+              <div class="history-grid">
+                <div class="hist-item"><div class="hist-thumb hg1"></div><div class="hist-overlay"><div class="hist-name">@alex.creates</div><div class="hist-date">2h ago · 9:16</div></div></div>
+                <div class="hist-item"><div class="hist-thumb hg5"></div><div class="hist-overlay"><div class="hist-name">@emma.eats</div><div class="hist-date">4h ago · 4:5</div></div></div>
+                <div class="hist-item"><div class="hist-thumb hg4"></div><div class="hist-overlay"><div class="hist-name">@luna.fit</div><div class="hist-date">Yesterday · 1:1</div></div></div>
+                <div class="hist-item"><div class="hist-thumb hg2"></div><div class="hist-overlay"><div class="hist-name">@mia.style</div><div class="hist-date">2 days ago · 9:16</div></div></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ── All Generations ─────────────────────────────────────────────── -->
+      <section class="section" id="section-history">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="display:flex;gap:6px;">
+            <button class="filter-chip active">All (24)</button>
+            <button class="filter-chip">Images</button>
+            <button class="filter-chip">Videos</button>
+            <button class="filter-chip">Portraits</button>
+          </div>
+          <button class="tb-btn-ghost">
+            <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4h12M3 7h8M5 10h4"/></svg>
+            Filter
+          </button>
+        </div>
+        <div class="history-grid" style="grid-template-columns:repeat(auto-fill,minmax(175px,1fr));">
+          <div class="hist-item"><div class="hist-thumb hg1" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@alex.creates</div><div class="hist-date">2h ago · Portrait</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg2" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@mia.style</div><div class="hist-date">3h ago · Video 9:16</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg3" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@kai.tech</div><div class="hist-date">5h ago · Image 4:5</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg4" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@luna.fit</div><div class="hist-date">Yesterday · Image 1:1</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg5" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@emma.eats</div><div class="hist-date">Yesterday · Portrait</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg6" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@neo.travel</div><div class="hist-date">2 days ago · Video 16:9</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg7" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@alex.creates</div><div class="hist-date">2 days ago · Image 9:16</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg8" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@mia.style</div><div class="hist-date">3 days ago · Portrait</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg1" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@luna.fit</div><div class="hist-date">3 days ago · Video 9:16</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg3" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@kai.tech</div><div class="hist-date">4 days ago · Image 1:1</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg5" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@emma.eats</div><div class="hist-date">4 days ago · Portrait</div></div></div>
+          <div class="hist-item"><div class="hist-thumb hg2" style="height:200px;"></div><div class="hist-overlay"><div class="hist-name">@neo.travel</div><div class="hist-date">5 days ago · Image 4:5</div></div></div>
+        </div>
+      </section>
+
+    </div><!-- /content -->
+  </div><!-- /main -->
+</div><!-- /app -->
+
+<!-- ─── Palette switcher ──────────────────────────────────────────────────── -->
+<button class="pal-trigger" id="palTrigger" aria-label="Switch theme">
+  <svg width="16" height="16" viewBox="0 0 18 18" fill="none">
+    <circle cx="9" cy="9" r="3" fill="var(--bg)"/>
+    <circle cx="9" cy="3" r="1.8" fill="var(--bg)" opacity=".8"/>
+    <circle cx="9" cy="15" r="1.8" fill="var(--bg)" opacity=".8"/>
+    <circle cx="3" cy="9" r="1.8" fill="var(--bg)" opacity=".8"/>
+    <circle cx="15" cy="9" r="1.8" fill="var(--bg)" opacity=".8"/>
+    <circle cx="4.8" cy="4.8" r="1.3" fill="var(--bg)" opacity=".5"/>
+    <circle cx="13.2" cy="13.2" r="1.3" fill="var(--bg)" opacity=".5"/>
+    <circle cx="13.2" cy="4.8" r="1.3" fill="var(--bg)" opacity=".5"/>
+    <circle cx="4.8" cy="13.2" r="1.3" fill="var(--bg)" opacity=".5"/>
+  </svg>
+</button>
+<div class="pal-panel" id="palPanel">
+  <div class="pal-panel-title">Theme</div>
+  <div class="pal-grid">
+    <button class="pal-swatch active" data-pal="warm"><div class="pal-swatch-dot" style="background:#C86020;"></div><span class="pal-swatch-name">Warm</span></button>
+    <button class="pal-swatch" data-pal="slate"><div class="pal-swatch-dot" style="background:#4F46E5;"></div><span class="pal-swatch-name">Slate</span></button>
+    <button class="pal-swatch" data-pal="sage"><div class="pal-swatch-dot" style="background:#2A5C45;"></div><span class="pal-swatch-name">Sage</span></button>
+    <button class="pal-swatch" data-pal="dusk"><div class="pal-swatch-dot" style="background:#D4A040;"></div><span class="pal-swatch-name">Dusk</span></button>
+    <button class="pal-swatch" data-pal="rose"><div class="pal-swatch-dot" style="background:#C2185B;"></div><span class="pal-swatch-name">Rose</span></button>
+    <button class="pal-swatch" data-pal="arctic"><div class="pal-swatch-dot" style="background:#0277BD;"></div><span class="pal-swatch-name">Arctic</span></button>
+    <button class="pal-swatch" data-pal="crimson"><div class="pal-swatch-dot" style="background:#C62828;"></div><span class="pal-swatch-name">Crimson</span></button>
+    <button class="pal-swatch" data-pal="lavender"><div class="pal-swatch-dot" style="background:#6B2FA0;"></div><span class="pal-swatch-name">Lavender</span></button>
+    <button class="pal-swatch" data-pal="midnight"><div class="pal-swatch-dot" style="background:#58A6FF;"></div><span class="pal-swatch-name">Midnight</span></button>
+    <button class="pal-swatch" data-pal="mint"><div class="pal-swatch-dot" style="background:#00897B;"></div><span class="pal-swatch-name">Mint</span></button>
+    <button class="pal-swatch" data-pal="peach"><div class="pal-swatch-dot" style="background:#E64A19;"></div><span class="pal-swatch-name">Peach</span></button>
+    <button class="pal-swatch" data-pal="emerald"><div class="pal-swatch-dot" style="background:#065F46;"></div><span class="pal-swatch-name">Emerald</span></button>
+    <button class="pal-swatch" data-pal="noir"><div class="pal-swatch-dot" style="background:#E8E2DA;outline:1px solid #555;"></div><span class="pal-swatch-name">Noir</span></button>
+    <button class="pal-swatch" data-pal="sand"><div class="pal-swatch-dot" style="background:#92400E;"></div><span class="pal-swatch-name">Sand</span></button>
+    <button class="pal-swatch" data-pal="cobalt"><div class="pal-swatch-dot" style="background:#1565C0;"></div><span class="pal-swatch-name">Cobalt</span></button>
+  </div>
+</div>
+
+<script>
+// ─── Section switching ────────────────────────────────────────────────── //
+const sectionMeta = {
+  influencer: { title: 'Influencer <em>Studio</em>', cta: 'New Influencer', search: 'Search influencers…' },
+  video:      { title: 'Video <em>Generator</em>',   cta: 'New Session',     search: 'Search sessions…' },
+  image:      { title: 'Image <em>Generator</em>',   cta: 'New Session',     search: 'Search images…' },
+  product:    { title: 'Product <em>Studio</em>',    cta: 'Upload Product',  search: 'Search products…' },
+  history:    { title: 'All <em>Generations</em>',   cta: 'Export All',      search: 'Search generations…' },
+};
+
+document.querySelectorAll('.sb-item[data-section]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const key = btn.dataset.section;
+    // nav active
+    document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // sections
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    const sec = document.getElementById('section-' + key);
+    if (sec) sec.classList.add('active');
+    // topbar
+    const meta = sectionMeta[key] || {};
+    document.getElementById('topbarTitle').innerHTML = meta.title || key;
+    document.getElementById('topbarCtaText').textContent = meta.cta || 'New';
+    document.getElementById('searchInput').placeholder = meta.search || 'Search…';
+  });
+});
+
+// ─── Filter chips ─────────────────────────────────────────────────────── //
+document.querySelectorAll('.inf-filters, .section').forEach(container => {
+  container.querySelectorAll('.filter-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      chip.closest('.inf-filters, .section').querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+});
+
+// ─── Option buttons ───────────────────────────────────────────────────── //
+document.querySelectorAll('.opt-row').forEach(row => {
+  row.querySelectorAll('.opt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      row.querySelectorAll('.opt-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    });
+  });
+});
+
+// ─── Influencer picker chips ──────────────────────────────────────────── //
+document.querySelectorAll('.inf-picker').forEach(picker => {
+  picker.querySelectorAll('.inf-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      picker.querySelectorAll('.inf-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
+});
+
+// ─── Palette switcher ─────────────────────────────────────────────────── //
+const palTrigger = document.getElementById('palTrigger');
+const palPanel   = document.getElementById('palPanel');
+palTrigger.addEventListener('click', () => {
+  const open = palPanel.classList.toggle('open');
+  palTrigger.classList.toggle('open', open);
+});
+document.addEventListener('click', e => {
+  if (!palTrigger.contains(e.target) && !palPanel.contains(e.target)) {
+    palPanel.classList.remove('open');
+    palTrigger.classList.remove('open');
+  }
+});
+document.querySelectorAll('.pal-swatch').forEach(s => {
+  s.addEventListener('click', () => {
+    const pal = s.dataset.pal;
+    pal === 'warm'
+      ? document.documentElement.removeAttribute('data-palette')
+      : document.documentElement.setAttribute('data-palette', pal);
+    document.querySelectorAll('.pal-swatch').forEach(x => x.classList.remove('active'));
+    s.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

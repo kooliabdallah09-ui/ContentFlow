@@ -170,7 +170,12 @@ export async function POST(request: NextRequest) {
     const supabase = supa()
 
     const body = await request.json()
-    const description = String(body?.description ?? '').trim().slice(0, 1500)
+    const { sanitizeUserPrompt } = await import('@/lib/sanitize-prompt')
+    const sanitized = sanitizeUserPrompt(String(body?.description ?? '').trim().slice(0, 1500))
+    if (sanitized.flagged.length) {
+      console.log(`[influencers] prompt injection blocked (${sanitized.flagged.join(',')}) for user ${auth.userId}`)
+    }
+    const description = sanitized.clean
     // Structured traits from the create form. Every provided trait is a hard
     // lock that Sonnet must honor in the identity sheet.
     const traits = {
@@ -217,6 +222,28 @@ export async function POST(request: NextRequest) {
       .maybeSingle()
     if (!isFreeFirstInfluencer && (!credits || credits.balance < createCost)) {
       return NextResponse.json({ error: `Insufficient credits. Need ${createCost}.` }, { status: 402 })
+    }
+
+    // Moderate user-uploaded reference portraits before we spend compute.
+    // Fail-open on API errors (see lib/moderate-portrait.ts) so a moderation
+    // outage doesn't block legit creators.
+    if (referenceImages.length) {
+      const { moderatePortrait } = await import('@/lib/moderate-portrait')
+      for (const img of referenceImages) {
+        const verdict = await moderatePortrait(img)
+        if (!verdict.allow) {
+          const friendly: Record<string, string> = {
+            celebrity: 'One of the reference photos looks like a recognisable public figure. Please use original photos or generic reference material only.',
+            minor: 'One of the reference photos looks like it may show a minor. We only accept adult (18+) subjects.',
+            nsfw: 'One of the reference photos was flagged as explicit content. Please upload a different image.',
+            'not-human': 'One of the reference photos doesn\'t appear to show a human portrait. Please upload a clear headshot.',
+          }
+          return NextResponse.json({
+            error: friendly[verdict.reason ?? 'not-human'] ?? 'One of the reference photos was rejected by content moderation.',
+            moderationReason: verdict.reason,
+          }, { status: 400 })
+        }
+      }
     }
 
     // 1) Sonnet expands the description into an identity sheet. If the

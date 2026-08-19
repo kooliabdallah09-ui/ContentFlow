@@ -10,6 +10,7 @@
 // existing GET /api/ugc/stitch?renderId=... to fetch the final mp4.
 import { NextRequest, NextResponse } from 'next/server'
 import { submitStitchJob } from '@/lib/shotstack'
+import { createClient } from '@supabase/supabase-js'
 
 export const maxDuration = 60
 
@@ -48,11 +49,24 @@ export async function POST(request: NextRequest) {
       ? body.aspect
       : 'portrait'
 
+    // Free-plan users get the watermark; paid plans stay clean.
+    let isFreePlan = false
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+    const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
+    if (userData.user) {
+      const { data: credits } = await supabase
+        .from('user_credits').select('plan').eq('user_id', userData.user.id).maybeSingle()
+      isFreePlan = !credits?.plan || credits.plan === 'free'
+    }
+
     const { renderId } = await submitStitchJob({
       talkingHeadUrl: usable[0].videoUrl,
       talkingHeadDuration: perClipLength,
       additionalTalkingHeadUrls: usable.slice(1).map(s => s.videoUrl),
-      watermark: false,
+      watermark: isFreePlan,
       aspect,
     })
 

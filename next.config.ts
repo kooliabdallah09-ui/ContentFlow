@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from '@sentry/nextjs';
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -26,4 +27,17 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrap with Sentry only if org/project/token are configured — otherwise it
+// no-ops so local dev still works without Sentry env vars.
+const sentryEnabled = !!process.env.SENTRY_ORG && !!process.env.SENTRY_PROJECT
+
+export default sentryEnabled
+  ? withSentryConfig(nextConfig, {
+      silent: true,
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      widenClientFileUpload: true,
+      disableLogger: true,
+      automaticVercelMonitors: true,
+    })
+  : nextConfig;

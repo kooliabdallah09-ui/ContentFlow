@@ -1,9 +1,10 @@
 import { submitStitchJob, getStitchStatus } from '@/lib/shotstack'
 import { getMusicTrack, type MusicMood } from '@/lib/music-library'
 import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 // Stitch concatenates Kling clips and applies aspect ratio.
-// Captions and watermark are intentionally omitted — users add them in the video editor.
+// Watermark is added for free-plan users; paid plans get clean output.
 export const maxDuration = 120
 
 export async function POST(request: NextRequest) {
@@ -21,13 +22,31 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing talkingHeadUrl' }, { status: 400 })
     }
 
+    // Resolve the caller's plan to decide watermark on/off.
+    // Fail-open to "no watermark" if auth is missing (unlikely — this route
+    // is called from authenticated client code).
+    let isFreePlan = false
+    const authHeader = request.headers.get('Authorization')
+    if (authHeader?.startsWith('Bearer ')) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      )
+      const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
+      if (userData.user) {
+        const { data: credits } = await supabase
+          .from('user_credits').select('plan').eq('user_id', userData.user.id).maybeSingle()
+        isFreePlan = !credits?.plan || credits.plan === 'free'
+      }
+    }
+
     const track = getMusicTrack(musicMood as MusicMood | null)
 
     const { renderId } = await submitStitchJob({
       talkingHeadUrl,
       talkingHeadDuration: typeof talkingHeadDuration === 'number' ? talkingHeadDuration : undefined,
       additionalTalkingHeadUrls: Array.isArray(additionalTalkingHeadUrls) ? additionalTalkingHeadUrls : undefined,
-      watermark: false,
+      watermark: isFreePlan,
       aspect: typeof aspect === 'string' ? aspect as 'portrait' | 'square' | 'landscape' : undefined,
       music: track ? { url: track.url, volume: track.volume } : undefined,
       audioOverlayUrl: typeof audioOverlayUrl === 'string' && audioOverlayUrl.startsWith('http') ? audioOverlayUrl : undefined,
