@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /settings/
+Disallow: /dashboard
+Disallow: /library
+Disallow: /campaigns
+Disallow: /influencers
+Disallow: /generate/
+Disallow: /studio
+Disallow: /editor
+Disallow: /onboarding/
+Disallow: /brand-launch/
+Disallow: /auth/
+
+Sitemap: https://contentflow-web.com/sitemap.xml

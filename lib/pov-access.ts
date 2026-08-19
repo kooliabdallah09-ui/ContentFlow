@@ -1,7 +1,19 @@
 // Feature gates for beta / testing-only surfaces. Each list is separate so we
 // can enable features independently (POV first, then scheduling, then chat).
 
-const ADMIN_EMAILS = new Set<string>(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
+// Admin list is driven by the ADMIN_EMAILS env var (comma-separated).
+// Fallback covers the founding team until the env var is set in every env.
+const ADMIN_EMAILS = new Set<string>(
+  (process.env.ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? 'abdallah.kooli@icloud.com,abdallah@icloud.com,kooliabdallah09@gmail.com')
+    .split(',')
+    .map(e => e.trim().toLowerCase())
+    .filter(Boolean),
+)
+
+export function isAdminEmail(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
 
 export const POV_STUDIO_ALLOWED_EMAILS = ADMIN_EMAILS
 

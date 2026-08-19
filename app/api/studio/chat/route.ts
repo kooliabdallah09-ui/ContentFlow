@@ -58,11 +58,7 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeTy
   }
 }
 
-const ADMIN_EMAILS = new Set<string>([
-  'abdallah.kooli@icloud.com',
-  'abdallah@icloud.com',
-  'kooliabdallah09@gmail.com',
-])
+import { isAdminEmail } from '@/lib/pov-access'
 
 export type CanvasItem =
   | { kind: 'image'; id: string; url: string; prompt: string; ratio: string; credits: number }
@@ -121,7 +117,7 @@ export async function POST(req: NextRequest) {
   if (userErr || !userData?.user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
 
   const user = userData.user
-  if (!ADMIN_EMAILS.has(user.email?.toLowerCase() ?? '')) {
+  if (!isAdminEmail(user.email)) {
     return Response.json({ error: 'Studio access is admin-only during alpha' }, { status: 403 })
   }
 

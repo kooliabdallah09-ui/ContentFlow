@@ -28,8 +28,8 @@ export default function RefundsPage() {
 
       <Section title="1. Overview">
         <p>
-          Payments for {COMPANY_NAME} are processed by our merchant of record, Paddle.com Market Ltd
-          (&quot;Paddle&quot;). Because AI generations incur real compute costs the moment they run, refunds are tied to
+          Payments for {COMPANY_NAME} are processed by our merchant of record, Dodo Payments
+          (&quot;Dodo&quot;). Because AI generations incur real compute costs the moment they run, refunds are tied to
           whether purchased credits have been used.
         </p>
       </Section>
@@ -69,7 +69,7 @@ export default function RefundsPage() {
       <Section title="5. How to Request a Refund">
         <p>
           Email <a href={`mailto:${CONTACT_EMAIL}`} style={{ color: 'var(--ink)', textUnderlineOffset: 3 }}>{CONTACT_EMAIL}</a>{' '}
-          from your account email with the receipt or transaction ID. You can also use the receipt link in Paddle&apos;s
+          from your account email with the receipt or transaction ID. You can also use the receipt link in Dodo&apos;s
           confirmation email. Approved refunds are returned to the original payment method, typically within 5–10
           business days.
         </p>

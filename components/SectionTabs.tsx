@@ -10,7 +10,7 @@ import { usePathname } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { useEffect, useState } from 'react'
 
-const ADMIN_EMAILS = new Set(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
+import { isAdminEmail } from '@/lib/pov-access'
 
 export interface SectionTab {
   label: string
@@ -28,7 +28,7 @@ export function SectionTabs({ tabs }: { tabs: SectionTab[] }) {
     if (!sb) return
     sb.auth.getSession().then(({ data }: { data: { session: { user: { email?: string } } | null } }) => {
       const email = data?.session?.user?.email ?? ''
-      setIsAdmin(ADMIN_EMAILS.has(email.toLowerCase()))
+      setIsAdmin(isAdminEmail(email))
     })
   }, [])
 

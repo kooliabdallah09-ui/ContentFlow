@@ -24,15 +24,52 @@ export async function POST(request: NextRequest) {
 
     const userId = user.id
 
-    // Delete user data from database tables
-    await Promise.all([
-      supabase.from('content').delete().eq('user_id', userId),
-      supabase.from('content_analytics').delete().eq('user_id', userId),
-      supabase.from('content_calendar').delete().eq('user_id', userId),
-      supabase.from('user_credits').delete().eq('user_id', userId),
-      supabase.from('brand_profiles').delete().eq('user_id', userId),
-      supabase.from('user_monthly_plans').delete().eq('user_id', userId),
-    ])
+    // Delete user data from every table that stores user-scoped rows.
+    // Missing any of these leaves orphan data (GDPR / CCPA violation).
+    // Wrap each delete in .then so one failure doesn't abort the batch.
+    const tables = [
+      'content',
+      'content_analytics',
+      'content_calendar',
+      'user_credits',
+      'user_subscriptions',
+      'credit_transactions',
+      'brand_profiles',
+      'user_monthly_plans',
+      'user_influencers',
+      'user_products',
+      'ugc_content',
+      'campaigns',
+      'campaign_shots',
+      'scenes',
+      'integrations',
+      'youtube_publish_queue',
+      'data_deletion_requests',
+      'saved_actors',
+      'brand_launches',
+      'templates',
+      'library_items',
+    ]
+    const results = await Promise.allSettled(
+      tables.map(t => supabase.from(t).delete().eq('user_id', userId)),
+    )
+    results.forEach((r, i) => {
+      if (r.status === 'rejected') {
+        console.warn(`[user/delete] table ${tables[i]} delete failed:`, r.reason)
+      }
+    })
+
+    // Delete storage objects (portraits, sheets, generated content, uploads)
+    for (const bucket of ['ugc-assets', 'brand-uploads', 'user-uploads']) {
+      try {
+        const { data: files } = await supabase.storage.from(bucket).list(userId, { limit: 1000 })
+        if (files?.length) {
+          await supabase.storage.from(bucket).remove(files.map(f => `${userId}/${f.name}`))
+        }
+      } catch (storageErr) {
+        console.warn(`[user/delete] storage cleanup ${bucket} failed:`, storageErr)
+      }
+    }
 
     // Delete the user account from Supabase Auth
     const { error: deleteError } = await supabase.auth.admin.deleteUser(userId)

@@ -3,7 +3,9 @@ import { initializeUserCredits } from '@/lib/credits'
 import { sendWelcomeEmail } from '@/lib/email'
 import { NextRequest } from 'next/server'
 
-const ADMIN_EMAIL = 'abdallah.kooli@icloud.com'
+// Seed source: whichever admin owns the canonical Sloane Mercer record.
+// Overridable via env for staging / test environments.
+const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL ?? 'abdallah.kooli@icloud.com'
 // Seeded to every new user account as a default starter influencer.
 const DEFAULT_INFLUENCER_HANDLE = '@sloanemerc'
 

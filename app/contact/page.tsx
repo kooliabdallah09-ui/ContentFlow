@@ -34,7 +34,7 @@ export default function ContactPage() {
           {CONTACT_EMAIL}
         </a>
         <div style={{ fontSize: 14, color: 'var(--ink-dim)' }}>
-          <p style={{ margin: '0 0 8px' }}><strong style={{ color: 'var(--ink)' }}>Billing &amp; refunds</strong> — include your account email and the receipt or transaction ID from Paddle&apos;s confirmation email. See our <Link href="/refunds" style={{ color: 'var(--ink)', textUnderlineOffset: 3 }}>Refund Policy</Link>.</p>
+          <p style={{ margin: '0 0 8px' }}><strong style={{ color: 'var(--ink)' }}>Billing &amp; refunds</strong> — include your account email and the receipt or transaction ID from Dodo Payments&apos; confirmation email. See our <Link href="/refunds" style={{ color: 'var(--ink)', textUnderlineOffset: 3 }}>Refund Policy</Link>.</p>
           <p style={{ margin: '0 0 8px' }}><strong style={{ color: 'var(--ink)' }}>Bugs &amp; failed generations</strong> — tell us which tool you used and roughly when; we&apos;ll re-run it or return your credits.</p>
           <p style={{ margin: 0 }}><strong style={{ color: 'var(--ink)' }}>Privacy requests</strong> — data access or deletion requests are honored per our <Link href="/privacy" style={{ color: 'var(--ink)', textUnderlineOffset: 3 }}>Privacy Policy</Link>.</p>
         </div>

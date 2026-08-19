@@ -39,8 +39,8 @@ export default function CookiesPage() {
         <div>
           <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 10px' }}>Payment cookies</h2>
           <p style={{ margin: 0 }}>
-            During checkout, our merchant of record Paddle sets cookies required for fraud prevention and to
-            process your payment securely. See Paddle&apos;s own privacy policy for details.
+            During checkout, our merchant of record Dodo Payments sets cookies required for fraud prevention
+            and to process your payment securely. See Dodo Payments&apos; own privacy policy for details.
           </p>
         </div>
         <div>

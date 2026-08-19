@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 
-const ADMIN_EMAILS = new Set(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
+import { isAdminEmail } from '@/lib/pov-access'
 
 interface CreditsInfo {
   balance: number
@@ -188,7 +188,7 @@ export default function BillingPage() {
   }
 
   const currentPlan = creditsInfo?.plan ?? 'free'
-  const isAdmin = ADMIN_EMAILS.has(userEmail.toLowerCase())
+  const isAdmin = isAdminEmail(userEmail)
 
   const plans = [
     {

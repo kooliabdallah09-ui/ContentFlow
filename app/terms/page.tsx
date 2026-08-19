@@ -77,8 +77,8 @@ export default function TermsPage() {
             from packs roll over and persist until used.
           </li>
           <li>
-            <strong>Payments:</strong> Payments are processed by our merchant of record, Paddle.com Market Ltd
-            (&quot;Paddle&quot;), which handles checkout, billing, taxes, and payment support.
+            <strong>Payments:</strong> Payments are processed by our merchant of record, Dodo Payments
+            (&quot;Dodo&quot;), which handles checkout, billing, taxes, and payment support.
           </li>
           <li>
             <strong>Refunds:</strong> Refunds are governed by our{' '}

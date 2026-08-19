@@ -87,21 +87,22 @@ export async function deductCredits(
   const supabase = getSupabase()
   if (!supabase) throw new Error('Supabase not available')
 
-  // Check if user has enough credits
-  const credits = await getUserCredits(userId)
-  if (credits.balance < amount) {
-    throw new Error('Insufficient credits')
+  // Atomic check-and-deduct via a Postgres RPC that runs inside a single
+  // transaction and locks the user_credits row (SELECT ... FOR UPDATE).
+  // Prevents the race where two concurrent generation requests both pass
+  // the balance check and cause an overdraft.
+  const { data, error } = await supabase.rpc('deduct_credits_atomic', {
+    p_user_id: userId,
+    p_amount: amount,
+  })
+  if (error) {
+    if (error.message?.toLowerCase().includes('insufficient')) {
+      throw new Error('Insufficient credits')
+    }
+    throw error
   }
+  const newBalance = typeof data === 'number' ? data : (data?.new_balance ?? 0)
 
-  // Deduct credits
-  const { error: updateError } = await supabase
-    .from('user_credits')
-    .update({ balance: credits.balance - amount })
-    .eq('user_id', userId)
-
-  if (updateError) throw updateError
-
-  // Log transaction
   await logCreditTransaction(
     userId,
     amount,
@@ -111,7 +112,7 @@ export async function deductCredits(
     description || `${contentType} generation`
   )
 
-  return { newBalance: credits.balance - amount }
+  return { newBalance }
 }
 
 export async function addCredits(userId: string, amount: number, transactionType: 'generation' | 'purchase' | 'refund' | 'monthly_reset' | 'bonus' = 'purchase', description?: string) {

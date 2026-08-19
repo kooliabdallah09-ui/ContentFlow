@@ -383,8 +383,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       const supabase = getSupabase()
       if (!supabase) return
       const { data } = await supabase.auth.getSession()
-      const email = data?.session?.user?.email?.toLowerCase() ?? ''
-      setIsAdmin(email === 'abdallah.kooli@icloud.com' || email === 'abdallah@icloud.com')
+      const email = data?.session?.user?.email ?? ''
+      const { isAdminEmail } = await import('@/lib/pov-access')
+      setIsAdmin(isAdminEmail(email))
     })()
   }, [])
   const [durationTouched, setDurationTouched] = useState(!!initialPrefill)

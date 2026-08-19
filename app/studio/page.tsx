@@ -742,9 +742,9 @@ export default function StudioPage() {
       const { data: sessData } = await supabase.auth.getSession()
       const session = sessData?.session
       if (!session) { router.push('/dashboard'); return }
-      const email = session.user?.email?.toLowerCase() ?? ''
-      const adminEmails = new Set(['abdallah.kooli@icloud.com', 'abdallah@icloud.com', 'kooliabdallah09@gmail.com'])
-      if (!adminEmails.has(email)) { router.push('/dashboard'); return }
+      const email = session.user?.email ?? ''
+      const { isAdminEmail } = await import('@/lib/pov-access')
+      if (!isAdminEmail(email)) { router.push('/dashboard'); return }
       setAuthToken(session.access_token)
       try {
         const res = await fetch('/api/brand/load', { headers: { Authorization: `Bearer ${session.access_token}` } })
