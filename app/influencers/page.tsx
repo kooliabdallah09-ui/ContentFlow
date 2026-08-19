@@ -1371,7 +1371,7 @@ export default function InfluencersPage() {
           <div>
             <div style={traitLabel}>Gender</div>
             <div style={{ display: 'flex', gap: 6 }}>
-              {['Female', 'Male', 'Non-binary'].map(g => (
+              {['Female', 'Male'].map(g => (
                 <button key={g} onClick={() => setTraitGender(traitGender === g ? '' : g)} style={chip(traitGender === g)}>{g}</button>
               ))}
             </div>
