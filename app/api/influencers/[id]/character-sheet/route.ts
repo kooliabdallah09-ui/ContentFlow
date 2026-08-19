@@ -53,14 +53,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: `Insufficient credits. Need ${cost}.` }, { status: 402 })
     }
 
-    const sheetUrl = await generateCharacterSheet({
-      supabase, userId,
-      influencerId: influencer.id,
-      appearancePrompt: influencer.appearance_prompt,
-      portraitUrl: influencer.portrait_url,
-      resolution,
-      style,
-    })
+    let sheetUrl: string
+    try {
+      sheetUrl = await generateCharacterSheet({
+        supabase, userId,
+        influencerId: influencer.id,
+        appearancePrompt: influencer.appearance_prompt,
+        portraitUrl: influencer.portrait_url,
+        resolution,
+        style,
+      })
+    } catch (genErr) {
+      // Generation / upload / DB write failed — user MUST NOT be charged.
+      console.error('[influencers/character-sheet] generation failed (no charge):', genErr instanceof Error ? genErr.message : genErr)
+      return NextResponse.json({
+        error: 'Character sheet generation failed — no credits were charged. Please try again.',
+      }, { status: 502 })
+    }
+
+    // Defensive: never charge for an empty/invalid URL
+    if (!sheetUrl || !sheetUrl.startsWith('http')) {
+      console.error('[influencers/character-sheet] invalid URL returned (no charge):', sheetUrl)
+      return NextResponse.json({
+        error: 'Character sheet generation failed — no credits were charged. Please try again.',
+      }, { status: 502 })
+    }
 
     const { newBalance, newPackCredits } = await deductCredits(
       supabase, userId, cost, credits.balance, credits.pack_credits ?? 0,

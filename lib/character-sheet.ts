@@ -100,18 +100,25 @@ export async function generateCharacterSheet(input: {
       : undefined,
   })
 
+  // Validate the model actually returned an image before we spend storage/DB writes.
+  if (!sheet?.imageBase64 || sheet.imageBase64.length < 1000) {
+    throw new Error('Character sheet generation returned no image')
+  }
+
   const filename = `influencers/${input.userId}-${Date.now()}-sheet.png`
   const { error: upErr } = await input.supabase.storage
     .from('ugc-assets')
     .upload(filename, Buffer.from(sheet.imageBase64, 'base64'), { contentType: sheet.mimeType, upsert: false })
   if (upErr) throw new Error(`Sheet upload failed: ${upErr.message}`)
   const url = input.supabase.storage.from('ugc-assets').getPublicUrl(filename).data.publicUrl
+  if (!url) throw new Error('Sheet URL missing after upload')
 
-  await input.supabase
+  const { error: dbErr } = await input.supabase
     .from('user_influencers')
     .update({ character_sheet_url: url })
     .eq('id', input.influencerId)
     .eq('user_id', input.userId)
+  if (dbErr) throw new Error(`Sheet DB update failed: ${dbErr.message}`)
 
   return url
 }
