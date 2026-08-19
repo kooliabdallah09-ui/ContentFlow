@@ -76,6 +76,32 @@ export default function BillingPage() {
     }
   }
 
+  async function handleResync() {
+    try {
+      setUpgradeLoading('resync')
+      const token = await getToken()
+      if (!token) return
+      const res = await fetch('/api/dodo/resync', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Resync failed')
+      if (data.status === 'synced') {
+        alert(data.wasToppedUp
+          ? `Synced! Plan: ${data.plan}. Added ${data.addedCredits.toLocaleString()} credits (missed renewal recovered).`
+          : `Already up-to-date. Plan: ${data.plan}, balance unchanged.`)
+      } else {
+        alert(data.message ?? 'Resync complete.')
+      }
+      loadCreditsInfo()
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Resync failed')
+    } finally {
+      setUpgradeLoading(null)
+    }
+  }
+
   async function handleCancelAll() {
     if (!confirm('Cancel ALL active/pending Dodo subscriptions for this account? This is immediate and cannot be undone.')) return
     try {
@@ -266,7 +292,8 @@ export default function BillingPage() {
             {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
           </div>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, flexShrink: 0 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
+          <div style={{ display: 'flex', gap: 8 }}>
           {isAdmin && (
             <button onClick={handleCancelAll} disabled={upgradeLoading === 'cancel-all'}
               title="Admin: cancel every active + pending Dodo subscription for this account"
@@ -279,6 +306,18 @@ export default function BillingPage() {
               {upgradeLoading === 'cancel-all' ? 'Cancelling…' : 'Cancel ALL subs (admin)'}
             </button>
           )}
+          <button onClick={handleResync} disabled={upgradeLoading === 'resync'}
+            title="Re-check your subscription with Dodo and top up any missed monthly credits"
+            style={{
+              padding: '9px 14px', borderRadius: 9,
+              border: '1px solid #D4B97A', background: 'rgba(255,255,255,0.6)',
+              fontSize: 12.5, fontWeight: 600, color: '#6E4E17', cursor: 'pointer',
+              opacity: upgradeLoading === 'resync' ? 0.5 : 1,
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+            }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+            {upgradeLoading === 'resync' ? 'Syncing…' : 'Resync plan'}
+          </button>
         {creditsInfo?.hasSubscription && (
           <button onClick={handleManageSubscription} disabled={upgradeLoading === 'portal'}
             title="Update payment method, cancel subscription, view invoices"
@@ -296,6 +335,10 @@ export default function BillingPage() {
             )}
           </button>
         )}
+          </div>
+          <div style={{ fontSize: 10.5, color: '#8A6420', maxWidth: 260, textAlign: 'right', lineHeight: 1.4 }}>
+            <strong>Resync</strong> if your monthly credits didn&apos;t show up after renewal — safe to click anytime, never double-credits.
+          </div>
         </div>
       </div>
 

@@ -6,23 +6,27 @@
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { SupabaseClient } from '@supabase/supabase-js'
 
-const TURNAROUND_PROMPT = (appearancePrompt: string) => `Create a photorealistic character reference sheet for a social media influencer. Use the uploaded portrait as the strict source of truth for this person's exact face, hair, skin tone, and features. Reproduce them faithfully across all 3 panels.
+const TURNAROUND_PROMPT = (appearancePrompt: string) => `Create a photorealistic 3-panel character reference sheet for a social media influencer. Use the uploaded portrait as the strict source of truth for this person's exact face, hair, skin tone, and features. The face must be clearly visible and identical in Panels 1 and 3; hair must be visible in all 3 panels.
 
 Character: ${appearancePrompt}
 
-Layout: A single 16:9 image split vertically into exactly 3 panels of equal width, separated by thin dark seams. No text, no labels, no numbers, no watermarks, no UI anywhere.
+Layout: A single 16:9 landscape image divided vertically into exactly 3 equal-width panels separated by thin dark seams. No text, no labels, no numbers, no watermarks, no UI anywhere.
 
-Panel 1 (left third): FULL-BODY FRONT VIEW — the person standing centered against a plain neutral studio backdrop (soft grey or warm neutral), looking straight at camera, arms relaxed at sides, natural upright posture, feet visible. Full head-to-toe framing with a bit of headroom above and floor beneath. Wearing a well-fitted casual outfit that showcases their body shape.
+PANEL 1 (left third) — Front-facing standing portrait, HEAD FULLY VISIBLE:
+The person stands centered, facing camera directly. The frame INCLUDES the entire head with clear headroom above the hair, all the way down to just below the knees or to the feet if space permits. The FACE MUST BE FULLY VISIBLE with clear features (eyes open, natural neutral expression, looking straight at camera). Do NOT crop or omit the head under any circumstances. Arms relaxed at sides. Well-fitted casual outfit. Plain neutral studio backdrop (soft warm grey or beige).
 
-Panel 2 (middle third): FULL-BODY BACK VIEW — the SAME person from directly behind, standing in the same pose against the SAME neutral backdrop. Full head-to-toe framing matching Panel 1. Shows the exact back of the head, hair from behind, and back silhouette. Same outfit as Panel 1.
+PANEL 2 (middle third) — Back view standing portrait, FULL HEAD VISIBLE FROM BEHIND:
+The SAME person from directly behind, standing in the same pose against the SAME backdrop, same outfit. Frame INCLUDES the entire head from behind — the back of the head and all of the hair must be clearly visible with headroom above, extending down to match Panel 1's framing. Do NOT show a headless silhouette or crop the head. The back of the head and hair are the identity anchor for this panel.
 
-Panel 3 (right third): TIGHT FACE CLOSE-UP — head-and-shoulders portrait of the same person, face filling most of the frame, looking straight at camera with a neutral expression. Same lighting and neutral backdrop. Every facial detail sharp: eyes, brows, nose, lips, jaw structure, skin texture, hair around the face.
+PANEL 3 (right third) — Tight face close-up:
+Head-and-shoulders portrait of the same person, face filling the majority of the frame, looking straight at camera with a neutral expression. Every facial detail sharp and pin-sharp: eyes, eyebrows, nose, lips, jawline, skin texture, and hair framing the face. Same lighting and neutral backdrop.
 
-Critical rules:
-- The EXACT same person must appear in all 3 panels: identical face, hair, skin tone, outfit, and body proportions.
-- Studio-quality soft even light across all 3 panels. Same backdrop tone in all three so the sheet feels like one continuous shoot.
-- Skin looks healthy, smooth, and youthful — plump unlined skin of someone in their early 20s. No age texture.
-- Panels are perfectly aligned horizontally; the horizon/floor line is consistent across the two full-body panels.
+CRITICAL RULES (do not violate):
+- HEADS ARE ALWAYS VISIBLE. Never generate a headless body, a cropped-off head, a floating collar, or any panel where the head is missing or above the frame line. If you cannot fit the full body with the head visible, prioritize showing the head and shoulders — but NEVER omit the head.
+- The EXACT same person must appear in all 3 panels: identical face, hair, skin tone, outfit, and proportions.
+- Studio-quality soft even light across all 3 panels. Consistent backdrop tone across all three.
+- Skin healthy, smooth, and youthful — plump unlined skin of someone in their early 20s. No age texture.
+- Panels aligned horizontally; consistent floor/horizon line between the two standing panels.
 - No text, no labels, no numbers, no watermarks, no on-image UI.`
 
 const SHEET_PROMPT = (appearancePrompt: string) => `Create a photorealistic identity reference sheet for a social media influencer. Use the uploaded portrait as the source of truth for this person's exact face, hair, skin tone, and features. Reproduce them faithfully across every panel.
