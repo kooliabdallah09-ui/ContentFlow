@@ -1221,7 +1221,7 @@ export default function InfluencersPage() {
             style={{ padding: '12px 22px', fontSize: 14, borderRadius: 11, display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             <Sparkles size={15} /> Create new influencer
-            {list.filter(i => !i.is_seed).length === 0 && (
+            {list.filter(i => !i.is_seed && i.handle !== '@sloanemerc').length === 0 && (
               <span style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
                 background: '#16a34a', color: '#fff', borderRadius: 6, padding: '2px 7px', marginLeft: 4,
@@ -1342,7 +1342,7 @@ export default function InfluencersPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Create new influencer</div>
-              {list.filter(i => !i.is_seed).length === 0 && (
+              {list.filter(i => !i.is_seed && i.handle !== '@sloanemerc').length === 0 && (
                 <span style={{
                   fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
                   background: '#16a34a', color: '#fff', borderRadius: 6, padding: '2px 7px',
