@@ -873,9 +873,21 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify(payload),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Failed to render hero frames')
-      setFrames(data.frames)
+      // Parse defensively — Vercel timeout / gateway errors return HTML,
+      // and calling res.json() blindly would throw a cryptic
+      // "Unexpected token 'A'" that hides the real HTTP status.
+      const raw = await res.text()
+      let data: { frames?: unknown; error?: string; [k: string]: unknown } = {}
+      try { data = raw ? JSON.parse(raw) : {} } catch { /* leave data empty */ }
+      if (!res.ok) {
+        const msg = data.error
+          || (res.status === 504 ? 'Frame generation timed out — the image provider was slow. Try again in a minute.'
+              : res.status === 429 ? 'Image provider rate-limit hit. Try again in a minute.'
+              : `Frame generation failed (${res.status})`)
+        throw new Error(msg)
+      }
+      if (!data.frames) throw new Error('Frame generation returned no frames')
+      setFrames(data.frames as typeof frames)
       setSavedFramesToGallery(false)
       // Cache the character prompts returned by /api/ugc/hero-frames so
       // the user can save this identity as a reusable actor after picking.
