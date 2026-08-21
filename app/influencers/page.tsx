@@ -78,6 +78,10 @@ export default function InfluencersPage() {
   const [allowed, setAllowed] = useState<boolean | null>(null)
   const [list, setList] = useState<Influencer[]>([])
   const [loading, setLoading] = useState(true)
+  // Persistent flag: has this user already claimed their free-first
+  // influencer at any point in time? Sourced from the balance API which
+  // reads user_credits.used_free_influencer.
+  const [usedFreeInfluencer, setUsedFreeInfluencer] = useState<boolean>(false)
 
   // Create form
   const [description, setDescription] = useState('')
@@ -276,6 +280,12 @@ export default function InfluencersPage() {
           if (sceneRes.ok) {
             const sceneData = await sceneRes.json()
             if (Array.isArray(sceneData?.scenes)) setScenes(sceneData.scenes)
+          }
+          // Fetch used_free_influencer so the badge doesn't lie after delete.
+          const balanceRes = await fetch('/api/credits/balance', { headers: { Authorization: `Bearer ${token}` } })
+          if (balanceRes.ok) {
+            const balanceData = await balanceRes.json()
+            setUsedFreeInfluencer(!!balanceData?.usedFreeInfluencer)
           }
         }
       } catch { /* optional */ }
@@ -1221,7 +1231,7 @@ export default function InfluencersPage() {
             style={{ padding: '12px 22px', fontSize: 14, borderRadius: 11, display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             <Sparkles size={15} /> Create new influencer
-            {list.filter(i => !i.is_seed && i.handle !== '@sloanemerc').length === 0 && (
+            {list.filter(i => !i.is_seed && i.handle !== '@sloanemerc').length === 0 && !usedFreeInfluencer && (
               <span style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
                 background: '#16a34a', color: '#fff', borderRadius: 6, padding: '2px 7px', marginLeft: 4,
@@ -1342,7 +1352,7 @@ export default function InfluencersPage() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink)' }}>Create new influencer</div>
-              {list.filter(i => !i.is_seed && i.handle !== '@sloanemerc').length === 0 && (
+              {list.filter(i => !i.is_seed && i.handle !== '@sloanemerc').length === 0 && !usedFreeInfluencer && (
                 <span style={{
                   fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
                   background: '#16a34a', color: '#fff', borderRadius: 6, padding: '2px 7px',

@@ -44,6 +44,10 @@ export async function GET(request: Request) {
       monthlyCredits: effectiveMonthly,
       resetDate: credits.reset_date,
       hasDodoSubscription: hasActiveSub,
+      // Persistent flag — once a user has claimed their free-first influencer,
+      // deleting it doesn't re-grant the freebie. Frontend uses this to hide
+      // the "Free — first one" badge after redeem.
+      usedFreeInfluencer: !!credits.used_free_influencer,
     })
   } catch (error) {
     return Response.json(
