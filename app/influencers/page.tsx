@@ -775,14 +775,17 @@ export default function InfluencersPage() {
         {/* Gallery — center stage, bigger tiles */}
         <div style={{ flex: 1, marginBottom: 20 }}>
           {photos.length > 0 ? (
-            /* Masonry via CSS columns — mixed aspect ratios (4:5 next to
-               9:16) each keep their natural height and fill the column
-               width, no letterboxing. */
-            <div style={{ columns: '4 220px', columnGap: 10 }}>
+            /* Regular grid — every tile shares a 4:5 aspect box so rows
+               always line up. Images cover-fit inside the box so we
+               don't letterbox mixed aspect ratios; the crop is
+               center-safe for portraits. Previously used CSS columns
+               masonry, but that leaves visible gaps when column
+               heights don't match (e.g. 7 items in a 4-col layout). */
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
               {photos.map(p => (
-                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene, photoId: p.id }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', marginBottom: 10, breakInside: 'avoid', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
+                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene, photoId: p.id }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', aspectRatio: '4 / 5', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={p.image_url} alt={p.scene} style={{ width: '100%', display: 'block' }} />
+                  <img src={p.image_url} alt={p.scene} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }} />
                 </button>
               ))}
             </div>
