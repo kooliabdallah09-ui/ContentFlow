@@ -228,10 +228,23 @@ async function callNanoBanana(
         console.warn(`[nanobanana] Vertex 429, retry ${attempt + 1}/2`)
       }
     }
-    // Vertex exhausted — try AI Studio fallback before giving up
+    // Vertex exhausted — try AI Studio fallback with a HARD 30-second cap
+    // so a slow / throttled fallback doesn't turn into a 300-second Vercel
+    // function timeout the client sees as a cryptic gateway error.
     if (genaiKey) {
-      console.warn('[nanobanana] Vertex quota exhausted, falling back to AI Studio')
-      return await callNanoBananaGoogle(prompt, referenceImages, aspectRatio, model, resolution)
+      console.warn('[nanobanana] Vertex quota exhausted, falling back to AI Studio (30s cap)')
+      const FALLBACK_TIMEOUT_MS = 30_000
+      try {
+        return await Promise.race<NanoBananaResult>([
+          callNanoBananaGoogle(prompt, referenceImages, aspectRatio, model, resolution),
+          new Promise<NanoBananaResult>((_, reject) =>
+            setTimeout(() => reject(new Error('AI Studio fallback timed out after 30s')), FALLBACK_TIMEOUT_MS),
+          ),
+        ])
+      } catch (fallbackErr) {
+        console.warn('[nanobanana] AI Studio fallback failed:', fallbackErr instanceof Error ? fallbackErr.message : fallbackErr)
+        throw new Error('Image provider is currently rate-limited. Please try again in a minute.')
+      }
     }
     throw lastErr
   }
