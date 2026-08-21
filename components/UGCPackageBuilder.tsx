@@ -2357,9 +2357,11 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           </label>
         )}
 
-        {/* Product picker — shown when the catalog has 2+ products. Lets a
-            t-shirt brand (etc.) pick which SKU this UGC is for. */}
-        {useBrand && products.length > 1 && (
+        {/* Product picker — shown when the catalog has 2+ products AND
+            there are no Product Studio items (the "From Product Studio"
+            chip row above is the newer, richer selector; when it's
+            present this brand-products grid is redundant). */}
+        {useBrand && products.length > 1 && studioProducts.length === 0 && (
           <div>
             <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 8 }}>
               Which product?

@@ -540,27 +540,8 @@ export default function UGCGeneratorPage() {
         )}
       </div>
 
-      {/* Single / Batch tab toggle */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, padding: '4px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', width: 'fit-content' }}>
-        {(['single', 'batch'] as const).map(mode => (
-          <button
-            key={mode}
-            type="button"
-            onClick={() => setBatchMode(mode === 'batch')}
-            style={{
-              padding: '6px 18px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em',
-              background: (mode === 'batch') === batchMode ? 'var(--ink)' : 'transparent',
-              color: (mode === 'batch') === batchMode ? 'var(--on-ink)' : 'var(--ink-dim)',
-              transition: 'all 0.15s',
-            }}
-          >
-            {mode === 'single' ? 'Single' : 'Batch  ×6'}
-          </button>
-        ))}
-      </div>
-
-      {/* Batch UI (inline) */}
-      {batchMode && (
+      {/* Batch UI (inline) — REMOVED, batch mode discontinued */}
+      {false && batchMode && (
         <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Product mini-form */}
           <div style={{ padding: '18px 20px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -663,7 +644,7 @@ export default function UGCGeneratorPage() {
       )}
 
 
-      <div style={{ display: batchMode ? 'none' : 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
           <UGCPackageBuilder
             onGenerate={handleGenerate}

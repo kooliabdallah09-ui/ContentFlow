@@ -23,7 +23,7 @@ export async function GET(request: Request) {
     }
 
     const [{ data: credits, error: creditsError }, { data: sub }] = await Promise.all([
-      supabase.from('user_credits').select('balance, plan, monthly_credits, reset_date').eq('user_id', userData.user.id).single(),
+      supabase.from('user_credits').select('balance, plan, monthly_credits, reset_date, used_free_influencer').eq('user_id', userData.user.id).single(),
       supabase.from('user_subscriptions').select('dodo_customer_id, status').eq('user_id', userData.user.id).maybeSingle(),
     ])
 

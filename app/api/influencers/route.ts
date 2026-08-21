@@ -205,23 +205,26 @@ export async function POST(request: NextRequest) {
           .map((r: any) => ({ base64: r.base64, mimeType: r.mimeType }))
       : []
 
-    // First influencer is always free — count only user-created rows, not the
-    // seeded default (Sloane Mercer). Match either the is_seed flag OR the
-    // canonical seed handle so this works for accounts created before the
-    // is_seed column existed / was backfilled.
+    // First influencer is always free — but ONLY the very first ever.
+    // Two guards:
+    //   1. Count non-seed rows currently on the account (short-circuit for
+    //      users who still have their free one).
+    //   2. Check the persistent used_free_influencer flag on user_credits
+    //      so that deleting the free one doesn't grant a second freebie.
     const { data: rowsForCount } = await supabase
       .from('user_influencers')
       .select('id, handle, is_seed')
       .eq('user_id', auth.userId)
     const nonSeedCount = (rowsForCount ?? []).filter(r => !r.is_seed && r.handle !== '@sloanemerc').length
-    const isFreeFirstInfluencer = nonSeedCount === 0
 
-    // Credits check — skipped for the free first influencer.
     const { data: credits } = await supabase
       .from('user_credits')
-      .select('balance, pack_credits')
+      .select('balance, pack_credits, used_free_influencer')
       .eq('user_id', auth.userId)
       .maybeSingle()
+
+    const hasUsedFreebie = !!credits?.used_free_influencer
+    const isFreeFirstInfluencer = nonSeedCount === 0 && !hasUsedFreebie
     if (!isFreeFirstInfluencer && (!credits || credits.balance < createCost)) {
       return NextResponse.json({ error: `Insufficient credits. Need ${createCost}.` }, { status: 402 })
     }
@@ -381,6 +384,14 @@ export async function POST(request: NextRequest) {
       )
       await supabase.from('user_credits')
         .update({ balance: newBalance, pack_credits: newPackCredits })
+        .eq('user_id', auth.userId)
+    } else if (isFreeFirstInfluencer) {
+      // Persist that this user has now claimed their free-first freebie so
+      // they don't get another one by deleting this influencer and creating
+      // a new one. Best-effort — even if the column doesn't exist yet the
+      // free-first still gates on the row count above.
+      await supabase.from('user_credits')
+        .update({ used_free_influencer: true })
         .eq('user_id', auth.userId)
     }
 
