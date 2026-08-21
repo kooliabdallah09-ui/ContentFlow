@@ -102,6 +102,20 @@ export async function submitSeedanceJob(params: {
   // via [Image1]/[Image2] mentions in the prompt. Up to 9 supported.
   referenceImageUrls?: string[]
 }): Promise<{ predictionId: string }> {
+  // If BYTEPLUS_API_KEY is set, prefer direct BytePlus (cheaper — no Replicate
+  // markup) and short-circuit before the Replicate call. Same interface, same
+  // return shape, so downstream code (polling, status normalisation) doesn't
+  // change. Falls back to Replicate automatically if BytePlus errors.
+  if (process.env.BYTEPLUS_API_KEY) {
+    try {
+      const { submitByteplusSeedanceJob } = await import('./byteplus-seedance')
+      return await submitByteplusSeedanceJob(params)
+    } catch (bpErr) {
+      console.warn('[seedance] BytePlus submit failed, falling back to Replicate:', bpErr instanceof Error ? bpErr.message : bpErr)
+      // fall through to Replicate below
+    }
+  }
+
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
@@ -159,6 +173,15 @@ export async function getSeedanceStatus(predictionId: string): Promise<{
   videoUrl?: string
   error?: string
 }> {
+  // BytePlus task IDs look different from Replicate prediction IDs
+  // (Replicate uses long alphanumeric strings; BytePlus uses cgt-/task-
+  // prefixes). If BytePlus is configured and the ID looks like theirs,
+  // route the poll there. Otherwise fall through to Replicate.
+  if (process.env.BYTEPLUS_API_KEY && (predictionId.startsWith('cgt-') || predictionId.startsWith('task-'))) {
+    const { getByteplusSeedanceStatus } = await import('./byteplus-seedance')
+    return await getByteplusSeedanceStatus(predictionId)
+  }
+
   const apiKey = process.env.REPLICATE_API_TOKEN
   if (!apiKey) throw new Error('REPLICATE_API_TOKEN not configured')
 
