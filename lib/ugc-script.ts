@@ -164,89 +164,119 @@ TV AD TONE — the difference between a TV spot and a social UGC:
     return (tvMsg.content[0] as { text: string }).text.trim()
   }
 
-  const textPrompt = `Write a ${targetDurationSeconds}-SECOND UGC video script for a social media ad. The TOTAL spoken word count across HOOK + BODY + CTA must be ${targetWords} words or fewer — this is a hard limit because the video will be cut at ${targetDurationSeconds}s. Count carefully.
+  // Pick an angle at random so the model stops defaulting to
+  // "problem → recap → CTA" every single time. Rotating the frame is the
+  // single biggest lever on perceived variety and freshness.
+  const angles = [
+    {
+      name: 'MID-USE REACTION',
+      brief: 'Open mid-experience. They\'re already using it when the camera catches them. No setup, no problem statement — a reaction to what just happened, then one specific detail about what surprised them, then a throwaway line about telling their friend / not going back.',
+    },
+    {
+      name: 'CONFESSIONAL',
+      brief: 'A weirdly personal admission that has nothing to do with the product for the first beat, then the product enters as the thing that fixed the embarrassing situation. Vulnerable, specific, uncomfortable-honest.',
+    },
+    {
+      name: 'ARGUING WITH SOMEONE OFF-SCREEN',
+      brief: 'They\'re defending the product to an unseen skeptic ("no listen —", "I\'m telling you —"). Feels like the middle of a real conversation. The CTA is basically them giving up trying to convince and shrugging.',
+    },
+    {
+      name: 'RANT / GENUINE ANNOYANCE',
+      brief: 'They\'re annoyed at the OLD way of doing things — competitor by name if relevant, or the workflow itself. Product is the relief valve. Delivered fast, dry, a little pissed off.',
+    },
+    {
+      name: 'SLOW REVEAL',
+      brief: 'Starts with a hyper-specific weird sentence that makes no sense until the last 2 seconds. Payoff is the product being what caused the weirdness. Confusion-then-oh moment.',
+    },
+    {
+      name: 'STORYTIME COLD OPEN',
+      brief: 'Starts mid-story like they\'re texting a friend — "okay so —", "you\'re not gonna believe —". Zero preamble. The story IS the ad.',
+    },
+    {
+      name: 'DIRECT-CAMERA CHALLENGE',
+      brief: 'Cocky, playful, borderline confrontational. Points at the lens. Dares the viewer to prove them wrong. High energy, short sentences.',
+    },
+  ]
+  const pickedAngle = angles[Math.floor(Math.random() * angles.length)]
+
+  const textPrompt = `Write a ${targetDurationSeconds}-SECOND UGC video script for a social media ad. TOTAL spoken word count ≤ ${targetWords} — hard limit. Count every word.
 
 Product: ${productName}
 Description: ${productDescription}
 Benefits: ${benefits}
-CTA: ${callToAction}
+CTA the brand wants: ${callToAction}   ← inspiration, NOT a line to copy verbatim
 ${languageBlock}${productTypeBlock}${twoPersonBlock}${povInterviewBlock}${customBlock}
-Use this exact format:
+==============================================
+CREATIVE ANGLE FOR THIS SCRIPT: ${pickedAngle.name}
+${pickedAngle.brief}
+Commit to this angle. Do NOT default to "problem statement → product recap → generic CTA" — that is the exact shape we're trying to escape.
+==============================================
+
+Format:
 
 ${backgroundLine}
 
 [HOOK — 0:00 to 0:0${hookEnd}]
-(brief expression/tone note)
-"spoken hook line — grabs attention immediately"
+(brief expression/tone note — physical, not emotional. e.g. "half-laughing, mouth full" not "excited")
+"spoken hook — first 3 seconds MUST make someone stop scrolling. Weird, specific, unfinished, mid-sentence, oddly personal. NOT a clean thesis."
 
 [BODY — 0:0${hookEnd} to 0:${bodyEnd < 10 ? '0' + bodyEnd : bodyEnd}]
 (tone note)
-"spoken body — authentic, conversational. Keep it tight — total script ≤ ${targetWords} words."
+"body — ONE specific moment from THEIR life. Not a description of what the product does. Details that couldn't come from a marketer: a time, a smell, a coworker's name, a tab count, a specific dollar amount, a physical gesture, an interrupted thought."
 
 [CTA — 0:${bodyEnd < 10 ? '0' + bodyEnd : bodyEnd} to 0:${targetDurationSeconds}]
 (tone note)
-"spoken CTA — natural, confident, very short"
+"CTA — an aside, a shrug, a private recommendation. NEVER 'just try it' / 'you have to try it' / 'try it free' / 'link below' — those four are BANNED. Rewrite as something a friend would text you."
 
-Rules:
-- TOTAL spoken word count ≤ ${targetWords} — count every word in every quoted line. This is the most important rule.
-- Spoken text always in double quotes
-- Stage directions always in (parentheses)
-- Section headers always in [brackets]
-- ${finalScene ? `[BACKGROUND: ${finalScene}] must be the very first line, use it exactly` : '[BACKGROUND: ...] must be the very first line — choose what fits the product naturally'}
-- No markdown, no title, no hashtags
+Format rules:
+- Spoken text in double quotes. Stage directions in (parentheses). Section headers in [brackets].
+- ${finalScene ? `[BACKGROUND: ${finalScene}] is the first line — use it exactly.` : '[BACKGROUND: ...] is the first line.'}
+- No markdown, no title, no hashtags, no explanations outside the format.
 
-HOW A REAL PERSON TALKS ON CAMERA — this is the difference between good and cringe.
+——————————————————————————————————
+THE ANTI-SLOP CHECKLIST — read every line you write against this. If any line fails, rewrite it.
+——————————————————————————————————
 
-BANNED PATTERNS (structural — not just words. The model breaks these constantly. DO NOT.):
+FAIL if any spoken line does ANY of these:
 
-1. **Feature listing.** NEVER stitch features together with commas or "AND". A real person naming 4 things in a row is instant AI-tell.
-   BAD: "It does script, voiceover, captions, and B-roll."
-   BAD: "You get analytics, scheduling, editing, and posting."
-   GOOD: Pick ONE feature, describe the specific moment you used it. "I typed in what I wanted and it just... made the whole video."
+☒ Names the product's features in a list. ("script, voiceover, captions" → FAIL)
+☒ Describes the product as if reading a website. ("makes ads in two minutes" → FAIL)
+☒ Uses ANY of: amazing / incredible / game-changer / life-changing / obsessed / hits different / next-level / genuinely / actually / literally the best / finally a X that / no more X
+☒ CTA is: "just try it" / "try it free" / "you have to try it" / "I'm in" / "I'm sold" / "link below" / "get yours" / "the one"
+☒ Opens with "So I've been using…" / "So I discovered…" / "Let me tell you about…" / "You need to know about…"
+☒ Body summarizes the product instead of telling ONE moment.
+☒ CTA has an exclamation mark, an imperative verb, or sounds like it belongs on a billboard.
+☒ Any three consecutive quoted words could appear in the marketing copy on the product's landing page.
 
-2. **The Recap Body.** BODY is not "here is what the product does." BODY is "here is one specific moment I had with it, in my life, this week."
-   BAD: "Contentflow makes ads in two minutes with one brand profile."
-   GOOD: "I made this ad on my lunch break. Like, actual lunch break — 15 minutes."
+PASS looks like:
 
-3. **Ad-copy CTAs.** CTAs sound like a friend's aside, not a marketer's close.
-   BAD: "Yeah, I'm in." / "I'm sold." / "You have to try it." / "This is the one."
-   GOOD: "I mean — I'm not going back to Canva after this." / "I'll link it below, look, I don't care what you do." / "Honestly, just try the free version, you'll see."
+Physical (drink):
+[HOOK] "Wait — (sips, squints) …what is happening in my mouth."
+[BODY] "Okay so it's basil. And lemon. Which sounds fake. But it's like… (looks at can) …clean? I don't know how to say it."
+[CTA] "I bought six. That's the review."
 
-4. **The "so I discovered" opening.** Nobody starts a real conversation with a soft product reveal.
-   BAD: "So I've been using this tool called Contentflow…"
-   GOOD: A specific problem in progress. "It's midnight and I still haven't posted today's ad, this is fine."
+Physical (skincare):
+[HOOK] "(camera catches her mid-application) — oh, you're here. Hi."
+[BODY] "It's been eleven days. My mom asked if I got a facial. I did not get a facial."
+[CTA] "…the tub is $34. That's all I'm gonna say."
 
-5. **Adjective triples & AI-word soup.** "amazing", "incredible", "revolutionary", "game-changer", "next-level", "hits different", "life-changing", "obsessed", "actually amazing", "genuinely good", "finally, a [X] that…", "no more [X]", "the [X] that [Y]".
+SaaS (video tool like Contentflow):
+[HOOK] "Guys I'm gonna get fired." (long pause) "…just kidding, I'm ten ads ahead of schedule."
+[BODY] "I typed one sentence into this thing at 9:04. It's 9:11. There are three finished ads on my desktop. I don't understand what's happening but I love it."
+[CTA] "(shrugs) I mean. Yeah."
 
-6. **The polite realization.** BAD: "(realization, matter-of-fact) 'Contentflow does it all…'" That fake-composed reveal is peak AI. Real reactions are messier — laugh, sigh, side-eye, exhale, "…what."
+SaaS (project mgmt):
+[HOOK] "My PM tried to schedule a meeting to plan the meeting to plan the launch."
+[BODY] "I opened this thing, dragged four tasks onto a board, and just — walked out. Nobody knows I'm doing the work. Everyone thinks I'm still in the meeting."
+[CTA] "It's free until it's not. Do what you want."
 
-DO write like this:
-- **Start with a specific moment, not a claim.** A time, a place, a small frustration, a small win. "3 AM edit," "the client just changed the brief," "I have 12 tabs open."
-- **One idea per line.** Not two claims stitched.
-- **Concrete over abstract.** Not "saves me time" — "I did this in 4 minutes." Not "professional-looking" — "my client thought I hired a filmer."
-- **Disfluencies and self-correction.** "hm," "uh," "wait—," "okay so—," "…yeah," trailing "…"
-- **Reactions BEFORE opinions.** They just experienced something → they react → THEN they describe.
-- **CTAs that sound like a real recommendation, not a pitch.** "I mean, try it." "It's free to start, so." "I'd just get it."
+Study what those examples have in common:
+- The HOOK is NOT a thesis. It's a fragment, a fake-out, or a weirdly personal image.
+- The BODY has details that couldn't be invented by a copywriter (specific times, a mom, a tab, a dollar amount, a coworker).
+- The CTA doesn't ask for the sale — it lets the viewer close it in their own head.
+- There's ALWAYS one moment of hesitation, disfluency, or physical action ("sips", "shrugs", "squints", "long pause").
 
-EXAMPLES — study the PATTERN, not just the words.
-
-Physical product (drink):
-BAD: "Wait, this is actually amazing. Lemon and basil? Sounds weird but tastes incredible. Plus it's good for digestion."
-GOOD: "Wait — (sips) hm. Yeah, that's… weird in a good way. Basil? Kinda tart. I like it."
-
-SaaS / software (a tool like Contentflow):
-BAD: "So we're using like five different tools just to make one ad?" / "Contentflow does it all in one place. Script, voiceover, captions, B-roll. Two minutes. One brand profile." / "Yeah, I'm in."
-GOOD: "So I'm supposed to post an ad today and I have — (counts on fingers) — a Canva tab, a CapCut tab, ElevenLabs, ChatGPT, and I still haven't started." / "(later, holding phone showing finished video) …okay. I typed one sentence. This came out." / "I don't know, man. Just try it, it's free to start."
-
-SaaS (video editor):
-BAD: "This tool is a game-changer for creators."
-GOOD: "I edited three reels in the time it took my coffee to get cold. That's — that's the whole review."
-
-Beauty product:
-BAD: "I've never used anything as amazing as this serum. My skin is glowing."
-GOOD: "Okay it's been like a week. (turns face in light) I don't know if you can see. I can see."
-
-TEST every quoted line before writing it: "Would a real person, holding a phone, mid-thought, actually say this out loud?" If it reads like a product page, rewrite it. If it lists features, rewrite it. If the CTA sounds like a pitch, rewrite it.${customInstructions?.trim() ? `\n- The USER INSTRUCTIONS block above overrides default tone/style choices wherever they conflict.` : ''}`
+Before you commit each line, ask: "Could a marketer have written this exact sentence for a landing page?" If yes → rewrite until the answer is no.${customInstructions?.trim() ? `\n\nThe USER INSTRUCTIONS block above overrides default tone/style choices wherever they conflict.` : ''}`
 
   const content: Anthropic.MessageParam['content'] = productImageBase64
     ? [

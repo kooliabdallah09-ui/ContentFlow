@@ -1668,6 +1668,35 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         </button>
       </div>
 
+      {/* Format-vs-product-type compatibility warning.
+          TV Spot for software/website products asks for UI to render on
+          on-screen monitors, which Seedance can't do cleanly (garbled fake
+          text and hallucinated dashboards). Warn before the user spends
+          credits generating a video that won't look right. */}
+      {activeFormatKey === 'tv-spot' && productType === 'website' && (
+        <div style={{
+          display: 'flex', gap: 12, alignItems: 'flex-start',
+          padding: '12px 14px', borderRadius: 10,
+          border: '1px solid #f59e0b', background: '#fffbeb', color: '#78350f',
+        }}>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>
+          <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
+            <strong>Not recommended for software products.</strong>{' '}
+            TV Spot asks for on-screen UI (dashboards, buttons, product screens) — AI video models
+            can&apos;t render coherent UI text and will produce garbled fake interfaces.
+            For a software product, try{' '}
+            <button type="button" onClick={() => { setActiveFormatKey('camera-pov'); setShowFormatPicker(false) }}
+              style={{ background: 'none', border: 'none', color: '#78350f', textDecoration: 'underline', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12.5 }}>
+              Camera POV
+            </button>{' '}or a{' '}
+            <button type="button" onClick={() => { setActiveFormatKey('interview-pov'); setShowFormatPicker(false) }}
+              style={{ background: 'none', border: 'none', color: '#78350f', textDecoration: 'underline', fontWeight: 600, cursor: 'pointer', padding: 0, fontSize: 12.5 }}>
+              talking-head format
+            </button>{' '}where the app is discussed rather than rendered. Or use Screen Demo in Video Studio to composite a real screen recording.
+          </div>
+        </div>
+      )}
+
       {/* Scroll-stop hook toggle — admin-only v1. Disabled for POV formats
           where the camera IS a character, and for no-script visual formats. */}
       {isAdminUser && !isNoScriptFormat && !isMotionBrollFormat && (() => {
