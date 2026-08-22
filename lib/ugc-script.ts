@@ -195,38 +195,58 @@ Rules:
 - ${finalScene ? `[BACKGROUND: ${finalScene}] must be the very first line, use it exactly` : '[BACKGROUND: ...] must be the very first line — choose what fits the product naturally'}
 - No markdown, no title, no hashtags
 
-HOW A REAL PERSON TALKS ON CAMERA — this is the difference between good and cringe:
+HOW A REAL PERSON TALKS ON CAMERA — this is the difference between good and cringe.
 
-BANNED phrases (these are AI-ad tells — a real person NEVER says these together like this):
-- "actually amazing", "genuinely good", "actually really", "actually really good", "actually does something"
-- "finally, a [X] that…", "no more [X]", "the [X] that [Y]"
-- "amazing", "incredible", "revolutionary", "game-changer", "next-level", "hits different", "life-changing", "obsessed"
-- "you have to try", "trust me", "you won't believe", "you need this"
-- multi-benefit stitching ("great taste AND healthy AND refreshing AND …") — pick ONE reaction
-- three-adjective descriptions ("light, refreshing, and functional")
-- CTAs like "grab one today", "get yours now", "don't miss out"
+BANNED PATTERNS (structural — not just words. The model breaks these constantly. DO NOT.):
+
+1. **Feature listing.** NEVER stitch features together with commas or "AND". A real person naming 4 things in a row is instant AI-tell.
+   BAD: "It does script, voiceover, captions, and B-roll."
+   BAD: "You get analytics, scheduling, editing, and posting."
+   GOOD: Pick ONE feature, describe the specific moment you used it. "I typed in what I wanted and it just... made the whole video."
+
+2. **The Recap Body.** BODY is not "here is what the product does." BODY is "here is one specific moment I had with it, in my life, this week."
+   BAD: "Contentflow makes ads in two minutes with one brand profile."
+   GOOD: "I made this ad on my lunch break. Like, actual lunch break — 15 minutes."
+
+3. **Ad-copy CTAs.** CTAs sound like a friend's aside, not a marketer's close.
+   BAD: "Yeah, I'm in." / "I'm sold." / "You have to try it." / "This is the one."
+   GOOD: "I mean — I'm not going back to Canva after this." / "I'll link it below, look, I don't care what you do." / "Honestly, just try the free version, you'll see."
+
+4. **The "so I discovered" opening.** Nobody starts a real conversation with a soft product reveal.
+   BAD: "So I've been using this tool called Contentflow…"
+   GOOD: A specific problem in progress. "It's midnight and I still haven't posted today's ad, this is fine."
+
+5. **Adjective triples & AI-word soup.** "amazing", "incredible", "revolutionary", "game-changer", "next-level", "hits different", "life-changing", "obsessed", "actually amazing", "genuinely good", "finally, a [X] that…", "no more [X]", "the [X] that [Y]".
+
+6. **The polite realization.** BAD: "(realization, matter-of-fact) 'Contentflow does it all…'" That fake-composed reveal is peak AI. Real reactions are messier — laugh, sigh, side-eye, exhale, "…what."
 
 DO write like this:
-- Reactions BEFORE opinions: "oh — wait", "hm", "okay", "no way", "hold on"
-- Disfluencies and thinking sounds: "uh", "like", "hm", "wait…", trailing off with "…"
-- False starts and self-correction: "this is — okay this is actually kind of…"
-- Short direct sentences. One thought at a time. Not two claims stitched together.
-- Specific concrete details over adjectives: not "refreshing", but "cold, kinda tart" or "tastes like basil"
-- Genuine mild reactions, not enthusiasm dial: "yeah… I'd buy this" beats "you HAVE to try this"
-- CTAs that sound like a real recommendation, not a pitch: "I'd get this", "worth trying", "gonna buy more"
-- If the character just tasted/tried the product, they react first (surprise, curiosity), THEN describe. Never launch straight into a pitch.
+- **Start with a specific moment, not a claim.** A time, a place, a small frustration, a small win. "3 AM edit," "the client just changed the brief," "I have 12 tabs open."
+- **One idea per line.** Not two claims stitched.
+- **Concrete over abstract.** Not "saves me time" — "I did this in 4 minutes." Not "professional-looking" — "my client thought I hired a filmer."
+- **Disfluencies and self-correction.** "hm," "uh," "wait—," "okay so—," "…yeah," trailing "…"
+- **Reactions BEFORE opinions.** They just experienced something → they react → THEN they describe.
+- **CTAs that sound like a real recommendation, not a pitch.** "I mean, try it." "It's free to start, so." "I'd just get it."
 
-EXAMPLES of good vs bad — study these:
-BAD: "Wait, this is actually amazing. Lemon and basil? Sounds weird but tastes incredible. Plus it's good for digestion. Finally a drink that's actually refreshing and functional."
+EXAMPLES — study the PATTERN, not just the words.
+
+Physical product (drink):
+BAD: "Wait, this is actually amazing. Lemon and basil? Sounds weird but tastes incredible. Plus it's good for digestion."
 GOOD: "Wait — (sips) hm. Yeah, that's… weird in a good way. Basil? Kinda tart. I like it."
 
-BAD: "You have to try this. It's revolutionary."
-GOOD: "Honestly? I'd get this again."
+SaaS / software (a tool like Contentflow):
+BAD: "So we're using like five different tools just to make one ad?" / "Contentflow does it all in one place. Script, voiceover, captions, B-roll. Two minutes. One brand profile." / "Yeah, I'm in."
+GOOD: "So I'm supposed to post an ad today and I have — (counts on fingers) — a Canva tab, a CapCut tab, ElevenLabs, ChatGPT, and I still haven't started." / "(later, holding phone showing finished video) …okay. I typed one sentence. This came out." / "I don't know, man. Just try it, it's free to start."
 
-BAD: "This app changed my life. It saves me hours every day."
-GOOD: "Okay, I've been using this for like a week. It's — it just works. Weirdly."
+SaaS (video editor):
+BAD: "This tool is a game-changer for creators."
+GOOD: "I edited three reels in the time it took my coffee to get cold. That's — that's the whole review."
 
-Every quoted line must pass this test: "Would a real person tasting/testing this for the first time, filmed on a phone, ACTUALLY say this?" If it sounds like ad copy, rewrite it.${customInstructions?.trim() ? `\n- The USER INSTRUCTIONS block above overrides default tone/style choices wherever they conflict.` : ''}`
+Beauty product:
+BAD: "I've never used anything as amazing as this serum. My skin is glowing."
+GOOD: "Okay it's been like a week. (turns face in light) I don't know if you can see. I can see."
+
+TEST every quoted line before writing it: "Would a real person, holding a phone, mid-thought, actually say this out loud?" If it reads like a product page, rewrite it. If it lists features, rewrite it. If the CTA sounds like a pitch, rewrite it.${customInstructions?.trim() ? `\n- The USER INSTRUCTIONS block above overrides default tone/style choices wherever they conflict.` : ''}`
 
   const content: Anthropic.MessageParam['content'] = productImageBase64
     ? [
@@ -235,9 +255,14 @@ Every quoted line must pass this test: "Would a real person tasting/testing this
       ]
     : textPrompt
 
+  // Sonnet, not Haiku. UGC scripts are a taste task — Haiku produces
+  // technically-correct but formulaic output (feature lists in BODY,
+  // ad-copy CTAs). Sonnet catches the pattern-level "don'ts" that
+  // Haiku ignores. ~$0.03 more per script; huge quality lift.
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 600,
+    model: 'claude-sonnet-4-6',
+    max_tokens: 700,
+    temperature: 1,
     messages: [{ role: 'user', content }],
   })
 
