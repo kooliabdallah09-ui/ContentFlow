@@ -263,6 +263,48 @@ export default function SocialPage() {
   const [slides, setSlides]         = useState<CarouselSlide[]>([])
   const [activeSlide, setActiveSlide] = useState(0)
 
+  // Campaign → auto-select the featured product. Fires whenever studioProducts
+  // populates (async on mount) AND we arrived via a campaign shot. Fetches
+  // campaign meta for product_name, falls back to substring-matching the
+  // campaign name/brief against the studio product list. Skips if the user
+  // has already picked something manually.
+  useEffect(() => {
+    if (typeof window === 'undefined' || studioProducts.length === 0) return
+    const qs = new URLSearchParams(window.location.search)
+    const campaignId = qs.get('campaign')
+    const shot = qs.get('shot')
+    if (!campaignId || !shot) return
+    const mode = qs.get('mode')
+    if (mode === 'carousel' && carProductId) return
+    if (mode === 'post' && postProductId) return
+    ;(async () => {
+      try {
+        const supabase = getSupabase()
+        if (!supabase) return
+        const { data: sess } = await supabase.auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const res = await fetch(`/api/campaigns/${campaignId}`, { headers: { Authorization: `Bearer ${token}` } })
+        if (!res.ok) return
+        const data = await res.json()
+        const metaName = (data?.campaign?.meta?.product_name ?? '').toString().trim().toLowerCase()
+        const haystack = [data?.campaign?.name, data?.campaign?.brief].filter(Boolean).map(String).join(' ').toLowerCase()
+        let match = metaName
+          ? studioProducts.find(p => p.name.toLowerCase() === metaName)
+            ?? studioProducts.find(p => p.name.toLowerCase().includes(metaName) || metaName.includes(p.name.toLowerCase()))
+          : undefined
+        if (!match && haystack) {
+          match = studioProducts.find(p => haystack.includes(p.name.toLowerCase()))
+        }
+        if (!match && studioProducts.length === 1) match = studioProducts[0]
+        if (!match) return
+        if (mode === 'carousel') setCarProductId(match.id)
+        else if (mode === 'post') setPostProductId(match.id)
+      } catch { /* silent */ }
+    })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [studioProducts])
+
   // ── Derived ──
   const IMAGE_COST  = 3
   const includeImage = postType === 'image'
