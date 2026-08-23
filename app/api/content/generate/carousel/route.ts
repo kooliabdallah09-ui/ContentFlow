@@ -15,6 +15,7 @@ interface SlideSpec {
   body: string
   cta: string
   imagePrompt: string
+  textHeavy?: boolean
 }
 
 export async function POST(request: NextRequest) {
@@ -179,12 +180,19 @@ Structure:
 - Slides 2–${safeSlideCount - 1}: Value slides — one key point each, concrete and specific
 - Slide ${safeSlideCount}: CTA / takeaway — clear next action
 
+TEXT-HEAVY SLIDE RULE (important):
+- If the illustration description for a specific slide says something like "no objects", "background only", "text overlay compositing", "blank canvas", "backdrop only", or "for text only" — that slide's visual is intentionally minimal and the copy has to CARRY the frame.
+- On those slides: write MORE copy — a bold headline (up to 10 words), a rich 2-3 sentence body (35-60 words), a strong CTA. Do NOT leave it a one-liner — a lonely 5-word line on a blank slide looks empty.
+- Also set "textHeavy": true on that slide's JSON object so the renderer switches to a centered cover layout.
+- All other slides: keep the normal short caption budget (max 8-word headline, max 20-word body).
+
 Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no extra text):
 [
   {
-    "headline": "Short title, max 8 words",
-    "body": "Supporting copy, max 20 words",
-    "cta": "Action phrase max 5 words — only on the last slide, empty string on all others",
+    "headline": "Short title (max 8 words on normal slides, up to 10 on text-heavy)",
+    "body": "Supporting copy — max 20 words on normal slides; 35-60 words on text-heavy slides",
+    "cta": "Action phrase max 6 words — only on the last slide, empty string on all others",
+    "textHeavy": false,
     "imagePrompt": "Visual description for AI image generation. Describe the mood, setting, subject, and lighting. Do NOT mention any text or words in the image. 1–2 sentences max."
   }
 ]`
@@ -278,8 +286,19 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
 
   const imageResults = await Promise.allSettled(slideSpecs.map((slide, i) => genOneSlide(slide, i)))
 
+  // Fallback text-heavy detector: if Sonnet forgot to set textHeavy but the
+  // per-slide illDesc contains the tell-tale phrases, flag it here so the
+  // renderer switches to cover layout anyway.
+  function detectTextHeavy(perSlideIll: string): boolean {
+    if (!perSlideIll) return false
+    const s = perSlideIll.toLowerCase()
+    return /no objects?|background only|backdrop only|blank canvas|text overlay|for text (?:only|compositing)|text-only|plain (?:dark|light|black|white)\s+(?:background|backdrop)/.test(s)
+  }
+
   const slides = slideSpecs.map((spec, i) => {
     const result = imageResults[i]
+    const perSlideIll = sliceIllDescForSlide(illDesc, i)
+    const textHeavy = !!spec.textHeavy || detectTextHeavy(perSlideIll)
     return {
       headline: spec.headline,
       body: spec.body,
@@ -287,6 +306,7 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
       // imagePrompt is Sonnet's per-slide image direction. Returned so the
       // client can send it back to the per-slide retry endpoint verbatim.
       imagePrompt: spec.imagePrompt,
+      textHeavy,
       imageBase64: result.status === 'fulfilled' ? result.value.imageBase64 : null,
       mimeType: result.status === 'fulfilled' ? result.value.mimeType : 'image/png',
       failed: result.status !== 'fulfilled' || !result.value.imageBase64,

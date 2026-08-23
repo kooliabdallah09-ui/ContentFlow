@@ -75,6 +75,7 @@ interface CarouselSlide {
   body: string
   cta: string
   imagePrompt?: string    // Sonnet's per-slide direction — needed for per-slide retry.
+  textHeavy?: boolean     // True when this slide's visual is intentionally minimal (background-only / text-compositing spec). Switches renderer to centered cover layout with bigger typography.
   imageBase64: string | null
   mimeType: string
   failed?: boolean
@@ -103,6 +104,26 @@ function wrapText(
   }
   if (line) ctx.fillText(line, x, currentY)
   return currentY
+}
+
+// Returns wrapped lines without drawing — used by cover-mode layout that
+// vertically centers the text block and needs to know the total line count
+// before it can pick a start Y. Uses the ctx's current font for measurement.
+function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(' ')
+  const lines: string[] = []
+  let line = ''
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line)
+      line = word
+    } else {
+      line = test
+    }
+  }
+  if (line) lines.push(line)
+  return lines
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -587,6 +608,7 @@ export default function SocialPage() {
         ...s,
         imageBase64: data.imageBase64,
         mimeType: data.mimeType,
+        textHeavy: typeof data.textHeavy === 'boolean' ? data.textHeavy : s.textHeavy,
         failed: false,
         retrying: false,
       } : s))
@@ -610,8 +632,60 @@ export default function SocialPage() {
       ctx.imageSmoothingQuality = 'high'
 
       const draw = () => {
-        // Softer, lighter gradient — starts higher up but only reaches ~55% opacity at the bottom
-        // so the image stays visible while text still reads cleanly.
+        const hasBody = !!slide.body?.trim()
+        // COVER MODE: slide is flagged as text-heavy by the server (its
+        // illDesc says "background only" / "text overlay compositing" / etc.),
+        // so the visual is intentionally minimal and copy has to carry the
+        // frame. Render text centered + larger with a full-frame scrim.
+        // We do NOT auto-enter cover mode just because body is long — that
+        // over-triggers on normal value slides with a chatty caption.
+        const isCoverMode = !!slide.textHeavy && hasBody
+
+        if (isCoverMode) {
+          // Full-frame dark scrim so long text has a legible field
+          ctx.fillStyle = 'rgba(0,0,0,0.55)'
+          ctx.fillRect(0, 0, W, H)
+
+          const PAD = 90
+          ctx.shadowColor = 'rgba(0,0,0,0.5)'
+          ctx.shadowBlur = 24
+          ctx.shadowOffsetY = 2
+          ctx.fillStyle = '#ffffff'
+          ctx.textAlign = 'center'
+
+          // Bigger centered headline
+          const headSize = 78
+          const headLH = 92
+          ctx.font = `700 ${headSize}px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
+          // Pre-wrap to compute how much vertical space head+body will take,
+          // then vertically center the whole block.
+          const headLines = wrapLines(ctx, slide.headline, W - PAD * 2)
+          ctx.font = `400 44px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
+          const bodyLines = wrapLines(ctx, slide.body, W - PAD * 2)
+          const bodyLH = 58
+          const gap = 42
+          const totalH = headLines.length * headLH + gap + bodyLines.length * bodyLH
+          const startY = (H - totalH) / 2 + headLH * 0.7  // baseline of first head line
+
+          // Draw headline
+          ctx.font = `700 ${headSize}px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
+          for (let i = 0; i < headLines.length; i++) {
+            ctx.fillText(headLines[i], W / 2, startY + i * headLH)
+          }
+          // Draw body
+          ctx.font = `400 44px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
+          ctx.globalAlpha = 0.94
+          const bodyStartY = startY + headLines.length * headLH + gap
+          for (let i = 0; i < bodyLines.length; i++) {
+            ctx.fillText(bodyLines[i], W / 2, bodyStartY + i * bodyLH)
+          }
+          ctx.globalAlpha = 1
+
+          resolve(canvas)
+          return
+        }
+
+        // STANDARD MODE — bottom-anchored caption over gradient
         const grad = ctx.createLinearGradient(0, H * 0.45, 0, H)
         grad.addColorStop(0, 'rgba(0,0,0,0)')
         grad.addColorStop(0.55, 'rgba(0,0,0,0.28)')
@@ -620,14 +694,11 @@ export default function SocialPage() {
         ctx.fillRect(0, 0, W, H)
 
         const PAD = 72
-        const hasBody = !!slide.body?.trim()
 
-        // Subtle text shadow for legibility without dark background
         ctx.shadowColor = 'rgba(0,0,0,0.5)'
         ctx.shadowBlur = 20
         ctx.shadowOffsetY = 2
 
-        // HEADLINE — tighter tracking, serif-like weight
         ctx.fillStyle = '#ffffff'
         ctx.textAlign = 'left'
         const headlineSize = 74
@@ -636,17 +707,12 @@ export default function SocialPage() {
         const headlineY = H - (hasBody ? 260 : 200)
         const lastY = wrapText(ctx, slide.headline, PAD, headlineY, W - PAD * 2, headlineLH)
 
-        // BODY — lighter weight, softer color
         if (hasBody) {
           ctx.font = `400 38px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
           ctx.globalAlpha = 0.92
           wrapText(ctx, slide.body, PAD, lastY + 58, W - PAD * 2, 52)
           ctx.globalAlpha = 1
         }
-        // NOTE: CTA is intentionally NOT painted on-image. The big white pill
-        // stamped across the last slide read as "amateur ad overlay" and
-        // covered the influencer/product. The CTA belongs in the caption
-        // (which is where users tap through anyway on IG).
 
         resolve(canvas)
       }
@@ -1333,13 +1399,26 @@ export default function SocialPage() {
                         <img src={`data:${slide.mimeType};base64,${slide.imageBase64}`} alt={slide.headline}
                           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                       )}
-                      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.78) 70%, rgba(0,0,0,0.93) 100%)' }} />
-                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 22px 22px' }}>
-                        <p style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.01em' }}>{slide.headline}</p>
-                        {slide.body && <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 1.5 }}>{slide.body}</p>}
-                        {/* CTA intentionally not rendered as an on-image button —
-                            it belongs in the caption, not stamped on the photo. */}
-                      </div>
+                      {slide.textHeavy ? (
+                        // Cover-mode preview: full-frame scrim + centered bigger type.
+                        // Matches the canvas download for slides flagged as
+                        // "text-overlay compositing only" in the illDesc.
+                        <>
+                          <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.55)' }} />
+                          <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 28px', textAlign: 'center' }}>
+                            <p style={{ margin: 0, color: '#fff', fontSize: 22, fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.01em', textShadow: '0 2px 18px rgba(0,0,0,0.55)' }}>{slide.headline}</p>
+                            {slide.body && <p style={{ margin: '14px 0 0', color: 'rgba(255,255,255,0.92)', fontSize: 14, lineHeight: 1.5, maxWidth: '32ch', textShadow: '0 2px 18px rgba(0,0,0,0.55)' }}>{slide.body}</p>}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.78) 70%, rgba(0,0,0,0.93) 100%)' }} />
+                          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 22px 22px' }}>
+                            <p style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.01em' }}>{slide.headline}</p>
+                            {slide.body && <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 1.5 }}>{slide.body}</p>}
+                          </div>
+                        </>
+                      )}
                     </div>
                   )
                 })()}

@@ -183,9 +183,20 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Image provider returned no image — credits refunded.' }, { status: 502 })
   }
 
+  // Preserve the slide's text-heavy flag if the client passed it, or detect
+  // it fresh from the per-slide illDesc. Client uses it to switch to cover
+  // layout when re-rendering the retried slide.
+  function detectTextHeavy(s: string): boolean {
+    if (!s) return false
+    const t = s.toLowerCase()
+    return /no objects?|background only|backdrop only|blank canvas|text overlay|for text (?:only|compositing)|text-only|plain (?:dark|light|black|white)\s+(?:background|backdrop)/.test(t)
+  }
+  const textHeavy = !!slide.textHeavy || detectTextHeavy(perSlideIll)
+
   return NextResponse.json({
     imageBase64: result.imageBase64,
     mimeType: result.mimeType,
+    textHeavy,
     creditsUsed: cost,
   })
 }
