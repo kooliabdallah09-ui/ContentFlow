@@ -5,8 +5,14 @@ import { CAMPAIGN_FORMATS, CAMPAIGN_FORMAT_KEYS, getCampaignFormat } from '@/lib
 import { loadBrandContext } from '@/lib/brand-context'
 import { analyzeInspiration } from '@/lib/inspiration-fetch'
 import { autoDiscoverTrendSources, formatSourcesForPrompt } from '@/lib/trends/web-search'
+import { deductCredits } from '@/lib/deduct-credits'
 
 export const maxDuration = 300
+
+// Flat fee to run the planner (Sonnet + trend search + inspiration fetch).
+// Rendering individual shots is charged separately, per-shot, from the
+// shot table page.
+const PLAN_COST = 5
 
 // Campaign Planner — one product + one brief → shot table.
 // Reads brand voice + product info + user brief, asks Sonnet to draft ~20-30
@@ -28,6 +34,8 @@ interface PlannedShot {
 }
 
 export async function POST(request: NextRequest) {
+  // Hoisted so the outer catch can still refund if Sonnet / trend fetch throws.
+  let refundOnCrash: ((reason: string) => Promise<void>) | null = null
   try {
     const authHeader = request.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) {
@@ -50,13 +58,53 @@ export async function POST(request: NextRequest) {
       durationLabel,   // '1 week' | '2 weeks' | '1 month'
       influencerId,    // default actor for the whole campaign (optional)
       sceneId,         // default scene (optional)
-      targetCount,     // 10..40, default 24
+      targetCount,     // fallback if formatMix not supplied
       inspiration,     // freeform user-pasted competitor / trend / hook notes
+      formatMix,       // Record<category, count> — how many shots per format bucket
     } = body as Record<string, unknown>
 
     if (typeof name !== 'string' || !name.trim()) {
       return NextResponse.json({ error: 'Campaign name is required' }, { status: 400 })
     }
+
+    // ── Charge 5 credits for the planner run ──────────────────────
+    // Do this BEFORE any expensive work (Sonnet, trend search, page fetches)
+    // so failures happen on the cheap path. Refund inside catch blocks below
+    // if anything downstream of the deduction fails.
+    const { data: userCredits } = await supabase
+      .from('user_credits')
+      .select('balance, pack_credits')
+      .eq('user_id', userId)
+      .single()
+    if (!userCredits || userCredits.balance < PLAN_COST) {
+      return NextResponse.json({ error: `Insufficient credits. Need ${PLAN_COST} to plan a campaign.` }, { status: 402 })
+    }
+    await deductCredits(supabase, userId, PLAN_COST, userCredits.balance, userCredits.pack_credits ?? 0)
+    await supabase.from('credit_transactions').insert({
+      user_id: userId,
+      amount: PLAN_COST,
+      transaction_type: 'generation',
+      content_type: 'campaign_plan',
+      description: `Campaign plan: ${name.trim().slice(0, 80)}`,
+    })
+    const preBalance = userCredits.balance
+    const prePack = userCredits.pack_credits ?? 0
+    let planCharged = true
+    const refundIfCharged = async (reason: string) => {
+      if (!planCharged) return
+      planCharged = false
+      await supabase.from('user_credits')
+        .update({ balance: preBalance, pack_credits: prePack })
+        .eq('user_id', userId)
+      await supabase.from('credit_transactions').insert({
+        user_id: userId,
+        amount: PLAN_COST,
+        transaction_type: 'refund',
+        content_type: 'campaign_plan',
+        description: `Refund — ${reason}`,
+      })
+    }
+    refundOnCrash = refundIfCharged
 
     // ── Load context ──────────────────────────────────────────────
     const brand = await loadBrandContext(supabase, userId)
@@ -72,7 +120,29 @@ export async function POST(request: NextRequest) {
       if (found) product = { id: found.id, name: found.name, description: found.description, image_url: found.image_url ?? null }
     }
 
-    const wantCount = Math.max(8, Math.min(40, typeof targetCount === 'number' ? targetCount : 24))
+    // ── Parse format mix ─────────────────────────────────────────
+    // formatMix keys are CampaignFormat.category values ('solo', 'two-person',
+    // 'motion', 'transformation', 'photo'). Value is desired shot count in
+    // that bucket. Sum drives the total. If mix is missing/empty we fall back
+    // to targetCount for backward compat.
+    const mixRaw = (formatMix && typeof formatMix === 'object') ? (formatMix as Record<string, unknown>) : {}
+    const cleanMix: Record<string, number> = {}
+    for (const [k, v] of Object.entries(mixRaw)) {
+      const n = Math.max(0, Math.min(20, Math.round(Number(v) || 0)))
+      if (n > 0) cleanMix[k] = n
+    }
+    const mixSum = Object.values(cleanMix).reduce((a, b) => a + b, 0)
+    const wantCount = mixSum > 0
+      ? Math.min(40, mixSum)
+      : Math.max(8, Math.min(40, typeof targetCount === 'number' ? targetCount : 24))
+
+    // Build a human-readable distribution line for Sonnet.
+    const mixDescription = mixSum > 0
+      ? Object.entries(cleanMix).map(([cat, n]) => {
+          const catFormats = CAMPAIGN_FORMATS.filter(f => f.category === cat).map(f => f.key).join(', ')
+          return `- ${n} × category="${cat}" (choose from: ${catFormats})`
+        }).join('\n')
+      : ''
 
     function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T, label: string): Promise<T> {
       return Promise.race([
@@ -121,11 +191,17 @@ export async function POST(request: NextRequest) {
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const formatCatalog = CAMPAIGN_FORMATS.map(f => `- ${f.key} · ${f.label} · ${f.tagline} · pipeline=${f.pipeline} · defaultDur=${f.defaultDuration}s · aspect=${f.defaultAspect}`).join('\n')
 
+    const distributionRule = mixDescription
+      ? `2. FORMAT DISTRIBUTION — the user has chosen this exact mix. Match it as closely as possible:
+${mixDescription}
+   Total shots to plan: ${wantCount}. Every shot's format_key MUST come from the category list above.`
+      : `2. Aim for balance: ~60% video shots, ~25% photo shots, ~15% experimental / two-person. Vary hooks, settings, aspects.`
+
     const system = `You are the ContentFlow Campaign Planner. Given a brand, one specific product, and a campaign brief, you output a diverse shot list that mixes formats to cover a real 1-2 week social calendar (TikTok, Reels, Meta ads, static hero photos).
 
 CRITICAL RULES:
 1. Every shot's "format_key" MUST be one of the exact keys from the catalog below. Never invent a key.
-2. Aim for balance: ~60% video shots, ~25% photo shots, ~15% experimental / two-person. Vary hooks, settings, aspects.
+${distributionRule}
 3. Fields are CONCRETE, not generic. Keep them TIGHT — planner output is a scan-able overview, not the final script.
    - hook = ONE specific opening line, ≤ 20 words.
    - setting = a concrete place ≤ 15 words ("Brooklyn café at 9am", not "urban environment").
@@ -180,6 +256,7 @@ Return the JSON shot list now.`
       parsed = JSON.parse(salvage) as { shots: PlannedShot[]; research_summary?: string }
     }
     if (!Array.isArray(parsed.shots) || parsed.shots.length === 0) {
+      await refundIfCharged('planner returned no shots')
       return NextResponse.json({ error: 'Planner returned no shots' }, { status: 500 })
     }
 
@@ -189,6 +266,7 @@ Return the JSON shot list now.`
       .slice(0, wantCount)
 
     if (validShots.length === 0) {
+      await refundIfCharged('planner did not use any known format keys')
       return NextResponse.json({ error: 'Planner did not use any known format keys' }, { status: 500 })
     }
 
@@ -217,6 +295,7 @@ Return the JSON shot list now.`
       .single()
     if (campErr || !campaign) {
       console.error('campaign insert failed', campErr)
+      await refundIfCharged('failed to save campaign row')
       return NextResponse.json({ error: 'Failed to save campaign' }, { status: 500 })
     }
 
@@ -251,12 +330,20 @@ Return the JSON shot list now.`
     const { error: shotsErr } = await supabase.from('user_campaign_shots').insert(rows)
     if (shotsErr) {
       console.error('shots insert failed', shotsErr)
+      // Best-effort: also delete the orphan campaign row so the user isn't
+      // left with an empty campaign after the refund.
+      await supabase.from('user_campaigns').delete().eq('id', campaign.id)
+      await refundIfCharged('failed to save shot rows')
       return NextResponse.json({ error: 'Failed to save shot list' }, { status: 500 })
     }
 
-    return NextResponse.json({ id: campaign.id, count: rows.length })
+    return NextResponse.json({ id: campaign.id, count: rows.length, cost: PLAN_COST })
   } catch (err) {
     console.error('campaigns/plan error:', err)
+    if (refundOnCrash) {
+      try { await refundOnCrash(err instanceof Error ? err.message.slice(0, 80) : 'unknown error') }
+      catch (refundErr) { console.error('campaigns/plan refund failed:', refundErr) }
+    }
     return NextResponse.json(
       { error: err instanceof Error ? err.message : 'Campaign planning failed' },
       { status: 500 },
