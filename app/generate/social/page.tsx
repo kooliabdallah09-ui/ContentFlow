@@ -47,6 +47,23 @@ const CAROUSEL_TONES = [
 ]
 
 const SLIDE_COUNTS = [3, 5, 7, 10]
+
+// Detect the intended slide count from a per-slide breakdown string.
+// Planner writes "Slide 1: …", "Slide 2: …", etc. We take the max N found
+// (some breakdowns mention slides out of order or reference other slides)
+// then snap to the closest supported bucket. Returns null if nothing detected.
+function detectSlideCount(text: string): number | null {
+  const matches = text.matchAll(/\bslide\s*(\d{1,2})\b/gi)
+  let max = 0
+  for (const m of matches) {
+    const n = parseInt(m[1], 10)
+    if (n > max && n <= 20) max = n
+  }
+  if (max < 2) return null
+  // Snap to closest supported: 3, 5, 7, 10. Round UP so we never lose slides.
+  for (const bucket of SLIDE_COUNTS) if (max <= bucket) return bucket
+  return SLIDE_COUNTS[SLIDE_COUNTS.length - 1]
+}
 const CAPTION_COST = 5
 const CAROUSEL_CREDIT_PER_SLIDE = 5      // Nano Banana Pro
 const CAROUSEL_CREDIT_PER_SLIDE_NB2 = 3  // Nano Banana 2
@@ -201,7 +218,14 @@ export default function SocialPage() {
       // Full setting — no truncation. The planner writes an entire per-slide
       // breakdown here ("Slide 1: cover with… | Slide 2: split image with…")
       // and slicing that to 800 chars lost slides 3-5.
-      if (setting) setIllustrationDesc(setting)
+      if (setting) {
+        setIllustrationDesc(setting)
+        // Auto-select the slide count from the breakdown. The planner writes
+        // "Slide 1", "Slide 2", … so we scan for the highest N and snap to
+        // the closest supported bucket (3, 5, 7, 10).
+        const detected = detectSlideCount(setting)
+        if (detected) setSlideCount(detected)
+      }
     } else if (mode === 'post') {
       setContentType('caption')
       setPostType('image')
