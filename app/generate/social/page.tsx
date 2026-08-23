@@ -326,15 +326,40 @@ export default function SocialPage() {
     onFiles: files => pickReference(files[0]),
     disabled: carLoading,
   })
-  function pickReference(file: File | null) {
+  async function pickReference(file: File | null) {
     if (!file) { setReference(null); return }
-    if (file.size > 5 * 1024 * 1024) { showError('Reference image must be under 5MB'); return }
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const result = ev.target?.result as string
-      setReference({ base64: result.split(',')[1] ?? '', mimeType: file.type, preview: result })
+    if (file.size > 15 * 1024 * 1024) { showError('Reference image must be under 15MB'); return }
+    // Downscale + re-encode so we don't hit Vercel's 4.5MB request body limit.
+    // Long edge capped at 1600px, JPEG quality 0.85 — visually indistinguishable
+    // for a reference photo, but base64 payload drops from ~6MB to ~300-800KB.
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = ev => resolve(ev.target?.result as string)
+        reader.onerror = () => reject(new Error('Could not read image'))
+        reader.readAsDataURL(file)
+      })
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image()
+        el.onload = () => resolve(el)
+        el.onerror = () => reject(new Error('Could not decode image'))
+        el.src = dataUrl
+      })
+      const MAX_EDGE = 1600
+      const scale = Math.min(1, MAX_EDGE / Math.max(img.width, img.height))
+      const w = Math.round(img.width * scale)
+      const h = Math.round(img.height * scale)
+      const canvas = document.createElement('canvas')
+      canvas.width = w; canvas.height = h
+      const ctx = canvas.getContext('2d')
+      if (!ctx) throw new Error('Canvas unsupported')
+      ctx.drawImage(img, 0, 0, w, h)
+      const outMime = 'image/jpeg'
+      const outDataUrl = canvas.toDataURL(outMime, 0.85)
+      setReference({ base64: outDataUrl.split(',')[1] ?? '', mimeType: outMime, preview: outDataUrl })
+    } catch (e) {
+      showError('Reference image', e instanceof Error ? e.message : 'Could not process image')
     }
-    reader.readAsDataURL(file)
   }
 
   async function generateCarousel() {
@@ -364,11 +389,20 @@ export default function SocialPage() {
           referenceImageMimeType: reference?.mimeType ?? null,
         }),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Generation failed')
-      setSlides(data.slides)
+      // Defensive parse — server may return plain text (413 Request Entity Too
+      // Large from Vercel, 504 timeout, 429 rate-limit) which is not valid JSON.
+      const raw = await res.text()
+      let data: { error?: string; slides?: CarouselSlide[] } = {}
+      try { data = raw ? JSON.parse(raw) : {} } catch {
+        if (res.status === 413) throw new Error('Reference image too large. Try a smaller image.')
+        if (res.status === 504) throw new Error('Generation timed out. Try fewer slides or retry.')
+        if (res.status === 429) throw new Error('Rate-limited. Please wait a minute and retry.')
+        throw new Error(`Server returned an unexpected response (${res.status}).`)
+      }
+      if (!res.ok) throw new Error(data.error || `Generation failed (${res.status})`)
+      setSlides(data.slides ?? [])
       refreshCredits()
-      showSuccess('Carousel ready', `${data.slides.length} slides generated`)
+      showSuccess('Carousel ready', `${(data.slides ?? []).length} slides generated`)
     } catch (e) {
       showError('Generation failed', e instanceof Error ? e.message : 'Unknown error')
     } finally {
