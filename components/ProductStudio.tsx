@@ -273,15 +273,21 @@ export default function ProductStudio() {
 
           let wantedName = (qs.get('productName') ?? '').trim().toLowerCase()
           const wantedId = qs.get('product')
+          let campaignHaystack = '' // campaign name + brief, lowercased — used for
+                                    // substring matching when meta.product_name is
+                                    // missing on this campaign.
 
-          // Fallback 1: fetch the campaign to grab meta.product_name.
-          if (!wantedName && campaignId) {
+          // Fallback: fetch the campaign to grab meta.product_name AND keep the
+          // name/brief around so we can substring-match against studio products.
+          if (campaignId) {
             try {
               const campRes = await fetch(`/api/campaigns/${campaignId}`, { headers: { Authorization: `Bearer ${token}` } })
               if (campRes.ok) {
                 const campData = await campRes.json()
                 const metaName = campData?.campaign?.meta?.product_name
-                if (typeof metaName === 'string') wantedName = metaName.trim().toLowerCase()
+                if (!wantedName && typeof metaName === 'string') wantedName = metaName.trim().toLowerCase()
+                const parts = [campData?.campaign?.name, campData?.campaign?.brief].filter(Boolean).map(String)
+                campaignHaystack = parts.join(' ').toLowerCase()
               }
             } catch { /* silent — falls through to other match strategies */ }
           }
@@ -294,10 +300,23 @@ export default function ProductStudio() {
           if (!match && wantedId) {
             match = products.find(p => p.id === wantedId)
           }
+          // Substring match against the campaign's own name/brief.
+          // Catches the common case where the user typed the product name in the
+          // brief ("Awareness campaign for Pc-ya — featuring pc-ya") but never
+          // selected a product from the dropdown, so meta.product_name was null.
+          if (!match && campaignHaystack) {
+            match = products.find(p => campaignHaystack.includes(p.name.toLowerCase()))
+          }
           if (!match && products.length === 1) {
             match = products[0]
           }
-          console.log('[ProductStudio] campaign auto-open', { campaignId, shot, wantedName, wantedId, productsCount: products.length, matched: match?.name ?? null })
+          console.log('[ProductStudio] campaign auto-open', {
+            campaignId, shot, wantedName, wantedId,
+            productsCount: products.length,
+            productNames: products.map(p => p.name),
+            campaignHaystack: campaignHaystack.slice(0, 120),
+            matched: match?.name ?? null,
+          })
           if (match) {
             // Fire and forget — openDetail is async but we don't need to
             // wait for the product detail fetch before returning from load().
