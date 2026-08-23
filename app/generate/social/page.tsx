@@ -194,8 +194,14 @@ export default function SocialPage() {
     const topicText = [hook, setting].filter(Boolean).join('\n\n').trim()
     if (mode === 'carousel') {
       setContentType('carousel')
-      if (topicText) setCarTopic(topicText)
-      if (setting) setIllustrationDesc(setting.slice(0, 800))
+      // Topic gets the short hook only — the per-slide breakdown belongs in
+      // illustrationDesc, not stuffed into topic.
+      if (hook) setCarTopic(hook)
+      else if (topicText) setCarTopic(topicText)
+      // Full setting — no truncation. The planner writes an entire per-slide
+      // breakdown here ("Slide 1: cover with… | Slide 2: split image with…")
+      // and slicing that to 800 chars lost slides 3-5.
+      if (setting) setIllustrationDesc(setting)
     } else if (mode === 'post') {
       setContentType('caption')
       setPostType('image')
