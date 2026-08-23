@@ -121,6 +121,9 @@ export default function SocialPage() {
   const [posts, setPosts]           = useState<Record<string, string>>({})
   const [postImage, setPostImage]   = useState<string | null>(null)
   const [watermarkedImage, setWatermarkedImage] = useState<string | null>(null)
+  // Composited on top of the post image (via CSS in preview, canvas on download).
+  // Nano Banana can't render legible text, so any on-image copy comes from here.
+  const [postOverlayText, setPostOverlayText] = useState<string>('')
   const [activeTab, setActiveTab]   = useState('')
   const [copied, setCopied]         = useState<string | null>(null)
 
@@ -229,7 +232,11 @@ export default function SocialPage() {
     } else if (mode === 'post') {
       setContentType('caption')
       setPostType('image')
-      if (topicText) setCapTopic(topicText)
+      // Short hook → topic (drives caption). Full scene → imagePrompt (drives
+      // the actual image render). Putting the whole scene into topic makes
+      // the composed prompt label the scene as "caption context — do not
+      // draw" which is the exact opposite of what we want.
+      if (hook) setCapTopic(hook)
       if (caption) {
         // Preseed the posts map so the user sees the generated draft immediately
         // for the currently selected platforms.
@@ -240,6 +247,8 @@ export default function SocialPage() {
         })
       }
       if (setting) setImagePrompt(setting)
+      const textOverlay = qs.get('textOverlay') ?? ''
+      if (textOverlay) setPostOverlayText(textOverlay)
     }
   }, [])
 
@@ -616,6 +625,64 @@ export default function SocialPage() {
     })
   }, [isSquare])
 
+  // Bake the on-image overlay text into the downloaded post image via canvas.
+  // If no overlay text, just downloads the raw image URL. Falls back cleanly
+  // if the image can't be loaded (CORS etc.) — links directly to the source.
+  async function downloadPostWithOverlay(imageUrl: string | null, overlay: string) {
+    if (!imageUrl) return
+    if (!overlay.trim()) {
+      const link = document.createElement('a')
+      link.href = imageUrl
+      link.download = 'post-image.png'
+      link.click()
+      return
+    }
+    try {
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const el = new Image()
+        el.crossOrigin = 'anonymous'
+        el.onload = () => resolve(el)
+        el.onerror = reject
+        el.src = imageUrl
+      })
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')!
+      ctx.drawImage(img, 0, 0)
+      // Gradient at the bottom third
+      const grad = ctx.createLinearGradient(0, canvas.height * 0.55, 0, canvas.height)
+      grad.addColorStop(0, 'rgba(0,0,0,0)')
+      grad.addColorStop(0.5, 'rgba(0,0,0,0.32)')
+      grad.addColorStop(1, 'rgba(0,0,0,0.75)')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, canvas.width, canvas.height)
+      // Text
+      const PAD = Math.round(canvas.width * 0.06)
+      const size = Math.round(canvas.width * 0.058)
+      const lh = Math.round(size * 1.18)
+      ctx.font = `700 ${size}px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
+      ctx.fillStyle = '#ffffff'
+      ctx.textAlign = 'left'
+      ctx.shadowColor = 'rgba(0,0,0,0.6)'
+      ctx.shadowBlur = Math.round(canvas.width * 0.02)
+      // wrapText draws top-down from startY. Reserve room for up to 4 lines
+      // so long overlays don't clip off the bottom of the frame.
+      const startY = canvas.height - PAD - lh * 3
+      wrapText(ctx, overlay, PAD, startY, canvas.width - PAD * 2, lh)
+      const link = document.createElement('a')
+      link.download = 'post-image.png'
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    } catch {
+      // CORS or decode failure — fall back to the raw image
+      const link = document.createElement('a')
+      link.href = imageUrl
+      link.download = 'post-image.png'
+      link.click()
+    }
+  }
+
   async function downloadSlide(slide: CarouselSlide, index: number) {
     try {
       const canvas = await renderSlideToCanvas(slide)
@@ -904,20 +971,48 @@ export default function SocialPage() {
                       <div style={{ padding: '14px 20px 0' }}>
                         <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
                           <img src={watermarkedImage ?? postImage} alt="Post visual" style={{ width: '100%', display: 'block', maxHeight: 380, objectFit: 'cover' }} />
-                          <a
-                            href={watermarkedImage ?? postImage}
-                            download="post-image.png"
+                          {postOverlayText.trim() && (
+                            // Gradient + white text — matches the carousel treatment.
+                            // Composited via CSS in preview; canvas on download.
+                            <div style={{
+                              position: 'absolute', left: 0, right: 0, bottom: 0,
+                              padding: '48px 24px 24px',
+                              background: 'linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.28) 45%, rgba(0,0,0,0.72) 100%)',
+                              color: '#fff', fontSize: 22, fontWeight: 700, lineHeight: 1.2,
+                              letterSpacing: '-0.01em',
+                              textShadow: '0 2px 18px rgba(0,0,0,0.55)',
+                              pointerEvents: 'none',
+                            }}>
+                              {postOverlayText}
+                            </div>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => downloadPostWithOverlay(watermarkedImage ?? postImage, postOverlayText)}
                             style={{
                               position: 'absolute', top: 10, right: 10,
                               display: 'inline-flex', alignItems: 'center', gap: 5,
                               padding: '6px 10px', borderRadius: 8,
                               background: 'rgba(0,0,0,0.72)', color: '#fff',
-                              fontSize: 11.5, fontWeight: 600, textDecoration: 'none',
+                              fontSize: 11.5, fontWeight: 600, border: 'none', cursor: 'pointer',
                             }}
                           >
                             <Download size={12} /> Save
-                          </a>
+                          </button>
                         </div>
+                        <input
+                          type="text"
+                          value={postOverlayText}
+                          onChange={e => setPostOverlayText(e.target.value)}
+                          placeholder="On-image text (optional) — like a meme caption"
+                          maxLength={140}
+                          style={{
+                            width: '100%', marginTop: 10, padding: '9px 12px',
+                            border: '1px solid var(--border)', borderRadius: 8,
+                            background: 'var(--surface)', color: 'var(--ink)',
+                            fontSize: 13, outline: 'none',
+                          }}
+                        />
                         {brand?.logo_url && (
                           <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8, fontSize: 12, color: 'var(--ink-mute)', cursor: 'pointer', userSelect: 'none' }}>
                             <input type="checkbox" checked={watermarkEnabled} onChange={e => {

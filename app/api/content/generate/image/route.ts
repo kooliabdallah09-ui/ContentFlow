@@ -225,7 +225,15 @@ export async function POST(request: NextRequest) {
             if (ref) { featureRefs.push(ref); identityCount++ }
           }
         }
-        promptPrefix += `${inf.appearance_prompt}\n\nThe person appears candidly in the visual — mid-action, natural face, no plastic face, no AI-smooth skin, not posing at the camera, not necessarily centered.\n\n`
+        // IDENTITY LOCK — the scene direction below is the primary subject.
+        // The influencer is an OPTIONAL identity to apply IF the scene features
+        // a human, and only if the scene's described subject (gender, age,
+        // demographic) matches this identity. If the scene explicitly calls
+        // for a different subject ("a young man at a desk"), that wins — do
+        // NOT swap it for the influencer's face. This avoids the failure mode
+        // where a female influencer + "young man at desk" prompt produces
+        // just the influencer's stock portrait with no scene.
+        promptPrefix += `IDENTITY LOCK (apply only if compatible with the scene): if the scene below shows a person AND the described subject (gender, age, ethnicity) is compatible with this identity, render THAT person with this exact face, hair, skin tone, and build:\n\n${inf.appearance_prompt}\n\nIf the scene explicitly describes a subject that CONTRADICTS this identity (different gender, very different age), IGNORE this identity block and render the scene's subject as described. The scene direction always wins over the identity lock.\n\nWhen this identity IS used, they appear candidly in the visual — mid-action, natural face, no plastic face, no AI-smooth skin, not posing at the camera, not necessarily centered.\n\n`
       }
     }
     if (typeof studioProductId === 'string' && studioProductId.length > 0) {

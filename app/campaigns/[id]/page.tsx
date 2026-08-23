@@ -87,6 +87,7 @@ interface Shot {
     cta?: string
     caption?: string
     setting?: string
+    text_overlay?: string
     visual_notes?: string
     aspect?: string
     duration?: number
@@ -126,6 +127,7 @@ function builderUrl(shot: Shot, productId: string | null, campaignId: string, pr
   if (shot.spec.duration) params.set('duration', String(shot.spec.duration))
   if (shot.spec.hook) params.set('hook', shot.spec.hook)
   if (shot.spec.setting) params.set('setting', shot.spec.setting)
+  if (shot.spec.text_overlay) params.set('textOverlay', shot.spec.text_overlay.slice(0, 500))
   if (shot.spec.script) params.set('script', shot.spec.script.slice(0, 2000))
   if (shot.spec.cta) params.set('cta', shot.spec.cta.slice(0, 200))
   if (shot.spec.visual_notes) params.set('visualNotes', shot.spec.visual_notes.slice(0, 800))
