@@ -100,12 +100,12 @@ interface Bucket {
   suggested: number
 }
 const BUCKETS: Bucket[] = [
-  { key: 'solo',           label: 'UGC — solo',       blurb: 'One person on camera. Selfie, testimonial, hot take, review.',         icon: <User2 size={16} />,    suggested: 6 },
-  { key: 'two-person',     label: 'UGC — two-person', blurb: 'Interview, couple, roommate. Two actors, natural banter.',              icon: <Users size={16} />,    suggested: 2 },
-  { key: 'motion',         label: 'Product motion',   blurb: 'B-roll, ASMR unbox, kinetic bursts. No dialogue.',                       icon: <Wand2 size={16} />,    suggested: 3 },
-  { key: 'transformation', label: 'Transformations',  blurb: 'Before/after, mess-to-fresh, tutorials.',                                icon: <Sparkles size={16} />, suggested: 1 },
-  { key: 'photo',          label: 'Photos & stills',  blurb: 'Hero editorial, lifestyle-in-scene, studio still.',                      icon: <ImageIcon size={16} />, suggested: 2 },
-  { key: 'social',         label: 'Social posts',     blurb: 'Multi-slide carousels, single feed posts, meme reactions.',              icon: <Camera size={16} />,   suggested: 2 },
+  { key: 'solo',           label: 'UGC — solo',       blurb: 'One person on camera. Selfie, testimonial, hot take, review.',         icon: <User2 size={16} />,    suggested: 0 },
+  { key: 'two-person',     label: 'UGC — two-person', blurb: 'Interview, couple, roommate. Two actors, natural banter.',              icon: <Users size={16} />,    suggested: 0 },
+  { key: 'motion',         label: 'Product motion',   blurb: 'B-roll, ASMR unbox, kinetic bursts. No dialogue.',                       icon: <Wand2 size={16} />,    suggested: 0 },
+  { key: 'transformation', label: 'Transformations',  blurb: 'Before/after, mess-to-fresh, tutorials.',                                icon: <Sparkles size={16} />, suggested: 0 },
+  { key: 'photo',          label: 'Photos & stills',  blurb: 'Hero editorial, lifestyle-in-scene, studio still.',                      icon: <ImageIcon size={16} />, suggested: 0 },
+  { key: 'social',         label: 'Social posts',     blurb: 'Multi-slide carousels, single feed posts, meme reactions.',              icon: <Camera size={16} />,   suggested: 0 },
 ]
 
 async function getToken(): Promise<string | null> {
@@ -140,6 +140,12 @@ export default function CampaignsPage() {
   const totalShots = useMemo(() => Object.values(mix).reduce((a, b) => a + b, 0), [mix])
   const bumpMix = (key: string, delta: number) =>
     setMix(m => ({ ...m, [key]: Math.max(0, Math.min(20, (m[key] ?? 0) + delta)) }))
+  // Accepts any string; strips non-digits, clamps to [0, 20]. Called on input change.
+  const setMixValue = (key: string, raw: string) => {
+    const digits = raw.replace(/\D/g, '')
+    const n = digits === '' ? 0 : Math.min(20, parseInt(digits, 10))
+    setMix(m => ({ ...m, [key]: n }))
+  }
 
   async function quickAddProduct() {
     const productName = inlineProductName.trim()
@@ -453,7 +459,24 @@ export default function CampaignsPage() {
                           style={stepperBtn}
                           aria-label={`Decrease ${b.label}`}
                         ><Minus size={13} /></button>
-                        <span style={{ minWidth: 22, textAlign: 'center', fontVariantNumeric: 'tabular-nums', fontSize: 14, fontWeight: 600 }}>{count}</span>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          value={count === 0 ? '' : count}
+                          onChange={e => setMixValue(b.key, e.target.value)}
+                          onFocus={e => e.target.select()}
+                          placeholder="0"
+                          aria-label={`${b.label} shot count`}
+                          style={{
+                            width: 32, textAlign: 'center', padding: '2px 0',
+                            fontVariantNumeric: 'tabular-nums', fontSize: 14, fontWeight: 600,
+                            border: '1px solid transparent', borderRadius: 6,
+                            background: 'var(--surface)', color: 'var(--ink)',
+                            outline: 'none',
+                          }}
+                          onBlur={e => { e.currentTarget.style.borderColor = 'transparent' }}
+                          onFocusCapture={e => { e.currentTarget.style.borderColor = 'var(--border)' }}
+                        />
                         <button
                           type="button"
                           onClick={() => bumpMix(b.key, +1)}
