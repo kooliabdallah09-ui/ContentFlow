@@ -33,6 +33,39 @@ interface PlannedShot {
   notes?: string
 }
 
+// Recovers a valid JSON envelope from a truncated Sonnet response.
+// Scans the raw text tracking string state + brace/bracket depth. When we hit
+// EOF mid-string or mid-object, we rewind to the last position where depth was
+// exactly {shots-array: 1, top-object: 1} and no string was open — that's a
+// complete-shot boundary — then close the array and object. Returns whatever
+// shots parsed successfully; drops the partial one.
+function salvagePartialJson(raw: string): { shots: PlannedShot[]; research_summary?: string } {
+  let inString = false
+  let escape = false
+  let depth = 0
+  let lastCompleteBoundary = -1
+  for (let i = 0; i < raw.length; i++) {
+    const ch = raw[i]
+    if (escape) { escape = false; continue }
+    if (ch === '\\' && inString) { escape = true; continue }
+    if (ch === '"') { inString = !inString; continue }
+    if (inString) continue
+    if (ch === '{' || ch === '[') depth++
+    else if (ch === '}' || ch === ']') {
+      depth--
+      // Depth 2 = inside the shots array, at the end of a complete shot object.
+      // (Depth: top-object=1, shots-array=2. Closing a shot brings us back to 2.)
+      if (depth === 2 && ch === '}') lastCompleteBoundary = i
+    }
+  }
+  if (lastCompleteBoundary === -1) {
+    // Nothing usable — try the old naive fallback as a last resort.
+    return JSON.parse(raw.replace(/,\s*$/, '') + ']}') as { shots: PlannedShot[]; research_summary?: string }
+  }
+  const trimmed = raw.slice(0, lastCompleteBoundary + 1) + ']}'
+  return JSON.parse(trimmed) as { shots: PlannedShot[]; research_summary?: string }
+}
+
 export async function POST(request: NextRequest) {
   // Hoisted so the outer catch can still refund if Sonnet / trend fetch throws.
   let refundOnCrash: ((reason: string) => Promise<void>) | null = null
@@ -260,13 +293,16 @@ ${autoSourcesSection ? '\n' + autoSourcesSection : ''}
 Return the JSON shot list now.`
 
     const tSonnet = Date.now()
+    // Every social/photo shot can carry a 2000-char setting; 20 shots + a
+    // ~1500-char research summary can exceed 12K output tokens. Room to spare
+    // matters more than latency here — Sonnet only bills used tokens.
     const msg = await anthropic.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 6000,
+      max_tokens: 16000,
       system,
       messages: [{ role: 'user', content: userMsg }],
     })
-    console.log(`[campaigns/plan] Sonnet done in ${Date.now() - tSonnet}ms`)
+    console.log(`[campaigns/plan] Sonnet done in ${Date.now() - tSonnet}ms · stop=${msg.stop_reason}`)
 
     const raw = (msg.content[0] as { type: 'text'; text: string }).text
       .trim()
@@ -277,9 +313,12 @@ Return the JSON shot list now.`
     try {
       parsed = JSON.parse(raw) as { shots: PlannedShot[]; research_summary?: string }
     } catch {
-      // Forgiving parser: attempt to close a truncated array.
-      const salvage = raw.replace(/,\s*$/, '') + ']}'
-      parsed = JSON.parse(salvage) as { shots: PlannedShot[]; research_summary?: string }
+      // Salvage a truncated response. Sonnet was cut off mid-string / mid-object
+      // (usually from hitting max_tokens on a 20-shot plan). Walk the raw text
+      // forward, tracking brace/bracket depth OUTSIDE of strings, and truncate
+      // at the last "shots" element boundary — then close the array + top-level
+      // object. This preserves every complete shot Sonnet already emitted.
+      parsed = salvagePartialJson(raw)
     }
     if (!Array.isArray(parsed.shots) || parsed.shots.length === 0) {
       await refundIfCharged('planner returned no shots')
