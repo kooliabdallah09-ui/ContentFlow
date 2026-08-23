@@ -166,6 +166,11 @@ export default function ProductStudio() {
   // look, (c) prefills the Create form fields if the user hasn't picked a
   // product yet.
   const searchParams = useSearchParams()
+
+  // True when the current pageview arrived from a campaign shot. Drives
+  // the "Loaded from campaign" banner + priority of prefill sources.
+  const cameFromCampaign = !!(searchParams?.get('campaign') && searchParams?.get('shot'))
+
   useEffect(() => {
     if (!searchParams) return
     const paramMode = searchParams.get('mode')
@@ -173,7 +178,37 @@ export default function ProductStudio() {
     const pName = searchParams.get('productName')
     const pDesc = searchParams.get('productDescription')
     if (paramMode === 'aesthetic') setMode('aesthetic')
-    if (substyle) {
+    if (pName || pDesc) {
+      if (pName) setCreateName(prev => prev || pName)
+      if (pDesc) setCreateWhatItIs(prev => prev || pDesc)
+      // Only auto-open the Create form if we DIDN'T arrive from a campaign
+      // (a campaign handoff auto-selects the matching product below — no
+      // need to also open the Create modal on top of it).
+      if (!cameFromCampaign) setShowCreate(prev => prev || (!selected))
+    }
+
+    // Campaign → Product Studio handoff. When a photo shot from a campaign
+    // opens Product Studio, the URL carries the full image prompt in
+    // `setting` (60-120 words). That takes priority over the generic
+    // substyle hint — the campaign setting is way more specific.
+    const shotSetting = searchParams.get('setting')
+    const shotVisualNotes = searchParams.get('visualNotes')
+    const shotAspect = searchParams.get('aspect')
+    if (cameFromCampaign) {
+      const composed = [shotSetting, shotVisualNotes].filter(Boolean).join('\n\n')
+      if (composed) {
+        // Force-set direction. The old prev-guard prevented the real
+        // campaign setting from overriding an earlier generic-hint set,
+        // leaving users with the boilerplate instead of their custom prompt.
+        setDirection(composed)
+      }
+      const aspectMap: Record<string, '1:1' | '4:5' | '9:16' | '16:9'> = {
+        '1:1': '1:1', '4:5': '4:5', '9:16': '9:16', '16:9': '16:9',
+      }
+      if (shotAspect && aspectMap[shotAspect]) setRatio(aspectMap[shotAspect])
+    } else if (substyle) {
+      // Only fall back to the generic substyle hint when NOT coming from a
+      // campaign (i.e., the older /generate/products?substyle=… entry).
       const hint =
         substyle === 'editorial' ? 'Hero editorial energy — magazine-cover composition, dramatic single-point studio lighting, hero product front-and-center on a rich textured surface.' :
         substyle === 'lifestyle' ? 'Lifestyle in-scene — product used in a real environment, candid moment, natural light, human hands or ambient life in frame.' :
@@ -181,30 +216,6 @@ export default function ProductStudio() {
         substyle === 'hyper-motion' ? 'Hyper-motion explosion — product floating mid-air surrounded by its ingredients or elements flying outward in all directions, vivid saturated studio backdrop (electric blue, deep red, or brand colour), ultra-sharp product, punchy high-contrast studio lighting, kinetic energy in every corner of the frame.' :
         ''
       if (hint) setDirection(prev => prev.trim() ? prev : hint)
-    }
-    if (pName || pDesc) {
-      if (pName) setCreateName(prev => prev || pName)
-      if (pDesc) setCreateWhatItIs(prev => prev || pDesc)
-      // Only auto-open the Create form if there's nothing selected yet.
-      setShowCreate(prev => prev || (!selected))
-    }
-    // Campaign → Product Studio handoff. When a photo shot from a campaign
-    // opens Product Studio, the URL carries the full image prompt in
-    // `setting` (60-120 words). Use it as the shoot direction so the shot
-    // renders exactly what the campaign planner spec'd.
-    const campaignShot = searchParams.get('shot')
-    const shotSetting = searchParams.get('setting')
-    const shotVisualNotes = searchParams.get('visualNotes')
-    const shotAspect = searchParams.get('aspect')
-    if (campaignShot) {
-      // Direction takes the setting as the primary prompt; visualNotes
-      // append if present. Never overwrite what the user has already typed.
-      const composed = [shotSetting, shotVisualNotes].filter(Boolean).join('\n\n')
-      if (composed) setDirection(prev => prev.trim() ? prev : composed)
-      const aspectMap: Record<string, '1:1' | '4:5' | '9:16' | '16:9'> = {
-        '1:1': '1:1', '4:5': '4:5', '9:16': '9:16', '16:9': '16:9',
-      }
-      if (shotAspect && aspectMap[shotAspect]) setRatio(aspectMap[shotAspect])
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
@@ -657,15 +668,27 @@ export default function ProductStudio() {
                 </>
               )}
             </div>
+            {cameFromCampaign && direction.trim() && (
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 12px', marginBottom: 8,
+                border: '1px solid #86efac', background: '#dcfce7',
+                color: '#166534', borderRadius: 8, fontSize: 12.5,
+                width: '100%',
+              }}>
+                <span style={{ fontSize: 14, lineHeight: 1 }}>✓</span>
+                <span>Shoot direction auto-filled from your campaign shot. Edit below or hit <strong>Shoot</strong>.</span>
+              </div>
+            )}
             <textarea
               className="textarea"
-              rows={2}
+              rows={cameFromCampaign && direction.trim() ? 6 : 2}
               value={direction}
               onChange={e => setDirection(e.target.value)}
               placeholder={styleRef
                 ? "Optional tweak: 'keep the layout but make it more dramatic'… or leave empty and the AI matches the reference exactly."
                 : "Optional direction: 'splashing into iced coffee', 'pastel pink set'… leave empty and the AI picks fresh concepts (never repeats a format)."}
-              style={{ fontSize: 13.5, flex: 1, resize: 'none', margin: 0 }}
+              style={{ fontSize: 13.5, flex: 1, resize: 'vertical', margin: 0, minHeight: cameFromCampaign && direction.trim() ? 120 : undefined }}
             />
             {shooting ? (
               <ShootProgress
