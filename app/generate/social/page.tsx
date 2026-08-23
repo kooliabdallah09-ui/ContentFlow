@@ -552,7 +552,6 @@ export default function SocialPage() {
         ctx.fillRect(0, 0, W, H)
 
         const PAD = 72
-        const hasCta = !!slide.cta?.trim()
         const hasBody = !!slide.body?.trim()
 
         // Subtle text shadow for legibility without dark background
@@ -566,8 +565,7 @@ export default function SocialPage() {
         const headlineSize = 74
         const headlineLH = 86
         ctx.font = `700 ${headlineSize}px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
-        // Slight negative letter-spacing feel via canvas — approximated by using bold weight
-        const headlineY = H - (hasCta ? 340 : hasBody ? 260 : 200)
+        const headlineY = H - (hasBody ? 260 : 200)
         const lastY = wrapText(ctx, slide.headline, PAD, headlineY, W - PAD * 2, headlineLH)
 
         // BODY — lighter weight, softer color
@@ -577,29 +575,10 @@ export default function SocialPage() {
           wrapText(ctx, slide.body, PAD, lastY + 58, W - PAD * 2, 52)
           ctx.globalAlpha = 1
         }
-
-        // Kill shadow before drawing the CTA pill
-        ctx.shadowColor = 'transparent'
-        ctx.shadowBlur = 0
-        ctx.shadowOffsetY = 0
-
-        // CTA — pill-shaped, slightly narrower than full-width for a modern feel
-        if (hasCta) {
-          const btnH = 82
-          const btnY = H - 120
-          const btnW = Math.min(W - PAD * 2, 720)
-          const btnX = (W - btnW) / 2
-          ctx.fillStyle = '#ffffff'
-          ctx.beginPath()
-          ctx.roundRect(btnX, btnY, btnW, btnH, btnH / 2)
-          ctx.fill()
-          ctx.fillStyle = '#111111'
-          ctx.font = `600 34px -apple-system, "SF Pro Display", "Helvetica Neue", "Segoe UI", sans-serif`
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(slide.cta, W / 2, btnY + btnH / 2 + 1)
-          ctx.textBaseline = 'alphabetic'
-        }
+        // NOTE: CTA is intentionally NOT painted on-image. The big white pill
+        // stamped across the last slide read as "amateur ad overlay" and
+        // covered the influencer/product. The CTA belongs in the caption
+        // (which is where users tap through anyway on IG).
 
         resolve(canvas)
       }
@@ -1290,7 +1269,8 @@ export default function SocialPage() {
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 22px 22px' }}>
                         <p style={{ margin: 0, color: '#fff', fontSize: 18, fontWeight: 700, lineHeight: 1.3, letterSpacing: '-0.01em' }}>{slide.headline}</p>
                         {slide.body && <p style={{ margin: '6px 0 0', color: 'rgba(255,255,255,0.82)', fontSize: 13, lineHeight: 1.5 }}>{slide.body}</p>}
-                        {slide.cta && <div style={{ marginTop: 14, background: '#fff', borderRadius: 8, padding: '9px 0', textAlign: 'center', color: '#000', fontSize: 13, fontWeight: 700 }}>{slide.cta}</div>}
+                        {/* CTA intentionally not rendered as an on-image button —
+                            it belongs in the caption, not stamped on the photo. */}
                       </div>
                     </div>
                   )
