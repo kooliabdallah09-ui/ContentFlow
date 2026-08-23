@@ -211,34 +211,72 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
     return NextResponse.json({ error: 'Failed to parse slide copy from AI' }, { status: 500 })
   }
 
-  const imageResults = await Promise.allSettled(
-    slideSpecs.map(slide => {
-      let finalPrompt = illDesc
-        ? `${illDesc}. Slide subject: ${slide.imagePrompt}`
-        : slide.imagePrompt
-      if (influencer) {
-        finalPrompt = `${influencer.appearance_prompt}\n\nScene for this slide: ${slide.imagePrompt}\n\nHyper-realistic candid snapshot of this exact person — natural face, no plastic face, no AI-smooth skin, real skin texture, bright even light, no camera interface, no watermark.`
-      }
-      const extraRefs = [
-        ...productRefs,
-        ...(referenceImageBase64 && referenceImageMimeType
-          ? [{ base64: referenceImageBase64 as string, mimeType: referenceImageMimeType as string }]
-          : []),
-      ]
-      const allRefs = [...influencerRefs, ...extraRefs]
-      return generateNanoBananaImage(finalPrompt, {
-        model,
-        style: influencer ? 'realistic' : 'professional',
-        ratio: platform === 'tiktok' ? '9:16' : platform === 'linkedin' ? '1:1' : '4:5',
-        referenceImages: allRefs.length ? allRefs : undefined,
-        referenceHint: allRefs.length
-          ? `${influencerRefs.length ? `The FIRST ${influencerRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; clothing may change per the prompt. ` : ''}${extraRefs.length ? 'The remaining image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it. ' : ''}Apply the prompt as scene + framing around them.`
-          : undefined,
-        referenceImageBase64: undefined,
-        referenceImageMimeType: undefined,
-      })
-    })
-  )
+  // Per-slide gen with ONE automatic retry. Nano Banana 429s and transient
+  // provider errors are common; a second attempt after ~2s usually succeeds.
+  // Slides that STILL fail after retry get refunded below (user shouldn't be
+  // charged for missing images).
+  // Extract THIS slide's dedicated paragraph from a per-slide illDesc.
+  // Planner writes "Slide 1: … | Slide 2: … | …" — pull just the matching
+  // one so slide N doesn't render slide 1's content. Falls back to the
+  // full illDesc if no per-slide split can be found.
+  function sliceIllDescForSlide(fullIllDesc: string, slideIndex: number): string {
+    if (!fullIllDesc) return ''
+    // Match "Slide N:" or "Slide N —" (case-insensitive), tolerant of pipe or
+    // newline separators. Captures everything up to the next "Slide M:" marker.
+    const re = /slide\s*(\d{1,2})\s*[:\-–—]\s*([\s\S]*?)(?=\s*[|\n]?\s*slide\s*\d{1,2}\s*[:\-–—]|$)/gi
+    const chunks: Record<number, string> = {}
+    let m: RegExpExecArray | null
+    while ((m = re.exec(fullIllDesc)) !== null) {
+      const n = parseInt(m[1], 10)
+      const body = m[2].trim().replace(/\s*[|]\s*$/, '').trim()
+      if (n > 0 && body) chunks[n] = body
+    }
+    const wanted = slideIndex + 1
+    return chunks[wanted] || fullIllDesc
+  }
+
+  async function genOneSlide(slide: typeof slideSpecs[0], slideIndex: number) {
+    // The scene direction is the LOAD-BEARING spec. Prefer per-slide illDesc
+    // if the user supplied a per-slide breakdown; otherwise use Sonnet's
+    // slideSpecs.imagePrompt.
+    const perSlideIll = sliceIllDescForSlide(illDesc, slideIndex)
+    const sceneSpec = perSlideIll || slide.imagePrompt
+    let finalPrompt = `SCENE (this is what the image MUST show, in full): ${sceneSpec}`
+    if (influencer) {
+      // Identity lock that YIELDS to scene direction. If the scene explicitly
+      // describes a different subject (gender/age/context) than the identity
+      // suggests, the scene wins. Prevents the failure mode where an
+      // influencer's stock portrait gets rendered instead of the meme/scene.
+      finalPrompt = `${finalPrompt}\n\nIDENTITY LOCK (apply only if compatible with the scene above): if the scene shows a person AND the described subject (gender, age, general demographic) is compatible with this identity, render that person with the following exact identity — face, hair, skin tone, build. If the scene explicitly describes a subject that CONTRADICTS this identity (different gender, very different age, non-human subject), IGNORE this identity block entirely. The scene direction ALWAYS wins over the identity lock.\n\n${influencer.appearance_prompt}\n\nWhen this identity IS used, they appear candidly — natural face, no plastic face, no AI-smooth skin, real texture, bright even light.`
+    }
+    const extraRefs = [
+      ...productRefs,
+      ...(referenceImageBase64 && referenceImageMimeType
+        ? [{ base64: referenceImageBase64 as string, mimeType: referenceImageMimeType as string }]
+        : []),
+    ]
+    const allRefs = [...influencerRefs, ...extraRefs]
+    const opts = {
+      model,
+      style: (influencer ? 'realistic' : 'professional') as 'realistic' | 'professional',
+      ratio: (platform === 'tiktok' ? '9:16' : platform === 'linkedin' ? '1:1' : '4:5') as '9:16' | '1:1' | '4:5',
+      referenceImages: allRefs.length ? allRefs : undefined,
+      referenceHint: allRefs.length
+        ? `${influencerRefs.length ? `The FIRST ${influencerRefs.length} reference image(s) define this exact person — face, hair, skin tone, build ONLY; clothing may change per the prompt. ` : ''}${extraRefs.length ? 'The remaining image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it. ' : ''}Apply the prompt as scene + framing around them.`
+        : undefined,
+      referenceImageBase64: undefined,
+      referenceImageMimeType: undefined,
+    }
+    try {
+      return await generateNanoBananaImage(finalPrompt, opts)
+    } catch (firstErr) {
+      console.warn('[carousel] slide gen failed, retrying in 2s:', firstErr instanceof Error ? firstErr.message : firstErr)
+      await new Promise(r => setTimeout(r, 2000))
+      return await generateNanoBananaImage(finalPrompt, opts)
+    }
+  }
+
+  const imageResults = await Promise.allSettled(slideSpecs.map((slide, i) => genOneSlide(slide, i)))
 
   const slides = slideSpecs.map((spec, i) => {
     const result = imageResults[i]
@@ -248,8 +286,37 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
       cta: spec.cta,
       imageBase64: result.status === 'fulfilled' ? result.value.imageBase64 : null,
       mimeType: result.status === 'fulfilled' ? result.value.mimeType : 'image/png',
+      failed: result.status !== 'fulfilled' || !result.value.imageBase64,
     }
   })
+
+  // Refund any slides that failed after retry — user paid per-slide, so per-slide refund.
+  const failedCount = slides.filter(s => s.failed).length
+  if (failedCount > 0) {
+    const refundAmount = failedCount * (model === 'nb2' ? CREDIT_PER_SLIDE_NB2 : CREDIT_PER_SLIDE)
+    try {
+      const { data: current } = await supabase
+        .from('user_credits')
+        .select('balance, pack_credits')
+        .eq('user_id', userId)
+        .maybeSingle()
+      if (current) {
+        await supabase.from('user_credits')
+          .update({ balance: (current.balance ?? 0) + refundAmount, updated_at: new Date().toISOString() })
+          .eq('user_id', userId)
+        await supabase.from('credit_transactions').insert({
+          user_id: userId,
+          amount: refundAmount,
+          transaction_type: 'refund',
+          content_type: 'carousel',
+          description: `Refund — ${failedCount} slide(s) failed to render`,
+        })
+        console.log(`[carousel] refunded ${refundAmount}cr for ${failedCount} failed slide(s) → user ${userId}`)
+      }
+    } catch (refundErr) {
+      console.error('[carousel] refund failed:', refundErr)
+    }
+  }
 
   const { data: saved } = await supabase.from('ugc_content').insert([{
     user_id: userId,
@@ -267,5 +334,12 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
     status: 'completed',
   }]).select('id').maybeSingle()
 
-  return NextResponse.json({ id: saved?.id ?? null, slides, creditsUsed: totalCost })
+  const netCost = totalCost - (failedCount * (model === 'nb2' ? CREDIT_PER_SLIDE_NB2 : CREDIT_PER_SLIDE))
+  return NextResponse.json({
+    id: saved?.id ?? null,
+    slides,
+    creditsUsed: netCost,
+    creditsRefunded: totalCost - netCost,
+    failedCount,
+  })
 }

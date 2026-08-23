@@ -76,6 +76,7 @@ interface CarouselSlide {
   cta: string
   imageBase64: string | null
   mimeType: string
+  failed?: boolean
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -512,7 +513,7 @@ export default function SocialPage() {
       // Defensive parse — server may return plain text (413 Request Entity Too
       // Large from Vercel, 504 timeout, 429 rate-limit) which is not valid JSON.
       const raw = await res.text()
-      let data: { error?: string; slides?: CarouselSlide[] } = {}
+      let data: { error?: string; slides?: CarouselSlide[]; failedCount?: number; creditsRefunded?: number } = {}
       try { data = raw ? JSON.parse(raw) : {} } catch {
         if (res.status === 413) throw new Error('Reference image too large. Try a smaller image.')
         if (res.status === 504) throw new Error('Generation timed out. Try fewer slides or retry.')
@@ -522,7 +523,18 @@ export default function SocialPage() {
       if (!res.ok) throw new Error(data.error || `Generation failed (${res.status})`)
       setSlides(data.slides ?? [])
       refreshCredits()
-      showSuccess('Carousel ready', `${(data.slides ?? []).length} slides generated`)
+      const totalSlides = (data.slides ?? []).length
+      const failed = data.failedCount ?? 0
+      const rendered = totalSlides - failed
+      if (failed > 0) {
+        // Refund happened server-side; tell the user + point them at the retry button.
+        showError(
+          'Some slides failed',
+          `${rendered}/${totalSlides} slides rendered — ${failed} failed and were refunded (${data.creditsRefunded ?? 0}cr). Use the ↻ button on failed slides to retry.`,
+        )
+      } else {
+        showSuccess('Carousel ready', `${totalSlides} slides generated`)
+      }
     } catch (e) {
       showError('Generation failed', e instanceof Error ? e.message : 'Unknown error')
     } finally {
@@ -1300,14 +1312,23 @@ export default function SocialPage() {
                 {slides.map((slide, i) => (
                   <button key={i} onClick={() => setActiveSlide(i)}
                     style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 16px', border: 'none', borderBottom: i < slides.length - 1 ? '1px solid var(--border-soft)' : 'none', background: i === activeSlide ? 'var(--bg-elev)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}>
-                    <div style={{ width: 40, height: isSquare ? 40 : 50, borderRadius: 6, background: '#111', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
+                    <div style={{ width: 40, height: isSquare ? 40 : 50, borderRadius: 6, background: slide.failed ? '#7f1d1d' : '#111', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
                       {slide.imageBase64 && <img src={`data:${slide.mimeType};base64,${slide.imageBase64}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
-                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.35)' }}>
+                      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: slide.failed ? 'rgba(127,29,29,0.75)' : 'rgba(0,0,0,0.35)' }}>
                         <span style={{ color: '#fff', fontSize: 10, fontWeight: 700 }}>{i + 1}</span>
                       </div>
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slide.headline}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{slide.headline}</p>
+                        {slide.failed && (
+                          <span style={{
+                            flexShrink: 0, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4,
+                            padding: '2px 6px', borderRadius: 4,
+                            background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5',
+                          }}>NO IMAGE · REFUNDED</span>
+                        )}
+                      </div>
                       {slide.body && <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slide.body}</p>}
                     </div>
                   </button>
