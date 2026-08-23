@@ -378,12 +378,16 @@ export default function SocialPage() {
           if (brand?.target_audience) brandParts.push(`Audience: ${brand.target_audience}`)
           const brandLine = brandParts.length > 0 ? `BRAND CONTEXT — ${brandParts.join('. ')}.\n\n` : ''
 
+          // If the user (or campaign prefill) wrote a rich imagePrompt (60+ chars),
+          // treat it as the primary SUBJECT spec — that's the actual scene direction.
+          // The short capTopic becomes supporting context. This matters most for
+          // campaign shots where the planner writes a full 60-120 word photo brief
+          // into imagePrompt and we'd otherwise bury it as "mood only."
           const userStyle = imagePrompt.trim()
-          const styleLine = userStyle
-            ? `STYLE / MOOD DIRECTION (from user — apply as visual style only, NOT as the subject): ${userStyle}\n\n`
-            : ''
-
-          const fullImagePrompt = `${brandLine}${styleLine}SUBJECT (this is what the image MUST show): A social media visual for the post topic "${capTopic.trim()}". The visual must clearly represent the brand's product/service above. Do NOT show unrelated items like candles, food, skincare, or lifestyle scenes unless the brand is actually in that industry. If the topic mentions growth, results, or metrics — visualize that concept (phone screens, dashboards, charts, before/after) in a way that matches the brand.\n\nHigh-quality, editorial, scroll-stopping. Absolutely no text, letters, logos, or words in the image.`
+          const richUserSpec = userStyle.length >= 60
+          const fullImagePrompt = richUserSpec
+            ? `${brandLine}PRIMARY SCENE SPEC (follow this exactly — this IS the subject and composition): ${userStyle}\n\nPOST CONTEXT (the caption / topic this image supports — do not draw this as text): "${capTopic.trim()}"\n\nHigh-quality, editorial, scroll-stopping. Absolutely no text, letters, logos, or words painted into the image.`
+            : `${brandLine}${userStyle ? `STYLE / MOOD DIRECTION (from user — apply as visual style only, NOT as the subject): ${userStyle}\n\n` : ''}SUBJECT (this is what the image MUST show): A social media visual for the post topic "${capTopic.trim()}". The visual must clearly represent the brand's product/service above. Do NOT show unrelated items like candles, food, skincare, or lifestyle scenes unless the brand is actually in that industry. If the topic mentions growth, results, or metrics — visualize that concept (phone screens, dashboards, charts, before/after) in a way that matches the brand.\n\nHigh-quality, editorial, scroll-stopping. Absolutely no text, letters, logos, or words in the image.`
 
           const imgRes = await fetch('/api/content/generate/image', {
             method: 'POST',

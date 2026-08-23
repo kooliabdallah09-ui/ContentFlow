@@ -239,13 +239,13 @@ export async function POST(request: NextRequest) {
           const ref = await fetchRef(u)
           if (ref) featureRefs.push(ref)
         }
-        promptPrefix += `The product "${prod.name}" is featured prominently in the visual.\n\n`
+        promptPrefix += `PRODUCT LOCK — the attached reference photo(s) show the EXACT product "${prod.name}". The rendered image MUST feature THIS product, faithfully reproduced from the reference. Do NOT invent a different product from the same category. Do NOT redesign, restyle, recolour, or "upgrade" the product. Do NOT swap it for a generic stand-in. Every scene, prop, and lighting choice in the prompt is styling AROUND this specific product.\n\n`
       }
     }
     if (featureRefs.length) {
       featureHint = identityCount > 0
-        ? `The FIRST ${identityCount} reference image(s) define an exact person — face, hair, skin tone, build ONLY; clothing may change per the prompt.${featureRefs.length > identityCount ? ' The remaining image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it.' : ''} Apply the prompt as scene + styling around them.`
-        : 'The attached reference photos show the EXACT product (multiple angles of the same item) — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it. Apply the prompt as the scene and styling around it.'
+        ? `The FIRST ${identityCount} reference image(s) define an exact person — face, hair, skin tone, build ONLY; clothing may change per the prompt.${featureRefs.length > identityCount ? ' The remaining image(s) show the EXACT product — preserve its packaging, label text, colours, shape and proportions perfectly; never redesign it, never substitute a similar-looking product.' : ''} Apply the prompt as scene + styling around them.`
+        : 'CRITICAL: The attached reference photos show the ACTUAL product. Reproduce it faithfully — packaging, label text, colours, shape, proportions, materials. Do NOT invent a different-looking product from the same category. Do NOT substitute a generic stand-in. The prompt describes the scene AROUND this exact product; the product itself must be visually identical to the reference.'
     }
 
     // Generate all images in parallel — NB Pro can take 130-250s per call so

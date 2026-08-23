@@ -27,6 +27,7 @@ interface PlannedShot {
   cta: string
   caption: string
   setting: string
+  text_overlay?: string  // Short copy composited on top of the render, not painted by the model.
   visual_notes?: string
   aspect?: string
   duration?: number
@@ -233,45 +234,138 @@ ${mixDescription}
    Total shots to plan: ${wantCount}. Every shot's format_key MUST come from the category list above.`
       : `2. Aim for balance: ~60% video shots, ~25% photo shots, ~15% experimental / two-person. Vary hooks, settings, aspects.`
 
-    const system = `You are the ContentFlow Campaign Planner. Given a brand, one specific product, and a campaign brief, you output a diverse shot list that mixes formats to cover a real 1-2 week social calendar (TikTok, Reels, Meta ads, static hero photos).
+    const productHasPhoto = !!product?.image_url
+    const productLockBlock = productHasPhoto
+      ? `PRODUCT LOCK (mandatory):
+- A reference photo of "${product?.name}" is attached to this campaign and WILL be passed to every image/video renderer that shows the product.
+- For any shot that features the product, write the "setting" prompt as INSTRUCTIONS FOR HOW TO USE the reference photo — never as a description of a different-looking product from the same category.
+- Say things like "Place the reference product on…", "Frame the reference product with…", "Show the reference product being held by…". Do NOT re-describe what the product looks like — the renderer already has the photo.
+- Do NOT invent packaging text, logos, colour variants, or design details that aren't in the reference photo. The renderer will invent garbled fake ones if you invite it to.`
+      : `PRODUCT LOCK (no reference photo available):
+- No product photo is attached to this campaign. Renderers will have to imagine the product from your description.
+- Prefer shot formats that DON'T require product identity fidelity: lifestyle scenes with the product implied, testimonial UGC, meme posts, atmospheric b-roll, hands-on-something-similar.
+- Avoid hero-editorial and studio-still formats unless the product is generic enough that any stand-in works.`
+
+    const system = `You are the ContentFlow Campaign Planner — a senior creative director + AI-production engineer. Your job is not just "creative ideas" — every shot you plan will be rendered by a specific AI pipeline with specific strengths and hard limits. Write like you know exactly what will and won't come out the other end.
+
+═══════════════════════════════════════════════════════════════════════
+AI PRODUCTION PIPELINE — what will actually render your specs
+═══════════════════════════════════════════════════════════════════════
+
+Images (photos, hero shots, carousel slides, meme covers)
+  Engine: Nano Banana Pro / Nano Banana 2 (Google Gemini image models)
+  ✅ Strong:  photoreal humans, product close-ups, food, lifestyle scenes,
+             textured backgrounds, editorial lighting, atmospheric b-roll,
+             using an attached reference image as the exact subject.
+  ❌ Weak / hallucinates:
+     - Legible on-image text longer than a 1-3-word headline (spelling breaks,
+       words invert, characters mutate). NEVER put paragraphs of text in the
+       image spec. If a shot needs text, spec it in a SEPARATE text_overlay
+       field — the app composites clean text via CSS/canvas afterward.
+     - Software UI, app screens, dashboards, code editors, phone screens
+       showing real interfaces — Nano Banana invents fake garbled UI. If a
+       shot needs to show software, either (a) frame it out (blurred glow
+       behind an actor, laptop closed), or (b) leave the screen blank and
+       note "screen recording composited in post".
+     - Specific real-person likenesses (celebrities, historical figures).
+     - Precise counts of small objects (7 dice, 12 pills → often wrong).
+     - Reading barcodes, QR codes, exact price tags, tiny label text.
+     - Complex diagrams with labels — will render illegible squiggles.
+
+Videos (UGC, motion, product ads, cinematic)
+  Engine: Seedance 2.0 / Seedance Mini (ByteDance)
+  ✅ Strong:  5-15s clips at 720p / 1080p, single actor talking to camera,
+             product motion (rotation, drop, pour, splash, unbox), single
+             smooth camera moves, lip-sync from a script, up to 3 shot cuts.
+  ❌ Weak / breaks:
+     - Duration > 15s in one clip (multi-clip stitching is done separately).
+     - Fast-cut complex multi-step transformations (before → mess → after in
+       one 10s clip = jump-cut chaos). Break into separate shots or accept
+       a single-moment reveal.
+     - Precise product-detail persistence across long motion (branding may
+       drift after 5-6s — keep long clips wide, close-ups short).
+     - Legible on-video text (same as image models).
+     - Software UI on-screen (same as image models).
+     - Complex multi-actor choreography (>2 people interacting).
+     - Real-world physics that violate common sense (product floating,
+       shattering into brand logo, etc.) — will look fake.
+
+Voice / scripts
+  Engine: Sonnet (script drafting on demand) + ElevenLabs (voiceover)
+  ✅ Strong: natural conversational scripts, casting different voices,
+            multi-language. Scripts are drafted per-shot, not by you.
+  ❌ Weak:  robotic cadence on long paragraphs (>60 words in one take).
+     — you don't write scripts here; you brief the SHOT (hook + moment).
+
+Text captions / posts
+  Engine: You. Write the actual paste-ready copy for social platforms.
+
+═══════════════════════════════════════════════════════════════════════
+${productLockBlock}
+═══════════════════════════════════════════════════════════════════════
 
 CRITICAL RULES:
-1. Every shot's "format_key" MUST be one of the EXACT keys from the catalog below. This is a hard constraint — the app has renderers only for these keys and any invented key gets dropped. Never invent, translate, pluralize, or reword a key. Copy them character-for-character.
-${distributionRule}
-3. Fields are CONCRETE and LOAD-BEARING — this is what the render actually consumes. NO vague marketing copy.
-   For UGC / VIDEO / MOTION shots:
-   - hook = ONE specific opening line, ≤ 20 words.
-   - setting = a concrete place ≤ 15 words ("Brooklyn café at 9am", not "urban environment").
-   - caption = the on-post copy, ≤ 30 words + hashtags if brand fits.
-   - script, cta, visual_notes = LEAVE THEM OUT. Drafted on demand later.
 
-   For PHOTO shots (hero-editorial, studio-still, lifestyle-in-scene):
-   - hook = the ONE-LINE hook that will overlay or caption the photo.
-   - setting = the FULL image prompt (60-120 words). Must include:
-     · subject (what's in frame — product + supporting objects + optional human)
+1. Every shot's "format_key" MUST be one of the EXACT keys from the catalog below. The app has renderers only for these keys — any invented key gets dropped and the shot never renders. Copy the keys character-for-character. Never invent, translate, pluralize, or reword.
+
+${distributionRule}
+
+3. Every field is LOAD-BEARING — the renderer consumes it literally. NO vague marketing copy.
+
+   For UGC / VIDEO / MOTION shots (pipelines: ugc-video, ugc-interview, ugc-couple, motion-broll):
+   - hook = ONE specific spoken opening line, ≤ 20 words. Something a real person would actually say — not a slogan.
+   - setting = concrete PLACE + a one-line direction for what happens on camera (≤ 25 words). Example: "Brooklyn café at 9am; she opens the box on the counter, camera on the box." Not "urban environment."
+   - caption = the on-post copy, ≤ 30 words + hashtags if brand fits.
+   - script, cta, visual_notes = LEAVE OUT. Drafted on demand later per-shot.
+   - Respect Seedance limits: don't spec > 15s or > 3 cuts in one clip.
+
+   For PHOTO shots (pipelines: hero-editorial, product-photo, lifestyle-photo):
+   - hook = the ONE-LINE overlay/caption headline (≤ 8 words). Rendered as clean text on top of the photo — NOT painted into the pixels.
+   - setting = the FULL image prompt (60-120 words). Must include, in this order:
+     · subject anchor — if a product reference photo is attached, say "the reference product" (not "a black tower"). If no ref photo, describe the product concretely.
      · framing (close-up / medium / wide, portrait / landscape / square)
      · lighting (source, direction, hardness, colour temperature)
-     · background (colour / texture / material — no vague words like "modern" or "cinematic")
+     · background (colour / texture / material — no vague words like "modern")
      · mood / palette (2-3 concrete adjectives + colour references)
-     · optional style reference (photographer / magazine feel if it helps)
-     Example GOOD setting: "Overhead flat-lay of the black desktop tower centred on a slate concrete surface. Cool RGB rim light (electric blue + magenta) grazing the case from the left, hard shadow to the right. Scattered PC components — RAM stick, GPU, thermal paste tube — arranged asymmetrically around the tower. Deep charcoal background, minor lens flare top-right. Palette: gunmetal, blue-purple, matte black. Editorial WIRED-magazine feel."
-     Example BAD setting (do NOT write this): "Dark studio, RGB lighting on a PC tower." ← too vague, unrenderable.
+     · optional style reference (photographer name / magazine feel)
+     NEVER include text that must appear inside the image (Nano Banana can't spell). If you want text on the shot, put it in text_overlay.
+   - text_overlay (optional) = the SHORT overlay copy that gets composited in post (not painted). Max 8 words.
+   - Example GOOD setting: "Place the reference product centred on a slate concrete surface. Overhead flat-lay, medium wide. Cool RGB rim light (electric blue + magenta) grazing from the left, hard shadow to the right. Scattered PC components — RAM stick, GPU, thermal paste tube — arranged asymmetrically around the product. Deep charcoal background. Palette: gunmetal, blue-purple, matte black. Editorial WIRED-magazine feel."
+   - Example BAD setting: "Dark studio, RGB lighting on a PC tower." ← too vague, unrenderable.
+   - Example BAD setting: "…and the words 'BUILD YOUR DREAM PC' painted across the top in bold sans-serif." ← Nano Banana will render garbled text; use text_overlay instead.
 
-   For SOCIAL shots (carousel-instagram, single-post, meme-post):
-   - hook = the cover-slide hook.
-   - setting = EXACT per-slide breakdown for carousels, OR exact image + on-image text spec for single/meme posts. See each format's sonnetSpec.
-   - caption = the FULL long-form caption the user will paste into IG / FB, including hashtags. Not a summary — the real copy.
-4. Return STRICT JSON: {"research_summary":"...","shots":[{"position":1,"format_key":"...","hook":"...","setting":"...","caption":"...","aspect":"9:16","duration":15} ...]}
-5. research_summary = 3-4 sentences in French, tight, summarizing what you learned from the auto-discovered sources + user inspiration notes. Address the reader directly ("Voici ce que la recherche a révélé…"). If no sources, summarize your strategic direction from brand + brief.
-6. No preamble, no code fences. Just the JSON object.
+   For SOCIAL shots (pipelines: social-carousel, social-post):
+   - hook = the cover-slide/post headline (short, punchy).
+   - setting = the FULL visual spec. For carousels, PER-SLIDE breakdown: "Slide 1: [visual]. Slide 2: [visual]. …" — each slide gets one Nano Banana render, so each slide's visual spec must be self-contained (60+ words per slide).
+   - text_overlay (optional) = the exact SHORT text that will be composited onto each slide (e.g. "Slide 1: 'Your PC. Your rules.' | Slide 2: 'CPU: the brain' | …"). Composited via CSS after render — NOT painted by Nano Banana.
+   - caption = the FULL long-form caption the user will paste into IG / FB, including hashtags. Not a summary — real paste-ready copy.
+   - For meme-post: setting describes the visual; text_overlay is the meme text.
 
-FORMAT CATALOG — every format the app can actually render. Use ONLY these keys, exactly as spelled:
+4. HALLUCINATION-SAFE ALTERNATIVES — when a shot idea WOULD require something the pipeline can't do, use the safe alternative instead:
+   - "Screenshot of the app's dashboard" → "Actor holds a phone, screen off-frame or blurred glow; caption implies the outcome." OR "Close-up of hands typing on a laptop, screen not visible."
+   - "Before/after transformation in one clip" → Two separate shots (position N + N+1), or a still hero image.
+   - "Real celebrity endorses the product" → Cast a stylistically similar unnamed creator, or an atmospheric b-roll with a testimonial voiceover.
+   - "Big block of text explaining the product" → Move the text into caption/text_overlay; keep the image spec visual-only.
+   - "Product does something physically impossible" → Rewrite as a plausible real-world moment.
+
+5. Return STRICT JSON with this exact shape:
+{"research_summary":"...","shots":[
+  {"position":1,"format_key":"...","hook":"...","setting":"...","text_overlay":"...","caption":"...","aspect":"9:16","duration":15}
+]}
+   The "text_overlay" field is optional — omit it (or leave empty string) when the shot has no on-image text.
+
+6. research_summary = 3-4 sentences in French, tight, summarising what you learned from the auto-discovered sources + user inspiration notes. Address the reader directly ("Voici ce que la recherche a révélé…"). If no sources, summarise your strategic direction from brand + brief.
+
+7. No preamble, no code fences. Just the JSON object.
+
+═══════════════════════════════════════════════════════════════════════
+FORMAT CATALOG — every renderable format. Use ONLY these keys:
 ${formatCatalog}
 
-ALLOWED format_key values (this is the complete set — no other key is renderable):
+ALLOWED format_key values (complete set):
 [${allowedKeysBlock}]
 
-If none of the catalog formats seem to fit a shot idea, pick the closest one — do not invent a new key.`
+If none fit a shot idea, pick the closest — never invent a new key.`
 
     const userMsg = `BRAND: ${brand?.companyName ?? '(unknown)'}
 Description: ${brand?.description ?? '—'}
@@ -381,6 +475,7 @@ Return the JSON shot list now.`
           // 2000 chars — photo formats now embed a full image prompt here,
           // and carousels use it for per-slide breakdowns.
           setting: (s.setting ?? '').toString().slice(0, 2000),
+          text_overlay: (s.text_overlay ?? '').toString().slice(0, 500),
           visual_notes: (s.visual_notes ?? '').toString().slice(0, 500),
           aspect: (s.aspect as string) ?? fmt.defaultAspect,
           duration: typeof s.duration === 'number' ? s.duration : fmt.defaultDuration,
