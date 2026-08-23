@@ -204,6 +204,14 @@ async function callNanoBananaGoogle(
 // Submit Nano Banana sync (Prefer: wait) — image gen is fast (~5–8s), no need to poll.
 // Returns the generated image as base64 (fetched from Replicate's CDN URL).
 // If referenceImages is omitted or empty, runs pure text-to-image (no reference fusion).
+// Universal anti-UI guard. Appended to EVERY prompt so the model never
+// paints phone status bars (9:41, wifi, battery), camera app chrome
+// (shutter button, focus reticle, timer), on-image UI, watermarks, or
+// timestamps into the pixels. The word "smartphone" / "9:16" / "selfie"
+// upstream can trigger Nano Banana to render iOS status-bar chrome —
+// this clause hard-blocks that regardless of what the caller asked for.
+const ANTI_UI_GUARD = '\n\nSTRICT — NEVER render ANY of these ANYWHERE in the frame: phone status bar (time / clock / 9:41 / signal bars / wifi / battery / carrier name), camera app UI (shutter button, capture ring, mode selector, timer, focus reticle, HDR badge, flash icon, aspect-ratio badge), on-screen icons of any kind, screen bezels, phone frame or notch, watermark, timestamp, date stamp, filename, resolution label, brand overlay, text captions, subtitle text, emoji, or any other UI element. Zero overlays, zero chrome. The output is a clean bare photograph — nothing on top of the pixels.'
+
 async function callNanoBanana(
   prompt: string,
   referenceImages?: Array<{ base64: string; mimeType: string }>,
@@ -211,6 +219,8 @@ async function callNanoBanana(
   model: 'pro' | 'nb2' = 'pro',
   resolution?: '1K' | '2K' | '4K',
 ): Promise<NanoBananaResult> {
+  // Hardened prompt — always appends the anti-UI guard.
+  prompt = prompt + ANTI_UI_GUARD
   // Provider: Vertex AI with fallback to AI Studio (GOOGLE_GENAI_API_KEY) on 429.
   const sa = getVertexSA()
   const genaiKey = process.env.GOOGLE_GENAI_API_KEY
@@ -260,7 +270,11 @@ async function callNanoBanana(
 // Used by the standalone /generate/video page when the user doesn't upload a ref.
 // Output is a 9:16-friendly hyper-realistic still that Sora will animate forward.
 export async function generateTextToImage(prompt: string): Promise<NanoBananaResult> {
-  const wrapped = `${prompt}\n\nRender as a hyper-realistic phone-camera photograph in vertical 9:16 portrait orientation. Soft natural lighting. Real attractive person — clear healthy even skin with a natural subtle glow, LIGHT natural makeup (mascara, subtle blush, tinted lip). Barely-there real-skin micro-texture (very subtle pores only). Do NOT add moles, freckle clusters, or red patches on the nose or cheeks unless the source prompt explicitly asks for them. AVOID plastic-glossy over-smoothed skin AND avoid tacked-on imperfections that scream AI. Individual features come from bone structure and subtle asymmetries, not blemishes. Should read as a candid moment captured on a real phone of a genuinely attractive person, not a stock-model render.\n\nSTRICT: The image is the raw photo only. Do NOT render any phone-camera UI, shutter button, viewfinder chrome, record button, timer, focus reticle, on-screen icons, screen bezels, camera app overlay, watermark, timestamp, text label, or any other UI element ANYWHERE in the frame. Zero overlays. No circles, no capture rings, no phone frame. The output is a clean bare photograph — nothing on top of the pixels.`
+  // Note: don't say "phone-camera" or "9:16" here — those words trigger the
+  // model to paint iOS status-bar chrome into the pixels. Aspect ratio is
+  // enforced separately via the API param below. The universal ANTI_UI_GUARD
+  // in callNanoBanana handles the on-image-UI hardening.
+  const wrapped = `${prompt}\n\nRender as a hyper-realistic vertical candid portrait photograph. Soft natural lighting. Real attractive person — clear healthy even skin with a natural subtle glow, LIGHT natural makeup (mascara, subtle blush, tinted lip). Barely-there real-skin micro-texture (very subtle pores only). Do NOT add moles, freckle clusters, or red patches on the nose or cheeks unless the source prompt explicitly asks for them. AVOID plastic-glossy over-smoothed skin AND avoid tacked-on imperfections that scream AI. Individual features come from bone structure and subtle asymmetries, not blemishes. Should read as a candid moment of a genuinely attractive person, not a stock-model render.`
   return callNanoBanana(wrapped, undefined, '9:16')
 }
 

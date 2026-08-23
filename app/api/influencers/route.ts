@@ -118,9 +118,8 @@ FRAMING & SETTING:
 SKIN & MAKEUP:
 - Skin is healthy, clean, and even-toned with a natural soft glow — not matte, not flat, but also NOT heavily dewy or glowing like a filter. Barely-there natural skin texture — the kind of skin a beautiful person actually has. No heavy airbrushing, no excessive redness, no dramatic pores, no rough texture. Just clean healthy human skin.
 - Makeup: minimal and natural — defined lashes, groomed brows, soft nude or rose lip. Light, effortless. Not heavy, not bare.
-- Hyper-realistic smartphone photo — natural depth, true-to-life color, slight grain. Looks like a real candid from an attractive person's camera roll.
-- The prompt must end with: 'Full-bleed photograph only — no camera interface, no shutter button, no viewfinder overlay, no on-screen text, no app UI, no watermark.'
-- NEVER use the words 'phone camera', 'selfie', or 'screenshot'
+- Hyper-realistic candid portrait photograph — natural depth, true-to-life color, slight grain. Looks like a real candid moment.
+- NEVER use the words 'smartphone', 'phone camera', 'selfie', 'screen', 'screenshot', or aspect-ratio numbers like '9:16' in the prompt — those words trigger the model to paint phone-UI status bars (9:41, wifi, battery) into the image.
 - NEVER include age numbers, brand names, or the words 'young' or 'girl'
 - Honor every physical trait the client explicitly asked for
 `
@@ -141,19 +140,19 @@ Return exactly this JSON shape:
 
 The appearance_prompt must be one continuous string written in 4 dense paragraphs (no labels or headers, just paragraphs separated by newlines). The goal is a STUNNING, STOP-THE-SCROLL portrait of a highly attractive person:
 
-First paragraph: Ultra-realistic vertical smartphone photo of a strikingly beautiful [specific cultural background, e.g. "Latina", "Mediterranean", "East Asian", "South Asian"] [gender]. Face: [be very specific — e.g. "sharply defined high cheekbones that cast a subtle natural shadow, a clean sculpted jawline, near-symmetrical oval face, full lips with a pronounced cupid's bow and natural rose-nude pigment, warm almond-shaped honey-brown eyes with naturally long lifted lashes and a faint inner-eye highlight, a straight refined nose"]. [Voluminous hair: e.g. "Long rich chocolate-brown wavy hair with warm auburn depth in sunlight, voluminous and full with soft natural waves and a few strands brushing her collarbone — not flat, full of movement and gloss"]. [Skin: e.g. "Warm olive skin with a luminous golden-hour glow — dewy and radiant, lit from within, not filtered or matte"]. Wearing [specific flattering outfit].
+First paragraph: Ultra-realistic vertical candid portrait photograph of a strikingly beautiful [specific cultural background, e.g. "Latina", "Mediterranean", "East Asian", "South Asian"] [gender]. Face: [be very specific — e.g. "sharply defined high cheekbones that cast a subtle natural shadow, a clean sculpted jawline, near-symmetrical oval face, full lips with a pronounced cupid's bow and natural rose-nude pigment, warm almond-shaped honey-brown eyes with naturally long lifted lashes and a faint inner-eye highlight, a straight refined nose"]. [Voluminous hair: e.g. "Long rich chocolate-brown wavy hair with warm auburn depth in sunlight, voluminous and full with soft natural waves and a few strands brushing her collarbone — not flat, full of movement and gloss"]. [Skin: e.g. "Warm olive skin with a luminous golden-hour glow — dewy and radiant, lit from within, not filtered or matte"]. Wearing [specific flattering outfit].
 
-Second paragraph: [Expression: e.g. "Looking directly into the camera with soft direct eye contact and a relaxed natural half-smile — warm and approachable without being posed. Lips slightly parted, completely at ease"]. The energy is that of a creator who just hit record mid-morning and looks effortlessly good. [One specific beautiful detail: e.g. "Her collarbone is visible, hair has a natural wave and volume that frames her face perfectly"].
+Second paragraph: [Expression: e.g. "Looking directly at the viewer with soft direct eye contact and a relaxed natural half-smile — warm and approachable without being posed. Lips slightly parted, completely at ease"]. The energy is that of someone caught mid-morning looking effortlessly good. [One specific beautiful detail: e.g. "Her collarbone is visible, hair has a natural wave and volume that frames her face perfectly"].
 
 Third paragraph: [Lifestyle setting in detail: e.g. "Bright airy bedroom — white textured linen duvet, warm natural wood headboard, morning light pouring through sheer white curtains creating a soft warm glow across the room. A small plant on the nightstand, a glass of water. Clean and aspirational but lived-in"]. The light is warm and directional, casting soft shadows that are flattering to the face.
 
-Fourth paragraph: Shot on a smartphone camera at eye level or barely below, subject's head turned just slightly to the side with a natural relaxed expression. [Crop: face filling the frame, or shoulders-up]. Soft even natural daylight from a side window — gentle highlights on cheekbones and nose, no harsh shadows, no ring light. Skin looks healthy, clean, and naturally even — subtle texture, not airbrushed but not rough. Minimal natural makeup: defined lashes, groomed brows, soft lip. Natural grain, true-to-life color, realistic phone lens perspective. Candid and real — indistinguishable from a photo taken in the moment. 9:16 aspect ratio.
+Fourth paragraph: Framed at eye level or barely below, subject's head turned just slightly to the side with a natural relaxed expression. [Crop: face filling the frame, or shoulders-up]. Soft even natural daylight from a side window — gentle highlights on cheekbones and nose, no harsh shadows, no ring light. Skin looks healthy, clean, and naturally even — subtle texture, not airbrushed but not rough. Minimal natural makeup: defined lashes, groomed brows, soft lip. Natural grain, true-to-life color, shallow natural depth of field. Candid and real — indistinguishable from a photo taken in the moment.
 
 HARD RULES:
 - Your entire response must be valid JSON starting with { — do not write any words before the opening brace
 - Honor every physical trait the client explicitly requested
 - Fill every detail with a specific creative choice — no vague generalities
-- Never write age numbers, brand names, the words young, girl, selfie, phone camera, or screenshot
+- Never write age numbers, brand names, aspect-ratio numbers (like "9:16"), or the words "young", "girl", "selfie", "smartphone", "phone camera", "phone photo", "screen", or "screenshot" — these trigger the model to paint phone-UI status bars into the image
 - If reference photos are attached, base the person description on that person's face and style
 `
 
