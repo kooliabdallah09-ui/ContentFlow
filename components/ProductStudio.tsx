@@ -220,26 +220,6 @@ export default function ProductStudio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
-  // Campaign → auto-select the matching studio product. Runs after `list`
-  // loads (or repopulates). Looks for a case-insensitive match on the
-  // product name passed in the URL. Falls back to auto-selecting the
-  // ONLY product when the studio has just one — very common early-user
-  // shape and always the right guess. Skips if the user has already
-  // manually selected something in this session.
-  useEffect(() => {
-    if (!searchParams || selected || loading || list.length === 0) return
-    const campaignShot = searchParams.get('shot')
-    if (!campaignShot) return
-    const wantedName = (searchParams.get('productName') ?? '').trim().toLowerCase()
-    const match = wantedName
-      ? list.find(p => p.name.toLowerCase() === wantedName)
-        ?? list.find(p => p.name.toLowerCase().includes(wantedName) || wantedName.includes(p.name.toLowerCase()))
-      : (list.length === 1 ? list[0] : undefined)
-    if (match) {
-      void openDetail(match, { preserveDirection: true })
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [list, loading, searchParams])
 
   useEffect(() => {
     load()
@@ -275,7 +255,43 @@ export default function ProductStudio() {
       if (!token) return
       const res = await fetch('/api/products-studio', { headers: { Authorization: `Bearer ${token}` } })
       const data = await res.json()
-      if (res.ok) setList(data.products ?? [])
+      if (res.ok) {
+        const products: StudioProduct[] = data.products ?? []
+        setList(products)
+        // Campaign → auto-open. Reads window.location.search DIRECTLY
+        // (bypasses useSearchParams' hydration timing) and operates on
+        // the freshly-fetched product list (bypasses the useState /
+        // useEffect race where `list` isn't yet updated when the deps
+        // effect fires). Matches by exact name, then substring, then
+        // falls back to the single-product case.
+        try {
+          if (typeof window === 'undefined') return
+          const qs = new URLSearchParams(window.location.search)
+          const shot = qs.get('shot')
+          const campaignId = qs.get('campaign')
+          if (!shot || !campaignId) return
+          const wantedName = (qs.get('productName') ?? '').trim().toLowerCase()
+          const wantedId = qs.get('product')
+          let match: StudioProduct | undefined
+          if (wantedName) {
+            match = products.find(p => p.name.toLowerCase() === wantedName)
+              ?? products.find(p => p.name.toLowerCase().includes(wantedName) || wantedName.includes(p.name.toLowerCase()))
+          }
+          if (!match && wantedId) {
+            match = products.find(p => p.id === wantedId)
+          }
+          if (!match && products.length === 1) {
+            match = products[0]
+          }
+          if (match) {
+            // Fire and forget — openDetail is async but we don't need to
+            // wait for the product detail fetch before returning from load().
+            void openDetail(match, { preserveDirection: true })
+          }
+        } catch (e) {
+          console.warn('[ProductStudio] campaign auto-select failed:', e)
+        }
+      }
     } finally {
       setLoading(false)
     }
