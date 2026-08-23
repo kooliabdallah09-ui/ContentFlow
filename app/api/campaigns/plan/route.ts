@@ -189,7 +189,10 @@ export async function POST(request: NextRequest) {
 
     // ── Ask Sonnet for the shot list ──────────────────────────────
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const formatCatalog = CAMPAIGN_FORMATS.map(f => `- ${f.key} · ${f.label} · ${f.tagline} · pipeline=${f.pipeline} · defaultDur=${f.defaultDuration}s · aspect=${f.defaultAspect}`).join('\n')
+    const formatCatalog = CAMPAIGN_FORMATS.map(f => `- ${f.key} · ${f.label} · category=${f.category} · pipeline=${f.pipeline} · ${f.tagline}`).join('\n')
+    // Bare list of valid keys for the "allowed values" enum reminder at the
+    // end. Repeated intentionally so Sonnet can't miss it even in a long ctx.
+    const allowedKeysBlock = CAMPAIGN_FORMAT_KEYS.map(k => `"${k}"`).join(', ')
 
     const distributionRule = mixDescription
       ? `2. FORMAT DISTRIBUTION — the user has chosen this exact mix. Match it as closely as possible:
@@ -200,7 +203,7 @@ ${mixDescription}
     const system = `You are the ContentFlow Campaign Planner. Given a brand, one specific product, and a campaign brief, you output a diverse shot list that mixes formats to cover a real 1-2 week social calendar (TikTok, Reels, Meta ads, static hero photos).
 
 CRITICAL RULES:
-1. Every shot's "format_key" MUST be one of the exact keys from the catalog below. Never invent a key.
+1. Every shot's "format_key" MUST be one of the EXACT keys from the catalog below. This is a hard constraint — the app has renderers only for these keys and any invented key gets dropped. Never invent, translate, pluralize, or reword a key. Copy them character-for-character.
 ${distributionRule}
 3. Fields are CONCRETE, not generic. Keep them TIGHT — planner output is a scan-able overview, not the final script.
    - hook = ONE specific opening line, ≤ 20 words.
@@ -211,8 +214,13 @@ ${distributionRule}
 5. research_summary = 3-4 sentences in French, tight, summarizing what you learned from the auto-discovered sources + user inspiration notes. Address the reader directly ("Voici ce que la recherche a révélé…"). If no sources, summarize your strategic direction from brand + brief.
 6. No preamble, no code fences. Just the JSON object.
 
-FORMAT CATALOG (use these keys):
-${formatCatalog}`
+FORMAT CATALOG — every format the app can actually render. Use ONLY these keys, exactly as spelled:
+${formatCatalog}
+
+ALLOWED format_key values (this is the complete set — no other key is renderable):
+[${allowedKeysBlock}]
+
+If none of the catalog formats seem to fit a shot idea, pick the closest one — do not invent a new key.`
 
     const userMsg = `BRAND: ${brand?.companyName ?? '(unknown)'}
 Description: ${brand?.description ?? '—'}

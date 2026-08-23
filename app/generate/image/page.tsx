@@ -67,6 +67,29 @@ export default function ImageGeneratorPage() {
   const [confirmDeleteUrl, setConfirmDeleteUrl] = useState<string | null>(null)
 
   useEffect(() => {
+    // Campaign → Builder handoff. When arriving from a photo shot on the
+    // campaign detail page the URL carries all the shot spec fields — read
+    // them and pre-fill the prompt, ratio, and count so the user can hit
+    // Generate immediately. Runs BEFORE the calendar/chat fallback so the
+    // campaign context wins.
+    const qs = new URLSearchParams(window.location.search)
+    const campaignId = qs.get('campaign')
+    const shotId = qs.get('shot')
+    if (campaignId && shotId) {
+      const parts: string[] = []
+      const formatLabel = qs.get('formatLabel')
+      const hook = qs.get('hook')
+      const setting = qs.get('setting')
+      const visualNotes = qs.get('visualNotes')
+      if (formatLabel) parts.push(`${formatLabel} shot.`)
+      if (hook) parts.push(hook)
+      if (setting) parts.push(`Scene: ${setting}.`)
+      if (visualNotes) parts.push(visualNotes)
+      if (parts.length > 0) setPrompt(parts.join(' '))
+      const aspect = qs.get('aspect')
+      if (aspect && RATIOS.some(r => r.id === aspect)) setRatio(aspect)
+      return
+    }
     const suggestion = readPrefill('image')
     if (suggestion) {
       setPrompt(`${suggestion.title}. ${suggestion.description}`.trim())

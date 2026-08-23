@@ -13,7 +13,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
-import { Loader2, Sparkles, Plus, ChevronRight, Coins, User2, Users, Camera, Wand2, Image as ImageIcon, Minus } from 'lucide-react'
+import { Loader2, Sparkles, Plus, ChevronRight, Coins, User2, Users, Camera, Wand2, Image as ImageIcon, Minus, CheckCircle2 } from 'lucide-react'
 
 const PLAN_COST = 5
 
@@ -30,6 +30,14 @@ interface Campaign {
 }
 
 interface Product { id: string; name: string; image_url: string | null }
+
+interface Brand {
+  companyName?: string
+  description?: string
+  uniqueValueProp?: string
+  targetAudience?: string
+  toneOfVoice?: string
+}
 
 // Format bucket == CampaignFormat.category. Sonnet only picks format_keys
 // from the buckets the user allocated a count to.
@@ -59,6 +67,7 @@ export default function CampaignsPage() {
   const router = useRouter()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [products, setProducts] = useState<Product[]>([])
+  const [brand, setBrand] = useState<Brand | null>(null)
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
 
@@ -109,13 +118,41 @@ export default function CampaignsPage() {
     setLoading(true)
     const token = await getToken()
     if (!token) { setLoading(false); return }
-    const [c, p] = await Promise.all([
+    const [c, p, b] = await Promise.all([
       fetch('/api/campaigns', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ campaigns: [] })),
       fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({ products: [] })),
+      fetch('/api/brand/load', { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()).catch(() => ({})),
     ])
     setCampaigns(c.campaigns ?? [])
     setProducts(p.products ?? [])
+    // /api/brand/load returns { profile: row } with snake_case columns.
+    const rawBrand = (b?.profile ?? b?.brand ?? b) ?? {}
+    setBrand({
+      companyName:     rawBrand.company_name ?? rawBrand.companyName ?? undefined,
+      description:     rawBrand.description ?? undefined,
+      uniqueValueProp: rawBrand.unique_value_prop ?? rawBrand.uniqueValueProp ?? undefined,
+      targetAudience:  rawBrand.target_audience ?? rawBrand.targetAudience ?? undefined,
+      toneOfVoice:     rawBrand.tone_of_voice ?? rawBrand.toneOfVoice ?? undefined,
+    })
     setLoading(false)
+  }
+
+  function fillBriefFromBrand() {
+    if (!brand) return
+    const product = products.find(p => p.id === productId)
+    const lines: string[] = []
+    const goalPhrase = ({
+      launch: 'Launch campaign',
+      awareness: 'Awareness campaign',
+      conversion: 'Conversion-focused campaign',
+      evergreen: 'Evergreen content series',
+    } as const)[goal]
+    lines.push(`${goalPhrase} for ${brand.companyName ?? 'our brand'}${product ? ` — featuring ${product.name}` : ''}.`)
+    if (brand.targetAudience) lines.push(`Audience: ${brand.targetAudience}.`)
+    if (brand.toneOfVoice)    lines.push(`Tone: ${brand.toneOfVoice}.`)
+    if (brand.uniqueValueProp) lines.push(`What makes it worth talking about: ${brand.uniqueValueProp}.`)
+    if (brand.description && !brand.uniqueValueProp) lines.push(brand.description)
+    setBrief(lines.join(' '))
   }
 
   async function submit() {
@@ -208,6 +245,27 @@ export default function CampaignsPage() {
             </div>
           </div>
 
+          {/* ── Brand context banner ─────────────────── */}
+          {brand?.companyName && (
+            <div style={{
+              padding: '10px 24px',
+              display: 'flex', alignItems: 'center', gap: 10,
+              fontSize: 12.5, color: 'var(--ink-2)',
+              background: 'var(--surface-2, rgba(0,0,0,0.02))',
+              borderBottom: '1px solid var(--border)',
+            }}>
+              <CheckCircle2 size={14} style={{ color: 'var(--success, #059669)', flexShrink: 0 }} />
+              <span>
+                Using your <strong style={{ color: 'var(--ink)' }}>Brand</strong> — Sonnet already knows{' '}
+                <strong style={{ color: 'var(--ink)' }}>{brand.companyName}</strong>
+                {brand.toneOfVoice ? `, your ${brand.toneOfVoice.split(/[,.]/)[0].toLowerCase().trim()} tone` : ''}
+                {brand.targetAudience ? `, and your audience` : ''}.
+                No need to repeat it in the brief.
+              </span>
+              <Link href="/brand" style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--ink-2)', textDecoration: 'underline', whiteSpace: 'nowrap' }}>Edit brand</Link>
+            </div>
+          )}
+
           {/* ── SECTION: Basics ───────────────────────── */}
           <Section title="Basics" subtitle="Name it, tag a product, tell Sonnet what this campaign is for.">
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
@@ -241,7 +299,24 @@ export default function CampaignsPage() {
               </Field>
             </div>
 
-            <Field label="Brief" hint="Audience, tone, angle, and anything specific about what should feel unique.">
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                <div style={{ fontSize: 11.5, fontWeight: 600, letterSpacing: 0.4, color: 'var(--ink-2)', textTransform: 'uppercase' }}>Brief</div>
+                {brand?.companyName && (
+                  <button
+                    type="button"
+                    onClick={fillBriefFromBrand}
+                    style={{
+                      fontSize: 11.5, color: 'var(--ink)', background: 'transparent',
+                      border: '1px solid var(--border)', borderRadius: 6,
+                      padding: '4px 10px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', gap: 5,
+                    }}
+                  >
+                    <Sparkles size={12} /> Draft from brand
+                  </button>
+                )}
+              </div>
               <textarea
                 value={brief}
                 onChange={e => setBrief(e.target.value)}
@@ -249,7 +324,10 @@ export default function CampaignsPage() {
                 rows={4}
                 style={{ ...fieldInput, resize: 'vertical', minHeight: 96 }}
               />
-            </Field>
+              <div style={{ fontSize: 11.5, color: 'var(--ink-2)', marginTop: 6 }}>
+                Audience, tone, angle, and anything specific about what should feel unique.
+              </div>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
               <Field label="Goal">

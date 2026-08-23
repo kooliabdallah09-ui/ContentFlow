@@ -13,6 +13,19 @@ import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
 import { CAMPAIGN_FORMATS, getCampaignFormat } from '@/lib/campaign-formats'
 import { ArrowLeft, Trash2, Loader2, Sparkles, ExternalLink, ChevronDown, ChevronRight, Wand2 } from 'lucide-react'
+import type { CampaignFormat } from '@/lib/campaign-formats'
+
+// Maps a campaign format to a short user-facing type badge so shots are
+// scannable at a glance (UGC, Motion, Photo, Transform).
+function formatBadge(fmt: CampaignFormat | undefined): { label: string; bg: string; fg: string; border: string } {
+  if (!fmt) return { label: 'Shot', bg: 'var(--surface-2)', fg: 'var(--ink-2)', border: 'var(--border)' }
+  if (fmt.category === 'photo')          return { label: 'Photo',     bg: '#dcfce7', fg: '#166534', border: '#86efac' }
+  if (fmt.category === 'motion')         return { label: 'Motion',    bg: '#f3e8ff', fg: '#6b21a8', border: '#d8b4fe' }
+  if (fmt.category === 'transformation') return { label: 'Transform', bg: '#fef3c7', fg: '#92400e', border: '#fcd34d' }
+  if (fmt.category === 'two-person')     return { label: 'UGC · duo', bg: '#dbeafe', fg: '#1e40af', border: '#93c5fd' }
+  // 'solo' / 'other' default to UGC video
+  return { label: 'UGC · video', bg: '#dbeafe', fg: '#1e40af', border: '#93c5fd' }
+}
 
 interface Campaign {
   id: string
@@ -397,8 +410,23 @@ export default function CampaignDetailPage() {
                   {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </button>
                 <div style={{ flex: 1, minWidth: 200 }}>
-                  <div style={{ fontSize: 15, fontWeight: 700 }}>{fmt?.label ?? shot.format_key}</div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 2 }}>{fmt?.tagline ?? shot.pipeline}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: 15, fontWeight: 700 }}>{fmt?.label ?? shot.format_key}</div>
+                    {(() => {
+                      const badge = formatBadge(fmt)
+                      return (
+                        <span style={{
+                          fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3,
+                          textTransform: 'uppercase',
+                          padding: '2px 7px', borderRadius: 999,
+                          background: badge.bg, color: badge.fg,
+                          border: `1px solid ${badge.border}`,
+                          whiteSpace: 'nowrap',
+                        }}>{badge.label}</span>
+                      )
+                    })()}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--ink-2)', marginTop: 3 }}>{fmt?.tagline ?? shot.pipeline}</div>
                 </div>
 
                 {/* Aspect chip */}
@@ -471,6 +499,30 @@ export default function CampaignDetailPage() {
 
               {/* Editable fields — grouped by function */}
               {isExpanded && (<>
+              {/* Format info panel — tells the user what this format is,
+                  what it needs, and where clicking Builder will take them. */}
+              {fmt && (
+                <div style={{
+                  display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0,
+                  marginBottom: 14,
+                  border: '1px solid var(--border)', borderRadius: 10,
+                  overflow: 'hidden', background: 'var(--surface-2)',
+                }}>
+                  <InfoCell label="Category" value={fmt.category.replace(/-/g, ' ')} />
+                  <InfoCell label="Pipeline" value={pipelineLabel(fmt.pipeline)} />
+                  <InfoCell label="Renders in" value={pipelineTarget(fmt.pipeline)} last />
+                  <InfoCell label="Needs actor" value={fmt.requiresActor ? 'Yes' : 'No'} />
+                  <InfoCell label="Needs scene" value={fmt.requiresScene ? 'Yes' : 'No'} />
+                  <InfoCell label="Needs product" value={fmt.requiresProduct ? 'Yes' : 'No'} last />
+                  <InfoCell
+                    label="Base spec"
+                    value={`${fmt.defaultAspect} · ${fmt.defaultDuration > 0 ? `${fmt.defaultDuration}s` : 'still'}`}
+                  />
+                  <InfoCell label="Est. credits" value={`${shot.credit_hint} cr`} />
+                  <InfoCell label="Status" value={shot.status === 'done' ? 'Rendered ✓' : (shot.spec.script ? 'Script drafted' : 'Planned')} last />
+                </div>
+              )}
+
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                 <FieldBlock label="Hook">
                   <textarea
@@ -549,6 +601,26 @@ export default function CampaignDetailPage() {
                   />
                 </FieldBlock>
               </div>
+
+              {/* Prominent bottom Builder CTA — the primary action once
+                  the shot spec is dialed in. */}
+              <div style={{
+                marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+              }}>
+                <div style={{ fontSize: 12, color: 'var(--ink-2)' }}>
+                  {shot.spec.script
+                    ? <>Script is ready — open the Builder to render this shot.</>
+                    : <>Add a script (Generate above) or open the Builder to draft in place.</>}
+                </div>
+                <Link
+                  href={builderUrl(shot, campaign.product_id, campaign.id)}
+                  className="btn btn-primary"
+                  style={{ padding: '9px 16px', fontSize: 13, gap: 6, display: 'inline-flex', alignItems: 'center' }}
+                >
+                  <ExternalLink size={14} /> Open in {pipelineTarget(fmt?.pipeline ?? 'ugc-video')}
+                </Link>
+              </div>
               </>)}
             </div>
           )
@@ -562,6 +634,46 @@ export default function CampaignDetailPage() {
       )}
     </div>
   )
+}
+
+function InfoCell({ label, value, last }: { label: string; value: string; last?: boolean }) {
+  return (
+    <div style={{
+      padding: '10px 14px',
+      borderRight: last ? 'none' : '1px solid var(--border)',
+      borderTop: '1px solid var(--border)',
+      background: 'var(--surface)',
+    }}>
+      <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 0.6, color: 'var(--ink-2)', textTransform: 'uppercase' }}>{label}</div>
+      <div style={{ fontSize: 13, fontWeight: 600, marginTop: 3, textTransform: 'capitalize' }}>{value}</div>
+    </div>
+  )
+}
+
+function pipelineLabel(pipeline: string): string {
+  switch (pipeline) {
+    case 'ugc-video':       return 'UGC video (single actor)'
+    case 'ugc-interview':   return 'UGC interview (two-person)'
+    case 'ugc-couple':      return 'UGC couple / friends'
+    case 'motion-broll':    return 'Product B-roll (motion, no dialogue)'
+    case 'product-photo':   return 'Product photo (clean plate)'
+    case 'lifestyle-photo': return 'Lifestyle photo (in-scene)'
+    case 'hero-editorial':  return 'Editorial hero image'
+    default:                return pipeline
+  }
+}
+
+function pipelineTarget(pipeline: string): string {
+  switch (pipeline) {
+    case 'ugc-video':
+    case 'ugc-interview':
+    case 'ugc-couple':
+    case 'motion-broll':    return 'UGC Studio'
+    case 'product-photo':
+    case 'lifestyle-photo': return 'Product Studio'
+    case 'hero-editorial':  return 'Image Studio'
+    default:                return 'Builder'
+  }
 }
 
 function FieldBlock({ label, children }: { label: string; children: React.ReactNode }) {
