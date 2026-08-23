@@ -188,6 +188,24 @@ export default function ProductStudio() {
       // Only auto-open the Create form if there's nothing selected yet.
       setShowCreate(prev => prev || (!selected))
     }
+    // Campaign → Product Studio handoff. When a photo shot from a campaign
+    // opens Product Studio, the URL carries the full image prompt in
+    // `setting` (60-120 words). Use it as the shoot direction so the shot
+    // renders exactly what the campaign planner spec'd.
+    const campaignShot = searchParams.get('shot')
+    const shotSetting = searchParams.get('setting')
+    const shotVisualNotes = searchParams.get('visualNotes')
+    const shotAspect = searchParams.get('aspect')
+    if (campaignShot) {
+      // Direction takes the setting as the primary prompt; visualNotes
+      // append if present. Never overwrite what the user has already typed.
+      const composed = [shotSetting, shotVisualNotes].filter(Boolean).join('\n\n')
+      if (composed) setDirection(prev => prev.trim() ? prev : composed)
+      const aspectMap: Record<string, '1:1' | '4:5' | '9:16' | '16:9'> = {
+        '1:1': '1:1', '4:5': '4:5', '9:16': '9:16', '16:9': '16:9',
+      }
+      if (shotAspect && aspectMap[shotAspect]) setRatio(aspectMap[shotAspect])
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 

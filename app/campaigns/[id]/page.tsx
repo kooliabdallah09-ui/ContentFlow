@@ -15,16 +15,52 @@ import { CAMPAIGN_FORMATS, getCampaignFormat } from '@/lib/campaign-formats'
 import { ArrowLeft, Trash2, Loader2, Sparkles, ExternalLink, ChevronDown, ChevronRight, Wand2 } from 'lucide-react'
 import type { CampaignFormat } from '@/lib/campaign-formats'
 
-// Maps a campaign format to a short user-facing type badge so shots are
-// scannable at a glance (UGC, Motion, Photo, Transform).
+// Maps a campaign format to a short specific type badge so shots are
+// scannable at a glance. Format-specific labels ("Editorial photo",
+// "Studio still", "Carousel · 5", "Meme") beat generic category names.
 function formatBadge(fmt: CampaignFormat | undefined): { label: string; bg: string; fg: string; border: string } {
-  if (!fmt) return { label: 'Shot', bg: 'var(--surface-2)', fg: 'var(--ink-2)', border: 'var(--border)' }
-  if (fmt.category === 'photo')          return { label: 'Photo',     bg: '#dcfce7', fg: '#166534', border: '#86efac' }
-  if (fmt.category === 'motion')         return { label: 'Motion',    bg: '#f3e8ff', fg: '#6b21a8', border: '#d8b4fe' }
-  if (fmt.category === 'transformation') return { label: 'Transform', bg: '#fef3c7', fg: '#92400e', border: '#fcd34d' }
-  if (fmt.category === 'two-person')     return { label: 'UGC · duo', bg: '#dbeafe', fg: '#1e40af', border: '#93c5fd' }
-  // 'solo' / 'other' default to UGC video
-  return { label: 'UGC · video', bg: '#dbeafe', fg: '#1e40af', border: '#93c5fd' }
+  const green   = { bg: '#dcfce7', fg: '#166534', border: '#86efac' }
+  const purple  = { bg: '#f3e8ff', fg: '#6b21a8', border: '#d8b4fe' }
+  const amber   = { bg: '#fef3c7', fg: '#92400e', border: '#fcd34d' }
+  const blue    = { bg: '#dbeafe', fg: '#1e40af', border: '#93c5fd' }
+  const pink    = { bg: '#fce7f3', fg: '#9d174d', border: '#f9a8d4' }
+  const gray    = { bg: 'var(--surface-2)', fg: 'var(--ink-2)', border: 'var(--border)' }
+  if (!fmt) return { label: 'Shot', ...gray }
+  // Per-key precise labels first
+  const perKey: Record<string, string> = {
+    'hero-editorial':      'Editorial photo',
+    'studio-still':        'Studio still',
+    'lifestyle-in-scene':  'Lifestyle photo',
+    'carousel-instagram':  'Carousel',
+    'single-post':         'Feed post',
+    'meme-post':           'Meme post',
+    'tv-spot':             'TV spot',
+    'unboxing':            'Unboxing',
+    'unboxing-asmr':       'ASMR unbox',
+    'aesthetic-broll':     'B-roll',
+    'product-showcase':    '360° showcase',
+    'hyper-motion':        'Kinetic burst',
+    'crush-test':          'Crush test',
+    'mystery-box':         'Mystery box',
+    'mess-to-fresh':       'Transform',
+    'before-after':        'Before / after',
+    'tutorial':            'Tutorial',
+    'get-ready-with-me':   'GRWM',
+    'camera-pov':          'POV shot',
+    'pov-vlog':            'POV vlog',
+    'interview-man-on-street': 'Street interview',
+    'interview-pov':       'POV interview',
+    'couple-sharing':      'Couple UGC',
+    'roommate-rec':        'Roommate UGC',
+  }
+  const label = perKey[fmt.key] ?? fmt.label
+  // Color by category
+  if (fmt.category === 'photo')          return { label, ...green }
+  if (fmt.category === 'social')         return { label, ...pink }
+  if (fmt.category === 'motion')         return { label, ...purple }
+  if (fmt.category === 'transformation') return { label, ...amber }
+  if (fmt.category === 'two-person')     return { label, ...blue }
+  return { label, ...blue }
 }
 
 interface Campaign {
@@ -98,6 +134,9 @@ function builderUrl(shot: Shot, productId: string | null, campaignId: string): s
   const fmt = getCampaignFormat(shot.format_key)
   params.set('format', shot.format_key)
   if (fmt?.label) params.set('formatLabel', fmt.label)
+  // Route each pipeline to the builder that owns the render. ProductStudio
+  // reads mode/substyle/productName/productDescription — set them here so
+  // the shot lands with the shoot direction already dialed in.
   switch (shot.pipeline) {
     case 'ugc-video':
     case 'ugc-interview':
@@ -105,10 +144,26 @@ function builderUrl(shot: Shot, productId: string | null, campaignId: string): s
     case 'motion-broll':
       return `/generate/ugc?${params.toString()}`
     case 'product-photo':
+      params.set('mode', 'aesthetic')
+      params.set('substyle', 'studio')
+      return `/generate/products?${params.toString()}`
     case 'lifestyle-photo':
+      params.set('mode', 'aesthetic')
+      params.set('substyle', 'lifestyle')
       return `/generate/products?${params.toString()}`
     case 'hero-editorial':
-      return `/generate/image?${params.toString()}`
+      // Hero editorial routes to Product Studio too — it's a product hero
+      // and Product Studio has the reference-sheet workflow that keeps
+      // the product consistent across shots.
+      params.set('mode', 'aesthetic')
+      params.set('substyle', 'editorial')
+      return `/generate/products?${params.toString()}`
+    case 'social-carousel':
+      params.set('mode', 'carousel')
+      return `/generate/social?${params.toString()}`
+    case 'social-post':
+      params.set('mode', 'post')
+      return `/generate/social?${params.toString()}`
     default:
       return `/generate/ugc?${params.toString()}`
   }
@@ -659,6 +714,8 @@ function pipelineLabel(pipeline: string): string {
     case 'product-photo':   return 'Product photo (clean plate)'
     case 'lifestyle-photo': return 'Lifestyle photo (in-scene)'
     case 'hero-editorial':  return 'Editorial hero image'
+    case 'social-carousel': return 'Multi-slide social carousel'
+    case 'social-post':     return 'Single social post'
     default:                return pipeline
   }
 }
@@ -670,8 +727,10 @@ function pipelineTarget(pipeline: string): string {
     case 'ugc-couple':
     case 'motion-broll':    return 'UGC Studio'
     case 'product-photo':
-    case 'lifestyle-photo': return 'Product Studio'
-    case 'hero-editorial':  return 'Image Studio'
+    case 'lifestyle-photo':
+    case 'hero-editorial':  return 'Product Studio'
+    case 'social-carousel':
+    case 'social-post':     return 'Social Studio'
     default:                return 'Builder'
   }
 }

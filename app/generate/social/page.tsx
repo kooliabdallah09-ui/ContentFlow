@@ -178,6 +178,41 @@ export default function SocialPage() {
     if (igOrTwFb.length) setSelPlats(igOrTwFb)
   }, [])
 
+  // Campaign → Social handoff. Carousel and single-post shots from the
+  // campaign planner arrive with mode=carousel|post + full setting + caption.
+  // Switch the sub-mode tab, fill the topic + caption + illustration desc.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const qs = new URLSearchParams(window.location.search)
+    const campaign = qs.get('campaign')
+    const shot = qs.get('shot')
+    if (!campaign || !shot) return
+    const mode = qs.get('mode')
+    const hook = qs.get('hook') ?? ''
+    const setting = qs.get('setting') ?? ''
+    const caption = qs.get('caption') ?? ''
+    const topicText = [hook, setting].filter(Boolean).join('\n\n').trim()
+    if (mode === 'carousel') {
+      setContentType('carousel')
+      if (topicText) setCarTopic(topicText)
+      if (setting) setIllustrationDesc(setting.slice(0, 800))
+    } else if (mode === 'post') {
+      setContentType('caption')
+      setPostType('image')
+      if (topicText) setCapTopic(topicText)
+      if (caption) {
+        // Preseed the posts map so the user sees the generated draft immediately
+        // for the currently selected platforms.
+        setPosts(prev => {
+          const next = { ...prev }
+          for (const p of selPlatforms) if (!next[p]) next[p] = caption
+          return next
+        })
+      }
+      if (setting) setImagePrompt(setting)
+    }
+  }, [])
+
   // ── Carousel state ──
   const [carTopic, setCarTopic]     = useState('')
   const [carPlatform, setCarPlatform] = useState('instagram')

@@ -16,10 +16,11 @@ const CATEGORY_LABELS: Record<CategoryKey, string> = {
   'motion': 'Motion',
   'transformation': 'Transformation',
   'photo': 'Photo',
+  'social': 'Social',
   'other': 'Other',
 }
 
-const CATEGORY_ORDER: CategoryKey[] = ['solo', 'two-person', 'motion', 'transformation', 'photo', 'other']
+const CATEGORY_ORDER: CategoryKey[] = ['solo', 'two-person', 'motion', 'transformation', 'photo', 'social', 'other']
 
 const chip = (active: boolean): CSSProperties => ({
   display: 'inline-flex', alignItems: 'center',

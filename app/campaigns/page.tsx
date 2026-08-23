@@ -105,6 +105,7 @@ const BUCKETS: Bucket[] = [
   { key: 'motion',         label: 'Product motion',   blurb: 'B-roll, ASMR unbox, kinetic bursts. No dialogue.',                       icon: <Wand2 size={16} />,    suggested: 3 },
   { key: 'transformation', label: 'Transformations',  blurb: 'Before/after, mess-to-fresh, tutorials.',                                icon: <Sparkles size={16} />, suggested: 1 },
   { key: 'photo',          label: 'Photos & stills',  blurb: 'Hero editorial, lifestyle-in-scene, studio still.',                      icon: <ImageIcon size={16} />, suggested: 2 },
+  { key: 'social',         label: 'Social posts',     blurb: 'Multi-slide carousels, single feed posts, meme reactions.',              icon: <Camera size={16} />,   suggested: 2 },
 ]
 
 async function getToken(): Promise<string | null> {

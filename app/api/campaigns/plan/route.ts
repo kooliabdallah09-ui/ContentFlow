@@ -205,11 +205,29 @@ ${mixDescription}
 CRITICAL RULES:
 1. Every shot's "format_key" MUST be one of the EXACT keys from the catalog below. This is a hard constraint — the app has renderers only for these keys and any invented key gets dropped. Never invent, translate, pluralize, or reword a key. Copy them character-for-character.
 ${distributionRule}
-3. Fields are CONCRETE, not generic. Keep them TIGHT — planner output is a scan-able overview, not the final script.
+3. Fields are CONCRETE and LOAD-BEARING — this is what the render actually consumes. NO vague marketing copy.
+   For UGC / VIDEO / MOTION shots:
    - hook = ONE specific opening line, ≤ 20 words.
    - setting = a concrete place ≤ 15 words ("Brooklyn café at 9am", not "urban environment").
    - caption = the on-post copy, ≤ 30 words + hashtags if brand fits.
-   - script, cta, visual_notes = LEAVE THEM OUT of this response. They'll be generated on demand later.
+   - script, cta, visual_notes = LEAVE THEM OUT. Drafted on demand later.
+
+   For PHOTO shots (hero-editorial, studio-still, lifestyle-in-scene):
+   - hook = the ONE-LINE hook that will overlay or caption the photo.
+   - setting = the FULL image prompt (60-120 words). Must include:
+     · subject (what's in frame — product + supporting objects + optional human)
+     · framing (close-up / medium / wide, portrait / landscape / square)
+     · lighting (source, direction, hardness, colour temperature)
+     · background (colour / texture / material — no vague words like "modern" or "cinematic")
+     · mood / palette (2-3 concrete adjectives + colour references)
+     · optional style reference (photographer / magazine feel if it helps)
+     Example GOOD setting: "Overhead flat-lay of the black desktop tower centred on a slate concrete surface. Cool RGB rim light (electric blue + magenta) grazing the case from the left, hard shadow to the right. Scattered PC components — RAM stick, GPU, thermal paste tube — arranged asymmetrically around the tower. Deep charcoal background, minor lens flare top-right. Palette: gunmetal, blue-purple, matte black. Editorial WIRED-magazine feel."
+     Example BAD setting (do NOT write this): "Dark studio, RGB lighting on a PC tower." ← too vague, unrenderable.
+
+   For SOCIAL shots (carousel-instagram, single-post, meme-post):
+   - hook = the cover-slide hook.
+   - setting = EXACT per-slide breakdown for carousels, OR exact image + on-image text spec for single/meme posts. See each format's sonnetSpec.
+   - caption = the FULL long-form caption the user will paste into IG / FB, including hashtags. Not a summary — the real copy.
 4. Return STRICT JSON: {"research_summary":"...","shots":[{"position":1,"format_key":"...","hook":"...","setting":"...","caption":"...","aspect":"9:16","duration":15} ...]}
 5. research_summary = 3-4 sentences in French, tight, summarizing what you learned from the auto-discovered sources + user inspiration notes. Address the reader directly ("Voici ce que la recherche a révélé…"). If no sources, summarize your strategic direction from brand + brief.
 6. No preamble, no code fences. Just the JSON object.
@@ -321,7 +339,9 @@ Return the JSON shot list now.`
           script: (s.script ?? '').toString().slice(0, 1600),
           cta: (s.cta ?? '').toString().slice(0, 200),
           caption: (s.caption ?? '').toString().slice(0, 800),
-          setting: (s.setting ?? '').toString().slice(0, 400),
+          // 2000 chars — photo formats now embed a full image prompt here,
+          // and carousels use it for per-slide breakdowns.
+          setting: (s.setting ?? '').toString().slice(0, 2000),
           visual_notes: (s.visual_notes ?? '').toString().slice(0, 500),
           aspect: (s.aspect as string) ?? fmt.defaultAspect,
           duration: typeof s.duration === 'number' ? s.duration : fmt.defaultDuration,

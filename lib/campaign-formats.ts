@@ -16,6 +16,8 @@ export type CampaignPipeline =
   | 'lifestyle-photo'   // product in-scene photo → /api/generate/image
   | 'hero-editorial'    // magazine hero → /api/generate/image
   | 'motion-broll'      // motion-only, no dialogue → /api/ugc/animate from hero frame
+  | 'social-carousel'   // multi-slide IG/FB carousel → /generate/social (carousel tab)
+  | 'social-post'       // single social post (caption + image) → /generate/social (post tab)
 
 export type CampaignAspect = '9:16' | '4:5' | '1:1' | '16:9'
 
@@ -23,7 +25,7 @@ export interface CampaignFormat {
   key: string
   label: string
   tagline: string
-  category: 'solo' | 'two-person' | 'motion' | 'transformation' | 'photo' | 'other'
+  category: 'solo' | 'two-person' | 'motion' | 'transformation' | 'photo' | 'social' | 'other'
   pipeline: CampaignPipeline
   defaultAspect: CampaignAspect
   defaultDuration: number   // seconds; 0 = photo
@@ -311,6 +313,35 @@ export const CAMPAIGN_FORMATS: CampaignFormat[] = [
     defaultAspect: '1:1', defaultDuration: 0,
     requiresActor: false, requiresScene: false, requiresProduct: true, creditHint: 40,
     sonnetSpec: 'Clean white or brand-color background. Product-only. Marketing-site hero quality.',
+  },
+
+  // ── Social — feed posts + carousels ────────────────────────────────
+  {
+    key: 'carousel-instagram',
+    label: 'Instagram Carousel',
+    tagline: 'Multi-slide swipe-through post — teaches or tells a mini story.',
+    category: 'social', pipeline: 'social-carousel',
+    defaultAspect: '4:5', defaultDuration: 0,
+    requiresActor: false, requiresScene: false, requiresProduct: true, creditHint: 25,
+    sonnetSpec: 'A 3-5 slide carousel with ONE big idea per slide. Slide 1 = attention-grabbing hook cover. Slides 2-4 = one specific point / step / stat each. Final slide = light CTA. In the "setting" field, describe EACH slide by number: "Slide 1: {visual + text overlay}. Slide 2: {visual + text overlay}. …". Feels swipeable.',
+  },
+  {
+    key: 'single-post',
+    label: 'Single Feed Post',
+    tagline: 'One image + long-form caption — standalone in-feed post.',
+    category: 'social', pipeline: 'social-post',
+    defaultAspect: '4:5', defaultDuration: 0,
+    requiresActor: false, requiresScene: false, requiresProduct: true, creditHint: 20,
+    sonnetSpec: 'One striking image + a long-form caption (2-4 short paragraphs). In the "setting" field, describe the exact image (subject, framing, mood, background). In the "caption" field, write the full post copy in a natural voice — hook line, 2-3 body sentences, 3-5 relevant hashtags.',
+  },
+  {
+    key: 'meme-post',
+    label: 'Meme / Reaction Post',
+    tagline: 'Bold text + product visual — meme-driven engagement.',
+    category: 'social', pipeline: 'social-post',
+    defaultAspect: '1:1', defaultDuration: 0,
+    requiresActor: false, requiresScene: false, requiresProduct: false, creditHint: 15,
+    sonnetSpec: 'A single meme-style image with big block text overlay (top or top+bottom). The "setting" field should describe both the visual AND the exact text that appears on the image. Caption is a short reaction to the meme.',
   },
 ]
 
