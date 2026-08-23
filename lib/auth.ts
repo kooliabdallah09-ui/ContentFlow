@@ -51,6 +51,23 @@ export async function login(email: string, password: string) {
   return data
 }
 
+// Starts the Google OAuth flow. Supabase redirects the user to Google's
+// consent screen, then back to /auth/callback with a session in the URL.
+// The callback page consumes the session and runs one-time user init.
+export async function signInWithGoogle() {
+  const supabase = getSupabase()
+  if (!supabase) throw new Error('Supabase not available')
+
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: `${window.location.origin}/auth/callback`,
+      queryParams: { access_type: 'offline', prompt: 'select_account' },
+    },
+  })
+  if (error) throw error
+}
+
 export async function logout() {
   const supabase = getSupabase()
   if (!supabase) throw new Error('Supabase not available')
