@@ -148,6 +148,10 @@ export default function SocialPage() {
   // Composited on top of the post image (via CSS in preview, canvas on download).
   // Nano Banana can't render legible text, so any on-image copy comes from here.
   const [postOverlayText, setPostOverlayText] = useState<string>('')
+  // Short paste-ready IG/FB caption for the WHOLE carousel — returned by the
+  // /carousel endpoint. Editable inline so the user can tweak before copying.
+  const [carouselCaption, setCarouselCaption] = useState<string>('')
+  const [carouselCaptionCopied, setCarouselCaptionCopied] = useState(false)
   const [activeTab, setActiveTab]   = useState('')
   const [copied, setCopied]         = useState<string | null>(null)
 
@@ -536,7 +540,7 @@ export default function SocialPage() {
       // Defensive parse — server may return plain text (413 Request Entity Too
       // Large from Vercel, 504 timeout, 429 rate-limit) which is not valid JSON.
       const raw = await res.text()
-      let data: { error?: string; slides?: CarouselSlide[]; failedCount?: number; creditsRefunded?: number } = {}
+      let data: { error?: string; slides?: CarouselSlide[]; caption?: string; failedCount?: number; creditsRefunded?: number } = {}
       try { data = raw ? JSON.parse(raw) : {} } catch {
         if (res.status === 413) throw new Error('Reference image too large. Try a smaller image.')
         if (res.status === 504) throw new Error('Generation timed out. Try fewer slides or retry.')
@@ -545,6 +549,8 @@ export default function SocialPage() {
       }
       if (!res.ok) throw new Error(data.error || `Generation failed (${res.status})`)
       setSlides(data.slides ?? [])
+      setCarouselCaption(data.caption ?? '')
+      setCarouselCaptionCopied(false)
       refreshCredits()
       const totalSlides = (data.slides ?? []).length
       const failed = data.failedCount ?? 0
@@ -1441,6 +1447,47 @@ export default function SocialPage() {
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 0', borderRadius: 12, background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                 <Download size={15} /> Download all {slides.length} slides
               </button>
+
+              {/* Post caption — short paste-ready copy for the whole carousel. */}
+              {carouselCaption && (
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Post caption</label>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(carouselCaption)
+                          setCarouselCaptionCopied(true)
+                          setTimeout(() => setCarouselCaptionCopied(false), 1600)
+                        } catch { /* ignore */ }
+                      }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 5,
+                        padding: '5px 10px', borderRadius: 7,
+                        border: `1px solid ${carouselCaptionCopied ? 'var(--good, #16a34a)' : 'var(--border)'}`,
+                        background: carouselCaptionCopied ? 'var(--good-bg, #f0fdf4)' : 'var(--bg-elev)',
+                        color: carouselCaptionCopied ? 'var(--good, #16a34a)' : 'var(--ink)',
+                        fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                      }}
+                    >
+                      {carouselCaptionCopied ? <><Check size={11} /> Copied</> : <><Copy size={11} /> Copy</>}
+                    </button>
+                  </div>
+                  <textarea
+                    value={carouselCaption}
+                    onChange={e => setCarouselCaption(e.target.value)}
+                    rows={4}
+                    style={{
+                      width: '100%', boxSizing: 'border-box',
+                      padding: '10px 12px', borderRadius: 8,
+                      border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)',
+                      fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.5,
+                      resize: 'vertical', outline: 'none',
+                    }}
+                  />
+                </div>
+              )}
 
               {/* Slide list */}
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>

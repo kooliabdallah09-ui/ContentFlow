@@ -186,16 +186,20 @@ TEXT-HEAVY SLIDE RULE (important):
 - Also set "textHeavy": true on that slide's JSON object so the renderer switches to a centered cover layout.
 - All other slides: keep the normal short caption budget (max 8-word headline, max 20-word body).
 
-Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no extra text):
-[
-  {
-    "headline": "Short title (max 8 words on normal slides, up to 10 on text-heavy)",
-    "body": "Supporting copy — max 20 words on normal slides; 35-60 words on text-heavy slides",
-    "cta": "Action phrase max 6 words — only on the last slide, empty string on all others",
-    "textHeavy": false,
-    "imagePrompt": "Visual description for AI image generation. Describe the mood, setting, subject, and lighting. Do NOT mention any text or words in the image. 1–2 sentences max."
-  }
-]`
+Return ONLY a JSON object (no markdown, no extra text) with this exact shape:
+{
+  "caption": "A short paste-ready ${platform} caption for the WHOLE carousel — 1-3 short sentences (max ~250 chars) in the same tone as the slides, followed by 3-5 relevant hashtags on the same line or the next. Written in the language of the topic. This is what the user pastes into the ${platform} post caption field.",
+  "slides": [
+    {
+      "headline": "Short title (max 8 words on normal slides, up to 10 on text-heavy)",
+      "body": "Supporting copy — max 20 words on normal slides; 35-60 words on text-heavy slides",
+      "cta": "Action phrase max 6 words — only on the last slide, empty string on all others",
+      "textHeavy": false,
+      "imagePrompt": "Visual description for AI image generation. Describe the mood, setting, subject, and lighting. Do NOT mention any text or words in the image. 1–2 sentences max."
+    }
+  ]
+}
+The slides array must have exactly ${safeSlideCount} objects.`
 
   const msg = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
@@ -205,13 +209,23 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
 
   const rawText = (msg.content[0] as { type: 'text'; text: string }).text.trim()
   let slideSpecs: SlideSpec[]
+  let carouselCaption = ''
   try {
     let jsonText = rawText
     if (jsonText.startsWith('```')) {
       jsonText = jsonText.replace(/^```json?\n?/, '').replace(/\n?```$/, '')
     }
-    slideSpecs = JSON.parse(jsonText)
-    if (!Array.isArray(slideSpecs)) throw new Error('Not an array')
+    const parsed = JSON.parse(jsonText)
+    // New shape: { slides: [...], caption: "..." }
+    // Old shape (fallback for cached/legacy): [ ...slides ]
+    if (Array.isArray(parsed)) {
+      slideSpecs = parsed
+    } else if (parsed && Array.isArray(parsed.slides)) {
+      slideSpecs = parsed.slides
+      if (typeof parsed.caption === 'string') carouselCaption = parsed.caption.trim().slice(0, 500)
+    } else {
+      throw new Error('Unexpected shape')
+    }
     // Pad or trim to exact count
     while (slideSpecs.length < safeSlideCount) slideSpecs.push(slideSpecs[slideSpecs.length - 1])
     slideSpecs = slideSpecs.slice(0, safeSlideCount)
@@ -361,6 +375,7 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
   return NextResponse.json({
     id: saved?.id ?? null,
     slides,
+    caption: carouselCaption,
     creditsUsed: netCost,
     creditsRefunded: totalCost - netCost,
     failedCount,
