@@ -118,9 +118,10 @@ const aspectOptions = ['9:16', '4:5', '1:1', '16:9'] as const
 // URL params carry the full content — we lean on sessionStorage on the
 // landing page so query string length isn't a practical limit for our
 // per-shot payloads (< 8 KB in every real case).
-function builderUrl(shot: Shot, productId: string | null, campaignId: string): string {
+function builderUrl(shot: Shot, productId: string | null, campaignId: string, productName?: string | null): string {
   const params = new URLSearchParams({ campaign: campaignId, shot: shot.id })
   if (productId) params.set('product', productId)
+  if (productName) params.set('productName', productName)
   if (shot.spec.aspect) params.set('aspect', shot.spec.aspect)
   if (shot.spec.duration) params.set('duration', String(shot.spec.duration))
   if (shot.spec.hook) params.set('hook', shot.spec.hook)
@@ -534,7 +535,7 @@ export default function CampaignDetailPage() {
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
                   {saving && <Loader2 size={13} className="animate-spin" style={{ color: 'var(--ink-2)' }} />}
                   <Link
-                    href={builderUrl(shot, campaign.product_id, campaign.id)}
+                    href={builderUrl(shot, campaign.product_id, campaign.id, (campaign.meta as { product_name?: string })?.product_name ?? null)}
                     className="btn btn-ghost"
                     style={{ padding: '6px 10px', fontSize: 12, gap: 5, display: 'inline-flex', alignItems: 'center' }}
                     title="Open in Builder"
@@ -669,7 +670,7 @@ export default function CampaignDetailPage() {
                     : <>Add a script (Generate above) or open the Builder to draft in place.</>}
                 </div>
                 <Link
-                  href={builderUrl(shot, campaign.product_id, campaign.id)}
+                  href={builderUrl(shot, campaign.product_id, campaign.id, (campaign.meta as { product_name?: string })?.product_name ?? null)}
                   className="btn btn-primary"
                   style={{ padding: '9px 16px', fontSize: 13, gap: 6, display: 'inline-flex', alignItems: 'center' }}
                 >

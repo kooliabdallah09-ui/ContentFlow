@@ -209,6 +209,27 @@ export default function ProductStudio() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
+  // Campaign → auto-select the matching studio product. Runs after `list`
+  // loads (or repopulates). Looks for a case-insensitive match on the
+  // product name passed in the URL. Falls back to auto-selecting the
+  // ONLY product when the studio has just one — very common early-user
+  // shape and always the right guess. Skips if the user has already
+  // manually selected something in this session.
+  useEffect(() => {
+    if (!searchParams || selected || loading || list.length === 0) return
+    const campaignShot = searchParams.get('shot')
+    if (!campaignShot) return
+    const wantedName = (searchParams.get('productName') ?? '').trim().toLowerCase()
+    const match = wantedName
+      ? list.find(p => p.name.toLowerCase() === wantedName)
+        ?? list.find(p => p.name.toLowerCase().includes(wantedName) || wantedName.includes(p.name.toLowerCase()))
+      : (list.length === 1 ? list[0] : undefined)
+    if (match) {
+      void openDetail(match, { preserveDirection: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [list, loading, searchParams])
+
   useEffect(() => {
     load()
     ;(async () => {
@@ -288,10 +309,10 @@ export default function ProductStudio() {
     }
   }
 
-  async function openDetail(p: StudioProduct) {
+  async function openDetail(p: StudioProduct, opts?: { preserveDirection?: boolean }) {
     setSelected(p)
     setPhotos([])
-    setDirection('')
+    if (!opts?.preserveDirection) setDirection('')
     const token = await getToken()
     if (!token) return
     const res = await fetch(`/api/products-studio/${p.id}`, { headers: { Authorization: `Bearer ${token}` } })
