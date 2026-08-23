@@ -5,7 +5,7 @@ import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { readPrefill } from '@/lib/calendar-prefill'
 import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
-import { Loader2, Copy, Check, Download, ChevronLeft, ChevronRight, Image as ImageIcon, X } from 'lucide-react'
+import { Loader2, Copy, Check, Download, ChevronLeft, ChevronRight, Image as ImageIcon, X, RotateCcw } from 'lucide-react'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Icon } from '@/components/Icons'
 import { useImageDrop } from '@/hooks/useImageDrop'
@@ -74,9 +74,11 @@ interface CarouselSlide {
   headline: string
   body: string
   cta: string
+  imagePrompt?: string    // Sonnet's per-slide direction — needed for per-slide retry.
   imageBase64: string | null
   mimeType: string
   failed?: boolean
+  retrying?: boolean      // UI-only — true while the retry endpoint is in flight.
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -539,6 +541,60 @@ export default function SocialPage() {
       showError('Generation failed', e instanceof Error ? e.message : 'Unknown error')
     } finally {
       setCarLoading(false)
+    }
+  }
+
+  // Retry a single failed slide. Reuses the same refs / illDesc / model the
+  // parent carousel call used. Charges only that slide's credits; refunds
+  // automatically if the retry fails on the server too.
+  async function retrySlide(index: number) {
+    const slide = slides[index]
+    if (!slide) return
+    if (!slide.imagePrompt) {
+      showError('Retry unavailable', 'This slide is missing the image prompt — re-generate the whole carousel to enable retry.')
+      return
+    }
+    if (slide.retrying) return
+    setSlides(prev => prev.map((s, i) => i === index ? { ...s, retrying: true } : s))
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = await supabase!.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+      const res = await fetch('/api/content/generate/carousel-slide', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          slide: {
+            headline: slide.headline,
+            body: slide.body,
+            cta: slide.cta,
+            imagePrompt: slide.imagePrompt,
+          },
+          slideIndex: index,
+          illDesc: illustrationDesc.trim() || null,
+          platform: carPlatform,
+          influencerId: carInfluencerId ?? null,
+          studioProductId: carProductId ?? null,
+          referenceImageBase64: reference?.base64 ?? null,
+          referenceImageMimeType: reference?.mimeType ?? null,
+          model: carModel,
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || `Retry failed (${res.status})`)
+      setSlides(prev => prev.map((s, i) => i === index ? {
+        ...s,
+        imageBase64: data.imageBase64,
+        mimeType: data.mimeType,
+        failed: false,
+        retrying: false,
+      } : s))
+      refreshCredits()
+      showSuccess('Slide re-rendered', `Slide ${index + 1} is back — charged ${data.creditsUsed}cr`)
+    } catch (e) {
+      setSlides(prev => prev.map((s, i) => i === index ? { ...s, retrying: false } : s))
+      showError('Retry failed', e instanceof Error ? e.message : 'Unknown error')
     }
   }
 
@@ -1310,8 +1366,9 @@ export default function SocialPage() {
               {/* Slide list */}
               <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
                 {slides.map((slide, i) => (
-                  <button key={i} onClick={() => setActiveSlide(i)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 16px', border: 'none', borderBottom: i < slides.length - 1 ? '1px solid var(--border-soft)' : 'none', background: i === activeSlide ? 'var(--bg-elev)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}>
+                  <div key={i}
+                    onClick={() => setActiveSlide(i)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 14, width: '100%', padding: '12px 16px', borderBottom: i < slides.length - 1 ? '1px solid var(--border-soft)' : 'none', background: i === activeSlide ? 'var(--bg-elev)' : 'transparent', cursor: 'pointer', textAlign: 'left' }}>
                     <div style={{ width: 40, height: isSquare ? 40 : 50, borderRadius: 6, background: slide.failed ? '#7f1d1d' : '#111', flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
                       {slide.imageBase64 && <img src={`data:${slide.mimeType};base64,${slide.imageBase64}`} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
                       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: slide.failed ? 'rgba(127,29,29,0.75)' : 'rgba(0,0,0,0.35)' }}>
@@ -1331,7 +1388,28 @@ export default function SocialPage() {
                       </div>
                       {slide.body && <p style={{ margin: '2px 0 0', fontSize: 11.5, color: 'var(--ink-mute)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{slide.body}</p>}
                     </div>
-                  </button>
+                    {slide.failed && (
+                      <button
+                        type="button"
+                        onClick={e => { e.stopPropagation(); retrySlide(i) }}
+                        disabled={!!slide.retrying}
+                        title={`Regenerate slide ${i + 1} (${carModel === 'nb2' ? 3 : 5} cr)`}
+                        style={{
+                          flexShrink: 0,
+                          display: 'inline-flex', alignItems: 'center', gap: 5,
+                          padding: '6px 10px', borderRadius: 8,
+                          border: '1px solid #991b1b', background: '#991b1b', color: '#fff',
+                          fontSize: 11.5, fontWeight: 600,
+                          cursor: slide.retrying ? 'wait' : 'pointer',
+                          opacity: slide.retrying ? 0.6 : 1,
+                        }}
+                      >
+                        {slide.retrying
+                          ? <><Loader2 size={12} className="animate-spin" /> Retrying…</>
+                          : <><RotateCcw size={12} /> Retry · {carModel === 'nb2' ? 3 : 5}cr</>}
+                      </button>
+                    )}
+                  </div>
                 ))}
               </div>
             </div>

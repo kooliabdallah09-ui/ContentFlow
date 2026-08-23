@@ -284,6 +284,9 @@ Return ONLY a JSON array of exactly ${safeSlideCount} objects (no markdown, no e
       headline: spec.headline,
       body: spec.body,
       cta: spec.cta,
+      // imagePrompt is Sonnet's per-slide image direction. Returned so the
+      // client can send it back to the per-slide retry endpoint verbatim.
+      imagePrompt: spec.imagePrompt,
       imageBase64: result.status === 'fulfilled' ? result.value.imageBase64 : null,
       mimeType: result.status === 'fulfilled' ? result.value.mimeType : 'image/png',
       failed: result.status !== 'fulfilled' || !result.value.imageBase64,
