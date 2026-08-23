@@ -119,7 +119,7 @@ export default function OnboardingCampaignPage() {
                 className="btn btn-primary"
                 style={{ fontSize: 14, padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
               >
-                {planning ? <><Loader2 size={15} className="spin" /> Drafting…</> : <><Sparkles size={15} /> Show me the preview</>}
+                {planning ? <><Loader2 size={15} className="animate-spin" /> Drafting…</> : <><Sparkles size={15} /> Show me the preview</>}
               </button>
             </div>
           </>

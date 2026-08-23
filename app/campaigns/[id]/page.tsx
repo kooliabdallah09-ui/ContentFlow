@@ -257,7 +257,7 @@ export default function CampaignDetailPage() {
   }
 
   if (loading) {
-    return <div style={{ padding: 40, display: 'flex', gap: 10, alignItems: 'center', color: 'var(--ink-2)' }}><Loader2 size={16} className="spin" /> Loading campaign…</div>
+    return <div style={{ padding: 40, display: 'flex', gap: 10, alignItems: 'center', color: 'var(--ink-2)' }}><Loader2 size={16} className="animate-spin" /> Loading campaign…</div>
   }
   if (!campaign) {
     return <div style={{ padding: 40 }}>Campaign not found. <Link href="/campaigns">Back</Link></div>
@@ -325,7 +325,7 @@ export default function CampaignDetailPage() {
             className="btn btn-primary"
             style={{ fontSize: 13, padding: '9px 16px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
           >
-            {expanding ? <><Loader2 size={14} className="spin" /> Expanding…</> : <><Sparkles size={14} /> Expand to full campaign</>}
+            {expanding ? <><Loader2 size={14} className="animate-spin" /> Expanding…</> : <><Sparkles size={14} /> Expand to full campaign</>}
           </button>
         </div>
       )}
@@ -477,7 +477,7 @@ export default function CampaignDetailPage() {
 
                 {/* Actions */}
                 <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-                  {saving && <Loader2 size={13} className="spin" style={{ color: 'var(--ink-2)' }} />}
+                  {saving && <Loader2 size={13} className="animate-spin" style={{ color: 'var(--ink-2)' }} />}
                   <Link
                     href={builderUrl(shot, campaign.product_id, campaign.id)}
                     className="btn btn-ghost"
@@ -555,7 +555,7 @@ export default function CampaignDetailPage() {
                       style={{ padding: '4px 10px', fontSize: 11.5, display: 'inline-flex', gap: 5, alignItems: 'center' }}
                       title="Generate script + CTA + visual notes with Haiku"
                     >
-                      {saving ? <Loader2 size={12} className="spin" /> : <Wand2 size={12} />} Generate
+                      {saving ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} Generate
                     </button>
                   )}
                 </div>

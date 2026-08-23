@@ -379,7 +379,7 @@ export default function PodcastAdPage() {
               className="btn btn-primary"
               style={{ fontSize: 14, padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
             >
-              {planning ? <><Loader2 size={15} className="spin" /> Writing script…</> : <><Sparkles size={15} /> Draft the script</>}
+              {planning ? <><Loader2 size={15} className="animate-spin" /> Writing script…</> : <><Sparkles size={15} /> Draft the script</>}
             </button>
           </div>
         </div>
@@ -394,7 +394,7 @@ export default function PodcastAdPage() {
                 <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.15)', animation: 'ping 1.4s ease-in-out infinite' }} />
                 <div style={{ position: 'absolute', inset: 6, borderRadius: '50%', border: '3px solid rgba(255,255,255,0.25)', animation: 'ping 1.4s ease-in-out 0.35s infinite' }} />
                 <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Loader2 size={28} color="#fff" className="spin" />
+                  <Loader2 size={28} color="#fff" className="animate-spin" />
                 </div>
               </div>
               <div style={{ textAlign: 'center', color: '#fff' }}>
@@ -449,7 +449,7 @@ export default function PodcastAdPage() {
               className="btn btn-primary"
               style={{ fontSize: 14, padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 8 }}
             >
-              {framesLoading ? <><Loader2 size={15} className="spin" /> Generating frames…</> : <>Preview 4 scene frames <ArrowRight size={14} /></>}
+              {framesLoading ? <><Loader2 size={15} className="animate-spin" /> Generating frames…</> : <>Preview 4 scene frames <ArrowRight size={14} /></>}
             </button>
           </div>
         </>
@@ -492,7 +492,7 @@ export default function PodcastAdPage() {
               className="btn btn-primary"
               style={{ fontSize: 14, padding: '12px 22px', display: 'inline-flex', alignItems: 'center', gap: 8, opacity: !selectedFrame ? 0.45 : 1 }}
             >
-              {rendering ? <><Loader2 size={15} className="spin" /> Submitting…</> : <>Render all 6 shots <ArrowRight size={14} /></>}
+              {rendering ? <><Loader2 size={15} className="animate-spin" /> Submitting…</> : <>Render all 6 shots <ArrowRight size={14} /></>}
             </button>
           </div>
         </>
@@ -514,7 +514,7 @@ export default function PodcastAdPage() {
                 </div>
                 {job.status === 'processing' && (
                   <div style={{ aspectRatio: aspect.replace(':', '/'), background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
-                    <Loader2 size={22} className="spin" style={{ color: 'var(--ink-2)' }} />
+                    <Loader2 size={22} className="animate-spin" style={{ color: 'var(--ink-2)' }} />
                   </div>
                 )}
                 {job.status === 'completed' && job.videoUrl && (

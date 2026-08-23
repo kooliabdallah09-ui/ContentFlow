@@ -15,6 +15,57 @@ import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
 import { Loader2, Sparkles, Plus, ChevronRight, Coins, User2, Users, Camera, Wand2, Image as ImageIcon, Minus, CheckCircle2 } from 'lucide-react'
 
+// Premium planning indicator — SVG arc that sweeps around while a
+// ticker of stage labels cycles through what the server is actually
+// doing (brand load → inspiration → trend discovery → Sonnet draft).
+// The server call is one blocking request so we can't stream real
+// progress; the ticker gives the user something to read while they
+// wait and hides that latency behind a felt-fast animation.
+function PlanningIndicator({ shotCount }: { shotCount: number }) {
+  const stages = useMemo(() => [
+    'Reading your brand voice',
+    'Scanning inspiration',
+    'Discovering trend sources',
+    'Sonnet is drafting hooks',
+    'Balancing your format mix',
+    `Composing ${shotCount} shot${shotCount === 1 ? '' : 's'}`,
+    'Finalizing the shot list',
+  ], [shotCount])
+  const [i, setI] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => setI(x => (x + 1) % stages.length), 2200)
+    return () => clearInterval(t)
+  }, [stages.length])
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
+      <span style={{
+        width: 16, height: 16, position: 'relative',
+        display: 'inline-block',
+      }}>
+        <svg width="16" height="16" viewBox="0 0 16 16" style={{ animation: 'cf-plan-spin 900ms linear infinite' }}>
+          <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeOpacity="0.22" strokeWidth="2" />
+          <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="2"
+            strokeDasharray="10 30" strokeLinecap="round" />
+        </svg>
+      </span>
+      <span key={i} style={{
+        display: 'inline-block',
+        fontVariantNumeric: 'tabular-nums',
+        animation: 'cf-plan-fade 2200ms ease-in-out',
+      }}>{stages[i]}…</span>
+      <style>{`
+        @keyframes cf-plan-spin { to { transform: rotate(360deg); } }
+        @keyframes cf-plan-fade {
+          0%   { opacity: 0; transform: translateY(4px); }
+          15%  { opacity: 1; transform: translateY(0); }
+          85%  { opacity: 1; transform: translateY(0); }
+          100% { opacity: 0; transform: translateY(-4px); }
+        }
+      `}</style>
+    </span>
+  )
+}
+
 const PLAN_COST = 5
 
 interface Campaign {
@@ -445,8 +496,20 @@ export default function CampaignsPage() {
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <button className="btn btn-ghost" onClick={() => setShowNew(false)} disabled={planning}>Cancel</button>
-              <button className="btn btn-primary" onClick={submit} disabled={planning || totalShots < 3} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {planning ? <><Loader2 size={14} className="spin" /> Planning…</> : <><Sparkles size={14} /> Plan campaign · {PLAN_COST} cr</>}
+              <button
+                className="btn btn-primary"
+                onClick={submit}
+                disabled={planning || totalShots < 3}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  minWidth: planning ? 300 : undefined,
+                  justifyContent: 'center',
+                  transition: 'min-width 200ms ease',
+                }}
+              >
+                {planning
+                  ? <PlanningIndicator shotCount={totalShots} />
+                  : <><Sparkles size={14} /> Plan campaign · {PLAN_COST} cr</>}
               </button>
             </div>
           </div>
@@ -455,7 +518,7 @@ export default function CampaignsPage() {
 
       {/* ── Campaigns list ─────────────────────────────────────── */}
       {loading ? (
-        <div style={{ padding: 40, display: 'flex', gap: 10, alignItems: 'center', color: 'var(--ink-2)' }}><Loader2 size={16} className="spin" /> Loading…</div>
+        <div style={{ padding: 40, display: 'flex', gap: 10, alignItems: 'center', color: 'var(--ink-2)' }}><Loader2 size={16} className="animate-spin" /> Loading…</div>
       ) : campaigns.length === 0 ? (
         <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink-2)', border: '1px dashed var(--border)', borderRadius: 14 }}>
           No campaigns yet. Click <strong>New campaign</strong> to draft your first shot list.
