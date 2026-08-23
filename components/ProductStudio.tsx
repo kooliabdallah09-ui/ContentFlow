@@ -260,18 +260,32 @@ export default function ProductStudio() {
         setList(products)
         // Campaign → auto-open. Reads window.location.search DIRECTLY
         // (bypasses useSearchParams' hydration timing) and operates on
-        // the freshly-fetched product list (bypasses the useState /
-        // useEffect race where `list` isn't yet updated when the deps
-        // effect fires). Matches by exact name, then substring, then
-        // falls back to the single-product case.
+        // the freshly-fetched product list. If productName isn't in the
+        // URL (older campaigns, meta.product_name missing) we fetch the
+        // campaign row and read product_name from there. Last resort:
+        // single-product fallback.
         try {
           if (typeof window === 'undefined') return
           const qs = new URLSearchParams(window.location.search)
           const shot = qs.get('shot')
           const campaignId = qs.get('campaign')
           if (!shot || !campaignId) return
-          const wantedName = (qs.get('productName') ?? '').trim().toLowerCase()
+
+          let wantedName = (qs.get('productName') ?? '').trim().toLowerCase()
           const wantedId = qs.get('product')
+
+          // Fallback 1: fetch the campaign to grab meta.product_name.
+          if (!wantedName && campaignId) {
+            try {
+              const campRes = await fetch(`/api/campaigns/${campaignId}`, { headers: { Authorization: `Bearer ${token}` } })
+              if (campRes.ok) {
+                const campData = await campRes.json()
+                const metaName = campData?.campaign?.meta?.product_name
+                if (typeof metaName === 'string') wantedName = metaName.trim().toLowerCase()
+              }
+            } catch { /* silent — falls through to other match strategies */ }
+          }
+
           let match: StudioProduct | undefined
           if (wantedName) {
             match = products.find(p => p.name.toLowerCase() === wantedName)
@@ -283,6 +297,7 @@ export default function ProductStudio() {
           if (!match && products.length === 1) {
             match = products[0]
           }
+          console.log('[ProductStudio] campaign auto-open', { campaignId, shot, wantedName, wantedId, productsCount: products.length, matched: match?.name ?? null })
           if (match) {
             // Fire and forget — openDetail is async but we don't need to
             // wait for the product detail fetch before returning from load().
