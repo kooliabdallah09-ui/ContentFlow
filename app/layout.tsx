@@ -11,6 +11,7 @@ import OnboardingTour from '@/components/OnboardingTour'
 import { CreditsProvider } from '@/lib/CreditsContext'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { VisitTracker } from '@/components/VisitTracker'
 import "./globals.css";
 
 export default function RootLayout({
@@ -215,6 +216,7 @@ export default function RootLayout({
         {!pathname.startsWith('/studio') && <AppAssistant />}
         <Analytics />
         <SpeedInsights />
+        <VisitTracker />
       </body>
     </html>
   )
