@@ -59,7 +59,7 @@ export default function LandingPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink)', textDecoration: 'none' }}>
-            <span className="brand-mark" style={{ width: 42, height: 42, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={42} /></span>
+            <span className="brand-mark" style={{ width: 60, height: 60, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={60} /></span>
             <div className="brand-name" style={{ fontSize: 15, color: 'var(--ink)' }}>Content<em>flow</em></div>
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="ls-nav">
@@ -447,7 +447,7 @@ export default function LandingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 40, marginBottom: 48 }} className="ls-foot-grid">
             <div>
               <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <span className="brand-mark" style={{ width: 42, height: 42, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={42} /></span>
+                <span className="brand-mark" style={{ width: 60, height: 60, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={60} /></span>
                 <div className="brand-name" style={{ fontSize: 15 }}>Content<em>flow</em></div>
               </Link>
               <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0, lineHeight: 1.6 }}>Your brand&apos;s entire content team, in one app.</p>

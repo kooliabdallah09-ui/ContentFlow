@@ -63,7 +63,7 @@ export default function SignupPage() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ maxWidth: 420, width: '100%' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
-          <span className="brand-mark" style={{ width: 44, height: 44 }}><Logo size={44} /></span>
+          <span className="brand-mark" style={{ width: 56, height: 56 }}><Logo size={56} /></span>
           <div className="brand-name" style={{ fontSize: 16 }}>Content<em>flow</em></div>
         </Link>
 

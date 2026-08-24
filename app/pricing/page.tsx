@@ -393,7 +393,7 @@ export default function PricingPage() {
       <header style={{ position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', background: 'color-mix(in srgb, var(--bg) 82%, transparent)', borderBottom: '1px solid var(--border)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink)', textDecoration: 'none' }}>
-            <span style={{ width: 42, height: 42, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={42} /></span>
+            <span style={{ width: 60, height: 60, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={60} /></span>
             <span style={{ fontSize: 15, color: 'var(--ink)' }}>Content<em>flow</em></span>
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
