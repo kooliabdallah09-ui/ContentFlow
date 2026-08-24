@@ -2,20 +2,20 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Contentflow Web Refund Policy',
-  description: 'When and how Contentflow Web purchases can be refunded.',
+  title: 'ContentFlow Web Refund Policy',
+  description: 'When and how ContentFlow Web purchases can be refunded.',
 }
 
 const EFFECTIVE_DATE = 'July 19, 2026'
 const CONTACT_EMAIL = 'contentflow.web@gmail.com'
-const COMPANY_NAME = 'Contentflow Web'
+const COMPANY_NAME = 'ContentFlow Web'
 
 export default function RefundsPage() {
   return (
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
       <div style={{ marginBottom: 48 }}>
         <Link href="/" style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-          ← Back to Contentflow Web
+          ← Back to ContentFlow Web
         </Link>
       </div>
 

@@ -2,13 +2,13 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Contentflow Web Privacy Policy',
-  description: 'Contentflow Web Privacy Policy — how we collect, use, and protect your data.',
+  title: 'ContentFlow Web Privacy Policy',
+  description: 'ContentFlow Web Privacy Policy — how we collect, use, and protect your data.',
 }
 
 const EFFECTIVE_DATE = 'June 24, 2026'
 const CONTACT_EMAIL = 'contentflow.web@gmail.com'
-const COMPANY_NAME = 'Contentflow Web'
+const COMPANY_NAME = 'ContentFlow Web'
 const APP_URL = 'https://contentflow-web.com'
 
 export default function PrivacyPage() {
@@ -16,12 +16,12 @@ export default function PrivacyPage() {
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
       <div style={{ marginBottom: 48 }}>
         <Link href="/" style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-          ← Back to Contentflow Web
+          ← Back to ContentFlow Web
         </Link>
       </div>
 
       <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 42, lineHeight: 1.1, letterSpacing: '-0.01em', margin: '0 0 10px' }}>
-        Contentflow Web Privacy Policy
+        ContentFlow Web Privacy Policy
       </h1>
       <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', margin: '0 0 48px', fontFamily: 'var(--font-mono)' }}>
         Effective {EFFECTIVE_DATE}

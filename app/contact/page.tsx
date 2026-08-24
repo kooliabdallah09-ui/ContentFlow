@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Contact — Contentflow Web',
-  description: 'Get in touch with the Contentflow Web team.',
+  title: 'Contact — ContentFlow Web',
+  description: 'Get in touch with the ContentFlow Web team.',
 }
 
 const CONTACT_EMAIL = 'contentflow.web@gmail.com'
@@ -13,7 +13,7 @@ export default function ContactPage() {
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
       <div style={{ marginBottom: 48 }}>
         <Link href="/" style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-          ← Back to Contentflow Web
+          ← Back to ContentFlow Web
         </Link>
       </div>
 

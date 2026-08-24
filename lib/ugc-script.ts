@@ -260,7 +260,7 @@ Physical (skincare):
 [BODY] "It's been eleven days. My mom asked if I got a facial. I did not get a facial."
 [CTA] "…the tub is $34. That's all I'm gonna say."
 
-SaaS (video tool like Contentflow):
+SaaS (video tool like ContentFlow):
 [HOOK] "Guys I'm gonna get fired." (long pause) "…just kidding, I'm ten ads ahead of schedule."
 [BODY] "I typed one sentence into this thing at 9:04. It's 9:11. There are three finished ads on my desktop. I don't understand what's happening but I love it."
 [CTA] "(shrugs) I mean. Yeah."

@@ -47,7 +47,7 @@ export default function ReportPage() {
     <main style={{ maxWidth: 640, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.6 }}>
       <div style={{ marginBottom: 32 }}>
         <Link href="/" style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-          ← Back to Contentflow
+          ← Back to ContentFlow
         </Link>
       </div>
 

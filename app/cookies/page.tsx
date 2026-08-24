@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Cookie Policy — Contentflow Web',
-  description: 'How Contentflow Web uses cookies.',
+  title: 'Cookie Policy — ContentFlow Web',
+  description: 'How ContentFlow Web uses cookies.',
 }
 
 const EFFECTIVE_DATE = 'July 20, 2026'
@@ -13,7 +13,7 @@ export default function CookiesPage() {
     <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
       <div style={{ marginBottom: 48 }}>
         <Link href="/" style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-          ← Back to Contentflow Web
+          ← Back to ContentFlow Web
         </Link>
       </div>
 
@@ -26,7 +26,7 @@ export default function CookiesPage() {
 
       <div style={{ fontSize: 14.5, lineHeight: 1.75, display: 'flex', flexDirection: 'column', gap: 18 }}>
         <p>
-          Contentflow Web uses a small number of cookies and similar browser-storage technologies. We do not
+          ContentFlow Web uses a small number of cookies and similar browser-storage technologies. We do not
           sell data or run third-party advertising trackers.
         </p>
         <div>

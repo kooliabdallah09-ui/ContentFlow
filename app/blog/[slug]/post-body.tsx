@@ -114,7 +114,7 @@ function WhyAIUgcAdLooksLikeOne() {
 
       <h3 style={H3}>6. The polite realisation</h3>
       <p style={P}>
-        This one is subtle. It&apos;s the fake-composed reveal moment — &quot;(matter-of-fact) &apos;Contentflow does it
+        This one is subtle. It&apos;s the fake-composed reveal moment — &quot;(matter-of-fact) &apos;ContentFlow does it
         all…&apos;&quot; — where a stage direction spells out the emotion the model wants the viewer to feel. Real
         reactions are messier. People laugh, sigh, side-eye, exhale. They say &quot;wait — what.&quot; They don&apos;t
         deliver.
