@@ -21,6 +21,21 @@ export default function AuthCallbackPage() {
         const supabase = getSupabase()
         if (!supabase) throw new Error('Auth client not ready')
 
+        // If Supabase redirected here with an OAuth error in the URL, surface
+        // it cleanly. This covers the "email already registered with password"
+        // case where Supabase refuses to auto-merge accounts.
+        if (typeof window !== 'undefined') {
+          const params = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+          const err = params.get('error_description') || params.get('error')
+          if (err) {
+            const msg = decodeURIComponent(err).toLowerCase()
+            if (msg.includes('already') || msg.includes('exists') || msg.includes('registered')) {
+              throw new Error('This email is already registered with a password. Sign in with email/password instead, then link Google from your account settings.')
+            }
+            throw new Error(decodeURIComponent(err))
+          }
+        }
+
         // Supabase JS reads the OAuth code / hash automatically on load.
         // Poll briefly for the session — usually appears within ~200ms.
         let session = null

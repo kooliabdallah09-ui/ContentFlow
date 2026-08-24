@@ -75,10 +75,10 @@ export default function PrivacyPage() {
 
         <h3 style={h3}>Payment information</h3>
         <p>
-          Billing is handled by Stripe. We do not store your full card number, CVV, or bank details. Stripe
-          provides us with a payment token and basic billing information (last 4 digits, expiry, billing country).
-          Stripe&apos;s privacy policy applies to payment data:{' '}
-          <a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ink)', textUnderlineOffset: 3 }}>stripe.com/privacy</a>.
+          Billing is handled by our merchant of record, Dodo Payments. We do not store your full card number,
+          CVV, or bank details. Dodo provides us with a payment token and basic billing information (last 4
+          digits, expiry, billing country). Dodo&apos;s privacy policy applies to payment data:{' '}
+          <a href="https://dodopayments.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ink)', textUnderlineOffset: 3 }}>dodopayments.com/privacy</a>.
         </p>
       </Section>
 
@@ -133,7 +133,7 @@ export default function PrivacyPage() {
         <ul>
           <li><strong>Supabase</strong> — database and authentication hosting (data stored in the EU/US)</li>
           <li><strong>Vercel</strong> — application hosting and edge delivery</li>
-          <li><strong>Stripe</strong> — payment processing</li>
+          <li><strong>Dodo Payments</strong> — merchant of record and payment processing</li>
         </ul>
       </Section>
 
@@ -191,7 +191,7 @@ export default function PrivacyPage() {
           dark mode). We do not use advertising cookies or cross-site tracking pixels.
         </p>
         <p>
-          Third-party services embedded in the Service (Stripe, Supabase) may set their own cookies in
+          Third-party services embedded in the Service (Dodo Payments, Supabase) may set their own cookies in
           accordance with their policies.
         </p>
         <p>

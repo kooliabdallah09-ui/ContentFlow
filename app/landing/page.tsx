@@ -489,9 +489,7 @@ export default function LandingPage() {
           <div style={{ paddingTop: 32, borderTop: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
             <div style={{ fontSize: 12, color: 'var(--ink-fade)' }}>© 2026 ContentFlow. All rights reserved.</div>
             <div style={{ display: 'flex', gap: 16 }}>
-              <a href="#" style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Twitter</a>
-              <a href="#" style={{ fontSize: 12, color: 'var(--ink-mute)' }}>LinkedIn</a>
-              <a href="#" style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Instagram</a>
+              <a href="https://www.instagram.com/contentflow.app/" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Instagram</a>
             </div>
           </div>
         </div>

@@ -5,7 +5,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date()
 
   const staticPages: MetadataRoute.Sitemap = [
-    { url: `${base}/landing`, lastModified: now, changeFrequency: 'weekly', priority: 1.0 },
+    // Canonical homepage — `/` renders the landing directly (app/page.tsx).
+    // Do NOT list `/landing` too; that's a duplicate and Google will demote both.
+    { url: `${base}/`, lastModified: now, changeFrequency: 'weekly', priority: 1.0 },
     { url: `${base}/pricing`, lastModified: now, changeFrequency: 'monthly', priority: 0.9 },
     { url: `${base}/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.8 },
     { url: `${base}/about`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
@@ -19,6 +21,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${base}/terms`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${base}/refunds`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${base}/cookies`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${base}/data-deletion`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
+    { url: `${base}/report`, lastModified: now, changeFrequency: 'yearly', priority: 0.2 },
   ]
 
   return staticPages

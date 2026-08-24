@@ -68,7 +68,10 @@ export async function POST(request: NextRequest) {
   }
   const user = userData.user
   const email = user.email ?? ''
-  const fullName = (user.user_metadata?.full_name ?? user.user_metadata?.name ?? email.split('@')[0] ?? 'there').toString()
+  // Fall back to the local-part of the email if Google didn't return a name
+  // (rare but possible). Better than "there" which reads as a broken template.
+  const emailLocal = email.split('@')[0] || 'friend'
+  const fullName = (user.user_metadata?.full_name ?? user.user_metadata?.name ?? emailLocal).toString()
 
   // Idempotency check — if the user already has a credits row, this ran before.
   const { data: existingCredits } = await supabase
