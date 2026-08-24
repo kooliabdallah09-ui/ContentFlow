@@ -7,6 +7,7 @@ import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { canAccessInfluencerStudio, canAccessBrandLaunch, canAccessStudio } from '@/lib/pov-access'
+import { Logo } from '@/components/Logo'
 
 interface SidebarProps {
   currentPath: string
@@ -56,7 +57,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
         /* Collapsed: logo + expand button, each centered like nav items */
         <div style={{ width: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 6px', gap: 4 }}>
           <Link href="/" style={{ width: 56, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="brand-mark" style={{ width: 28, height: 28, flexShrink: 0 }}><img src="/logo-icon.png" alt="ContentFlow" /></span>
+            <span className="brand-mark" style={{ width: 28, height: 28, flexShrink: 0 }}><Logo size={28} /></span>
           </Link>
           {!mobileOpen && (
             <button
@@ -76,7 +77,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
         /* Expanded: logo + name + collapse chevron in one row */
         <div style={{ display: 'flex', alignItems: 'center', padding: '20px 18px 12px', gap: 10 }}>
           <Link href="/" className="brand" style={{ padding: 0, flex: 1 }}>
-            <span className="brand-mark"><img src="/logo-icon.png" alt="ContentFlow" /></span>
+            <span className="brand-mark"><Logo size={28} /></span>
             <div className="brand-name">Content<em>flow</em></div>
           </Link>
           {!mobileOpen && (

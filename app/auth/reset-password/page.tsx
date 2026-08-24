@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import Link from 'next/link'
+import { Logo } from '@/components/Logo'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
@@ -36,7 +37,7 @@ export default function ResetPasswordPage() {
     <div style={{ background: 'var(--bg)', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <div style={{ maxWidth: 420, width: '100%' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, marginBottom: 48 }}>
-          <span className="brand-mark" style={{ width: 30, height: 30 }}><img src="/logo-icon.png" alt="ContentFlow" /></span>
+          <span className="brand-mark" style={{ width: 30, height: 30 }}><Logo size={30} /></span>
           <div className="brand-name" style={{ fontSize: 16 }}>Content<em>flow</em></div>
         </Link>
 

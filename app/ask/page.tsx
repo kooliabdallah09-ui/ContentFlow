@@ -6,6 +6,7 @@ import { Send, ArrowUpRight, Loader2, RefreshCcw } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { canAccessMultiAgentChat } from '@/lib/pov-access'
 import { CHAT_AGENTS, findAgent } from '@/lib/chat-agents'
+import { Logo } from '@/components/Logo'
 
 type ChatResult =
   | { kind: 'image'; url: string; prompt: string; credits: number }
@@ -230,7 +231,7 @@ export default function AskPage() {
               marginBottom: 6,
               padding: 10,
             }}>
-              <img src="/logo-icon.png" alt="ContentFlow" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+              <Logo style={{ width: '100%', height: '100%' }} />
             </div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 40, margin: 0, letterSpacing: '-0.01em' }}>
               How can I help you <span style={{ fontStyle: 'italic' }}>create?</span>

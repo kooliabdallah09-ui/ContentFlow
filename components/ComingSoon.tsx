@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { ArrowRight } from 'lucide-react'
+import { Logo } from '@/components/Logo'
 
 interface ComingSoonProps {
   feature: string                 // "Content Calendar", "Blog Post Writer", etc.
@@ -35,7 +36,7 @@ export default function ComingSoon({ feature, description, eta, alternative }: C
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: 10,
         }}>
-          <img src="/logo-icon.png" alt="ContentFlow" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          <Logo style={{ width: '100%', height: '100%' }} />
         </div>
 
         <p style={{

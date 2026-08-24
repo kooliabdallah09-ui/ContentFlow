@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Sun, Moon, Menu, X } from 'lucide-react'
 import { DEMO_VIDEOS } from '@/lib/demo-gallery'
+import { Logo } from '@/components/Logo'
 
 // Landing page — editorial design from the Claude Design export.
 // Hero + Features (6-up grid) + Pricing (3 cards) + closing CTA + Footer.
@@ -58,7 +59,7 @@ export default function LandingPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink)', textDecoration: 'none' }}>
-            <span className="brand-mark" style={{ width: 28, height: 28, borderRadius: 6, overflow: 'hidden', background: '#000', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><img src="/logo.png" alt="ContentFlow" style={{ width: 22, height: 22, objectFit: 'contain' }} /></span>
+            <span className="brand-mark" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={28} /></span>
             <div className="brand-name" style={{ fontSize: 15, color: 'var(--ink)' }}>Content<em>flow</em></div>
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="ls-nav">
@@ -446,7 +447,7 @@ export default function LandingPage() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 40, marginBottom: 48 }} className="ls-foot-grid">
             <div>
               <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <span className="brand-mark" style={{ width: 28, height: 28, borderRadius: 6, overflow: 'hidden', background: '#000', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><img src="/logo.png" alt="ContentFlow" style={{ width: 22, height: 22, objectFit: 'contain' }} /></span>
+                <span className="brand-mark" style={{ width: 28, height: 28, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={28} /></span>
                 <div className="brand-name" style={{ fontSize: 15 }}>Content<em>flow</em></div>
               </Link>
               <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0, lineHeight: 1.6 }}>Your brand&apos;s entire content team, in one app.</p>

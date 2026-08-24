@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createPortal } from 'react-dom'
 import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/CreditsContext'
+import { Logo } from '@/components/Logo'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1304,7 +1305,7 @@ export default function StudioPage() {
                     <div key={i} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: 10 }}>
                       {/* AI avatar */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {msg.role === 'assistant' && <img src="/logo-icon.png" alt="ContentFlow" style={{ width: 28, height: 28, borderRadius: 8, flexShrink: 0, objectFit: 'contain', marginTop: 1 }} />}
+                      {msg.role === 'assistant' && <Logo size={28} style={{ borderRadius: 8, flexShrink: 0, marginTop: 1 }} />}
 
                       <div style={{ flex: msg.role === 'assistant' ? 1 : undefined, maxWidth: msg.role === 'user' ? '78%' : undefined, minWidth: 0 }}>
                         {/* Attached image preview (user only) */}
