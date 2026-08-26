@@ -40,21 +40,25 @@ export default function ToastContainer() {
 
   return (
     <div
+      className="cf-toast-stack"
       style={{
         position: 'fixed',
-        bottom: 24,
-        right: 24,
+        bottom: 'max(16px, env(safe-area-inset-bottom, 16px))',
+        right: 16,
+        left: 'auto',
         zIndex: 9999,
         display: 'flex',
         flexDirection: 'column',
         gap: 10,
         pointerEvents: 'none',
         maxWidth: 380,
+        width: 'auto',
       }}
     >
       {toasts.map((t) => (
         <div
           key={t.id}
+          className="cf-toast-item"
           style={{
             pointerEvents: 'auto',
             display: 'flex',

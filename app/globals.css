@@ -1681,3 +1681,38 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
 @media (max-width: 480px) {
   .ls-demo-card { width: 150px !important; }
 }
+
+/* ── Toast stack: full-width on mobile ─────────────────────────── */
+@media (max-width: 640px) {
+  .cf-toast-stack {
+    left: 12px !important;
+    right: 12px !important;
+    max-width: none !important;
+    bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
+  }
+  .cf-toast-item {
+    padding: 11px 12px !important;
+    font-size: 13px !important;
+  }
+  .cf-toast-item > div > div:first-child { font-size: 13px !important; }
+  .cf-toast-item > div > div:last-child { font-size: 12px !important; }
+}
+
+/* ── Campaign detail: header + brief squeeze fix ──────────────── */
+/* The page container is a <div>, not <main>, so the "main { padding }"
+   rule doesn't hit it. Target the campaign detail explicitly. Also
+   force the header actions row (View in Library / Delete) to wrap
+   below the title instead of competing for horizontal space. */
+@media (max-width: 900px) {
+  /* Any full-viewport page wrapper that used desktop padding: shrink it */
+  [style*="padding: '28px 32px'"], [style*="padding:'28px 32px'"] {
+    padding: 20px 16px !important;
+  }
+  /* Campaign detail: the header row is `display: flex; justify-content: space-between`
+     — force wrap so title has full width and action buttons drop below. */
+  [style*="justifyContent: 'space-between'"][style*="alignItems: 'flex-start'"],
+  [style*="justify-content: space-between"][style*="align-items: flex-start"] {
+    flex-wrap: wrap !important;
+  }
+  /* The maxWidth: 900 on the brief text becomes redundant at mobile widths — safe */
+}
