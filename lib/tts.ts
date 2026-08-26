@@ -57,17 +57,19 @@ export async function generateSpeech(
     return generateOpenAISpeech(text, voiceId.slice(OPENAI_PREFIX.length))
   }
 
-  // ElevenLabs voice — prefer Replicate (no separate key needed), fall back to
-  // direct ElevenLabs API if configured. Do NOT silently fall back to OpenAI
-  // here: if the user picked Adam and we'd return Nova, the audio would be
-  // wrong but the UI would still say "Adam". Surfacing the error is better.
-  if (process.env.REPLICATE_API_TOKEN) {
-    return await generateElevenLabsViaReplicate(text, voiceId, options)
-  }
-
+  // ElevenLabs voice — prefer the direct ElevenLabs API when ELEVENLABS_API_KEY
+  // is set (pay-as-you-go is ~$0.045/voiceover, no Replicate markup, and we
+  // don't ship the audio through a third-party proxy). Fall back to Replicate
+  // if only REPLICATE_API_TOKEN is configured. Never silently fall back to
+  // OpenAI here: if the user picked Adam and we'd return Nova, the audio would
+  // be wrong but the UI would still say "Adam". Surfacing the error is better.
   if (process.env.ELEVENLABS_API_KEY) {
     return await generateElevenLabsSpeech(text, voiceId)
   }
 
-  throw new Error('ElevenLabs unavailable: set REPLICATE_API_TOKEN or ELEVENLABS_API_KEY')
+  if (process.env.REPLICATE_API_TOKEN) {
+    return await generateElevenLabsViaReplicate(text, voiceId, options)
+  }
+
+  throw new Error('ElevenLabs unavailable: set ELEVENLABS_API_KEY or REPLICATE_API_TOKEN')
 }
