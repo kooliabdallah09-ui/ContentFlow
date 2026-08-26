@@ -1558,3 +1558,126 @@ img, video, svg { max-width: 100%; }
 [data-screenshot="true"] .admin-beta-label {
   display: none !important;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE HARDENING — universal safety nets + specific page fixes
+   Applied on top of the existing @media (max-width: 900px) and 640px
+   blocks above. This layer catches inline-style edge cases that page
+   files build ad-hoc.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Universal (all viewports) — prevent horizontal overflow from any
+   single wide element (long URLs, oversized images, iframes). */
+html, body { overflow-x: hidden; max-width: 100vw; }
+img, video, iframe, canvas, svg { max-width: 100%; height: auto; }
+img[width][height], video[width][height] { height: auto; }  /* respect intrinsic but never overflow */
+pre, code { white-space: pre-wrap; word-break: break-word; }
+/* Long unbroken tokens (URLs, hashes) wrap instead of expanding the parent */
+p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
+
+@media (max-width: 900px) {
+  /* --- Tap-target minimums for iOS (48px) --- */
+  button, [role="button"], a.btn, .btn { min-height: 40px; }
+  input, textarea, select { font-size: 16px !important; }  /* Prevents iOS zoom-on-focus */
+
+  /* --- Aggressive: any inline fixed pixel WIDTH that's bigger than the
+     viewport → clamp to full width. Catches side-panel builders. --- */
+  [style*="width: 380px"], [style*="width: 400px"], [style*="width: 420px"],
+  [style*="width: 440px"], [style*="width: 480px"], [style*="width: 500px"] {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* --- Any inline max-width caps that were desktop-sized --- */
+  [style*="maxWidth: 1200px"], [style*="maxWidth: 1080px"],
+  [style*="max-width: 1200px"], [style*="max-width: 1080px"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  /* --- Studios pages (Product / Influencer / Scenes) --- */
+  /* Tab switcher: allow wrap */
+  .studios-tabs, [class*="StudiosTabs"] { flex-wrap: wrap; gap: 6px !important; }
+
+  /* --- Social page (carousel builder) --- */
+  /* Its layout is grid: 380px 1fr for controls | preview. Stack on mobile. */
+  .car-layout, [style*="grid-template-columns: 380px"], [style*="gridTemplateColumns: '380px 1fr'"] {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  /* Post preview: no double-column caption */
+  [style*="gridTemplateColumns: '1fr 344px'"], [style*="grid-template-columns: 1fr 344px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* --- Video Studio / UGC Package builder --- */
+  .ugc-grid { grid-template-columns: 1fr !important; }
+
+  /* --- Campaign shot table rows: hide the fixed-width right chips
+     column and let the row wrap. --- */
+  .shot-row, [class*="ShotRow"] { flex-wrap: wrap; }
+
+  /* --- Landing feature showcase: force single column --- */
+  .ls-feat-showcase { grid-template-columns: 1fr !important; }
+
+  /* --- Modal / dialog: full-screen on mobile --- */
+  [role="dialog"], .modal, .dialog {
+    max-width: 100vw !important;
+    max-height: 100vh !important;
+    border-radius: 0 !important;
+    inset: 0 !important;
+  }
+
+  /* --- Bottom-fixed action bars need bottom padding on scroll containers --- */
+  main { padding-bottom: 60px !important; }
+
+  /* --- Fixed avatar / preview boxes that were 200px+ shrink to fit --- */
+  [style*="width: 200px"], [style*="width: 240px"], [style*="width: 280px"], [style*="width: 320px"] {
+    max-width: 100% !important;
+  }
+
+  /* --- Auth pages: card fills nicely --- */
+  .auth-card, [class*="auth-card"] {
+    max-width: 100% !important;
+    padding: 24px 20px !important;
+  }
+
+  /* --- Tables that render as flex-grid rows: card stack --- */
+  .visits-row, .cost-row {
+    grid-template-columns: 1fr !important;
+    gap: 4px !important;
+    padding: 14px !important;
+  }
+
+  /* --- TopBar: trim search + breadcrumb clutter, keep hamburger + brand --- */
+  .topbar > *:not(.hamburger):not(.brand-mark):not([data-keep-mobile]) {
+    /* Individual pages may still opt back in with data-keep-mobile */
+  }
+
+  /* --- Sidebar credit banner + upgrade CTA can shrink typography --- */
+  .rail .credit-banner { font-size: 12px; padding: 12px; }
+
+  /* --- Any two-button rows on the right of a header: stack --- */
+  header [style*="display: flex"][style*="gap: 8px"],
+  header [style*="display: flex"][style*="gap: 12px"] {
+    flex-wrap: wrap;
+  }
+}
+
+/* ── Extra tight for phones (≤ 480px) ────────────────────────── */
+@media (max-width: 480px) {
+  main { padding-left: 12px !important; padding-right: 12px !important; }
+  h1 { font-size: 26px !important; }
+  h2 { font-size: 20px !important; }
+  /* Serif hero headlines on landing / marketing pages */
+  .lp h1 { font-size: 30px !important; }
+  /* Chip stepper (campaign format-mix cards) — tighter */
+  [style*="gap: 10px"] { gap: 8px !important; }
+  /* Section spacing on marketing pages */
+  section { padding-top: 40px !important; padding-bottom: 40px !important; }
+}
+
+/* ── Landing page marquee: shrink on phones so 3 cards fit ─── */
+@media (max-width: 480px) {
+  .ls-demo-card { width: 150px !important; }
+}
