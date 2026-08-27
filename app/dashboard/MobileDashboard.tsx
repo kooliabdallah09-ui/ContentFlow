@@ -83,7 +83,7 @@ export function MobileDashboard({
   const planLabel = (credits?.plan ?? 'free').replace(/^\w/, c => c.toUpperCase()) + ' plan'
 
   return (
-    <div style={{ padding: '18px 18px 30px' }}>
+    <div data-mobile-native="true" style={{ padding: '18px 18px 30px', minHeight: '100%' }}>
       {/* Greeting */}
       <div style={{
         fontFamily: 'var(--m-serif)',

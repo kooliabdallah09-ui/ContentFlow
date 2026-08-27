@@ -1848,3 +1848,122 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
   transform: scale(0.98);
   transition: transform 60ms ease-out;
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE — hide desktop overlays, neutralize shell so non-mobile
+   pages don't get a color mismatch with the shell chrome.
+   ══════════════════════════════════════════════════════════════════ */
+
+/* Hide the floating AppAssistant chat bubble on mobile — it overlaps
+   the BottomNav (both at bottom-right, same z-index band) and looks
+   like a bug. Mobile users get to the assistant via the future
+   Ask-AI screen in the Create sheet instead. */
+@media (max-width: 900px) {
+  aside[aria-label="Ask the assistant"],
+  button[aria-label="Ask the assistant"],
+  button[aria-label="Open assistant"] {
+    display: none !important;
+  }
+  /* Fallback — anything fixed at bottom:20 right:20 with high z-index
+     other than our nav/toast — the assistant matches this pattern. */
+  body > button[style*="position: fixed"][style*="bottom: 20"][style*="right: 20"] {
+    display: none !important;
+  }
+}
+
+/* The mobile-shell wrapper was forcing a cream background + dark ink,
+   which fights every non-mobile-native page that ships its own dark
+   theme (billing, analytics, library, etc.). Neutralize the shell so
+   only the mobile-native pages (Dashboard, and future mobile-first
+   screens) apply their own palette. The header + bottom-nav still use
+   the design tokens directly. */
+.mobile-shell {
+  background: transparent !important;
+  color: inherit !important;
+}
+/* But mobile-native pages that need the warm-cream aesthetic can set
+   `data-mobile-native` on their root element to re-apply the palette. */
+.mobile-shell [data-mobile-native="true"] {
+  background: var(--m-bg);
+  color: var(--m-ink);
+  font-family: var(--m-sans);
+}
+
+/* Toast — restyle to match mobile palette on phones. */
+@media (max-width: 640px) {
+  .cf-toast-item {
+    background: var(--m-card, #ffffff) !important;
+    border: 1px solid var(--m-border, #E7E3D6) !important;
+    border-left-width: 3px !important;
+    color: var(--m-ink, #18170F) !important;
+    box-shadow: 0 10px 32px rgba(24,23,15,0.18) !important;
+    border-radius: 14px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DARK MODE — mobile-shell palette variant
+   Kicks in when the app is in dark theme (html[data-theme="dark"]).
+   The design artifact was light-only; the dark palette is derived
+   from the same warm neutrals so the mood is consistent.
+   ══════════════════════════════════════════════════════════════════ */
+[data-theme="dark"] .mobile-shell {
+  --m-bg:            #14130C;   /* deep warm ink background */
+  --m-surface:       #1C1B12;   /* frame surface */
+  --m-card:          #22201A;   /* elevated card */
+  --m-surface-2:     #2A2820;   /* chip bg */
+  --m-surface-3:     #33301F;   /* skeleton / placeholder */
+  --m-border:        #33301F;   /* light-on-dark divider */
+  --m-border-2:      #3D3B2A;   /* dashed border */
+  --m-ink:           #F6F4EE;   /* light text */
+  --m-ink-2:         #E5E2D5;   /* deep body → now pale */
+  --m-ink-3:         #B8B4A0;   /* secondary */
+  --m-mute:          #8A8674;   /* muted */
+  --m-mute-2:        #6E6B5A;   /* uppercase labels */
+  --m-mute-3:        #504E42;   /* placeholder */
+  /* Amber tokens stay warm on dark bg */
+  --m-credits-bg:      #2A2418;
+  --m-credits-border:  #4A3E1E;
+  --m-credits-ink:     #E4C99A;
+  --m-credits-dot:     #D8B978;
+  --m-credits-fill:    #D8B978;
+  --m-credits-hint:    #B8A97A;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ROUND 4 MOBILE FIXES — from screenshots
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* SectionTabs: horizontal-scroll tab strip. Each tab must NOT shrink
+     (otherwise badges spill onto the label). Container scrolls,
+     children stay their intrinsic width. */
+  main [style*="borderBottom: '1px solid"][style*="display: 'flex'"] > a,
+  main [style*="border-bottom: 1px solid"][style*="display: flex"] > a {
+    flex-shrink: 0 !important;
+    white-space: nowrap;
+  }
+}
+@media (max-width: 480px) {
+  /* Badges eat too much horizontal width on the smallest phones.
+     Hide the tiny "Beta / Flagship / Alpha / New" pills — the tab
+     label is enough to identify the page. */
+  main [style*="borderBottom: '1px solid"] a > span[style*="fontSize: 9"],
+  main [style*="border-bottom: 1px solid"] a > span[style*="font-size: 9"] {
+    display: none !important;
+  }
+
+  /* Campaign card / brand row: "5 cr to plan" and similar right-side
+     mono chips need their own row on very narrow phones. The earlier
+     rule wrapped the containing flex; this one gives the right chip
+     column full width so it doesn't stack character-by-character. */
+  [style*="justify-content: space-between"] > *,
+  [style*="justifyContent: 'space-between'"] > * {
+    max-width: 100%;
+  }
+  /* Any right-side child that's a fixed narrow column: full-width */
+  [style*="justify-content: space-between"] > *:last-child:not(:only-child),
+  [style*="justifyContent: 'space-between'"] > *:last-child:not(:only-child) {
+    width: auto;
+    min-width: 0;
+  }
+}

@@ -42,10 +42,15 @@ export function MobileHeader({
       style={{
         flexShrink: 0,
         padding: 'max(56px, calc(env(safe-area-inset-top, 20px) + 12px)) 18px 10px',
-        background: 'rgba(251, 250, 246, 0.92)',
+        // Use the app's surface color so the header blends with whatever
+        // theme the page below is running (light cream on mobile-native
+        // pages, dark on dashboard-app pages that haven't been ported
+        // yet). Fallback keeps the design-artifact cream if the surface
+        // token isn't defined.
+        background: 'var(--surface, rgba(251, 250, 246, 0.92))',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
-        borderBottom: '1px solid var(--m-border)',
+        borderBottom: '1px solid var(--border, var(--m-border))',
         display: 'flex',
         alignItems: 'center',
         gap: 10,

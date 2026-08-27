@@ -21,9 +21,13 @@ export async function GET(request: NextRequest) {
     }
     const userId = userData.user.id
 
+    // Column list intentionally excludes `name` — it was added late in dev and
+    // still isn't present on every environment's schema. Selecting a non-
+    // existent column throws PGRST204 and blows the whole endpoint. If you
+    // need the name later, prefer to derive it from metadata.productName.
     const { data: items, error } = await supabase
       .from('ugc_content')
-      .select('id, content_type, storage_url, metadata, credit_cost, status, created_at, name')
+      .select('id, content_type, storage_url, metadata, credit_cost, status, created_at')
       .eq('user_id', userId)
       .eq('content_type', 'video')
       .eq('status', 'completed')
@@ -32,7 +36,8 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[library] Supabase query error:', error)
-      return NextResponse.json({ error: 'Failed to fetch library' }, { status: 500 })
+      // Surface the real Postgres error code so the client toast can show it.
+      return NextResponse.json({ error: `Failed to fetch library: ${error.message}`, code: error.code }, { status: 500 })
     }
 
     return NextResponse.json({ items: items ?? [] })
