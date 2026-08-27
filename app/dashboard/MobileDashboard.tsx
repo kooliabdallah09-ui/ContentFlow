@@ -1,14 +1,11 @@
 'use client'
 
-// Purpose-built mobile dashboard. Instagram-style feed layout: greeting card
-// on top, a horizontal-scroll row of primary Generate actions, then a
-// vertical stack of Recent Items. No sidebar assumptions, no wide tables.
-//
-// Data fetching is shared with the desktop dashboard — parent passes it as
-// props so we don't duplicate the effect.
+// Editorial-warm mobile Dashboard, matching the Claude design artifact.
+// Layout: serif greeting → dark credits card → Create 2×2 grid → Recent
+// horizontal scroll. Same data source as the desktop dashboard, passed
+// in from the parent page component.
 
 import Link from 'next/link'
-import { Sparkles, Camera, Video, Layers, ArrowRight } from 'lucide-react'
 
 interface RecentItem {
   id: string
@@ -35,45 +32,11 @@ interface MobileDashboardProps {
   brandName: string | null
 }
 
-// Quick-action tile — sits in a horizontal scroll row at the top of the
-// dashboard. Big colored square, icon, label. Thumb-reachable.
-interface QuickAction {
-  href: string
-  label: string
-  sub: string
-  icon: React.ReactNode
-  accent: string    // subtle background tint
-}
-
-const QUICK_ACTIONS: QuickAction[] = [
-  {
-    href: '/generate/ugc',
-    label: 'UGC Ad',
-    sub: 'Talking head video',
-    icon: <Sparkles size={20} />,
-    accent: 'linear-gradient(135deg, #FFE1B8 0%, #FFCC7A 100%)',
-  },
-  {
-    href: '/generate/social',
-    label: 'Social',
-    sub: 'Carousel + captions',
-    icon: <Layers size={20} />,
-    accent: 'linear-gradient(135deg, #D4E4FF 0%, #A8C4F5 100%)',
-  },
-  {
-    href: '/generate/image',
-    label: 'Image',
-    sub: 'Product shot / hero',
-    icon: <Camera size={20} />,
-    accent: 'linear-gradient(135deg, #E4D4FF 0%, #C0A8F5 100%)',
-  },
-  {
-    href: '/generate/video',
-    label: 'Video',
-    sub: 'Any format',
-    icon: <Video size={20} />,
-    accent: 'linear-gradient(135deg, #D4FFE4 0%, #8FE0B0 100%)',
-  },
+const CREATE_TILES = [
+  { href: '/generate/ugc',    label: 'UGC Package', sub: 'Full talking-head ad',      cost: '40 cr',      tint: '#F1E6C9' },
+  { href: '/generate/image',  label: 'Image',       sub: 'Product & creative shots',  cost: 'from 8 cr',  tint: '#E8EDE4' },
+  { href: '/generate/voice',  label: 'Voiceover',   sub: 'Script to studio audio',    cost: '5 cr',       tint: '#F0E7E4' },
+  { href: '/campaigns',       label: 'Campaign',    sub: 'A month, planned',          cost: '40 cr',      tint: '#EDEAE0' },
 ]
 
 function timeAgo(iso: string): string {
@@ -81,8 +44,19 @@ function timeAgo(iso: string): string {
   if (secs < 60) return 'just now'
   if (secs < 3600) return `${Math.floor(secs / 60)}m ago`
   if (secs < 86400) return `${Math.floor(secs / 3600)}h ago`
-  if (secs < 172800) return 'yesterday'
+  if (secs < 172800) return 'Yesterday'
+  const days = Math.floor(secs / 86400)
+  if (days < 7) return `${days}d ago`
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+function contentTypeLabel(t: string): string {
+  const s = t.toLowerCase()
+  if (s.includes('video') || s.includes('ugc')) return 'VIDEO'
+  if (s.includes('image') || s.includes('photo')) return 'IMAGE'
+  if (s.includes('audio') || s.includes('voice')) return 'AUDIO'
+  if (s.includes('carousel') || s.includes('social')) return 'SOCIAL'
+  return t.split('_')[0].toUpperCase().slice(0, 6)
 }
 
 export function MobileDashboard({
@@ -93,177 +67,236 @@ export function MobileDashboard({
   credits,
   brandName,
 }: MobileDashboardProps) {
+  // Strip trailing "," so we can drop the name on its own line.
+  const cleanGreeting = greeting.replace(/,\s*$/, '')
+  const firstName = userName.split(' ')[0]
+
+  // Progress bar shows how much of the monthly allocation is left.
+  const monthly = credits?.monthlyCredits ?? 0
+  const balance = credits?.balance ?? 0
+  const pct = monthly > 0 ? Math.min(100, Math.round((balance / monthly) * 100)) : 0
+
+  const resetLabel = credits?.resetDate
+    ? new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    : '—'
+
+  const planLabel = (credits?.plan ?? 'free').replace(/^\w/, c => c.toUpperCase()) + ' plan'
+
   return (
-    <div style={{ padding: '14px 16px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-      {/* Greeting + brand line */}
-      <div>
-        <div style={{ fontSize: 12, color: 'var(--ink-mute)', letterSpacing: 0.4, textTransform: 'uppercase', fontFamily: 'var(--font-mono, monospace)', marginBottom: 4 }}>
-          {greeting}
-        </div>
-        <h1 style={{ fontSize: 26, fontWeight: 700, margin: 0, letterSpacing: '-0.02em', lineHeight: 1.15 }}>
-          {userName}
-        </h1>
-        {brandName && (
-          <div style={{ fontSize: 13.5, color: 'var(--ink-mute)', marginTop: 4 }}>
-            Working on <strong style={{ color: 'var(--ink)' }}>{brandName}</strong>
-          </div>
-        )}
+    <div style={{ padding: '18px 18px 30px' }}>
+      {/* Greeting */}
+      <div style={{
+        fontFamily: 'var(--m-serif)',
+        fontSize: 29, lineHeight: 1.15, letterSpacing: '-0.02em',
+        marginBottom: 3, color: 'var(--m-ink)',
+      }}>
+        {cleanGreeting},<br />
+        <em>{firstName}.</em>
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--m-mute)', marginBottom: 16 }}>
+        {brandName ? `Working on ${brandName}.` : 'What are we making today?'}
       </div>
 
-      {/* Credits chip — big, tappable, drives to billing */}
+      {/* Dark credits card */}
       {credits && (
-        <Link
-          href="/settings/billing"
-          style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '14px 16px', borderRadius: 14,
-            background: 'linear-gradient(120deg, #FBF3D9, #F5E4A9)',
-            color: '#5C3E00', textDecoration: 'none',
-            border: '1px solid #E8D188',
-          }}
-        >
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: '#8A6B1B' }}>
-              Credits
+        <div style={{
+          background: 'var(--m-dark-card)',
+          borderRadius: 20, padding: '18px 20px', color: '#fff',
+          marginBottom: 18,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{
+                fontSize: 9.5, fontWeight: 600, letterSpacing: '0.11em',
+                textTransform: 'uppercase', color: 'var(--m-credits-hint)',
+                marginBottom: 5, fontFamily: 'var(--m-mono)',
+              }}>
+                Available credits
+              </div>
+              <div style={{
+                fontFamily: 'var(--m-serif)', fontSize: 36,
+                lineHeight: 1, letterSpacing: '-0.02em',
+              }}>
+                {balance.toLocaleString()}
+              </div>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: '-0.01em', lineHeight: 1, fontFamily: 'var(--font-mono, monospace)' }}>
-              {credits.balance.toLocaleString()}
-              <span style={{ fontSize: 13, color: '#8A6B1B', fontWeight: 500, marginLeft: 6 }}>cr</span>
-            </div>
-            <div style={{ fontSize: 12, color: '#8A6B1B', marginTop: 2 }}>
-              {credits.plan.charAt(0).toUpperCase() + credits.plan.slice(1)} plan · resets {new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            </div>
+            <span style={{
+              fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+              background: 'rgba(255,255,255,0.12)',
+              borderRadius: 99, padding: '5px 10px',
+            }}>
+              {planLabel}
+            </span>
           </div>
-          <ArrowRight size={20} strokeWidth={2} />
-        </Link>
+          <div style={{
+            height: 4, background: 'rgba(255,255,255,0.14)',
+            borderRadius: 99, margin: '14px 0 10px',
+          }}>
+            <div style={{
+              height: '100%', width: `${pct}%`,
+              background: 'var(--m-credits-fill)', borderRadius: 99,
+            }} />
+          </div>
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <span style={{ fontSize: 11.5, color: '#B5B29E' }}>
+              Resets {resetLabel} · {monthly.toLocaleString()}/mo allocation
+            </span>
+            <Link href="/settings/billing" data-press style={{
+              fontSize: 12, fontWeight: 600, color: '#fff',
+              textDecoration: 'underline', textUnderlineOffset: 3,
+            }}>
+              Upgrade
+            </Link>
+          </div>
+        </div>
       )}
 
-      {/* Quick actions — horizontal scroll row */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
-            Create
-          </h2>
-          <Link href="/generate/ugc" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none' }}>
-            All tools →
-          </Link>
-        </div>
-        <div style={{
-          display: 'flex', gap: 10,
-          overflowX: 'auto', paddingBottom: 4,
-          scrollSnapType: 'x mandatory',
-          WebkitOverflowScrolling: 'touch',
-          margin: '0 -16px', padding: '0 16px 4px',
+      {/* Start creating */}
+      <div style={{
+        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+        marginBottom: 10,
+      }}>
+        <div style={{ fontSize: 13.5, fontWeight: 600 }}>Start creating</div>
+        <span style={{
+          fontSize: 11, color: 'var(--m-mute-2)', whiteSpace: 'nowrap',
         }}>
-          {QUICK_ACTIONS.map(a => (
+          Costs shown per run
+        </span>
+      </div>
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
+        marginBottom: 20,
+      }}>
+        {CREATE_TILES.map(t => (
+          <Link key={t.href} href={t.href} data-press style={{
+            background: 'var(--m-card)',
+            border: '1px solid var(--m-border)',
+            borderRadius: 16, padding: 14, minHeight: 104,
+            display: 'flex', flexDirection: 'column',
+            cursor: 'pointer',
+            boxShadow: '0 2px 10px rgba(30,26,16,0.04)',
+            textDecoration: 'none', color: 'var(--m-ink)',
+          }}>
+            <div style={{
+              width: 30, height: 30, borderRadius: 9,
+              background: t.tint, marginBottom: 10, flexShrink: 0,
+            }} />
+            <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 2 }}>
+              {t.label}
+            </div>
+            <div style={{ fontSize: 11, color: 'var(--m-mute)', lineHeight: 1.4 }}>
+              {t.sub}
+            </div>
+            <div style={{
+              marginTop: 'auto', paddingTop: 8,
+              fontFamily: 'var(--m-mono)', fontSize: 10.5,
+              fontWeight: 600, color: '#8A6420', whiteSpace: 'nowrap',
+            }}>
+              {t.cost}
+            </div>
+          </Link>
+        ))}
+      </div>
+
+      {/* Recent */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 10,
+      }}>
+        <div style={{ fontSize: 13.5, fontWeight: 600 }}>Recent</div>
+        <Link href="/library" style={{
+          fontSize: 12, color: 'var(--m-mute)', textDecoration: 'none',
+          whiteSpace: 'nowrap',
+        }}>
+          Library →
+        </Link>
+      </div>
+      {recentLoading ? (
+        <div className="m-noscroll" style={{
+          display: 'flex', gap: 10, overflowX: 'auto',
+          margin: '0 -18px', padding: '0 18px 4px',
+        }}>
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} style={{
+              flexShrink: 0, width: 112,
+            }}>
+              <div style={{
+                height: 140, borderRadius: 14,
+                background: 'var(--m-surface-3)',
+                animation: 'cf-m-pulse 1.4s ease-in-out infinite',
+                animationDelay: `${i * 0.1}s`,
+                marginBottom: 6,
+              }} />
+              <div style={{ height: 12, width: '70%', background: 'var(--m-surface-3)', borderRadius: 4, marginBottom: 4 }} />
+              <div style={{ height: 10, width: '45%', background: 'var(--m-surface-3)', borderRadius: 4 }} />
+            </div>
+          ))}
+          <style>{`
+            @keyframes cf-m-pulse {
+              0%, 100% { opacity: 0.55; }
+              50% { opacity: 0.85; }
+            }
+          `}</style>
+        </div>
+      ) : recentItems.length === 0 ? (
+        <div style={{
+          padding: 22, borderRadius: 14,
+          border: `1.5px dashed var(--m-border-2)`,
+          textAlign: 'center', color: 'var(--m-mute-2)',
+          fontSize: 12.5,
+        }}>
+          Nothing here yet. Tap Create above to make your first asset.
+        </div>
+      ) : (
+        <div className="m-noscroll" style={{
+          display: 'flex', gap: 10, overflowX: 'auto',
+          margin: '0 -18px', padding: '0 18px 4px',
+        }}>
+          {recentItems.map(item => (
             <Link
-              key={a.href}
-              href={a.href}
+              key={item.id}
+              href={`/library?id=${item.id}`}
+              data-press
               style={{
-                display: 'flex', flexDirection: 'column',
-                justifyContent: 'space-between',
-                minWidth: 148, height: 132,
-                padding: 14, borderRadius: 14,
-                background: a.accent,
-                color: '#2A1E00',
-                textDecoration: 'none',
-                scrollSnapAlign: 'start',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                flexShrink: 0, width: 112,
+                textDecoration: 'none', color: 'var(--m-ink)',
               }}
             >
               <div style={{
-                width: 34, height: 34, borderRadius: 10,
-                background: 'rgba(255,255,255,0.55)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: '#3A2A00',
+                height: 140, borderRadius: 14,
+                background: 'var(--m-surface-3)',
+                display: 'grid', placeItems: 'center',
+                fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em',
+                color: 'var(--m-mute-3)',
+                fontFamily: 'var(--m-mono)',
+                overflow: 'hidden', position: 'relative',
+                marginBottom: 6,
               }}>
-                {a.icon}
+                {item.metadata?.image ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.metadata.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : item.metadata?.video ? (
+                  <video src={item.metadata.video} muted playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  contentTypeLabel(item.content_type)
+                )}
               </div>
-              <div>
-                <div style={{ fontSize: 15, fontWeight: 700, letterSpacing: '-0.01em' }}>{a.label}</div>
-                <div style={{ fontSize: 12, opacity: 0.72, marginTop: 2 }}>{a.sub}</div>
+              <div style={{
+                fontSize: 11.5, fontWeight: 600,
+                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+              }}>
+                {item.metadata?.productName ?? item.content_type.replace(/_/g, ' ')}
+              </div>
+              <div style={{ fontSize: 10.5, color: 'var(--m-mute-2)' }}>
+                {timeAgo(item.created_at)}
               </div>
             </Link>
           ))}
         </div>
-      </div>
-
-      {/* Recent items */}
-      <div>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 700, margin: 0, color: 'var(--ink)' }}>
-            Recent
-          </h2>
-          <Link href="/library" style={{ fontSize: 12.5, color: 'var(--ink-mute)', textDecoration: 'none' }}>
-            All →
-          </Link>
-        </div>
-        {recentLoading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[0, 1, 2].map(i => (
-              <div key={i} style={{
-                height: 76, borderRadius: 12,
-                background: 'var(--surface-2, rgba(0,0,0,0.04))',
-                animation: 'cf-pulse 1.4s ease-in-out infinite',
-                animationDelay: `${i * 0.1}s`,
-              }} />
-            ))}
-            <style>{`
-              @keyframes cf-pulse {
-                0%, 100% { opacity: 0.55; }
-                50% { opacity: 0.85; }
-              }
-            `}</style>
-          </div>
-        ) : recentItems.length === 0 ? (
-          <div style={{
-            padding: 24, borderRadius: 14,
-            border: '1px dashed var(--border)',
-            textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13.5,
-          }}>
-            Nothing here yet. Tap a Create tool above to make your first asset.
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {recentItems.map(item => (
-              <Link
-                key={item.id}
-                href={`/library?id=${item.id}`}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 12,
-                  padding: 10, borderRadius: 12,
-                  border: '1px solid var(--border)',
-                  background: 'var(--surface)',
-                  textDecoration: 'none', color: 'var(--ink)',
-                }}
-              >
-                <div style={{
-                  width: 56, height: 56, borderRadius: 10, flexShrink: 0,
-                  overflow: 'hidden', background: 'var(--surface-2, rgba(0,0,0,0.06))',
-                  position: 'relative',
-                }}>
-                  {item.metadata?.image && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={item.metadata.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  )}
-                  {item.metadata?.video && !item.metadata?.image && (
-                    <video src={item.metadata.video} muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  )}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 14, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {item.metadata?.productName ?? item.content_type.replace(/_/g, ' ')}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-mute)', marginTop: 2 }}>
-                    {item.content_type.replace(/_/g, ' ')} · {timeAgo(item.created_at)}
-                  </div>
-                </div>
-                <ArrowRight size={16} strokeWidth={2} color="var(--ink-mute)" />
-              </Link>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

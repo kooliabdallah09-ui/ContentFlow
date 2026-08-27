@@ -1,30 +1,32 @@
 'use client'
 
-// Compact top header for the mobile shell. Replaces the desktop TopBar
-// entirely on mobile. Three slots: leading (back button OR menu icon),
-// center (page title), trailing (credits chip + notification bell + theme).
-// Sticky at the top with a subtle border-bottom.
+// Editorial-warm mobile top header. Matches the Claude design artifact:
+//   - Blurred cream background (rgba(251,250,246,.92)) with soft border
+//   - Left slot: back button (circle) OR small "C" logo mark
+//   - Center: page title in Geist 16.5/600 with tight letter-spacing
+//   - Right: amber credits pill with mono number
+// The 56px top padding acts as a safe-area substitute so the header
+// clears the iOS notch / status bar without a JS measurement.
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Bell, Sun, Moon } from 'lucide-react'
 import { useCredits } from '@/lib/CreditsContext'
 
 interface MobileHeaderProps {
-  title?: string          // Center label — usually the current page name
-  showBack?: boolean      // Show back button instead of default (Logo)
-  onBack?: () => void     // Custom back handler; defaults to router.back()
+  title?: string
+  showBack?: boolean
+  onBack?: () => void
+  hideCredits?: boolean
+  // isDark / onToggleTheme kept for API compat, not currently rendered in
+  // the mobile design — the palette is theme-fixed for now.
   isDark?: boolean
   onToggleTheme?: () => void
-  hideCredits?: boolean   // For auth pages where credits are meaningless
 }
 
 export function MobileHeader({
   title,
   showBack,
   onBack,
-  isDark,
-  onToggleTheme,
   hideCredits,
 }: MobileHeaderProps) {
   const router = useRouter()
@@ -36,108 +38,92 @@ export function MobileHeader({
   }
 
   return (
-    <header
+    <div
       style={{
+        flexShrink: 0,
+        padding: 'max(56px, calc(env(safe-area-inset-top, 20px) + 12px)) 18px 10px',
+        background: 'rgba(251, 250, 246, 0.92)',
+        backdropFilter: 'blur(10px)',
+        WebkitBackdropFilter: 'blur(10px)',
+        borderBottom: '1px solid var(--m-border)',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
         position: 'sticky',
         top: 0,
-        zIndex: 50,
-        background: 'var(--surface)',
-        borderBottom: '1px solid var(--border)',
-        paddingTop: 'env(safe-area-inset-top, 0)',
+        zIndex: 40,
       }}
     >
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '10px 14px',
-          minHeight: 52,
-          gap: 8,
-        }}
-      >
-        {/* Leading */}
-        <div style={{ display: 'flex', alignItems: 'center', minWidth: 40 }}>
-          {showBack ? (
-            <button
-              onClick={handleBack}
-              aria-label="Back"
-              style={{
-                width: 36, height: 36, borderRadius: 10, border: 'none',
-                background: 'transparent', color: 'var(--ink)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', padding: 0,
-              }}
-            >
-              <ArrowLeft size={20} />
-            </button>
-          ) : (
-            <Link href="/dashboard" aria-label="Home" style={{ display: 'inline-flex' }}>
-              {/* Small brand mark — using the theme-aware Logo. */}
-              <img
-                src={isDark ? '/logo-dark.png' : '/logo-light.png'}
-                alt=""
-                style={{ width: 32, height: 32, objectFit: 'contain' }}
-              />
-            </Link>
-          )}
-        </div>
+      {showBack ? (
+        <button
+          onClick={handleBack}
+          aria-label="Back"
+          data-press
+          style={{
+            width: 34, height: 34, borderRadius: '50%',
+            background: 'var(--m-surface-2)',
+            border: '1px solid var(--m-border)',
+            display: 'grid', placeItems: 'center',
+            fontSize: 15, color: 'var(--m-ink-3)',
+            cursor: 'pointer', flexShrink: 0, padding: 0,
+            fontFamily: 'var(--m-sans)',
+          }}
+        >
+          ←
+        </button>
+      ) : (
+        <Link
+          href="/dashboard"
+          aria-label="Home"
+          data-press
+          style={{
+            width: 30, height: 30, borderRadius: 9,
+            background: 'var(--m-ink)',
+            display: 'grid', placeItems: 'center',
+            flexShrink: 0, textDecoration: 'none',
+          }}
+        >
+          <span style={{
+            color: '#fff', fontSize: 13, fontWeight: 700,
+            fontFamily: 'var(--m-mono)',
+          }}>
+            C
+          </span>
+        </Link>
+      )}
 
-        {/* Center: page title */}
-        <div style={{
-          flex: 1, textAlign: 'center', overflow: 'hidden',
-          textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-          fontSize: 15, fontWeight: 600, color: 'var(--ink)',
-          letterSpacing: '-0.005em',
-        }}>
-          {title}
-        </div>
-
-        {/* Trailing */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 40, justifyContent: 'flex-end' }}>
-          {!hideCredits && typeof balance === 'number' && (
-            <Link
-              href="/settings/billing"
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: 4,
-                padding: '5px 10px', borderRadius: 999,
-                background: '#F5E6BC', color: '#7A5A00',
-                fontSize: 11.5, fontWeight: 700, textDecoration: 'none',
-                fontFamily: 'var(--font-mono, monospace)',
-              }}
-              aria-label={`${balance} credits`}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: 999, background: '#B98B00' }} />
-              {balance.toLocaleString()}
-            </Link>
-          )}
-          {onToggleTheme && (
-            <button
-              onClick={onToggleTheme}
-              aria-label="Toggle theme"
-              style={{
-                width: 34, height: 34, borderRadius: 10, border: 'none',
-                background: 'transparent', color: 'var(--ink-mute)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', padding: 0,
-              }}
-            >
-              {isDark ? <Sun size={17} /> : <Moon size={17} />}
-            </button>
-          )}
-          <Link
-            href="/settings/account"
-            aria-label="Notifications"
-            style={{
-              width: 34, height: 34, borderRadius: 10,
-              background: 'transparent', color: 'var(--ink-mute)',
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            <Bell size={17} />
-          </Link>
-        </div>
+      <div style={{
+        flex: 1, minWidth: 0,
+        fontSize: 16.5, fontWeight: 600,
+        letterSpacing: '-0.02em',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        color: 'var(--m-ink)',
+      }}>
+        {title}
       </div>
-    </header>
+
+      {!hideCredits && typeof balance === 'number' && (
+        <Link
+          href="/settings/billing"
+          data-press
+          aria-label={`${balance} credits — open billing`}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            background: 'var(--m-credits-bg)',
+            border: '1px solid var(--m-credits-border)',
+            borderRadius: 99, padding: '5px 11px 5px 8px',
+            flexShrink: 0, textDecoration: 'none',
+          }}
+        >
+          <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--m-credits-dot)' }} />
+          <span style={{
+            fontFamily: 'var(--m-mono)', fontSize: 11.5,
+            fontWeight: 600, color: 'var(--m-credits-ink)',
+          }}>
+            {balance.toLocaleString()}
+          </span>
+        </Link>
+      )}
+    </div>
   )
 }

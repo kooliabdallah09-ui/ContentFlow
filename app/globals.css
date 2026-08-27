@@ -1796,3 +1796,55 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
     transition: transform 60ms ease-out;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE DESIGN TOKENS — editorial warm-neutral palette
+   From the Claude-designed mobile artifact. Scoped to .mobile-shell so
+   they only apply inside the phone-native chrome; desktop is untouched.
+   ══════════════════════════════════════════════════════════════════ */
+.mobile-shell {
+  --m-bg:            #EDEAE0;   /* page background */
+  --m-surface:       #F6F4EE;   /* frame surface */
+  --m-card:          #FFFFFF;   /* card surface */
+  --m-surface-2:     #F0EDE3;   /* chip bg / inactive segments */
+  --m-surface-3:     #EFEBDF;   /* skeleton / thumbnail placeholder */
+  --m-border:        #E7E3D6;   /* light divider */
+  --m-border-2:      #D8D3C4;   /* dashed borders */
+  --m-ink:           #18170F;   /* primary text */
+  --m-ink-2:         #33301F;   /* deep body */
+  --m-ink-3:         #4A4738;   /* secondary */
+  --m-mute:          #77735F;   /* muted text */
+  --m-mute-2:        #A6A18E;   /* uppercase labels */
+  --m-mute-3:        #B0AB98;   /* placeholder */
+
+  --m-credits-bg:      #F1E6C9;
+  --m-credits-border:  #E4D2A0;
+  --m-credits-ink:     #6E4E17;
+  --m-credits-dot:     #B8862F;
+  --m-credits-fill:    #D8B978;
+  --m-credits-hint:    #B8A97A;
+
+  --m-dark-card: linear-gradient(150deg, #1C1B12, #302D1D);
+  --m-success:   #2F7A4E;
+
+  --m-sans:    'Geist', system-ui, sans-serif;
+  --m-mono:    'Geist Mono', ui-monospace, monospace;
+  --m-serif:   'Instrument Serif', 'Times New Roman', serif;
+
+  background: var(--m-bg);
+  color: var(--m-ink);
+  font-family: var(--m-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide scrollbars inside horizontal-scroll rows */
+.mobile-shell .m-noscroll::-webkit-scrollbar { display: none; }
+.mobile-shell .m-noscroll { scrollbar-width: none; }
+
+/* Nice press-in on tappable rows/cards */
+.mobile-shell a[data-press]:active,
+.mobile-shell button[data-press]:active,
+.mobile-shell [data-press]:active {
+  transform: scale(0.98);
+  transition: transform 60ms ease-out;
+}

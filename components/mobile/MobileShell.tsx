@@ -46,9 +46,10 @@ export function MobileShell({
     <div className="mobile-shell" style={{
       display: 'flex', flexDirection: 'column',
       minHeight: '100vh',
-      // Reserve space for the fixed bottom nav so content isn't hidden behind it.
-      paddingBottom: showBottomNav ? 'calc(60px + env(safe-area-inset-bottom, 0))' : 0,
-      background: 'var(--bg)',
+      // Reserve space for the fixed bottom nav (74px + safe area) so content
+      // isn't hidden behind it. The nav renders at 74px + env(safe-area-inset-bottom).
+      paddingBottom: showBottomNav ? 'calc(74px + env(safe-area-inset-bottom, 0))' : 0,
+      background: 'var(--m-bg)',
     }}>
       {showHeader && (
         <MobileHeader
