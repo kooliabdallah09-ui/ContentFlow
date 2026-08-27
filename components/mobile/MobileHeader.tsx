@@ -10,6 +10,7 @@
 
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Sun, Moon } from 'lucide-react'
 import { useCredits } from '@/lib/CreditsContext'
 
 interface MobileHeaderProps {
@@ -28,6 +29,8 @@ export function MobileHeader({
   showBack,
   onBack,
   hideCredits,
+  isDark,
+  onToggleTheme,
 }: MobileHeaderProps) {
   const router = useRouter()
   const { balance } = useCredits()
@@ -107,6 +110,23 @@ export function MobileHeader({
         {title}
       </div>
 
+      {onToggleTheme && (
+        <button
+          onClick={onToggleTheme}
+          aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          data-press
+          style={{
+            width: 34, height: 34, borderRadius: 10,
+            background: 'transparent',
+            border: '1px solid var(--m-border)',
+            color: 'var(--m-ink-3)',
+            display: 'grid', placeItems: 'center',
+            cursor: 'pointer', padding: 0, flexShrink: 0,
+          }}
+        >
+          {isDark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+      )}
       {!hideCredits && typeof balance === 'number' && (
         <Link
           href="/settings/billing"

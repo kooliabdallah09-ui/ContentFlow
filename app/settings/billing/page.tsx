@@ -293,7 +293,7 @@ export default function BillingPage() {
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6, flexShrink: 0 }}>
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
           {isAdmin && (
             <button onClick={handleCancelAll} disabled={upgradeLoading === 'cancel-all'}
               title="Admin: cancel every active + pending Dodo subscription for this account"
@@ -801,7 +801,7 @@ function PlanRecommender({
           <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>Select what you create — we'll calculate the credits you need.</div>
         </div>
         {selected.length > 0 && (
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <button onClick={() => setStep(1)} style={{
               padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none',
               background: step === 1 ? '#111' : 'var(--surface-2)', color: step === 1 ? '#fff' : 'var(--ink-mute)',
