@@ -1716,3 +1716,62 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
   }
   /* The maxWidth: 900 on the brief text becomes redundant at mobile widths — safe */
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE — round 3 (targeted fixes from mobile screenshots)
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  /* --- Classic CSS gotcha: flex/grid children default to min-width: auto
+     which prevents them shrinking below their intrinsic content width.
+     Long headings, wide inputs, or "5 cr to plan" chips push parents past
+     the viewport. Force min-width: 0 on all direct children of common
+     flex/grid patterns so they shrink correctly. --- */
+  [style*="display: 'flex'"] > *,
+  [style*="display: flex"] > *,
+  [style*="display: 'grid'"] > *,
+  [style*="display: grid"] > * {
+    min-width: 0;
+  }
+
+  /* --- Broaden the flex-wrap catch: ANY space-between row wraps on mobile,
+     regardless of align-items. Handles campaigns cards (align: center),
+     brand settings row (align: center), settings headers, etc. --- */
+  [style*="justifyContent: 'space-between'"],
+  [style*="justify-content: space-between"] {
+    flex-wrap: wrap !important;
+  }
+
+  /* --- Tab strips: allow horizontal scroll instead of clipping. Applies to
+     SectionTabs + any similar horizontal nav strip. --- */
+  [style*="borderBottom: '1px solid"][style*="display: 'flex'"],
+  [style*="border-bottom: 1px solid"][style*="display: flex"] {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap !important;      /* Override the wrap rule above */
+    scrollbar-width: none;
+  }
+  [style*="borderBottom: '1px solid"][style*="display: 'flex'"]::-webkit-scrollbar,
+  [style*="border-bottom: 1px solid"][style*="display: flex"]::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* --- Landing "Every tool your brand needs" bento chip section:
+     the chips are absolutely-positioned around a fixed 1200px container.
+     On phones they overlap. Hide the decorative chip overlay entirely on
+     mobile — the tool CTA buttons still communicate the message. --- */
+  .lp [style*="position: absolute"][style*="Luxury"],
+  .lp [style*="position: absolute"][style*="Photorealistic"] {
+    display: none !important;
+  }
+}
+
+/* --- Under 480px (phones): tighter cost chips ("5 cr / to / plan") and
+   small badges never look right when squeezed. Give them room to breathe
+   on their own row. --- */
+@media (max-width: 480px) {
+  [style*="justifyContent: 'space-between'"] > *:not(:first-child),
+  [style*="justify-content: space-between"] > *:not(:first-child) {
+    margin-top: 4px;
+  }
+}

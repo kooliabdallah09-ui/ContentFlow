@@ -58,11 +58,21 @@ export default function LibraryPage() {
         const data = await response.json()
         setItems(data.items ?? [])
       } else {
-        showError('Failed to load library')
+        // Surface the real HTTP status + body so future failures aren't opaque.
+        // "Failed to load library" alone hides whether it's auth, network,
+        // schema drift, or an outage.
+        const raw = await response.text().catch(() => '')
+        let msg = `Library returned ${response.status}`
+        try {
+          const j = raw ? JSON.parse(raw) : null
+          if (j?.error) msg = `Library: ${j.error} (${response.status})`
+        } catch { /* raw isn't JSON */ }
+        console.error('[library] fetch failed:', response.status, raw)
+        showError(msg)
       }
     } catch (err) {
       console.error('Failed to fetch library:', err)
-      showError('Failed to load library')
+      showError('Failed to load library', err instanceof Error ? err.message : 'Network error')
     } finally {
       setLoading(false)
     }
