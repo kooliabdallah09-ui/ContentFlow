@@ -1967,3 +1967,43 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
     min-width: 0;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Billing credits banner — action column overflow fix
+   The amber banner uses:
+     [main] Available credits | Monthly | Reset | [right] Actions
+   The right column has flexShrink: 0 + marginLeft: auto to stay right-
+   aligned on desktop. On phones the buttons inside are wider than the
+   remaining space, so the column bleeds past the card border.
+   Force it full-width and left-aligned on mobile so it becomes its own
+   row below the credit info.
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* Any column that uses (flex-direction column + margin-left auto +
+     flex-shrink 0) is a "right-aligned action group" — target the
+     pattern rather than one page, so it also fixes similar layouts
+     elsewhere in the app. */
+  [style*="marginLeft: 'auto'"][style*="flexDirection: 'column'"][style*="flexShrink: 0"],
+  [style*="margin-left: auto"][style*="flex-direction: column"][style*="flex-shrink: 0"] {
+    margin-left: 0 !important;
+    width: 100% !important;
+    align-items: stretch !important;
+    flex-shrink: 1 !important;
+    margin-top: 12px !important;
+    padding-top: 12px !important;
+    border-top: 1px solid rgba(0,0,0,0.06);
+  }
+  /* Its button row: buttons take equal share, no more overflow */
+  [style*="marginLeft: 'auto'"][style*="flexDirection: 'column'"][style*="flexShrink: 0"] > div[style*="display: 'flex'"],
+  [style*="margin-left: auto"][style*="flex-direction: column"][style*="flex-shrink: 0"] > div[style*="display: flex"] {
+    justify-content: stretch !important;
+    width: 100%;
+  }
+  [style*="marginLeft: 'auto'"][style*="flexDirection: 'column'"][style*="flexShrink: 0"] > div[style*="display: 'flex'"] > button,
+  [style*="margin-left: auto"][style*="flex-direction: column"][style*="flex-shrink: 0"] > div[style*="display: flex"] > button {
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    white-space: normal;
+  }
+}
