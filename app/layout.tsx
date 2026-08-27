@@ -12,6 +12,9 @@ import { CreditsProvider } from '@/lib/CreditsContext'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { VisitTracker } from '@/components/VisitTracker'
+import { MobileShell } from '@/components/mobile/MobileShell'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { resolveMobileVariant, resolveMobileTitle } from '@/lib/page-meta'
 import "./globals.css";
 
 export default function RootLayout({
@@ -182,35 +185,19 @@ export default function RootLayout({
       </head>
       <body>
         <CreditsProvider>
-        {showLayout ? (
-          <div className="app">
-            {mobileMenuOpen && (
-              <div
-                className="rail-overlay active"
-                onClick={() => setMobileMenuOpen(false)}
-              />
-            )}
-            <Sidebar
-              currentPath={pathname}
-              mobileOpen={mobileMenuOpen}
-              onMobileClose={() => setMobileMenuOpen(false)}
-              collapsed={sidebarCollapsed}
-              onToggleCollapse={toggleSidebar}
-            />
-            <div className="main">
-              <TopBar
-                currentPath={pathname}
-                onMenuToggle={() => setMobileMenuOpen(o => !o)}
-                isDark={isDark}
-                onToggleTheme={toggleTheme}
-              />
-              {children}
-            </div>
-            <OnboardingTour />
-          </div>
-        ) : (
-          children
-        )}
+          <AppFrame
+            pathname={pathname}
+            user={user}
+            isDark={isDark}
+            toggleTheme={toggleTheme}
+            mobileMenuOpen={mobileMenuOpen}
+            setMobileMenuOpen={setMobileMenuOpen}
+            sidebarCollapsed={sidebarCollapsed}
+            toggleSidebar={toggleSidebar}
+            showLayout={!!showLayout}
+          >
+            {children}
+          </AppFrame>
         </CreditsProvider>
         <ToastContainer />
         {!pathname.startsWith('/studio') && <AppAssistant />}
@@ -219,5 +206,82 @@ export default function RootLayout({
         <VisitTracker />
       </body>
     </html>
+  )
+}
+
+// Decides which chrome (desktop sidebar+topbar OR mobile shell) to render
+// around the page content. Split into its own component so it can call the
+// useIsMobile() hook — the parent RootLayout already burns its useEffect
+// budget on other concerns.
+interface AppFrameProps {
+  pathname: string
+  user: unknown
+  isDark: boolean
+  toggleTheme: () => void
+  mobileMenuOpen: boolean
+  setMobileMenuOpen: (v: boolean | ((prev: boolean) => boolean)) => void
+  sidebarCollapsed: boolean
+  toggleSidebar: () => void
+  showLayout: boolean
+  children: React.ReactNode
+}
+
+function AppFrame({
+  pathname, isDark, toggleTheme,
+  mobileMenuOpen, setMobileMenuOpen,
+  sidebarCollapsed, toggleSidebar,
+  showLayout, children,
+}: AppFrameProps) {
+  const isMobile = useIsMobile()
+
+  // Mobile path — hand off to MobileShell, which picks its own variant
+  // (app / canvas / flow / public) from the page-meta registry.
+  if (isMobile) {
+    const variant = resolveMobileVariant(pathname)
+    const title = resolveMobileTitle(pathname)
+    return (
+      <>
+        <MobileShell
+          variant={variant}
+          title={title}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+          hideCredits={variant !== 'app'}
+        >
+          {children}
+        </MobileShell>
+        {showLayout && <OnboardingTour />}
+      </>
+    )
+  }
+
+  // Desktop path — unchanged.
+  if (!showLayout) return <>{children}</>
+  return (
+    <div className="app">
+      {mobileMenuOpen && (
+        <div
+          className="rail-overlay active"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+      <Sidebar
+        currentPath={pathname}
+        mobileOpen={mobileMenuOpen}
+        onMobileClose={() => setMobileMenuOpen(false)}
+        collapsed={sidebarCollapsed}
+        onToggleCollapse={toggleSidebar}
+      />
+      <div className="main">
+        <TopBar
+          currentPath={pathname}
+          onMenuToggle={() => setMobileMenuOpen(o => !o)}
+          isDark={isDark}
+          onToggleTheme={toggleTheme}
+        />
+        {children}
+      </div>
+      <OnboardingTour />
+    </div>
   )
 }

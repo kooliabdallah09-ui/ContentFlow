@@ -1775,3 +1775,24 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
     margin-top: 4px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   MOBILE-NATIVE SHELL — hides desktop chrome, tunes typography
+   Applied when the mobile shell is rendered (via useIsMobile at ≤ 900px).
+   The mobile shell is rendered in JSX, this CSS just cleans up global
+   defaults that don't fit the mobile paradigm.
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  /* Hide the desktop rail overlay backdrop — mobile shell doesn't use it */
+  body:has(.mobile-shell) .rail-overlay { display: none !important; }
+
+  /* Slight paint smoothing for the sheet + card surfaces */
+  .mobile-shell { -webkit-tap-highlight-color: transparent; }
+
+  /* Nice active-press feel on Link/button rows inside the mobile shell */
+  .mobile-shell a[href]:active,
+  .mobile-shell button:active {
+    transform: scale(0.98);
+    transition: transform 60ms ease-out;
+  }
+}

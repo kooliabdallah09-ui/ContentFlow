@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { MobileDashboard } from './MobileDashboard'
 
 interface LibraryItem {
   id: string
@@ -92,6 +94,22 @@ export default function DashboardPage() {
   }, [])
 
   const creditsPercent = credits ? Math.min(100, Math.round((credits.balance / credits.monthlyCredits) * 100)) : null
+
+  // Mobile detection — swap in the purpose-built mobile dashboard when on
+  // a narrow viewport. Same data, purpose-built layout.
+  const isMobile = useIsMobile()
+  if (isMobile) {
+    return (
+      <MobileDashboard
+        userName={userName}
+        greeting={greeting}
+        recentItems={recentItems}
+        recentLoading={recentLoading}
+        credits={credits}
+        brandName={brandName}
+      />
+    )
+  }
 
   return (
     <main className="content">
