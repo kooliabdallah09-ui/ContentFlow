@@ -1,56 +1,58 @@
 'use client'
 
-// UGC Builder v2 — hybrid chat + structured summary + advanced accordion.
-// Ships behind ?v=2 on /generate/ugc so we can preview without disturbing
-// the existing UGCPackageBuilder. Once approved, this becomes the default.
+// UGC Builder v2 — chat-style interface. Ships behind ?v=2 on /generate/ugc.
 //
-// Architecture:
-//   [Top]    Chat input — user types "make me a UGC ad for my X…" and
-//            Sonnet parses it into structured fields (/api/ugc/parse-brief).
-//   [Middle] Structured summary card — every field with a pencil-edit
-//            icon. Tap → opens a Sheet with the appropriate picker.
-//   [Below]  Advanced accordion — scroll-stop hooks, engine choice,
-//            aspect ratio override, direction override.
-//   [Sticky] Generate button — always thumb-reachable with live cost.
+// LAYOUT
+//   [Top scroll area]  Conversation thread — user messages (their brief) +
+//                      AI responses (rendering state, then completed video
+//                      cards). Empty state prompts them to describe the ad.
+//   [Bottom sticky]    Composer — chip toolbar (duration / resolution /
+//                      aspect / engine) above a textarea + send button.
+//                      Attach buttons for product + creator sit below.
 //
-// State: owned by this component. Backend calls reuse existing endpoints:
-//   /api/ugc/hero-frames  (frames render)
-//   /api/ugc/animate      (final generation)
-//   /api/ugc/script       (script draft)
-//   /api/ugc/parse-brief  (new — parses NL → fields)
+// Feels like Claude / ChatGPT / Midjourney: history on top, controls on the
+// bottom, results appear as messages. Settings are always visible as small
+// chips right above the textarea, so users can tweak without opening a
+// separate settings panel.
 
-import { useState } from 'react'
-import { Send, Loader2, ChevronDown, Sparkles, Package, User2, Film, Clock, Monitor, Wand2, MessageSquareQuote, Music } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Send, Loader2, Package, User2, Sparkles, X } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 
 // ── Field shapes ────────────────────────────────────────────────────
-interface BuilderState {
-  // What
+export interface BuilderState {
   productName: string
   productDescription: string
-  // Who
-  creatorName: string      // "Auto (AI picks)" or a saved influencer name
-  creatorId?: string       // saved-actor id if picked
-  // How
-  format: string           // "Talking head", "Unbox", "POV", etc.
-  formatKey?: string       // campaign-format key
+  productImage?: { base64: string; mimeType: string; url?: string }
+  creatorName: string
+  creatorId?: string
+  format: string
+  formatKey?: string
   aspect: 'portrait' | 'square' | 'landscape' | 'tall45'
   duration: 5 | 10 | 15 | 20 | 30
   resolution: '480p' | '720p' | '1080p' | '4k'
   engine: 'seedance-2' | 'seedance-mini'
-  // Extras
-  direction: string        // user's freeform brief
+  direction: string
   language: string
   musicMood?: string
-  // Advanced (admin only)
   scrollStopHook: boolean
+}
+
+interface Message {
+  id: string
+  role: 'user' | 'assistant'
+  kind: 'text' | 'rendering' | 'video' | 'error'
+  text?: string
+  videoUrl?: string
+  thumbUrl?: string
+  timestamp: number
 }
 
 const INITIAL: BuilderState = {
   productName: '',
   productDescription: '',
-  creatorName: 'Auto — AI picks',
+  creatorName: 'Auto',
   format: 'Auto',
   aspect: 'portrait',
   duration: 10,
@@ -59,13 +61,6 @@ const INITIAL: BuilderState = {
   direction: '',
   language: 'English',
   scrollStopHook: false,
-}
-
-const ASPECT_LABELS: Record<BuilderState['aspect'], string> = {
-  portrait: '9:16 portrait',
-  tall45: '4:5 tall',
-  square: '1:1 square',
-  landscape: '16:9 landscape',
 }
 
 // ── Component ──────────────────────────────────────────────────────
@@ -77,22 +72,41 @@ interface UGCBuilderV2Props {
 
 export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilderV2Props) {
   const [state, setState] = useState<BuilderState>(INITIAL)
-  const [chatInput, setChatInput] = useState('')
+  const [messages, setMessages] = useState<Message[]>([])
+  const [composer, setComposer] = useState('')
   const [parsing, setParsing] = useState(false)
-  const [advancedOpen, setAdvancedOpen] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  // Cost estimate — rough, mirrors the existing pricing formula for the
-  // Seedance rate at the chosen resolution × duration.
   const cost = estimateCost(state)
+  const canSend = composer.trim().length > 0 && !parsing && !isLoading
 
-  // Ready to generate = we at least know what the product is.
-  const canGenerate = state.productName.trim().length > 0
+  // Auto-scroll to newest message
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
+    }
+  }, [messages, isLoading])
 
-  async function handleParse() {
-    const brief = chatInput.trim()
-    if (!brief || parsing) return
+  async function handleSend() {
+    const brief = composer.trim()
+    if (!canSend) return
+
+    // Add user message to thread
+    const userMsg: Message = {
+      id: crypto.randomUUID(),
+      role: 'user',
+      kind: 'text',
+      text: brief,
+      timestamp: Date.now(),
+    }
+    setMessages(m => [...m, userMsg])
+    setComposer('')
     setParsing(true)
+
     try {
+      // Parse the brief into structured fields (Stage 2 will wire the real
+      // /api/ugc/parse-brief endpoint; for Stage 1 we do a naive extraction).
       const supabase = getSupabase()
       const { data: sess } = await supabase!.auth.getSession()
       const token = sess?.session?.access_token
@@ -102,317 +116,471 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ brief, current: state }),
-      })
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}))
-        throw new Error(data.error ?? `Parse failed (${res.status})`)
+      }).catch(() => null)
+
+      let patch: Partial<BuilderState> = {}
+      if (res?.ok) {
+        patch = await res.json()
+      } else {
+        // Endpoint not built yet — assume the whole brief becomes direction.
+        patch = { direction: brief }
       }
-      const patch = await res.json()
-      // Merge partial patch — parser only returns fields it's confident about.
       setState(prev => ({ ...prev, ...patch }))
-      setChatInput('')
+
+      // Add assistant confirmation message
+      const summary = summariseChanges(patch, state)
+      const aiMsg: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        kind: 'text',
+        text: summary,
+        timestamp: Date.now(),
+      }
+      setMessages(m => [...m, aiMsg])
     } catch (e) {
-      showError('Couldn\'t parse that', e instanceof Error ? e.message : 'Try again with more detail')
+      const errMsg: Message = {
+        id: crypto.randomUUID(),
+        role: 'assistant',
+        kind: 'error',
+        text: e instanceof Error ? e.message : 'Something went wrong',
+        timestamp: Date.now(),
+      }
+      setMessages(m => [...m, errMsg])
     } finally {
       setParsing(false)
     }
   }
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 18, paddingBottom: 120 /* room for sticky footer */ }}>
+  async function handleGenerate() {
+    if (!state.productName.trim()) {
+      showError('Product needed', 'Tell me what product this ad is for first — describe it in the chat, or attach a product below.')
+      return
+    }
+    // Push a "rendering" placeholder into the thread
+    const renderMsg: Message = {
+      id: crypto.randomUUID(),
+      role: 'assistant',
+      kind: 'rendering',
+      timestamp: Date.now(),
+    }
+    setMessages(m => [...m, renderMsg])
+    try {
+      await onGenerate(state)
+      // Stage 3 will replace the rendering placeholder with the finished
+      // video card once onGenerate resolves.
+    } catch (e) {
+      setMessages(m => m.map(msg => msg.id === renderMsg.id
+        ? { ...msg, kind: 'error', text: e instanceof Error ? e.message : 'Generation failed' }
+        : msg))
+    }
+  }
 
-      {/* ── Chat input ────────────────────────────────────────────── */}
+  return (
+    <div style={{
+      display: 'flex', flexDirection: 'column',
+      height: 'calc(100vh - 180px)', minHeight: 480,
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 16,
+      overflow: 'hidden',
+    }}>
+      {/* ── Thread ───────────────────────────────────────────────── */}
+      <div
+        ref={scrollRef}
+        style={{
+          flex: 1, minHeight: 0,
+          overflowY: 'auto',
+          padding: '24px 20px 12px',
+          display: 'flex', flexDirection: 'column', gap: 14,
+        }}
+      >
+        {messages.length === 0 ? (
+          <EmptyState />
+        ) : (
+          messages.map(m => <ChatBubble key={m.id} message={m} />)
+        )}
+      </div>
+
+      {/* ── Composer ─────────────────────────────────────────────── */}
       <div style={{
-        background: 'var(--surface)',
-        border: '1px solid var(--border)',
-        borderRadius: 16,
-        padding: 14,
+        borderTop: '1px solid var(--border)',
+        background: 'var(--bg-elev, var(--surface))',
+        padding: '10px 14px 12px',
+        display: 'flex', flexDirection: 'column', gap: 8,
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, fontSize: 12, color: 'var(--ink-mute)', fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-          <Sparkles size={13} strokeWidth={2} />
-          Tell me what to make
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}>
-          <textarea
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleParse()
+        {/* Settings sheet — inline expansion above chip row */}
+        {showSettings && (
+          <SettingsSheet
+            state={state}
+            onChange={patch => setState(s => ({ ...s, ...patch }))}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+
+        {/* Chip toolbar — always visible, tap to cycle */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Chip
+            value={`${state.duration}s`}
+            onClick={() => setState(s => ({ ...s, duration: cycle([5, 10, 15, 20, 30], s.duration) as BuilderState['duration'] }))}
+          />
+          <Chip
+            value={state.resolution.toUpperCase()}
+            onClick={() => setState(s => ({ ...s, resolution: cycle(['720p', '1080p', '4k'], s.resolution) as BuilderState['resolution'] }))}
+          />
+          <Chip
+            value={aspectShort(state.aspect)}
+            onClick={() => setState(s => ({ ...s, aspect: cycle(['portrait', 'square', 'landscape'], s.aspect) as BuilderState['aspect'] }))}
+          />
+          <Chip
+            value={state.engine === 'seedance-mini' ? 'Mini' : 'Seedance 2.0'}
+            onClick={() => setState(s => ({ ...s, engine: s.engine === 'seedance-2' ? 'seedance-mini' : 'seedance-2' }))}
+          />
+          <button
+            type="button"
+            onClick={() => setShowSettings(v => !v)}
+            aria-label="More settings"
+            style={{
+              padding: '5px 10px', borderRadius: 999,
+              border: '1px solid var(--border)',
+              background: 'transparent', color: 'var(--ink-mute)',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              fontFamily: 'inherit',
             }}
-            disabled={parsing || isLoading}
+          >
+            {showSettings ? '– Less' : '+ More'}
+          </button>
+        </div>
+
+        {/* Attach row: product + creator badges */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <AttachChip
+            icon={<Package size={12} />}
+            label={state.productName || 'Attach product'}
+            active={!!state.productName}
+            onClick={() => {/* TODO: sheet */}}
+          />
+          <AttachChip
+            icon={<User2 size={12} />}
+            label={state.creatorName || 'Pick creator'}
+            active={state.creatorName !== 'Auto'}
+            onClick={() => {/* TODO: sheet */}}
+          />
+        </div>
+
+        {/* Textarea + send */}
+        <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+          <textarea
+            value={composer}
+            onChange={e => setComposer(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+                e.preventDefault()
+                handleSend()
+              }
+            }}
+            disabled={isLoading}
             rows={2}
-            placeholder='e.g. "UGC ad for my Pynk serum — mid-20s brunette woman, morning routine, 10s, 1080p"'
+            placeholder="Describe the ad… (e.g. 'morning routine, mid-20s brunette, hero shot of the bottle at the end')"
             style={{
               flex: 1, minWidth: 0,
               padding: '10px 12px',
               fontSize: 14, lineHeight: 1.5, fontFamily: 'inherit',
-              background: 'var(--bg-elev, transparent)',
+              background: 'var(--surface)',
               border: '1px solid var(--border)',
-              borderRadius: 10,
+              borderRadius: 12,
               color: 'var(--ink)',
-              outline: 'none',
-              resize: 'none',
+              outline: 'none', resize: 'none',
+              maxHeight: 140,
             }}
           />
           <button
             type="button"
-            onClick={handleParse}
-            disabled={!chatInput.trim() || parsing || isLoading}
-            aria-label="Fill fields from brief"
+            onClick={handleSend}
+            disabled={!canSend}
+            aria-label="Send"
             style={{
               flexShrink: 0,
-              width: 42, height: 42, borderRadius: 10,
-              background: chatInput.trim() ? 'var(--ink)' : 'var(--surface-2)',
-              color: chatInput.trim() ? 'var(--on-ink)' : 'var(--ink-mute)',
+              width: 42, height: 42, borderRadius: 12,
+              background: canSend ? 'var(--ink)' : 'var(--surface-2)',
+              color: canSend ? 'var(--on-ink)' : 'var(--ink-mute)',
               border: 'none',
               display: 'grid', placeItems: 'center',
-              cursor: chatInput.trim() && !parsing ? 'pointer' : 'not-allowed',
-              transition: 'background 120ms',
+              cursor: canSend ? 'pointer' : 'not-allowed',
             }}
           >
             {parsing ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
           </button>
         </div>
-        <div style={{ marginTop: 8, fontSize: 11.5, color: 'var(--ink-fade)' }}>
-          Tip: name the product, describe the creator, mention any format/duration/style. Sonnet fills the summary below.
-        </div>
-      </div>
 
-      {/* ── Structured summary ───────────────────────────────────── */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        <div style={{ fontSize: 12, color: 'var(--ink-mute)', fontFamily: 'var(--font-mono, monospace)', letterSpacing: '0.06em', textTransform: 'uppercase', paddingLeft: 4 }}>
-          Summary
-        </div>
-        <SummaryRow
-          icon={<Package size={16} />}
-          label="Product"
-          value={state.productName || 'Not set — required'}
-          valueColor={state.productName ? undefined : 'var(--danger)'}
-          onEdit={() => {/* TODO: sheet */}}
-        />
-        <SummaryRow
-          icon={<User2 size={16} />}
-          label="Creator"
-          value={state.creatorName}
-          onEdit={() => {/* TODO */}}
-        />
-        <SummaryRow
-          icon={<Film size={16} />}
-          label="Format"
-          value={state.format}
-          onEdit={() => {/* TODO */}}
-        />
-        <SummaryRow
-          icon={<Monitor size={16} />}
-          label="Look"
-          value={`${ASPECT_LABELS[state.aspect]} · ${state.resolution.toUpperCase()}`}
-          onEdit={() => {/* TODO */}}
-        />
-        <SummaryRow
-          icon={<Clock size={16} />}
-          label="Length"
-          value={`${state.duration}s`}
-          onEdit={() => {/* TODO */}}
-        />
-        {state.direction.trim() && (
-          <SummaryRow
-            icon={<MessageSquareQuote size={16} />}
-            label="Direction"
-            value={state.direction.length > 80 ? state.direction.slice(0, 80) + '…' : state.direction}
-            onEdit={() => {/* TODO */}}
-          />
-        )}
-      </div>
-
-      {/* ── Advanced accordion ───────────────────────────────────── */}
-      <div style={{ borderRadius: 14, border: '1px solid var(--border)', overflow: 'hidden' }}>
-        <button
-          type="button"
-          onClick={() => setAdvancedOpen(o => !o)}
-          style={{
-            width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-            padding: '12px 16px',
-            background: 'var(--surface)', border: 'none', cursor: 'pointer',
-            fontFamily: 'inherit',
-          }}
-        >
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
-            <Wand2 size={14} strokeWidth={2} />
-            Advanced
-          </span>
-          <ChevronDown size={16} style={{ transform: advancedOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 180ms' }} />
-        </button>
-        {advancedOpen && (
-          <div style={{ padding: '4px 16px 16px', display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--border-soft, var(--border))' }}>
-            <AdvancedRow label="Engine" value={state.engine === 'seedance-2' ? 'Seedance 2.0 (best)' : 'Seedance Mini (cheaper)'}>
-              <ToggleGroup
-                options={[
-                  { value: 'seedance-2', label: 'Seedance 2.0' },
-                  { value: 'seedance-mini', label: 'Mini' },
-                ]}
-                value={state.engine}
-                onChange={v => setState(s => ({ ...s, engine: v as BuilderState['engine'] }))}
-              />
-            </AdvancedRow>
-            <AdvancedRow label="Music" value={state.musicMood ?? 'None'}>
-              <ToggleGroup
-                options={[
-                  { value: '', label: 'None' },
-                  { value: 'upbeat', label: 'Upbeat' },
-                  { value: 'chill', label: 'Chill' },
-                  { value: 'cinematic', label: 'Cinematic' },
-                ]}
-                value={state.musicMood ?? ''}
-                onChange={v => setState(s => ({ ...s, musicMood: v || undefined }))}
-              />
-            </AdvancedRow>
-            <AdvancedRow label="Language" value={state.language}>
-              <select
-                value={state.language}
-                onChange={e => setState(s => ({ ...s, language: e.target.value }))}
-                style={{
-                  padding: '6px 10px', borderRadius: 8, border: '1px solid var(--border)',
-                  background: 'var(--surface)', fontFamily: 'inherit', fontSize: 13,
-                }}
-              >
-                <option>English</option>
-                <option>French</option>
-                <option>Spanish</option>
-                <option>Arabic</option>
-              </select>
-            </AdvancedRow>
+        {/* Bottom action row — Generate button + cost */}
+        <div style={{
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          gap: 8, paddingTop: 4,
+        }}>
+          <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', fontFamily: 'var(--font-mono, monospace)' }}>
+            {cost} cr · {creditBalance.toLocaleString()} balance
           </div>
-        )}
-      </div>
-
-      {/* ── Sticky Generate footer ───────────────────────────────── */}
-      <div style={{
-        position: 'sticky', bottom: 0, marginLeft: -16, marginRight: -16,
-        padding: 'calc(12px + env(safe-area-inset-bottom, 0)) 16px 14px',
-        background: 'linear-gradient(to top, var(--bg) 60%, transparent)',
-        display: 'flex', flexDirection: 'column', gap: 8,
-        zIndex: 30,
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink-mute)', padding: '0 4px' }}>
-          <span>Cost: <strong style={{ color: 'var(--ink)', fontFamily: 'var(--font-mono, monospace)' }}>{cost} cr</strong></span>
-          <span>Balance: <strong style={{ color: cost > creditBalance ? 'var(--danger)' : 'var(--ink)', fontFamily: 'var(--font-mono, monospace)' }}>{creditBalance.toLocaleString()} cr</strong></span>
+          <button
+            type="button"
+            onClick={handleGenerate}
+            disabled={isLoading || !state.productName.trim() || cost > creditBalance}
+            style={{
+              padding: '9px 18px', borderRadius: 10,
+              background: state.productName.trim() && cost <= creditBalance ? 'var(--ink)' : 'var(--surface-2)',
+              color: state.productName.trim() && cost <= creditBalance ? 'var(--on-ink)' : 'var(--ink-mute)',
+              border: 'none',
+              fontSize: 13, fontWeight: 700,
+              cursor: state.productName.trim() && cost <= creditBalance && !isLoading ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', gap: 6,
+            }}
+          >
+            {isLoading ? <><Loader2 size={13} className="animate-spin" /> Rendering…</> : <><Sparkles size={13} /> Generate</>}
+          </button>
         </div>
-        <button
-          type="button"
-          onClick={() => onGenerate(state)}
-          disabled={!canGenerate || isLoading || cost > creditBalance}
-          style={{
-            width: '100%', padding: '14px', borderRadius: 12,
-            background: canGenerate && cost <= creditBalance ? 'var(--ink)' : 'var(--surface-2)',
-            color: canGenerate && cost <= creditBalance ? 'var(--on-ink)' : 'var(--ink-mute)',
-            border: 'none',
-            fontSize: 15, fontWeight: 700, letterSpacing: '-0.005em',
-            cursor: canGenerate && !isLoading && cost <= creditBalance ? 'pointer' : 'not-allowed',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-          }}
-        >
-          {isLoading ? <><Loader2 size={16} className="animate-spin" /> Working…</> : <>Generate — {cost} cr</>}
-        </button>
       </div>
     </div>
   )
 }
 
-// ── Bits ───────────────────────────────────────────────────────────
-function SummaryRow({
-  icon, label, value, onEdit, valueColor,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: string
-  onEdit: () => void
-  valueColor?: string
-}) {
+// ── Bubbles + empty state ─────────────────────────────────────────
+function EmptyState() {
+  return (
+    <div style={{
+      flex: 1, display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      gap: 14, padding: 24, textAlign: 'center',
+    }}>
+      <div style={{
+        width: 44, height: 44, borderRadius: 12,
+        background: 'var(--surface-2, rgba(0,0,0,0.05))',
+        display: 'grid', placeItems: 'center',
+        color: 'var(--ink-mute)',
+      }}>
+        <Sparkles size={20} />
+      </div>
+      <div style={{ fontFamily: 'var(--font-serif, Georgia, serif)', fontSize: 22, color: 'var(--ink)' }}>
+        What are we making?
+      </div>
+      <div style={{ fontSize: 13.5, color: 'var(--ink-mute)', maxWidth: 340, lineHeight: 1.5 }}>
+        Describe your ad in your own words. I&apos;ll fill in the settings.
+        You can always tweak the chips below before hitting Generate.
+      </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 6, maxWidth: 340, width: '100%' }}>
+        {[
+          '"Skincare ad, mid-20s brunette, morning routine, 10s"',
+          '"Cinematic unbox for my headphones, wide shots, no talking"',
+          '"POV creator trying the product for the first time"',
+        ].map(ex => (
+          <div key={ex} style={{
+            fontSize: 12.5, color: 'var(--ink-mute)',
+            padding: '8px 12px', borderRadius: 10,
+            background: 'var(--surface-2, rgba(0,0,0,0.03))',
+            border: '1px solid var(--border-soft, var(--border))',
+            fontFamily: 'var(--font-serif, Georgia, serif)',
+            fontStyle: 'italic',
+          }}>
+            {ex}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function ChatBubble({ message: m }: { message: Message }) {
+  const isUser = m.role === 'user'
+  if (m.kind === 'rendering') {
+    return (
+      <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+        <BubbleShell isUser={false}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink-mute)', fontSize: 13 }}>
+            <Loader2 size={14} className="animate-spin" />
+            Rendering your ad… this usually takes about 2 minutes.
+          </div>
+        </BubbleShell>
+      </div>
+    )
+  }
+  if (m.kind === 'video') {
+    return (
+      <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+        <BubbleShell isUser={false}>
+          {m.videoUrl && (
+            <video
+              src={m.videoUrl}
+              poster={m.thumbUrl}
+              controls
+              playsInline
+              style={{ width: '100%', maxWidth: 320, borderRadius: 10, display: 'block' }}
+            />
+          )}
+        </BubbleShell>
+      </div>
+    )
+  }
+  if (m.kind === 'error') {
+    return (
+      <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+        <BubbleShell isUser={false} accent="danger">
+          <div style={{ color: 'var(--danger)', fontSize: 13 }}>{m.text}</div>
+        </BubbleShell>
+      </div>
+    )
+  }
+  return (
+    <div style={{ alignSelf: isUser ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
+      <BubbleShell isUser={isUser}>
+        <div style={{ fontSize: 13.5, lineHeight: 1.5, color: isUser ? 'var(--on-ink)' : 'var(--ink)', whiteSpace: 'pre-wrap' }}>
+          {m.text}
+        </div>
+      </BubbleShell>
+    </div>
+  )
+}
+
+function BubbleShell({ isUser, accent, children }: { isUser: boolean; accent?: 'danger'; children: React.ReactNode }) {
+  return (
+    <div style={{
+      padding: '10px 14px',
+      borderRadius: 14,
+      borderTopRightRadius: isUser ? 4 : 14,
+      borderTopLeftRadius: isUser ? 14 : 4,
+      background: isUser ? 'var(--ink)' : accent === 'danger' ? 'rgba(220, 38, 38, 0.06)' : 'var(--surface-2, rgba(0,0,0,0.04))',
+      border: accent === 'danger' ? '1px solid var(--danger)' : 'none',
+    }}>
+      {children}
+    </div>
+  )
+}
+
+// ── Composer bits ─────────────────────────────────────────────────
+function Chip({ value, onClick }: { value: string; onClick: () => void }) {
   return (
     <button
       type="button"
-      onClick={onEdit}
+      onClick={onClick}
       style={{
-        display: 'flex', alignItems: 'center', gap: 12,
-        width: '100%', padding: '12px 14px',
-        background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
-        cursor: 'pointer', fontFamily: 'inherit', color: 'var(--ink)',
-        textAlign: 'left',
+        padding: '5px 12px', borderRadius: 999,
+        background: 'var(--surface-2, rgba(0,0,0,0.05))',
+        border: '1px solid var(--border)',
+        fontSize: 12, fontWeight: 600, color: 'var(--ink)',
+        fontFamily: 'inherit', cursor: 'pointer',
       }}
     >
-      <span style={{
-        width: 32, height: 32, borderRadius: 9,
-        background: 'var(--surface-2, rgba(0,0,0,0.05))',
-        display: 'grid', placeItems: 'center',
-        color: 'var(--ink-mute)', flexShrink: 0,
-      }}>
-        {icon}
-      </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 11, color: 'var(--ink-mute)', letterSpacing: '0.04em', textTransform: 'uppercase', fontFamily: 'var(--font-mono, monospace)', marginBottom: 2 }}>
-          {label}
-        </div>
-        <div style={{ fontSize: 14, fontWeight: 500, color: valueColor ?? 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {value}
-        </div>
-      </div>
-      <ChevronDown size={14} style={{ color: 'var(--ink-fade)', transform: 'rotate(-90deg)', flexShrink: 0 }} />
+      {value}
     </button>
   )
 }
 
-function AdvancedRow({ label, value, children }: { label: string; value: string; children: React.ReactNode }) {
+function AttachChip({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{label}</span>
-        <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{value}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: 'inline-flex', alignItems: 'center', gap: 5,
+        padding: '5px 10px 5px 8px', borderRadius: 999,
+        border: `1px ${active ? 'solid' : 'dashed'} var(--border)`,
+        background: active ? 'var(--surface-2, rgba(0,0,0,0.05))' : 'transparent',
+        color: active ? 'var(--ink)' : 'var(--ink-mute)',
+        fontSize: 12, fontWeight: 500,
+        fontFamily: 'inherit', cursor: 'pointer',
+        maxWidth: 200,
+      }}
+    >
+      {icon}
+      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label}</span>
+    </button>
+  )
+}
+
+function SettingsSheet({ state, onChange, onClose }: { state: BuilderState; onChange: (p: Partial<BuilderState>) => void; onClose: () => void }) {
+  return (
+    <div style={{
+      padding: '12px 14px',
+      background: 'var(--surface)',
+      border: '1px solid var(--border)',
+      borderRadius: 12,
+      display: 'flex', flexDirection: 'column', gap: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>More settings</span>
+        <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 2 }}><X size={14} /></button>
       </div>
-      <div>{children}</div>
+      <SettingRow label="Music">
+        <SelectChips
+          options={[{ v: '', l: 'None' }, { v: 'upbeat', l: 'Upbeat' }, { v: 'chill', l: 'Chill' }, { v: 'cinematic', l: 'Cinematic' }]}
+          value={state.musicMood ?? ''}
+          onChange={v => onChange({ musicMood: v || undefined })}
+        />
+      </SettingRow>
+      <SettingRow label="Language">
+        <SelectChips
+          options={[{ v: 'English', l: 'EN' }, { v: 'French', l: 'FR' }, { v: 'Spanish', l: 'ES' }, { v: 'Arabic', l: 'AR' }]}
+          value={state.language}
+          onChange={v => onChange({ language: v })}
+        />
+      </SettingRow>
     </div>
   )
 }
 
-function ToggleGroup({ options, value, onChange }: {
-  options: Array<{ value: string; label: string }>
-  value: string
-  onChange: (v: string) => void
-}) {
+function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-      {options.map(o => {
-        const active = o.value === value
-        return (
-          <button
-            key={o.value}
-            type="button"
-            onClick={() => onChange(o.value)}
-            style={{
-              padding: '6px 12px', borderRadius: 999,
-              border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-              background: active ? 'var(--ink)' : 'var(--surface)',
-              color: active ? 'var(--on-ink)' : 'var(--ink)',
-              fontSize: 12, fontWeight: 600, cursor: 'pointer',
-              fontFamily: 'inherit',
-            }}
-          >{o.label}</button>
-        )
-      })}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <span style={{ fontSize: 12, color: 'var(--ink-mute)', minWidth: 60 }}>{label}</span>
+      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
     </div>
   )
 }
 
-// ── Cost estimator ────────────────────────────────────────────────
-// Mirrors the pricing math in lib/tiers — Seedance rate at chosen res
-// × duration in seconds, with a base fee. Kept in-file for now so this
-// component is drop-in without any other file changes.
+function SelectChips<T extends string>({ options, value, onChange }: { options: Array<{ v: T; l: string }>; value: T; onChange: (v: T) => void }) {
+  return (
+    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+      {options.map(o => (
+        <button key={o.v} type="button" onClick={() => onChange(o.v)} style={{
+          padding: '4px 10px', borderRadius: 999,
+          border: `1px solid ${o.v === value ? 'var(--ink)' : 'var(--border)'}`,
+          background: o.v === value ? 'var(--ink)' : 'var(--surface)',
+          color: o.v === value ? 'var(--on-ink)' : 'var(--ink)',
+          fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
+        }}>
+          {o.l}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function cycle<T>(list: T[], current: T): T {
+  const i = list.indexOf(current)
+  return list[(i + 1) % list.length]
+}
+
+function aspectShort(a: BuilderState['aspect']): string {
+  return { portrait: '9:16', square: '1:1', landscape: '16:9', tall45: '4:5' }[a]
+}
+
 function estimateCost(s: BuilderState): number {
   const perSec = s.engine === 'seedance-mini' ? 3 : (
-    s.resolution === '4k'   ? 22 :
+    s.resolution === '4k'    ? 22 :
     s.resolution === '1080p' ? 15 :
     s.resolution === '720p'  ? 9  :
                                6
   )
-  const base = 10 // script + voice + stitch
-  return base + perSec * s.duration + (s.scrollStopHook ? 120 : 0)
+  return 10 + perSec * s.duration + (s.scrollStopHook ? 120 : 0)
+}
+
+function summariseChanges(patch: Partial<BuilderState>, prev: BuilderState): string {
+  const lines: string[] = []
+  if (patch.productName && patch.productName !== prev.productName) lines.push(`Product: **${patch.productName}**`)
+  if (patch.creatorName && patch.creatorName !== prev.creatorName) lines.push(`Creator: ${patch.creatorName}`)
+  if (patch.format && patch.format !== prev.format) lines.push(`Format: ${patch.format}`)
+  if (patch.duration && patch.duration !== prev.duration) lines.push(`Length: ${patch.duration}s`)
+  if (patch.resolution && patch.resolution !== prev.resolution) lines.push(`Quality: ${patch.resolution}`)
+  if (patch.aspect && patch.aspect !== prev.aspect) lines.push(`Aspect: ${aspectShort(patch.aspect)}`)
+  if (patch.direction && patch.direction !== prev.direction) lines.push(`Direction updated`)
+  if (lines.length === 0) return "Got it — I've updated the settings below. Tweak anything, then hit Generate."
+  return `Updated:\n${lines.map(l => '· ' + l).join('\n')}\n\nReady when you are — tap Generate below.`
 }
