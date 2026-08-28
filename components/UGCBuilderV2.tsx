@@ -16,7 +16,7 @@
 // separate settings panel.
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Package, User2, Sparkles, X } from 'lucide-react'
+import { Send, Loader2, Package, User2, Sparkles, X, Upload } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
@@ -51,7 +51,15 @@ interface Message {
 }
 
 interface BrandProduct { id: string; name: string; image_url: string | null; product_type?: string }
-interface SavedCreator { id: string; name: string; hero_frame_url: string; character_idea?: string | null }
+interface SavedCreator {
+  id: string
+  name: string
+  imageUrl: string
+  // Origin dictates how downstream generation picks up the character:
+  //   'actor'      → saved-actor row (previously-rendered UGC creator)
+  //   'influencer' → Influencer Studio persona (has extra portrait/voice metadata)
+  source: 'actor' | 'influencer'
+}
 
 const INITIAL: BuilderState = {
   productName: '',
@@ -97,9 +105,10 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       const { data: sess } = await supabase.auth.getSession()
       const token = sess?.session?.access_token
       if (!token) return
-      const [pRes, cRes] = await Promise.all([
+      const [pRes, aRes, iRes] = await Promise.all([
         fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
         fetch('/api/ugc/saved-actors', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+        fetch('/api/influencers',     { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
       ])
       try {
         if (pRes?.ok) {
@@ -107,12 +116,36 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           if (!cancelled && Array.isArray(d?.products)) setProducts(d.products)
         }
       } catch { /* ignore */ }
+
+      // Merge saved-actors + influencers into one creator list. The v1 builder
+      // treats them as separate sections; the chat UI's Pick creator sheet
+      // shows them together (with a badge) so users see everything they own.
+      const merged: SavedCreator[] = []
       try {
-        if (cRes?.ok) {
-          const d = await cRes.json()
-          if (!cancelled && Array.isArray(d?.actors)) setCreators(d.actors)
+        if (aRes?.ok) {
+          const d = await aRes.json()
+          if (Array.isArray(d?.actors)) {
+            for (const a of d.actors) {
+              if (a?.id && a?.name && a?.hero_frame_url) {
+                merged.push({ id: `actor:${a.id}`, name: a.name, imageUrl: a.hero_frame_url, source: 'actor' })
+              }
+            }
+          }
         }
       } catch { /* ignore */ }
+      try {
+        if (iRes?.ok) {
+          const d = await iRes.json()
+          if (Array.isArray(d?.influencers)) {
+            for (const inf of d.influencers) {
+              if (inf?.id && inf?.name && inf?.portrait_url) {
+                merged.push({ id: `inf:${inf.id}`, name: inf.name, imageUrl: inf.portrait_url, source: 'influencer' })
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
+      if (!cancelled) setCreators(merged)
       if (!cancelled) setLibLoaded(true)
     })()
     return () => { cancelled = true }
@@ -274,8 +307,12 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               }))
               setOpenPanel(null)
             }}
-            onManualName={name => {
-              setState(s => ({ ...s, productName: name }))
+            onUpload={u => {
+              setState(s => ({
+                ...s,
+                productName: u.name,
+                productImage: { base64: u.base64, mimeType: u.mimeType, url: u.previewUrl },
+              }))
               setOpenPanel(null)
             }}
             onClose={() => setOpenPanel(null)}
@@ -701,85 +738,149 @@ function SelectChips<T extends string>({ options, value, onChange }: { options: 
 }
 
 // ── Attach sheets ──────────────────────────────────────────────────
-function ProductSheet({ products, selectedName, onPick, onManualName, onClose }: {
+function ProductSheet({ products, selectedName, onPick, onUpload, onClose }: {
   products: BrandProduct[]
   selectedName: string
   onPick: (p: BrandProduct) => void
-  onManualName: (name: string) => void
+  onUpload: (u: { name: string; base64: string; mimeType: string; previewUrl: string }) => void
   onClose: () => void
 }) {
-  const [manual, setManual] = useState('')
+  // Two-step upload flow: pick a file, then confirm a name. Both are
+  // required — the hero-frames pipeline needs a real image + label to
+  // composite with, so a name-only path would just fail downstream.
+  const [pending, setPending] = useState<{ base64: string; mimeType: string; previewUrl: string } | null>(null)
+  const [name, setName] = useState('')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  async function handleFile(file: File) {
+    if (!file.type.startsWith('image/')) return
+    const buf = await file.arrayBuffer()
+    const base64 = Buffer.from(buf).toString('base64')
+    const previewUrl = URL.createObjectURL(file)
+    setPending({ base64, mimeType: file.type, previewUrl })
+    // Seed a name from the filename minus extension, user can edit before confirming.
+    setName(file.name.replace(/\.[^.]+$/, '').slice(0, 60))
+  }
+
+  function confirm() {
+    if (!pending || !name.trim()) return
+    onUpload({ name: name.trim(), ...pending })
+  }
+
   return (
     <div style={sheetShellStyle}>
       <SheetHeader title="Attach product" onClose={onClose} />
-      {products.length > 0 ? (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
-          gap: 8, maxHeight: 260, overflowY: 'auto',
-        }}>
-          {products.map(p => {
-            const active = p.name === selectedName
-            return (
-              <button key={p.id} type="button" onClick={() => onPick(p)} style={{
-                padding: 8, borderRadius: 10,
-                border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
-                background: 'var(--surface)',
-                cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
-                textAlign: 'left', fontFamily: 'inherit',
-              }}>
-                <div style={{
-                  aspectRatio: '1/1', borderRadius: 8, background: 'var(--surface-2)',
-                  overflow: 'hidden', display: 'grid', placeItems: 'center',
-                }}>
-                  {p.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <Package size={20} color="var(--ink-mute)" />
-                  )}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {p.name}
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      ) : (
-        <div style={{ fontSize: 12.5, color: 'var(--ink-mute)', padding: '10px 2px' }}>
-          No saved products yet. Type the product name below, or add products from Brand Launch.
-        </div>
-      )}
-      <div style={{ display: 'flex', gap: 6, alignItems: 'center', paddingTop: 4 }}>
-        <input
-          value={manual}
-          onChange={e => setManual(e.target.value)}
-          placeholder="Or type a product name…"
-          onKeyDown={e => { if (e.key === 'Enter' && manual.trim()) onManualName(manual.trim()) }}
-          style={{
-            flex: 1, minWidth: 0,
-            padding: '8px 11px', borderRadius: 8,
-            border: '1px solid var(--border)',
-            background: 'var(--surface)', color: 'var(--ink)',
-            fontSize: 13, outline: 'none', fontFamily: 'inherit',
-          }}
-        />
+
+      {/* Saved-products grid (with an Upload tile prepended) */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+        gap: 8, maxHeight: 260, overflowY: 'auto',
+      }}>
+        {/* Upload tile — always first, opens the file picker */}
         <button
           type="button"
-          onClick={() => manual.trim() && onManualName(manual.trim())}
-          disabled={!manual.trim()}
+          onClick={() => inputRef.current?.click()}
           style={{
-            padding: '8px 14px', borderRadius: 8, border: 'none',
-            background: manual.trim() ? 'var(--ink)' : 'var(--surface-2)',
-            color: manual.trim() ? 'var(--on-ink)' : 'var(--ink-mute)',
-            fontSize: 12.5, fontWeight: 700,
-            cursor: manual.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+            padding: 8, borderRadius: 10,
+            border: '1.5px dashed var(--border)',
+            background: 'var(--surface)',
+            cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
+            textAlign: 'left', fontFamily: 'inherit',
           }}
         >
-          Use
+          <div style={{
+            aspectRatio: '1/1', borderRadius: 8, background: 'var(--surface-2)',
+            display: 'grid', placeItems: 'center', color: 'var(--ink-mute)',
+          }}>
+            <Upload size={18} />
+          </div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', textAlign: 'center' }}>Upload photo</div>
         </button>
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          hidden
+          onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = '' }}
+        />
+
+        {products.map(p => {
+          const active = p.name === selectedName
+          return (
+            <button key={p.id} type="button" onClick={() => onPick(p)} style={{
+              padding: 8, borderRadius: 10,
+              border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+              background: 'var(--surface)',
+              cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
+              textAlign: 'left', fontFamily: 'inherit',
+            }}>
+              <div style={{
+                aspectRatio: '1/1', borderRadius: 8, background: 'var(--surface-2)',
+                overflow: 'hidden', display: 'grid', placeItems: 'center',
+              }}>
+                {p.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <Package size={20} color="var(--ink-mute)" />
+                )}
+              </div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {p.name}
+              </div>
+            </button>
+          )
+        })}
       </div>
+
+      {products.length === 0 && !pending && (
+        <div style={{ fontSize: 12.5, color: 'var(--ink-mute)', padding: '10px 2px' }}>
+          No saved products yet. Upload a product photo above, or save products from Brand Launch to reuse them here.
+        </div>
+      )}
+
+      {/* Second step — name the freshly uploaded image, then confirm */}
+      {pending && (
+        <div style={{
+          display: 'flex', gap: 10, alignItems: 'center',
+          padding: 10, borderRadius: 10,
+          background: 'var(--surface-2)',
+          border: '1px solid var(--border)',
+        }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={pending.previewUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Product name"
+            onKeyDown={e => { if (e.key === 'Enter') confirm() }}
+            autoFocus
+            style={{
+              flex: 1, minWidth: 0,
+              padding: '8px 11px', borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: 'var(--surface)', color: 'var(--ink)',
+              fontSize: 13, outline: 'none', fontFamily: 'inherit',
+            }}
+          />
+          <button
+            type="button"
+            onClick={confirm}
+            disabled={!name.trim()}
+            style={{
+              flexShrink: 0,
+              padding: '8px 14px', borderRadius: 8, border: 'none',
+              background: name.trim() ? 'var(--ink)' : 'var(--surface)',
+              color: name.trim() ? 'var(--on-ink)' : 'var(--ink-mute)',
+              fontSize: 12.5, fontWeight: 700,
+              cursor: name.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+            }}
+          >
+            Use
+          </button>
+        </div>
+      )}
     </div>
   )
 }
@@ -821,13 +922,27 @@ function CreatorSheet({ creators, selectedId, onPick, onClose }: {
               border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
               background: 'var(--surface)', cursor: 'pointer',
               display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
+              position: 'relative',
             }}>
               <div style={{
                 aspectRatio: '9/16', borderRadius: 8, background: 'var(--surface-2)',
-                overflow: 'hidden',
+                overflow: 'hidden', position: 'relative',
               }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={c.hero_frame_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img
+                  src={c.imageUrl}
+                  alt={c.name}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }}
+                />
+                {c.source === 'influencer' && (
+                  <span style={{
+                    position: 'absolute', top: 4, left: 4,
+                    fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
+                    padding: '2px 6px', borderRadius: 4,
+                    background: 'rgba(0,0,0,0.72)', color: '#fff',
+                  }}>Studio</span>
+                )}
               </div>
               <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
                 {c.name}
