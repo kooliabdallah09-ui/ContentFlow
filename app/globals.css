@@ -2007,3 +2007,43 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
     white-space: normal;
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   ROUND 5 MOBILE FIXES — text-crushed-by-nowrap-button pattern
+   Any flex row (not column) that contains a child with white-space:
+   nowrap or flex-shrink: 0 will crush neighboring flexible children
+   into a 1-word-per-line vertical column on 320px viewports. Force
+   these rows to wrap so the fixed child drops onto its own row.
+   ══════════════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  /* :has() lets us match parents by child properties. Fully supported
+     in modern browsers (Safari 15.4+, Chrome 105+, Firefox 121+). */
+  [style*="display: 'flex'"]:not([style*="flexDirection: 'column'"]):has(> [style*="whiteSpace: 'nowrap'"]),
+  [style*="display: 'flex'"]:not([style*="flexDirection: 'column'"]):has(> [style*="flexShrink: 0"]),
+  [style*="display: flex"]:not([style*="flex-direction: column"]):has(> [style*="white-space: nowrap"]),
+  [style*="display: flex"]:not([style*="flex-direction: column"]):has(> [style*="flex-shrink: 0"]) {
+    flex-wrap: wrap !important;
+    row-gap: 12px !important;
+  }
+
+  /* Buttons in a wrapped footer row should not be locked to their
+     intrinsic width — otherwise they take up all remaining width AND
+     drop the loading text ("Balancing your format mix…") on the floor.
+     Let them shrink so long labels wrap inside the button. */
+  [style*="display: 'flex'"] > button[style*="whiteSpace: 'nowrap'"],
+  [style*="display: flex"] > button[style*="white-space: nowrap"] {
+    max-width: 100%;
+  }
+
+  /* Horizontal chip strips (Portrait · 10s · 1080p · Seedance 2.0)
+     should wrap on mobile — scrolling a chip strip is unpleasant on
+     phone. Detect: flex row with gap AND `overflow-x` set OR chips
+     inside a container narrower than the strip. Since chips already
+     have `flex-shrink: 0`, the rule above catches them (the parent
+     wraps). This just enforces a nicer row-gap for chip rows. */
+  [style*="display: 'flex'"][style*="gap"]:has(> [style*="borderRadius: 99"]),
+  [style*="display: flex"][style*="gap"]:has(> [style*="border-radius: 99"]) {
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+  }
+}
