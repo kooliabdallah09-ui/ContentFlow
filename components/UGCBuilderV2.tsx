@@ -231,7 +231,10 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           />
           <Chip
             value={state.resolution.toUpperCase()}
-            onClick={() => setState(s => ({ ...s, resolution: cycle(['720p', '1080p', '4k'], s.resolution) as BuilderState['resolution'] }))}
+            onClick={() => setState(s => {
+              const opts = s.engine === 'seedance-mini' ? ['480p', '720p'] : ['720p', '1080p', '4k']
+              return { ...s, resolution: cycle(opts, s.resolution) as BuilderState['resolution'] }
+            })}
           />
           <Chip
             value={aspectShort(state.aspect)}
@@ -239,7 +242,14 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           />
           <Chip
             value={state.engine === 'seedance-mini' ? 'Mini' : 'Seedance 2.0'}
-            onClick={() => setState(s => ({ ...s, engine: s.engine === 'seedance-2' ? 'seedance-mini' : 'seedance-2' }))}
+            onClick={() => setState(s => {
+              const nextEngine: BuilderState['engine'] = s.engine === 'seedance-2' ? 'seedance-mini' : 'seedance-2'
+              // Mini caps at 720p — auto-downgrade if switching from higher.
+              const nextRes: BuilderState['resolution'] = nextEngine === 'seedance-mini' && (s.resolution === '1080p' || s.resolution === '4k')
+                ? '720p'
+                : s.resolution
+              return { ...s, engine: nextEngine, resolution: nextRes }
+            })}
           />
           <button
             type="button"
@@ -514,17 +524,65 @@ function SettingsSheet({ state, onChange, onClose }: { state: BuilderState; onCh
         <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>More settings</span>
         <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 2 }}><X size={14} /></button>
       </div>
-      <SettingRow label="Music">
+      <SettingRow label="Duration">
         <SelectChips
-          options={[{ v: '', l: 'None' }, { v: 'upbeat', l: 'Upbeat' }, { v: 'chill', l: 'Chill' }, { v: 'cinematic', l: 'Cinematic' }]}
-          value={state.musicMood ?? ''}
-          onChange={v => onChange({ musicMood: v || undefined })}
+          options={[
+            { v: '5' as const,  l: '5s'  },
+            { v: '10' as const, l: '10s' },
+            { v: '15' as const, l: '15s' },
+            { v: '20' as const, l: '20s' },
+            { v: '30' as const, l: '30s' },
+          ]}
+          value={String(state.duration) as '5' | '10' | '15' | '20' | '30'}
+          onChange={v => onChange({ duration: Number(v) as BuilderState['duration'] })}
+        />
+      </SettingRow>
+      <SettingRow label="Quality">
+        <SelectChips
+          options={state.engine === 'seedance-mini'
+            ? [{ v: '480p' as const, l: '480p' }, { v: '720p' as const, l: '720p' }]
+            : [{ v: '720p' as const, l: '720p' }, { v: '1080p' as const, l: '1080p' }, { v: '4k' as const, l: '4K' }]
+          }
+          value={state.resolution as '480p' | '720p' | '1080p' | '4k'}
+          onChange={v => onChange({ resolution: v })}
+        />
+      </SettingRow>
+      <SettingRow label="Aspect">
+        <SelectChips
+          options={[
+            { v: 'portrait' as const,  l: '9:16' },
+            { v: 'tall45' as const,    l: '4:5'  },
+            { v: 'square' as const,    l: '1:1'  },
+            { v: 'landscape' as const, l: '16:9' },
+          ]}
+          value={state.aspect}
+          onChange={v => onChange({ aspect: v })}
+        />
+      </SettingRow>
+      <SettingRow label="Engine">
+        <SelectChips
+          options={[
+            { v: 'seedance-2' as const,    l: 'Seedance 2.0' },
+            { v: 'seedance-mini' as const, l: 'Mini (fast)'  },
+          ]}
+          value={state.engine}
+          onChange={v => {
+            const nextRes = v === 'seedance-mini' && (state.resolution === '1080p' || state.resolution === '4k')
+              ? '720p' as const
+              : state.resolution
+            onChange({ engine: v, resolution: nextRes })
+          }}
         />
       </SettingRow>
       <SettingRow label="Language">
         <SelectChips
-          options={[{ v: 'English', l: 'EN' }, { v: 'French', l: 'FR' }, { v: 'Spanish', l: 'ES' }, { v: 'Arabic', l: 'AR' }]}
-          value={state.language}
+          options={[
+            { v: 'English' as const, l: 'EN' },
+            { v: 'French' as const,  l: 'FR' },
+            { v: 'Spanish' as const, l: 'ES' },
+            { v: 'Arabic' as const,  l: 'AR' },
+          ]}
+          value={state.language as 'English' | 'French' | 'Spanish' | 'Arabic'}
           onChange={v => onChange({ language: v })}
         />
       </SettingRow>
