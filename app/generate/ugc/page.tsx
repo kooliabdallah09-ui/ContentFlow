@@ -471,6 +471,32 @@ export default function UGCGeneratorPage() {
     { label: 'Stitching together', sub: 'Finalising your UGC video…' },
   ]
 
+  // v2 preview: full-viewport chat interface. No page chrome, no aside.
+  if (searchParams?.get('v') === '2') {
+    return (
+      <>
+        <GeneratingOverlay active={loading} steps={UGC_STEPS} tipSeconds={60} />
+        <div style={{
+          // Flex-fill the remaining space in `.main` (below TopBar), edge to edge.
+          flex: 1,
+          minHeight: 0,
+          alignSelf: 'stretch',
+          display: 'flex',
+          flexDirection: 'column',
+          background: 'var(--bg)',
+        }}>
+          <UGCBuilderV2
+            onGenerate={async () => {
+              showError('Preview only', 'The v2 builder is in-progress. Wiring lands in the next stage.')
+            }}
+            isLoading={loading}
+            creditBalance={creditBalance}
+          />
+        </div>
+      </>
+    )
+  }
+
   return (
     <>
     <GeneratingOverlay active={loading} steps={UGC_STEPS} tipSeconds={60} />
@@ -647,26 +673,13 @@ export default function UGCGeneratorPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-          {/* v2 preview — accessible at /generate/ugc?v=2. Once approved, this
-              becomes the default and UGCPackageBuilder becomes the fallback. */}
-          {searchParams.get('v') === '2' ? (
-            <UGCBuilderV2
-              onGenerate={async () => {
-                // Stage 1 stub — wiring to handleGenerate lands in Stage 3.
-                showError('Preview only', 'The v2 builder is in-progress. Wiring lands in the next stage.')
-              }}
-              isLoading={loading}
-              creditBalance={creditBalance}
-            />
-          ) : (
-            <UGCPackageBuilder
-              onGenerate={handleGenerate}
-              isLoading={loading}
-              creditBalance={creditBalance}
-              externalPrefill={externalPrefill}
-              initialActorId={selectedActorId}
-            />
-          )}
+          <UGCPackageBuilder
+            onGenerate={handleGenerate}
+            isLoading={loading}
+            creditBalance={creditBalance}
+            externalPrefill={externalPrefill}
+            initialActorId={selectedActorId}
+          />
         </div>
 
         <aside style={{ position: 'sticky', top: 20, display: 'flex', flexDirection: 'column', gap: 14 }} className="ugc-aside">

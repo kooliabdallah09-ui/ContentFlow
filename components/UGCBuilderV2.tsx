@@ -178,10 +178,8 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   return (
     <div style={{
       display: 'flex', flexDirection: 'column',
-      height: 'calc(100vh - 180px)', minHeight: 480,
-      background: 'var(--surface)',
-      border: '1px solid var(--border)',
-      borderRadius: 16,
+      flex: 1, minHeight: 0, height: '100%',
+      background: 'var(--bg)',
       overflow: 'hidden',
     }}>
       {/* ── Thread ───────────────────────────────────────────────── */}
@@ -190,22 +188,30 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         style={{
           flex: 1, minHeight: 0,
           overflowY: 'auto',
-          padding: '24px 20px 12px',
-          display: 'flex', flexDirection: 'column', gap: 14,
+          padding: '32px 20px 16px',
         }}
       >
-        {messages.length === 0 ? (
-          <EmptyState />
-        ) : (
-          messages.map(m => <ChatBubble key={m.id} message={m} />)
-        )}
+        <div style={{
+          maxWidth: 760, margin: '0 auto',
+          display: 'flex', flexDirection: 'column', gap: 14,
+          minHeight: '100%',
+        }}>
+          {messages.length === 0 ? (
+            <EmptyState />
+          ) : (
+            messages.map(m => <ChatBubble key={m.id} message={m} />)
+          )}
+        </div>
       </div>
 
       {/* ── Composer ─────────────────────────────────────────────── */}
       <div style={{
         borderTop: '1px solid var(--border)',
-        background: 'var(--bg-elev, var(--surface))',
-        padding: '10px 14px 12px',
+        background: 'var(--bg)',
+        padding: '12px 20px max(12px, env(safe-area-inset-bottom, 12px))',
+      }}>
+      <div style={{
+        maxWidth: 760, margin: '0 auto',
         display: 'flex', flexDirection: 'column', gap: 8,
       }}>
         {/* Settings sheet — inline expansion above chip row */}
@@ -337,6 +343,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             {isLoading ? <><Loader2 size={13} className="animate-spin" /> Rendering…</> : <><Sparkles size={13} /> Generate</>}
           </button>
         </div>
+      </div>
       </div>
     </div>
   )
