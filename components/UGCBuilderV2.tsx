@@ -313,11 +313,22 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         }),
       })
       const framesRaw = await framesRes.text()
-      let framesData: { frames?: Array<{ url: string; caption?: string }>; error?: string } = {}
+      // Hero-frames returns frames as a bare string[] (public Supabase URLs),
+      // not the object form the chat renderer expected. Normalise on receive.
+      let framesData: { frames?: unknown; error?: string } = {}
       try { framesData = framesRaw ? JSON.parse(framesRaw) : {} } catch { /* fall through */ }
-      if (!framesRes.ok) throw new Error(framesData.error || `Frame generation failed (${framesRes.status})`)
-      if (!framesData.frames?.length) throw new Error('No frames returned')
-      const frames = framesData.frames
+      if (!framesRes.ok) throw new Error((framesData as { error?: string }).error || `Frame generation failed (${framesRes.status})`)
+      const rawFrames = Array.isArray(framesData.frames) ? framesData.frames : []
+      const frames: HeroFrame[] = rawFrames
+        .map((f: unknown): HeroFrame | null => {
+          if (typeof f === 'string') return { url: f }
+          if (f && typeof f === 'object' && 'url' in f && typeof (f as { url: unknown }).url === 'string') {
+            return { url: (f as { url: string }).url }
+          }
+          return null
+        })
+        .filter((f): f is HeroFrame => f !== null)
+      if (!frames.length) throw new Error('No frames returned')
 
       // Replace the "rendering" bubble with a picker. onPickFrame is a
       // closure that kicks off the animate step for the chosen frame.
