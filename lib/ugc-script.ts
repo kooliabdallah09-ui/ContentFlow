@@ -248,6 +248,22 @@ FAIL if any spoken line does ANY of these:
 ☒ CTA has an exclamation mark, an imperative verb, or sounds like it belongs on a billboard.
 ☒ Any three consecutive quoted words could appear in the marketing copy on the product's landing page.
 
+☒ CLARITY FAIL — the "specific detail" rule is producing weird inside-joke scripts. Details must be FLAVOR, not PLOT. FAIL if the ad requires the viewer to already know:
+   - a name that never gets a role ("Priya had three ads waiting" — WHO is Priya? "my client" or "my coworker" tells us in 2 words)
+   - a placeholder that never gets replaced ("I typed our product name" — the ad must NAME the product or it's not an ad)
+   - an event the viewer wasn't shown ("she thought I outsourced it" — outsourced WHAT? the ads? the writing? the whole company?)
+   - a meta reference to the story itself ("…she's still asking who I hired" — this closes a story instead of driving action; the viewer should understand what the product IS by the last word)
+
+CLARITY TEST — read the ad to a stranger who has never seen the product. After 10 seconds they should be able to answer:
+   1. What is this product? (a name, a category, or a clear demonstration — pick one)
+   2. What just happened to the person on screen? (a moment, not a mystery)
+   3. Why should I care? (an outcome, a feeling, or a payoff)
+If they'd shrug on any of the three → rewrite.
+
+The SLOW REVEAL angle in particular: the "oh, THAT's what happened" moment must LAND. A slow reveal that stays confusing is just confusion. Weird → curiosity → payoff. Not weird → weirder → nothing.
+
+PROPER NOUNS RULE: if you use a name, either it's the product/brand OR it's paired with a 1-word role ("my client Priya", "my roommate Sam", "our PM Jordan"). No naked names dropped into a scene the viewer doesn't share.
+
 PASS looks like:
 
 Physical (drink):
