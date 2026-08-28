@@ -497,13 +497,16 @@ export default function BillingPage() {
         `}</style>
       </div>
 
-      {/* Plan Recommender */}
+      {/* Plan Recommender — pass `allPlans` (which includes Lite) so the
+          "we recommend Lite" branch actually surfaces the plan card.
+          `plans` (without Lite) drives the main grid below, where Lite has
+          its own dedicated section. */}
       <PlanRecommender
         goals={recGoals} setGoals={setRecGoals}
         volume={recVolume} setVolume={setRecVolume}
         currentPlan={currentPlan}
         annual={annual}
-        plans={plans}
+        plans={allPlans}
         onUpgrade={handleUpgrade}
         upgradeLoading={upgradeLoading}
         isAdmin={isAdmin}
