@@ -50,6 +50,9 @@ interface Message {
   timestamp: number
 }
 
+interface BrandProduct { id: string; name: string; image_url: string | null; product_type?: string }
+interface SavedCreator { id: string; name: string; hero_frame_url: string; character_idea?: string | null }
+
 const INITIAL: BuilderState = {
   productName: '',
   productDescription: '',
@@ -76,8 +79,44 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   const [messages, setMessages] = useState<Message[]>([])
   const [composer, setComposer] = useState('')
   const [parsing, setParsing] = useState(false)
-  const [showSettings, setShowSettings] = useState(false)
+  const [openPanel, setOpenPanel] = useState<'settings' | 'product' | 'creator' | null>(null)
+  const [products, setProducts] = useState<BrandProduct[]>([])
+  const [creators, setCreators] = useState<SavedCreator[]>([])
+  const [libLoaded, setLibLoaded] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Lazy-load product + creator libraries the first time the user opens
+  // either attach sheet. Cheap enough to fetch both together.
+  useEffect(() => {
+    if (openPanel !== 'product' && openPanel !== 'creator') return
+    if (libLoaded) return
+    let cancelled = false
+    ;(async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data: sess } = await supabase.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) return
+      const [pRes, cRes] = await Promise.all([
+        fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+        fetch('/api/ugc/saved-actors', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+      ])
+      try {
+        if (pRes?.ok) {
+          const d = await pRes.json()
+          if (!cancelled && Array.isArray(d?.products)) setProducts(d.products)
+        }
+      } catch { /* ignore */ }
+      try {
+        if (cRes?.ok) {
+          const d = await cRes.json()
+          if (!cancelled && Array.isArray(d?.actors)) setCreators(d.actors)
+        }
+      } catch { /* ignore */ }
+      if (!cancelled) setLibLoaded(true)
+    })()
+    return () => { cancelled = true }
+  }, [openPanel, libLoaded])
 
   const cost = estimateCost(state)
   const canSend = composer.trim().length > 0 && !parsing && !isLoading
@@ -215,12 +254,42 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         maxWidth: 760, margin: '0 auto',
         display: 'flex', flexDirection: 'column', gap: 8,
       }}>
-        {/* Settings sheet — inline expansion above chip row */}
-        {showSettings && (
+        {/* Inline panels — one at a time above the chip row */}
+        {openPanel === 'settings' && (
           <SettingsSheet
             state={state}
             onChange={patch => setState(s => ({ ...s, ...patch }))}
-            onClose={() => setShowSettings(false)}
+            onClose={() => setOpenPanel(null)}
+          />
+        )}
+        {openPanel === 'product' && (
+          <ProductSheet
+            products={products}
+            selectedName={state.productName}
+            onPick={p => {
+              setState(s => ({
+                ...s,
+                productName: p.name,
+                productImage: p.image_url ? { base64: '', mimeType: 'image/jpeg', url: p.image_url } : s.productImage,
+              }))
+              setOpenPanel(null)
+            }}
+            onManualName={name => {
+              setState(s => ({ ...s, productName: name }))
+              setOpenPanel(null)
+            }}
+            onClose={() => setOpenPanel(null)}
+          />
+        )}
+        {openPanel === 'creator' && (
+          <CreatorSheet
+            creators={creators}
+            selectedId={state.creatorId}
+            onPick={c => {
+              setState(s => ({ ...s, creatorId: c?.id, creatorName: c?.name ?? 'Auto' }))
+              setOpenPanel(null)
+            }}
+            onClose={() => setOpenPanel(null)}
           />
         )}
 
@@ -262,7 +331,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           />
           <button
             type="button"
-            onClick={() => setShowSettings(v => !v)}
+            onClick={() => setOpenPanel(p => p === 'settings' ? null : 'settings')}
             aria-label="More settings"
             style={{
               padding: '5px 10px', borderRadius: 999,
@@ -272,7 +341,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               fontFamily: 'inherit',
             }}
           >
-            {showSettings ? '– Less' : '+ More'}
+            {openPanel === 'settings' ? '– Less' : '+ More'}
           </button>
         </div>
 
@@ -282,13 +351,13 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             icon={<Package size={12} />}
             label={state.productName || 'Attach product'}
             active={!!state.productName}
-            onClick={() => {/* TODO: sheet */}}
+            onClick={() => setOpenPanel(p => p === 'product' ? null : 'product')}
           />
           <AttachChip
             icon={<User2 size={12} />}
-            label={state.creatorName || 'Pick creator'}
-            active={state.creatorName !== 'Auto'}
-            onClick={() => {/* TODO: sheet */}}
+            label={state.creatorName && state.creatorName !== 'Auto' ? state.creatorName : 'Pick creator'}
+            active={!!state.creatorId}
+            onClick={() => setOpenPanel(p => p === 'creator' ? null : 'creator')}
           />
         </div>
 
@@ -627,6 +696,168 @@ function SelectChips<T extends string>({ options, value, onChange }: { options: 
           {o.l}
         </button>
       ))}
+    </div>
+  )
+}
+
+// ── Attach sheets ──────────────────────────────────────────────────
+function ProductSheet({ products, selectedName, onPick, onManualName, onClose }: {
+  products: BrandProduct[]
+  selectedName: string
+  onPick: (p: BrandProduct) => void
+  onManualName: (name: string) => void
+  onClose: () => void
+}) {
+  const [manual, setManual] = useState('')
+  return (
+    <div style={sheetShellStyle}>
+      <SheetHeader title="Attach product" onClose={onClose} />
+      {products.length > 0 ? (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+          gap: 8, maxHeight: 260, overflowY: 'auto',
+        }}>
+          {products.map(p => {
+            const active = p.name === selectedName
+            return (
+              <button key={p.id} type="button" onClick={() => onPick(p)} style={{
+                padding: 8, borderRadius: 10,
+                border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                background: 'var(--surface)',
+                cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
+                textAlign: 'left', fontFamily: 'inherit',
+              }}>
+                <div style={{
+                  aspectRatio: '1/1', borderRadius: 8, background: 'var(--surface-2)',
+                  overflow: 'hidden', display: 'grid', placeItems: 'center',
+                }}>
+                  {p.image_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={p.image_url} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <Package size={20} color="var(--ink-mute)" />
+                  )}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.name}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      ) : (
+        <div style={{ fontSize: 12.5, color: 'var(--ink-mute)', padding: '10px 2px' }}>
+          No saved products yet. Type the product name below, or add products from Brand Launch.
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 6, alignItems: 'center', paddingTop: 4 }}>
+        <input
+          value={manual}
+          onChange={e => setManual(e.target.value)}
+          placeholder="Or type a product name…"
+          onKeyDown={e => { if (e.key === 'Enter' && manual.trim()) onManualName(manual.trim()) }}
+          style={{
+            flex: 1, minWidth: 0,
+            padding: '8px 11px', borderRadius: 8,
+            border: '1px solid var(--border)',
+            background: 'var(--surface)', color: 'var(--ink)',
+            fontSize: 13, outline: 'none', fontFamily: 'inherit',
+          }}
+        />
+        <button
+          type="button"
+          onClick={() => manual.trim() && onManualName(manual.trim())}
+          disabled={!manual.trim()}
+          style={{
+            padding: '8px 14px', borderRadius: 8, border: 'none',
+            background: manual.trim() ? 'var(--ink)' : 'var(--surface-2)',
+            color: manual.trim() ? 'var(--on-ink)' : 'var(--ink-mute)',
+            fontSize: 12.5, fontWeight: 700,
+            cursor: manual.trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+          }}
+        >
+          Use
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function CreatorSheet({ creators, selectedId, onPick, onClose }: {
+  creators: SavedCreator[]
+  selectedId?: string
+  onPick: (c: SavedCreator | null) => void
+  onClose: () => void
+}) {
+  return (
+    <div style={sheetShellStyle}>
+      <SheetHeader title="Pick creator" onClose={onClose} />
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
+        gap: 8, maxHeight: 260, overflowY: 'auto',
+      }}>
+        {/* Auto option */}
+        <button type="button" onClick={() => onPick(null)} style={{
+          padding: 6, borderRadius: 10,
+          border: `1.5px solid ${!selectedId ? 'var(--ink)' : 'var(--border)'}`,
+          background: 'var(--surface)', cursor: 'pointer',
+          display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
+        }}>
+          <div style={{
+            aspectRatio: '9/16', borderRadius: 8, background: 'var(--surface-2)',
+            display: 'grid', placeItems: 'center', color: 'var(--ink-mute)',
+          }}>
+            <Sparkles size={20} />
+          </div>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink)', textAlign: 'center' }}>Auto</div>
+        </button>
+        {creators.map(c => {
+          const active = c.id === selectedId
+          return (
+            <button key={c.id} type="button" onClick={() => onPick(c)} style={{
+              padding: 6, borderRadius: 10,
+              border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+              background: 'var(--surface)', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
+            }}>
+              <div style={{
+                aspectRatio: '9/16', borderRadius: 8, background: 'var(--surface-2)',
+                overflow: 'hidden',
+              }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={c.hero_frame_url} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+              <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                {c.name}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      {creators.length === 0 && (
+        <div style={{ fontSize: 12.5, color: 'var(--ink-mute)', padding: '10px 2px' }}>
+          No saved creators yet. Auto will let the AI cast one for you, or save creators from previous renders to reuse them here.
+        </div>
+      )}
+    </div>
+  )
+}
+
+const sheetShellStyle: React.CSSProperties = {
+  padding: '12px 14px',
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
+  borderRadius: 12,
+  display: 'flex', flexDirection: 'column', gap: 10,
+}
+
+function SheetHeader({ title, onClose }: { title: string; onClose: () => void }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>{title}</span>
+      <button type="button" onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 2 }}><X size={14} /></button>
     </div>
   )
 }
