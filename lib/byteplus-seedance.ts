@@ -19,6 +19,7 @@ const REGION_HOSTS: Record<string, string> = {
 // upgrade doesn't break us. Update here when a new pinned version is released.
 const MODEL_IDS = {
   'seedance-2':    'dreamina-seedance-2-0-260128',
+  'seedance-2-5':  'dreamina-seedance-2-5-260628',
   'seedance-mini': 'dreamina-seedance-2-0-mini-260128',
 } as const
 
@@ -49,7 +50,10 @@ export async function submitByteplusSeedanceJob(params: {
   referenceImageUrls?: string[]
   watermark?: boolean
 }): Promise<{ predictionId: string }> {
-  const engine: Engine = params.engine === 'seedance-mini' ? 'seedance-mini' : 'seedance-2'
+  const engine: Engine =
+    params.engine === 'seedance-mini' ? 'seedance-mini'
+    : params.engine === 'seedance-2-5' ? 'seedance-2-5'
+    : 'seedance-2'
   const model = MODEL_IDS[engine]
   const duration = Math.max(3, Math.min(60, Math.round(params.durationSeconds)))
   const ratio = params.aspectRatio ?? '9:16'

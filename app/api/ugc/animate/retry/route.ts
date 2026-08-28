@@ -97,7 +97,9 @@ export async function POST(request: NextRequest) {
         startImageUrl: gridUrl,
         resolution: ctx.resolution ?? '1080p',
         enableAudio: true,
-        engine: ctx.engine === 'seedance-mini' ? 'seedance-mini' : 'seedance-2',
+        engine: ctx.engine === 'seedance-mini' ? 'seedance-mini'
+          : ctx.engine === 'seedance-2-5' ? 'seedance-2-5'
+          : 'seedance-2',
       })
     } catch (err) {
       // If even the resubmit is flagged at submit time, surface exhaustion

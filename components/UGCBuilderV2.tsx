@@ -19,6 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2, Package, User2, Sparkles, X } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
+import { ugcPackageCost } from '@/lib/ugc-pricing'
 
 // ── Field shapes ────────────────────────────────────────────────────
 export interface BuilderState {
@@ -32,7 +33,7 @@ export interface BuilderState {
   aspect: 'portrait' | 'square' | 'landscape' | 'tall45'
   duration: 5 | 10 | 15 | 20 | 30
   resolution: '480p' | '720p' | '1080p' | '4k'
-  engine: 'seedance-2' | 'seedance-mini'
+  engine: 'seedance-2' | 'seedance-2-5' | 'seedance-mini'
   direction: string
   language: string
   musicMood?: string
@@ -241,9 +242,11 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             onClick={() => setState(s => ({ ...s, aspect: cycle(['portrait', 'square', 'landscape'], s.aspect) as BuilderState['aspect'] }))}
           />
           <Chip
-            value={state.engine === 'seedance-mini' ? 'Mini' : 'Seedance 2.0'}
+            value={state.engine === 'seedance-mini' ? 'Mini' : state.engine === 'seedance-2-5' ? '2.5 · Premium' : 'Seedance 2.0'}
             onClick={() => setState(s => {
-              const nextEngine: BuilderState['engine'] = s.engine === 'seedance-2' ? 'seedance-mini' : 'seedance-2'
+              // Cycle: 2.0 → 2.5 → Mini → 2.0
+              const order: BuilderState['engine'][] = ['seedance-2', 'seedance-2-5', 'seedance-mini']
+              const nextEngine = order[(order.indexOf(s.engine) + 1) % order.length]
               // Mini caps at 720p — auto-downgrade if switching from higher.
               const nextRes: BuilderState['resolution'] = nextEngine === 'seedance-mini' && (s.resolution === '1080p' || s.resolution === '4k')
                 ? '720p'
@@ -562,8 +565,9 @@ function SettingsSheet({ state, onChange, onClose }: { state: BuilderState; onCh
       <SettingRow label="Engine">
         <SelectChips
           options={[
-            { v: 'seedance-2' as const,    l: 'Seedance 2.0' },
-            { v: 'seedance-mini' as const, l: 'Mini (fast)'  },
+            { v: 'seedance-2' as const,    l: 'Seedance 2.0'  },
+            { v: 'seedance-2-5' as const,  l: '2.5 Premium'   },
+            { v: 'seedance-mini' as const, l: 'Mini (fast)'   },
           ]}
           value={state.engine}
           onChange={v => {
@@ -628,13 +632,9 @@ function aspectShort(a: BuilderState['aspect']): string {
 }
 
 function estimateCost(s: BuilderState): number {
-  const perSec = s.engine === 'seedance-mini' ? 3 : (
-    s.resolution === '4k'    ? 22 :
-    s.resolution === '1080p' ? 15 :
-    s.resolution === '720p'  ? 9  :
-                               6
-  )
-  return 10 + perSec * s.duration + (s.scrollStopHook ? 120 : 0)
+  // Delegate to the shared pricing module so the client estimate matches the
+  // server charge to the cent. Add scroll-stop-hook surcharge on top.
+  return ugcPackageCost(s.duration, s.resolution, s.engine) + (s.scrollStopHook ? 120 : 0)
 }
 
 function summariseChanges(patch: Partial<BuilderState>, prev: BuilderState): string {

@@ -22,7 +22,7 @@ interface PatchShape {
   aspect?: 'portrait' | 'square' | 'landscape' | 'tall45'
   duration?: 5 | 10 | 15 | 20 | 30
   resolution?: '480p' | '720p' | '1080p' | '4k'
-  engine?: 'seedance-2' | 'seedance-mini'
+  engine?: 'seedance-2' | 'seedance-2-5' | 'seedance-mini'
   direction?: string
   language?: string
   musicMood?: string
@@ -65,7 +65,7 @@ SCHEMA (all fields optional):
   "aspect": "portrait" | "square" | "landscape" | "tall45",
   "duration": 5 | 10 | 15 | 20 | 30,   // seconds — round to closest valid value
   "resolution": "720p" | "1080p" | "4k",
-  "engine": "seedance-2" | "seedance-mini",   // mini = fast/cheap, seedance-2 = quality
+  "engine": "seedance-2" | "seedance-2-5" | "seedance-mini",   // mini = fast/cheap, 2.0 = default quality, 2.5 = premium (best motion, physics, prompt adherence)
   "direction": string,              // 1-3 sentences distilling scene, camera, tone, ending — this is what the model uses to shape the shot
   "language": string,               // "English", "French", "Spanish", "Arabic", etc.
   "musicMood": string,              // "upbeat" | "chill" | "cinematic" — only if explicitly requested
@@ -77,7 +77,8 @@ INFERENCE RULES
 - "square", "1:1", "feed post" → "square"
 - "YouTube", "landscape", "16:9", "widescreen" → "landscape"
 - "quick", "fast", "cheap", "draft" → engine: "seedance-mini"
-- "cinematic", "hero", "polished", "premium" → engine: "seedance-2", resolution: "1080p" or "4k"
+- "cinematic", "hero", "polished", "high quality" → engine: "seedance-2", resolution: "1080p" or "4k"
+- "premium", "best", "top quality", "flagship", "2.5", "seedance 2.5" → engine: "seedance-2-5"
 - Default duration is 10 unless user specifies otherwise
 - Never set productName to a generic word like "product" — leave it blank if no real name given
 - direction should capture the specific visual/narrative asks, not restate the whole brief
@@ -161,7 +162,7 @@ function coerce(p: PatchShape): PatchShape {
     out.duration = nearest as 5 | 10 | 15 | 20 | 30
   }
   if (p.resolution && ['480p', '720p', '1080p', '4k'].includes(p.resolution)) out.resolution = p.resolution
-  if (p.engine && ['seedance-2', 'seedance-mini'].includes(p.engine)) out.engine = p.engine
+  if (p.engine && ['seedance-2', 'seedance-2-5', 'seedance-mini'].includes(p.engine)) out.engine = p.engine
   if (typeof p.direction === 'string' && p.direction.trim()) out.direction = p.direction.trim().slice(0, 800)
   if (typeof p.language === 'string' && p.language.trim()) out.language = p.language.trim().slice(0, 30)
   if (typeof p.musicMood === 'string' && p.musicMood.trim()) out.musicMood = p.musicMood.trim().slice(0, 30)

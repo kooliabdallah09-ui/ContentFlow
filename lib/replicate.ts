@@ -97,7 +97,10 @@ export async function submitSeedanceJob(params: {
   startImageUrl?: string
   resolution?: '480p' | '720p' | '1080p' | '4k'
   enableAudio?: boolean       // native voice + ambient + music, default off
-  engine?: 'seedance-2' | 'seedance-mini'   // Mini: ~half price, caps at 720p
+  // Mini: ~half price, caps at 720p. 2.5: premium, BytePlus-only —
+  // Replicate fallback silently degrades to 2.0 (Replicate hasn't published a
+  // 2.5 model as of writing).
+  engine?: 'seedance-2' | 'seedance-2-5' | 'seedance-mini'
   // Appearance anchors that are NOT the first frame — Seedance binds them
   // via [Image1]/[Image2] mentions in the prompt. Up to 9 supported.
   referenceImageUrls?: string[]

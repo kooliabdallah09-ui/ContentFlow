@@ -77,9 +77,10 @@ export async function POST(request: NextRequest) {
     // while BytePlus direct is being provisioned. Non-admins silently fall
     // back to Seedance if they somehow send engine: 'omni-flash'.
     const canUseOmniFlash = canAccessOmniFlashVideo(userData.user?.email)
-    const engine: 'seedance-2' | 'seedance-mini' | 'omni-flash' =
+    const engine: 'seedance-2' | 'seedance-2-5' | 'seedance-mini' | 'omni-flash' =
       engineRaw === 'omni-flash' && canUseOmniFlash ? 'omni-flash'
       : engineRaw === 'seedance-mini' ? 'seedance-mini'
+      : engineRaw === 'seedance-2-5' ? 'seedance-2-5'
       : 'seedance-2'
     let resolution: '480p' | '720p' | '1080p' | '4k' =
       resolutionRaw === '480p' || resolutionRaw === '720p' || resolutionRaw === '4k' ? resolutionRaw : '1080p'
