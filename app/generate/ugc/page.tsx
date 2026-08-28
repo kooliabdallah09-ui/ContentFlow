@@ -8,6 +8,7 @@ import { saveCampaignShotPrefill, peekCampaignShotLink, clearCampaignShotLink, c
 import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
+import { UGCBuilderV2 } from '@/components/UGCBuilderV2'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
 import { Icon } from '@/components/Icons'
 import { showSuccess, showError } from '@/lib/notifications'
@@ -646,13 +647,26 @@ export default function UGCGeneratorPage() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 344px', gap: 32, alignItems: 'start' }} className="ugc-grid">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 }}>
-          <UGCPackageBuilder
-            onGenerate={handleGenerate}
-            isLoading={loading}
-            creditBalance={creditBalance}
-            externalPrefill={externalPrefill}
-            initialActorId={selectedActorId}
-          />
+          {/* v2 preview — accessible at /generate/ugc?v=2. Once approved, this
+              becomes the default and UGCPackageBuilder becomes the fallback. */}
+          {searchParams.get('v') === '2' ? (
+            <UGCBuilderV2
+              onGenerate={async () => {
+                // Stage 1 stub — wiring to handleGenerate lands in Stage 3.
+                showError('Preview only', 'The v2 builder is in-progress. Wiring lands in the next stage.')
+              }}
+              isLoading={loading}
+              creditBalance={creditBalance}
+            />
+          ) : (
+            <UGCPackageBuilder
+              onGenerate={handleGenerate}
+              isLoading={loading}
+              creditBalance={creditBalance}
+              externalPrefill={externalPrefill}
+              initialActorId={selectedActorId}
+            />
+          )}
         </div>
 
         <aside style={{ position: 'sticky', top: 20, display: 'flex', flexDirection: 'column', gap: 14 }} className="ugc-aside">
