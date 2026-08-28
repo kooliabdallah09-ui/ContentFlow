@@ -45,10 +45,13 @@ interface HeroFrame { url: string; caption?: string }
 interface Message {
   id: string
   role: 'user' | 'assistant'
-  kind: 'text' | 'rendering' | 'video' | 'error' | 'frames'
+  kind: 'text' | 'rendering' | 'video' | 'error' | 'frames' | 'script'
   text?: string
   videoUrl?: string
   thumbUrl?: string
+  // Script message: collapsed by default. Full text lives here, ChatBubble
+  // shows a short "Script ready" chip with an expand toggle.
+  script?: string
   // Frame-picker message: the 4 hero-frame candidates + a callback the
   // ChatBubble invokes when the user taps one. Callback lives on the
   // message so re-renders don't lose the closure.
@@ -287,8 +290,8 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       })
       const scriptData = await scriptRes.json()
       if (!scriptRes.ok) throw new Error(scriptData.error || 'Script generation failed')
-      const script: string = scriptData.script
-      patchMsg(scriptMsgId, { kind: 'text', text: `**Script drafted:**\n\n${script}` })
+      const script: string = cleanScript(scriptData.script)
+      patchMsg(scriptMsgId, { kind: 'script', text: undefined, script })
 
       // ── Step 2: hero-frames (4 candidates) ───────────────────────
       const framesMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Casting your creator and rendering 4 starting frames…' })
@@ -654,7 +657,46 @@ function EmptyState() {
 }
 
 function ChatBubble({ message: m }: { message: Message }) {
+  const [scriptOpen, setScriptOpen] = useState(false)
   const isUser = m.role === 'user'
+  if (m.kind === 'script') {
+    return (
+      <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+        <BubbleShell isUser={false}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <button
+              type="button"
+              onClick={() => setScriptOpen(o => !o)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: 0, border: 'none', background: 'none',
+                cursor: 'pointer', color: 'var(--ink)',
+                fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                textAlign: 'left',
+              }}
+            >
+              <span style={{ color: '#22c55e' }}>✓</span>
+              Script ready
+              <span style={{ marginLeft: 4, color: 'var(--ink-mute)', fontSize: 11, fontWeight: 500 }}>
+                {scriptOpen ? 'Hide' : 'Show'}
+              </span>
+            </button>
+            {scriptOpen && m.script && (
+              <div style={{
+                marginTop: 4, padding: 10, borderRadius: 8,
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                fontSize: 12.5, lineHeight: 1.5, color: 'var(--ink)',
+                whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                maxHeight: 320, overflowY: 'auto',
+              }}>
+                {m.script}
+              </div>
+            )}
+          </div>
+        </BubbleShell>
+      </div>
+    )
+  }
   if (m.kind === 'rendering') {
     return (
       <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
@@ -1159,6 +1201,19 @@ function SheetHeader({ title, onClose }: { title: string; onClose: () => void })
 }
 
 // ── Helpers ────────────────────────────────────────────────────────
+// Strip Sonnet's occasional "Word count check / Revised / Final count"
+// meta-commentary that leaks after the actual script. If we can find both
+// a Revised block and the original, prefer the Revised block; otherwise
+// truncate at the first "Word count" / "---" separator.
+function cleanScript(raw: string): string {
+  if (!raw) return ''
+  const revised = raw.match(/\*\*?Revised:?\*\*?\s*([\s\S]+?)(?:\n\n\*\*|$)/i)
+  if (revised) return revised[1].trim()
+  // Otherwise cut off at the first "Word count" / "Final count" checkpoint.
+  const cut = raw.split(/\n\s*(?:\*\*)?(?:Word count|Final count|Recount|---)/i)[0]
+  return cut.trim()
+}
+
 function cycle<T>(list: T[], current: T): T {
   const i = list.indexOf(current)
   return list[(i + 1) % list.length]

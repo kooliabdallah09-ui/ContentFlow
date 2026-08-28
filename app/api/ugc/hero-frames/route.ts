@@ -7,7 +7,9 @@ import { buildCharacterPrompt as buildCharacterImagePrompt, shotDirectionFor, SH
 import { inferProductCategory } from '@/lib/multi-shot'
 import { getCampaignFormat } from '@/lib/campaign-formats'
 
-export const maxDuration = 180
+// Vercel Fluid Compute ceiling — Nano Banana Pro character generation
+// occasionally spikes over 180s under load. 300s is the platform max.
+export const maxDuration = 300
 
 // UGC pipeline — phase A. Generates 4 hero-frame options with Nano Banana in
 // parallel, uploads them all, returns their public URLs so the client can show
