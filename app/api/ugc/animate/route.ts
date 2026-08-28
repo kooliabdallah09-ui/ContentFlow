@@ -86,6 +86,9 @@ export async function POST(request: NextRequest) {
       resolutionRaw === '480p' || resolutionRaw === '720p' || resolutionRaw === '4k' ? resolutionRaw : '1080p'
     // Mini caps at 720p — clamp both the render and the charge.
     if (engine === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) resolution = '720p'
+    // 2.5 caps at 1080p — 4K requests downgrade so we don't submit an
+    // unsupported resolution to BytePlus.
+    if (engine === 'seedance-2-5' && resolution === '4k') resolution = '1080p'
 
     if (!selectedFrameUrl || typeof selectedFrameUrl !== 'string' || !selectedFrameUrl.startsWith('http')) {
       return NextResponse.json({ error: 'Missing selectedFrameUrl' }, { status: 400 })

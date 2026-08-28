@@ -31,12 +31,11 @@ const SEEDANCE_RAW_PER_S: Record<UGCResolution, number> = {
 // Seedance 2.5 BytePlus unit prices (confirmed from BytePlus calculator):
 //   480p / 720p $10.70/M · 1080p $11.70/M
 //   Confirmed 10s samples: 480p 9:16 → $1.03; 720p 9:16 → $2.31; 1080p 9:16 → $5.69.
-//   4K unpriced in calculator — extrapolated at 1080p's unit rate.
-const SEEDANCE_2_5_RAW_PER_S: Record<UGCResolution, number> = {
+//   2.5 caps at 1080p — 4K is not supported (calls at 4K fall back to 1080p).
+const SEEDANCE_2_5_RAW_PER_S: Record<'480p' | '720p' | '1080p', number> = {
   '480p':  (480  * 854   * 24) / 1024 / 1_000_000 * 10.70, // ~$0.1028/s
   '720p':  (720  * 1280  * 24) / 1024 / 1_000_000 * 10.70, // ~$0.2311/s
   '1080p': (1080 * 1920  * 24) / 1024 / 1_000_000 * 11.70, // ~$0.5686/s
-  '4k':    (2160 * 3840  * 24) / 1024 / 1_000_000 * 11.70, // ~$2.27/s (extrapolated)
 }
 
 // Seedance Mini: $3.50/M tokens, capped at 720p (1080p+ unsupported).
@@ -65,12 +64,11 @@ export const SEEDANCE_MINI_CR_PER_SECOND: Record<'480p' | '720p', number> = {
   '720p': Math.ceil(SEEDANCE_MINI_RAW_PER_S['720p'] * MARKUP / CR_VALUE),  // ~5 cr/s
 }
 
-// Seedance 2.5 cr/s — premium engine, ~1.5× 2.0's cost.
-export const SEEDANCE_2_5_CR_PER_SECOND: Record<UGCResolution, number> = {
+// Seedance 2.5 cr/s — premium engine, ~1.5× 2.0's cost. Caps at 1080p.
+export const SEEDANCE_2_5_CR_PER_SECOND: Record<'480p' | '720p' | '1080p', number> = {
   '480p':  Math.ceil(SEEDANCE_2_5_RAW_PER_S['480p']  * MARKUP / CR_VALUE),  // ~6 cr/s
   '720p':  Math.ceil(SEEDANCE_2_5_RAW_PER_S['720p']  * MARKUP / CR_VALUE),  // ~13 cr/s
   '1080p': Math.ceil(SEEDANCE_2_5_RAW_PER_S['1080p'] * MARKUP / CR_VALUE),  // ~32 cr/s
-  '4k':    Math.ceil(SEEDANCE_2_5_RAW_PER_S['4k']    * MARKUP / CR_VALUE),  // ~127 cr/s
 }
 
 export function ugcPackageCost(
@@ -87,7 +85,10 @@ export function ugcPackageCost(
     const res = resolution === '1080p' ? '1080p' : '720p'
     rawPerS = OMNI_FLASH_RAW_PER_S[res]
   } else if (engine === 'seedance-2-5') {
-    rawPerS = SEEDANCE_2_5_RAW_PER_S[resolution] ?? SEEDANCE_2_5_RAW_PER_S['1080p']
+    // 2.5 caps at 1080p — 4K requests get billed at 1080p (the render also
+    // downgrades server-side in the animate route).
+    const res: '480p' | '720p' | '1080p' = resolution === '4k' ? '1080p' : resolution
+    rawPerS = SEEDANCE_2_5_RAW_PER_S[res]
   } else {
     rawPerS = SEEDANCE_RAW_PER_S[resolution] ?? SEEDANCE_RAW_PER_S['1080p']
   }

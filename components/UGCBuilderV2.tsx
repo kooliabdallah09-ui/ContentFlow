@@ -233,8 +233,13 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           <Chip
             value={state.resolution.toUpperCase()}
             onClick={() => setState(s => {
-              const opts = s.engine === 'seedance-mini' ? ['480p', '720p'] : ['720p', '1080p', '4k']
-              return { ...s, resolution: cycle(opts, s.resolution) as BuilderState['resolution'] }
+              const opts = s.engine === 'seedance-mini' ? ['480p', '720p']
+                : s.engine === 'seedance-2-5' ? ['720p', '1080p']
+                : ['720p', '1080p', '4k']
+              // If current resolution isn't in the legal set (e.g. 4k on 2.5),
+              // start from the first legal option instead of wrapping to it.
+              const start = opts.includes(s.resolution) ? s.resolution : opts[0]
+              return { ...s, resolution: cycle(opts, start) as BuilderState['resolution'] }
             })}
           />
           <Chip
@@ -247,9 +252,10 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               // Cycle: 2.0 → 2.5 → Mini → 2.0
               const order: BuilderState['engine'][] = ['seedance-2', 'seedance-2-5', 'seedance-mini']
               const nextEngine = order[(order.indexOf(s.engine) + 1) % order.length]
-              // Mini caps at 720p — auto-downgrade if switching from higher.
-              const nextRes: BuilderState['resolution'] = nextEngine === 'seedance-mini' && (s.resolution === '1080p' || s.resolution === '4k')
-                ? '720p'
+              // Engine-specific resolution caps: mini→720p, 2.5→1080p.
+              const nextRes: BuilderState['resolution'] =
+                nextEngine === 'seedance-mini' && (s.resolution === '1080p' || s.resolution === '4k') ? '720p'
+                : nextEngine === 'seedance-2-5' && s.resolution === '4k' ? '1080p'
                 : s.resolution
               return { ...s, engine: nextEngine, resolution: nextRes }
             })}
@@ -542,9 +548,12 @@ function SettingsSheet({ state, onChange, onClose }: { state: BuilderState; onCh
       </SettingRow>
       <SettingRow label="Quality">
         <SelectChips
-          options={state.engine === 'seedance-mini'
-            ? [{ v: '480p' as const, l: '480p' }, { v: '720p' as const, l: '720p' }]
-            : [{ v: '720p' as const, l: '720p' }, { v: '1080p' as const, l: '1080p' }, { v: '4k' as const, l: '4K' }]
+          options={
+            state.engine === 'seedance-mini'
+              ? [{ v: '480p' as const, l: '480p' }, { v: '720p' as const, l: '720p' }]
+            : state.engine === 'seedance-2-5'
+              ? [{ v: '720p' as const, l: '720p' }, { v: '1080p' as const, l: '1080p' }]
+              : [{ v: '720p' as const, l: '720p' }, { v: '1080p' as const, l: '1080p' }, { v: '4k' as const, l: '4K' }]
           }
           value={state.resolution as '480p' | '720p' | '1080p' | '4k'}
           onChange={v => onChange({ resolution: v })}
@@ -571,8 +580,9 @@ function SettingsSheet({ state, onChange, onClose }: { state: BuilderState; onCh
           ]}
           value={state.engine}
           onChange={v => {
-            const nextRes = v === 'seedance-mini' && (state.resolution === '1080p' || state.resolution === '4k')
-              ? '720p' as const
+            const nextRes: BuilderState['resolution'] =
+              v === 'seedance-mini' && (state.resolution === '1080p' || state.resolution === '4k') ? '720p'
+              : v === 'seedance-2-5' && state.resolution === '4k' ? '1080p'
               : state.resolution
             onChange({ engine: v, resolution: nextRes })
           }}

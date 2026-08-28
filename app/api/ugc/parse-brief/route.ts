@@ -163,6 +163,10 @@ function coerce(p: PatchShape): PatchShape {
   }
   if (p.resolution && ['480p', '720p', '1080p', '4k'].includes(p.resolution)) out.resolution = p.resolution
   if (p.engine && ['seedance-2', 'seedance-2-5', 'seedance-mini'].includes(p.engine)) out.engine = p.engine
+  // Enforce engine-specific resolution caps in the patch itself so the client
+  // never has to know the rules: Mini → 720p max, 2.5 → 1080p max.
+  if (out.engine === 'seedance-mini' && (out.resolution === '1080p' || out.resolution === '4k')) out.resolution = '720p'
+  if (out.engine === 'seedance-2-5' && out.resolution === '4k') out.resolution = '1080p'
   if (typeof p.direction === 'string' && p.direction.trim()) out.direction = p.direction.trim().slice(0, 800)
   if (typeof p.language === 'string' && p.language.trim()) out.language = p.language.trim().slice(0, 30)
   if (typeof p.musicMood === 'string' && p.musicMood.trim()) out.musicMood = p.musicMood.trim().slice(0, 30)
