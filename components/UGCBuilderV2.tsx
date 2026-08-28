@@ -16,7 +16,7 @@
 // separate settings panel.
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Package, User2, Sparkles, X, Upload } from 'lucide-react'
+import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
@@ -730,6 +730,7 @@ function EmptyState() {
 
 function ChatBubble({ message: m }: { message: Message }) {
   const [scriptOpen, setScriptOpen] = useState(false)
+  const [zoomedUrl, setZoomedUrl] = useState<string | null>(null)
   const isUser = m.role === 'user'
   if (m.kind === 'script') {
     return (
@@ -798,25 +799,50 @@ function ChatBubble({ message: m }: { message: Message }) {
                 const picked = m.pickedFrameUrl === f.url
                 const anyPicked = !!m.pickedFrameUrl
                 return (
-                  <button
-                    key={f.url + i}
-                    type="button"
-                    disabled={anyPicked && !picked}
-                    onClick={() => !anyPicked && m.onPickFrame?.(f.url)}
-                    style={{
-                      padding: 4, borderRadius: 10,
-                      border: `2px solid ${picked ? 'var(--ink)' : 'transparent'}`,
-                      background: 'var(--surface)',
-                      cursor: anyPicked ? (picked ? 'default' : 'not-allowed') : 'pointer',
-                      opacity: anyPicked && !picked ? 0.35 : 1,
-                      transition: 'opacity 0.2s',
-                    }}
-                  >
-                    <div style={{ aspectRatio: '9/16', borderRadius: 6, overflow: 'hidden', background: 'var(--surface-2)' }}>
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={f.url} alt={`Frame ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    </div>
-                  </button>
+                  <div key={f.url + i} style={{ position: 'relative' }}>
+                    <button
+                      type="button"
+                      disabled={anyPicked && !picked}
+                      onClick={() => !anyPicked && m.onPickFrame?.(f.url)}
+                      style={{
+                        width: '100%',
+                        padding: 4, borderRadius: 10,
+                        border: `2px solid ${picked ? 'var(--ink)' : 'transparent'}`,
+                        background: 'var(--surface)',
+                        cursor: anyPicked ? (picked ? 'default' : 'not-allowed') : 'pointer',
+                        opacity: anyPicked && !picked ? 0.35 : 1,
+                        transition: 'opacity 0.2s',
+                      }}
+                    >
+                      <div style={{ aspectRatio: '9/16', borderRadius: 6, overflow: 'hidden', background: 'var(--surface-2)' }}>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={f.url} alt={`Frame ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      </div>
+                    </button>
+                    {/* Zoom button — sits over the tile, doesn't trigger pick */}
+                    <button
+                      type="button"
+                      aria-label="Zoom frame"
+                      onClick={e => { e.stopPropagation(); setZoomedUrl(f.url) }}
+                      style={{
+                        position: 'absolute',
+                        top: 8, right: 8,
+                        width: 28, height: 28, borderRadius: '50%',
+                        border: 'none',
+                        background: 'rgba(0,0,0,0.6)',
+                        backdropFilter: 'blur(6px)',
+                        color: '#fff',
+                        display: 'grid', placeItems: 'center',
+                        cursor: 'pointer',
+                        opacity: anyPicked && !picked ? 0.4 : 0.85,
+                        transition: 'opacity 0.15s, transform 0.15s',
+                      }}
+                      onMouseEnter={e => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.transform = 'scale(1.08)' }}
+                      onMouseLeave={e => { e.currentTarget.style.opacity = anyPicked && !picked ? '0.4' : '0.85'; e.currentTarget.style.transform = 'scale(1)' }}
+                    >
+                      <ZoomIn size={13} />
+                    </button>
+                  </div>
                 )
               })}
             </div>
@@ -825,6 +851,7 @@ function ChatBubble({ message: m }: { message: Message }) {
             )}
           </div>
         </BubbleShell>
+        {zoomedUrl && <FrameLightbox url={zoomedUrl} onClose={() => setZoomedUrl(null)} />}
       </div>
     )
   }
@@ -881,6 +908,67 @@ function BubbleShell({ isUser, accent, children }: { isUser: boolean; accent?: '
 }
 
 // ── Composer bits ─────────────────────────────────────────────────
+// Full-screen dark overlay showing a hero frame at its natural
+// aspect. Click backdrop or Escape to close. Escapes any parent
+// overflow because it's position: fixed on the viewport.
+function FrameLightbox({ url, onClose }: { url: string; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prev
+    }
+  }, [onClose])
+
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed', inset: 0, zIndex: 9999,
+        background: 'rgba(10, 10, 9, 0.92)',
+        display: 'grid', placeItems: 'center',
+        padding: 24,
+        cursor: 'zoom-out',
+        animation: 'ugc-lightbox-in 0.18s ease-out',
+      }}
+    >
+      <style>{`@keyframes ugc-lightbox-in { from { opacity: 0 } to { opacity: 1 } }`}</style>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={url}
+        alt="Frame"
+        onClick={e => e.stopPropagation()}
+        style={{
+          maxWidth: '92vw', maxHeight: '92vh',
+          borderRadius: 12,
+          boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+          cursor: 'default',
+        }}
+      />
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        style={{
+          position: 'fixed', top: 20, right: 20,
+          width: 36, height: 36, borderRadius: '50%',
+          border: 'none',
+          background: 'rgba(255,255,255,0.12)',
+          color: '#fff',
+          display: 'grid', placeItems: 'center',
+          cursor: 'pointer',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        <X size={16} />
+      </button>
+    </div>
+  )
+}
+
 // Small in-button animation for the parse-brief loading state. Three
 // dots orbit a central pulsing core — cadence tuned to feel alive but
 // not frantic. Matches the GeneratingOverlay design language on a
