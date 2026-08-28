@@ -40,13 +40,21 @@ export interface BuilderState {
   scrollStopHook: boolean
 }
 
+interface HeroFrame { url: string; caption?: string }
+
 interface Message {
   id: string
   role: 'user' | 'assistant'
-  kind: 'text' | 'rendering' | 'video' | 'error'
+  kind: 'text' | 'rendering' | 'video' | 'error' | 'frames'
   text?: string
   videoUrl?: string
   thumbUrl?: string
+  // Frame-picker message: the 4 hero-frame candidates + a callback the
+  // ChatBubble invokes when the user taps one. Callback lives on the
+  // message so re-renders don't lose the closure.
+  frames?: HeroFrame[]
+  onPickFrame?: (frameUrl: string) => void
+  pickedFrameUrl?: string   // set once the user has picked, disables the picker
   timestamp: number
 }
 
@@ -235,27 +243,142 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
     }
   }
 
+  // Utility: replace a specific message by id.
+  function patchMsg(id: string, patch: Partial<Message>) {
+    setMessages(m => m.map(msg => msg.id === id ? { ...msg, ...patch } : msg))
+  }
+
+  function pushMsg(msg: Omit<Message, 'id' | 'timestamp'>): string {
+    const id = crypto.randomUUID()
+    setMessages(m => [...m, { ...msg, id, timestamp: Date.now() }])
+    return id
+  }
+
+  // Full pipeline: script → hero-frames → (wait for user pick) → animate.
+  // Each stage pushes a rendering message that gets swapped in place when
+  // the stage completes, so the thread reads like a running conversation.
   async function handleGenerate() {
     if (!state.productName.trim()) {
       showError('Product needed', 'Tell me what product this ad is for first — describe it in the chat, or attach a product below.')
       return
     }
-    // Push a "rendering" placeholder into the thread
-    const renderMsg: Message = {
-      id: crypto.randomUUID(),
-      role: 'assistant',
-      kind: 'rendering',
-      timestamp: Date.now(),
-    }
-    setMessages(m => [...m, renderMsg])
     try {
-      await onGenerate(state)
-      // Stage 3 will replace the rendering placeholder with the finished
-      // video card once onGenerate resolves.
+      const supabase = getSupabase()
+      const { data: sess } = await supabase!.auth.getSession()
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+
+      // Split creator id back into source + underlying id.
+      const [creatorSource, creatorRawId] = state.creatorId?.split(':') ?? []
+
+      // ── Step 1: draft script ─────────────────────────────────────
+      const scriptMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Writing your script…' })
+      const scriptRes = await fetch('/api/ugc/script', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          productName: state.productName,
+          productDescription: state.productDescription || state.direction || state.productName,
+          benefits: state.direction || state.productDescription,
+          callToAction: 'Shop now',
+          customInstructions: state.direction || undefined,
+          language: state.language,
+        }),
+      })
+      const scriptData = await scriptRes.json()
+      if (!scriptRes.ok) throw new Error(scriptData.error || 'Script generation failed')
+      const script: string = scriptData.script
+      patchMsg(scriptMsgId, { kind: 'text', text: `**Script drafted:**\n\n${script}` })
+
+      // ── Step 2: hero-frames (4 candidates) ───────────────────────
+      const framesMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Casting your creator and rendering 4 starting frames…' })
+      const framesRes = await fetch('/api/ugc/hero-frames', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          productName: state.productName,
+          productDescription: state.productDescription || state.direction || state.productName,
+          productImageBase64: state.productImage?.base64 || undefined,
+          productImageMimeType: state.productImage?.mimeType || undefined,
+          avatarGender: 'Female',
+          aspectId: state.aspect,
+          videoDirection: state.direction || undefined,
+          script,
+          savedActorId:   creatorSource === 'actor'      ? creatorRawId : undefined,
+          influencerId:   creatorSource === 'influencer' ? creatorRawId : undefined,
+          formatKey: state.formatKey,
+        }),
+      })
+      const framesRaw = await framesRes.text()
+      let framesData: { frames?: Array<{ url: string; caption?: string }>; error?: string } = {}
+      try { framesData = framesRaw ? JSON.parse(framesRaw) : {} } catch { /* fall through */ }
+      if (!framesRes.ok) throw new Error(framesData.error || `Frame generation failed (${framesRes.status})`)
+      if (!framesData.frames?.length) throw new Error('No frames returned')
+      const frames = framesData.frames
+
+      // Replace the "rendering" bubble with a picker. onPickFrame is a
+      // closure that kicks off the animate step for the chosen frame.
+      const onPickFrame = async (selectedFrameUrl: string) => {
+        // Lock the picker in this message.
+        patchMsg(framesMsgId, { pickedFrameUrl: selectedFrameUrl })
+
+        // ── Step 3: animate the picked frame ─────────────────────
+        const animateMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Rendering your video… usually about 2 minutes.' })
+        try {
+          const animRes = await fetch('/api/ugc/animate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              selectedFrameUrl,
+              script,
+              ugcType: 'image-with-voiceover',
+              duration: state.duration,
+              productName: state.productName,
+              productDescription: state.productDescription || state.direction || state.productName,
+              benefits: state.direction || state.productDescription,
+              callToAction: 'Shop now',
+              avatarGender: 'Female',
+              customInstructions: state.direction || undefined,
+              language: state.language,
+              aspect: state.aspect,
+              productImageBase64: state.productImage?.base64 || undefined,
+              productImageMimeType: state.productImage?.mimeType || undefined,
+              resolution: state.resolution,
+              engine: state.engine,
+              videoDirection: state.direction || undefined,
+            }),
+          })
+          const animData = await animRes.json()
+          if (!animRes.ok) throw new Error(animData.error || 'Video generation failed')
+
+          // Server may return either a completed video or an in-progress
+          // one that needs polling. Hand it to the parent's onGenerate so
+          // it can wire the response into UI state + credit balance.
+          await onGenerate({
+            ...state,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            __animateResponse: animData,
+          } as BuilderState & { __animateResponse: unknown })
+
+          const videoUrl: string | undefined = animData?.components?.video?.videoUrl
+          if (videoUrl) {
+            patchMsg(animateMsgId, { kind: 'video', videoUrl, text: undefined })
+          } else {
+            patchMsg(animateMsgId, { kind: 'text', text: 'Video submitted — it will appear in your Library once rendering finishes.' })
+          }
+        } catch (err) {
+          patchMsg(animateMsgId, { kind: 'error', text: err instanceof Error ? err.message : 'Video generation failed' })
+        }
+      }
+
+      patchMsg(framesMsgId, {
+        kind: 'frames',
+        text: 'Pick your favourite starting frame — I\'ll animate it into a full video.',
+        frames,
+        onPickFrame,
+      })
     } catch (e) {
-      setMessages(m => m.map(msg => msg.id === renderMsg.id
-        ? { ...msg, kind: 'error', text: e instanceof Error ? e.message : 'Generation failed' }
-        : msg))
+      pushMsg({ role: 'assistant', kind: 'error', text: e instanceof Error ? e.message : 'Generation failed' })
     }
   }
 
@@ -538,7 +661,54 @@ function ChatBubble({ message: m }: { message: Message }) {
         <BubbleShell isUser={false}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink-mute)', fontSize: 13 }}>
             <Loader2 size={14} className="animate-spin" />
-            Rendering your ad… this usually takes about 2 minutes.
+            {m.text ?? 'Rendering…'}
+          </div>
+        </BubbleShell>
+      </div>
+    )
+  }
+  if (m.kind === 'frames') {
+    return (
+      <div style={{ alignSelf: 'flex-start', maxWidth: '92%', width: '100%' }}>
+        <BubbleShell isUser={false}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {m.text && (
+              <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{m.text}</div>
+            )}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))',
+              gap: 8,
+            }}>
+              {m.frames?.map((f, i) => {
+                const picked = m.pickedFrameUrl === f.url
+                const anyPicked = !!m.pickedFrameUrl
+                return (
+                  <button
+                    key={f.url + i}
+                    type="button"
+                    disabled={anyPicked && !picked}
+                    onClick={() => !anyPicked && m.onPickFrame?.(f.url)}
+                    style={{
+                      padding: 4, borderRadius: 10,
+                      border: `2px solid ${picked ? 'var(--ink)' : 'transparent'}`,
+                      background: 'var(--surface)',
+                      cursor: anyPicked ? (picked ? 'default' : 'not-allowed') : 'pointer',
+                      opacity: anyPicked && !picked ? 0.35 : 1,
+                      transition: 'opacity 0.2s',
+                    }}
+                  >
+                    <div style={{ aspectRatio: '9/16', borderRadius: 6, overflow: 'hidden', background: 'var(--surface-2)' }}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={f.url} alt={`Frame ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            {m.pickedFrameUrl && (
+              <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', fontStyle: 'italic' }}>Picked — starting the render…</div>
+            )}
           </div>
         </BubbleShell>
       </div>
