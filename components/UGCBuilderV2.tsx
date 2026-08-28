@@ -27,7 +27,11 @@ export interface BuilderState {
   productDescription: string
   productImage?: { base64: string; mimeType: string; url?: string }
   creatorName: string
-  creatorId?: string
+  creatorId?: string             // "actor:xxx" or "inf:xxx" — the picker's row id
+  // When creatorId is an influencer, we bridge them via /use-in-ugc which
+  // produces a saved-actor row keyed to the influencer's locked character
+  // prompt. This id is what hero-frames actually reads to reproduce the face.
+  bridgedActorId?: string
   format: string
   formatKey?: string
   aspect: 'portrait' | 'square' | 'landscape' | 'tall45'
@@ -271,8 +275,16 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       const token = sess?.session?.access_token
       if (!token) throw new Error('Not signed in')
 
-      // Split creator id back into source + underlying id.
+      // Split creator id back into source + underlying id. For influencer
+      // picks, hero-frames wants BOTH ids: the influencer id (for gallery
+      // reference photos) and the bridged saved-actor id (which owns the
+      // locked character prompt). Sending only one produces face drift.
       const [creatorSource, creatorRawId] = state.creatorId?.split(':') ?? []
+      const savedActorIdOut =
+        creatorSource === 'actor'      ? creatorRawId
+        : creatorSource === 'influencer' ? state.bridgedActorId
+        : undefined
+      const influencerIdOut = creatorSource === 'influencer' ? creatorRawId : undefined
 
       // ── Step 1: draft script ─────────────────────────────────────
       const scriptMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Writing your script…' })
@@ -307,8 +319,8 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           aspectId: state.aspect,
           videoDirection: state.direction || undefined,
           script,
-          savedActorId:   creatorSource === 'actor'      ? creatorRawId : undefined,
-          influencerId:   creatorSource === 'influencer' ? creatorRawId : undefined,
+          savedActorId: savedActorIdOut,
+          influencerId: influencerIdOut,
           formatKey: state.formatKey,
         }),
       })
@@ -447,13 +459,31 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           <ProductSheet
             products={products}
             selectedName={state.productName}
-            onPick={p => {
+            onPick={async p => {
+              setOpenPanel(null)
+              // Fetch the saved-product image and convert to base64 — the
+              // hero-frames endpoint takes base64 + mimeType, not a URL.
+              // Without this the endpoint saw no product and generated
+              // frames without the packaging reference.
+              let img: BuilderState['productImage'] | undefined
+              if (p.image_url) {
+                try {
+                  const r = await fetch(p.image_url)
+                  if (r.ok) {
+                    const buf = await r.arrayBuffer()
+                    img = {
+                      base64: Buffer.from(buf).toString('base64'),
+                      mimeType: r.headers.get('content-type') || 'image/jpeg',
+                      url: p.image_url,
+                    }
+                  }
+                } catch { /* fall back to name-only */ }
+              }
               setState(s => ({
                 ...s,
                 productName: p.name,
-                productImage: p.image_url ? { base64: '', mimeType: 'image/jpeg', url: p.image_url } : s.productImage,
+                productImage: img ?? s.productImage,
               }))
-              setOpenPanel(null)
             }}
             onUpload={u => {
               setState(s => ({
@@ -470,9 +500,37 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           <CreatorSheet
             creators={creators}
             selectedId={state.creatorId}
-            onPick={c => {
-              setState(s => ({ ...s, creatorId: c?.id, creatorName: c?.name ?? 'Auto' }))
+            onPick={async c => {
               setOpenPanel(null)
+              // Auto — clear both ids so the pipeline casts a fresh character.
+              if (!c) {
+                setState(s => ({ ...s, creatorId: undefined, creatorName: 'Auto', bridgedActorId: undefined }))
+                return
+              }
+              // Set the pick immediately so the chip label updates even if
+              // the bridge call is slow.
+              setState(s => ({ ...s, creatorId: c.id, creatorName: c.name, bridgedActorId: undefined }))
+              // For influencers, bridge to a saved-actor row via /use-in-ugc.
+              // The returned actor.id is what hero-frames reads to reproduce
+              // the exact locked character prompt — without this, we only get
+              // weak gallery refs and the face drifts.
+              if (c.source === 'influencer') {
+                try {
+                  const supabase = getSupabase()
+                  const { data: sess } = await supabase!.auth.getSession()
+                  const token = sess?.session?.access_token
+                  if (!token) return
+                  const [, rawId] = c.id.split(':')
+                  const res = await fetch(`/api/influencers/${rawId}/use-in-ugc`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${token}` },
+                  })
+                  const data = await res.json().catch(() => ({}))
+                  if (res.ok && data?.actor?.id) {
+                    setState(s => ({ ...s, bridgedActorId: data.actor.id }))
+                  }
+                } catch { /* soft-fail — falls back to influencerId-only path */ }
+              }
             }}
             onClose={() => setOpenPanel(null)}
           />
