@@ -565,18 +565,21 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             type="button"
             onClick={handleSend}
             disabled={!canSend}
-            aria-label="Send"
+            aria-label={parsing ? 'Thinking' : 'Send'}
             style={{
+              position: 'relative',
               flexShrink: 0,
               width: 42, height: 42, borderRadius: 12,
-              background: canSend ? 'var(--ink)' : 'var(--surface-2)',
-              color: canSend ? 'var(--on-ink)' : 'var(--ink-mute)',
+              background: parsing ? 'var(--ink)' : (canSend ? 'var(--ink)' : 'var(--surface-2)'),
+              color: canSend || parsing ? 'var(--on-ink)' : 'var(--ink-mute)',
               border: 'none',
               display: 'grid', placeItems: 'center',
-              cursor: canSend ? 'pointer' : 'not-allowed',
+              cursor: parsing ? 'wait' : (canSend ? 'pointer' : 'not-allowed'),
+              overflow: 'hidden',
+              transition: 'background 0.2s',
             }}
           >
-            {parsing ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            {parsing ? <ThinkingIndicator /> : <Send size={16} />}
           </button>
         </div>
 
@@ -809,6 +812,61 @@ function BubbleShell({ isUser, accent, children }: { isUser: boolean; accent?: '
 }
 
 // ── Composer bits ─────────────────────────────────────────────────
+// Small in-button animation for the parse-brief loading state. Three
+// dots orbit a central pulsing core — cadence tuned to feel alive but
+// not frantic. Matches the GeneratingOverlay design language on a
+// smaller scale so the app has one visual grammar for "thinking".
+function ThinkingIndicator() {
+  return (
+    <span style={{
+      position: 'relative',
+      width: 22, height: 22,
+      display: 'inline-block',
+    }}>
+      <style>{`
+        @keyframes ugc-ti-a { from{transform:rotate(0deg) translateX(8px) rotate(0deg)} to{transform:rotate(360deg) translateX(8px) rotate(-360deg)} }
+        @keyframes ugc-ti-b { from{transform:rotate(120deg) translateX(6px) rotate(-120deg)} to{transform:rotate(480deg) translateX(6px) rotate(-480deg)} }
+        @keyframes ugc-ti-c { from{transform:rotate(240deg) translateX(9px) rotate(-240deg)} to{transform:rotate(600deg) translateX(9px) rotate(-600deg)} }
+        @keyframes ugc-ti-core { 0%,100%{opacity:.9;transform:scale(1)} 50%{opacity:.55;transform:scale(1.25)} }
+      `}</style>
+      {/* Central pulsing core */}
+      <span style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        marginTop: -3, marginLeft: -3,
+        width: 6, height: 6, borderRadius: '50%',
+        background: '#fff',
+        animation: 'ugc-ti-core 1.4s ease-in-out infinite',
+      }} />
+      {/* Three orbiting dots at staggered radii + speeds */}
+      <span style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        marginTop: -1.5, marginLeft: -1.5,
+        width: 3, height: 3, borderRadius: '50%',
+        background: '#c8a97e',
+        animation: 'ugc-ti-a 1.6s linear infinite',
+      }} />
+      <span style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        marginTop: -1, marginLeft: -1,
+        width: 2, height: 2, borderRadius: '50%',
+        background: 'rgba(255,255,255,0.7)',
+        animation: 'ugc-ti-b 1.1s linear infinite',
+      }} />
+      <span style={{
+        position: 'absolute',
+        top: '50%', left: '50%',
+        marginTop: -1, marginLeft: -1,
+        width: 2, height: 2, borderRadius: '50%',
+        background: 'rgba(255,255,255,0.4)',
+        animation: 'ugc-ti-c 2.1s linear infinite',
+      }} />
+    </span>
+  )
+}
+
 function Chip({ value, onClick }: { value: string; onClick: () => void }) {
   return (
     <button
