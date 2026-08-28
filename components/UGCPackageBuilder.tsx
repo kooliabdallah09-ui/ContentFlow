@@ -1964,16 +1964,23 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>
           Direction <span style={{ color: 'var(--ink-fade)' }}>· optional</span>
         </div>
-        <input
-          type="text"
+        {/* Textarea instead of an <input> — the field started as a one-line
+            "hint" but campaign prefills now write a multi-line brief here
+            (FORMAT / SETTING / VISUAL NOTES / CAPTION sections). A single-
+            line input collapsed the newlines and produced "FORMATHot
+            TakeSETTINGHome office…" garbage on screen. */}
+        <textarea
           value={customInstructions}
-          onChange={e => setCustomInstructions(e.target.value.slice(0, 200))}
+          onChange={e => setCustomInstructions(e.target.value.slice(0, 2000))}
           disabled={isLoading}
+          rows={customInstructions.split('\n').length > 3 ? 8 : 2}
           placeholder='e.g. "clean UGC ad", "unbox", "morning routine", "pain-point storytime"'
           style={{
             width: '100%', boxSizing: 'border-box',
             padding: '10px 4px', fontSize: 14.5, color: 'var(--ink)',
             background: 'transparent', border: 'none', outline: 'none',
+            fontFamily: 'inherit', lineHeight: 1.5,
+            resize: 'vertical', minHeight: 40,
           }}
         />
       </div>
