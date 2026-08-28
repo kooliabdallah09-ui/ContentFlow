@@ -117,22 +117,17 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         }
       } catch { /* ignore */ }
 
-      // Merge saved-actors + influencers into one creator list. The v1 builder
-      // treats them as separate sections; the chat UI's Pick creator sheet
-      // shows them together (with a badge) so users see everything they own.
+      // Merge influencers + saved-actors into one creator list, de-duped by
+      // name. Rationale: when you render UGC with a Studio influencer, the
+      // pipeline also mirrors them into saved-actors for quick re-use, so
+      // the same face shows up twice. Influencers are the richer record
+      // (portrait + persona + character sheet), so we keep those and drop
+      // the saved-actor shadow when the names collide.
       const merged: SavedCreator[] = []
-      try {
-        if (aRes?.ok) {
-          const d = await aRes.json()
-          if (Array.isArray(d?.actors)) {
-            for (const a of d.actors) {
-              if (a?.id && a?.name && a?.hero_frame_url) {
-                merged.push({ id: `actor:${a.id}`, name: a.name, imageUrl: a.hero_frame_url, source: 'actor' })
-              }
-            }
-          }
-        }
-      } catch { /* ignore */ }
+      const seenNames = new Set<string>()
+      const norm = (n: string) => n.trim().toLowerCase()
+
+      // Influencers first — richer records win the name slot.
       try {
         if (iRes?.ok) {
           const d = await iRes.json()
@@ -140,6 +135,22 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             for (const inf of d.influencers) {
               if (inf?.id && inf?.name && inf?.portrait_url) {
                 merged.push({ id: `inf:${inf.id}`, name: inf.name, imageUrl: inf.portrait_url, source: 'influencer' })
+                seenNames.add(norm(inf.name))
+              }
+            }
+          }
+        }
+      } catch { /* ignore */ }
+
+      // Saved-actors second — skip any whose name already claimed by an influencer.
+      try {
+        if (aRes?.ok) {
+          const d = await aRes.json()
+          if (Array.isArray(d?.actors)) {
+            for (const a of d.actors) {
+              if (a?.id && a?.name && a?.hero_frame_url && !seenNames.has(norm(a.name))) {
+                merged.push({ id: `actor:${a.id}`, name: a.name, imageUrl: a.hero_frame_url, source: 'actor' })
+                seenNames.add(norm(a.name))
               }
             }
           }
