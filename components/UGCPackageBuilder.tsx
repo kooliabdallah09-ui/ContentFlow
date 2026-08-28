@@ -4,6 +4,19 @@ import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import CharacterBuilder from '@/components/CharacterBuilder'
 import { EMPTY_CHARACTER, type CharacterProfile } from '@/components/CharacterBuilder'
+import { GeneratingOverlay } from '@/components/GeneratingOverlay'
+
+// Two-phase overlay steps: hero-frames phase (~30-60s) then generation phase.
+// isLoading (from the parent) already triggers a separate overlay in the page
+// with its own generation steps. This one only fires for framesLoading — the
+// earlier "Rendering 4 starting frames…" phase that used to have no overlay,
+// so users could accidentally navigate away and lose the render.
+const FRAMES_STEPS = [
+  { label: 'Casting your creator',    sub: 'Locking the face, voice, and vibe' },
+  { label: 'Directing the scene',     sub: 'Composing camera, lighting, and product placement' },
+  { label: 'Painting starting frames',sub: 'Rendering four takes so you can pick the best' },
+  { label: 'Almost there',            sub: 'Final touch-ups on skin, hands, and product detail' },
+]
 import { LANGUAGES, DEFAULT_LANGUAGE_CODE } from '@/lib/languages'
 import { ASPECTS, DEFAULT_ASPECT, type UGCAspect } from '@/lib/aspects'
 import {
@@ -1651,6 +1664,17 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
   return (
     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+      {/* Full-screen overlay for the frames-loading phase. The main-generation
+          overlay lives in the parent page (app/generate/ugc/page.tsx). Both
+          use the same primitive; users see one continuous locked-in
+          experience across the two phases. */}
+      <GeneratingOverlay
+        active={framesLoading}
+        steps={FRAMES_STEPS}
+        tipSeconds={45}
+        holdMessage="Rendering your starting frames — don't close this tab"
+      />
 
       {/* Format Library trigger — inline replacement for the old sidebar
           entry. Opens a modal with the 28 registered UGC formats. */}
