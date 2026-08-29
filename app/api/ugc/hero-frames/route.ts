@@ -260,18 +260,20 @@ important=false when it is a generic talking-head that could be filmed anywhere.
         if (typeof influencerPhotoUrl === 'string' && influencerPhotoUrl.startsWith('http')) {
           refUrls.push(influencerPhotoUrl)
         } else {
-          const [{ data: inf }, { data: pics }] = await Promise.all([
-            supabase.from('user_influencers').select('portrait_url, character_sheet_url').eq('id', influencerId).eq('user_id', userId).maybeSingle(),
-            supabase.from('user_influencer_photos').select('image_url').eq('influencer_id', influencerId).eq('user_id', userId)
-              .order('created_at', { ascending: false }).limit(2),
-          ])
-          // The turnaround sheet is the strongest identity anchor — first.
+          // Only ONE identity ref — the character sheet if it exists
+          // (it's already a multi-angle turnaround, so NB gets front / side
+          // / face-close-up in a single image), otherwise the canonical
+          // portrait. Sending portrait + character_sheet + gallery photos
+          // together makes NB composite them — produced two-head frames
+          // and pulled scene props from gallery photos into hero-frames.
+          const { data: inf } = await supabase.from('user_influencers')
+            .select('portrait_url, character_sheet_url')
+            .eq('id', influencerId).eq('user_id', userId).maybeSingle()
           if (inf?.character_sheet_url) refUrls.push(inf.character_sheet_url)
-          if (inf?.portrait_url) refUrls.push(inf.portrait_url)
-          for (const p of pics ?? []) refUrls.push(p.image_url)
+          else if (inf?.portrait_url) refUrls.push(inf.portrait_url)
         }
         refDebug.considered = refUrls.map(u => u.slice(0, 80))
-        identityRefs = (await Promise.all(refUrls.slice(0, 3).map(async url => {
+        identityRefs = (await Promise.all(refUrls.slice(0, 1).map(async url => {
           try {
             const r = await fetch(url)
             if (!r.ok) {

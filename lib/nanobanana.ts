@@ -494,7 +494,7 @@ export async function generateCharacterWithProduct(
   const actorImageBlock = identityCount > 0
     ? (identityCount === 1
       ? `IMAGE REFERENCES:
-- Image 1 (character): use this person's exact face, hair, skin, and body proportions. Match their appearance precisely — do NOT redesign or alter their look.
+- Image 1 (character reference): use this person's exact face, hair, skin, eye colour, and body proportions. IMPORTANT: if Image 1 contains multiple panels or views of the same person (a turnaround / character sheet — e.g. front view + back view + face close-up side by side), treat ALL panels as ONE individual, not multiple people. Render exactly ONE person in the output, taking their face from the close-up panel and their build/clothing from the full-body panel. Do NOT composite or place two figures in the frame.
 - Image 2 (product): use this as the product the character holds or displays.
 
 `
