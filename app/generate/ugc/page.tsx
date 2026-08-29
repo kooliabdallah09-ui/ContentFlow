@@ -477,13 +477,18 @@ export default function UGCGeneratorPage() {
       <>
         <GeneratingOverlay active={loading} steps={UGC_STEPS} tipSeconds={60} />
         <div style={{
-          // Flex-fill the remaining space in `.main` (below TopBar), edge to edge.
-          flex: 1,
-          minHeight: 0,
-          alignSelf: 'stretch',
+          // Pin the whole chat surface to the viewport minus the 60px
+          // TopBar so the composer stays fixed at the bottom and only the
+          // thread scrolls inside. Using an explicit height (not flex: 1)
+          // because .app has min-height: 100vh not height: 100vh — with
+          // flex: 1 alone the page grew as the thread grew, pushing the
+          // composer off-screen instead of clipping the thread.
+          height: 'calc(100dvh - 60px)',
+          maxHeight: 'calc(100dvh - 60px)',
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--bg)',
+          overflow: 'hidden',
         }}>
           <UGCBuilderV2
             onGenerate={async () => {

@@ -16,7 +16,7 @@
 // separate settings panel.
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn } from 'lucide-react'
+import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn, Images } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
@@ -26,6 +26,10 @@ export interface BuilderState {
   productName: string
   productDescription: string
   productImage?: { base64: string; mimeType: string; url?: string }
+  // Optional supplementary photos — extra product angles, packaging shots,
+  // mood-board images. Sent to hero-frames as extraProductImages, giving
+  // Nano Banana Pro more visual context to lock the product's exact look.
+  referenceImages: Array<{ base64: string; mimeType: string; previewUrl: string }>
   creatorName: string
   creatorId?: string             // "actor:xxx" or "inf:xxx" — the picker's row id
   // When creatorId is an influencer, we bridge them via /use-in-ugc which
@@ -93,6 +97,7 @@ const INITIAL: BuilderState = {
   direction: '',
   language: 'English',
   scrollStopHook: false,
+  referenceImages: [],
 }
 
 // ── Component ──────────────────────────────────────────────────────
@@ -107,7 +112,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   const [messages, setMessages] = useState<Message[]>([])
   const [composer, setComposer] = useState('')
   const [parsing, setParsing] = useState(false)
-  const [openPanel, setOpenPanel] = useState<'settings' | 'product' | 'creator' | null>(null)
+  const [openPanel, setOpenPanel] = useState<'settings' | 'product' | 'creator' | 'refs' | null>(null)
   const [products, setProducts] = useState<BrandProduct[]>([])
   const [creators, setCreators] = useState<SavedCreator[]>([])
   const [libLoaded, setLibLoaded] = useState(false)
@@ -356,6 +361,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           // the endpoint's default loads the character sheet (turnaround)
           // FIRST, which is a stronger identity anchor because Nano Banana
           // gets multiple angles of the same face to triangulate against.
+          extraProductImages: state.referenceImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
           formatKey: state.formatKey,
         }),
       })
@@ -531,6 +537,14 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             onClose={() => setOpenPanel(null)}
           />
         )}
+        {openPanel === 'refs' && (
+          <ReferencesSheet
+            images={state.referenceImages}
+            onAdd={imgs => setState(s => ({ ...s, referenceImages: [...s.referenceImages, ...imgs].slice(0, 6) }))}
+            onRemove={idx => setState(s => ({ ...s, referenceImages: s.referenceImages.filter((_, i) => i !== idx) }))}
+            onClose={() => setOpenPanel(null)}
+          />
+        )}
         {openPanel === 'creator' && (
           <CreatorSheet
             creators={creators}
@@ -649,6 +663,12 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             }
             active={!!state.creatorId}
             onClick={() => setOpenPanel(p => p === 'creator' ? null : 'creator')}
+          />
+          <AttachChip
+            icon={<Images size={12} />}
+            label={state.referenceImages.length > 0 ? `${state.referenceImages.length} reference${state.referenceImages.length === 1 ? '' : 's'}` : 'Add references'}
+            active={state.referenceImages.length > 0}
+            onClick={() => setOpenPanel(p => p === 'refs' ? null : 'refs')}
           />
         </div>
 
