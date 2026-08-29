@@ -472,6 +472,11 @@ export async function generateCharacterWithProduct(
   // Additional photos of the SAME product (e.g. candy: package + the
   // candies themselves). Appended as extra references with a prompt note.
   extraProductRefs?: Array<{ base64: string; mimeType: string }>,
+  // Extra identity anchors — e.g. character-sheet + gallery photos. Nano
+  // Banana Pro handles multi-view identity locks much better when it sees
+  // the same face from multiple angles. Passed WITH actorPortrait as
+  // additional "character" refs, all labelled as the same person.
+  extraActorRefs?: Array<{ base64: string; mimeType: string }>,
 ): Promise<NanoBananaResult> {
   // Adaptive product placement — the reference image can be either a physical product
   // (skincare bottle, perfume) OR a screenshot of a software UI / app. Telling Nano
@@ -481,15 +486,31 @@ export async function generateCharacterWithProduct(
   //   - UI / screenshot → show on a phone or laptop screen in frame
   //   - logo / packaging artwork → on a visible product in the scene
   // No hardcoded shape words ('bottle', 'jar') so it stops hallucinating containers.
-  const actorImageBlock = actorPortraitBase64 && actorPortraitMimeType
-    ? `IMAGE REFERENCES:
+  // Count of character-identity refs at the front of the ref list.
+  const identityCount = actorPortraitBase64 && actorPortraitMimeType
+    ? 1 + (extraActorRefs?.length ?? 0)
+    : 0
+
+  const actorImageBlock = identityCount > 0
+    ? (identityCount === 1
+      ? `IMAGE REFERENCES:
 - Image 1 (character): use this person's exact face, hair, skin, and body proportions. Match their appearance precisely — do NOT redesign or alter their look.
 - Image 2 (product): use this as the product the character holds or displays.
 
 `
+      : `IMAGE REFERENCES:
+- Images 1 through ${identityCount} (character — multiple angles of the SAME person): triangulate the identity across every view. Match the exact face, hair colour and hairline, skin tone, eye colour, bone structure, and body proportions consistently across all identity references. These are one specific individual, NOT a generic type — treat drift from any single angle as a failure.
+- Image ${identityCount + 1} (product): use this as the product the character holds or displays.
+
+`)
     : ''
 
-  const prompt = `${actorImageBlock}Using the attached ${actorPortraitBase64 ? 'second reference image' : 'reference image'} as the exact subject (preserve every detail — packaging, label text, UI layout, colours, shape, proportions — do not redesign or restyle), generate a hyper-realistic phone-selfie photograph for a UGC ad first frame.
+  const productRefLabel = identityCount === 0
+    ? 'reference image'
+    : identityCount === 1
+      ? 'second reference image'
+      : `image ${identityCount + 1}`
+  const prompt = `${actorImageBlock}Using the attached ${productRefLabel} as the exact product subject (preserve every detail — packaging, label text, UI layout, colours, shape, proportions — do not redesign or restyle), generate a hyper-realistic phone-selfie photograph for a UGC ad first frame.
 
 CHARACTER: ${characterPrompt}
 
@@ -529,12 +550,17 @@ Phone-camera-natural rendering: slight sensor grain in shadow areas, mild highli
 
 Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to the character's expression, pose, or scene; override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
 
-  const refs: Array<{ base64: string; mimeType: string }> = actorPortraitBase64 && actorPortraitMimeType
-    ? [
-        { base64: actorPortraitBase64, mimeType: actorPortraitMimeType },
-        { base64: productImageBase64, mimeType: productMimeType },
-      ]
-    : [{ base64: productImageBase64, mimeType: productMimeType }]
+  const refs: Array<{ base64: string; mimeType: string }> = []
+  if (actorPortraitBase64 && actorPortraitMimeType) {
+    refs.push({ base64: actorPortraitBase64, mimeType: actorPortraitMimeType })
+    // Extra identity anchors — character sheet + gallery photos — go
+    // between the primary portrait and the product so the model reads
+    // them as continuous character refs.
+    if (extraActorRefs?.length) {
+      refs.push(...extraActorRefs)
+    }
+  }
+  refs.push({ base64: productImageBase64, mimeType: productMimeType })
   let finalPrompt = prompt
   if (extraProductRefs?.length) {
     refs.push(...extraProductRefs)

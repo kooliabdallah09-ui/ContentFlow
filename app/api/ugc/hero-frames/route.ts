@@ -280,6 +280,10 @@ important=false when it is a generic talking-head that could be filmed anywhere.
     // packaging + label stay accurate.
     async function generateOne(): Promise<{ base64: string; mimeType: string }> {
       if (hasProduct) {
+        // Feed ALL identity refs (character sheet + portrait + gallery photos)
+        // to Nano Banana so it can triangulate the face across multiple angles
+        // instead of guessing from a single flat portrait. The fn labels them
+        // as Images 1..N of the SAME character in the prompt.
         const f = await generateCharacterWithProduct(
           productImageBase64 as string,
           productImageMimeType as string,
@@ -288,9 +292,10 @@ important=false when it is a generic talking-head that could be filmed anywhere.
           requiredScene ?? '',   // explicit scene override when the script needs a place
           undefined,          // no legacy custom-instructions inject
           aspect.nanoBananaRatio,
-          identityRefs[0]?.base64,     // influencer identity anchor (if any)
+          identityRefs[0]?.base64,     // primary identity anchor
           identityRefs[0]?.mimeType,
           extraProductRefs.length ? extraProductRefs : undefined,
+          identityRefs.length > 1 ? identityRefs.slice(1) : undefined,
         )
         return { base64: f.imageBase64, mimeType: f.mimeType }
       }
