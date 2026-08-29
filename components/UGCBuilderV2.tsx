@@ -63,8 +63,12 @@ interface Message {
   videoUrl?: string
   thumbUrl?: string
   // Script message: collapsed by default. Full text lives here, ChatBubble
-  // shows a short "Script ready" chip with an expand toggle.
+  // shows a short "Script ready" chip with an expand toggle. onScriptChange,
+  // when set, enables inline editing (Tweak) and hands the edited text back
+  // so the same pipeline instance can re-run frames against it.
   script?: string
+  onScriptChange?: (next: string) => void
+  onScriptRerun?: (next: string) => void
   // Frame-picker message: the 4 hero-frame candidates + a callback the
   // ChatBubble invokes when the user taps one. Callback lives on the
   // message so re-renders don't lose the closure.
@@ -337,11 +341,18 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       })
       const scriptData = await scriptRes.json()
       if (!scriptRes.ok) throw new Error(scriptData.error || 'Script generation failed')
-      const script: string = cleanScript(scriptData.script)
-      patchMsg(scriptMsgId, { kind: 'script', text: undefined, script })
+      const initialScript: string = cleanScript(scriptData.script)
 
-      // ── Step 2: hero-frames (4 candidates) ───────────────────────
-      const framesMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Casting your creator and rendering 4 starting frames…' })
+      // Extract frames+animate into a callable so "Rerun with tweaked
+      // script" can invoke it later with an edited script. Closes over
+      // savedActorIdOut / influencerIdOut / token — the identity + auth
+      // context stays consistent across re-runs.
+      const runFramesAndAnimate = async (activeScript: string) => {
+        const framesMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Casting your creator and rendering 4 starting frames…' })
+        return _runFramesAndAnimate(activeScript, framesMsgId)
+      }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const _runFramesAndAnimate = async (activeScript: string, framesMsgId: string): Promise<void> => {
       const framesRes = await fetch('/api/ugc/hero-frames', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -353,7 +364,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           avatarGender: 'Female',
           aspectId: state.aspect,
           videoDirection: state.direction || undefined,
-          script,
+          script: activeScript,
           savedActorId: savedActorIdOut,
           influencerId: influencerIdOut,
           // NOTE: intentionally NOT passing influencerPhotoUrl. That would
@@ -397,7 +408,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({
               selectedFrameUrl,
-              script,
+              script: activeScript,
               ugcType: 'image-with-voiceover',
               duration: state.duration,
               productName: state.productName,
@@ -410,6 +421,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               aspect: state.aspect,
               productImageBase64: state.productImage?.base64 || undefined,
               productImageMimeType: state.productImage?.mimeType || undefined,
+              extraProductImages: state.referenceImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
               resolution: state.resolution,
               engine: state.engine,
               videoDirection: state.direction || undefined,
@@ -444,6 +456,20 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         frames,
         onPickFrame,
       })
+      } // end _runFramesAndAnimate
+
+      // Show the script bubble now, with Tweak enabled. On rerun the same
+      // frames+animate pipeline fires with the edited script.
+      patchMsg(scriptMsgId, {
+        kind: 'script',
+        text: undefined,
+        script: initialScript,
+        onScriptChange: next => patchMsg(scriptMsgId, { script: next }),
+        onScriptRerun: next => { void runFramesAndAnimate(next) },
+      })
+
+      // Kick off the first frames+animate pass with the AI-drafted script.
+      await runFramesAndAnimate(initialScript)
     } catch (e) {
       pushMsg({ role: 'assistant', kind: 'error', text: e instanceof Error ? e.message : 'Generation failed' })
     }
@@ -801,42 +827,7 @@ function ChatBubble({ message: m }: { message: Message }) {
   const [zoomedUrl, setZoomedUrl] = useState<string | null>(null)
   const isUser = m.role === 'user'
   if (m.kind === 'script') {
-    return (
-      <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
-        <BubbleShell isUser={false}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <button
-              type="button"
-              onClick={() => setScriptOpen(o => !o)}
-              style={{
-                display: 'flex', alignItems: 'center', gap: 6,
-                padding: 0, border: 'none', background: 'none',
-                cursor: 'pointer', color: 'var(--ink)',
-                fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-                textAlign: 'left',
-              }}
-            >
-              <span style={{ color: '#22c55e' }}>✓</span>
-              Script ready
-              <span style={{ marginLeft: 4, color: 'var(--ink-mute)', fontSize: 11, fontWeight: 500 }}>
-                {scriptOpen ? 'Hide' : 'Show'}
-              </span>
-            </button>
-            {scriptOpen && m.script && (
-              <div style={{
-                marginTop: 4, padding: 10, borderRadius: 8,
-                background: 'var(--surface)', border: '1px solid var(--border)',
-                fontSize: 12.5, lineHeight: 1.5, color: 'var(--ink)',
-                whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-                maxHeight: 320, overflowY: 'auto',
-              }}>
-                {m.script}
-              </div>
-            )}
-          </div>
-        </BubbleShell>
-      </div>
-    )
+    return <ScriptBubble m={m} scriptOpen={scriptOpen} setScriptOpen={setScriptOpen} />
   }
   if (m.kind === 'rendering') {
     return (
@@ -976,6 +967,130 @@ function BubbleShell({ isUser, accent, children }: { isUser: boolean; accent?: '
 }
 
 // ── Composer bits ─────────────────────────────────────────────────
+// Script bubble — collapsed by default, expands to reveal the drafted
+// script. When the message carries onScriptChange + onScriptRerun (i.e.
+// this is the current, editable script), users get a Tweak toggle that
+// swaps the display panel for a textarea + "Rerun frames" button.
+function ScriptBubble({
+  m,
+  scriptOpen,
+  setScriptOpen,
+}: {
+  m: Message
+  scriptOpen: boolean
+  setScriptOpen: (fn: (o: boolean) => boolean) => void
+}) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(m.script ?? '')
+  const editable = !!m.onScriptChange && !!m.onScriptRerun
+
+  // Keep draft in sync if the parent overwrites the script (e.g. after
+  // rerun completes with a slightly-cleaned version).
+  useEffect(() => { if (!editing) setDraft(m.script ?? '') }, [m.script, editing])
+
+  return (
+    <div style={{ alignSelf: 'flex-start', maxWidth: '85%' }}>
+      <BubbleShell isUser={false}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button
+              type="button"
+              onClick={() => setScriptOpen(o => !o)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: 0, border: 'none', background: 'none',
+                cursor: 'pointer', color: 'var(--ink)',
+                fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                textAlign: 'left', flex: 1,
+              }}
+            >
+              <span style={{ color: '#22c55e' }}>✓</span>
+              Script ready
+              <span style={{ marginLeft: 4, color: 'var(--ink-mute)', fontSize: 11, fontWeight: 500 }}>
+                {scriptOpen ? 'Hide' : 'Show'}
+              </span>
+            </button>
+            {editable && scriptOpen && !editing && (
+              <button
+                type="button"
+                onClick={() => setEditing(true)}
+                style={{
+                  padding: '3px 10px', borderRadius: 999,
+                  border: '1px solid var(--border)', background: 'transparent',
+                  color: 'var(--ink-mute)', fontSize: 11, fontWeight: 600,
+                  cursor: 'pointer', fontFamily: 'inherit',
+                }}
+              >
+                Tweak
+              </button>
+            )}
+          </div>
+          {scriptOpen && !editing && m.script && (
+            <div style={{
+              marginTop: 4, padding: 10, borderRadius: 8,
+              background: 'var(--surface)', border: '1px solid var(--border)',
+              fontSize: 12.5, lineHeight: 1.5, color: 'var(--ink)',
+              whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+              maxHeight: 320, overflowY: 'auto',
+            }}>
+              {m.script}
+            </div>
+          )}
+          {scriptOpen && editing && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+              <textarea
+                value={draft}
+                onChange={e => setDraft(e.target.value)}
+                rows={12}
+                style={{
+                  padding: 10, borderRadius: 8,
+                  background: 'var(--surface)', border: '1px solid var(--border)',
+                  fontSize: 12.5, lineHeight: 1.5, color: 'var(--ink)',
+                  fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                  outline: 'none', resize: 'vertical', maxHeight: 400,
+                  width: '100%', minWidth: 0,
+                }}
+              />
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  onClick={() => { setEditing(false); setDraft(m.script ?? '') }}
+                  style={{
+                    padding: '6px 12px', borderRadius: 8,
+                    border: '1px solid var(--border)', background: 'transparent',
+                    color: 'var(--ink-mute)', fontSize: 12, fontWeight: 600,
+                    cursor: 'pointer', fontFamily: 'inherit',
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!draft.trim() || draft === m.script}
+                  onClick={() => {
+                    m.onScriptChange?.(draft)
+                    m.onScriptRerun?.(draft)
+                    setEditing(false)
+                  }}
+                  style={{
+                    padding: '6px 14px', borderRadius: 8, border: 'none',
+                    background: draft.trim() && draft !== m.script ? 'var(--ink)' : 'var(--surface-2)',
+                    color: draft.trim() && draft !== m.script ? 'var(--on-ink)' : 'var(--ink-mute)',
+                    fontSize: 12, fontWeight: 700,
+                    cursor: draft.trim() && draft !== m.script ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
+                  }}
+                >
+                  Save & regenerate frames
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </BubbleShell>
+    </div>
+  )
+}
+
 // Full-screen dark overlay showing a hero frame at its natural
 // aspect. Click backdrop or Escape to close. Escapes any parent
 // overflow because it's position: fixed on the viewport.
@@ -1387,6 +1502,89 @@ function ProductSheet({ products, selectedName, onPick, onUpload, onClose }: {
           </button>
         </div>
       )}
+    </div>
+  )
+}
+
+function ReferencesSheet({ images, onAdd, onRemove, onClose }: {
+  images: BuilderState['referenceImages']
+  onAdd: (imgs: BuilderState['referenceImages']) => void
+  onRemove: (idx: number) => void
+  onClose: () => void
+}) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  async function handleFiles(files: FileList) {
+    const out: BuilderState['referenceImages'] = []
+    for (const file of Array.from(files)) {
+      if (!file.type.startsWith('image/')) continue
+      const buf = await file.arrayBuffer()
+      out.push({
+        base64: Buffer.from(buf).toString('base64'),
+        mimeType: file.type,
+        previewUrl: URL.createObjectURL(file),
+      })
+    }
+    if (out.length) onAdd(out)
+  }
+
+  return (
+    <div style={sheetShellStyle}>
+      <SheetHeader title={`References ${images.length ? `(${images.length}/6)` : ''}`} onClose={onClose} />
+      <div style={{ fontSize: 12, color: 'var(--ink-mute)', lineHeight: 1.5, marginTop: -2 }}>
+        Extra photos Nano Banana can use as visual context — packaging shots,
+        additional product angles, mood-board images. Up to 6.
+      </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))',
+        gap: 8,
+      }}>
+        {images.map((img, i) => (
+          <div key={img.previewUrl} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 8, overflow: 'hidden', background: 'var(--surface-2)' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={img.previewUrl} alt={`Reference ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            <button
+              type="button"
+              onClick={() => onRemove(i)}
+              aria-label="Remove"
+              style={{
+                position: 'absolute', top: 4, right: 4,
+                width: 20, height: 20, borderRadius: '50%',
+                border: 'none', cursor: 'pointer',
+                background: 'rgba(0,0,0,0.72)', color: '#fff',
+                display: 'grid', placeItems: 'center',
+              }}
+            >
+              <X size={11} />
+            </button>
+          </div>
+        ))}
+        {images.length < 6 && (
+          <button
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            style={{
+              aspectRatio: '1/1', borderRadius: 8,
+              border: '1.5px dashed var(--border)',
+              background: 'transparent',
+              cursor: 'pointer',
+              display: 'grid', placeItems: 'center',
+              color: 'var(--ink-mute)', fontFamily: 'inherit',
+            }}
+          >
+            <Upload size={18} />
+          </button>
+        )}
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          hidden
+          onChange={e => { if (e.target.files) handleFiles(e.target.files); e.target.value = '' }}
+        />
+      </div>
     </div>
   )
 }
