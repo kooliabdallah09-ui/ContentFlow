@@ -174,7 +174,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           if (Array.isArray(d?.influencers)) {
             for (const inf of d.influencers) {
               if (inf?.id && inf?.name && inf?.portrait_url) {
-                merged.push({ id: `inf:${inf.id}`, name: inf.name, imageUrl: inf.portrait_url, source: 'influencer' })
+                merged.push({ id: `influencer:${inf.id}`, name: inf.name, imageUrl: inf.portrait_url, source: 'influencer' })
                 seenNames.add(norm(inf.name))
               }
             }
