@@ -396,7 +396,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       const framesRaw = await framesRes.text()
       // Hero-frames returns frames as a bare string[] (public Supabase URLs),
       // not the object form the chat renderer expected. Normalise on receive.
-      let framesData: { frames?: unknown; error?: string } = {}
+      let framesData: { frames?: unknown; error?: string; identityRefsDebug?: { considered: string[]; loaded: number; fetchErrors: Array<{ url: string; status: number | string }> } } = {}
       try { framesData = framesRaw ? JSON.parse(framesRaw) : {} } catch { /* fall through */ }
       if (!framesRes.ok) throw new Error((framesData as { error?: string }).error || `Frame generation failed (${framesRes.status})`)
       const rawFrames = Array.isArray(framesData.frames) ? framesData.frames : []
@@ -410,6 +410,18 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         })
         .filter((f): f is HeroFrame => f !== null)
       if (!frames.length) throw new Error('No frames returned')
+
+      // Compose a debug caption for the frames bubble when the caller picked
+      // an influencer — so face-drift issues are diagnosable without server logs.
+      let debugCaption: string | undefined
+      if (influencerIdOut && framesData.identityRefsDebug) {
+        const d = framesData.identityRefsDebug
+        if (d.loaded === 0) {
+          debugCaption = `⚠️ Nano Banana got 0 identity refs — face will drift. Considered ${d.considered.length} URL(s); ${d.fetchErrors.length} failed to fetch${d.fetchErrors[0] ? ` (${d.fetchErrors[0].status})` : ''}. Check character_sheet_url / portrait_url on this Studio persona.`
+        } else {
+          debugCaption = `Identity refs sent to Nano Banana: ${d.loaded}${d.fetchErrors.length ? ` (${d.fetchErrors.length} failed to fetch)` : ''}`
+        }
+      }
 
       // Replace the "rendering" bubble with a picker. onPickFrame is a
       // closure that kicks off the animate step for the chosen frame.
@@ -474,7 +486,9 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
 
       patchMsg(framesMsgId, {
         kind: 'frames',
-        text: 'Pick your favourite starting frame — I\'ll animate it into a full video.',
+        text: debugCaption
+          ? `Pick your favourite starting frame — I'll animate it into a full video.\n\n${debugCaption}`
+          : 'Pick your favourite starting frame — I\'ll animate it into a full video.',
         frames,
         onPickFrame,
       })

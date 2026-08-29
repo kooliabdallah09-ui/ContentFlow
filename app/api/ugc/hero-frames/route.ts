@@ -246,6 +246,14 @@ important=false when it is a generic talking-head that could be filmed anywhere.
     //  - else → "AI uses the gallery": canonical portrait + up to 2 most
     //    recent photoshoot photos as combined identity references.
     let identityRefs: Array<{ base64: string; mimeType: string }> = []
+    // Diagnostic: what refs were considered vs. actually loaded. Returned
+    // in the response so the client can surface it — helps debug face
+    // drift ("did NB actually see the character?").
+    const refDebug: { considered: string[]; loaded: number; fetchErrors: Array<{ url: string; status: number | string }> } = {
+      considered: [],
+      loaded: 0,
+      fetchErrors: [],
+    }
     if (typeof influencerId === 'string' && influencerId.length > 0) {
       try {
         const refUrls: string[] = []
@@ -262,14 +270,25 @@ important=false when it is a generic talking-head that could be filmed anywhere.
           if (inf?.portrait_url) refUrls.push(inf.portrait_url)
           for (const p of pics ?? []) refUrls.push(p.image_url)
         }
+        refDebug.considered = refUrls.map(u => u.slice(0, 80))
         identityRefs = (await Promise.all(refUrls.slice(0, 3).map(async url => {
-          const r = await fetch(url)
-          if (!r.ok) return null
-          return {
-            base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
-            mimeType: r.headers.get('content-type') || 'image/png',
+          try {
+            const r = await fetch(url)
+            if (!r.ok) {
+              refDebug.fetchErrors.push({ url: url.slice(0, 80), status: r.status })
+              return null
+            }
+            return {
+              base64: Buffer.from(await r.arrayBuffer()).toString('base64'),
+              mimeType: r.headers.get('content-type') || 'image/png',
+            }
+          } catch (e) {
+            refDebug.fetchErrors.push({ url: url.slice(0, 80), status: e instanceof Error ? e.message.slice(0, 40) : 'fetch-error' })
+            return null
           }
         }))).filter((x): x is { base64: string; mimeType: string } => !!x)
+        refDebug.loaded = identityRefs.length
+        console.log('[hero-frames] identity refs:', JSON.stringify(refDebug))
       } catch (err) {
         console.warn('[hero-frames] influencer refs load failed, text-only identity:', err instanceof Error ? err.message : err)
       }
@@ -382,6 +401,8 @@ important=false when it is a generic talking-head that could be filmed anywhere.
       // imagePrompt is used later by /api/ugc/save-actor to reuse the exact
       // character seed on future generations.
       characterImagePrompt: imagePrompt,
+      // Diagnostic — see what identity refs NB actually got.
+      identityRefsDebug: refDebug,
     })
   } catch (err) {
     console.error('ugc/hero-frames error:', err)
