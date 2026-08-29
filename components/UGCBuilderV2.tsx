@@ -65,10 +65,14 @@ interface Message {
   // Script message: collapsed by default. Full text lives here, ChatBubble
   // shows a short "Script ready" chip with an expand toggle. onScriptChange,
   // when set, enables inline editing (Tweak) and hands the edited text back
-  // so the same pipeline instance can re-run frames against it.
+  // so the same pipeline instance can re-run frames against it. onScriptApprove
+  // fires the frames step; it's the gate that used to be automatic — now the
+  // user has to confirm the script before we spend frame credits.
   script?: string
   onScriptChange?: (next: string) => void
   onScriptRerun?: (next: string) => void
+  onScriptApprove?: (next: string) => void
+  approved?: boolean   // once fired, the Approve button locks + relabels
   // Frame-picker message: the 4 hero-frame candidates + a callback the
   // ChatBubble invokes when the user taps one. Callback lives on the
   // message so re-renders don't lose the closure.
@@ -494,27 +498,31 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       })
       } // end _runFramesAndAnimate
 
-      // Show the script bubble now, with Tweak enabled. On rerun the same
-      // frames+animate pipeline fires with the edited script.
+      // PAUSE for user validation. The pipeline used to auto-chain script →
+      // frames → animate; users complained they had no chance to review or
+      // tweak the script before spending frame-render credits. Now we stop
+      // here, show the script with Approve + Tweak controls, and release
+      // the busy guard so the user can also just start over with Generate.
+      // Frames only fire when the user explicitly approves (or tweaks and
+      // saves — which internally calls the same approve path).
+      const approveAndRun = (finalScript: string) => {
+        setBusy(true)
+        patchMsg(scriptMsgId, { approved: true, script: finalScript })
+        void runFramesAndAnimate(finalScript).catch(err => {
+          pushMsg({ role: 'assistant', kind: 'error', text: err instanceof Error ? err.message : 'Rerun failed' })
+          setBusy(false)
+        })
+      }
       patchMsg(scriptMsgId, {
         kind: 'script',
         text: undefined,
         script: initialScript,
         onScriptChange: next => patchMsg(scriptMsgId, { script: next }),
-        onScriptRerun: next => {
-          // Rerun kicks off a fresh frames+animate pass — set the guard
-          // again so a second Generate press or another rerun can't
-          // interleave with it.
-          setBusy(true)
-          void runFramesAndAnimate(next).catch(err => {
-            pushMsg({ role: 'assistant', kind: 'error', text: err instanceof Error ? err.message : 'Rerun failed' })
-            setBusy(false)
-          })
-        },
+        onScriptApprove: approveAndRun,
+        onScriptRerun: approveAndRun,
       })
-
-      // Kick off the first frames+animate pass with the AI-drafted script.
-      await runFramesAndAnimate(initialScript)
+      // Release the guard — waiting on the human, not on any async work.
+      setBusy(false)
     } catch (e) {
       pushMsg({ role: 'assistant', kind: 'error', text: e instanceof Error ? e.message : 'Generation failed' })
       setBusy(false)
@@ -1155,6 +1163,12 @@ function ScriptBubble({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(m.script ?? '')
   const editable = !!m.onScriptChange && !!m.onScriptRerun
+  const needsApproval = !!m.onScriptApprove && !m.approved
+  // Auto-open when the user still needs to approve — makes the review
+  // step visible without them having to click Show first.
+  useEffect(() => {
+    if (needsApproval) setScriptOpen(() => true)
+  }, [needsApproval, setScriptOpen])
 
   // Keep draft in sync if the parent overwrites the script (e.g. after
   // rerun completes with a slightly-cleaned version).
@@ -1198,15 +1212,41 @@ function ScriptBubble({
             )}
           </div>
           {scriptOpen && !editing && m.script && (
-            <div style={{
-              marginTop: 4, padding: 10, borderRadius: 8,
-              background: 'var(--surface)', border: '1px solid var(--border)',
-              fontSize: 12.5, lineHeight: 1.5, color: 'var(--ink)',
-              whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, ui-monospace, monospace)',
-              maxHeight: 320, overflowY: 'auto',
-            }}>
-              {m.script}
-            </div>
+            <>
+              <div style={{
+                marginTop: 4, padding: 10, borderRadius: 8,
+                background: 'var(--surface)', border: '1px solid var(--border)',
+                fontSize: 12.5, lineHeight: 1.5, color: 'var(--ink)',
+                whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                maxHeight: 320, overflowY: 'auto',
+              }}>
+                {m.script}
+              </div>
+              {needsApproval && (
+                <div style={{
+                  display: 'flex', gap: 8, justifyContent: 'flex-end',
+                  marginTop: 6, alignItems: 'center',
+                }}>
+                  <span style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginRight: 'auto' }}>
+                    Review, tweak, or approve to generate frames.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => m.onScriptApprove?.(m.script ?? '')}
+                    style={{
+                      padding: '7px 16px', borderRadius: 8, border: 'none',
+                      background: 'var(--ink)', color: 'var(--on-ink)',
+                      fontSize: 12, fontWeight: 700,
+                      cursor: 'pointer', fontFamily: 'inherit',
+                      display: 'inline-flex', alignItems: 'center', gap: 6,
+                    }}
+                  >
+                    <Sparkles size={12} />
+                    Approve · generate frames
+                  </button>
+                </div>
+              )}
+            </>
           )}
           {scriptOpen && editing && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
