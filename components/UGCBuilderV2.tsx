@@ -106,6 +106,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   const [products, setProducts] = useState<BrandProduct[]>([])
   const [creators, setCreators] = useState<SavedCreator[]>([])
   const [libLoaded, setLibLoaded] = useState(false)
+  const [bridgingCreator, setBridgingCreator] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Lazy-load product + creator libraries the first time the user opens
@@ -280,9 +281,33 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       // reference photos) and the bridged saved-actor id (which owns the
       // locked character prompt). Sending only one produces face drift.
       const [creatorSource, creatorRawId] = state.creatorId?.split(':') ?? []
+
+      // If the pick was an influencer and the background bridge hasn't
+      // finished yet (or the user hit Generate immediately), block here
+      // and run the bridge inline. Without this we fall through with
+      // savedActorId=undefined and the frames end up as a random face.
+      let effectiveBridgedActorId = state.bridgedActorId
+      if (creatorSource === 'influencer' && !effectiveBridgedActorId) {
+        try {
+          const br = await fetch(`/api/influencers/${creatorRawId}/use-in-ugc`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          })
+          const brData = await br.json().catch(() => ({}))
+          if (br.ok && brData?.actor?.id) {
+            effectiveBridgedActorId = brData.actor.id
+            setState(s => ({ ...s, bridgedActorId: brData.actor.id }))
+          } else {
+            throw new Error(brData?.error || `Couldn't attach creator (${br.status})`)
+          }
+        } catch (err) {
+          throw new Error(err instanceof Error ? err.message : 'Failed to attach creator')
+        }
+      }
+
       const savedActorIdOut =
         creatorSource === 'actor'      ? creatorRawId
-        : creatorSource === 'influencer' ? state.bridgedActorId
+        : creatorSource === 'influencer' ? effectiveBridgedActorId
         : undefined
       const influencerIdOut = creatorSource === 'influencer' ? creatorRawId : undefined
 
@@ -515,6 +540,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               // the exact locked character prompt — without this, we only get
               // weak gallery refs and the face drifts.
               if (c.source === 'influencer') {
+                setBridgingCreator(true)
                 try {
                   const supabase = getSupabase()
                   const { data: sess } = await supabase!.auth.getSession()
@@ -529,7 +555,8 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
                   if (res.ok && data?.actor?.id) {
                     setState(s => ({ ...s, bridgedActorId: data.actor.id }))
                   }
-                } catch { /* soft-fail — falls back to influencerId-only path */ }
+                } catch { /* soft-fail — Generate will re-attempt the bridge inline */ }
+                finally { setBridgingCreator(false) }
               }
             }}
             onClose={() => setOpenPanel(null)}
@@ -597,8 +624,12 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             onClick={() => setOpenPanel(p => p === 'product' ? null : 'product')}
           />
           <AttachChip
-            icon={<User2 size={12} />}
-            label={state.creatorName && state.creatorName !== 'Auto' ? state.creatorName : 'Pick creator'}
+            icon={bridgingCreator ? <Loader2 size={12} className="animate-spin" /> : <User2 size={12} />}
+            label={
+              bridgingCreator ? `Attaching ${state.creatorName}…`
+              : state.creatorName && state.creatorName !== 'Auto' ? state.creatorName
+              : 'Pick creator'
+            }
             active={!!state.creatorId}
             onClick={() => setOpenPanel(p => p === 'creator' ? null : 'creator')}
           />
