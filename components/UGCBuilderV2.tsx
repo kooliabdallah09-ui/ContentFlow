@@ -121,6 +121,12 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   const [creators, setCreators] = useState<SavedCreator[]>([])
   const [libLoaded, setLibLoaded] = useState(false)
   const [bridgingCreator, setBridgingCreator] = useState(false)
+  // One-pipeline-at-a-time guard. Locks the Generate button (and script
+  // rerun) from the moment a pipeline starts until it either lands a
+  // finished video, errors, or the user picks a frame that also errors.
+  // "Waiting for the user to pick a frame" counts as busy — otherwise a
+  // second Generate would stack a competing pipeline in the thread.
+  const [busy, setBusy] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   // Lazy-load product + creator libraries the first time the user opens
@@ -280,10 +286,12 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   // Each stage pushes a rendering message that gets swapped in place when
   // the stage completes, so the thread reads like a running conversation.
   async function handleGenerate() {
+    if (busy) return  // one pipeline at a time — button should be disabled anyway
     if (!state.productName.trim()) {
       showError('Product needed', 'Tell me what product this ad is for first — describe it in the chat, or attach a product below.')
       return
     }
+    setBusy(true)
     try {
       const supabase = getSupabase()
       const { data: sess } = await supabase!.auth.getSession()
@@ -447,6 +455,11 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           }
         } catch (err) {
           patchMsg(animateMsgId, { kind: 'error', text: err instanceof Error ? err.message : 'Video generation failed' })
+        } finally {
+          // Release the guard: animate is the last stage of the pipeline,
+          // success or fail. User can now Generate again (or tweak the
+          // script and re-run frames+animate on the same conversation).
+          setBusy(false)
         }
       }
 
@@ -465,13 +478,23 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         text: undefined,
         script: initialScript,
         onScriptChange: next => patchMsg(scriptMsgId, { script: next }),
-        onScriptRerun: next => { void runFramesAndAnimate(next) },
+        onScriptRerun: next => {
+          // Rerun kicks off a fresh frames+animate pass — set the guard
+          // again so a second Generate press or another rerun can't
+          // interleave with it.
+          setBusy(true)
+          void runFramesAndAnimate(next).catch(err => {
+            pushMsg({ role: 'assistant', kind: 'error', text: err instanceof Error ? err.message : 'Rerun failed' })
+            setBusy(false)
+          })
+        },
       })
 
       // Kick off the first frames+animate pass with the AI-drafted script.
       await runFramesAndAnimate(initialScript)
     } catch (e) {
       pushMsg({ role: 'assistant', kind: 'error', text: e instanceof Error ? e.message : 'Generation failed' })
+      setBusy(false)
     }
   }
 
@@ -751,24 +774,32 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           gap: 8, paddingTop: 4,
         }}>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', fontFamily: 'var(--font-mono, monospace)' }}>
-            {cost} cr · {creditBalance.toLocaleString()} balance
+          <div style={{ fontSize: 11.5, color: busy ? 'var(--ink)' : 'var(--ink-mute)', fontFamily: 'var(--font-mono, monospace)', display: 'flex', alignItems: 'center', gap: 6 }}>
+            {busy ? (
+              <>
+                <Loader2 size={11} className="animate-spin" />
+                1 render running…
+              </>
+            ) : (
+              <>{cost} cr · {creditBalance.toLocaleString()} balance</>
+            )}
           </div>
           <button
             type="button"
             onClick={handleGenerate}
-            disabled={isLoading || !state.productName.trim() || cost > creditBalance}
+            disabled={busy || isLoading || !state.productName.trim() || cost > creditBalance}
+            title={busy ? 'A render is already running — wait for it to finish or pick a frame' : undefined}
             style={{
               padding: '9px 18px', borderRadius: 10,
-              background: state.productName.trim() && cost <= creditBalance ? 'var(--ink)' : 'var(--surface-2)',
-              color: state.productName.trim() && cost <= creditBalance ? 'var(--on-ink)' : 'var(--ink-mute)',
+              background: !busy && state.productName.trim() && cost <= creditBalance ? 'var(--ink)' : 'var(--surface-2)',
+              color: !busy && state.productName.trim() && cost <= creditBalance ? 'var(--on-ink)' : 'var(--ink-mute)',
               border: 'none',
               fontSize: 13, fontWeight: 700,
-              cursor: state.productName.trim() && cost <= creditBalance && !isLoading ? 'pointer' : 'not-allowed',
+              cursor: busy || isLoading || !state.productName.trim() || cost > creditBalance ? 'not-allowed' : 'pointer',
               display: 'flex', alignItems: 'center', gap: 6,
             }}
           >
-            {isLoading ? <><Loader2 size={13} className="animate-spin" /> Rendering…</> : <><Sparkles size={13} /> Generate</>}
+            {busy || isLoading ? <><Loader2 size={13} className="animate-spin" /> Running…</> : <><Sparkles size={13} /> Generate</>}
           </button>
         </div>
       </div>
