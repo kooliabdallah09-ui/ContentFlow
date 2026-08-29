@@ -510,9 +510,22 @@ export async function generateCharacterWithProduct(
     : identityCount === 1
       ? 'second reference image'
       : `image ${identityCount + 1}`
+  // When identity image refs are present, DO NOT feed a textual appearance
+  // description in the CHARACTER line — text descriptions ("young European
+  // woman, warm smile, mid-30s") compete with the visual anchors and NB
+  // tends to weight the text, producing a face that matches the prose but
+  // not the picture. Instead, defer entirely to the images.
+  //
+  // characterPrompt still comes through when there are NO identity refs
+  // (freshly-cast character), so text-to-image renders still get their
+  // full appearance guidance.
+  const characterLine = identityCount > 0
+    ? `CHARACTER: match the person shown in Image${identityCount > 1 ? 's' : ''} 1${identityCount > 1 ? `–${identityCount}` : ''} EXACTLY — face, hair, skin, eyes, bone structure, body proportions all come from the reference photo${identityCount > 1 ? 's' : ''}. Do not substitute a lookalike. Do not use any text description of appearance — the reference image${identityCount > 1 ? 's are' : ' is'} the authoritative source. The character's personality and mood context: ${characterPrompt}`
+    : `CHARACTER: ${characterPrompt}`
+
   const prompt = `${actorImageBlock}Using the attached ${productRefLabel} as the exact product subject (preserve every detail — packaging, label text, UI layout, colours, shape, proportions — do not redesign or restyle), generate a hyper-realistic phone-selfie photograph for a UGC ad first frame.
 
-CHARACTER: ${characterPrompt}
+${characterLine}
 
 SCENE: ${scene}
 
