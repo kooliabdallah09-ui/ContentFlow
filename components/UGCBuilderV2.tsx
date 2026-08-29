@@ -351,9 +351,11 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           script,
           savedActorId: savedActorIdOut,
           influencerId: influencerIdOut,
-          // Clean single portrait — short-circuits the character-sheet
-          // ref path in hero-frames that was causing face drift.
-          influencerPhotoUrl: creatorSource === 'influencer' ? state.creatorPhotoUrl : undefined,
+          // NOTE: intentionally NOT passing influencerPhotoUrl. That would
+          // short-circuit hero-frames to a single-portrait identity ref;
+          // the endpoint's default loads the character sheet (turnaround)
+          // FIRST, which is a stronger identity anchor because Nano Banana
+          // gets multiple angles of the same face to triangulate against.
           formatKey: state.formatKey,
         }),
       })
