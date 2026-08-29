@@ -32,6 +32,11 @@ export interface BuilderState {
   // produces a saved-actor row keyed to the influencer's locked character
   // prompt. This id is what hero-frames actually reads to reproduce the face.
   bridgedActorId?: string
+  // The influencer's canonical portrait URL. Passing this as
+  // influencerPhotoUrl to hero-frames forces it to skip the multi-angle
+  // character-sheet ref (which confuses Nano Banana and produces face
+  // drift) and use ONLY this clean single portrait as the identity anchor.
+  creatorPhotoUrl?: string
   format: string
   formatKey?: string
   aspect: 'portrait' | 'square' | 'landscape' | 'tall45'
@@ -346,6 +351,9 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           script,
           savedActorId: savedActorIdOut,
           influencerId: influencerIdOut,
+          // Clean single portrait — short-circuits the character-sheet
+          // ref path in hero-frames that was causing face drift.
+          influencerPhotoUrl: creatorSource === 'influencer' ? state.creatorPhotoUrl : undefined,
           formatKey: state.formatKey,
         }),
       })
@@ -529,12 +537,19 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               setOpenPanel(null)
               // Auto — clear both ids so the pipeline casts a fresh character.
               if (!c) {
-                setState(s => ({ ...s, creatorId: undefined, creatorName: 'Auto', bridgedActorId: undefined }))
+                setState(s => ({ ...s, creatorId: undefined, creatorName: 'Auto', bridgedActorId: undefined, creatorPhotoUrl: undefined }))
                 return
               }
               // Set the pick immediately so the chip label updates even if
-              // the bridge call is slow.
-              setState(s => ({ ...s, creatorId: c.id, creatorName: c.name, bridgedActorId: undefined }))
+              // the bridge call is slow. Stash the imageUrl for influencers
+              // as the canonical portrait we'll pass to hero-frames.
+              setState(s => ({
+                ...s,
+                creatorId: c.id,
+                creatorName: c.name,
+                bridgedActorId: undefined,
+                creatorPhotoUrl: c.source === 'influencer' ? c.imageUrl : undefined,
+              }))
               // For influencers, bridge to a saved-actor row via /use-in-ugc.
               // The returned actor.id is what hero-frames reads to reproduce
               // the exact locked character prompt — without this, we only get
