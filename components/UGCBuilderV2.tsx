@@ -532,7 +532,24 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   // Ingest one or more image files into state.referenceImages. Shared by
   // the drop zone, the paste handler, and the ReferencesSheet upload
   // tile — so wherever an image comes from, it lands in the same slot.
+  //
+  // dragOver uses a counter (enters minus leaves) instead of a boolean,
+  // because dragenter/dragleave fire on every child transition. A
+  // boolean gets stuck whenever the drag ends outside the container
+  // (dropped on browser chrome, another tab, Escape cancel).
+  const dragCounter = useRef(0)
   const [dragOver, setDragOver] = useState(false)
+  // Safety net: window-level dragend + drop reset the counter so the
+  // overlay can never get orphaned on top of the UI.
+  useEffect(() => {
+    const clear = () => { dragCounter.current = 0; setDragOver(false) }
+    window.addEventListener('dragend', clear)
+    window.addEventListener('drop', clear)
+    return () => {
+      window.removeEventListener('dragend', clear)
+      window.removeEventListener('drop', clear)
+    }
+  }, [])
   async function ingestRefFiles(files: FileList | File[]) {
     const list = Array.from(files).filter(f => f.type.startsWith('image/'))
     if (!list.length) return
@@ -550,13 +567,20 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
 
   return (
     <div
-      onDragOver={e => { e.preventDefault(); if (!dragOver) setDragOver(true) }}
-      onDragLeave={e => {
-        // Only clear if the drag left the wrapper entirely (not just moved to a child).
-        if (e.currentTarget === e.target) setDragOver(false)
+      onDragEnter={e => {
+        // Only count drags that carry files — ignore text selections etc.
+        if (!Array.from(e.dataTransfer.types).includes('Files')) return
+        dragCounter.current += 1
+        if (dragCounter.current === 1) setDragOver(true)
+      }}
+      onDragOver={e => { e.preventDefault() }}
+      onDragLeave={() => {
+        dragCounter.current = Math.max(0, dragCounter.current - 1)
+        if (dragCounter.current === 0) setDragOver(false)
       }}
       onDrop={e => {
         e.preventDefault()
+        dragCounter.current = 0
         setDragOver(false)
         if (e.dataTransfer.files.length) void ingestRefFiles(e.dataTransfer.files)
       }}
