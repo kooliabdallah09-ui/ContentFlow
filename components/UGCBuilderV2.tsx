@@ -333,6 +333,15 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         : undefined
       const influencerIdOut = creatorSource === 'influencer' ? creatorRawId : undefined
 
+      // If the user typed @image1 / @image2 tokens, prepend a short note
+      // so Nano Banana can map the tokens to the attached reference
+      // images by ordinal position. The nanobanana.ts prompt already
+      // labels the extra refs as image1..imageN in the order they arrive.
+      const mentionCount = (state.direction.match(/@image\d+/gi) ?? []).length
+      const enrichedDirection = mentionCount > 0 && state.referenceImages.length > 0
+        ? `${state.direction}\n\n(The @imageN tokens above refer to the ${state.referenceImages.length} reference image(s) attached — image1 is the first, image2 the second, etc.)`
+        : state.direction
+
       // ── Step 1: draft script ─────────────────────────────────────
       const scriptMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Writing your script…' })
       const scriptRes = await fetch('/api/ugc/script', {
@@ -343,7 +352,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           productDescription: state.productDescription || state.direction || state.productName,
           benefits: state.direction || state.productDescription,
           callToAction: 'Shop now',
-          customInstructions: state.direction || undefined,
+          customInstructions: enrichedDirection || undefined,
           language: state.language,
         }),
       })
@@ -371,7 +380,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           productImageMimeType: state.productImage?.mimeType || undefined,
           avatarGender: 'Female',
           aspectId: state.aspect,
-          videoDirection: state.direction || undefined,
+          videoDirection: enrichedDirection || undefined,
           script: activeScript,
           savedActorId: savedActorIdOut,
           influencerId: influencerIdOut,
@@ -424,7 +433,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               benefits: state.direction || state.productDescription,
               callToAction: 'Shop now',
               avatarGender: 'Female',
-              customInstructions: state.direction || undefined,
+              customInstructions: enrichedDirection || undefined,
               language: state.language,
               aspect: state.aspect,
               productImageBase64: state.productImage?.base64 || undefined,
@@ -432,7 +441,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               extraProductImages: state.referenceImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
               resolution: state.resolution,
               engine: state.engine,
-              videoDirection: state.direction || undefined,
+              videoDirection: enrichedDirection || undefined,
             }),
           })
           const animData = await animRes.json()
@@ -498,8 +507,59 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
     }
   }
 
+  // Ingest one or more image files into state.referenceImages. Shared by
+  // the drop zone, the paste handler, and the ReferencesSheet upload
+  // tile — so wherever an image comes from, it lands in the same slot.
+  const [dragOver, setDragOver] = useState(false)
+  async function ingestRefFiles(files: FileList | File[]) {
+    const list = Array.from(files).filter(f => f.type.startsWith('image/'))
+    if (!list.length) return
+    const out: BuilderState['referenceImages'] = []
+    for (const file of list) {
+      const buf = await file.arrayBuffer()
+      out.push({
+        base64: Buffer.from(buf).toString('base64'),
+        mimeType: file.type,
+        previewUrl: URL.createObjectURL(file),
+      })
+    }
+    setState(s => ({ ...s, referenceImages: [...s.referenceImages, ...out].slice(0, 6) }))
+  }
+
   return (
-    <div style={{
+    <div
+      onDragOver={e => { e.preventDefault(); if (!dragOver) setDragOver(true) }}
+      onDragLeave={e => {
+        // Only clear if the drag left the wrapper entirely (not just moved to a child).
+        if (e.currentTarget === e.target) setDragOver(false)
+      }}
+      onDrop={e => {
+        e.preventDefault()
+        setDragOver(false)
+        if (e.dataTransfer.files.length) void ingestRefFiles(e.dataTransfer.files)
+      }}
+      style={{
+        position: 'relative',
+        display: 'flex', flexDirection: 'column',
+        flex: 1, minHeight: 0, height: '100%',
+        background: 'var(--bg)',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Drop-target hint overlay */}
+      {dragOver && (
+        <div style={{
+          position: 'absolute', inset: 12, zIndex: 20,
+          borderRadius: 14, border: '2px dashed var(--ink)',
+          background: 'rgba(0,0,0,0.04)',
+          display: 'grid', placeItems: 'center',
+          pointerEvents: 'none',
+          color: 'var(--ink)', fontSize: 14, fontWeight: 600,
+        }}>
+          Drop to attach as reference image
+        </div>
+      )}
+      <div style={{
       display: 'flex', flexDirection: 'column',
       flex: 1, minHeight: 0, height: '100%',
       background: 'var(--bg)',
@@ -721,11 +781,77 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           />
         </div>
 
+        {/* Ref chips row — one @imageN chip per attached reference */}
+        {state.referenceImages.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            {state.referenceImages.map((img, i) => (
+              <div
+                key={img.previewUrl}
+                title={`Reference ${i + 1} — mention as @image${i + 1} in the brief`}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 6,
+                  padding: '3px 8px 3px 3px', borderRadius: 999,
+                  background: 'var(--surface-2)',
+                  border: '1px solid var(--border)',
+                  fontSize: 11.5, fontWeight: 600, color: 'var(--ink)',
+                  fontFamily: 'var(--font-mono, ui-monospace, monospace)',
+                }}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img.previewUrl}
+                  alt={`@image${i + 1}`}
+                  onClick={() => setComposer(c => c + (c && !c.endsWith(' ') ? ' ' : '') + `@image${i + 1} `)}
+                  style={{
+                    width: 22, height: 22, borderRadius: '50%',
+                    objectFit: 'cover', cursor: 'pointer',
+                  }}
+                />
+                <span
+                  onClick={() => setComposer(c => c + (c && !c.endsWith(' ') ? ' ' : '') + `@image${i + 1} `)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  @image{i + 1}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setState(s => ({ ...s, referenceImages: s.referenceImages.filter((_, j) => j !== i) }))}
+                  aria-label="Remove reference"
+                  style={{
+                    marginLeft: 2,
+                    width: 16, height: 16, borderRadius: '50%',
+                    border: 'none', cursor: 'pointer',
+                    background: 'transparent', color: 'var(--ink-mute)',
+                    display: 'grid', placeItems: 'center',
+                  }}
+                >
+                  <X size={10} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Textarea + send */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
           <textarea
             value={composer}
             onChange={e => setComposer(e.target.value)}
+            onPaste={e => {
+              // Grab any images from the clipboard payload — the drop
+              // ingest handler doubles as the paste ingest handler.
+              const files: File[] = []
+              for (const item of Array.from(e.clipboardData.items)) {
+                if (item.kind === 'file') {
+                  const f = item.getAsFile()
+                  if (f && f.type.startsWith('image/')) files.push(f)
+                }
+              }
+              if (files.length) {
+                e.preventDefault()
+                void ingestRefFiles(files)
+              }
+            }}
             onKeyDown={e => {
               if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
                 e.preventDefault()
@@ -802,6 +928,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             {busy || isLoading ? <><Loader2 size={13} className="animate-spin" /> Running…</> : <><Sparkles size={13} /> Generate</>}
           </button>
         </div>
+      </div>
       </div>
       </div>
     </div>

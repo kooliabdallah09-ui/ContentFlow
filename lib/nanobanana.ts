@@ -538,7 +538,7 @@ Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER I
   let finalPrompt = prompt
   if (extraProductRefs?.length) {
     refs.push(...extraProductRefs)
-    finalPrompt += `\n\nMULTIPLE PRODUCT PHOTOS: the last ${extraProductRefs.length + 1} reference image(s) all show the SAME product from different sides or states (e.g. the sealed package AND the contents inside). Use them together to render the product faithfully — packaging exact from the package photo, contents exact from the contents photo. They are ONE product, not several.`
+    finalPrompt += `\n\nADDITIONAL REFERENCE IMAGES: ${extraProductRefs.length} extra image(s) attached AFTER the main product photo, numbered image1 through image${extraProductRefs.length} in the order they were attached. These may be: (a) additional angles/states of the SAME product (packaging vs. contents), or (b) mood-board / style / composition references the user wants incorporated. If the user's brief mentions "@image1", "@image2" etc., treat each numbered reference exactly as the brief describes — use the referenced image for that specific purpose (packaging fidelity, model likeness, scene composition, product state, etc.). If the brief doesn't mention them, default to treating them as extra angles of the same product for maximum fidelity.`
   }
   return callNanoBanana(finalPrompt, refs, aspectRatio)
 }
