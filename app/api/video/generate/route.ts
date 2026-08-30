@@ -1,7 +1,5 @@
 import { deductCredits } from '@/lib/deduct-credits'
 import { submitSeedanceJob } from '@/lib/seedance'
-import { submitOmniFlashJob } from '@/lib/vertex-video'
-import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { generateTextToImage } from '@/lib/nanobanana'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -10,13 +8,9 @@ import sharp from 'sharp'
 
 export const maxDuration = 120
 
-// Seedance-only now; keep an empty flat-cost object so the resolver falls
-// through cleanly for any future non-Seedance model.
-const FLAT_COSTS: Record<string, Record<number, number>> = {}
-
-// Seedance 2.0 non_video_in pricing per second, in credits (1.8× markup on
-// Replicate's raw cost). Must stay in lockstep with SEEDANCE_CR_PER_SECOND
-// on the client.
+// Seedance 2.0 pricing per second in credits (1.8× markup on the raw
+// BytePlus rate). Must stay in lockstep with SEEDANCE_CR_PER_SECOND on
+// the client (app/generate/video/page.tsx).
 const SEEDANCE_CR_PER_SECOND: Record<string, number> = {
   '480p': 6,     // $0.08/s
   '720p': 13,    // $0.18/s
@@ -28,6 +22,13 @@ const SEEDANCE_MINI_CR_PER_SECOND: Record<string, number> = {
   '480p': 3,     // $0.04/s
   '720p': 7,     // $0.09/s
 }
+// Seedance 2.5 — premium, caps at 1080p. Matches
+// lib/ugc-pricing.ts's SEEDANCE_2_5_CR_PER_SECOND.
+const SEEDANCE_2_5_CR_PER_SECOND: Record<string, number> = {
+  '480p':  6,
+  '720p':  13,
+  '1080p': 32,
+}
 // Silent renders skip audio synthesis compute — we pass 15% back to the
 // user. Keep this in sync with NO_AUDIO_MULTIPLIER on the client.
 const NO_AUDIO_MULTIPLIER = 0.85
@@ -35,36 +36,20 @@ const NO_AUDIO_MULTIPLIER = 0.85
 // Keep in sync with CINEMOTION_CR on the client.
 const CINEMOTION_CR = 14
 
-// Veo 3.1 Fast on Vertex — admin-only. Priced against Google's public
-// Vertex rates for Veo 3.1 Fast ($0.40/s at 720p, $0.65/s at 1080p) with
-// our 1.8× markup applied. Kept below Seedance so admins have an incentive
-// to test-drive it while BytePlus setup wraps up.
-const OMNI_FLASH_CR_PER_SECOND: Record<string, number> = {
-  '720p': 12,   // ~$0.40/s raw × 1.8
-  '1080p': 20,  // ~$0.65/s raw × 1.8
-}
-
 function getCost(model: string, duration: number, resolution?: string, withAudio: boolean = true, cinemotion: boolean = false): number {
-  if (model === 'seedance-2' || model === 'seedance-mini') {
-    const table = model === 'seedance-mini' ? SEEDANCE_MINI_CR_PER_SECOND : SEEDANCE_CR_PER_SECOND
-    const res = model === 'seedance-mini' && resolution !== '480p' ? '720p' : (resolution ?? '720p')
-    const per = table[res] ?? table['720p']
-    const base = duration * per
-    return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER)) + (cinemotion ? CINEMOTION_CR : 0)
+  let per: number
+  if (model === 'seedance-mini') {
+    const res = resolution !== '480p' ? '720p' : '480p'
+    per = SEEDANCE_MINI_CR_PER_SECOND[res]
+  } else if (model === 'seedance-2-5') {
+    // 2.5 caps at 1080p — 4K falls back to 1080p pricing.
+    const res = resolution === '4k' ? '1080p' : (resolution ?? '720p')
+    per = SEEDANCE_2_5_CR_PER_SECOND[res] ?? SEEDANCE_2_5_CR_PER_SECOND['720p']
+  } else {
+    per = SEEDANCE_CR_PER_SECOND[resolution ?? '720p'] ?? SEEDANCE_CR_PER_SECOND['720p']
   }
-  if (model === 'omni-flash') {
-    const res = resolution === '1080p' ? '1080p' : '720p'
-    const per = OMNI_FLASH_CR_PER_SECOND[res]
-    const base = duration * per
-    return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER)) + (cinemotion ? CINEMOTION_CR : 0)
-  }
-  return FLAT_COSTS[model]?.[duration] ?? 60
-}
-
-// Sora reference image dimensions must match the selected aspect ratio
-function soraImageSize(aspectRatio: '9:16' | '1:1' | '16:9'): [number, number] {
-  if (aspectRatio === '16:9') return [1280, 720]
-  return [720, 1280] // portrait and square both 720x1280
+  const base = duration * per
+  return Math.max(1, Math.ceil(withAudio ? base : base * NO_AUDIO_MULTIPLIER)) + (cinemotion ? CINEMOTION_CR : 0)
 }
 
 // Composite multiple images into a single reference image.
@@ -137,30 +122,23 @@ export async function POST(request: NextRequest) {
     let hyperOpeningFrame: string | null = null
     if (!prompt && !hyperMotion) return NextResponse.json({ error: 'Prompt is required' }, { status: 400 })
 
-    // Seedance 2.0 (default), Seedance Mini (~half price, 720p cap), or
-    // admin-only Gemini Omni Flash while BytePlus is being provisioned.
+    // Seedance family only — 2.0 (default) / 2.5 (premium) / Mini (draft).
     const requestedModel = body.model
-    const canUseOmniFlash = canAccessOmniFlashVideo(userData.user?.email)
-    const model: 'seedance-2' | 'seedance-mini' | 'omni-flash' =
-      requestedModel === 'omni-flash' && canUseOmniFlash ? 'omni-flash'
-      : requestedModel === 'seedance-mini' ? 'seedance-mini'
+    const model: 'seedance-2' | 'seedance-2-5' | 'seedance-mini' =
+      requestedModel === 'seedance-mini' ? 'seedance-mini'
+      : requestedModel === 'seedance-2-5' ? 'seedance-2-5'
       : 'seedance-2'
     const duration = Number(body.duration ?? 5)
     let resolution: '480p' | '720p' | '1080p' | '4k' =
       body.resolution === '480p' || body.resolution === '1080p' || body.resolution === '4k'
         ? body.resolution
         : '720p'
+    // Engine-specific resolution caps: mini→720p, 2.5→1080p.
     if (model === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) resolution = '720p'
+    if (model === 'seedance-2-5' && resolution === '4k') resolution = '1080p'
     const withAudio: boolean = body.withAudio !== false  // default true
-    if (model === 'seedance-2' || model === 'seedance-mini') {
-      if (!Number.isFinite(duration) || duration < 3 || duration > 60) {
-        return NextResponse.json({ error: 'Seedance duration must be between 3 and 60 seconds' }, { status: 400 })
-      }
-    } else {
-      const allowedDurations = Object.keys(FLAT_COSTS[model] ?? {}).map(Number)
-      if (!allowedDurations.includes(duration)) {
-        return NextResponse.json({ error: `Invalid duration for ${model}` }, { status: 400 })
-      }
+    if (!Number.isFinite(duration) || duration < 3 || duration > 60) {
+      return NextResponse.json({ error: 'Seedance duration must be between 3 and 60 seconds' }, { status: 400 })
     }
 
     // aspect: portrait=9:16, tall=3:4, square=1:1, landscape=16:9
@@ -335,49 +313,19 @@ OUTPUT: return ONLY valid JSON, no markdown:
       }
     }
 
-    let predictionId: string
-    let provider: 'seedance-2' | 'omni-flash'
-    if (model === 'omni-flash') {
-      // Omni Flash is admin-only and lives on Vertex — no reference-only path,
-      // and the first frame needs to be inlined as base64 (Vertex doesn't
-      // fetch by URL). Skip the frame if it isn't a Supabase URL we can pull.
-      let startImageBase64: string | undefined
-      let startImageMimeType: string | undefined
-      if (startImageUrl) {
-        try {
-          const r = await fetch(startImageUrl)
-          if (r.ok) {
-            startImageBase64 = Buffer.from(await r.arrayBuffer()).toString('base64')
-            startImageMimeType = r.headers.get('content-type') || 'image/png'
-          }
-        } catch { /* soft fail — text-only render */ }
-      }
-      const omniAspect: '9:16' | '16:9' | '1:1' = aspectRatio === '16:9' ? '16:9' : aspectRatio === '1:1' ? '1:1' : '9:16'
-      const omni = await submitOmniFlashJob({
-        prompt,
-        durationSeconds: duration,
-        aspectRatio: omniAspect,
-        resolution: resolution === '4k' || resolution === '480p' ? '1080p' : (resolution as '720p' | '1080p'),
-        enableAudio: withAudio,
-        startImageBase64,
-        startImageMimeType,
-      })
-      predictionId = omni.predictionId
-      provider = 'omni-flash'
-    } else {
-      const seedanceJob = await submitSeedanceJob({
-        prompt,
-        durationSeconds: duration,
-        aspectRatio,
-        startImageUrl,
-        resolution,
-        enableAudio: withAudio,
-        engine: model,
-        referenceImageUrls,
-      })
-      predictionId = seedanceJob.predictionId
-      provider = 'seedance-2'
-    }
+    const seedanceJob = await submitSeedanceJob({
+      prompt,
+      durationSeconds: duration,
+      aspectRatio,
+      startImageUrl,
+      resolution,
+      enableAudio: withAudio,
+      engine: model,
+      referenceImageUrls,
+    })
+    const predictionId: string = seedanceJob.predictionId
+    // Provider is always Seedance now — omni-flash / Sora paths retired.
+    const provider = 'seedance' as const
 
     // Save to library as processing, deduct credits
     const { data: contentRow } = await supabase.from('ugc_content').insert({

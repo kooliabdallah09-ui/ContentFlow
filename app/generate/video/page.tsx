@@ -7,21 +7,12 @@ import { readPrefill } from '@/lib/calendar-prefill'
 import { readChatPrefill } from '@/lib/chat-prefill'
 import { useCredits } from '@/lib/useCredits'
 import { showError, showSuccess } from '@/lib/notifications'
-import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { Download, Play, Upload, X } from 'lucide-react'
 import { GeneratingOverlay } from '@/components/GeneratingOverlay'
 import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
 
-type Model = 'seedance-2' | 'seedance-mini' | 'omni-flash'
+type Model = 'seedance-2' | 'seedance-2-5' | 'seedance-mini'
 type Resolution = '480p' | '720p' | '1080p' | '4k'
-
-interface ShopifyProduct {
-  id: number
-  title: string
-  body_html: string
-  price: string
-  images: string[]
-}
 
 const MODELS: {
   id: Model
@@ -53,6 +44,21 @@ const MODELS: {
     credits: { 5: 0, 10: 0, 15: 0, 30: 0, 60: 0 },
   },
   {
+    id: 'seedance-2-5',
+    name: 'Cinematic 2.5',
+    badge: 'Premium',
+    tagline: 'Seedance 2.5 — newest ByteDance model, best motion + prompt adherence',
+    excels: [
+      'Sharpest physics + motion of the family',
+      'Best prompt adherence for complex scenes',
+      'Same multimodal inputs + native audio',
+      'Up to 60 seconds per clip',
+    ],
+    caveat: 'Caps at 1080p (no 4K). ~1.5× the per-second cost of 2.0.',
+    durations: [5, 10, 15, 30, 60],
+    credits: { 5: 0, 10: 0, 15: 0, 30: 0, 60: 0 },
+  },
+  {
     id: 'seedance-mini',
     name: 'Mini',
     badge: 'Low budget',
@@ -67,33 +73,18 @@ const MODELS: {
     durations: [5, 10, 15, 30, 60],
     credits: { 5: 0, 10: 0, 15: 0, 30: 0, 60: 0 },
   },
-  {
-    id: 'omni-flash',
-    name: 'Omni Flash',
-    badge: 'Admin · temp',
-    tagline: 'Veo 3.1 Fast on Vertex — cheaper stopgap while BytePlus is being set up',
-    excels: [
-      'Runs on our existing Vertex $300 trial credit',
-      'Cheaper per second than Seedance at both 720p and 1080p',
-      'Native audio + strong physics on Veo 3.1',
-      '4, 6, or 8 second clips',
-    ],
-    caveat: '4-8s clips only, admin-only until BytePlus lands',
-    durations: [4, 6, 8],
-    credits: { 4: 0, 6: 0, 8: 0 },
-  },
 ]
 
 interface VideoState {
   predictionId: string
-  provider: 'seedance-2' | 'omni-flash'
+  provider: 'seedance'
   status: 'processing' | 'completed' | 'failed'
   videoUrl?: string
   error?: string
 }
 
-// Seedance 2.0 non_video_in pricing per second, in credits (1.8× markup on
-// Replicate's raw cost, rounded up so we never lose money).
+// Seedance 2.0 non_video_in pricing per second, in credits (1.8× markup
+// on the raw BytePlus rate, rounded up so we never lose money).
 const SEEDANCE_CR_PER_SECOND: Record<Resolution, number> = {
   '480p': 6,     // $0.08/s
   '720p': 13,    // $0.18/s
@@ -107,19 +98,22 @@ const SEEDANCE_MINI_CR_PER_SECOND: Record<'480p' | '720p', number> = {
   '480p': 3,   // $0.04/s
   '720p': 7,   // $0.09/s
 }
-// Veo 3.1 Fast on Vertex — admin-only. Priced against Google's public
-// Vertex rates for Veo 3.1 Fast ($0.40/s at 720p, $0.65/s at 1080p) with
-// our 1.8× markup. Kept below Seedance so admins have an incentive.
-const OMNI_FLASH_CR_PER_SECOND: Record<'720p' | '1080p', number> = {
-  '720p': 12,
-  '1080p': 20,
+// Seedance 2.5 — BytePlus pinned pricing (10.70 / 10.70 / 11.70 USD/M
+// tokens for 480p / 720p / 1080p). 4K unsupported on 2.5. Matches
+// lib/ugc-pricing.ts's SEEDANCE_2_5_CR_PER_SECOND to the cent.
+const SEEDANCE_2_5_CR_PER_SECOND: Record<'480p' | '720p' | '1080p', number> = {
+  '480p':  6,
+  '720p':  13,
+  '1080p': 32,
 }
 function perSecondFor(model: Model, resolution: Resolution): number {
   if (model === 'seedance-mini') {
     return SEEDANCE_MINI_CR_PER_SECOND[resolution === '480p' ? '480p' : '720p']
   }
-  if (model === 'omni-flash') {
-    return OMNI_FLASH_CR_PER_SECOND[resolution === '1080p' ? '1080p' : '720p']
+  if (model === 'seedance-2-5') {
+    // 2.5 caps at 1080p — anything higher bills at 1080p.
+    const res: '480p' | '720p' | '1080p' = resolution === '4k' ? '1080p' : resolution
+    return SEEDANCE_2_5_CR_PER_SECOND[res]
   }
   return SEEDANCE_CR_PER_SECOND[resolution]
 }
@@ -137,16 +131,11 @@ function getSeedancePerSecond(resolution: Resolution, withAudio: boolean, model:
 
 export default function VideoGeneratorPage() {
   const [model, setModel] = useState<Model>('seedance-2')
-  // Admin gate for the temporary Omni Flash engine. Loaded from the current
-  // session — if the user isn't on the ADMIN_EMAILS list the chip isn't
-  // rendered and the server would ignore the flag anyway.
-  const [showOmniFlash, setShowOmniFlash] = useState(false)
   const [userPlan, setUserPlan] = useState('')
   useEffect(() => {
     const supabase = getSupabase()
     if (!supabase) return
     supabase.auth.getSession().then(async (res: { data: { session: { user?: { email?: string | null }; access_token?: string } | null } }) => {
-      setShowOmniFlash(canAccessOmniFlashVideo(res.data.session?.user?.email ?? null))
       const token = res.data.session?.access_token
       if (token) {
         const r = await fetch('/api/credits/balance', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null)
@@ -223,15 +212,6 @@ export default function VideoGeneratorPage() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const { balance: rawBalance, refresh: refreshCredits } = useCredits()
   const creditBalance = rawBalance ?? 0
-
-  // Shopify state
-  const [shopifyUrl, setShopifyUrl] = useState('')
-  const [shopifyProducts, setShopifyProducts] = useState<ShopifyProduct[] | null>(null)
-  const [shopifyLoading, setShopifyLoading] = useState(false)
-  const [shopifyError, setShopifyError] = useState<string | null>(null)
-  const [selectedShopifyProduct, setSelectedShopifyProduct] = useState<ShopifyProduct | null>(null)
-  const [shopifyOpen, setShopifyOpen] = useState(false)
-  const [shopifyImageLoaded, setShopifyImageLoaded] = useState(false)
 
   const cfg = MODELS.find(m => m.id === model)!
   // Seedance pricing depends on resolution × duration. Other models keep
@@ -357,54 +337,6 @@ export default function VideoGeneratorPage() {
       reader.readAsDataURL(file)
     }
     e.target.value = ''
-    setSelectedShopifyProduct(null)
-    setShopifyImageLoaded(false)
-  }
-
-  async function fetchShopifyProducts() {
-    if (!shopifyUrl.trim()) return
-    setShopifyLoading(true)
-    setShopifyError(null)
-    setShopifyProducts(null)
-    setSelectedShopifyProduct(null)
-    try {
-      const supabase = getSupabase()
-      const { data: sess } = await supabase!.auth.getSession()
-      const token = sess?.session?.access_token
-      const res = await fetch(`/api/shopify/products?store=${encodeURIComponent(shopifyUrl.trim())}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      })
-      const data = await res.json()
-      if (data.error) throw new Error(data.error)
-      setShopifyProducts(data.products)
-    } catch (e) {
-      setShopifyError(e instanceof Error ? e.message : 'Failed to fetch products')
-    } finally {
-      setShopifyLoading(false)
-    }
-  }
-
-  async function applyShopifyProduct(product: ShopifyProduct) {
-    setSelectedShopifyProduct(product)
-    setShopifyImageLoaded(false)
-
-    const imagesToLoad = product.images.slice(0, 4)
-    setRefImages([])
-    for (const imageUrl of imagesToLoad) {
-      try {
-        const res = await fetch(imageUrl)
-        const blob = await res.blob()
-        const reader = new FileReader()
-        reader.onload = (e) => {
-          const dataUrl = e.target?.result as string
-          setRefImages(prev => prev.length < 4 ? [...prev, { base64: dataUrl.split(',')[1], mimeType: blob.type || 'image/jpeg', preview: imageUrl }] : prev)
-          setShopifyImageLoaded(true)
-        }
-        reader.readAsDataURL(blob)
-      } catch {
-        // skip failed images
-      }
-    }
   }
 
   async function generate() {
@@ -443,7 +375,7 @@ export default function VideoGeneratorPage() {
 
       setVideo({
         predictionId: data.predictionId,
-        provider: model === 'omni-flash' ? 'omni-flash' : 'seedance-2',
+        provider: 'seedance',
         status: 'processing',
       })
       refreshCredits()
@@ -501,10 +433,9 @@ export default function VideoGeneratorPage() {
         </p>
       </header>
 
-      {/* Model picker — Seedance 2.0 (default) vs Mini (low budget) vs
-          admin-only Omni Flash while BytePlus is being set up. */}
+      {/* Model picker — Seedance 2.0 (default) / 2.5 (premium) / Mini (draft) */}
       <div className="vid-models" style={{ marginBottom: 24, display: 'flex', gap: 10 }}>
-        {MODELS.filter(m => m.id !== 'omni-flash' || showOmniFlash).map(m => {
+        {MODELS.map(m => {
           const active = model === m.id
           return (
             <button
@@ -512,8 +443,9 @@ export default function VideoGeneratorPage() {
               type="button"
               onClick={() => {
                 setModel(m.id)
+                // Engine-specific resolution caps: mini→720p, 2.5→1080p.
                 if (m.id === 'seedance-mini' && (resolution === '1080p' || resolution === '4k')) setResolution('720p')
-                if (m.id === 'omni-flash' && (resolution === '480p' || resolution === '4k')) setResolution('720p')
+                if (m.id === 'seedance-2-5' && resolution === '4k') setResolution('1080p')
               }}
               style={{
                 flex: 1, textAlign: 'left', padding: '14px 18px', borderRadius: 14, cursor: 'pointer',
@@ -525,7 +457,7 @@ export default function VideoGeneratorPage() {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 14, fontWeight: 700 }}>{m.id === 'seedance-mini' ? 'Seedance Mini' : m.id === 'omni-flash' ? 'Omni Flash · admin' : 'Seedance 2.0'}</span>
+                <span style={{ fontSize: 14, fontWeight: 700 }}>{m.name}</span>
                 <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 999, background: active ? 'var(--on-ink)' : 'var(--surface-2)', color: active ? 'var(--ink)' : 'var(--ink-dim)' }}>{m.badge}</span>
               </div>
               <div style={{ fontSize: 11.5, opacity: 0.8 }}>{m.tagline}</div>
@@ -817,128 +749,6 @@ export default function VideoGeneratorPage() {
           <p style={{ fontSize: 10.5, color: 'var(--ink-dim)', textAlign: 'right', margin: '4px 0 0', fontFamily: 'var(--font-mono)' }}>
             {prompt.length} / 4000
           </p>
-        </div>
-
-        {/* Import from Shopify */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-          {/* Collapsible header */}
-          <button
-            type="button"
-            onClick={() => setShopifyOpen(o => !o)}
-            style={{
-              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-              padding: '16px 20px', background: 'none', border: 'none', cursor: 'pointer',
-              textAlign: 'left',
-            }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Import from Shopify</span>
-            <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 999, background: 'var(--border)', color: 'var(--ink-dim)', fontWeight: 600 }}>optional</span>
-            {selectedShopifyProduct && (
-              <span style={{ fontSize: 12, color: 'var(--good, #10b981)', fontWeight: 600, marginLeft: 4 }}>
-                ✓ {selectedShopifyProduct.title}
-              </span>
-            )}
-            <span style={{ marginLeft: 'auto', fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1 }}>
-              {shopifyOpen ? '▲' : '▼'}
-            </span>
-          </button>
-
-          {shopifyOpen && (
-            <div style={{ padding: '0 20px 20px' }}>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-                <input
-                  type="text"
-                  placeholder="yourstore.myshopify.com"
-                  value={shopifyUrl}
-                  onChange={e => setShopifyUrl(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && fetchShopifyProducts()}
-                  style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
-                />
-                <button
-                  type="button"
-                  onClick={fetchShopifyProducts}
-                  disabled={!shopifyUrl.trim() || shopifyLoading}
-                  style={{
-                    padding: '8px 14px', borderRadius: 8, border: 'none',
-                    background: 'var(--ink)', color: 'var(--on-ink)',
-                    fontSize: 13, fontWeight: 600,
-                    cursor: shopifyUrl.trim() && !shopifyLoading ? 'pointer' : 'not-allowed',
-                    opacity: shopifyUrl.trim() && !shopifyLoading ? 1 : 0.4,
-                    whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6,
-                  }}
-                >
-                  {shopifyLoading
-                    ? <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid var(--on-ink-subtle)', borderTopColor: 'var(--on-ink)', display: 'inline-block', animation: 'vid-spin 0.7s linear infinite' }} />Loading...</>
-                    : 'Fetch Products'}
-                </button>
-              </div>
-
-              {shopifyError && (
-                <div style={{ marginBottom: 8, fontSize: 12, color: '#e84a4a', padding: '6px 10px', borderRadius: 6, background: 'rgba(232,74,74,0.08)', border: '1px solid rgba(232,74,74,0.2)' }}>
-                  {shopifyError}. Make sure the URL is correct (e.g. yourstore.myshopify.com).
-                </div>
-              )}
-
-              {shopifyProducts && shopifyProducts.length === 0 && (
-                <div style={{ fontSize: 12, color: 'var(--ink-dim)' }}>No products found in this store.</div>
-              )}
-
-              {shopifyProducts && shopifyProducts.length > 0 && !selectedShopifyProduct && (
-                <div>
-                  <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 8 }}>
-                    {shopifyProducts.length} products — pick one
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflowY: 'auto' }}>
-                    {shopifyProducts.map(product => (
-                      <div
-                        key={product.id}
-                        onClick={() => applyShopifyProduct(product)}
-                        style={{
-                          display: 'flex', gap: 10, alignItems: 'center',
-                          padding: '8px 10px', borderRadius: 8, cursor: 'pointer',
-                          border: '1px solid var(--border)', background: 'transparent',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        {product.images[0]
-                          ? <img src={product.images[0]} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
-                          : <div style={{ width: 40, height: 40, borderRadius: 6, background: 'var(--border)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>📦</div>
-                        }
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{product.title}</div>
-                          <div style={{ fontSize: 11, color: 'var(--ink-dim)' }}>${product.price}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {selectedShopifyProduct && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, border: '1px solid var(--good, #10b981)', background: 'rgba(16,185,129,0.06)' }}>
-                  {selectedShopifyProduct.images[0] && (
-                    <img src={selectedShopifyProduct.images[0]} alt="" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
-                  )}
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      ✓ {selectedShopifyProduct.title}
-                    </div>
-                    {shopifyImageLoaded && (
-                      <div style={{ fontSize: 11, color: 'var(--good, #10b981)', fontWeight: 600 }}>✓ Product image loaded</div>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedShopifyProduct(null); setShopifyImageLoaded(false); setRefImages([]) }}
-                    style={{ background: 'none', border: 'none', color: 'var(--ink-dim)', cursor: 'pointer', padding: 4, display: 'flex' }}
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Reference images */}
