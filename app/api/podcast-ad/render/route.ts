@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { submitSeedanceJob } from '@/lib/replicate'
+import { submitSeedanceJob } from '@/lib/seedance'
 import { buildShotPrompt, PODCAST_SHOT_DURATIONS, type PodcastScript, type PodcastCharacter } from '@/lib/podcast-ad'
 import { deductCredits } from '@/lib/deduct-credits'
 import { SEEDANCE_CR_PER_SECOND } from '@/lib/ugc-pricing'

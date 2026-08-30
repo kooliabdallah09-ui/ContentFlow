@@ -11,7 +11,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { submitSeedanceJob } from '@/lib/replicate'
+import { submitSeedanceJob } from '@/lib/seedance'
 import { gridify, GRID_RETRIES, attachProductReference, isSensitivityFlag } from '@/lib/gridify'
 
 export const maxDuration = 120

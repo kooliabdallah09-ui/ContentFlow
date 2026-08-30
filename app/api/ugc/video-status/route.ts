@@ -1,6 +1,6 @@
 import { getVideoStatus } from '@/lib/heygen'
 import { getSoraStatus, downloadSoraVideo } from '@/lib/sora'
-import { getSeedanceStatus } from '@/lib/replicate'
+import { getSeedanceStatus } from '@/lib/seedance'
 import { getOmniFlashStatus, isOmniFlashId } from '@/lib/vertex-video'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'

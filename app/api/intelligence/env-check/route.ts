@@ -19,7 +19,6 @@ export async function GET(request: NextRequest) {
     APIFY_TOKEN: !!process.env.APIFY_TOKEN,
     APIFY_TIKTOK_ACTOR_ID: process.env.APIFY_TIKTOK_ACTOR_ID || null,
     APIFY_INSTAGRAM_ACTOR_ID: process.env.APIFY_INSTAGRAM_ACTOR_ID || null,
-    REPLICATE_API_TOKEN: !!process.env.REPLICATE_API_TOKEN,
     ANTHROPIC_API_KEY: !!process.env.ANTHROPIC_API_KEY,
     SERPAPI_KEY: !!process.env.SERPAPI_KEY,
   })

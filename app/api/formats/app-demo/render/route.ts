@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { canAccessFormats } from '@/lib/pov-access'
 import { getFormatById, type StateMachineSegment } from '@/lib/formats'
-import { submitBackgroundRemovalJob, getBackgroundRemovalStatus } from '@/lib/replicate'
+import { submitFalBackgroundRemovalJob, getFalBackgroundRemovalStatus } from '@/lib/fal'
 import { transcribeAudioUrl } from '@/lib/scribe'
 import { renderAppDemo, getAppDemoRenderStatus } from '@/lib/formats/app-demo-renderer'
 
@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Transcription returned no words — is the clip audible?' }, { status: 500 })
     }
 
-    // 2. Background removal. This runs async on Replicate; we spawn it and
-    // poll. Timeout budget ~120s for a 16s source.
-    const { predictionId } = await submitBackgroundRemovalJob(body.klingRawUrl)
+    // 2. Background removal via fal.ai (Bria video bg-removal). Async on
+    //    fal's queue; we spawn and poll. Timeout budget ~150s for a 16s source.
+    const { requestId } = await submitFalBackgroundRemovalJob(body.klingRawUrl)
     const deadline = Date.now() + 150_000
     let keyedUrl: string | undefined
     while (Date.now() < deadline) {
       await new Promise(r => setTimeout(r, 4000))
-      const st = await getBackgroundRemovalStatus(predictionId)
+      const st = await getFalBackgroundRemovalStatus(requestId)
       if (st.status === 'completed' && st.videoUrl) { keyedUrl = st.videoUrl; break }
       if (st.status === 'failed') {
         return NextResponse.json({ error: `Background removal failed: ${st.error ?? 'unknown'}` }, { status: 500 })

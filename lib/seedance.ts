@@ -1,7 +1,5 @@
-// Direct BytePlus (ByteDance) Seedance 2.0 client — cheaper than Replicate's
-// hosted proxy since we pay ByteDance token pricing directly. Same models,
-// same output URLs, exposed with the SAME shape as lib/replicate.ts so the
-// rest of the code doesn't care which provider we use.
+// BytePlus (ByteDance) Seedance 2.x / mini client. The only video
+// provider in the pipeline now — Replicate was fully retired.
 //
 // Region: Asia Pacific (Johor) — the only region where Seedance is available
 //         today. Dublin only carries Seed-2.0-lite (image understanding, not
@@ -36,10 +34,9 @@ function apiKey(): string {
   return key
 }
 
-// Same return shape as lib/replicate.ts submitSeedanceJob so callers stay
-// interchangeable. BytePlus calls the ID a "task_id" instead of a
-// "prediction_id" — we surface it as predictionId for API parity.
-export async function submitByteplusSeedanceJob(params: {
+// BytePlus calls the ID a "task_id"; we surface it as predictionId so
+// callers use a single stable name across the codebase.
+export async function submitSeedanceJob(params: {
   prompt: string
   durationSeconds: number
   aspectRatio?: '9:16' | '16:9' | '1:1' | '3:4'
@@ -108,9 +105,8 @@ export async function submitByteplusSeedanceJob(params: {
   return { predictionId: taskId }
 }
 
-// Poll a BytePlus task. Same return shape as getSeedanceStatus in
-// lib/replicate.ts so downstream polling code stays the same.
-export async function getByteplusSeedanceStatus(taskId: string): Promise<{
+// Poll a BytePlus task.
+export async function getSeedanceStatus(taskId: string): Promise<{
   status: 'pending' | 'processing' | 'completed' | 'failed'
   videoUrl?: string
   error?: string
@@ -140,6 +136,6 @@ export async function getByteplusSeedanceStatus(taskId: string): Promise<{
   return { status: 'pending' }
 }
 
-export function isByteplusEnabled(): boolean {
+export function isSeedanceEnabled(): boolean {
   return !!process.env.BYTEPLUS_API_KEY
 }

@@ -1,5 +1,5 @@
 import { deductCredits } from '@/lib/deduct-credits'
-import { submitSeedanceJob } from '@/lib/replicate'
+import { submitSeedanceJob } from '@/lib/seedance'
 import { submitOmniFlashJob } from '@/lib/vertex-video'
 import { canAccessOmniFlashVideo } from '@/lib/pov-access'
 import { generateTextToImage } from '@/lib/nanobanana'
