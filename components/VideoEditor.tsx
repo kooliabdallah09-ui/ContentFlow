@@ -1082,33 +1082,20 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         console.log('[caption] public URL:', publicUrl)
       }
 
-      // Start the Replicate job (fast — returns predictionId immediately)
-      const startRes = await fetch('/api/video/transcribe', {
+      // ElevenLabs Scribe is synchronous — one round-trip, no polling.
+      const res = await fetch('/api/video/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ videoUrl, language: captionLanguage === 'auto' ? undefined : captionLanguage }),
+        body: JSON.stringify({
+          videoUrl,
+          language: captionLanguage === 'auto' ? undefined : captionLanguage,
+          duration: spec.duration,
+        }),
       })
-      const startData = await startRes.json()
-      if (startData.error) throw new Error(startData.error)
-      const { predictionId } = startData
-
-      // Poll from the browser until done (avoids Vercel function timeout)
-      const deadline = Date.now() + 120_000
-      let overlays: unknown[] = []
-      while (Date.now() < deadline) {
-        await new Promise(r => setTimeout(r, 3000))
-        const pollRes = await fetch(
-          `/api/video/transcribe?predictionId=${predictionId}&duration=${spec.duration}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        )
-        const pollData = await pollRes.json()
-        if (pollData.error) throw new Error(pollData.error)
-        if (pollData.status === 'done') {
-          overlays = pollData.overlays ?? []
-          break
-        }
-      }
-      if (!overlays.length && Date.now() >= deadline) throw new Error('Transcription timed out')
+      const data = await res.json()
+      if (data.error) throw new Error(data.error)
+      const overlays: unknown[] = data.overlays ?? []
+      if (!overlays.length) throw new Error('Transcription returned no captions')
       pushHistory({ ...spec, overlays: [...spec.overlays, ...(overlays as typeof spec.overlays)] })
     } catch (e) {
       console.error('[caption] FAILED:', e)

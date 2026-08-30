@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
-import { transcribeWithReplicate } from '@/lib/replicate'
+import { transcribeAudioUrl } from '@/lib/scribe'
 import { canAccessReelAnalyzer } from '@/lib/pov-access'
 
 export const maxDuration = 300
@@ -70,11 +70,11 @@ export async function POST(request: NextRequest) {
     }
     const videoDurationSeconds = Number(body.videoDurationSeconds) || 15
 
-    // ---------- Whisper transcription (optional) ----------
+    // ---------- Scribe transcription (optional) ----------
     let captions: CaptionOverlay[] = []
     if (body.audioUrl && body.audioUrl.startsWith('http')) {
       try {
-        const { words } = await transcribeWithReplicate(body.audioUrl)
+        const { words } = await transcribeAudioUrl(body.audioUrl)
         // Group words into ~2-4 word phrases based on time gaps + word count.
         // Matches how TikTok / Reels caption tracks are usually chunked.
         const CHUNK_MAX_WORDS = 5

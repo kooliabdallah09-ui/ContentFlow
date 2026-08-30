@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import { startTranscription, pollTranscription, buildSyncedCaptionChunks } from '@/lib/whisper'
+import { transcribeAudioUrl, buildSyncedCaptionChunks } from '@/lib/scribe'
 
-export const maxDuration = 30
+// ElevenLabs Scribe is synchronous (2-30s depending on duration), so this
+// endpoint now does the full transcription + overlay build in one POST.
+// The old submit + poll flow (Replicate Whisper) was needed because Whisper
+// took 1-4 minutes; Scribe returns fast enough to stay under the 300s
+// Fluid Compute ceiling even for longer clips.
+export const maxDuration = 300
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -20,44 +25,21 @@ async function authenticate(request: NextRequest) {
   return data.user
 }
 
-// POST — submit the Replicate job and return a predictionId immediately
 export async function POST(request: NextRequest) {
   try {
     await authenticate(request)
 
-    if (!process.env.REPLICATE_API_TOKEN) {
-      return NextResponse.json({ error: 'REPLICATE_API_TOKEN not configured' }, { status: 500 })
+    if (!process.env.ELEVENLABS_API_KEY) {
+      return NextResponse.json({ error: 'ELEVENLABS_API_KEY not configured' }, { status: 500 })
     }
 
     const body = await request.json()
     const videoUrl: string = body.videoUrl
-    const language: string | undefined = body.language  // e.g. 'en', 'fr' — undefined = auto detect
+    const language: string | undefined = body.language  // ISO code, undefined = auto detect
+    const duration: number = typeof body.duration === 'number' ? body.duration : 0
     if (!videoUrl) return NextResponse.json({ error: 'Missing videoUrl' }, { status: 400 })
 
-    const predictionId = await startTranscription(videoUrl, language)
-    return NextResponse.json({ predictionId })
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : 'Unknown error'
-    return NextResponse.json({ error: msg }, { status: e instanceof Error && msg === 'Unauthorized' ? 401 : 500 })
-  }
-}
-
-// GET — poll Replicate once and return status + overlays when done
-export async function GET(request: NextRequest) {
-  try {
-    await authenticate(request)
-
-    const predictionId = request.nextUrl.searchParams.get('predictionId')
-    if (!predictionId) return NextResponse.json({ error: 'Missing predictionId' }, { status: 400 })
-
-    const duration = parseFloat(request.nextUrl.searchParams.get('duration') ?? '0')
-
-    const { done, result, error } = await pollTranscription(predictionId)
-
-    if (!done) return NextResponse.json({ status: 'processing' })
-    if (error) return NextResponse.json({ error: `Transcription failed: ${error}` }, { status: 500 })
-
-    const { words, text } = result!
+    const { words, text } = await transcribeAudioUrl(videoUrl, { languageCode: language })
     const chunks = buildSyncedCaptionChunks(words, { maxWords: 4 })
 
     const overlays = chunks.map((chunk, i) => ({
@@ -76,6 +58,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ status: 'done', overlays, fullText: text, duration })
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Unknown error'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    const status = msg === 'Unauthorized' ? 401 : 500
+    return NextResponse.json({ error: msg }, { status })
   }
 }
