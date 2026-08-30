@@ -26,9 +26,9 @@ const MODELS: {
 }[] = [
   {
     id: 'seedance-2',
-    name: 'Cinematic',
+    name: 'Seedance 2.0',
     badge: 'Default',
-    tagline: 'Seedance 2.0 — cinematic with native audio & character consistency',
+    tagline: 'AI video model with native audio, character consistency, and up to 4K output.',
     excels: [
       'Native audio (voice, ambient, music)',
       'Product / character continuity from a reference image',
@@ -45,9 +45,9 @@ const MODELS: {
   },
   {
     id: 'seedance-2-5',
-    name: 'Cinematic 2.5',
+    name: 'Seedance 2.5',
     badge: 'Premium',
-    tagline: 'Seedance 2.5 — newest ByteDance model, best motion + prompt adherence',
+    tagline: 'ByteDance’s newest AI video model — sharpest motion + best prompt adherence.',
     excels: [
       'Sharpest physics + motion of the family',
       'Best prompt adherence for complex scenes',
@@ -60,9 +60,9 @@ const MODELS: {
   },
   {
     id: 'seedance-mini',
-    name: 'Mini',
-    badge: 'Low budget',
-    tagline: 'Seedance 2.0 Mini — same engine at ~½ the price, up to 720p',
+    name: 'Seedance Mini',
+    badge: 'Draft',
+    tagline: 'AI video model at ~½ the price — fast drafts, capped at 720p.',
     excels: [
       'About half the per-second cost',
       'Same multimodal inputs + native audio',
@@ -429,7 +429,7 @@ export default function VideoGeneratorPage() {
           Video
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: '10px 0 0', lineHeight: 1.55 }}>
-          Cinematic clips with Seedance 2.0 — pick resolution to control cost.
+          AI video generation on the Seedance family — pick the model and resolution.
         </p>
       </header>
 
@@ -497,14 +497,19 @@ export default function VideoGeneratorPage() {
             })}
           </div>
 
-          {/* Resolution — Seedance only */}
-          {(model === 'seedance-2' || model === 'seedance-mini') && (
+          {/* Resolution — always shown; engine-specific option list. */}
+          {(model === 'seedance-2' || model === 'seedance-2-5' || model === 'seedance-mini') && (
             <>
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginTop: 24, marginBottom: 14 }}>
                 Resolution <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-mute)', fontFamily: 'inherit' }}>· lower is cheaper</span>
               </div>
               <div className="vid-chiprow" style={{ display: 'flex', gap: 10 }}>
-                {((model === 'seedance-mini' ? ['480p', '720p'] : ['480p', '720p', '1080p', '4k']) as Resolution[]).map(r => {
+                {(((): Resolution[] => {
+                  // Mini caps at 720p; 2.5 caps at 1080p; 2.0 supports 4K.
+                  if (model === 'seedance-mini') return ['480p', '720p']
+                  if (model === 'seedance-2-5') return ['480p', '720p', '1080p']
+                  return ['480p', '720p', '1080p', '4k']
+                })()).map(r => {
                   const active = resolution === r
                   const perSec = getSeedancePerSecond(r, withAudio, model)
                   return (
