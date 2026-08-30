@@ -1,6 +1,6 @@
 import { getVideoStatus } from '@/lib/heygen'
 import { getSoraStatus, downloadSoraVideo } from '@/lib/sora'
-import { getSora2ReplicateStatus, getSeedanceStatus } from '@/lib/replicate'
+import { getSeedanceStatus } from '@/lib/replicate'
 import { getOmniFlashStatus, isOmniFlashId } from '@/lib/vertex-video'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -86,11 +86,8 @@ export async function GET(request: NextRequest) {
         result.video = status
       }
     } else if (provider === 'seedance' || provider === 'seedance-2') {
-      // Seedance outputs a public Replicate-hosted URL — no rehost needed.
+      // Seedance now runs exclusively on BytePlus — no rehost needed.
       const status = await getSeedanceStatus(videoId)
-      result.video = status
-    } else if (provider === 'sora-2-replicate') {
-      const status = await getSora2ReplicateStatus(videoId)
       result.video = status
     } else if (provider === 'sora-2') {
       const status = await getSoraStatus(videoId)

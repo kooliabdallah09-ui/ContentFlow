@@ -1,12 +1,10 @@
 // Unified TTS dispatcher.
 // Voice IDs prefixed 'openai:' route to OpenAI TTS (works on free OpenAI tier, ~$0.001/video).
-// Anything else is treated as an ElevenLabs voice_id. ElevenLabs is called via Replicate
-// (elevenlabs/turbo-v2.5) when REPLICATE_API_TOKEN is set — same voice IDs, no separate
-// ElevenLabs API key needed. Falls back to the direct ElevenLabs API if ELEVENLABS_API_KEY
-// is set instead. If both fail, falls back to OpenAI 'nova' so the generation never hard-fails.
+// Anything else is treated as an ElevenLabs voice_id and hits the direct
+// ElevenLabs API (pay-as-you-go, ~$0.045/voiceover). Replicate is no longer
+// used as a fallback — we're dropping Replicate entirely.
 
 import { generateSpeech as generateElevenLabsSpeech } from './elevenlabs'
-import { generateElevenLabsViaReplicate } from './replicate'
 
 const OPENAI_PREFIX = 'openai:'
 
@@ -57,19 +55,14 @@ export async function generateSpeech(
     return generateOpenAISpeech(text, voiceId.slice(OPENAI_PREFIX.length))
   }
 
-  // ElevenLabs voice — prefer the direct ElevenLabs API when ELEVENLABS_API_KEY
-  // is set (pay-as-you-go is ~$0.045/voiceover, no Replicate markup, and we
-  // don't ship the audio through a third-party proxy). Fall back to Replicate
-  // if only REPLICATE_API_TOKEN is configured. Never silently fall back to
-  // OpenAI here: if the user picked Adam and we'd return Nova, the audio would
-  // be wrong but the UI would still say "Adam". Surfacing the error is better.
-  if (process.env.ELEVENLABS_API_KEY) {
-    return await generateElevenLabsSpeech(text, voiceId)
+  // ElevenLabs voice — direct API only. Never silently fall back to OpenAI:
+  // if the user picked Adam and we'd return Nova, the audio would be wrong
+  // but the UI would still say "Adam". Surfacing the error is better.
+  if (!process.env.ELEVENLABS_API_KEY) {
+    throw new Error('ELEVENLABS_API_KEY not configured')
   }
-
-  if (process.env.REPLICATE_API_TOKEN) {
-    return await generateElevenLabsViaReplicate(text, voiceId, options)
-  }
-
-  throw new Error('ElevenLabs unavailable: set ELEVENLABS_API_KEY or REPLICATE_API_TOKEN')
+  // `options` is kept for future ElevenLabs speed control; the direct
+  // client doesn't take a speed param today but the shape stays stable.
+  void options
+  return await generateElevenLabsSpeech(text, voiceId)
 }
