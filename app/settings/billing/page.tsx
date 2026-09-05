@@ -698,7 +698,7 @@ const CONTENT_TYPES: ContentType[] = [
     crMod: (s) => s.quality === '4K (NBPro 4K)' ? 26 : s.quality === 'Standard (NBPro 2K)' ? 14 : 8,
   },
   {
-    key: 'cinematic', label: 'Cinematic Video', sub: 'Kling · scene video', color: '#10B981',
+    key: 'cinematic', label: 'Cinematic Video', sub: 'Seedance · scene video', color: '#10B981',
     crBase: 140,
     opts: [
       { key: 'duration', choices: ['5s', '10s', '15s'], default: '5s' },

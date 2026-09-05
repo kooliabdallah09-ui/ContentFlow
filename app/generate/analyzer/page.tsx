@@ -340,7 +340,7 @@ export default function AnalyzerPage() {
           <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)' }}>
             <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>Video prompt (no captions — those come from the editor)</div>
             <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: '0 0 12px' }}>
-              Edit before you generate. Kling / Sora animates this while the extracted captions are auto-placed in the video editor after render.
+              Edit before you generate. Seedance animates this while the extracted captions are auto-placed in the video editor after render.
             </p>
             <textarea
               value={editablePrompt}

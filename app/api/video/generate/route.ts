@@ -235,7 +235,6 @@ OUTPUT: return ONLY valid JSON, no markdown:
 
     // Seedance 2.0 — image-to-video. If a reference image is provided we
     // upload it and use image-to-video mode; else falls back to text-to-video.
-    // (Kling v3 branch removed — Seedance handles every model now.)
     void model
     let startImageUrl: string | undefined
     // Director mode passes an already-hosted storyboard keyframe as the
@@ -324,7 +323,6 @@ OUTPUT: return ONLY valid JSON, no markdown:
       referenceImageUrls,
     })
     const predictionId: string = seedanceJob.predictionId
-    // Provider is always Seedance now — omni-flash / Sora paths retired.
     const provider = 'seedance' as const
 
     // Save to library as processing, deduct credits

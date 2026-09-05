@@ -87,7 +87,7 @@ export default function AppDemoTestPage() {
 
   async function submit() {
     if (!klingUrl.trim()) {
-      showError('Missing input', 'Kling URL is required.')
+      showError('Missing input', 'Talking-head video URL is required.')
       return
     }
     setPhase('analyzing')
@@ -176,14 +176,14 @@ export default function AppDemoTestPage() {
           App Demo <em>Composite</em>
         </h1>
         <p style={{ fontSize: 14.5, color: 'var(--ink-dim)', margin: 0, maxWidth: 620, lineHeight: 1.6 }}>
-          Feed the pipeline a rendered Kling talking-head, an optional b-roll for the hook, and an app UI recording for the demo. Whisper transcribes, Replicate keys out the background, and Shotstack stitches the 3-state composite.
+          Feed the pipeline a rendered Seedance talking-head, an optional b-roll for the hook, and an app UI recording for the demo. Whisper transcribes, Replicate keys out the background, and Shotstack stitches the 3-state composite.
         </p>
       </div>
 
       <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', marginBottom: 20 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>1. Assets</div>
         <AssetRow
-          label="Kling talking-head (required)"
+          label="Seedance talking-head (required)"
           value={klingUrl}
           onChange={setKlingUrl}
           onUpload={f => uploadHelper(f, 'app-demo-source', setKlingUrl)}
@@ -211,7 +211,7 @@ export default function AppDemoTestPage() {
       <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', marginBottom: 20 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>2. Character placement</div>
         <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: '0 0 14px', lineHeight: 1.5 }}>
-          Where the keyed avatar sits on top of the b-roll / app-UI layer. Whisper handles captions automatically from the Kling audio.
+          Where the keyed avatar sits on top of the b-roll / app-UI layer. Whisper handles captions automatically from the talking-head audio.
         </p>
         <div style={{ display: 'flex', gap: 8 }}>
           {(['left', 'right'] as const).map(side => (

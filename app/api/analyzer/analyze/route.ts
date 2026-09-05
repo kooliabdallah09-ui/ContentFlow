@@ -125,7 +125,7 @@ Return ONLY valid JSON, no preamble, no markdown fences.
     "scene": "dense one-liner — setting, lighting, mood",
     "captionStyle": "caption" | "bold-white" | "tiktok" | "outline" | "highlight" | "bubble" | "minimal"
   },
-  "videoPrompt": "A single paragraph prompt for a text-to-video model (Kling / Sora) that recreates this exact scene and character motion. IMPORTANT: describe visual + motion + camera + lighting only. DO NOT mention captions, text overlays, or on-screen text — those are added separately."
+  "videoPrompt": "A single paragraph prompt for a text-to-video model (Seedance) that recreates this exact scene and character motion. IMPORTANT: describe visual + motion + camera + lighting only. DO NOT mention captions, text overlays, or on-screen text — those are added separately."
 }
 
 Rules for videoPrompt:

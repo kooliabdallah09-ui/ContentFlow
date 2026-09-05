@@ -11,7 +11,7 @@ import { useImageDrop } from '@/hooks/useImageDrop'
 
 const FORMAT_OPTIONS: { id: keyof FormatPreferences; label: string; desc: string }[] = [
   { id: 'ugc',         label: 'UGC Video',     desc: 'AI talking-head brand videos' },
-  { id: 'video',       label: 'AI Video',       desc: 'Short clips, reels & Sora generations' },
+  { id: 'video',       label: 'AI Video',       desc: 'Short clips, reels & Seedance generations' },
   { id: 'image',       label: 'AI Image',       desc: 'AI-generated visuals & graphics' },
   { id: 'social',      label: 'Social Post',    desc: 'Captions, hashtags & image carousels' },
   { id: 'screen-demo', label: 'Screen Demo',    desc: 'Software demo & walkthrough videos' },

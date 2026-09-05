@@ -550,7 +550,7 @@ const FEATURE_TABS = [
       {
         title: 'UGC ads that look real',
         body: 'Drop a product photo, pick your AI creator, choose a hook. Get a finished 9:16 UGC ad with voice, captions, and b-roll — ready to post.',
-        tags: ['Seedance 2.0', 'Kling v3', '9:16 & 16:9'],
+        tags: ['Seedance 2.0', 'Seedance 2.5', '9:16 & 16:9'],
         gradient: 'linear-gradient(135deg, #1a2a1a 0%, #0a180a 100%)',
         img: undefined as string | undefined,
         imgPosition: 'center',

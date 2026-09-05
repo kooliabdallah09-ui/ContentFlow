@@ -60,7 +60,7 @@ const TOOL_DEFS: Record<string, Anthropic.Tool> = {
         agentId: {
           type: 'string',
           enum: ['ugc', 'pov', 'image', 'video', 'social', 'voice'],
-          description: 'The specialist to hand off to: ugc=Reel (talking-head videos), pov=Vista (faceless POV), image=Frame (images), video=Cine (Sora/Kling cinematic), social=Buzz (captions), voice=Echo (voiceovers)',
+          description: 'The specialist to hand off to: ugc=Reel (talking-head videos), pov=Vista (faceless POV), image=Frame (images), video=Cine (Seedance cinematic), social=Buzz (captions), voice=Echo (voiceovers)',
         },
         carryOver: {
           type: 'string',

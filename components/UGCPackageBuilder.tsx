@@ -2061,7 +2061,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               const cost = ugcPackageCost(sec, resolution, engine)
               void creditsToUSD
               const locked = !dCfg.available
-              const chained = dCfg.klingClips >= 2
+              const chained = dCfg.chunkCount >= 2
               return (
                 <button
                   key={sec}

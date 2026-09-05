@@ -25,7 +25,7 @@ export const maxDuration = 300
 
 // UGC pipeline — phase B. The client has already generated hero frames via
 // /api/ugc/hero-frames and let the user pick the best one. Here we submit
-// Kling v3 omni against that chosen frame, deduct credits, and record the
+// Seedance against that chosen frame, deduct credits, and record the
 // generation. Everything downstream (video-status polling, stitch) is
 // unchanged from the legacy orchestrate path.
 export async function POST(request: NextRequest) {
@@ -179,7 +179,7 @@ export async function POST(request: NextRequest) {
             safeProductName,
             aspect.nanoBananaRatio,
           )
-          // Resize + JPEG for a smaller upload footprint (Kling doesn't need PNG here).
+          // Resize + JPEG for a smaller upload footprint (Seedance doesn't need PNG here).
           const refinedBuf = await sharp(Buffer.from(refined.imageBase64, 'base64'))
             .jpeg({ quality: 92 })
             .toBuffer()
@@ -475,7 +475,7 @@ export async function POST(request: NextRequest) {
       amount: totalCost,
       transaction_type: 'generation',
       content_type: 'ugc_package',
-      description: `UGC package: ${safeProductName} (Kling v3 omni)`,
+      description: `UGC package: ${safeProductName} (Seedance)`,
     })
 
     return NextResponse.json({

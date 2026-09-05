@@ -133,7 +133,7 @@ const CONTENT_TYPES_PUB: PubContentType[] = [
   { key: 'influencer', label: 'AI Influencer', sub: 'Lifestyle · portrait', color: '#EC4899', crBase: 8,
     opts: [{ key: 'quality', choices: ['Budget (NB2)','Standard (NBPro 2K)','4K (NBPro 4K)'], default: 'Budget (NB2)' }],
     crMod: (s) => s.quality === '4K (NBPro 4K)' ? 26 : s.quality === 'Standard (NBPro 2K)' ? 14 : 8 },
-  { key: 'cinematic', label: 'Cinematic Video', sub: 'Kling · scene video', color: '#10B981', crBase: 140,
+  { key: 'cinematic', label: 'Cinematic Video', sub: 'Seedance · scene video', color: '#10B981', crBase: 140,
     opts: [{ key: 'duration', choices: ['5s','10s','15s'], default: '5s' }, { key: 'quality', choices: ['720p','1080p','4K'], default: '720p' }],
     crMod: (s) => Math.round(140 * (s.duration === '15s' ? 2 : s.duration === '10s' ? 1.5 : 1) * (s.quality === '4K' ? 2.2 : s.quality === '1080p' ? 1.35 : 1)) },
   { key: 'voiceover', label: 'Voiceover', sub: 'ElevenLabs · per clip', color: '#6366F1', crBase: 10,

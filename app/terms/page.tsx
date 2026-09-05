@@ -120,8 +120,8 @@ export default function TermsPage() {
 
       <Section title="6. AI-Generated Content — Disclaimers">
         <p>
-          {COMPANY_NAME} generates content using third-party AI models (including but not limited to ElevenLabs, Kling,
-          Sora, Claude, and Shotstack). We do not guarantee the accuracy, originality, or legality of AI-generated
+          {COMPANY_NAME} generates content using third-party AI models (including but not limited to ElevenLabs, Seedance,
+          Nano Banana, Claude, and Shotstack). We do not guarantee the accuracy, originality, or legality of AI-generated
           output.
         </p>
         <p>
