@@ -9,7 +9,7 @@ export const maxDuration = 60
 // In-memory IP rate limit. Vercel serverless instances don't share memory,
 // so worst-case a determined user gets 2-3 previews per day. Acceptable at
 // ~$0.20 raw cost per preview. Upgrade to Vercel KV if abuse becomes real.
-const RATE_LIMIT_WINDOW_MS = 24 * 60 * 60 * 1000  // 24h
+const RATE_LIMIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000  // 7 days
 const previewLog = new Map<string, number>()
 
 function getIp(req: NextRequest): string {
@@ -36,8 +36,10 @@ export async function POST(request: NextRequest) {
     const ip = getIp(request)
     const limit = checkRateLimit(ip)
     if (!limit.ok) {
+      const hours = limit.retryAfterHours ?? 0
+      const wait = hours >= 24 ? `${Math.ceil(hours / 24)} day${Math.ceil(hours / 24) === 1 ? '' : 's'}` : `${hours}h`
       return NextResponse.json({
-        error: `You've already generated a preview today. Sign up for unlimited generations, or come back in ${limit.retryAfterHours}h.`,
+        error: `You've already generated your free preview this week. Sign up for unlimited generations, or come back in ${wait}.`,
         code: 'rate_limited',
       }, { status: 429 })
     }

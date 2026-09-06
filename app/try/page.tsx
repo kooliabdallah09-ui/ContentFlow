@@ -211,14 +211,14 @@ export default function TryPage() {
             </section>
 
             <div style={{ textAlign: 'center', fontSize: 13, color: 'var(--ink-dim, #666)' }}>
-              You&apos;ve used your free preview for today. Sign up to generate as many as you want.
+              You&apos;ve used your free preview for this week. Sign up to generate as many as you want.
             </div>
           </>
         )}
 
         {phase === 'idle' && (
           <div style={{ marginTop: 32, padding: 20, borderRadius: 12, background: 'var(--surface, #111)', border: '1px dashed var(--border, #333)', fontSize: 13, color: 'var(--ink-dim, #888)', lineHeight: 1.6 }}>
-            <strong style={{ color: 'var(--ink, #ccc)' }}>How it works:</strong> we scrape your product page for the image + name, then use Seedance Mini (our budget video model) to animate it into a 5-second vertical ad. One free preview per visitor, per day. No card, no signup.
+            <strong style={{ color: 'var(--ink, #ccc)' }}>How it works:</strong> we scrape your product page for the image + name, then use Seedance Mini (our budget video model) to animate it into a 5-second vertical ad. One free preview per visitor, per week. No card, no signup.
           </div>
         )}
       </main>
