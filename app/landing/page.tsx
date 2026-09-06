@@ -163,12 +163,21 @@ export default function LandingPage() {
             <p style={heroP}>Paste your Shopify, TikTok Shop, or Amazon link. See it as a UGC video in 60 seconds.<br />Then unlock the full studio — influencers, product photos, captions, voice — one brand, every format.</p>
           </div>
           {/* Inline preview generator — the demo IS the pitch */}
-          <div style={{ marginTop: 40, maxWidth: 620, marginLeft: 'auto', marginRight: 'auto' }}>
+          <div style={{ marginTop: 44, maxWidth: 640, marginLeft: 'auto', marginRight: 'auto' }}>
             <PreviewGenerator compact />
           </div>
-          <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
-            <Link href="/auth/signup" style={btnSecondaryLg}>Skip preview — create free account</Link>
-            <a href="#features" style={{ fontSize: 13, color: 'var(--ink-mute)', fontWeight: 500 }}>See how it works ↓</a>
+          {/* Quiet text-link row — secondary actions, not competing CTAs */}
+          <div style={{
+            marginTop: 28, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            gap: 20, flexWrap: 'wrap', fontSize: 13, color: 'var(--ink-mute)',
+          }}>
+            <Link href="/auth/signup" style={{ color: 'var(--ink)', textDecoration: 'none', borderBottom: '1px solid var(--ink-fade)', paddingBottom: 1 }}>
+              Skip preview → create free account
+            </Link>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <a href="#features" style={{ color: 'var(--ink-mute)', textDecoration: 'none' }}>
+              See how it works
+            </a>
           </div>
         </div>
       </section>
