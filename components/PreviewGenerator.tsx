@@ -119,32 +119,34 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
 
   return (
     <div style={{ position: 'relative', width: '100%', maxWidth: 640, margin: '0 auto', textAlign: 'left' }}>
-      {/* Ambient spotlight glow behind the card — premium software atmosphere */}
+      {/* Ambient spotlight glow behind the card — stronger so it reads on true black */}
       {compact && (
         <div aria-hidden style={{
           position: 'absolute',
-          inset: '-80px -80px -160px -80px',
-          background: 'radial-gradient(ellipse 60% 55% at 50% 40%, rgba(185, 28, 28, 0.10) 0%, rgba(185, 28, 28, 0.04) 40%, transparent 75%)',
-          filter: 'blur(20px)',
+          inset: '-100px -100px -180px -100px',
+          background: 'radial-gradient(ellipse 65% 60% at 50% 40%, rgba(185, 28, 28, 0.22) 0%, rgba(185, 28, 28, 0.08) 40%, transparent 75%)',
+          filter: 'blur(24px)',
           zIndex: 0,
           pointerEvents: 'none',
         }} />
       )}
 
-      {/* Main card — layered surface with inset highlight for real depth */}
+      {/* Main card — visibly lifted off the page in dark mode via a warmer
+          gray-brown surface, brighter warm border, and stronger inset highlight. */}
       <div style={{
         position: 'relative',
         padding: '22px 22px 20px',
         borderRadius: 20,
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        background: 'linear-gradient(180deg, rgba(28, 22, 20, 0.85) 0%, rgba(18, 15, 14, 0.85) 100%)',
-        backdropFilter: 'blur(20px) saturate(1.2)',
-        WebkitBackdropFilter: 'blur(20px) saturate(1.2)',
+        border: '1px solid rgba(255, 220, 195, 0.12)',
+        background: 'linear-gradient(180deg, rgba(42, 32, 28, 0.92) 0%, rgba(26, 20, 18, 0.94) 100%)',
+        backdropFilter: 'blur(24px) saturate(1.2)',
+        WebkitBackdropFilter: 'blur(24px) saturate(1.2)',
         boxShadow: [
-          '0 1px 0 rgba(255, 255, 255, 0.06) inset',           // top edge highlight
-          '0 -1px 0 rgba(0, 0, 0, 0.3) inset',                  // bottom edge shadow
-          '0 30px 60px -20px rgba(0, 0, 0, 0.6)',               // ambient drop
-          '0 8px 24px -8px rgba(185, 28, 28, 0.08)',            // warm accent bloom
+          '0 1px 0 rgba(255, 220, 195, 0.10) inset',            // warm top edge highlight
+          '0 -1px 0 rgba(0, 0, 0, 0.4) inset',                  // bottom edge shadow
+          '0 40px 80px -20px rgba(0, 0, 0, 0.7)',               // deep ambient drop
+          '0 12px 32px -12px rgba(185, 28, 28, 0.18)',          // warm accent bloom
+          '0 0 0 1px rgba(255, 220, 195, 0.02)',                // hairline outer definition
         ].join(', '),
         zIndex: 1,
       }}>
@@ -153,7 +155,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
           display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
           fontFamily: 'var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace)',
           fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase',
-          color: 'rgba(200, 180, 170, 0.55)',
+          color: 'rgba(230, 210, 195, 0.65)',
         }}>
           <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#b91c1c', boxShadow: '0 0 8px rgba(185, 28, 28, 0.6)' }} />
           Paste a product URL
@@ -166,11 +168,11 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
             position: 'relative',
             flex: '1 1 280px', minWidth: 0,
             borderRadius: 12,
-            background: 'rgba(10, 8, 8, 0.6)',
-            border: `1px solid ${focused ? 'rgba(220, 200, 190, 0.35)' : 'rgba(255, 255, 255, 0.08)'}`,
+            background: 'rgba(8, 5, 4, 0.85)',
+            border: `1px solid ${focused ? 'rgba(220, 200, 190, 0.4)' : 'rgba(255, 220, 195, 0.1)'}`,
             boxShadow: focused
-              ? '0 0 0 3px rgba(185, 28, 28, 0.12), 0 1px 0 rgba(255, 255, 255, 0.04) inset'
-              : '0 1px 0 rgba(255, 255, 255, 0.04) inset',
+              ? '0 0 0 3px rgba(185, 28, 28, 0.15), 0 2px 6px rgba(0, 0, 0, 0.4) inset'
+              : '0 2px 6px rgba(0, 0, 0, 0.4) inset',
             transition: 'border-color 160ms ease, box-shadow 160ms ease',
           }}>
             {/* Link icon */}
@@ -286,9 +288,9 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
                 style={{
                   padding: '5px 11px', fontSize: 12, fontWeight: 500,
                   borderRadius: 999, cursor: 'pointer',
-                  background: 'rgba(255, 255, 255, 0.04)',
-                  border: '1px solid rgba(255, 255, 255, 0.08)',
-                  color: 'rgba(230, 215, 205, 0.75)',
+                  background: 'rgba(255, 220, 195, 0.06)',
+                  border: '1px solid rgba(255, 220, 195, 0.12)',
+                  color: 'rgba(240, 225, 215, 0.85)',
                   fontFamily: 'inherit',
                   transition: 'background 140ms, border-color 140ms, color 140ms',
                 }}
@@ -298,9 +300,9 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
             ))}
             <style>{`
               .cf-preview-chip:hover {
-                background: rgba(255, 255, 255, 0.08);
-                border-color: rgba(220, 200, 190, 0.2);
-                color: rgba(245, 235, 225, 1);
+                background: rgba(255, 220, 195, 0.12);
+                border-color: rgba(220, 200, 190, 0.28);
+                color: rgba(255, 245, 235, 1);
               }
             `}</style>
           </div>
