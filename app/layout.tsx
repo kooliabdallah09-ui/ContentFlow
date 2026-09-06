@@ -118,7 +118,7 @@ export default function RootLayout({
       clearTimeout(timeout)
       setUser(session?.user)
 
-      const publicPages = ['/', '/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help', '/pricing', '/auth', '/presentation', '/landing']
+      const publicPages = ['/', '/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help', '/pricing', '/auth', '/presentation', '/landing', '/try', '/vs']
       const isPublicPage = publicPages.some(page => pathname === page || pathname.startsWith(page + '/'))
 
       if (!session?.user && !isPublicPage) router.push('/auth/login')
