@@ -190,49 +190,80 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
               onKeyDown={e => e.key === 'Enter' && !inputDisabled && submit()}
               placeholder="yourstore.com/products/best-seller"
               disabled={inputDisabled}
+              className="cf-preview-input"
               style={{
                 width: '100%', padding: '15px 16px 15px 40px', fontSize: 15,
                 borderRadius: 12, border: 'none', background: 'transparent',
-                color: 'var(--ink, #f5f0ec)', outline: 'none',
+                color: '#f5f0ec', outline: 'none',
                 fontFamily: 'inherit', letterSpacing: '-0.005em',
                 opacity: inputDisabled ? 0.55 : 1,
+                WebkitTextFillColor: '#f5f0ec',
               }}
             />
           </div>
 
-          {/* Primary CTA — layered cream button with warm ring + arrow */}
+          {/* Primary CTA — brand-red button with glass sheen + warm bloom */}
           <button
             onClick={submit}
             disabled={inputDisabled}
             className="cf-preview-cta"
             style={{
+              position: 'relative',
               flex: '0 0 auto',
-              padding: '0 22px', height: 50, fontSize: 14.5, fontWeight: 600,
+              padding: '0 24px', height: 52, fontSize: 14.5, fontWeight: 600,
               letterSpacing: '-0.005em',
-              borderRadius: 12, border: 'none',
+              borderRadius: 12,
+              border: '1px solid rgba(255, 210, 190, 0.14)',
               cursor: inputDisabled ? 'wait' : 'pointer',
-              display: 'inline-flex', alignItems: 'center', gap: 8,
+              display: 'inline-flex', alignItems: 'center', gap: 9,
               background: inputDisabled
                 ? 'linear-gradient(180deg, #2a2422 0%, #1e1a18 100%)'
-                : 'linear-gradient(180deg, #faf3ec 0%, #ebe0d4 100%)',
-              color: inputDisabled ? 'rgba(200, 180, 170, 0.4)' : '#1a0f0d',
+                : 'linear-gradient(180deg, #d63a2a 0%, #a51818 100%)',
+              color: inputDisabled ? 'rgba(200, 180, 170, 0.4)' : '#fef5ec',
               boxShadow: inputDisabled
                 ? '0 1px 0 rgba(255, 255, 255, 0.04) inset'
-                : '0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 -1px 0 rgba(120, 60, 40, 0.15) inset, 0 6px 16px -4px rgba(185, 28, 28, 0.25), 0 1px 3px rgba(0, 0, 0, 0.4)',
-              transition: 'transform 140ms ease, box-shadow 140ms ease, filter 140ms ease',
+                : [
+                  '0 1px 0 rgba(255, 220, 200, 0.28) inset',       // top glass sheen
+                  '0 -1px 0 rgba(0, 0, 0, 0.28) inset',             // bottom edge shadow
+                  '0 10px 28px -8px rgba(185, 28, 28, 0.55)',       // warm outer bloom
+                  '0 2px 6px rgba(0, 0, 0, 0.35)',                  // grounded drop
+                  '0 0 0 1px rgba(185, 28, 28, 0.35)',              // subtle ring for definition
+                ].join(', '),
+              transition: 'transform 160ms ease, box-shadow 200ms ease, filter 160ms ease',
               whiteSpace: 'nowrap',
+              textShadow: inputDisabled ? undefined : '0 1px 0 rgba(80, 10, 10, 0.35)',
+              overflow: 'hidden',
             }}
           >
-            {buttonLabel}
+            {/* Top specular highlight — the "wet paint" gloss */}
+            {!inputDisabled && (
+              <span aria-hidden style={{
+                position: 'absolute', inset: 0, borderRadius: 12,
+                background: 'linear-gradient(180deg, rgba(255, 240, 220, 0.18) 0%, rgba(255, 240, 220, 0) 45%)',
+                pointerEvents: 'none',
+              }} />
+            )}
+            <span style={{ position: 'relative' }}>{buttonLabel}</span>
             {phase === 'idle' && (
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ marginLeft: -2 }}>
-                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ position: 'relative', marginLeft: -1 }}>
+                <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
           </button>
           <style>{`
-            .cf-preview-cta:not(:disabled):hover { transform: translateY(-1px); filter: brightness(1.02); }
-            .cf-preview-cta:not(:disabled):active { transform: translateY(0); }
+            .cf-preview-cta:not(:disabled):hover {
+              transform: translateY(-1px);
+              filter: brightness(1.05) saturate(1.05);
+              box-shadow:
+                0 1px 0 rgba(255, 220, 200, 0.32) inset,
+                0 -1px 0 rgba(0, 0, 0, 0.28) inset,
+                0 14px 34px -8px rgba(185, 28, 28, 0.7),
+                0 3px 8px rgba(0, 0, 0, 0.4),
+                0 0 0 1px rgba(220, 60, 40, 0.5);
+            }
+            .cf-preview-cta:not(:disabled):active { transform: translateY(0); filter: brightness(0.98); }
+            .cf-preview-input::placeholder { color: rgba(200, 180, 170, 0.35); }
+            .cf-preview-input::-webkit-input-placeholder { color: rgba(200, 180, 170, 0.35); }
           `}</style>
         </div>
 
@@ -287,13 +318,15 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
         )}
       </div>
 
-      {/* Trust line — sits below the card as a quiet spec plate */}
+      {/* Trust line — sits below the card as a quiet spec plate.
+          Uses --ink-fade so it works on both light + dark page backgrounds. */}
       <div style={{
         marginTop: 14, textAlign: 'center',
         fontFamily: 'var(--font-mono, ui-monospace, monospace)',
         fontSize: 10.5, letterSpacing: '0.11em', textTransform: 'uppercase',
-        color: 'rgba(200, 180, 170, 0.4)',
+        color: 'var(--ink-fade, rgba(200, 180, 170, 0.5))',
         display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap',
+        position: 'relative', zIndex: 1,
       }}>
         <span>No signup</span>
         <span style={{ opacity: 0.4 }}>·</span>
@@ -320,7 +353,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
               }} />
             )}
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--ink, #f5f0ec)' }}>
+              <div style={{ fontSize: 14, fontWeight: 500, marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#f5f0ec' }}>
                 {product.name}
               </div>
               {product.site && (
@@ -394,28 +427,37 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
                 <span style={{ display: 'inline-block', width: 5, height: 5, borderRadius: '50%', background: '#f5a691' }} />
                 Budget preview
               </div>
-              <p style={{ fontSize: 14.5, lineHeight: 1.65, color: 'var(--ink, #f5f0ec)', margin: '0 0 16px' }}>
+              <p style={{ fontSize: 14.5, lineHeight: 1.65, color: '#f5f0ec', margin: '0 0 16px' }}>
                 Rendered on <strong style={{ color: '#faf3ec' }}>Seedance Mini</strong> — 480p, 5s, watermarked. Sign up to unlock <strong style={{ color: '#faf3ec' }}>Seedance 2.0 &amp; 2.5</strong>, 720p–4K, native audio, up to 30-second clips, no watermark, plus AI Influencers, Product Studio, carousels &amp; captions. Credits never expire.
               </p>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <Link href="/auth/signup" className="cf-preview-cta" style={{
-                  display: 'inline-flex', alignItems: 'center', gap: 8,
-                  padding: '0 20px', height: 44, borderRadius: 11,
-                  background: 'linear-gradient(180deg, #faf3ec 0%, #ebe0d4 100%)',
-                  color: '#1a0f0d', textDecoration: 'none', fontSize: 14, fontWeight: 600,
-                  boxShadow: '0 1px 0 rgba(255, 255, 255, 0.5) inset, 0 -1px 0 rgba(120, 60, 40, 0.15) inset, 0 6px 16px -4px rgba(185, 28, 28, 0.25)',
-                  transition: 'transform 140ms ease, filter 140ms ease',
+                  position: 'relative', overflow: 'hidden',
+                  display: 'inline-flex', alignItems: 'center', gap: 9,
+                  padding: '0 22px', height: 46, borderRadius: 11,
+                  border: '1px solid rgba(255, 210, 190, 0.14)',
+                  background: 'linear-gradient(180deg, #d63a2a 0%, #a51818 100%)',
+                  color: '#fef5ec', textDecoration: 'none', fontSize: 14, fontWeight: 600,
+                  letterSpacing: '-0.005em',
+                  boxShadow: '0 1px 0 rgba(255, 220, 200, 0.28) inset, 0 -1px 0 rgba(0, 0, 0, 0.28) inset, 0 10px 24px -8px rgba(185, 28, 28, 0.55), 0 2px 6px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(185, 28, 28, 0.35)',
+                  textShadow: '0 1px 0 rgba(80, 10, 10, 0.35)',
+                  transition: 'transform 160ms ease, filter 160ms ease',
                 }}>
-                  Start free — 30 credits
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                  <span aria-hidden style={{
+                    position: 'absolute', inset: 0, borderRadius: 11,
+                    background: 'linear-gradient(180deg, rgba(255, 240, 220, 0.18) 0%, rgba(255, 240, 220, 0) 45%)',
+                    pointerEvents: 'none',
+                  }} />
+                  <span style={{ position: 'relative' }}>Start free — 30 credits</span>
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ position: 'relative' }}>
+                    <path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
                 </Link>
                 <Link href="/pricing" style={{
                   display: 'inline-flex', alignItems: 'center',
                   padding: '0 20px', height: 44, borderRadius: 11,
                   border: '1px solid rgba(255, 255, 255, 0.12)',
-                  color: 'var(--ink, #f5f0ec)', textDecoration: 'none', fontSize: 14, fontWeight: 500,
+                  color: '#f5f0ec', textDecoration: 'none', fontSize: 14, fontWeight: 500,
                   background: 'rgba(255, 255, 255, 0.03)',
                 }}>
                   See plans

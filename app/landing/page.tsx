@@ -12,7 +12,7 @@ import { PreviewGenerator } from '@/components/PreviewGenerator'
 // Every signup CTA routes to /auth/signup so the funnel is consistent.
 
 export default function LandingPage() {
-  const [isDark, setIsDark] = useState(true)  // Landing defaults to dark
+  const [isDark, setIsDark] = useState(false)  // Landing defaults to light
   const [menuOpen, setMenuOpen] = useState(false)
   const [activeFeatureTab, setActiveFeatureTab] = useState(0)
   const [featureVisible, setFeatureVisible] = useState(true)
@@ -24,9 +24,9 @@ export default function LandingPage() {
   }
 
   useEffect(() => {
-    // Default dark on landing; respect an explicit user override.
+    // Default light on landing; respect an explicit user override.
     const saved = typeof window !== 'undefined' ? localStorage.getItem('cf-theme') : null
-    const shouldDark = saved ? saved === 'dark' : true
+    const shouldDark = saved ? saved === 'dark' : false
     setIsDark(shouldDark)
     if (shouldDark) document.documentElement.setAttribute('data-theme', 'dark')
     else document.documentElement.removeAttribute('data-theme')
