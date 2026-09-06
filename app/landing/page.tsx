@@ -256,7 +256,7 @@ export default function LandingPage() {
             /* ── Influencer Studio: portrait hero + floating chips ── */
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Top: full-width portrait hero card */}
-              <div style={{
+              <div className="ls-inf-row" style={{
                 background: '#0d0d0d',
                 border: '1px solid rgba(255,255,255,0.07)',
                 borderRadius: 20,
@@ -266,7 +266,7 @@ export default function LandingPage() {
                 minHeight: 400,
               }}>
                 {/* Left: chips + text */}
-                <div style={{
+                <div className="ls-inf-left" style={{
                   flex: '0 0 48%',
                   padding: '40px 44px',
                   display: 'flex',
@@ -304,15 +304,15 @@ export default function LandingPage() {
                 </div>
 
                 {/* Right: portrait */}
-                <div style={{ flex: 1, position: 'relative' }}>
+                <div className="ls-inf-right" style={{ flex: 1, position: 'relative' }}>
                   {/* Gradient bleed from left */}
-                  <div style={{
+                  <div className="ls-inf-bleed-left" style={{
                     position: 'absolute', left: 0, top: 0, bottom: 0, width: '55%',
                     background: 'linear-gradient(to right, #0d0d0d 0%, transparent 100%)',
                     zIndex: 1, pointerEvents: 'none',
                   }} />
                   {/* Gradient at bottom */}
-                  <div style={{
+                  <div className="ls-inf-bleed-bottom" style={{
                     position: 'absolute', left: 0, right: 0, bottom: 0, height: '30%',
                     background: 'linear-gradient(to top, #0d0d0d 0%, transparent 100%)',
                     zIndex: 1, pointerEvents: 'none',
@@ -395,7 +395,26 @@ export default function LandingPage() {
         <style>{`
           @media (max-width: 720px) {
             .ls-feat-showcase { grid-template-columns: 1fr !important; }
-            .ls-inf-row { flex-direction: column !important; }
+            .ls-inf-row {
+              flex-direction: column-reverse !important;
+              min-height: 0 !important;
+            }
+            .ls-inf-left {
+              flex: 1 1 auto !important;
+              padding: 26px 22px !important;
+            }
+            .ls-inf-right {
+              flex: 1 1 auto !important;
+              width: 100% !important;
+              aspect-ratio: 4 / 3 !important;
+              min-height: 320px !important;
+            }
+            .ls-inf-right .ls-inf-bleed-left { display: none !important; }
+            .ls-inf-right .ls-inf-bleed-bottom { height: 40% !important; }
+          }
+          @media (max-width: 380px) {
+            .ls-inf-left { padding: 22px 18px !important; }
+            .ls-inf-right { min-height: 280px !important; }
           }
         `}</style>
       </section>
