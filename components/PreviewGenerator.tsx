@@ -118,7 +118,23 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
     : 'Generate preview'
 
   return (
-    <div style={{ position: 'relative', width: '100%', maxWidth: 640, margin: '0 auto', textAlign: 'left' }}>
+    <div className="cf-preview-root" style={{ position: 'relative', width: '100%', maxWidth: 640, margin: '0 auto', textAlign: 'left' }}>
+      {/* Mobile breathing room — loosens padding, gaps, wrap behavior below 520px */}
+      <style>{`
+        @media (max-width: 520px) {
+          .cf-preview-card { padding: 26px 20px 22px !important; border-radius: 22px !important; }
+          .cf-preview-label { margin-bottom: 16px !important; font-size: 10px !important; }
+          .cf-preview-row { gap: 12px !important; }
+          .cf-preview-input-wrap { flex: 1 1 100% !important; }
+          .cf-preview-input { padding: 16px 16px 16px 42px !important; font-size: 16px !important; }
+          .cf-preview-cta { flex: 1 1 100% !important; height: 54px !important; justify-content: center !important; font-size: 15px !important; }
+          .cf-preview-chips { margin-top: 20px !important; gap: 10px !important; row-gap: 10px !important; justify-content: flex-start !important; }
+          .cf-preview-chips .cf-preview-chip { padding: 7px 14px !important; font-size: 12.5px !important; }
+          .cf-preview-trust { margin-top: 18px !important; gap: 14px 10px !important; padding: 0 8px !important; line-height: 1.9 !important; }
+          .cf-preview-trust .cf-preview-trust-dot { display: none !important; }
+        }
+      `}</style>
+
       {/* Ambient spotlight glow behind the card — stronger so it reads on true black */}
       {compact && (
         <div aria-hidden style={{
@@ -133,7 +149,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
 
       {/* Main card — visibly lifted off the page in dark mode via a warmer
           gray-brown surface, brighter warm border, and stronger inset highlight. */}
-      <div style={{
+      <div className="cf-preview-card" style={{
         position: 'relative',
         padding: '22px 22px 20px',
         borderRadius: 20,
@@ -151,7 +167,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
         zIndex: 1,
       }}>
         {/* Micro-label — mono, refined, not shouty */}
-        <div style={{
+        <div className="cf-preview-label" style={{
           display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12,
           fontFamily: 'var(--font-mono, ui-monospace, "SF Mono", Menlo, monospace)',
           fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase',
@@ -162,9 +178,9 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
         </div>
 
         {/* Input + Button row */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <div className="cf-preview-row" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           {/* Input with inset ring, link icon, focus glow */}
-          <div style={{
+          <div className="cf-preview-input-wrap" style={{
             position: 'relative',
             flex: '1 1 280px', minWidth: 0,
             borderRadius: 12,
@@ -271,7 +287,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
 
         {/* Example URL chips — reduce cold-start friction */}
         {phase === 'idle' && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+          <div className="cf-preview-chips" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
             <span style={{
               fontFamily: 'var(--font-mono, ui-monospace, monospace)',
               fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase',
@@ -322,7 +338,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
 
       {/* Trust line — sits below the card as a quiet spec plate.
           Uses --ink-fade so it works on both light + dark page backgrounds. */}
-      <div style={{
+      <div className="cf-preview-trust" style={{
         marginTop: 14, textAlign: 'center',
         fontFamily: 'var(--font-mono, ui-monospace, monospace)',
         fontSize: 10.5, letterSpacing: '0.11em', textTransform: 'uppercase',
@@ -331,9 +347,9 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
         position: 'relative', zIndex: 1,
       }}>
         <span>No signup</span>
-        <span style={{ opacity: 0.4 }}>·</span>
+        <span className="cf-preview-trust-dot" style={{ opacity: 0.4 }}>·</span>
         <span>One preview per week</span>
-        <span style={{ opacity: 0.4 }}>·</span>
+        <span className="cf-preview-trust-dot" style={{ opacity: 0.4 }}>·</span>
         <span>Seedance Mini · 480p</span>
       </div>
 
