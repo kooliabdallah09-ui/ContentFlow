@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 import { Sun, Moon, Menu, X } from 'lucide-react'
 import { DEMO_VIDEOS } from '@/lib/demo-gallery'
 import { Logo } from '@/components/Logo'
+import { PreviewGenerator } from '@/components/PreviewGenerator'
 
 // Landing page — editorial design from the Claude Design export.
 // Hero + Features (6-up grid) + Pricing (3 cards) + closing CTA + Footer.
@@ -155,28 +156,19 @@ export default function LandingPage() {
         }} />
         <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '100px 20px 80px', textAlign: 'center' }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
-            <div style={heroEyebrow}>The future of UGC</div>
+            <div style={heroEyebrow}>Try it now — no signup</div>
             <h1 style={heroH1} className="ls-hero-h1">
-              Turn any product into a <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>scroll-stopping ad.</span>
+              Turn any product URL into a <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>scroll-stopping ad.</span>
             </h1>
-            <p style={heroP}>Script. Character. Voice. Captions. B-roll. Product photos. Social copy. Blog. Email.<br />One brand profile. Every format. 2 minutes.</p>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16, flexWrap: 'wrap' }}>
-              <Link href="/auth/signup" style={btnPrimaryLg}>Create your first ad</Link>
-              <a href="#features" style={btnSecondaryLg}>See how it works</a>
-            </div>
+            <p style={heroP}>Paste your Shopify, TikTok Shop, or Amazon link. See it as a UGC video in 60 seconds.<br />Then unlock the full studio — influencers, product photos, captions, voice — one brand, every format.</p>
           </div>
-          {/* Real app screenshot */}
-          <div style={{
-            marginTop: 72, maxWidth: 960, marginLeft: 'auto', marginRight: 'auto',
-            borderRadius: 18, border: '1px solid var(--border)',
-            boxShadow: '0 30px 80px -20px rgba(185,28,28,0.18), 0 4px 16px rgba(0,0,0,0.12)',
-            overflow: 'hidden',
-          }}>
-            <img
-              src="/hero-screenshot.png"
-              alt="ContentFlow app"
-              style={{ width: '100%', display: 'block' }}
-            />
+          {/* Inline preview generator — the demo IS the pitch */}
+          <div style={{ marginTop: 40, maxWidth: 620, marginLeft: 'auto', marginRight: 'auto' }}>
+            <PreviewGenerator compact />
+          </div>
+          <div style={{ marginTop: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <Link href="/auth/signup" style={btnSecondaryLg}>Skip preview — create free account</Link>
+            <a href="#features" style={{ fontSize: 13, color: 'var(--ink-mute)', fontWeight: 500 }}>See how it works ↓</a>
           </div>
         </div>
       </section>
