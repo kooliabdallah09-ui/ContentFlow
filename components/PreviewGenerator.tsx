@@ -281,17 +281,17 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
             }
             .cf-preview-cta:not(:disabled):active { transform: translateY(0); filter: brightness(0.98); }
             .cf-preview-input::placeholder {
-              color: rgba(200, 180, 170, 0.12) !important;
-              -webkit-text-fill-color: rgba(200, 180, 170, 0.12) !important;
+              color: rgba(200, 180, 170, 0.17) !important;
+              -webkit-text-fill-color: rgba(200, 180, 170, 0.17) !important;
               opacity: 1 !important;
             }
             .cf-preview-input::-webkit-input-placeholder {
-              color: rgba(200, 180, 170, 0.12) !important;
-              -webkit-text-fill-color: rgba(200, 180, 170, 0.12) !important;
+              color: rgba(200, 180, 170, 0.17) !important;
+              -webkit-text-fill-color: rgba(200, 180, 170, 0.17) !important;
               opacity: 1 !important;
             }
             .cf-preview-input::-moz-placeholder {
-              color: rgba(200, 180, 170, 0.12) !important;
+              color: rgba(200, 180, 170, 0.17) !important;
               opacity: 1 !important;
             }
           `}</style>
