@@ -277,7 +277,7 @@ export default function LandingPage() {
                 }}>
                   {/* Attribute chips */}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    {['Luxury', 'Lifestyle', 'Fitness', 'Blonde', '18–24', 'Brown eyes', 'Long straight', 'Female'].map(chip => (
+                    {['Penthouse', 'Lifestyle', 'Dry humor', 'Dark hair', '25–29', 'Brown eyes', 'Clean shave', 'Male'].map(chip => (
                       <span key={chip} style={{
                         fontSize: 12, padding: '6px 14px', borderRadius: 999,
                         background: 'rgba(255,255,255,0.06)',
@@ -318,8 +318,8 @@ export default function LandingPage() {
                     zIndex: 1, pointerEvents: 'none',
                   }} />
                   <img
-                    src="/feat-influencer-portrait.png"
-                    alt="AI influencer portrait"
+                    src="/feat-influencer-portrait-marco.png"
+                    alt="Marco Vell — AI creator portrait"
                     style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center top', display: 'block' }}
                   />
                   {/* Floating labels on portrait */}
