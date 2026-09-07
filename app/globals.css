@@ -161,6 +161,7 @@ a { color: inherit; text-decoration: none; }
   gap: 0;
   position: sticky;
   top: 0;
+  align-self: flex-start;   /* opt out of flex stretch so sticky has room to stick */
   width: var(--rail-w);
   height: 100vh;
   overflow-y: auto;
