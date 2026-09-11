@@ -1,7 +1,33 @@
 # ContentFlow — Master Product Reference
 
 Last audited: 2026-09-11
-Code-verified where possible. Sections marked *inferred* were derived from usage patterns and should be double-checked before treating as authoritative.
+Self-contained. Feed this file to an external reviewer (human or AI) with no prior context and they should understand the product, the positioning, the market, the business model, the constraints, and the gaps between strategy and reality.
+
+---
+
+## 0. Context for the reader — TL;DR
+
+**What ContentFlow is**: An AI web app that turns a product URL (Shopify, TikTok Shop, Amazon, or a raw product photo) into a full week's worth of UGC-style video ads — script, hero frame, AI creator, voice, captions — in one wallet. Built for solo dropshippers and one-person e-com stores, not for enterprises, filmmakers, or agencies.
+
+**Category we position as**: "The AI ad engine for dropshippers"
+**Tagline**: "Ads that don't look AI. For stores that ship every week."
+
+**Live production URL**: https://contentflow-web.com
+**Repo**: `kooliabdallah09-ui/ContentFlow` (Next.js App Router, deployed on Vercel)
+**Tech stack**: Next.js 14 + Supabase (Postgres + Auth + Storage) + Vercel serverless + Dodo Payments + BytePlus Seedance + Google Nano Banana Pro + Anthropic Claude + ElevenLabs
+
+**Founder context**: Solo founder, 14 years old, self-taught, launching with a **$252 total one-time budget** covering both infrastructure and API prepayments. This is pre-launch — no paying customers yet. All positioning is theoretical/tested-against-research until real users arrive.
+
+**Currently deployed features**: 20+ generator tools + Influencer Studio + Product Studio + Campaign Planner + Library + Editor + Brand Kit + `/try` no-signup preview + `/vs/*` competitor comparison SEO pages + Dodo billing integration + daily storage cleanup cron.
+
+**What's NOT yet built** (positioning claims not fully backed by product yet, honest):
+- Batch mode UI (10-variant one-click generation) — API exists, UI hidden
+- Platform-safety review layer (positioning claims platform-safe but there's no actual detection/checker)
+- Localized script generation per country (voice supports 30+ langs, but hooks/scripts are English-primary)
+- Direct ad-account launcher (Meta/TikTok Ads posting)
+- Per-ad cost estimator widget on pricing page
+
+**Critical strategic decision** made 2026-09-11: locked positioning around dropshippers after competitor + buyer-psychology research. Prior positioning was generic "AI content platform." Every landing/pricing surface has been rewritten to enforce the new position.
 
 ---
 
@@ -358,14 +384,379 @@ Rows: credits never expire, URL → 20 variants, UGC talking-head ads, Product S
 
 ---
 
-## 6. Positioning-Related Docs (Repo Root)
+## 6. Positioning — the strategic center
 
-Four load-bearing markdown files:
+Locked 2026-09-11 after competitor audit + buyer psychology research. Every marketing surface must reinforce it. If a piece of copy or feature doesn't help sell it, we cut it.
 
-- **`POSITIONING.md`** — locked positioning. Category = "The AI ad engine for dropshippers". Tagline = "Ads that don't look AI. For stores that ship every week." Four claims, three enemies, words to use/kill, ICP, anti-audience.
-- **`BUSINESS.md`** — financials. 1 credit = $0.025, 1.4× markup, blended margin ~45%, LTV ~$80, CAC ~$6, LTV:CAC ~13:1, break-even at ~15-20 paying users.
-- **`ARCHITECTURE.md`** — technical reference. Vercel + Supabase + BytePlus + Vertex + Anthropic + ElevenLabs + Dodo. Full user-flow walkthroughs.
-- **`MARKETING.md`** — 6-month organic launch plan. TikTok, Twitter, affiliate, Product Hunt, cold DMs. Priority order + weekly checklist.
+### 6.1 The decision
+
+- **Category**: "The AI ad engine for dropshippers"
+- **Tagline**: "Ads that don't look AI. For stores that ship every week."
+
+### 6.2 Who we serve (ICP — ideal customer profile)
+
+Solo dropshippers and one-person e-com stores who:
+- Test 10+ ad variants per week
+- Sell primarily on TikTok Shop, Shopify, Amazon, TikTok/Meta ads
+- Are the founder + operator (not a marketing team)
+- Have a $19-$149/mo tool budget and REJECT anything over $200
+- Care about margin and unit economics
+- Fear ad account bans more than any other loss
+- Cannot afford to burn credits on generations they can't use
+
+### 6.3 Who we do NOT serve (anti-audience — stated on pricing page)
+
+- Filmmakers → try Runway
+- Enterprise brand teams and Fortune 500 → try Higgsfield
+- L&D / corporate training → try Synthesia
+- Agencies managing 50+ clients (they need real API + white-label at scale)
+- Users who want a full timeline editor → try CapCut
+- Anyone whose primary product isn't a physical thing
+
+### 6.4 The positioning statement (long form)
+
+**For** solo dropshippers and one-person e-com stores
+**Who** need to ship 20+ ad variants per week without stacking 4 tools or losing their ad account
+**ContentFlow is** the AI creative engine that turns any product URL into a full week's worth of platform-safe, human-passing ads — with one wallet, one workflow, and honest pricing.
+**Unlike** Arcads (expensive, no editor), Creatify (lip-sync tells, billing complaints), Higgsfield (built for cinema, not conversion), or the 4-tool stack (fragmented),
+**Our product** owns the complete creative loop: URL → script → hero frames → talking avatar → product shots → captions → voice → export. In your language. In your brand. At one flat price.
+
+### 6.5 The four claims we lead with everywhere
+
+| Claim | Pain it attacks | Proof point on the site |
+|---|---|---|
+| **Doesn't look AI** | Market fatigue with AI ads. TikTok removed 51,618 synthetic videos in H2 2025. Meta flagged 13M+ AI ads. AI is now a NEGATIVE signal in comments. | Actor gallery (Marco Vell etc.), real generated ads on landing marquee, side-by-side vs. competitor slop |
+| **Doesn't burn credits** | Universal industry rage — Arcads, Higgsfield, Creatify all lose users to credit-burn on failed generations. | "Credits never expire" trust bar on pricing + hero + FAQ |
+| **Doesn't need 4 tools** | Stack problem — dropshippers use Arcads + Higgsfield + Creatify + CapCut. Nobody closed the loop. | "One wallet" hero + full feature grid + comparison table |
+| **Speaks your buyer's language** | English-first tool limitation. Underserved geographies: Portuguese (BR), Arabic, Turkish, Spanish (LatAm). | Voice output in 30+ languages via ElevenLabs |
+
+### 6.6 The three enemies we name in copy
+
+Great positioning names its enemies. Ours are:
+
+1. **The 4-tool stack** — "Stop paying for Arcads + Higgsfield + Creatify + CapCut. One wallet does everything."
+2. **Credit-burn anxiety** — "You paid $99 and got 3 usable ads. That's not how we work." Counter: credits never expire.
+3. **AI slop that gets you banned** — "Ads that look like ads." Counter: platform-safe passing outputs.
+
+### 6.7 Words we KILL (market fatigue signals)
+
+- ❌ "AI-generated" (now negative)
+- ❌ "Revolutionary" / "next-gen" / "cutting-edge"
+- ❌ "10x your content" (played out)
+- ❌ "Fortune 500 uses us" (wrong audience)
+- ❌ "Cinematic" (Higgsfield owns; wrong for us)
+- ❌ "Content platform" (dead phrase)
+- ❌ "AI video generator" (dead phrase)
+
+### 6.8 Words we USE
+
+- ✅ "Your creative team, for one wallet"
+- ✅ "Ads that don't look AI"
+- ✅ "Every hook. Every angle. Every language."
+- ✅ "One product URL. Twenty ready-to-run ads."
+- ✅ "Ship. Test. Kill. Repeat."
+- ✅ "Ads for stores that ship every week"
+
+### 6.9 The one test that decides everything
+
+If a feature, price, landing block, or piece of copy is unclear, ask:
+
+> **"Does this help a solo dropshipper ship more ads that don't look AI, without paying for 4 tools?"**
+
+Yes → ship. No → cut.
+
+### 6.10 Success criteria — how we know positioning is working
+
+Positioning is winning when:
+- Landing → `/try` conversion > 25%
+- `/try` → signup > 20%
+- Search traffic includes "dropshipper" adjacent terms
+- Support/DMs quote the tagline verbatim
+- Users describe us as "the dropshipper tool" without prompting
+- Churn stays < 10%/month
+
+Positioning is failing when:
+- Users compare us to Runway or Synthesia (wrong audience reached)
+- CAC creeps up (message isn't resonating)
+- Users ask for enterprise features
+- Churn reasons cite Higgsfield or HeyGen as replacements
+
+### 6.11 Companion docs (all live at repo root)
+
+- **`POSITIONING.md`** — extended positioning brief with full rationale
+- **`BUSINESS.md`** — financial model + unit economics + break-even scenarios + KPIs
+- **`ARCHITECTURE.md`** — technical architecture + service diagrams + user flow walkthroughs
+- **`MARKETING.md`** — 6-month organic-first launch playbook
+
+---
+
+## 6A. Strategic context — WHY these decisions
+
+If an external reviewer asks "why did they make these choices?", this section answers.
+
+### 6A.1 Why dropshippers (not enterprises, not creators, not agencies)
+
+Chose dropshippers over other segments because of five converging factors:
+
+1. **Product-market fit is already there.** Every existing generator was built for physical products with URLs. Refactoring would be trivial vs. rebuilding for another segment.
+2. **The word "dropshipper" is unclaimed on any competitor homepage.** Higgsfield, Arcads, Creatify, HeyGen all target "marketers," "brands," "creators," or "enterprise." Zendrop uses the word but is a supplier-first company. Vacant category.
+3. **They test more, buy more.** A dropshipper generates 20-50 ad variants per week. A SaaS founder generates 2-4/month. Same subscription price, ~10× the credit consumption + higher retention through habit.
+4. **Distribution is solved.** Dropship Twitter, r/dropship, TikTok creator community, YouTube gurus like Beast of Ecom, Nathan Nazareth, Jordan Welch. Known channels with known playbooks.
+5. **Founder can identify with the audience.** Small operators, budget-conscious, allergic to enterprise sales — the founder is one of them (14yo solo builder).
+
+### 6A.2 Why NOT compete on model breadth
+
+Every AI video tool now brags about number of models (Higgsfield: 50+, Runway: 5+ integrated). We use Seedance-only.
+
+Reasons this is deliberate:
+1. **Seedance 2.0 quality matches or beats Kling and most Sora 2 outputs for UGC-style talking heads at 720p.** Higher variance isn't higher quality for our use case.
+2. **1.4× markup vs. 2×+ industry standard** is possible because we don't have to price in "cover the expensive model too." Seedance's pricing is transparent (~$0.15/s at 720p).
+3. **Single-vendor simplicity** means faster shipping, fewer integration bugs, tighter margin control.
+4. **The audience doesn't care.** Dropshippers care if the ad converts, not what model powered it. Model-breadth is a developer-audience trust signal, not a buyer signal.
+
+Downside accepted: we lose "model breadth" as a positioning wedge, but we never wanted that wedge.
+
+### 6A.3 Why the "doesn't look AI" tagline
+
+Buyer-psychology research (2026-09) surfaced this as the #1 market shift: AI ads used to work because they were novel. Now they fail because they're everywhere. TikTok removed 51,618 synthetic media videos. Meta flagged 13M+ AI ads. If an ad reads as AI in the comments, CTR craters.
+
+Nobody else has this positioning claim explicitly. Higgsfield leans into AI. Arcads brags about motion-capture actors. HeyGen touts avatar polish. We're the only one saying "the point is you can't tell it's us."
+
+**Risk**: we don't yet have a platform-safety review layer built. The claim is aspirational until we ship compliance checking. Honest gap.
+
+### 6A.4 Why "credits never expire"
+
+Every competitor's #1 churn driver is credit burn. Arcads (Trustpilot: "credits die at end of cycle"). Higgsfield (top-ups expire in 90 days). Creatify (credit shortfalls on Starter). Every review site cites it.
+
+This is a business-model decision: it costs us nothing (we already store balance in Postgres, we just don't zero it on cycle roll). It's a trust wedge that directly counters every competitor's scandal reputation.
+
+**Downside**: users who signed up during a promo and never returned still hold "value" on our balance sheet. Small accounting quirk, not a real cost.
+
+### 6A.5 Why hide the Enterprise tier
+
+Original Enterprise was $605/mo, 25k credits. Hid it because:
+1. Wrong-audience signal — if visitors see $605 they think "this is enterprise SaaS, not for me."
+2. Anti-audience section works better without a big enterprise price to argue against.
+3. Real enterprise buyers email anyway. Custom quote is more profitable than shelf pricing.
+
+Replaced with a subtle "Higher volume, multiple seats, or white-label? Contact us" mailto card.
+
+### 6A.6 Why free tier is 30 credits (not 60, not 100)
+
+Cheapest UGC video is ~95 credits (Seedance Mini 480p 5s). Signup bonus of 30 does NOT let a new user render a UGC video — deliberate.
+
+The theory:
+- 30 credits lets them play with social captions, product images, voice, carousel — cheap features that showcase quality
+- To do a UGC video (the flagship), they must upgrade or use the `/try` preview
+- `/try` costs us $0.18 per anonymous visitor (Seedance Mini 480p 5s watermarked)
+- $0.18 to a preview is cheaper than $1.70+ to a burned-through free signup
+
+Deliberate friction placement.
+
+### 6A.7 Why price ladder is $8/$19/$49/$149
+
+From competitor pricing research:
+- **$29-$79/mo with predictable pricing + high-quality UGC + dropshipper language** is the empty square in the market.
+- Our Starter $19 undercuts Arcads Starter ($77-110) by 4×.
+- Our Pro $49 (marked "Most popular") sits in the empty $49-79 slot with dropshipper-explicit positioning nobody else has.
+- Agency $149 matches Higgsfield's mid-tier price with a 100% different offering.
+
+Sweet spot for dropshippers per research: $29-$110/mo. Rejection threshold: $200+.
+
+### 6A.8 Why the `/try` preview generator exists
+
+Two purposes:
+1. **Convert cold traffic without burning $1.70/UGC on signup freebies.** Preview costs $0.18. Signup UGC would cost $1.70 vendor cost. 10× cheaper to convert.
+2. **Kills the "is this real?" objection.** Visitor pastes their actual product URL and watches it become an ad in 60 seconds. No screenshots to fake, no marketing video — the product IS the proof.
+
+Rate limit: 1 per IP per 7 days. In-memory Map (not perfect for Vercel serverless, worst case someone gets 2-3). Acceptable at $0.18 cost.
+
+---
+
+## 6B. Market landscape — competitors in detail
+
+### 6B.1 Direct competitors (segment overlap)
+
+| Competitor | ARR | Users | Pricing | Their strength | Their weakness |
+|---|---|---|---|---|---|
+| **Higgsfield** | $700M | 30M | $19-$129/mo + Enterprise | Cinema-grade camera controls, 50+ models, strong brand, agentic Supercomputer | Credits expire (90d top-ups), enterprise-flavored UX, motion inconsistent on complex prompts, wrong for UGC feel |
+| **Arcads** | $15M | 6,000 customers | $29-$500+/mo | Best-in-class motion-capture actors, largest realistic actor library, top marketer positioning | Starts at $110/mo for talking actors, editor is $80 add-on, Trustpilot billing scandal, lip-sync drift in 15% of outputs |
+| **Creatify** | $9M | 1M+ users | Free-$99/mo + Enterprise | URL-to-video pipeline (closest thing to our workflow), Alibaba/Comcast customers, ad launcher | Credit shortfalls on Starter, formulaic script arcs, unauthorized charges complaints |
+| **HeyGen** | $200M | 30M | Free-$149/mo + Enterprise | 175+ language translation, studio-quality digital twins, SOC2/enterprise, 85% Fortune 100 | Feels corporate not UGC, per-minute credit math punishes iteration, no product URL workflow |
+| **Icon.me** | $5M (unstable) | Small | $1,000/mo | Human authenticity ("The Human Admaker"), refund guarantee | Extremely fragile ops, reports of Feb 2026 shutdown, 6 ads/mo very low volume |
+| **AdCreative.ai** | ~$25M | Large | $29-$399+/mo | Banner-first heritage, creative scoring model, high G2 volume | Massive billing/refund scandal reputation, videos gated at $249, quality trails competitors |
+| **Pippit (ByteDance)** | Unknown | Riding CapCut's 400M | Free-$90/mo | ByteDance backing, TikTok-native, generous free tier (150 credits/wk), URL workflow | Newer (2025), output consistency varies, weaker cross-platform than TikTok |
+| **Synthesia** | ~$100M | Large | $29-$25k/yr | 240+ avatars, SCORM/LMS, enterprise leader in L&D | Not for ads at all, no product URL workflow, enterprise-only pricing above starter |
+| **Zendrop AI Ads** | ~$30M | 3M sellers | Free-$199/mo | Dropshipping-native (supplier + store + ads all-in-one), MCP integration, YouTube guru dominance | Ads are a bundled feature not best-in-class; supplier-first company |
+| **Runway** | $300M | Large | $12-$76/mo | Cinematic AI video, Gen-4, Act-Two, pro NLE integrations | Requires creative skill, no product URL workflow, per-clip credit math bad for ad testing |
+| **MakeUGC / CreateUGC / EzUGC / AgentMedia** | Low millions | Small-medium | $19-$119/mo | Undercuts Arcads/Creatify 40-60% on price, faster time-to-video | Quality gap, small model diversity, weak brand, low switching cost |
+
+### 6B.2 Empty positioning slot we occupy
+
+The `$29-$79/mo flat-priced high-quality UGC + dropshipper-explicit language + multi-language output` slot is empty. We fit there directly with Pro $49.
+
+### 6B.3 Distribution channels & who owns them
+
+Underweighted channels (where we can win):
+- **Shopify App Store listing** — huge blind spot for direct competitors
+- **Dropshipping-guru YouTube sponsorships** — Zendrop dominates supplier ads; no ad-tool moved in
+- **Reddit r/dropship / r/ecommerce / r/shopify** — every competitor underweighted
+- **Multi-language dropshipper communities** — Portuguese BR, Arabic, Turkish, Spanish LatAm
+
+Contested channels (harder):
+- TikTok organic — Pippit is native to CapCut, Creatify posts heavily
+- Twitter/X — Arcads and Higgsfield dominant on founder-led content
+- Product Hunt — diminishing returns for AI tools
+
+Skip:
+- LinkedIn — wrong audience
+- Paid Meta/TikTok ads at launch — margin killer without proof
+
+---
+
+## 6C. Business model — unit economics
+
+### 6C.1 The credit economy
+
+- **1 credit = $0.025 USD** (customer-facing price)
+- **Markup**: 1.4× on video vendor cost, 1.8× on premium images, 3.6× on 4K images
+- **Payment processor**: Dodo Payments (~3.5% + $0.30 per transaction)
+
+### 6C.2 Cost per generation (raw vendor cost, before markup)
+
+From `lib/ugc-pricing.ts`:
+
+| Generation | Raw cost | Retail cr | Retail $ | Gross margin |
+|---|---|---|---|---|
+| UGC 5s @ 480p Mini | ~$0.18 | ~15 cr | $0.38 | +$0.20 |
+| UGC 5s @ 720p Seedance 2.0 | ~$0.84 | ~45 cr | $1.13 | +$0.29 |
+| UGC 10s @ 720p (2.0) | ~$1.60 | ~90 cr | $2.25 | +$0.65 |
+| UGC 10s @ 1080p (2.0) | ~$3.83 | ~210 cr | $5.25 | +$1.42 |
+| Image NB Pro 2K | $0.075 | 5 cr | $0.13 | +$0.05 |
+| Voiceover per 100 chars | $0.03 | 5 cr | $0.13 | +$0.10 |
+| Preview (`/try`, loss leader) | $0.18 | 0 | $0 | **-$0.18** |
+
+### 6C.3 Revenue per plan (net of Dodo fee ~3.5%)
+
+At 70% credit utilization (realistic):
+
+| Plan | Price | Net after fees | Vendor cost | Gross profit/user/mo |
+|---|---|---|---|---|
+| Free | $0 | $0 | -$0.38 | **-$0.38** (loss leader) |
+| Lite | $8 | $7.42 | $3.75 | **+$3.67 (49%)** |
+| Starter | $19 | $18.34 | $10.00 | **+$8.34 (45%)** |
+| Pro | $49 | $47.28 | $25.00 | **+$22.28 (47%)** |
+| Agency | $149 | $144.38 | $81.25 | **+$63.13 (44%)** |
+
+### 6C.4 Unit economics per paying user (blended)
+
+Assuming 60% Lite / 30% Starter / 10% Pro mix:
+
+- ARPU: $15.40/mo
+- Net revenue after fees: $14.40/mo
+- Blended vendor cost: $7.75/mo
+- **Gross profit per paying user: $6.65/mo**
+- Assumed monthly churn: 8-10%
+- LTV (12-mo cohort): **~$80**
+- Marketing cost per paid user acquired: **~$6** (organic mix)
+- **LTV : CAC ratio: ~13:1** (healthy: >3:1)
+- **Payback period: ~1 month**
+
+### 6C.5 Fixed monthly costs
+
+- Vercel Pro: $20/mo
+- Supabase Pro: $25/mo
+- Domain: ~$1.25/mo
+- ElevenLabs Creator (optional): $22/mo
+- **Baseline: ~$46-68/mo**
+
+### 6C.6 Break-even
+
+- **Fixed-cost break-even**: 7 paying users (~$60 MRR)
+- **All-in break-even**: 15-20 paying users
+- Cash-flow positive by month 2-3 in all scenarios except pure zero-traffic launch
+
+### 6C.7 Realistic 24-month scenarios
+
+Assumptions: 20% visitor→signup, 8% signup→paid, 10% monthly churn.
+
+| Scale | Visitors/day | Steady paid users | Steady MRR | Monthly gross profit |
+|---|---|---|---|---|
+| Slow launch | 50 | 240 | $1,600 | $1,379 |
+| Moderate | 200 | 960 | $6,384 | $5,654 |
+| Successful | 1,000 | 4,800 | $31,920 | $28,350 (~$340k/yr) |
+
+---
+
+## 6D. Constraints — real-world context for the reviewer
+
+An outside reviewer should factor these in when giving feedback.
+
+### 6D.1 Team + capital
+
+- **Solo founder**, 14 years old, no team
+- **$252 total one-time budget** for launch (covers infra + all API prepayments, before revenue)
+- No investor money, no runway beyond that budget until users pay
+- Parents aware and supportive but not co-investors
+- School commitment ~30 hrs/week — can't do 8hr/day product work
+
+### 6D.2 Time constraints
+
+- Cannot commit to 4-6hrs/day of TikTok/DM grind that the marketing plan calls for
+- Cannot ship features at aggressive velocity — school + one dev + no delegation
+- MRR must arrive fast enough to fund month 2 infra ($46/mo) or budget dies
+
+### 6D.3 Product maturity
+
+- **20+ generators exist and work** — not vaporware
+- **`/try` public preview generator works** — visitors can prove the product without signup
+- **Dodo Payments live** — real billing, not test mode
+- **Deployment cadence**: commit + push + `vercel --prod` after every code change (standing rule)
+- **Not yet real**: batch mode UI (API exists), platform-safety layer, localized script generation, Meta/TikTok ad launcher
+
+### 6D.4 Legal / operational unknowns
+
+- Payment processor typically requires account holder to be 18+
+- Handling refunds, chargebacks, support at 14 is a real question
+- No LLC yet; personal name accounts
+- No SOC2, no enterprise infrastructure
+- No customer service tooling (no Intercom, no help desk)
+
+### 6D.5 What's genuinely working
+
+Backed by code:
+- End-to-end UGC generation pipeline (script → hero frame → animation) with real Seedance video
+- Product Studio can generate infinite product shots from phone photos
+- AI Influencer Studio produces reusable brand-locked creators (Marco Vell exists)
+- Credit system with atomic deduction + audit trail
+- Storage cleanup cron runs daily
+- Dodo Payments integration handles subscriptions + webhooks
+- `/vs/*` SEO comparison pages are indexed and ranked
+
+### 6D.6 What has NEVER been tested at scale
+
+- Zero real users (~7 total accounts, mostly the founder + friends)
+- Zero real revenue (Dodo works but hasn't processed a paying subscription)
+- Load-testing on video-status polling under real concurrency
+- Actual dropshipper feedback on outputs
+- Actual TikTok/Meta ad account response to our outputs (platform-safe is untested)
+
+---
+
+## 6E. Known gaps — positioning claims that need product proof
+
+For an honest external review, here's where reality doesn't yet match positioning:
+
+| Positioning claim | Reality | Priority to close |
+|---|---|---|
+| "Ads that don't look AI" | Output quality is Seedance-baseline; no dedicated tuning or human-passing checker | HIGH — could ship a review/warning layer |
+| "Ship 20 ads per week" (Pro plan) | Batch mode UI is hidden; users must generate one-by-one | HIGH — turn UI back on |
+| "Speaks your buyer's language" | Voice supports 30+ langs but scripts are English-primary in prompts | MEDIUM — add locale flags to script gen |
+| "Platform-safe" | No detection layer; claim is aspirational | HIGH — even a warning layer would help |
+| "URL → 20 variants" | URL scrape works; 20-variant generation not one-click yet | HIGH — same as batch mode |
+| "Credits never expire" | ✅ Actually true — code and pricing enforce this | DONE |
+| "One wallet" | ✅ Actually true — everything under one account | DONE |
+| "Cancel anytime · no dark patterns" | Cancel flow exists but isn't one-click yet | MEDIUM |
 
 ---
 
