@@ -156,11 +156,11 @@ export default function LandingPage() {
         }} />
         <div style={{ position: 'relative', maxWidth: 1200, margin: '0 auto', padding: '100px 20px 80px', textAlign: 'center' }}>
           <div style={{ maxWidth: 720, margin: '0 auto' }}>
-            <div style={heroEyebrow}>Try it now — no signup</div>
+            <div style={heroEyebrow}>The AI ad engine for dropshippers</div>
             <h1 style={heroH1} className="ls-hero-h1">
-              Turn any product URL into a <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>scroll-stopping ad.</span>
+              Ads that <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>don&apos;t look AI.</span><br />For stores that ship every week.
             </h1>
-            <p style={heroP}>Paste your Shopify, TikTok Shop, or Amazon link. See it as a UGC video in 60 seconds.<br />Then unlock the full studio — influencers, product photos, captions, voice — one brand, every format.</p>
+            <p style={heroP}>Paste your Shopify, TikTok Shop, or Amazon URL. Get a week&apos;s worth of platform-safe UGC ads — script, hero frame, actor, voice, captions.<br />One wallet. Every language. Credits that don&apos;t expire.</p>
           </div>
           {/* Inline preview generator — the demo IS the pitch */}
           <div style={{ marginTop: 44, maxWidth: 640, marginLeft: 'auto', marginRight: 'auto' }}>
