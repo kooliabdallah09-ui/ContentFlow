@@ -605,7 +605,7 @@ export default function PricingPage() {
                 <li>You run Fortune 500 marketing → try Higgsfield</li>
                 <li>You do corporate training → try Synthesia</li>
                 <li>You want a full timeline editor → try CapCut</li>
-                <li>Your product isn&apos;t a physical thing with a URL</li>
+                <li>Your product isn&apos;t a physical thing</li>
               </ul>
             </div>
             <div>
@@ -613,9 +613,10 @@ export default function PricingPage() {
                 We&apos;re for you if
               </div>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 8, fontSize: 13.5, color: 'var(--ink, #111)', lineHeight: 1.55 }}>
-                <li>You sell physical products on Shopify / TikTok Shop / Amazon</li>
-                <li>You test 10+ ad variants a week</li>
-                <li>You&apos;re the founder AND the marketer</li>
+                <li>You sell physical products anywhere — Shopify, TikTok Shop, Amazon, Etsy, DMs</li>
+                <li>You&apos;ve got a product URL OR just a product photo — either works</li>
+                <li>You&apos;re a founder, a marketer, an agency operator, or a one-person brand</li>
+                <li>You test ad hooks weekly — not one perfect ad per quarter</li>
                 <li>You&apos;ve been burned by credit-based tools before</li>
                 <li>You want one wallet, not four subscriptions</li>
               </ul>
