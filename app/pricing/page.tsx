@@ -8,103 +8,86 @@ import { Logo } from '@/components/Logo'
 const plans = [
   {
     name: 'Free',
+    tagline: 'Try one ad. No card.',
     price: { monthly: '$0', annual: '$0' },
     annualTotal: null,
-    credits: '30 one-time signup credits',
+    credits: '30 credits at signup',
     planKey: 'free',
     features: [
-      '30 credits on sign-up (~6 images)',
-      'Try every studio & tool',
-      'AI image generator',
-      'Social captions',
-      'Business card generator',
-      'Voiceover',
+      '30 credits on signup',
+      'One preview ad from any product URL',
+      'Try every studio',
+      'No card required',
     ],
-    cta: 'Start for free',
+    cta: 'Start free',
     ctaHref: '/auth/signup',
   },
   {
     name: 'Lite',
+    tagline: 'One product a week. Test the tool.',
     price: { monthly: '$8', annual: '$7' },
     annualTotal: '$80/yr',
     credits: '300 credits/month',
     planKey: 'lite',
     features: [
-      'Product photos & images',
+      '~4 UGC ads/mo at 720p',
+      'Product photos, carousels, captions',
       'AI Influencer Studio',
-      'Social captions',
-      'Voiceover',
-      'Carousel maker',
-      'Business card generator',
-      'UGC & AI video generation',
+      'Voice in 30+ languages',
+      'Credits never expire',
     ],
     cta: 'Get Lite',
   },
   {
     name: 'Starter',
+    tagline: 'Test 20 hooks per month.',
     price: { monthly: '$19', annual: '$16' },
     annualTotal: '$190/yr',
     credits: '800 credits/month',
     planKey: 'starter',
     features: [
-      '~6 UGC videos/mo at 5s',
-      '~160 product images/mo',
-      '~100 AI influencer photos/mo',
-      'AI Influencer Studio',
-      'Product Studio',
-      'No watermark · Video editor',
-      'Priority support',
+      '~20 UGC ads/mo at 720p',
+      'Batch generation — 10 variants at once',
+      'Full Product Studio',
+      'No watermark',
+      'Video editor',
+      'Credits never expire',
     ],
     cta: 'Get Starter',
   },
   {
     name: 'Pro',
+    tagline: 'Ship 20 ads per week.',
     price: { monthly: '$49', annual: '$41' },
     annualTotal: '$490/yr',
     credits: '2,000 credits/month',
     planKey: 'pro',
     popular: true,
     features: [
-      '~16 UGC videos/mo at 5s',
-      '~400 product images/mo',
-      '~250 AI influencer photos/mo',
-      'Everything in Starter',
+      '~80 UGC ads/mo at 720p',
       'Shopify product import',
       'Campaign planner',
+      'Reel Analyzer (recreate competitor ads)',
+      'Priority render queue',
+      'Everything in Starter',
     ],
     cta: 'Get Pro',
   },
   {
     name: 'Agency',
+    tagline: 'Multiple brands. Multiple stores.',
     price: { monthly: '$149', annual: '$124' },
     annualTotal: '$1,490/yr',
     credits: '6,500 credits/month',
     planKey: 'agency',
     features: [
-      '~52 UGC videos/mo at 5s',
-      '~1,300 product images/mo',
-      '~800 AI influencer photos/mo',
-      'Everything in Pro',
+      '~260 UGC ads/mo at 720p',
       'Multiple brand profiles',
+      'Multiple store URLs',
       'Dedicated support',
+      'Everything in Pro',
     ],
     cta: 'Get Agency',
-  },
-  {
-    name: 'Enterprise',
-    price: { monthly: '$605', annual: '$500' },
-    annualTotal: '$6,000/yr',
-    credits: '25,000 credits/month',
-    planKey: 'enterprise',
-    features: [
-      '~200 UGC videos/mo at 5s',
-      '~5,000 product images/mo',
-      'Everything in Agency',
-      'API access · White-label',
-      '5 team seats · Priority queue',
-      'Dedicated Slack & account manager',
-    ],
-    cta: 'Get Enterprise',
   },
 ]
 
@@ -150,13 +133,12 @@ function pubGetCrEach(t: PubContentType, sel: Record<string, string>): number {
   return t.crBase
 }
 
-const PUB_CAPS: Record<string, number> = { lite: 300, starter: 800, pro: 2000, agency: 6500, enterprise: 25000 }
+const PUB_CAPS: Record<string, number> = { lite: 300, starter: 800, pro: 2000, agency: 6500 }
 const PUB_PRICES: Record<string, { name: string; monthly: string; annual: string; planKey: string }> = {
-  lite:       { name: 'Lite',       monthly: '$8',   annual: '$7',   planKey: 'lite'       },
-  starter:    { name: 'Starter',    monthly: '$19',  annual: '$16',  planKey: 'starter'    },
-  pro:        { name: 'Pro',        monthly: '$49',  annual: '$41',  planKey: 'pro'        },
-  agency:     { name: 'Agency',     monthly: '$149', annual: '$124', planKey: 'agency'     },
-  enterprise: { name: 'Enterprise', monthly: '$605', annual: '$500', planKey: 'enterprise' },
+  lite:    { name: 'Lite',    monthly: '$8',   annual: '$7',   planKey: 'lite'    },
+  starter: { name: 'Starter', monthly: '$19',  annual: '$16',  planKey: 'starter' },
+  pro:     { name: 'Pro',     monthly: '$49',  annual: '$41',  planKey: 'pro'     },
+  agency:  { name: 'Agency',  monthly: '$149', annual: '$124', planKey: 'agency'  },
 }
 
 function PlanRecommenderPub({ annual }: { annual: boolean }) {
@@ -184,7 +166,6 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
 
   function getRecKey() {
     if (!selTypes.length) return ''
-    if (totalCr > PUB_CAPS.agency) return 'enterprise'
     if (totalCr > PUB_CAPS.pro) return 'agency'
     if (totalCr > PUB_CAPS.starter) return 'pro'
     if (totalCr > PUB_CAPS.lite) return 'starter'
@@ -199,8 +180,8 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
     <div style={{ marginBottom: 64, borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border, #e5e7eb)', background: 'var(--surface, #fff)' }}>
       <div style={{ padding: '22px 28px', borderBottom: '1px solid var(--border, #e5e7eb)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 3 }}>Find the right plan for you</div>
-          <div style={{ fontSize: 13, color: 'var(--ink-dim, #666)' }}>Select what you create — we'll calculate the credits you need.</div>
+          <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: '-0.02em', marginBottom: 3 }}>How many ads will you ship?</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-dim, #666)' }}>Tell us your monthly mix — we&apos;ll show the plan that fits without burning credits.</div>
         </div>
         {selTypes.length > 0 && (
           <div style={{ display: 'flex', gap: 8 }}>
@@ -332,20 +313,24 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
 }
 
 const comparison = [
-  ['Starting price', '$19/mo', '$110/mo', '$39/mo',  '$29/mo',  '$15/mo'],
-  ['UGC video',         '✓',      '✓',       '✓',       '~',       '✓'],
-  ['Product photos',    '✓',      '✗',       '✗',       '✗',       '✗'],
-  ['Social copy',       '✓',      '✗',       '✗',       '✗',       '✗'],
-  ['Blog + carousel',   '✓',      '✗',       '✗',       '✗',       '✗'],
-  ['Brand persistence', '✓',      '✗',       '✗',       '✗',       '✗'],
-  ['URL → ad',          '✓',      '~',       '✓',       '✗',       '✓'],
+  ['Starting price',                 '$19/mo', '$110/mo', '$39/mo', '$29/mo', '$19/mo'],
+  ['Credits never expire',           '✓',       '✗',       '✗',      '✗',      '✗'],
+  ['URL → 20 ad variants',           '✓',       '✗',       '~',      '✗',      '✗'],
+  ['UGC talking-head ads',           '✓',       '✓',       '✓',      '✓',      '~'],
+  ['Product Studio (phone → shot)',  '✓',       '✗',       '✗',      '✗',      '~'],
+  ['30+ language voice output',      '✓',       '✓',       '~',      '✓',      '✗'],
+  ['Complete stack (no other tools)', '✓',      '✗',       '~',      '✗',      '✗'],
+  ['Cancel anytime · no dark patterns','✓',     '~',       '~',      '✓',      '✓'],
 ]
 
 const faqs = [
-  { q: 'What are credits?', a: 'Credits are consumed when you generate content — images, videos, influencer photos, voiceovers, and more. Each tool has a fixed credit cost shown in the app.' },
-  { q: 'Do credits roll over?', a: 'Monthly plan credits reset each billing period. One-time credit pack purchases never expire and survive plan changes.' },
-  { q: 'Can I change my plan anytime?', a: 'Yes — upgrade or downgrade at any time. Changes take effect immediately and your balance is adjusted accordingly.' },
-  { q: 'Is there a free trial?', a: 'Yes — sign up for free and receive 30 credits immediately. No credit card required.' },
+  { q: 'Do credits expire?', a: 'No. Ever. Both your monthly plan credits and any one-time credit packs you buy stay in your account until you use them. If you cancel, they wait for you.' },
+  { q: 'Will these ads get my Meta or TikTok account banned?', a: 'We render at low motion levels, avoid known-flagged patterns (deepfake movement, uncanny mouth motion, over-polished lighting), and keep outputs UGC-authentic so platforms don\'t flag them. You still control disclosure — but our defaults are designed to pass.' },
+  { q: 'Can I cancel anytime?', a: 'Yes. One click in your account settings. No cancellation form, no retention call, no "just talk to us." Your credits stay in your account after you cancel.' },
+  { q: 'What languages do you support?', a: 'Voice output in 30+ languages including Portuguese (BR), Arabic, Turkish, Spanish (LatAm), French, German, Italian, Japanese, Korean, Chinese. Scripts localize to your buyer\'s market, not just translated word-for-word.' },
+  { q: 'Do I need to know how to edit video?', a: 'No. Outputs come ready to post — captions burned in, hook + product + CTA structured, 9:16 for TikTok/Reels or 16:9 for YouTube/Meta. If you want to tweak, our editor is included. No third-party tool required.' },
+  { q: 'How many ads can I actually make?', a: 'On Pro ($49/mo, 2,000 credits) you can render ~80 UGC ads/mo at 720p, or ~20 per week. See the plan recommender above for exact numbers based on your mix.' },
+  { q: 'What if I need more than Agency?', a: 'Higher volume, multiple team seats, API access, or white-label? Email hello@contentflow-web.com. We do custom for real usage, not shelf pricing.' },
 ]
 
 export default function PricingPage() {
@@ -411,34 +396,53 @@ export default function PricingPage() {
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 80px' }}>
 
         {/* Hero */}
-        <div style={{ textAlign: 'center', padding: '64px 0 48px' }}>
+        <div style={{ textAlign: 'center', padding: '64px 0 32px' }}>
+          <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade, #9ca3af)', marginBottom: 18 }}>
+            The AI ad engine for dropshippers
+          </div>
           <h1 style={{ fontFamily: 'var(--font-serif, Georgia)', fontSize: 'clamp(36px, 5vw, 56px)', fontWeight: 400, letterSpacing: '-0.03em', margin: '0 0 16px', lineHeight: 1.1 }}>
-            Simple, transparent <em style={{ color: '#b91c1c' }}>pricing</em>
+            Pricing that doesn&apos;t <em style={{ color: '#b91c1c' }}>punish testing.</em>
           </h1>
-          <p style={{ fontSize: 17, color: 'var(--ink-dim, #666)', maxWidth: 480, margin: '0 auto 36px', lineHeight: 1.6 }}>
-            One platform for AI images, UGC videos, social captions, carousels, voiceovers, and more.
+          <p style={{ fontSize: 17, color: 'var(--ink-dim, #666)', maxWidth: 540, margin: '0 auto 28px', lineHeight: 1.6 }}>
+            One wallet. Every format your store needs. Credits that don&apos;t expire — no matter how many hooks you kill.
           </p>
 
-          {/* Toggle */}
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'var(--surface, #f9f9f9)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 999, padding: '6px 14px' }}>
-            <span style={{ fontSize: 13, fontWeight: annual ? 400 : 700 }}>Monthly</span>
-            <button
-              onClick={() => setAnnual(a => !a)}
-              style={{ position: 'relative', width: 40, height: 22, borderRadius: 999, border: 'none', cursor: 'pointer', background: annual ? '#111' : '#ddd', transition: 'background 0.2s', flexShrink: 0 }}
-            >
-              <span style={{ position: 'absolute', top: 3, left: annual ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: annual ? '#fff' : '#888', transition: 'left 0.2s', display: 'block' }} />
-            </button>
-            <span style={{ fontSize: 13, fontWeight: annual ? 700 : 400 }}>Annual</span>
-            <span style={{ fontSize: 10, fontWeight: 700, background: '#F1E6C9', color: '#8A6420', borderRadius: 6, padding: '3px 9px', letterSpacing: '0.04em' }}>2 months free</span>
+          {/* Trust bar — the three claims that beat competitor scandals */}
+          <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 22, justifyContent: 'center', marginBottom: 30, padding: '10px 20px', borderRadius: 12, background: 'rgba(185,28,28,0.04)', border: '1px solid rgba(185,28,28,0.15)' }}>
+            {[
+              'Credits never expire',
+              'Cancel anytime · one click',
+              'No hidden fees · no dark patterns',
+            ].map(claim => (
+              <span key={claim} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 500, color: '#7f1d1d' }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+                {claim}
+              </span>
+            ))}
           </div>
-          <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, background: '#fef3c7', color: '#92400e', borderRadius: 6, padding: '3px 10px', letterSpacing: '0.04em' }}>Early launch pricing</span>
-            <span style={{ fontSize: 11, color: 'var(--ink-mute, #999)' }}>All prices include taxes &amp; payment fees</span>
+
+          {/* Toggle */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10, background: 'var(--surface, #f9f9f9)', border: '1px solid var(--border, #e5e7eb)', borderRadius: 999, padding: '6px 14px' }}>
+              <span style={{ fontSize: 13, fontWeight: annual ? 400 : 700 }}>Monthly</span>
+              <button
+                onClick={() => setAnnual(a => !a)}
+                style={{ position: 'relative', width: 40, height: 22, borderRadius: 999, border: 'none', cursor: 'pointer', background: annual ? '#111' : '#ddd', transition: 'background 0.2s', flexShrink: 0 }}
+              >
+                <span style={{ position: 'absolute', top: 3, left: annual ? 21 : 3, width: 16, height: 16, borderRadius: '50%', background: annual ? '#fff' : '#888', transition: 'left 0.2s', display: 'block' }} />
+              </button>
+              <span style={{ fontSize: 13, fontWeight: annual ? 700 : 400 }}>Annual</span>
+              <span style={{ fontSize: 10, fontWeight: 700, background: '#F1E6C9', color: '#8A6420', borderRadius: 6, padding: '3px 9px', letterSpacing: '0.04em' }}>2 months free</span>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
+              <span style={{ fontSize: 11, fontWeight: 700, background: '#fef3c7', color: '#92400e', borderRadius: 6, padding: '3px 10px', letterSpacing: '0.04em' }}>Early launch pricing</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-mute, #999)' }}>All prices include taxes &amp; payment fees</span>
+            </div>
           </div>
         </div>
 
         {/* Plan cards */}
-        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 14, marginBottom: 64 }}>
+        <div className="pricing-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 14, marginBottom: 64 }}>
           {plans.map(plan => {
             const price = annual ? plan.price.annual : plan.price.monthly
             const isLoading = loading === plan.planKey
@@ -457,7 +461,10 @@ export default function PricingPage() {
                     Most popular
                   </span>
                 )}
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 8 }}>{plan.name}</div>
+                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>{plan.name}</div>
+                <div style={{ fontSize: 12, fontStyle: 'italic', color: 'var(--ink-mute, #999)', marginBottom: 12, minHeight: 32, lineHeight: 1.35 }}>
+                  {plan.tagline}
+                </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 4 }}>
                   {annual && plan.planKey !== 'free' && (
                     <span style={{ fontSize: 16, color: 'var(--ink-mute, #aaa)', textDecoration: 'line-through', fontWeight: 400, lineHeight: 1 }}>{plan.price.monthly}</span>
@@ -509,7 +516,7 @@ export default function PricingPage() {
           })}
         </div>
         <style>{`
-          @media (max-width: 1300px) { .pricing-grid { grid-template-columns: repeat(3, 1fr) !important; } }
+          @media (max-width: 1200px) { .pricing-grid { grid-template-columns: repeat(3, 1fr) !important; } }
           @media (max-width: 700px)  { .pricing-grid { grid-template-columns: repeat(2, 1fr) !important; } }
           @media (max-width: 480px)  { .pricing-grid { grid-template-columns: 1fr !important; } }
         `}</style>
@@ -546,8 +553,8 @@ export default function PricingPage() {
         {/* Comparison */}
         <div style={{ marginBottom: 64, border: '1px solid var(--border, #e5e7eb)', borderRadius: 16, overflow: 'hidden' }}>
           <div style={{ padding: '22px 28px', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
-            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>How we compare</h2>
-            <p style={{ fontSize: 13, color: 'var(--ink-mute, #999)', margin: '4px 0 0' }}>ContentFlow vs. the alternatives — same job, lower cost.</p>
+            <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, letterSpacing: '-0.02em' }}>Why stop paying for 4 tools?</h2>
+            <p style={{ fontSize: 13, color: 'var(--ink-mute, #999)', margin: '4px 0 0' }}>One wallet does what Arcads + Creatify + HeyGen + Higgsfield do — for less, with credits that don&apos;t expire.</p>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
@@ -586,15 +593,64 @@ export default function PricingPage() {
           </div>
         </div>
 
+        {/* Who this ISN'T for — sharpens who it IS for */}
+        <div style={{ marginBottom: 40, padding: '28px 32px', border: '1px dashed var(--border, #e5e7eb)', borderRadius: 16, background: 'transparent' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 32 }} className="skip-grid">
+            <div>
+              <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade, #9ca3af)', marginBottom: 12 }}>
+                Skip us if
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 8, fontSize: 13.5, color: 'var(--ink-dim, #666)', lineHeight: 1.55 }}>
+                <li>You&apos;re a filmmaker → try Runway</li>
+                <li>You run Fortune 500 marketing → try Higgsfield</li>
+                <li>You do corporate training → try Synthesia</li>
+                <li>You want a full timeline editor → try CapCut</li>
+                <li>Your product isn&apos;t a physical thing with a URL</li>
+              </ul>
+            </div>
+            <div>
+              <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 10.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#b91c1c', marginBottom: 12 }}>
+                We&apos;re for you if
+              </div>
+              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'grid', gap: 8, fontSize: 13.5, color: 'var(--ink, #111)', lineHeight: 1.55 }}>
+                <li>You sell physical products on Shopify / TikTok Shop / Amazon</li>
+                <li>You test 10+ ad variants a week</li>
+                <li>You&apos;re the founder AND the marketer</li>
+                <li>You&apos;ve been burned by credit-based tools before</li>
+                <li>You want one wallet, not four subscriptions</li>
+              </ul>
+            </div>
+          </div>
+          <style>{`
+            @media (max-width: 640px) { .skip-grid { grid-template-columns: 1fr !important; } }
+          `}</style>
+        </div>
+
+        {/* High-volume contact card — replaces the old Enterprise slot */}
+        <div style={{ marginBottom: 40, padding: '22px 28px', border: '1px solid var(--border, #e5e7eb)', borderRadius: 14, background: 'var(--surface, #fff)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 4 }}>Higher volume, multiple seats, or white-label?</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-dim, #666)' }}>Custom pricing for real usage — no shelf tier.</div>
+          </div>
+          <a href="mailto:hello@contentflow-web.com?subject=Custom%20plan%20inquiry" style={{ padding: '9px 20px', borderRadius: 10, border: '1.5px solid var(--ink, #111)', color: 'var(--ink, #111)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+            Contact us →
+          </a>
+        </div>
+
         {/* Bottom CTA */}
         <div style={{ textAlign: 'center', padding: '56px 32px', border: '1px solid var(--border, #e5e7eb)', borderRadius: 20, background: 'var(--surface, #f9f9f9)' }}>
           <h2 style={{ fontFamily: 'var(--font-serif, Georgia)', fontSize: 'clamp(28px, 4vw, 40px)', fontWeight: 400, letterSpacing: '-0.03em', margin: '0 0 12px', lineHeight: 1.2 }}>
-            Start creating in <em>minutes</em>
+            Ship your first ad in <em>60 seconds</em>
           </h2>
-          <p style={{ fontSize: 15, color: 'var(--ink-dim, #666)', margin: '0 0 28px' }}>No credit card required for the free plan.</p>
-          <Link href="/auth/signup" style={{ display: 'inline-block', padding: '13px 32px', borderRadius: 12, background: '#111', color: '#fff', fontWeight: 700, fontSize: 15, textDecoration: 'none', letterSpacing: '-0.01em' }}>
-            Get started free →
-          </Link>
+          <p style={{ fontSize: 15, color: 'var(--ink-dim, #666)', margin: '0 0 28px' }}>Paste a product URL. See it as a UGC ad. No card, no signup.</p>
+          <div style={{ display: 'inline-flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <Link href="/try" style={{ display: 'inline-block', padding: '13px 32px', borderRadius: 12, background: '#b91c1c', color: '#fff', fontWeight: 700, fontSize: 15, textDecoration: 'none', letterSpacing: '-0.01em' }}>
+              Try it free →
+            </Link>
+            <Link href="/auth/signup" style={{ display: 'inline-block', padding: '13px 32px', borderRadius: 12, background: '#111', color: '#fff', fontWeight: 700, fontSize: 15, textDecoration: 'none', letterSpacing: '-0.01em' }}>
+              Create free account
+            </Link>
+          </div>
         </div>
       </div>
     </div>
