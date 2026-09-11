@@ -39,9 +39,9 @@ export default function TermsPage() {
 
       <Section title="2. Description of Service">
         <p>
-          {COMPANY_NAME} is an AI-powered content creation platform that allows users to generate UGC (user-generated
-          content) videos, screen demo videos, AI voiceovers, product images, social media copy, blog posts, and email
-          copy using third-party AI models and APIs.
+          {COMPANY_NAME} is a service for creating UGC (user-generated content) videos, screen demo videos,
+          voiceovers, product images, social media copy, blog posts, and email copy using third-party AI models
+          and APIs.
         </p>
         <p>
           Generated content is produced using artificial intelligence and may not always meet your expectations. Results

@@ -615,7 +615,7 @@ const FEATURE_TABS = [
       },
       {
         title: 'Physics-driven motion',
-        body: 'Turn your product shot into a cinematic CGI commercial with real motion and lighting.',
+        body: 'Turn your product shot into a premium CGI ad with real motion and lighting.',
         gradient: 'linear-gradient(135deg, #3a1a4a 0%, #1a0a2a 100%)',
         img: undefined as string | undefined,
         imgPosition: 'top center',
@@ -661,7 +661,7 @@ const FEATURES = [
   },
   {
     title: 'CineMotion ads',
-    body: 'Cinematic CGI product commercials from your product photos — physics-driven motion, designed environments, native audio.',
+    body: 'Premium CGI product ads from your product photos — physics-driven motion, designed environments, native audio.',
     svg: <>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"/>
       <path d="M8 10h8M8 14h5"/>
