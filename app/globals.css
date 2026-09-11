@@ -1524,19 +1524,6 @@ img, video, svg { max-width: 100%; }
 }
 
 /* ── Marquee animations (landing page) ──────────────────────────────── */
-.pb-track {
-  display: flex;
-  align-items: center;
-  width: max-content;
-  animation: pb-scroll 28s linear infinite;
-  will-change: transform;
-}
-.pb-track:hover { animation-play-state: paused; }
-@keyframes pb-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-25%); }
-}
-
 .ls-marquee { width: 100%; overflow: hidden; }
 .ls-marquee-track {
   display: flex;
