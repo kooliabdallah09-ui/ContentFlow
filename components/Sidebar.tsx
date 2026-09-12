@@ -185,7 +185,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
           <Icon.Social />
           <span style={{ flex: 1 }}>Social</span>
         </Link>
-        <Link href="/teardown" className={`nav-item ${isActive('/teardown') ? 'active' : ''}`} onClick={handleNavClick}>
+        <Link href="/generate/teardown" className={`nav-item ${isActive('/generate/teardown') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Search />
           <span style={{ flex: 1 }}>Ad Teardown</span>
           <span className="flagship-badge">Free</span>

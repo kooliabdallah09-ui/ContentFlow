@@ -1,10 +1,19 @@
 'use client'
 
 import { AdTeardown } from '@/components/AdTeardown'
+import { MarketingHeader } from '@/components/MarketingHeader'
+import { MarketingFooter } from '@/components/MarketingFooter'
 
-// Public top-of-funnel tool. Signed-out visitors get the bare page (the root
-// layout only mounts the app shell when there's a user); signed-in users see
-// it inside the normal app chrome.
+// Public, shareable Ad Teardown — the top-of-funnel entry point. Carries the
+// marketing chrome (never the app sidebar) so it reads as a free tool anyone
+// can land on from search or a share. The in-app version for signed-in users
+// lives at /generate/teardown and renders inside the app shell instead.
 export default function TeardownPage() {
-  return <AdTeardown />
+  return (
+    <>
+      <MarketingHeader />
+      <AdTeardown signupNext="/generate/teardown" />
+      <MarketingFooter />
+    </>
+  )
 }

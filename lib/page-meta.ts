@@ -33,8 +33,8 @@ const REGISTRY: Array<{ match: (p: string) => boolean; meta: PageMeta }> = [
   { match: p => p.startsWith('/data-deletion'),   meta: { title: 'Data',        variant: 'public' } },
   { match: p => p.startsWith('/report'),          meta: { title: 'Report',      variant: 'public' } },
   { match: p => p === '/presentation',            meta: { title: '',            variant: 'public' } },
-  // Public free tool, but signed-in users get the normal app shell.
-  { match: p => p.startsWith('/teardown'),        meta: { title: 'Ad Teardown', variant: 'app' } },
+  // Public version of the Ad Teardown tool — marketing chrome, no sidebar.
+  { match: p => p.startsWith('/teardown'),        meta: { title: 'Ad Teardown', variant: 'public' } },
 
   // ── Auth / onboarding — flow variant, no bottom nav ─────────
   { match: p => p.startsWith('/auth'),            meta: { title: '',            variant: 'flow' } },
@@ -57,6 +57,7 @@ const REGISTRY: Array<{ match: (p: string) => boolean; meta: PageMeta }> = [
   { match: p => p.startsWith('/generate/business-card'), meta: { title: 'Business Card', variant: 'app' } },
   { match: p => p.startsWith('/generate/podcast-ad'),    meta: { title: 'Podcast Ad',    variant: 'app' } },
   { match: p => p.startsWith('/generate/screen-demo'),   meta: { title: 'Screen Demo',   variant: 'app' } },
+  { match: p => p.startsWith('/generate/teardown'),      meta: { title: 'Ad Teardown',   variant: 'app' } },
   { match: p => p.startsWith('/generate/products'),      meta: { title: 'Product Studio', variant: 'app' } },
   { match: p => p.startsWith('/generate'),        meta: { title: 'Generate',     variant: 'app' } },
   { match: p => p.startsWith('/influencers'),     meta: { title: 'Influencers',  variant: 'app' } },

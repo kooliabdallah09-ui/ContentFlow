@@ -50,9 +50,10 @@ const STEPS = ['Sampling frames', 'Reading composition', 'Mapping the beats', 'W
 
 const ACCENT = '#b91c1c'
 
-// Rendered standalone at /teardown — the landing page links here rather than
-// embedding the tool, so this page can rank and be shared on its own.
-export function AdTeardown() {
+// Shared by the public /teardown page (marketing chrome) and the in-app
+// /generate/teardown page (app shell). `signupNext` is where a converting
+// anonymous visitor should land after creating an account.
+export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?: string }) {
   const router = useRouter()
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -633,7 +634,7 @@ export function AdTeardown() {
                   We transcribe every line with timestamps and drop it straight into the video editor.
                   Free account, 30 credits, no card.
                 </p>
-                <Link href="/auth/signup?next=/teardown" style={{
+                <Link href={`/auth/signup?next=${encodeURIComponent(signupNext)}`} style={{
                   padding: '11px 22px', borderRadius: 11, background: ACCENT, color: '#fff',
                   textDecoration: 'none', fontSize: 13.5, fontWeight: 600,
                 }}>

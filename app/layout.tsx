@@ -82,6 +82,7 @@ export default function RootLayout({
       '/privacy': 'Privacy Policy — ContentFlow Web',
       '/help': 'Help — ContentFlow Web',
       '/teardown': 'Free Ad Teardown — ContentFlow Web',
+      '/generate/teardown': 'Ad Teardown — ContentFlow Web',
     }
     document.title = titles[pathname] ?? 'ContentFlow Web'
   }, [pathname])
@@ -134,7 +135,10 @@ export default function RootLayout({
   const isOnboarding = pathname.includes('/onboarding')
   const isPresentationPage = pathname === '/presentation'
   // Marketing / legal pages render bare — no app sidebar even when signed in.
-  const isStandalonePage = ['/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help', '/pricing'].some(p => pathname === p || pathname.startsWith(p + '/'))
+  // `/teardown` is the public, shareable version of the Ad Teardown tool — it
+  // keeps the marketing chrome even for signed-in users. The in-app version
+  // with the sidebar lives at /generate/teardown.
+  const isStandalonePage = ['/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help', '/pricing', '/teardown'].some(p => pathname === p || pathname.startsWith(p + '/'))
   const showLayout = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage && !isStandalonePage
 
   if (loading) {
