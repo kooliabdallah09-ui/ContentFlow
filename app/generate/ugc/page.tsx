@@ -8,7 +8,7 @@ import { saveCampaignShotPrefill, peekCampaignShotLink, clearCampaignShotLink, c
 import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
 import { getSupabase } from '@/lib/auth'
 import UGCPackageBuilder from '@/components/UGCPackageBuilder'
-import { UGCBuilderV2 } from '@/components/UGCBuilderV2'
+import { UGCBuilderV2, type BuilderState } from '@/components/UGCBuilderV2'
 import UGCPackagePreview from '@/components/UGCPackagePreview'
 import { Icon } from '@/components/Icons'
 import { showSuccess, showError } from '@/lib/notifications'
@@ -23,6 +23,14 @@ const BATCH_HOOK_ANGLES = [
   { id: 'question',       label: 'Question hook',       desc: 'Open with a direct question to the viewer' },
   { id: 'story',          label: 'Mini-story',          desc: 'Personal story arc that ends with the product' },
 ] as const
+
+// Shape returned by /api/ugc/animate. Both builders run that call themselves
+// and hand the response up for the shared post-processing step.
+interface AnimateResponse {
+  components: unknown
+  newBalance: number
+  creditDeducted: number
+}
 
 interface UGCComponent {
   image?: { url: string; id: string }
@@ -270,6 +278,32 @@ export default function UGCGeneratorPage() {
     } catch { /* soft fail */ }
   }
 
+  // Both builders run the hero-frames → animate pipeline themselves and hand
+  // back the same payload; this is the shared "what to do with the result"
+  // step (credits, campaign write-back, preview state). Kept separate from
+  // handleGenerate so the v2 chat can reuse it without the full-screen
+  // GeneratingOverlay — v2 renders its own progress inline in the thread.
+  const applyAnimateResponse = async (
+    res: AnimateResponse,
+    extras: {
+      ugcType?: string
+      musicMood?: string
+      scrollStopHook?: { jobId: string; frameUrl: string; hookKey: string; durationSec: number; trimToSec?: number }
+    } = {},
+  ) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const merged: any = { ...(res.components as any) }
+    if (extras.scrollStopHook) merged.scrollStopHook = extras.scrollStopHook
+    if (extras.musicMood) merged.musicMood = extras.musicMood
+    setComponents(merged)
+    if (extras.ugcType) setUgcType(extras.ugcType)
+    if (typeof res.newBalance === 'number') setCreditBalance(res.newBalance)
+    setCreditDeducted(res.creditDeducted)
+    showSuccess('UGC package generated successfully', 'Complete package ready to use')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await writeBackToCampaignShot(res.components as any)
+  }
+
   const handleGenerate = async (settings: {
     ugcType: string
     tier: 'standard'
@@ -309,20 +343,13 @@ export default function UGCGeneratorPage() {
       // In that case we just wire the response into UI state and skip the
       // legacy single-shot orchestrate call.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pre = (settings as any).__animateResponse as
-        | { components: unknown; newBalance: number; creditDeducted: number } | undefined
+      const pre = (settings as any).__animateResponse as AnimateResponse | undefined
       if (pre) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const merged: any = { ...(pre.components as any) }
-        if (settings.scrollStopHook) merged.scrollStopHook = settings.scrollStopHook
-        if (settings.musicMood) merged.musicMood = settings.musicMood
-        setComponents(merged)
-        setUgcType(settings.ugcType)
-        setCreditBalance(pre.newBalance)
-        setCreditDeducted(pre.creditDeducted)
-        showSuccess('UGC package generated successfully', 'Complete package ready to use')
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        await writeBackToCampaignShot(pre.components as any)
+        await applyAnimateResponse(pre, {
+          ugcType: settings.ugcType,
+          musicMood: settings.musicMood,
+          scrollStopHook: settings.scrollStopHook,
+        })
         return
       }
 
@@ -471,8 +498,9 @@ export default function UGCGeneratorPage() {
     { label: 'Stitching together', sub: 'Finalising your UGC video…' },
   ]
 
-  // v2 preview: full-viewport chat interface. No page chrome, no aside.
-  if (searchParams?.get('v') === '2') {
+  // v2 chat is the default UGC builder. The v1 form is still reachable at
+  // ?v=1 as a fallback while v2 settles.
+  if (searchParams?.get('v') !== '1') {
     return (
       <>
         <GeneratingOverlay active={loading} steps={UGC_STEPS} tipSeconds={60} />
@@ -491,8 +519,21 @@ export default function UGCGeneratorPage() {
           overflow: 'hidden',
         }}>
           <UGCBuilderV2
-            onGenerate={async () => {
-              showError('Preview only', 'The v2 builder is in-progress. Wiring lands in the next stage.')
+            onGenerate={async state => {
+              // The chat already ran hero-frames → animate and attached the
+              // response; all that's left is crediting, campaign write-back
+              // and preview state. Errors surface inline in the thread, so
+              // failures here shouldn't also throw back into the builder.
+              const res = (state as BuilderState & { __animateResponse?: AnimateResponse }).__animateResponse
+              if (!res) return
+              try {
+                await applyAnimateResponse(res, {
+                  ugcType: 'image-with-voiceover',
+                  musicMood: state.musicMood,
+                })
+              } catch (err) {
+                showError('Could not finish saving', err instanceof Error ? err.message : 'Try again')
+              }
             }}
             isLoading={loading}
             creditBalance={creditBalance}
