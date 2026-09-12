@@ -27,10 +27,9 @@ export function canAccessMultiAgentChat(email: string | null | undefined): boole
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
 
-export function canAccessReelAnalyzer(email: string | null | undefined): boolean {
-  if (!email) return false
-  return ADMIN_EMAILS.has(email.toLowerCase())
-}
+// The Reel Analyzer became the public Ad Teardown tool at /teardown — no gate.
+// Signed-out visitors get a rate-limited breakdown; an account adds
+// transcription and the recreate handoff.
 
 export function canAccessFormats(email: string | null | undefined): boolean {
   if (!email) return false

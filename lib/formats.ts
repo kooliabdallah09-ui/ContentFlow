@@ -11,8 +11,8 @@
 // UGC form, they pick "Hot Take" → we know the script structure, the pacing,
 // the caption style, and where the product image should pop in.
 //
-// Access is admin-gated (see lib/pov-access.ts → canAccessReelAnalyzer for the
-// same allowlist) until the pipeline settles.
+// Access is admin-gated (see lib/pov-access.ts → canAccessFormats) until the
+// pipeline settles.
 
 export type FormatCategory =
   | 'talking-head'

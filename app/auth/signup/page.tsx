@@ -6,6 +6,17 @@ import Link from 'next/link'
 import { getSupabase, signInWithGoogle } from '@/lib/auth'
 import { Logo } from '@/components/Logo'
 
+// Where to land after signup. Read at submit time from the live URL so we
+// don't need useSearchParams (which would force a Suspense boundary here).
+// Only same-site paths are honoured, so ?next= can't bounce a new user to an
+// external URL.
+function nextPath(): string {
+  if (typeof window === 'undefined') return '/dashboard'
+  const raw = new URLSearchParams(window.location.search).get('next')
+  if (!raw || !raw.startsWith('/') || raw.startsWith('//')) return '/dashboard'
+  return raw
+}
+
 export default function SignupPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
@@ -51,7 +62,7 @@ export default function SignupPage() {
       }
 
       localStorage.setItem('cf-new-user', '1')
-      router.push('/dashboard')
+      router.push(nextPath())
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Signup failed')
     } finally {

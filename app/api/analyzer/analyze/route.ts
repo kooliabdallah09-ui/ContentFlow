@@ -2,9 +2,23 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { transcribeAudioUrl } from '@/lib/scribe'
-import { canAccessReelAnalyzer } from '@/lib/pov-access'
+import { checkRateLimit, getClientIp, formatRetryAfter } from '@/lib/rate-limit'
 
 export const maxDuration = 300
+
+// Public top-of-funnel tool. Signed-out visitors get the format breakdown +
+// video prompt; transcription and the recreate handoff need an account.
+//
+// Anonymous runs cost ~$0.015 each (6 downscaled frames through Sonnet vision,
+// no transcription). ANALYZER_PUBLIC=0 kills the signed-out path instantly if
+// cost ever runs away.
+const ANON_FRAME_LIMIT = 6
+const ANON_RATE_LIMIT = 2
+const ANON_RATE_WINDOW_MS = 24 * 60 * 60 * 1000
+
+function publicModeEnabled(): boolean {
+  return process.env.ANALYZER_PUBLIC !== '0'
+}
 
 interface FrameInput {
   timeSeconds: number      // where in the video this frame lives
@@ -42,6 +56,7 @@ interface AnalyzeResult {
   breakdown: FormatBreakdown
   videoPrompt: string      // clean prompt for the video generator — NO caption text
   captions: CaptionOverlay[]
+  captionsLocked: boolean  // true for anonymous runs — transcription needs an account
 }
 
 // Reel Analyzer — Phase 1: reads a set of sampled frames + optional audio,
@@ -49,30 +64,48 @@ interface AnalyzeResult {
 // timestamps ready to drop into the video editor.
 export async function POST(request: NextRequest) {
   try {
+    // Auth is optional — a valid token unlocks transcription and the full
+    // frame budget; without one we fall back to rate-limited anonymous mode.
     const authHeader = request.headers.get('Authorization')
-    if (!authHeader?.startsWith('Bearer ')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    let signedIn = false
+    if (authHeader?.startsWith('Bearer ')) {
+      const supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      )
+      const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
+      signedIn = !!userData.user
     }
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    )
-    const { data: userData } = await supabase.auth.getUser(authHeader.slice(7))
-    if (!userData.user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    if (!canAccessReelAnalyzer(userData.user.email)) {
-      return NextResponse.json({ error: 'Reel Analyzer is still in beta' }, { status: 403 })
+
+    if (!signedIn) {
+      if (!publicModeEnabled()) {
+        return NextResponse.json(
+          { error: 'Sign in to analyze a reel.', code: 'auth_required' },
+          { status: 401 },
+        )
+      }
+      const limit = checkRateLimit(
+        'analyzer', getClientIp(request), ANON_RATE_LIMIT, ANON_RATE_WINDOW_MS,
+      )
+      if (!limit.ok) {
+        return NextResponse.json({
+          error: `You've used your ${ANON_RATE_LIMIT} free teardowns for today. Create a free account for more, or come back in ${formatRetryAfter(limit.retryAfterSeconds)}.`,
+          code: 'rate_limited',
+        }, { status: 429 })
+      }
     }
 
     const body = (await request.json()) as AnalyzeInput
-    const frames = Array.isArray(body.frames) ? body.frames.slice(0, 15) : []
+    const maxFrames = signedIn ? 15 : ANON_FRAME_LIMIT
+    const frames = Array.isArray(body.frames) ? body.frames.slice(0, maxFrames) : []
     if (frames.length < 3) {
       return NextResponse.json({ error: 'Need at least 3 sampled frames' }, { status: 400 })
     }
     const videoDurationSeconds = Number(body.videoDurationSeconds) || 15
 
-    // ---------- Scribe transcription (optional) ----------
+    // ---------- Scribe transcription (signed-in only) ----------
     let captions: CaptionOverlay[] = []
-    if (body.audioUrl && body.audioUrl.startsWith('http')) {
+    if (signedIn && body.audioUrl && body.audioUrl.startsWith('http')) {
       try {
         const { words } = await transcribeAudioUrl(body.audioUrl)
         // Group words into ~2-4 word phrases based on time gaps + word count.
@@ -183,7 +216,7 @@ Rules for videoPrompt:
 
     const videoPrompt = String(parsed?.videoPrompt ?? '').slice(0, 3000)
 
-    const result: AnalyzeResult = { breakdown, videoPrompt, captions }
+    const result: AnalyzeResult = { breakdown, videoPrompt, captions, captionsLocked: !signedIn }
     return NextResponse.json(result)
   } catch (err) {
     console.error('analyzer/analyze error:', err)

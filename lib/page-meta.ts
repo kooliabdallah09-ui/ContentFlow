@@ -33,6 +33,8 @@ const REGISTRY: Array<{ match: (p: string) => boolean; meta: PageMeta }> = [
   { match: p => p.startsWith('/data-deletion'),   meta: { title: 'Data',        variant: 'public' } },
   { match: p => p.startsWith('/report'),          meta: { title: 'Report',      variant: 'public' } },
   { match: p => p === '/presentation',            meta: { title: '',            variant: 'public' } },
+  // Public free tool, but signed-in users get the normal app shell.
+  { match: p => p.startsWith('/teardown'),        meta: { title: 'Ad Teardown', variant: 'app' } },
 
   // ── Auth / onboarding — flow variant, no bottom nav ─────────
   { match: p => p.startsWith('/auth'),            meta: { title: '',            variant: 'flow' } },

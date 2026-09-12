@@ -24,6 +24,7 @@ const PAGES: Array<{ label: string; href: string; group: string; sub?: string; a
   { label: 'Image', href: '/generate/image', group: 'Create', sub: 'Flux Pro image generation' },
   { label: 'Voiceover', href: '/generate/voice', group: 'Create', sub: 'ElevenLabs voice synthesis' },
   { label: 'Social caption', href: '/generate/social', group: 'Create' },
+  { label: 'Ad Teardown', href: '/teardown', group: 'Create', sub: 'Break down any ad, get the prompt' },
   { label: 'Screen Demo', href: '/generate/screen-demo', group: 'Create', adminOnly: true },
   { label: 'Business Card', href: '/generate/business-card', group: 'Create', adminOnly: true },
   { label: 'Brand settings', href: '/settings/brand', group: 'Settings' },

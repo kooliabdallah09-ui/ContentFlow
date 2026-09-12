@@ -81,6 +81,7 @@ export default function RootLayout({
       '/pricing': 'Pricing — ContentFlow Web',
       '/privacy': 'Privacy Policy — ContentFlow Web',
       '/help': 'Help — ContentFlow Web',
+      '/teardown': 'Free Ad Teardown — ContentFlow Web',
     }
     document.title = titles[pathname] ?? 'ContentFlow Web'
   }, [pathname])
@@ -118,7 +119,7 @@ export default function RootLayout({
       clearTimeout(timeout)
       setUser(session?.user)
 
-      const publicPages = ['/', '/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help', '/pricing', '/auth', '/presentation', '/landing', '/try', '/vs']
+      const publicPages = ['/', '/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help', '/pricing', '/auth', '/presentation', '/landing', '/try', '/vs', '/teardown']
       const isPublicPage = publicPages.some(page => pathname === page || pathname.startsWith(page + '/'))
 
       if (!session?.user && !isPublicPage) router.push('/auth/login')
