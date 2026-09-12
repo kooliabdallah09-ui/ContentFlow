@@ -53,9 +53,7 @@ Optional textarea on the UGC form. Users can paste their own script ("Use this s
 - /generate/video : Avatar video (legacy HeyGen — being phased out)
 - /generate/image : AI image generator
 - /generate/voice : Voiceover generator
-- /generate/blog : Blog post writer
 - /generate/social : Social post writer
-- /generate/email : Email writer
 - /calendar : Monthly content calendar
 - /library : Generated content history
 - /analytics : Performance analytics

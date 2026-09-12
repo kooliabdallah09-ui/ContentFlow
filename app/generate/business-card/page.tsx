@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react'
 import { DriveConnectBanner } from '@/components/DriveConnectBanner'
 import { showError, showSuccess } from '@/lib/notifications'
 import { getSupabase } from '@/lib/auth'
+import { AdminOnlyPage } from '@/components/AdminOnlyPage'
 
 const STYLES = [
   { id: 'minimal',  label: 'Minimal' },
@@ -172,7 +173,7 @@ function CardPreview({ form, styleId, accentHex, logoSrc, previewRef }: {
   )
 }
 
-export default function BusinessCardPage() {
+function BusinessCardPage() {
   const [form, setForm] = useState<FormData>({
     name: '', title: '', company: '', email: '', phone: '', website: '', tagline: '',
   })
@@ -454,5 +455,13 @@ export default function BusinessCardPage() {
         }
       `}</style>
     </main>
+  )
+}
+
+export default function BusinessCardPageGuarded() {
+  return (
+    <AdminOnlyPage>
+      <BusinessCardPage />
+    </AdminOnlyPage>
   )
 }

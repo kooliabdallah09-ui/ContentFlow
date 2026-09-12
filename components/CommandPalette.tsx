@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
+import { isAdminEmail } from '@/lib/pov-access'
 
 interface CommandItem {
   id: string
@@ -13,7 +14,7 @@ interface CommandItem {
   onSelect: () => void
 }
 
-const PAGES: Array<{ label: string; href: string; group: string; sub?: string }> = [
+const PAGES: Array<{ label: string; href: string; group: string; sub?: string; adminOnly?: boolean }> = [
   { label: 'Dashboard', href: '/dashboard', group: 'Navigation' },
   { label: 'Library', href: '/library', group: 'Navigation' },
   { label: 'Analytics', href: '/analytics', group: 'Navigation' },
@@ -23,8 +24,8 @@ const PAGES: Array<{ label: string; href: string; group: string; sub?: string }>
   { label: 'Image', href: '/generate/image', group: 'Create', sub: 'Flux Pro image generation' },
   { label: 'Voiceover', href: '/generate/voice', group: 'Create', sub: 'ElevenLabs voice synthesis' },
   { label: 'Social caption', href: '/generate/social', group: 'Create' },
-  { label: 'Screen Demo', href: '/generate/screen-demo', group: 'Create' },
-  { label: 'Business Card', href: '/generate/business-card', group: 'Create' },
+  { label: 'Screen Demo', href: '/generate/screen-demo', group: 'Create', adminOnly: true },
+  { label: 'Business Card', href: '/generate/business-card', group: 'Create', adminOnly: true },
   { label: 'Brand settings', href: '/settings/brand', group: 'Settings' },
   { label: 'Integrations', href: '/settings/integrations', group: 'Settings' },
   { label: 'Account', href: '/settings/account', group: 'Settings' },
@@ -42,6 +43,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const [libraryHits, setLibraryHits] = useState<LibraryHit[]>([])
+  const [isAdmin, setIsAdmin] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Reset on open
@@ -58,7 +60,8 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     if (!open) return
     const supabase = getSupabase()
     if (!supabase) return
-    supabase.auth.getSession().then(async ({ data }: { data: { session: { access_token?: string } | null } }) => {
+    supabase.auth.getSession().then(async ({ data }: { data: { session: { access_token?: string; user?: { email?: string | null } | null } | null } }) => {
+      setIsAdmin(isAdminEmail(data.session?.user?.email))
       const token = data.session?.access_token
       if (!token) return
       const res = await fetch('/api/library', { headers: { Authorization: `Bearer ${token}` } })
@@ -73,6 +76,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     const q = query.toLowerCase().trim()
 
     const pageItems: CommandItem[] = PAGES
+      .filter(p => !p.adminOnly || isAdmin)
       .filter(p => !q || p.label.toLowerCase().includes(q) || p.group.toLowerCase().includes(q))
       .map(p => ({
         id: `page:${p.href}`,
@@ -97,7 +101,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       }))
 
     return [...pageItems, ...libItems]
-  }, [query, libraryHits, router, onClose])
+  }, [query, libraryHits, isAdmin, router, onClose])
 
   // Group items by group
   const grouped = useMemo(() => {

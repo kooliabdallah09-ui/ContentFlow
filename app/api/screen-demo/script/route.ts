@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
+import { isAdminEmail } from '@/lib/pov-access'
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,6 +20,10 @@ export async function POST(req: NextRequest) {
     const { data: userData, error: userErr } = await supabase.auth.getUser(authHeader.slice(7))
     if (userErr || !userData?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    // Screen Demo is an admin-only surface (removed from the public product).
+    if (!isAdminEmail(userData.user.email)) {
+      return NextResponse.json({ error: 'Not available' }, { status: 403 })
     }
 
     const { description, durationSeconds } = await req.json()

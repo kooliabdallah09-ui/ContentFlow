@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { deductCredits } from '@/lib/deduct-credits'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
+import { isAdminEmail } from '@/lib/pov-access'
 
 const CREDIT_COST = 3
 
@@ -22,6 +23,10 @@ export async function POST(req: NextRequest) {
     const { data: userData, error: userErr } = await supabase.auth.getUser(authHeader.slice(7))
     if (userErr || !userData?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    // Business Card is an admin-only surface (removed from the public product).
+    if (!isAdminEmail(userData.user.email)) {
+      return NextResponse.json({ error: 'Not available' }, { status: 403 })
     }
     const userId = userData.user.id
 

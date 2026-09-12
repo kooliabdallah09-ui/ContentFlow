@@ -75,3 +75,26 @@ export function canAccessStudio(email: string | null | undefined): boolean {
   if (!email) return false
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
+
+// Secondary formats pulled from the public product while we focus on the core
+// ad-generation flow. Kept reachable for admins only. Remove a gate here (and
+// re-list it in the sidebar / command palette / assistant) to relaunch it.
+export function canAccessBusinessCard(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
+
+export function canAccessBlogWriter(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
+
+export function canAccessEmailWriter(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
+
+export function canAccessScreenDemo(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}

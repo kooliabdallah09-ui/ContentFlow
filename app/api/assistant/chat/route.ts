@@ -84,8 +84,6 @@ const TOOL_DEFS: Record<string, Anthropic.Tool> = {
             '/generate/video',
             '/generate/social',
             '/generate/voice',
-            '/generate/screen-demo',
-            '/generate/business-card',
           ],
           description: 'The generator route to open',
         },

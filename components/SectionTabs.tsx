@@ -80,5 +80,5 @@ export const VIDEO_STUDIO_TABS: SectionTab[] = [
   { label: 'Vox', href: '/generate/vox', badge: 'Alpha', adminOnly: true },
   { label: 'Podcast Ad', href: '/generate/podcast-ad', badge: 'New' },
   { label: 'Video', href: '/generate/video' },
-  { label: 'Screen Demo', href: '/generate/screen-demo' },
+  { label: 'Screen Demo', href: '/generate/screen-demo', adminOnly: true },
 ]

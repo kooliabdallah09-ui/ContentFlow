@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessInfluencerStudio, canAccessBrandLaunch, canAccessStudio } from '@/lib/pov-access'
+import { canAccessInfluencerStudio, canAccessBrandLaunch, canAccessStudio, canAccessBusinessCard } from '@/lib/pov-access'
 import { Logo } from '@/components/Logo'
 
 interface SidebarProps {
@@ -31,6 +31,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
   const [influencerAccess, setInfluencerAccess] = useState(false)
   const [brandLaunchAccess, setBrandLaunchAccess] = useState(false)
   const [studioAccess, setStudioAccess] = useState(false)
+  const [businessCardAccess, setBusinessCardAccess] = useState(false)
   const [screenshotMode, setScreenshotMode] = useState(false)
   useEffect(() => {
     (async () => {
@@ -41,6 +42,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
       setInfluencerAccess(canAccessInfluencerStudio(email))
       setBrandLaunchAccess(canAccessBrandLaunch(email))
       setStudioAccess(canAccessStudio(email))
+      setBusinessCardAccess(canAccessBusinessCard(email))
     })()
   }, [])
 
@@ -183,10 +185,12 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
           <Icon.Social />
           <span style={{ flex: 1 }}>Social</span>
         </Link>
-        <Link href="/generate/business-card" className={`nav-item ${isActive('/generate/business-card') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Card />
-          <span style={{ flex: 1 }}>Business Card</span>
-        </Link>
+        {businessCardAccess && (
+          <Link href="/generate/business-card" className={`nav-item ${isActive('/generate/business-card') ? 'active' : ''}`} onClick={handleNavClick}>
+            <Icon.Card />
+            <span style={{ flex: 1 }}>Business Card</span>
+          </Link>
+        )}
         <Link href="/editor" className={`nav-item ${isActive('/editor') ? 'active' : ''}`} onClick={handleNavClick}>
           <Icon.Scissors />
           <span style={{ flex: 1 }}>Video Editor</span>

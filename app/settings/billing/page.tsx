@@ -194,7 +194,7 @@ export default function BillingPage() {
     {
       name: 'Free', price: { monthly: '$0', annual: '$0' }, annualTotal: null,
       credits: '0/month · +30 signup',
-      features: ['30 one-time signup credits', '~6 product images', '~3 AI influencer / product photos', 'Try every studio', 'Business card generator', 'No UGC videos (cheapest is 95cr)'],
+      features: ['30 one-time signup credits', '~6 product images', '~3 AI influencer / product photos', 'Try every studio', 'No UGC videos (cheapest is 95cr)'],
       planKey: 'free',
     },
     {
@@ -403,7 +403,7 @@ export default function BillingPage() {
 
             {/* Included */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-              {['Product photos', 'AI Influencer Studio', 'Social captions', 'Voiceover', 'Carousel', 'Business card'].map(f => (
+              {['Product photos', 'AI Influencer Studio', 'Social captions', 'Voiceover', 'Carousel'].map(f => (
                 <span key={f} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 7, padding: '3px 9px' }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                   {f}

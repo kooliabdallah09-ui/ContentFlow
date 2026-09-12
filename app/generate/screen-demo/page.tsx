@@ -9,6 +9,7 @@ import { showError, showSuccess } from '@/lib/notifications'
 import { Download, Upload, X, Sparkles } from 'lucide-react'
 import { useDriveSync } from '@/lib/useDriveSync'
 import { SectionTabs, VIDEO_STUDIO_TABS } from '@/components/SectionTabs'
+import { AdminOnlyPage } from '@/components/AdminOnlyPage'
 
 const CHAR_BLOCK = 80
 const MIN_CREDITS = 20
@@ -38,7 +39,7 @@ const FORMATS = [
 
 type RenderStatus = 'idle' | 'uploading' | 'rendering' | 'done' | 'failed'
 
-export default function ScreenDemoPage() {
+function ScreenDemoPage() {
   const [videoFile, setVideoFile] = useState<File | null>(null)
   const [videoDuration, setVideoDuration] = useState<number | null>(null)
   const [description, setDescription] = useState('')
@@ -508,5 +509,13 @@ export default function ScreenDemoPage() {
         }
       `}</style>
     </main>
+  )
+}
+
+export default function ScreenDemoPageGuarded() {
+  return (
+    <AdminOnlyPage>
+      <ScreenDemoPage />
+    </AdminOnlyPage>
   )
 }
