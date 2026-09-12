@@ -71,6 +71,23 @@ export async function generateUGCScript(
     ? `[BACKGROUND: ${finalScene}]   ← USE THIS EXACT SCENE, do not change it (format requires it)`
     : `[BACKGROUND: one of: bedroom, bathroom, kitchen, living room, office, gym, outdoor, car interior, cafe]`
 
+  // Pinning the BACKGROUND line isn't enough on its own — the spoken lines are
+  // written from the brief and will happily describe an office while the shot
+  // is set on a hillside. The scene has to constrain the dialogue too.
+  const sceneConsistencyBlock = finalScene
+    ? `
+SCENE CONSISTENCY (hard requirement):
+This is being shot at: ${finalScene}
+Everything the character says must make sense IN that place, right now. Every
+concrete detail — what they can see, touch, hear, smell, what they just did,
+what's around them — has to be plausible there.
+Do NOT reference a different setting or an activity that couldn't be happening
+there (no open browser tabs, inbox, meetings or commute talk unless the scene
+IS that place). If the brief implies a situation that contradicts the location,
+the LOCATION WINS — re-cast the same idea into something true of this place.
+`
+    : ''
+
   const customBlock = customInstructions?.trim()
     ? `\nUSER INSTRUCTIONS (HIGH PRIORITY — follow these exactly, override your defaults to match):\n${customInstructions.trim()}\n`
     : ''
@@ -217,7 +234,7 @@ Product: ${productName}
 Description: ${productDescription}
 Benefits: ${benefits}
 CTA the brand wants: ${callToAction}   ← inspiration, NOT a line to copy verbatim
-${languageBlock}${productTypeBlock}${twoPersonBlock}${povInterviewBlock}${customBlock}
+${languageBlock}${productTypeBlock}${twoPersonBlock}${povInterviewBlock}${sceneConsistencyBlock}${customBlock}
 ==============================================
 CREATIVE ANGLE FOR THIS SCRIPT: ${pickedAngle.name}
 ${pickedAngle.brief}
@@ -234,7 +251,7 @@ ${backgroundLine}
 
 [BODY — 0:0${hookEnd} to 0:${bodyEnd < 10 ? '0' + bodyEnd : bodyEnd}]
 (tone note)
-"body — ONE specific moment from THEIR life. Not a description of what the product does. Details that couldn't come from a marketer: a time, a smell, a coworker's name, a tab count, a specific dollar amount, a physical gesture, an interrupted thought."
+"body — ONE specific moment from THEIR life. Not a description of what the product does. Details that couldn't come from a marketer: a time of day, a smell, a texture, a number, a name, a specific dollar amount, a physical gesture, an interrupted thought. Pick details that fit where this is being shot — a desk-and-inbox detail belongs at a desk, not on a hillside."
 
 [CTA — 0:${bodyEnd < 10 ? '0' + bodyEnd : bodyEnd} to 0:${targetDurationSeconds}]
 (tone note)

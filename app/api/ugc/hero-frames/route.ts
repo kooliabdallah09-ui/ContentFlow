@@ -89,7 +89,8 @@ export async function POST(request: NextRequest) {
     // sessions. Otherwise run the Haiku + Sonnet chain from scratch.
     let characterIdea: string
     let imagePrompt: string
-    if (typeof savedActorId === 'string' && savedActorId.length > 0) {
+    const usingSavedActor = typeof savedActorId === 'string' && savedActorId.length > 0
+    if (usingSavedActor) {
       const { data: saved, error: savedErr } = await supabase
         .from('user_saved_actors')
         .select('character_idea, character_image_prompt')
@@ -125,6 +126,24 @@ export async function POST(request: NextRequest) {
       })
       characterIdea = built.characterIdea
       imagePrompt = built.imagePrompt
+    }
+
+    // A saved actor's prompt is stored verbatim so the face doesn't drift
+    // between renders — but it freezes wardrobe and styling along with the
+    // identity, so "put them in hiking clothes" silently did nothing whenever a
+    // creator was attached (the direction only reached the prompt on the
+    // fresh-character path above). Re-apply it here, scoped to everything
+    // EXCEPT identity so the face stays locked.
+    if (usingSavedActor && safeVideoDirection) {
+      imagePrompt = `${imagePrompt}
+
+=== USER DIRECTION — OVERRIDES WARDROBE, STYLING, PROPS AND ACTION ABOVE ===
+${safeVideoDirection}
+Apply this to clothing, hair styling, accessories, props, posture and what the
+character is doing. Where it contradicts the wardrobe described above, THIS WINS.
+DO NOT change facial structure, skin tone, eye colour, natural hair colour, age
+or body type — those define who this person is and must stay exactly as above.
+===========================================================================`
     }
 
     // Hard imperative override — append the shot-direction verbatim to the
