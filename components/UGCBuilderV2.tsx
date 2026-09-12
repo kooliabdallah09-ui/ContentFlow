@@ -16,7 +16,7 @@
 // separate settings panel.
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn, Images, Clapperboard } from 'lucide-react'
+import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn, Images, Clapperboard, MapPin } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
@@ -42,6 +42,11 @@ export interface BuilderState {
   // character-sheet ref (which confuses Nano Banana and produces face
   // drift) and use ONLY this clean single portrait as the identity anchor.
   creatorPhotoUrl?: string
+  // Reusable environment from Scene Studio. Both frame endpoints resolve the
+  // id server-side into the stored scene_prompt + hero image, so only the id
+  // travels from here.
+  sceneId?: string
+  sceneName?: string
   format: string
   formatKey?: string
   aspect: 'portrait' | 'square' | 'landscape' | 'tall45'
@@ -84,6 +89,7 @@ interface Message {
 }
 
 interface BrandProduct { id: string; name: string; image_url: string | null; product_type?: string }
+interface SavedScene { id: string; name: string; category?: string | null; description?: string | null; hero_image_url?: string | null }
 interface SavedCreator {
   id: string
   name: string
@@ -121,9 +127,10 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   const [messages, setMessages] = useState<Message[]>([])
   const [composer, setComposer] = useState('')
   const [parsing, setParsing] = useState(false)
-  const [openPanel, setOpenPanel] = useState<'settings' | 'product' | 'creator' | 'refs' | 'format' | null>(null)
+  const [openPanel, setOpenPanel] = useState<'settings' | 'product' | 'creator' | 'refs' | 'format' | 'scene' | null>(null)
   const [products, setProducts] = useState<BrandProduct[]>([])
   const [creators, setCreators] = useState<SavedCreator[]>([])
+  const [scenes, setScenes] = useState<SavedScene[]>([])
   const [libLoaded, setLibLoaded] = useState(false)
   const [bridgingCreator, setBridgingCreator] = useState(false)
   // One-pipeline-at-a-time guard. Locks the Generate button (and script
@@ -137,7 +144,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   // Lazy-load product + creator libraries the first time the user opens
   // either attach sheet. Cheap enough to fetch both together.
   useEffect(() => {
-    if (openPanel !== 'product' && openPanel !== 'creator') return
+    if (openPanel !== 'product' && openPanel !== 'creator' && openPanel !== 'scene') return
     if (libLoaded) return
     let cancelled = false
     ;(async () => {
@@ -146,11 +153,18 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       const { data: sess } = await supabase.auth.getSession()
       const token = sess?.session?.access_token
       if (!token) return
-      const [pRes, aRes, iRes] = await Promise.all([
+      const [pRes, aRes, iRes, sRes] = await Promise.all([
         fetch('/api/brand/products', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
         fetch('/api/ugc/saved-actors', { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
         fetch('/api/influencers',     { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
+        fetch('/api/scenes',          { headers: { Authorization: `Bearer ${token}` } }).catch(() => null),
       ])
+      try {
+        if (sRes?.ok) {
+          const d = await sRes.json()
+          if (!cancelled && Array.isArray(d?.scenes)) setScenes(d.scenes)
+        }
+      } catch { /* ignore */ }
       try {
         if (pRes?.ok) {
           const d = await pRes.json()
@@ -314,6 +328,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           aspectId: state.aspect,
           formatKey: state.formatKey,
           videoDirection: enrichedDirection || undefined,
+          sceneId: state.sceneId,
         }),
       })
       const framesData = await framesRes.json().catch(() => ({}))
@@ -514,6 +529,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           // gets multiple angles of the same face to triangulate against.
           extraProductImages: state.referenceImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
           formatKey: state.formatKey,
+          sceneId: state.sceneId,
         }),
       })
       const framesRaw = await framesRes.text()
@@ -836,6 +852,21 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             onClose={() => setOpenPanel(null)}
           />
         )}
+        {openPanel === 'scene' && (
+          <SceneSheet
+            scenes={scenes}
+            selectedId={state.sceneId}
+            onPick={sc => {
+              setOpenPanel(null)
+              setState(s => ({
+                ...s,
+                sceneId: sc?.id,
+                sceneName: sc?.name,
+              }))
+            }}
+            onClose={() => setOpenPanel(null)}
+          />
+        )}
         {openPanel === 'refs' && (
           <ReferencesSheet
             images={state.referenceImages}
@@ -968,6 +999,12 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             label={getUgcFormat(state.formatKey)?.label ?? 'Auto format'}
             active={!!state.formatKey}
             onClick={() => setOpenPanel(p => p === 'format' ? null : 'format')}
+          />
+          <AttachChip
+            icon={<MapPin size={12} />}
+            label={state.sceneName || 'Auto scene'}
+            active={!!state.sceneId}
+            onClick={() => setOpenPanel(p => p === 'scene' ? null : 'scene')}
           />
           <AttachChip
             icon={<Images size={12} />}
@@ -1985,6 +2022,81 @@ const ASPECT_BY_CAMPAIGN: Record<string, BuilderState['aspect']> = {
   '4:5': 'tall45',
   '1:1': 'square',
   '16:9': 'landscape',
+}
+
+function SceneSheet({ scenes, selectedId, onPick, onClose }: {
+  scenes: SavedScene[]
+  selectedId?: string
+  onPick: (s: SavedScene | null) => void
+  onClose: () => void
+}) {
+  return (
+    <div style={sheetShellStyle}>
+      <SheetHeader title="Pick a scene" onClose={onClose} />
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(124px, 1fr))',
+        gap: 8, maxHeight: 280, overflowY: 'auto',
+      }}>
+        <button type="button" onClick={() => onPick(null)} style={{
+          padding: 6, borderRadius: 10,
+          border: `1.5px solid ${!selectedId ? 'var(--ink)' : 'var(--border)'}`,
+          background: 'var(--surface)', cursor: 'pointer',
+          display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
+        }}>
+          <div style={{
+            aspectRatio: '4/3', borderRadius: 8, background: 'var(--surface-2)',
+            display: 'grid', placeItems: 'center', color: 'var(--ink-mute)',
+          }}>
+            <Sparkles size={18} />
+          </div>
+          <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink)', textAlign: 'center' }}>Auto</div>
+        </button>
+
+        {scenes.map(sc => {
+          const active = sc.id === selectedId
+          return (
+            <button key={sc.id} type="button" onClick={() => onPick(sc)} title={sc.description ?? sc.name} style={{
+              padding: 6, borderRadius: 10,
+              border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+              background: 'var(--surface)', cursor: 'pointer',
+              display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
+            }}>
+              <div style={{
+                aspectRatio: '4/3', borderRadius: 8, background: 'var(--surface-2)',
+                overflow: 'hidden', display: 'grid', placeItems: 'center', color: 'var(--ink-mute)',
+              }}>
+                {sc.hero_image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={sc.hero_image_url}
+                    alt={sc.name}
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden' }}
+                  />
+                ) : <MapPin size={16} />}
+              </div>
+              <div style={{
+                fontSize: 11.5, fontWeight: 600, color: 'var(--ink)', textAlign: 'center',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {sc.name}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', lineHeight: 1.5 }}>
+        {scenes.length === 0
+          ? 'No saved scenes yet. Auto lets the format pick a fitting location, or build reusable ones in Scene Studio.'
+          : 'The scene anchors where the shot happens. Auto lets the format choose.'}
+        {' '}
+        <a href="/scenes" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ink)', textDecoration: 'underline' }}>
+          Open Scene Studio ↗
+        </a>
+      </div>
+    </div>
+  )
 }
 
 function FormatSheet({ selectedKey, onPick, onClose }: {
