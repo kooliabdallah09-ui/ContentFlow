@@ -706,3 +706,137 @@ export async function submitVoxStitch({
   if (!renderId) throw new Error('Shotstack Vox: no render ID returned')
   return { renderId }
 }
+
+// ── Product B-roll cutaways ───────────────────────────────────────────────
+//
+// Two pieces, used by /api/ugc/broll/*:
+//   1. submitKenBurnsClip  — turn an existing product still into a short
+//      moving clip. Pure Shotstack, no model call, so a cutaway costs nothing
+//      beyond the render itself.
+//   2. submitBrollCutaway  — lay that clip over a finished UGC video for a
+//      couple of seconds.
+
+export type KenBurnsMotion = 'zoomIn' | 'zoomOut' | 'slideLeft' | 'slideRight' | 'slideUp' | 'slideDown'
+
+function sizeFor(aspect?: 'portrait' | 'square' | 'landscape') {
+  return aspect === 'square'    ? { width: 1080, height: 1080 }
+       : aspect === 'landscape' ? { width: 1920, height: 1080 }
+       :                          { width: 1080, height: 1920 }
+}
+
+async function postRender(body: unknown, label: string): Promise<{ renderId: string }> {
+  const apiKey = process.env.SHOTSTACK_API_KEY
+  if (!apiKey) throw new Error('SHOTSTACK_API_KEY not configured')
+  const res = await fetch(`${SHOTSTACK_BASE}/render`, {
+    method: 'POST',
+    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+  if (!res.ok) {
+    const text = await res.text().catch(() => '')
+    console.error(`[shotstack] ${label} rejected`, { status: res.status, detail: text.slice(0, 400) })
+    throw new Error(`Shotstack ${res.status}: ${text.slice(0, 300)}`)
+  }
+  const data = await res.json()
+  const renderId = data?.response?.id ?? data?.id
+  if (!renderId) throw new Error(`Shotstack: no render id returned for ${label}`)
+  return { renderId }
+}
+
+/**
+ * Render a product still as a short pan/zoom clip — the cheap B-roll path.
+ * `fit: 'cover'` plus a slow motion effect reads as a real cutaway without
+ * paying for a video model.
+ */
+export async function submitKenBurnsClip({
+  imageUrl,
+  durationSeconds = 1.5,
+  motion = 'zoomIn',
+  aspect,
+}: {
+  imageUrl: string
+  durationSeconds?: number
+  motion?: KenBurnsMotion
+  aspect?: 'portrait' | 'square' | 'landscape'
+}): Promise<{ renderId: string }> {
+  const length = Math.min(Math.max(durationSeconds, 0.8), 4)
+  return postRender({
+    timeline: {
+      background: '#000000',
+      tracks: [{
+        clips: [{
+          asset: { type: 'image', src: imageUrl },
+          start: 0,
+          length,
+          fit: 'cover',
+          scale: 1,
+          effect: motion,
+        }],
+      }],
+    },
+    output: { format: 'mp4', size: sizeFor(aspect), fps: 30 },
+  }, 'ken burns clip')
+}
+
+/**
+ * Overlay a B-roll cutaway on top of a finished UGC video.
+ *
+ * The cutaway sits on the upper track and is muted while the full main video
+ * runs underneath at full volume — so the creator keeps talking over the
+ * product shot and the total duration never changes. Cutting the main video
+ * into segments instead would break the voiceover mid-word.
+ */
+export async function submitBrollCutaway({
+  mainUrl,
+  mainDuration,
+  brollUrl,
+  atSeconds,
+  cutawayDuration = 1.5,
+  aspect,
+}: {
+  mainUrl: string
+  mainDuration: number
+  brollUrl: string
+  atSeconds: number
+  cutawayDuration?: number
+  aspect?: 'portrait' | 'square' | 'landscape'
+}): Promise<{ renderId: string }> {
+  const mainLen = mainDuration > 0 ? mainDuration : 12
+  // Refuse rather than clamp: on a very short clip there's no placement that
+  // keeps the overlay inside the video, and forcing one leaves a black tail
+  // past the end. Callers should check canCutaway() first.
+  if (mainLen < 2.5) {
+    throw new Error(`Video too short for a cutaway (${mainLen.toFixed(1)}s, need 2.5s+)`)
+  }
+  // Keep the cutaway fully inside the main clip.
+  const length = Math.min(Math.max(cutawayDuration, 0.6), mainLen - 0.4)
+  const start = Math.min(Math.max(atSeconds, 0.3), mainLen - length - 0.2)
+
+  return postRender({
+    timeline: {
+      background: '#000000',
+      tracks: [
+        // Upper track: the muted cutaway.
+        {
+          clips: [{
+            asset: { type: 'video', src: brollUrl, volume: 0 },
+            start,
+            length,
+            fit: 'cover',
+            transition: { in: 'fade', out: 'fade' },
+          }],
+        },
+        // Lower track: the untouched ad, audio intact.
+        {
+          clips: [{
+            asset: { type: 'video', src: mainUrl, volume: 1 },
+            start: 0,
+            length: mainLen,
+            fit: 'cover',
+          }],
+        },
+      ],
+    },
+    output: { format: 'mp4', size: sizeFor(aspect), fps: 30 },
+  }, 'broll cutaway')
+}
