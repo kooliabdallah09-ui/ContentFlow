@@ -412,6 +412,20 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       showError('Product needed', 'Tell me what product this ad is for first — describe it in the chat, or attach a product below.')
       return
     }
+    // Anything still sitting in the composer is intent the user expects to
+    // count — Generate sits right next to it, so typing a note and pressing
+    // Generate instead of Send is the obvious move. Fold it into the direction
+    // rather than silently discarding it.
+    const pendingNote = composer.trim()
+    const effectiveDirection = pendingNote
+      ? [state.direction, pendingNote].filter(Boolean).join('\n\n')
+      : state.direction
+    if (pendingNote) {
+      setComposer('')
+      pushMsg({ role: 'user', kind: 'text', text: pendingNote })
+      setState(s => ({ ...s, direction: effectiveDirection }))
+    }
+
     setBusy(true)
     try {
       const supabase = getSupabase()
@@ -458,10 +472,10 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       // so Nano Banana can map the tokens to the attached reference
       // images by ordinal position. The nanobanana.ts prompt already
       // labels the extra refs as image1..imageN in the order they arrive.
-      const mentionCount = (state.direction.match(/@image\d+/gi) ?? []).length
+      const mentionCount = effectiveDirection.match(/@image\d+/gi)?.length ?? 0
       const enrichedDirection = mentionCount > 0 && state.referenceImages.length > 0
-        ? `${state.direction}\n\n(The @imageN tokens above refer to the ${state.referenceImages.length} reference image(s) attached — image1 is the first, image2 the second, etc.)`
-        : state.direction
+        ? `${effectiveDirection}\n\n(The @imageN tokens above refer to the ${state.referenceImages.length} reference image(s) attached — image1 is the first, image2 the second, etc.)`
+        : effectiveDirection
 
       // Product-motion formats (Kinetic Burst, Crush Test, Aesthetic B-roll…)
       // have no creator and no dialogue, so they skip the script step and run
@@ -492,6 +506,10 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           // Was never sent, so every script was written to the 10s default
           // even on a 5s or 30s clip.
           duration: state.duration,
+          // Must reach the script too, not just the frames — otherwise the
+          // script gets written for the format's default location and
+          // contradicts the scene the frames are rendered in.
+          sceneId: state.sceneId,
         }),
       })
       const scriptData = await scriptRes.json()

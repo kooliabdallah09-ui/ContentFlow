@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
       productType,
       formatKey,
       hasSecondCharacter,
+      sceneId,              // uuid of a user_scenes row — pins where the script is set
     } = body
 
     if (!productName || !productDescription) {
@@ -77,7 +78,38 @@ export async function POST(request: NextRequest) {
       }
     } catch { /* non-fatal */ }
 
-    const forcedScene = character?.scene?.trim() ? (character.scene as string).toLowerCase() : undefined
+    // Scene resolution, highest priority first:
+    //   1. an explicit Scene Studio pick
+    //   2. a scene carried on the character profile
+    //   3. (inside generateUGCScript) the scene the format implies
+    //
+    // A picked scene has to win. Without this the script falls through to the
+    // format's default — a camera-pov brief would get written for "a desk" no
+    // matter which environment the user chose, and the frames would then be
+    // rendered somewhere the script never mentions.
+    let forcedScene: string | undefined =
+      character?.scene?.trim() ? (character.scene as string).toLowerCase() : undefined
+
+    if (typeof sceneId === 'string' && sceneId.length > 0) {
+      try {
+        const { data: sceneRow } = await supabase
+          .from('user_scenes')
+          .select('name, description, scene_prompt')
+          .eq('id', sceneId)
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (sceneRow) {
+          // The script only needs to know WHERE it is — the full scene_prompt
+          // is render detail for the image model. Keep it to the name plus a
+          // short summary so the [BACKGROUND: …] line stays readable.
+          const summary = (sceneRow.description || sceneRow.scene_prompt || '').trim()
+          forcedScene = summary
+            ? `${sceneRow.name} — ${summary}`.slice(0, 300)
+            : sceneRow.name
+        }
+      } catch { /* non-fatal — fall back to the format's scene */ }
+    }
+
     const targetDuration = typeof duration === 'number' ? duration : 10
 
     const script = await generateUGCScript(

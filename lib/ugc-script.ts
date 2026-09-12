@@ -54,7 +54,19 @@ export async function generateUGCScript(
     if (formatKey === 'unboxing') return 'clean desk, table, or countertop — package-opening setting'
     return null
   })()
-  const finalScene = forcedScene || formatScene
+  // A picked scene overrides the format's location, but some format scenes
+  // also carry a camera perspective rather than a place. Dropping that outright
+  // would turn a first-person POV brief into a normal third-person one just
+  // because the user chose where to shoot it, so the perspective is preserved
+  // and the location swapped.
+  const formatPerspective =
+    formatKey === 'camera-pov' || formatKey === 'pov-vlog' ? 'first-person POV'
+    : formatKey === 'interview-pov' ? 'first-person POV, stranger being interviewed'
+    : null
+
+  const finalScene = forcedScene
+    ? (formatPerspective ? `${formatPerspective} — ${forcedScene}` : forcedScene)
+    : formatScene
   const backgroundLine = finalScene
     ? `[BACKGROUND: ${finalScene}]   ← USE THIS EXACT SCENE, do not change it (format requires it)`
     : `[BACKGROUND: one of: bedroom, bathroom, kitchen, living room, office, gym, outdoor, car interior, cafe]`
