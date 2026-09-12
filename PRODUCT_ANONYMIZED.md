@@ -7,10 +7,10 @@ Self-contained. Feed this file to an external reviewer (human or AI) with no pri
 
 ## 0. Context for the reader — TL;DR
 
-**What ContentFlow is**: An AI web app that turns a product URL (Shopify, TikTok Shop, Amazon, or a raw product photo) into a full week's worth of UGC-style video ads — script, hero frame, AI creator, voice, captions — in one wallet. Built for solo dropshippers and one-person e-com stores, not for enterprises, filmmakers, or agencies.
+**What ContentFlow is**: An AI web app that turns a product URL (Shopify, TikTok Shop, Amazon, or a raw product photo) into a full week's worth of UGC-style video ads — script, hero frame, AI creator, voice, captions — with a disclosure overlay and review report built in. Built for small e-commerce brand owners running paid social, not for enterprises, filmmakers, or agencies.
 
-**Category we position as**: "The AI ad engine for dropshippers"
-**Tagline**: "Ads that don't look AI. For stores that ship every week."
+**Category we position as**: "The AI ad engine for e-commerce brands"
+**Tagline**: "Ads that pass review. For stores that ship every week."
 
 **Live production URL**: https://contentflow-web.com
 **Tech stack**: Next.js 14 + Supabase (Postgres + Auth + Storage) + Vercel serverless + Dodo Payments + BytePlus Seedance + Google Nano Banana Pro + Anthropic Claude + ElevenLabs

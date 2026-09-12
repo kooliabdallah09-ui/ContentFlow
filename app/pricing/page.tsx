@@ -8,7 +8,7 @@ import { Logo } from '@/components/Logo'
 const plans = [
   {
     name: 'Free',
-    tagline: 'Try one ad. No card.',
+    tagline: 'One review-safe ad. No card.',
     price: { monthly: '$0', annual: '$0' },
     annualTotal: null,
     credits: '30 credits at signup',
@@ -16,7 +16,7 @@ const plans = [
     features: [
       '30 credits on signup',
       'One preview ad from any product URL',
-      'Try every studio',
+      'Disclosure overlay included',
       'No card required',
     ],
     cta: 'Start free',
@@ -34,37 +34,37 @@ const plans = [
       'Product photos, carousels, captions',
       'AI Influencer Studio',
       'Voice in 30+ languages',
-      'Credits never expire',
+      'Credits roll over',
     ],
     cta: 'Get Lite',
   },
   {
     name: 'Starter',
-    tagline: 'Test 20 hooks per month.',
+    tagline: 'Test 10 hooks per month, on-brand.',
     price: { monthly: '$19', annual: '$16' },
     annualTotal: '$190/yr',
     credits: '800 credits/month',
     planKey: 'starter',
     features: [
-      '~20 UGC ads/mo at 720p',
+      '~10 UGC ads/mo at 5s 720p',
       'Batch generation — 10 variants at once',
       'Full Product Studio',
       'No watermark',
       'Video editor',
-      'Credits never expire',
+      'Credits roll over',
     ],
     cta: 'Get Starter',
   },
   {
     name: 'Pro',
-    tagline: 'Ship 20 ads per week.',
+    tagline: 'Ship a week of ads at a time.',
     price: { monthly: '$49', annual: '$41' },
     annualTotal: '$490/yr',
     credits: '2,000 credits/month',
     planKey: 'pro',
     popular: true,
     features: [
-      '~80 UGC ads/mo at 720p',
+      '~40 UGC ads/mo at 5s 720p',
       'Shopify product import',
       'Campaign planner',
       'Reel Analyzer (recreate competitor ads)',
@@ -81,7 +81,7 @@ const plans = [
     credits: '6,500 credits/month',
     planKey: 'agency',
     features: [
-      '~260 UGC ads/mo at 720p',
+      '~130 UGC ads/mo at 5s 720p',
       'Multiple brand profiles',
       'Multiple store URLs',
       'Dedicated support',
@@ -313,24 +313,26 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
 }
 
 const comparison = [
-  ['Starting price',                 '$19/mo', '$110/mo', '$39/mo', '$29/mo', '$19/mo'],
-  ['Credits never expire',           '✓',       '✗',       '✗',      '✗',      '✗'],
-  ['URL → 20 ad variants',           '✓',       '✗',       '~',      '✗',      '✗'],
-  ['UGC talking-head ads',           '✓',       '✓',       '✓',      '✓',      '~'],
-  ['Product Studio (phone → shot)',  '✓',       '✗',       '✗',      '✗',      '~'],
-  ['30+ language voice output',      '✓',       '✓',       '~',      '✓',      '✗'],
-  ['Complete stack (no other tools)', '✓',      '✗',       '~',      '✗',      '✗'],
-  ['Cancel anytime · no dark patterns','✓',     '~',       '~',      '✓',      '✓'],
+  ['Starting price',                     '$19/mo', '$110/mo', '$39/mo', '$29/mo', '$19/mo'],
+  ['Auto-refund on failed renders',      '✓',       '✗',       '✗',      '✗',      '✗'],
+  ['Disclosure overlay + review report', '✓',       '✗',       '✗',      '✗',      '✗'],
+  ['URL → 10 ad variants in one click',  '✓',       '✗',       '~',      '✗',      '✗'],
+  ['UGC talking-head ads',               '✓',       '✓',       '✓',      '✓',      '~'],
+  ['Product Studio (phone → shot)',      '✓',       '✗',       '✗',      '✗',      '~'],
+  ['30+ language voice output',          '✓',       '✓',       '~',      '✓',      '✗'],
+  ['Complete stack (no other tools)',    '✓',       '✗',       '~',      '✗',      '✗'],
+  ['Cancel anytime · one click',         '✓',       '~',       '~',      '✓',      '✓'],
 ]
 
 const faqs = [
-  { q: 'Do credits expire?', a: 'No. Ever. Both your monthly plan credits and any one-time credit packs you buy stay in your account until you use them. If you cancel, they wait for you.' },
-  { q: 'Will these ads get my Meta or TikTok account banned?', a: 'We render at low motion levels, avoid known-flagged patterns (deepfake movement, uncanny mouth motion, over-polished lighting), and keep outputs UGC-authentic so platforms don\'t flag them. You still control disclosure — but our defaults are designed to pass.' },
-  { q: 'Can I cancel anytime?', a: 'Yes. One click in your account settings. No cancellation form, no retention call, no "just talk to us." Your credits stay in your account after you cancel.' },
-  { q: 'What languages do you support?', a: 'Voice output in 30+ languages including Portuguese (BR), Arabic, Turkish, Spanish (LatAm), French, German, Italian, Japanese, Korean, Chinese. Scripts localize to your buyer\'s market, not just translated word-for-word.' },
+  { q: 'Do credits expire?', a: 'Subscription credits roll over for one billing cycle (capped at 2× your monthly grant). Pack credits are valid 12 months from purchase. If you cancel, unused subscription credits stay in your account for 60 days. This is not legal advice; check our refund policy for full terms.' },
+  { q: 'What does "passes review" mean?', a: 'Every exported ad ships with a disclosure overlay and AI-content metadata that meets Meta, TikTok, and Google\'s current AI-content labeling requirements. Before you render, our script linter flags language that historically trips platform review (unverifiable results claims, absolutes, before/after phrasing). This is not legal advice — ad platform rules change, and we link to the current source on every check. But our defaults are designed to give your ad the best chance of getting approved.' },
+  { q: 'What happens if a render fails?', a: 'Failed renders auto-refund your credits in full. Your first retry of any ad is free. You only pay for ads you can use.' },
+  { q: 'Can I cancel anytime?', a: 'Yes. One click in your account settings. No cancellation form, no retention call. Unused subscription credits stay in your account for 60 days after cancellation; pack credits stay valid until their 12-month window closes.' },
+  { q: 'What languages do you support?', a: 'Voice output in 30+ languages including Portuguese (BR), Arabic, Turkish, Spanish (LatAm), French, German, Italian, Japanese, Korean, Chinese. Scripts are being localized market-by-market — currently pt-BR and es-419 are natively written; other languages are translated from English with local idiom pass.' },
   { q: 'Do I need to know how to edit video?', a: 'No. Outputs come ready to post — captions burned in, hook + product + CTA structured, 9:16 for TikTok/Reels or 16:9 for YouTube/Meta. If you want to tweak, our editor is included. No third-party tool required.' },
-  { q: 'How many ads can I actually make?', a: 'On Pro ($49/mo, 2,000 credits) you can render ~80 UGC ads/mo at 720p, or ~20 per week. See the plan recommender above for exact numbers based on your mix.' },
-  { q: 'What if I need more than Agency?', a: 'Higher volume, multiple team seats, API access, or white-label? Email hello@contentflow-web.com. We do custom for real usage, not shelf pricing.' },
+  { q: 'How many ads can I actually make?', a: 'On Pro ($49/mo, 2,000 credits) you can render ~40 UGC ads/mo at 5 seconds and 720p vertical — that\'s about 10 per week. Longer or higher-resolution ads cost proportionally more credits. See the plan recommender for your exact mix.' },
+  { q: 'What if I need more than Agency?', a: 'Higher volume, multiple team seats, API access, or white-label? Email hello@contentflow-web.com. Custom pricing for real usage.' },
 ]
 
 export default function PricingPage() {
@@ -398,21 +400,21 @@ export default function PricingPage() {
         {/* Hero */}
         <div style={{ textAlign: 'center', padding: '64px 0 32px' }}>
           <div style={{ fontFamily: 'var(--font-mono, ui-monospace, monospace)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade, #9ca3af)', marginBottom: 18 }}>
-            The AI ad engine for dropshippers
+            The AI ad engine for e-commerce brands
           </div>
           <h1 style={{ fontFamily: 'var(--font-serif, Georgia)', fontSize: 'clamp(36px, 5vw, 56px)', fontWeight: 400, letterSpacing: '-0.03em', margin: '0 0 16px', lineHeight: 1.1 }}>
             Pricing that doesn&apos;t <em style={{ color: '#b91c1c' }}>punish testing.</em>
           </h1>
           <p style={{ fontSize: 17, color: 'var(--ink-dim, #666)', maxWidth: 540, margin: '0 auto 28px', lineHeight: 1.6 }}>
-            One wallet. Every format your store needs. Credits that don&apos;t expire — no matter how many hooks you kill.
+            One wallet. Every format your store needs. Credits that roll over. Failed renders refund automatically.
           </p>
 
           {/* Trust bar — the three claims that beat competitor scandals */}
           <div style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 22, justifyContent: 'center', marginBottom: 30, padding: '10px 20px', borderRadius: 12, background: 'rgba(185,28,28,0.04)', border: '1px solid rgba(185,28,28,0.15)' }}>
             {[
-              'Credits never expire',
+              'Credits roll over',
+              'Failed renders refund',
               'Cancel anytime · one click',
-              'No hidden fees · no dark patterns',
             ].map(claim => (
               <span key={claim} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontSize: 12.5, fontWeight: 500, color: '#7f1d1d' }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
