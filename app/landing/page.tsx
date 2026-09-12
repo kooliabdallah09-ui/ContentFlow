@@ -1,20 +1,18 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
-import { Sun, Moon, Menu, X } from 'lucide-react'
+import { useState } from 'react'
 import { DEMO_VIDEOS } from '@/lib/demo-gallery'
-import { Logo } from '@/components/Logo'
 import { PreviewGenerator } from '@/components/PreviewGenerator'
-import { AdTeardown } from '@/components/AdTeardown'
+import { MarketingHeader } from '@/components/MarketingHeader'
+import { MarketingFooter } from '@/components/MarketingFooter'
 
 // Landing page — editorial design from the Claude Design export.
-// Hero + Features (6-up grid) + Pricing (3 cards) + closing CTA + Footer.
+// Chrome (header + footer) is shared with every other marketing page via
+// MarketingHeader / MarketingFooter so cross-page navigation feels continuous.
 // Every signup CTA routes to /auth/signup so the funnel is consistent.
 
 export default function LandingPage() {
-  const [isDark, setIsDark] = useState(false)  // Landing defaults to light
-  const [menuOpen, setMenuOpen] = useState(false)
   const [activeFeatureTab, setActiveFeatureTab] = useState(0)
   const [featureVisible, setFeatureVisible] = useState(true)
 
@@ -24,129 +22,9 @@ export default function LandingPage() {
     setTimeout(() => { setActiveFeatureTab(i); setFeatureVisible(true) }, 180)
   }
 
-  useEffect(() => {
-    // Default light on landing; respect an explicit user override.
-    const saved = typeof window !== 'undefined' ? localStorage.getItem('cf-theme') : null
-    const shouldDark = saved ? saved === 'dark' : false
-    setIsDark(shouldDark)
-    if (shouldDark) document.documentElement.setAttribute('data-theme', 'dark')
-    else document.documentElement.removeAttribute('data-theme')
-  }, [])
-
-  const toggleTheme = () => {
-    const next = !isDark
-    setIsDark(next)
-    if (next) {
-      document.documentElement.setAttribute('data-theme', 'dark')
-      localStorage.setItem('cf-theme', 'dark')
-    } else {
-      document.documentElement.removeAttribute('data-theme')
-      localStorage.setItem('cf-theme', 'light')
-    }
-  }
-
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', color: 'var(--ink)' }}>
-      {/* HEADER */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 50,
-        backdropFilter: 'blur(10px)',
-        WebkitBackdropFilter: 'blur(10px)',
-        background: 'color-mix(in srgb, var(--bg) 82%, transparent)',
-        borderBottom: '1px solid var(--border)',
-        padding: '16px 20px',
-      }}>
-        <div style={{
-          maxWidth: 1200, margin: '0 auto',
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink)', textDecoration: 'none' }}>
-            <span className="brand-mark" style={{ width: 60, height: 60, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={60} /></span>
-            <div className="brand-name" style={{ fontSize: 15, color: 'var(--ink)' }}>Content<em>flow</em></div>
-          </Link>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="ls-nav">
-            <a href="#features" style={navLink}>Features</a>
-            <a href="#teardown" style={{ ...navLink, color: '#b91c1c' }}>Free ad teardown</a>
-            <Link href="/pricing" style={navLink}>Pricing</Link>
-            <Link href="/help" style={navLink}>Docs</Link>
-          </nav>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }} className="ls-actions">
-            <button
-              onClick={toggleTheme}
-              aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-              style={{
-                width: 36, height: 36, borderRadius: 9,
-                background: 'transparent',
-                border: '1px solid var(--border)',
-                color: 'var(--ink)',
-                cursor: 'pointer',
-                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              }}
-            >
-              {isDark ? <Sun size={16} /> : <Moon size={16} />}
-            </button>
-            <Link href="/auth/login" style={btnSecondaryLink} className="ls-signin">Sign in</Link>
-            <Link href="/auth/signup" style={btnPrimaryLink}>Get started</Link>
-          </div>
-          {/* Burger — shown ≤640px in place of Sign in + nav links */}
-          <button
-            className="ls-burger"
-            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
-            onClick={() => setMenuOpen(o => !o)}
-            style={{
-              display: 'none',
-              width: 40, height: 40, borderRadius: 10,
-              background: 'transparent', border: '1px solid var(--border)',
-              color: 'var(--ink)', cursor: 'pointer',
-              alignItems: 'center', justifyContent: 'center',
-            }}
-          >
-            {menuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-        </div>
-        {/* Mobile drop-panel: shows the same nav + Sign in when the burger is open. */}
-        {menuOpen && (
-          <div className="ls-mobile-panel" style={{
-            display: 'none',
-            padding: '10px 20px 20px', borderTop: '1px solid var(--border)',
-            flexDirection: 'column', gap: 4,
-            background: 'var(--bg)',
-          }}>
-            <a href="#features" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Features</a>
-            <a href="#teardown" onClick={() => setMenuOpen(false)} style={{ ...mobileNavItem, color: '#b91c1c' }}>Free ad teardown</a>
-            <Link href="/pricing" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Pricing</Link>
-            <Link href="/help" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Docs</Link>
-            <Link href="/auth/login" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Sign in</Link>
-            {/* On the smallest phones, the theme toggle and Get started move
-                inside the burger to keep the header uncluttered. */}
-            <div className="ls-mobile-actions" style={{
-              display: 'none',
-              marginTop: 10, paddingTop: 14, borderTop: '1px solid var(--border-soft)',
-              gap: 10,
-            }}>
-              <button
-                onClick={() => { toggleTheme() }}
-                aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-                style={{
-                  flex: '0 0 auto', width: 44, height: 44, borderRadius: 10,
-                  background: 'transparent', border: '1px solid var(--border)',
-                  color: 'var(--ink)', cursor: 'pointer',
-                  display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-                }}
-              >
-                {isDark ? <Sun size={16} /> : <Moon size={16} />}
-              </button>
-              <Link href="/auth/signup" onClick={() => setMenuOpen(false)} style={{
-                flex: 1, textAlign: 'center', padding: '12px 16px', borderRadius: 10,
-                background: 'var(--ink)', color: 'var(--on-ink)',
-                fontSize: 14.5, fontWeight: 600, whiteSpace: 'nowrap',
-              }}>
-                Get started
-              </Link>
-            </div>
-          </div>
-        )}
-      </header>
+      <MarketingHeader />
 
       {/* HERO */}
       <section style={{ position: 'relative', overflow: 'hidden' }}>
@@ -178,9 +56,9 @@ export default function LandingPage() {
               Skip preview → create free account
             </Link>
             <span style={{ opacity: 0.4 }}>·</span>
-            <a href="#teardown" style={{ color: 'var(--ink-mute)', textDecoration: 'none' }}>
+            <Link href="/teardown" style={{ color: 'var(--ink-mute)', textDecoration: 'none' }}>
               Or tear down a competitor&apos;s ad — free
-            </a>
+            </Link>
           </div>
         </div>
       </section>
@@ -188,7 +66,7 @@ export default function LandingPage() {
 
       {/* MADE WITH CONTENTFLOW — auto-scrolling marquee (hidden until curated demos exist) */}
       {DEMO_VIDEOS.length > 0 && (
-      <section style={{ padding: '0 0 100px', overflow: 'hidden' }}>
+      <section style={{ padding: '0 0 104px', overflow: 'hidden' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 20px', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 28 }}>
           <h2 style={{ ...sectionH2, fontSize: 28, margin: 0 }}>Made with <em>ContentFlow</em></h2>
           <Link href="/auth/signup" style={{ fontSize: 13, color: 'var(--ink-mute)', fontWeight: 500 }}>Try it free →</Link>
@@ -214,26 +92,41 @@ export default function LandingPage() {
       </section>
       )}
 
-      {/* AD TEARDOWN — free tool, usable without an account. Top-of-funnel:
-          they come to study a competitor's ad and leave with our prompt. */}
-      <section id="teardown" style={{ position: 'relative', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg-2, var(--bg))' }}>
-        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '90px 20px' }}>
-          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 44px' }}>
-            <div style={{ ...heroEyebrow, color: '#b91c1c' }}>Free tool · no account needed</div>
-            <h2 style={sectionH2}>Why does <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>that</span> ad work?</h2>
-            <p style={sectionP}>
+      {/* AD TEARDOWN PROMO — the tool itself lives at /teardown so it can rank
+          and be shared as its own entry point. The landing only points to it. */}
+      <section style={{ position: 'relative', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', top: -140, left: '50%', transform: 'translateX(-50%)',
+          width: 640, height: 300, borderRadius: '50%', pointerEvents: 'none',
+          background: 'radial-gradient(ellipse, rgba(185,28,28,0.10) 0%, transparent 70%)',
+        }} />
+        <div style={{
+          position: 'relative', maxWidth: 1000, margin: '0 auto', padding: '72px 20px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 40,
+        }} className="ls-promo">
+          <div style={{ maxWidth: 560 }}>
+            <div style={{ ...sectionEyebrow, color: '#b91c1c' }}>Free tool · no account needed</div>
+            <h2 style={{ ...sectionH2, fontSize: 36, margin: '0 0 12px' }}>
+              Why does <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>that</span> ad work?
+            </h2>
+            <p style={{ ...sectionP, margin: 0 }}>
               Drop in the competitor ad that&apos;s outselling you. We name the hook, map the beat
-              structure, count the cuts and read the caption style — then hand you a prompt that
-              rebuilds it for your product.
+              structure, count the cuts — then hand you a prompt that rebuilds it for your product.
             </p>
           </div>
-          <AdTeardown variant="landing" />
+          <Link href="/teardown" style={{
+            flexShrink: 0, padding: '14px 28px', borderRadius: 12, background: '#b91c1c',
+            color: '#fff', fontSize: 14.5, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
+          }}>
+            Tear down an ad →
+          </Link>
         </div>
       </section>
 
       {/* FEATURE SHOWCASE — tabbed */}
-      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 20px 60px' }}>
-        <div style={{ textAlign: 'center', maxWidth: 560, margin: '0 auto 48px' }}>
+      <section style={{ maxWidth: 1200, margin: '0 auto', padding: '104px 20px 64px' }}>
+        <div style={{ textAlign: 'center', maxWidth: 620, margin: '0 auto 44px' }}>
+          <div style={sectionEyebrow}>The studios</div>
           <h2 style={sectionH2}>Every tool your brand needs.<br /><span style={{ fontStyle: 'italic', color: 'var(--ink-mute)' }}>One place.</span></h2>
         </div>
         {/* Tab bar */}
@@ -424,8 +317,9 @@ export default function LandingPage() {
       </section>
 
       {/* FEATURES */}
-      <section id="features" style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 20px' }}>
-        <div style={{ textAlign: 'center', maxWidth: 600, margin: '0 auto 50px' }}>
+      <section id="features" style={{ maxWidth: 1200, margin: '0 auto', padding: SECTION_PAD }}>
+        <div style={{ textAlign: 'center', maxWidth: 620, margin: '0 auto 50px' }}>
+          <div style={sectionEyebrow}>What you get</div>
           <h2 style={sectionH2}>One brand profile.<br/><span style={{ fontStyle: 'italic', color: 'var(--ink-mute)' }}>Every format.</span></h2>
           <p style={sectionP}>Other tools make one video at a time. ContentFlow runs your brand&apos;s entire content stack — video ads, product photos, captions, blog posts, emails — all from the same profile.</p>
         </div>
@@ -455,75 +349,27 @@ export default function LandingPage() {
         `}</style>
       </section>
 
-      {/* PRICING */}
       {/* CTA */}
-      <section style={{ maxWidth: 900, margin: '0 auto', padding: '100px 20px', textAlign: 'center' }}>
-        <h2 style={{ ...sectionH2, fontSize: 48 }}>Ready to make <span style={{ fontStyle: 'italic' }}>better ads?</span></h2>
-        <p style={{ ...sectionP, marginBottom: 40 }}>Create your first UGC package today. No credit card required.</p>
-        <Link href="/auth/signup" style={btnPrimaryXL}>Get started free</Link>
+      <section style={{ borderTop: '1px solid var(--border)', position: 'relative', overflow: 'hidden' }}>
+        <div style={{
+          position: 'absolute', bottom: -180, left: '50%', transform: 'translateX(-50%)',
+          width: 720, height: 380, borderRadius: '50%', pointerEvents: 'none',
+          background: 'radial-gradient(ellipse, rgba(185,28,28,0.12) 0%, transparent 70%)',
+        }} />
+        <div style={{ position: 'relative', maxWidth: 900, margin: '0 auto', padding: SECTION_PAD, textAlign: 'center' }}>
+          <div style={sectionEyebrow}>Start free</div>
+          <h2 style={{ ...sectionH2, fontSize: 48 }}>Ready to make <span style={{ fontStyle: 'italic' }}>better ads?</span></h2>
+          <p style={{ ...sectionP, marginBottom: 36 }}>Create your first UGC package today. No credit card required.</p>
+          <Link href="/auth/signup" style={btnPrimaryXL}>Get started free</Link>
+        </div>
       </section>
 
-      {/* FOOTER */}
-      <footer style={{
-        borderTop: '1px solid var(--border)', background: 'var(--surface)', padding: '60px 20px',
-      }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 40, marginBottom: 48 }} className="ls-foot-grid">
-            <div>
-              <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
-                <span className="brand-mark" style={{ width: 60, height: 60, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={60} /></span>
-                <div className="brand-name" style={{ fontSize: 15 }}>Content<em>flow</em></div>
-              </Link>
-              <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0, lineHeight: 1.6 }}>Your brand&apos;s entire content team, in one app.</p>
-            </div>
-            <div>
-              <div style={footH}>Product</div>
-              <ul style={footList}>
-                <li><a href="#features" style={footLink}>Features</a></li>
-                <li><Link href="/teardown" style={footLink}>Free ad teardown</Link></li>
-                <li><Link href="/pricing" style={footLink}>Pricing</Link></li>
-                <li><Link href="/help" style={footLink}>Docs</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div style={footH}>Company</div>
-              <ul style={footList}>
-                <li><Link href="/about" style={footLink}>About</Link></li>
-                <li><Link href="/blog" style={footLink}>Blog</Link></li>
-                <li><Link href="/contact" style={footLink}>Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div style={footH}>Compare</div>
-              <ul style={footList}>
-                <li><Link href="/vs/higgsfield" style={footLink}>vs Higgsfield</Link></li>
-                <li><Link href="/vs/arcads" style={footLink}>vs Arcads</Link></li>
-                <li><Link href="/vs/heygen" style={footLink}>vs HeyGen</Link></li>
-                <li><Link href="/vs/runway" style={footLink}>vs Runway</Link></li>
-              </ul>
-            </div>
-            <div>
-              <div style={footH}>Legal</div>
-              <ul style={footList}>
-                <li><Link href="/privacy" style={footLink}>Privacy</Link></li>
-                <li><Link href="/terms" style={footLink}>Terms</Link></li>
-                <li><Link href="/refunds" style={footLink}>Refund policy</Link></li>
-                <li><Link href="/cookies" style={footLink}>Cookies</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div style={{ paddingTop: 32, borderTop: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
-            <div style={{ fontSize: 12, color: 'var(--ink-fade)' }}>© 2026 ContentFlow. All rights reserved.</div>
-            <div style={{ display: 'flex', gap: 16 }}>
-              <a href="https://www.instagram.com/contentflow.app/" target="_blank" rel="noopener noreferrer" style={{ fontSize: 12, color: 'var(--ink-mute)' }}>Instagram</a>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <MarketingFooter />
 
       <style>{`
         @media (max-width: 768px) {
           .ls-nav { display: none !important; }
+          .ls-promo { flex-direction: column !important; align-items: flex-start !important; gap: 24px !important; }
           .ls-features { grid-template-columns: 1fr !important; gap: 20px !important; }
           .ls-pricing { grid-template-columns: repeat(2, 1fr) !important; gap: 16px !important; }
           .ls-foot-grid { grid-template-columns: 1fr 1fr !important; gap: 24px !important; }
@@ -708,180 +554,19 @@ const FEATURES = [
 
 
 // ---- Inline styles ----
-const navLink: React.CSSProperties = { padding: '9px 16px', fontSize: 14, fontWeight: 500, color: 'var(--ink-mute)' }
-const mobileNavItem: React.CSSProperties = { display: 'block', padding: '13px 4px', fontSize: 16, color: 'var(--ink)', fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid var(--border-soft)' }
-const btnPrimaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: '#b91c1c', color: '#fff', fontSize: 14, fontWeight: 600, border: 0, whiteSpace: 'nowrap' }
-const btnSecondaryLink: React.CSSProperties = { padding: '9px 18px', borderRadius: 9, background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)', whiteSpace: 'nowrap' }
 
 const heroEyebrow: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 14 }
 const heroH1: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 64, lineHeight: 1.05, letterSpacing: '-0.02em', margin: '0 0 20px' }
 const heroP: React.CSSProperties = { fontSize: 18, color: 'var(--ink-dim)', margin: '0 0 36px', lineHeight: 1.7 }
-const btnPrimaryLg: React.CSSProperties = { padding: '13px 28px', borderRadius: 11, background: '#b91c1c', color: '#fff', fontSize: 14, fontWeight: 600, border: 0 }
-const btnSecondaryLg: React.CSSProperties = { padding: '13px 28px', borderRadius: 11, background: 'var(--surface)', color: 'var(--ink)', fontSize: 14, fontWeight: 600, border: '1px solid var(--border)' }
 const btnPrimaryXL: React.CSSProperties = { padding: '14px 32px', borderRadius: 11, background: '#b91c1c', color: '#fff', fontSize: 15, fontWeight: 600, border: 0 }
 
-const heroPreview: React.CSSProperties = {
-  marginTop: 80, aspectRatio: '1.6',
-  borderRadius: 18, border: '1px solid var(--border)',
-  background: '#111',
-  overflow: 'hidden',
-  position: 'relative',
-}
 
 // A miniature recreation of the actual UGC generator UI, used as the
 // hero preview until we have a real demo video to swap in.
-function UGCMockup() {
-  return (
-    <div className="ls-mockup" style={{
-      marginTop: 72, maxWidth: 940, marginLeft: 'auto', marginRight: 'auto',
-      borderRadius: 18, border: '1px solid var(--border)',
-      background: 'var(--surface)',
-      boxShadow: '0 30px 60px -20px rgba(20,18,12,0.18), 0 4px 12px rgba(20,18,12,0.06)',
-      overflow: 'hidden', textAlign: 'left',
-    }}>
-      {/* Browser chrome */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '11px 16px', borderBottom: '1px solid var(--border)',
-        background: 'var(--bg-elev)',
-      }}>
-        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#ff5f57' }} />
-        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#febc2e' }} />
-        <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#28c840' }} />
-        <div style={{
-          flex: 1, textAlign: 'center', fontSize: 11.5,
-          color: 'var(--ink-mute)', fontFamily: 'var(--font-mono)',
-        }}>contentflow-web.com/generate/ugc</div>
-      </div>
-      {/* App body: sidebar + main */}
-      <div className="ls-mockup-body" style={{ display: 'grid', gridTemplateColumns: '180px 1fr' }}>
-        {/* Sidebar */}
-        <div className="ls-mockup-side" style={{
-          padding: '18px 12px', borderRight: '1px solid var(--border)',
-          background: 'var(--bg)', display: 'flex', flexDirection: 'column', gap: 10,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 4px 12px' }}>
-            <span style={{ width: 20, height: 20, borderRadius: 6, background: 'var(--ink)' }} />
-            <span style={{ fontSize: 13, fontFamily: 'var(--font-serif)', color: 'var(--ink)' }}>Content<em>flow</em></span>
-          </div>
-          {['Dashboard', 'Library', 'Brand', 'Calendar'].map(l => (
-            <div key={l} style={{ padding: '6px 8px', fontSize: 11.5, color: 'var(--ink-mute)' }}>{l}</div>
-          ))}
-          <div style={{ height: 1, background: 'var(--border-soft)', margin: '6px 4px' }} />
-          {[
-            { l: 'UGC Package', active: true, badge: 'Flagship' },
-            { l: 'Influencers', active: false, badge: 'Beta' },
-            { l: 'Product Studio', active: false, badge: 'Beta' },
-            { l: 'Image', active: false },
-            { l: 'Video', active: false },
-          ].map(x => (
-            <div key={x.l} style={{
-              padding: '7px 8px', borderRadius: 7, fontSize: 11.5,
-              background: x.active ? 'var(--ink)' : 'transparent',
-              color: x.active ? 'var(--on-ink)' : 'var(--ink)',
-              display: 'flex', alignItems: 'center', gap: 6, fontWeight: x.active ? 600 : 500,
-            }}>
-              <span style={{ flex: 1 }}>{x.l}</span>
-              {x.badge && <span style={{
-                fontSize: 8.5, padding: '2px 5px', borderRadius: 4,
-                background: x.active ? 'rgba(255,255,255,0.18)' : 'var(--border-soft)',
-                color: x.active ? '#fff' : 'var(--ink-mute)', fontWeight: 700, letterSpacing: '0.03em',
-              }}>{x.badge.toUpperCase()}</span>}
-            </div>
-          ))}
-        </div>
-        {/* Main */}
-        <div style={{ padding: '22px 24px 24px' }}>
-          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', color: 'var(--ink-fade)', textTransform: 'uppercase' }}>STUDIO / UGC PACKAGE</div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '10px 0 18px' }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, letterSpacing: '-0.01em', color: 'var(--ink)' }}>
-              Turn <em>Skittles</em> into an ad
-            </div>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>~2 min</div>
-          </div>
-          {/* Two-column: product + character */}
-          <div className="ls-mockup-cols" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-            <div style={{ padding: 12, borderRadius: 10, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-fade)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Product</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ width: 44, height: 54, borderRadius: 6, background: 'linear-gradient(135deg,#e11d48,#f97316)' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>Skittles Original</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>Candy · rainbow pack</div>
-                </div>
-              </div>
-            </div>
-            <div style={{ padding: 12, borderRadius: 10, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-fade)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Creator</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <div style={{ width: 44, height: 44, borderRadius: '50%', background: 'linear-gradient(135deg,#fde68a,#fca5a5)' }} />
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink)', fontWeight: 600 }}>Ava · Gen-Z casual</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 2 }}>Warm voice · 22 y/o</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          {/* Prompt */}
-          <div style={{ padding: 12, borderRadius: 10, background: 'var(--bg-elev)', border: '1px solid var(--border)', marginBottom: 12 }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-fade)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Hook</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.5 }}>
-              &ldquo;I&apos;ve been eating Skittles wrong my whole life — here&apos;s the trick that changed everything.&rdquo;
-            </div>
-          </div>
-          {/* Options row */}
-          <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-            {[
-              { l: '9:16', on: true },
-              { l: '5 s', on: false },
-              { l: '10 s', on: true },
-              { l: '720p', on: true },
-              { l: '+ Captions', on: true },
-              { l: '+ B-roll', on: true },
-            ].map(o => (
-              <span key={o.l} style={{
-                fontSize: 10.5, padding: '5px 9px', borderRadius: 999,
-                background: o.on ? 'var(--ink)' : 'var(--surface)',
-                color: o.on ? 'var(--on-ink)' : 'var(--ink-mute)',
-                border: o.on ? 'none' : '1px solid var(--border)', fontWeight: 600,
-              }}>{o.l}</span>
-            ))}
-          </div>
-          {/* Cost + Generate */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 14 }}>
-            <div style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>
-              Cost: <strong style={{ color: 'var(--ink)' }}>184 cr</strong>
-              <span style={{ marginLeft: 8 }}>Balance: <strong style={{ color: 'var(--good, #16a34a)' }}>2,000</strong></span>
-            </div>
-            <div style={{
-              padding: '9px 16px', borderRadius: 9, background: 'var(--ink)',
-              color: 'var(--on-ink)', fontSize: 12.5, fontWeight: 600,
-              display: 'inline-flex', alignItems: 'center', gap: 6,
-            }}>
-              <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'ls-pulse 1.4s ease-in-out infinite' }} />
-              Generate UGC
-            </div>
-          </div>
-        </div>
-      </div>
-      <style>{`
-        @keyframes ls-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
-        @media (max-width: 720px) {
-          .ls-mockup-body { grid-template-columns: 1fr !important; }
-          .ls-mockup-side { display: none !important; }
-          .ls-mockup-cols { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-    </div>
-  )
-}
-const heroPreviewPlay: React.CSSProperties = {
-  width: 56, height: 56, borderRadius: '50%',
-  background: 'var(--surface)', border: '1px solid var(--border-strong)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  boxShadow: 'var(--shadow-md)',
-}
 
+// Shared vertical rhythm so every landing section breathes identically.
+const SECTION_PAD = '104px 20px'
+const sectionEyebrow: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 14 }
 const sectionH2: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 44, lineHeight: 1.1, letterSpacing: '-0.01em', margin: '0 0 12px' }
 const sectionP: React.CSSProperties = { fontSize: 16, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }
 
@@ -926,19 +611,7 @@ const featureH3: React.CSSProperties = {
 }
 const featureP: React.CSSProperties = { fontSize: 13.5, color: 'var(--ink-dim)', margin: 0, lineHeight: 1.6 }
 
-const priceCard: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 15, padding: 32 }
-const popularBadge: React.CSSProperties = { position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 999, padding: '4px 12px' }
-const priceName: React.CSSProperties = { fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 8 }
-const priceRow: React.CSSProperties = { display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 16 }
-const priceAmt: React.CSSProperties = { fontFamily: 'var(--font-serif)', fontSize: 36, lineHeight: 1 }
-const priceUnit: React.CSSProperties = { fontSize: 13, color: 'var(--ink-mute)' }
-const priceMeta: React.CSSProperties = { fontSize: 13, color: 'var(--ink-dim)', marginBottom: 16, paddingBottom: 16, borderBottom: '1px solid var(--border-soft)' }
-const btnPrimaryFull: React.CSSProperties = { display: 'block', textAlign: 'center', width: '100%', padding: 11, border: 0, borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)', fontWeight: 600, fontSize: 13 }
-const btnSecondaryFull: React.CSSProperties = { display: 'block', textAlign: 'center', width: '100%', padding: 11, border: '1px solid var(--border)', borderRadius: 9, background: 'var(--surface)', color: 'var(--ink)', fontWeight: 600, fontSize: 13 }
 
-const footH: React.CSSProperties = { fontSize: 13, fontWeight: 600, letterSpacing: '-0.01em', marginBottom: 12 }
-const footList: React.CSSProperties = { listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }
-const footLink: React.CSSProperties = { fontSize: 13, color: 'var(--ink-mute)' }
 
 const demoCard: React.CSSProperties = {
   position: 'relative', aspectRatio: '9/16', borderRadius: 16,

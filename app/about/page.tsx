@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { MarketingHeader } from '@/components/MarketingHeader'
+import { MarketingFooter } from '@/components/MarketingFooter'
 
 export const metadata: Metadata = {
   title: 'About ContentFlow — AI Content Studio for Brands',
@@ -8,13 +10,9 @@ export const metadata: Metadata = {
 
 export default function AboutPage() {
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
-      <div style={{ marginBottom: 48 }}>
-        <Link href="/" style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-          ← Back to ContentFlow
-        </Link>
-      </div>
-
+    <>
+      <MarketingHeader />
+      <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 42, lineHeight: 1.1, letterSpacing: '-0.01em', margin: '0 0 24px' }}>
         About Content<em>flow</em>
       </h1>
@@ -53,6 +51,8 @@ export default function AboutPage() {
           ))}
         </div>
       </div>
-    </main>
+      </main>
+      <MarketingFooter />
+    </>
   )
 }

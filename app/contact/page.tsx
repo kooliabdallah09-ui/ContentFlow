@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { MarketingHeader } from '@/components/MarketingHeader'
+import { MarketingFooter } from '@/components/MarketingFooter'
 
 export const metadata: Metadata = {
   title: 'Contact — ContentFlow Web',
@@ -10,13 +12,9 @@ const CONTACT_EMAIL = 'contentflow.web@gmail.com'
 
 export default function ContactPage() {
   return (
-    <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
-      <div style={{ marginBottom: 48 }}>
-        <Link href="/" style={{ fontSize: 13, color: 'var(--ink-dim)', textDecoration: 'none', fontFamily: 'var(--font-mono)', letterSpacing: '0.06em' }}>
-          ← Back to ContentFlow Web
-        </Link>
-      </div>
-
+    <>
+      <MarketingHeader />
+      <main style={{ maxWidth: 720, margin: '0 auto', padding: '60px 32px 100px', color: 'var(--ink)', lineHeight: 1.7 }}>
       <h1 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 42, lineHeight: 1.1, letterSpacing: '-0.01em', margin: '0 0 24px' }}>
         Contact
       </h1>
@@ -40,6 +38,8 @@ export default function ContactPage() {
           <p style={{ margin: 0 }}><strong style={{ color: 'var(--ink)' }}>Report abuse or misuse</strong> — impersonation, minors, explicit content, or copyright infringement: use our <Link href="/report" style={{ color: 'var(--ink)', textUnderlineOffset: 3 }}>Report form</Link>. Reviewed within 24 hours.</p>
         </div>
       </div>
-    </main>
+      </main>
+      <MarketingFooter />
+    </>
   )
 }

@@ -1,8 +1,10 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 import { ArrowRight } from 'lucide-react'
 import { Logo } from '@/components/Logo'
+import { getSupabase } from '@/lib/auth'
 
 interface ComingSoonProps {
   feature: string                 // "Content Calendar", "Blog Post Writer", etc.
@@ -15,6 +17,17 @@ interface ComingSoonProps {
 }
 
 export default function ComingSoon({ feature, description, eta, alternative }: ComingSoonProps) {
+  // /help is reachable from the public marketing nav, where "Back to dashboard"
+  // is a dead end for a visitor who doesn't have an account yet.
+  const [signedIn, setSignedIn] = useState<boolean | null>(null)
+  useEffect(() => {
+    const supabase = getSupabase()
+    if (!supabase) { setSignedIn(false); return }
+    supabase.auth.getSession().then(({ data }: { data: { session: { access_token?: string } | null } }) => {
+      setSignedIn(!!data?.session?.access_token)
+    })
+  }, [])
+
   return (
     <main style={{
       minHeight: 'calc(100vh - 60px)',
@@ -83,17 +96,19 @@ export default function ComingSoon({ feature, description, eta, alternative }: C
             </Link>
           )}
 
-          <Link
-            href="/dashboard"
-            style={{
-              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-              padding: '10px 20px',
-              color: 'var(--ink-mute)', textDecoration: 'none',
-              fontSize: 13,
-            }}
-          >
-            Back to dashboard
-          </Link>
+          {signedIn !== null && (
+            <Link
+              href={signedIn ? '/dashboard' : '/'}
+              style={{
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                padding: '10px 20px',
+                color: 'var(--ink-mute)', textDecoration: 'none',
+                fontSize: 13,
+              }}
+            >
+              {signedIn ? 'Back to dashboard' : 'Back to home'}
+            </Link>
+          )}
         </div>
       </div>
     </main>

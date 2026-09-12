@@ -1555,8 +1555,18 @@ img, video, svg { max-width: 100%; }
    ══════════════════════════════════════════════════════════════════ */
 
 /* Universal (all viewports) — prevent horizontal overflow from any
-   single wide element (long URLs, oversized images, iframes). */
-html, body { overflow-x: hidden; max-width: 100vw; }
+   single wide element (long URLs, oversized images, iframes).
+   MUST be `clip`, not `hidden`: `overflow-x: hidden` turns html/body into a
+   scroll container, which silently breaks `position: sticky` on every
+   descendant — that's why the marketing header stopped pinning. `clip`
+   blocks the same horizontal scroll without that side effect. */
+html, body { overflow-x: clip; max-width: 100vw; }
+
+/* Anchor navigation: ease the jump, and keep section headings clear of the
+   sticky marketing header instead of landing underneath it. */
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+section[id] { scroll-margin-top: 90px; }
 img, video, iframe, canvas, svg { max-width: 100%; height: auto; }
 img[width][height], video[width][height] { height: auto; }  /* respect intrinsic but never overflow */
 pre, code { white-space: pre-wrap; word-break: break-word; }

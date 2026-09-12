@@ -3,7 +3,8 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
-import { Logo } from '@/components/Logo'
+import { MarketingHeader } from '@/components/MarketingHeader'
+import { MarketingFooter } from '@/components/MarketingFooter'
 
 const plans = [
   {
@@ -376,24 +377,7 @@ export default function PricingPage() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg, #fff)', color: 'var(--ink, #111)', fontFamily: 'var(--font-sans, system-ui)' }}>
 
-      {/* Nav */}
-      <header style={{ position: 'sticky', top: 0, zIndex: 50, backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', background: 'color-mix(in srgb, var(--bg) 82%, transparent)', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--ink)', textDecoration: 'none' }}>
-            <span style={{ width: 60, height: 60, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Logo size={60} /></span>
-            <span style={{ fontSize: 15, color: 'var(--ink)' }}>Content<em>flow</em></span>
-          </Link>
-          <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Link href="/#features" style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink-mute)', textDecoration: 'none', padding: '6px 12px', borderRadius: 8 }}>Features</Link>
-            <Link href="/pricing" style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', textDecoration: 'none', padding: '6px 12px', borderRadius: 8 }}>Pricing</Link>
-            <Link href="/help" style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink-mute)', textDecoration: 'none', padding: '6px 12px', borderRadius: 8 }}>Docs</Link>
-          </nav>
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-            <Link href="/auth/login" style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-mute)', textDecoration: 'none' }}>Sign in</Link>
-            <Link href="/auth/signup" style={{ fontSize: 13, fontWeight: 600, color: '#fff', background: '#b91c1c', borderRadius: 9, padding: '9px 18px', textDecoration: 'none', whiteSpace: 'nowrap' }}>Get started</Link>
-          </div>
-        </div>
-      </header>
+      <MarketingHeader />
 
       <div style={{ maxWidth: 1100, margin: '0 auto', padding: '0 24px 80px' }}>
 
@@ -656,6 +640,8 @@ export default function PricingPage() {
           </div>
         </div>
       </div>
+
+      <MarketingFooter />
     </div>
   )
 }

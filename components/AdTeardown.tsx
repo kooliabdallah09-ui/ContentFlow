@@ -50,11 +50,9 @@ const STEPS = ['Sampling frames', 'Reading composition', 'Mapping the beats', 'W
 
 const ACCENT = '#b91c1c'
 
-/**
- * `variant: 'page'` renders a standalone <main> for /teardown.
- * `variant: 'landing'` renders bare, to be dropped inside a landing section.
- */
-export function AdTeardown({ variant = 'page' }: { variant?: 'page' | 'landing' }) {
+// Rendered standalone at /teardown — the landing page links here rather than
+// embedding the tool, so this page can rank and be shared on its own.
+export function AdTeardown() {
   const router = useRouter()
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -242,8 +240,6 @@ export function AdTeardown({ variant = 'page' }: { variant?: 'page' | 'landing' 
       setTimeout(() => setCopied(false), 1800)
     } catch { showError('Copy failed', 'Select the text and copy manually.') }
   }
-
-  const isLanding = variant === 'landing'
 
   const body = (
     <>
@@ -722,8 +718,6 @@ export function AdTeardown({ variant = 'page' }: { variant?: 'page' | 'landing' 
       `}</style>
     </>
   )
-
-  if (isLanding) return <div>{body}</div>
 
   return (
     <main style={{ maxWidth: 960, margin: '0 auto', padding: '44px 24px 100px' }}>
