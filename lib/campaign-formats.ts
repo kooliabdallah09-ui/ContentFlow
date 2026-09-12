@@ -351,23 +351,46 @@ export function getCampaignFormat(key: string): CampaignFormat | undefined {
 
 export const CAMPAIGN_FORMAT_KEYS = CAMPAIGN_FORMATS.map(f => f.key)
 
-// Formats the UGC builder can actually render.
+// Formats the UGC builder can render, across both of its pipelines:
 //
-// Its pipeline is hero-frames → animate, which produces a spoken talking-head
-// clip. That rules out the photo and social pipelines, the motion-broll ones
-// (product-only, no character), and anything flagged noScript — those have no
-// dialogue for the chat's script step to write.
-const UGC_PIPELINES: CampaignPipeline[] = ['ugc-video', 'ugc-interview', 'ugc-couple']
+//   talking-head  → /api/ugc/script → hero-frames → animate
+//   motion-broll  → motion-broll-frames → motion-broll-animate (no dialogue,
+//                   so the script step is skipped entirely)
+//
+// Excluded are the photo and social pipelines, which don't produce a video at
+// all.
+const UGC_TALKING_PIPELINES: CampaignPipeline[] = ['ugc-video', 'ugc-interview', 'ugc-couple']
+
+export function isMotionBrollFormat(f: CampaignFormat | undefined): boolean {
+  return f?.pipeline === 'motion-broll'
+}
+
+/** True when the format has no spoken dialogue, so the script step is skipped. */
+export function formatSkipsScript(f: CampaignFormat | undefined): boolean {
+  return !!f && (f.pipeline === 'motion-broll' || !!f.noScript)
+}
 
 export const UGC_FORMATS: CampaignFormat[] = CAMPAIGN_FORMATS.filter(
-  f => UGC_PIPELINES.includes(f.pipeline) && !f.noScript,
+  f => UGC_TALKING_PIPELINES.includes(f.pipeline) || f.pipeline === 'motion-broll',
 )
 
-// Grouped for the picker. Two-person formats are split out because they read
-// very differently from a solo piece to camera.
-export const UGC_FORMAT_GROUPS: Array<{ label: string; formats: CampaignFormat[] }> = [
-  { label: 'Solo to camera', formats: UGC_FORMATS.filter(f => f.category === 'solo') },
-  { label: 'Two people',     formats: UGC_FORMATS.filter(f => f.category === 'two-person') },
+// Grouped for the picker. Two-person formats read very differently from a solo
+// piece to camera, and the product-motion ones have no creator on screen at
+// all — worth separating so the choice is obvious.
+export const UGC_FORMAT_GROUPS: Array<{ label: string; hint?: string; formats: CampaignFormat[] }> = [
+  {
+    label: 'Solo to camera',
+    formats: UGC_FORMATS.filter(f => f.category === 'solo'),
+  },
+  {
+    label: 'Two people',
+    formats: UGC_FORMATS.filter(f => f.category === 'two-person'),
+  },
+  {
+    label: 'Product motion',
+    hint: 'No creator, no dialogue — the product carries the shot',
+    formats: UGC_FORMATS.filter(f => f.category === 'motion' || f.category === 'transformation'),
+  },
 ]
 
 export function getUgcFormat(key: string | undefined): CampaignFormat | undefined {

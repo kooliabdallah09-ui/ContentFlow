@@ -20,7 +20,7 @@ import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn, Images, Cla
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
-import { UGC_FORMAT_GROUPS, getUgcFormat, type CampaignFormat } from '@/lib/campaign-formats'
+import { UGC_FORMAT_GROUPS, getUgcFormat, isMotionBrollFormat, type CampaignFormat } from '@/lib/campaign-formats'
 
 // ── Field shapes ────────────────────────────────────────────────────
 export interface BuilderState {
@@ -290,6 +290,107 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   // Full pipeline: script → hero-frames → (wait for user pick) → animate.
   // Each stage pushes a rendering message that gets swapped in place when
   // the stage completes, so the thread reads like a running conversation.
+  // Product-motion pipeline: no creator, no dialogue, so no script step.
+  // motion-broll-frames → user picks → motion-broll-animate. Both endpoints
+  // return the same shapes as their talking-head counterparts (frames as a
+  // bare string[], and { components, creditDeducted, newBalance }), so the
+  // chat rendering and the parent's onGenerate handling are unchanged.
+  async function runMotionBroll(token: string, enrichedDirection: string) {
+    const framesMsgId = pushMsg({
+      role: 'assistant',
+      kind: 'rendering',
+      text: 'Rendering product frames…',
+    })
+    try {
+      const framesRes = await fetch('/api/ugc/motion-broll-frames', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          productName: state.productName,
+          productDescription: state.productDescription || state.direction || state.productName,
+          productImageBase64: state.productImage?.base64 || undefined,
+          productImageMimeType: state.productImage?.mimeType || undefined,
+          extraProductImages: state.referenceImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
+          aspectId: state.aspect,
+          formatKey: state.formatKey,
+          videoDirection: enrichedDirection || undefined,
+        }),
+      })
+      const framesData = await framesRes.json().catch(() => ({}))
+      if (!framesRes.ok) {
+        throw new Error(framesData?.error || `Frame generation failed (${framesRes.status})`)
+      }
+      const frames: HeroFrame[] = (Array.isArray(framesData.frames) ? framesData.frames : [])
+        .map((f: unknown): HeroFrame | null =>
+          typeof f === 'string' ? { url: f }
+          : f && typeof f === 'object' && typeof (f as { url?: unknown }).url === 'string'
+            ? { url: (f as { url: string }).url }
+            : null)
+        .filter((f: HeroFrame | null): f is HeroFrame => f !== null)
+      if (!frames.length) throw new Error('No frames returned')
+
+      const onPickFrame = async (selectedFrameUrl: string) => {
+        patchMsg(framesMsgId, { pickedFrameUrl: selectedFrameUrl })
+        setBusy(true)
+        const animateMsgId = pushMsg({
+          role: 'assistant',
+          kind: 'rendering',
+          text: 'Rendering your video… usually about 2 minutes.',
+        })
+        try {
+          const animRes = await fetch('/api/ugc/motion-broll-animate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({
+              selectedFrameUrl,
+              frameUrl: selectedFrameUrl,
+              formatKey: state.formatKey,
+              productName: state.productName,
+              productDescription: state.productDescription || state.direction || state.productName,
+              videoDirection: enrichedDirection || undefined,
+              aspect: state.aspect,
+              resolution: state.resolution,
+              engine: state.engine,
+              productImageBase64: state.productImage?.base64 || undefined,
+              productImageMimeType: state.productImage?.mimeType || undefined,
+            }),
+          })
+          const animData = await animRes.json()
+          if (!animRes.ok) throw new Error(animData.error || 'Video generation failed')
+
+          await onGenerate({
+            ...state,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            __animateResponse: animData,
+          } as BuilderState & { __animateResponse: unknown })
+
+          const videoUrl: string | undefined = animData?.components?.video?.videoUrl
+          if (videoUrl) {
+            patchMsg(animateMsgId, { kind: 'video', videoUrl, text: undefined })
+          } else {
+            patchMsg(animateMsgId, { kind: 'text', text: 'Video submitted — it will appear in your Library once rendering finishes.' })
+          }
+        } catch (err) {
+          patchMsg(animateMsgId, { kind: 'error', text: err instanceof Error ? err.message : 'Video generation failed' })
+        } finally {
+          setBusy(false)
+        }
+      }
+
+      patchMsg(framesMsgId, {
+        kind: 'frames',
+        text: 'Pick your favourite starting frame — I\'ll animate it into a full video.',
+        frames,
+        onPickFrame,
+      })
+      // Waiting on the human now, not on async work.
+      setBusy(false)
+    } catch (e) {
+      patchMsg(framesMsgId, { kind: 'error', text: e instanceof Error ? e.message : 'Generation failed' })
+      setBusy(false)
+    }
+  }
+
   async function handleGenerate() {
     if (busy) return  // one pipeline at a time — button should be disabled anyway
     if (!state.productName.trim()) {
@@ -346,6 +447,15 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       const enrichedDirection = mentionCount > 0 && state.referenceImages.length > 0
         ? `${state.direction}\n\n(The @imageN tokens above refer to the ${state.referenceImages.length} reference image(s) attached — image1 is the first, image2 the second, etc.)`
         : state.direction
+
+      // Product-motion formats (Kinetic Burst, Crush Test, Aesthetic B-roll…)
+      // have no creator and no dialogue, so they skip the script step and run
+      // the motion-broll pipeline instead of hero-frames → animate.
+      const pickedFormat = getUgcFormat(state.formatKey)
+      if (isMotionBrollFormat(pickedFormat)) {
+        await runMotionBroll(token, enrichedDirection)
+        return
+      }
 
       // ── Step 1: draft script ─────────────────────────────────────
       const scriptMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Writing your script…' })
@@ -1908,11 +2018,18 @@ function FormatSheet({ selectedKey, onPick, onClose }: {
         {UGC_FORMAT_GROUPS.map(group => (
           group.formats.length === 0 ? null : (
             <div key={group.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <div style={{
-                fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em',
-                textTransform: 'uppercase', color: 'var(--ink-fade)',
-              }}>
-                {group.label}
+              <div>
+                <div style={{
+                  fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em',
+                  textTransform: 'uppercase', color: 'var(--ink-fade)',
+                }}>
+                  {group.label}
+                </div>
+                {group.hint && (
+                  <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 3, lineHeight: 1.4 }}>
+                    {group.hint}
+                  </div>
+                )}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 6 }}>
                 {group.formats.map(f => {
