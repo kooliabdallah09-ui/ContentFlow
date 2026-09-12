@@ -350,3 +350,27 @@ export function getCampaignFormat(key: string): CampaignFormat | undefined {
 }
 
 export const CAMPAIGN_FORMAT_KEYS = CAMPAIGN_FORMATS.map(f => f.key)
+
+// Formats the UGC builder can actually render.
+//
+// Its pipeline is hero-frames → animate, which produces a spoken talking-head
+// clip. That rules out the photo and social pipelines, the motion-broll ones
+// (product-only, no character), and anything flagged noScript — those have no
+// dialogue for the chat's script step to write.
+const UGC_PIPELINES: CampaignPipeline[] = ['ugc-video', 'ugc-interview', 'ugc-couple']
+
+export const UGC_FORMATS: CampaignFormat[] = CAMPAIGN_FORMATS.filter(
+  f => UGC_PIPELINES.includes(f.pipeline) && !f.noScript,
+)
+
+// Grouped for the picker. Two-person formats are split out because they read
+// very differently from a solo piece to camera.
+export const UGC_FORMAT_GROUPS: Array<{ label: string; formats: CampaignFormat[] }> = [
+  { label: 'Solo to camera', formats: UGC_FORMATS.filter(f => f.category === 'solo') },
+  { label: 'Two people',     formats: UGC_FORMATS.filter(f => f.category === 'two-person') },
+]
+
+export function getUgcFormat(key: string | undefined): CampaignFormat | undefined {
+  if (!key) return undefined
+  return UGC_FORMATS.find(f => f.key === key)
+}

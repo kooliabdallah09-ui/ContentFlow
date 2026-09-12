@@ -16,10 +16,11 @@
 // separate settings panel.
 
 import { useEffect, useRef, useState } from 'react'
-import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn, Images } from 'lucide-react'
+import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn, Images, Clapperboard } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
+import { UGC_FORMAT_GROUPS, getUgcFormat, type CampaignFormat } from '@/lib/campaign-formats'
 
 // ── Field shapes ────────────────────────────────────────────────────
 export interface BuilderState {
@@ -120,7 +121,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   const [messages, setMessages] = useState<Message[]>([])
   const [composer, setComposer] = useState('')
   const [parsing, setParsing] = useState(false)
-  const [openPanel, setOpenPanel] = useState<'settings' | 'product' | 'creator' | 'refs' | null>(null)
+  const [openPanel, setOpenPanel] = useState<'settings' | 'product' | 'creator' | 'refs' | 'format' | null>(null)
   const [products, setProducts] = useState<BrandProduct[]>([])
   const [creators, setCreators] = useState<SavedCreator[]>([])
   const [libLoaded, setLibLoaded] = useState(false)
@@ -358,6 +359,14 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           callToAction: 'Shop now',
           customInstructions: enrichedDirection || undefined,
           language: state.language,
+          // Drives script mode: interview/couple formats become two-person
+          // scripts with interviewer/stranger roles, and each format implies
+          // its own scene. Without this the script is generic regardless of
+          // the format picked.
+          formatKey: state.formatKey,
+          // Was never sent, so every script was written to the 10s default
+          // even on a 5s or 30s clip.
+          duration: state.duration,
         }),
       })
       const scriptData = await scriptRes.json()
@@ -692,6 +701,31 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             onClose={() => setOpenPanel(null)}
           />
         )}
+        {openPanel === 'format' && (
+          <FormatSheet
+            selectedKey={state.formatKey}
+            onPick={f => {
+              setOpenPanel(null)
+              if (!f) {
+                setState(s => ({ ...s, formatKey: undefined, format: 'Auto' }))
+                return
+              }
+              // Adopt the format's own duration/aspect as a starting point —
+              // a man-on-street cut and a 30s tutorial aren't the same shape.
+              // Both stay editable in Settings afterwards.
+              setState(s => ({
+                ...s,
+                formatKey: f.key,
+                format: f.label,
+                duration: (DURATION_CHOICES.includes(f.defaultDuration as BuilderState['duration'])
+                  ? f.defaultDuration
+                  : s.duration) as BuilderState['duration'],
+                aspect: ASPECT_BY_CAMPAIGN[f.defaultAspect] ?? s.aspect,
+              }))
+            }}
+            onClose={() => setOpenPanel(null)}
+          />
+        )}
         {openPanel === 'refs' && (
           <ReferencesSheet
             images={state.referenceImages}
@@ -818,6 +852,12 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             }
             active={!!state.creatorId}
             onClick={() => setOpenPanel(p => p === 'creator' ? null : 'creator')}
+          />
+          <AttachChip
+            icon={<Clapperboard size={12} />}
+            label={getUgcFormat(state.formatKey)?.label ?? 'Auto format'}
+            active={!!state.formatKey}
+            onClick={() => setOpenPanel(p => p === 'format' ? null : 'format')}
           />
           <AttachChip
             icon={<Images size={12} />}
@@ -1820,6 +1860,95 @@ function ReferencesSheet({ images, onAdd, onRemove, onClose }: {
           hidden
           onChange={e => { if (e.target.files) handleFiles(e.target.files); e.target.value = '' }}
         />
+      </div>
+    </div>
+  )
+}
+
+// Durations the builder offers. A format's defaultDuration is only adopted if
+// it's one of these — otherwise we keep whatever the user already had.
+const DURATION_CHOICES: BuilderState['duration'][] = [5, 10, 15, 20, 30]
+
+// CampaignFormat speaks in ratios; the builder speaks in named aspects.
+const ASPECT_BY_CAMPAIGN: Record<string, BuilderState['aspect']> = {
+  '9:16': 'portrait',
+  '4:5': 'tall45',
+  '1:1': 'square',
+  '16:9': 'landscape',
+}
+
+function FormatSheet({ selectedKey, onPick, onClose }: {
+  selectedKey?: string
+  onPick: (f: CampaignFormat | null) => void
+  onClose: () => void
+}) {
+  return (
+    <div style={sheetShellStyle}>
+      <SheetHeader title="Pick a format" onClose={onClose} />
+      <div style={{ maxHeight: 300, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <button
+          type="button"
+          onClick={() => onPick(null)}
+          style={{
+            textAlign: 'left', padding: '9px 11px', borderRadius: 10, cursor: 'pointer',
+            border: `1.5px solid ${!selectedKey ? 'var(--ink)' : 'var(--border)'}`,
+            background: 'var(--surface)', fontFamily: 'inherit',
+            display: 'flex', alignItems: 'center', gap: 9,
+          }}
+        >
+          <Sparkles size={14} style={{ flexShrink: 0, color: 'var(--ink-mute)' }} />
+          <span>
+            <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>Auto</span>
+            <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-mute)' }}>
+              Let the brief decide the format
+            </span>
+          </span>
+        </button>
+
+        {UGC_FORMAT_GROUPS.map(group => (
+          group.formats.length === 0 ? null : (
+            <div key={group.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <div style={{
+                fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em',
+                textTransform: 'uppercase', color: 'var(--ink-fade)',
+              }}>
+                {group.label}
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(170px, 1fr))', gap: 6 }}>
+                {group.formats.map(f => {
+                  const active = f.key === selectedKey
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => onPick(f)}
+                      title={f.tagline}
+                      style={{
+                        textAlign: 'left', padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+                        border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+                        background: 'var(--surface)', fontFamily: 'inherit',
+                      }}
+                    >
+                      <span style={{ display: 'block', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>
+                        {f.label}
+                      </span>
+                      <span style={{
+                        display: 'block', fontSize: 11, color: 'var(--ink-mute)', lineHeight: 1.45,
+                        marginTop: 2,
+                      }}>
+                        {f.tagline}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        ))}
+      </div>
+      <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', lineHeight: 1.5 }}>
+        The format shapes the script and the opening shot. Duration and aspect follow
+        the format&apos;s defaults — change them in More afterwards.
       </div>
     </div>
   )
