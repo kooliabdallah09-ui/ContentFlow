@@ -6,6 +6,7 @@ import { Sun, Moon, Menu, X } from 'lucide-react'
 import { DEMO_VIDEOS } from '@/lib/demo-gallery'
 import { Logo } from '@/components/Logo'
 import { PreviewGenerator } from '@/components/PreviewGenerator'
+import { AdTeardown } from '@/components/AdTeardown'
 
 // Landing page — editorial design from the Claude Design export.
 // Hero + Features (6-up grid) + Pricing (3 cards) + closing CTA + Footer.
@@ -65,6 +66,7 @@ export default function LandingPage() {
           </Link>
           <nav style={{ display: 'flex', alignItems: 'center', gap: 8 }} className="ls-nav">
             <a href="#features" style={navLink}>Features</a>
+            <a href="#teardown" style={{ ...navLink, color: '#b91c1c' }}>Free ad teardown</a>
             <Link href="/pricing" style={navLink}>Pricing</Link>
             <Link href="/help" style={navLink}>Docs</Link>
           </nav>
@@ -111,6 +113,7 @@ export default function LandingPage() {
             background: 'var(--bg)',
           }}>
             <a href="#features" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Features</a>
+            <a href="#teardown" onClick={() => setMenuOpen(false)} style={{ ...mobileNavItem, color: '#b91c1c' }}>Free ad teardown</a>
             <Link href="/pricing" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Pricing</Link>
             <Link href="/help" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Docs</Link>
             <Link href="/auth/login" onClick={() => setMenuOpen(false)} style={mobileNavItem}>Sign in</Link>
@@ -175,8 +178,8 @@ export default function LandingPage() {
               Skip preview → create free account
             </Link>
             <span style={{ opacity: 0.4 }}>·</span>
-            <a href="#features" style={{ color: 'var(--ink-mute)', textDecoration: 'none' }}>
-              See how it works
+            <a href="#teardown" style={{ color: 'var(--ink-mute)', textDecoration: 'none' }}>
+              Or tear down a competitor&apos;s ad — free
             </a>
           </div>
         </div>
@@ -210,6 +213,23 @@ export default function LandingPage() {
         </div>
       </section>
       )}
+
+      {/* AD TEARDOWN — free tool, usable without an account. Top-of-funnel:
+          they come to study a competitor's ad and leave with our prompt. */}
+      <section id="teardown" style={{ position: 'relative', borderTop: '1px solid var(--border)', borderBottom: '1px solid var(--border)', background: 'var(--bg-2, var(--bg))' }}>
+        <div style={{ maxWidth: 1000, margin: '0 auto', padding: '90px 20px' }}>
+          <div style={{ textAlign: 'center', maxWidth: 640, margin: '0 auto 44px' }}>
+            <div style={{ ...heroEyebrow, color: '#b91c1c' }}>Free tool · no account needed</div>
+            <h2 style={sectionH2}>Why does <span style={{ fontStyle: 'italic', color: '#b91c1c' }}>that</span> ad work?</h2>
+            <p style={sectionP}>
+              Drop in the competitor ad that&apos;s outselling you. We name the hook, map the beat
+              structure, count the cuts and read the caption style — then hand you a prompt that
+              rebuilds it for your product.
+            </p>
+          </div>
+          <AdTeardown variant="landing" />
+        </div>
+      </section>
 
       {/* FEATURE SHOWCASE — tabbed */}
       <section style={{ maxWidth: 1200, margin: '0 auto', padding: '100px 20px 60px' }}>
@@ -460,6 +480,7 @@ export default function LandingPage() {
               <div style={footH}>Product</div>
               <ul style={footList}>
                 <li><a href="#features" style={footLink}>Features</a></li>
+                <li><Link href="/teardown" style={footLink}>Free ad teardown</Link></li>
                 <li><Link href="/pricing" style={footLink}>Pricing</Link></li>
                 <li><Link href="/help" style={footLink}>Docs</Link></li>
               </ul>
