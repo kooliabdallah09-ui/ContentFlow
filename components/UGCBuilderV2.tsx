@@ -264,6 +264,27 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         // Endpoint not built yet — assume the whole brief becomes direction.
         patch = { direction: brief }
       }
+
+      // Guard: when a saved creator is attached, the renderer identifies them by
+      // creatorId — creatorName is only a label and is never sent to the
+      // pipeline. A patch that folds styling into the name ("Elara Voss in
+      // hiking clothes") therefore renders as the original outfit and the
+      // instruction is lost. Keep the cast name and move the extra wording into
+      // the direction, where the pipeline actually reads it.
+      if (state.creatorId && typeof patch.creatorName === 'string') {
+        const proposed = patch.creatorName.trim()
+        const current = state.creatorName.trim()
+        if (proposed && proposed !== current) {
+          const extra = proposed.toLowerCase().startsWith(current.toLowerCase())
+            ? proposed.slice(current.length).replace(/^[\s,–—-]*(?:in|wearing|with)?\s*/i, '').trim()
+            : proposed
+          if (extra) {
+            patch.direction = [patch.direction ?? state.direction, extra].filter(Boolean).join('\n\n')
+          }
+        }
+        delete patch.creatorName
+      }
+
       setState(prev => ({ ...prev, ...patch }))
 
       // Add assistant confirmation message

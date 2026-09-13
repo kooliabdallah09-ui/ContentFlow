@@ -60,7 +60,7 @@ SCHEMA (all fields optional):
 {
   "productName": string,            // the product being advertised, if mentioned
   "productDescription": string,     // one sentence, only if the brief describes what it does
-  "creatorName": string,            // person description ("mid-20s brunette", "male 30s"), or "Auto" if unspecified
+  "creatorName": string,            // WHO to cast, only ("mid-20s brunette", "male 30s"), or "Auto" if unspecified. NEVER wardrobe, styling, props or action — those go in "direction".
   "format": string,                 // "Testimonial", "Unboxing", "POV", "Hot take", "Day in the life", "Hero shot", etc.
   "aspect": "portrait" | "square" | "landscape" | "tall45",
   "duration": 5 | 10 | 15 | 20 | 30,   // seconds — round to closest valid value
@@ -82,6 +82,14 @@ INFERENCE RULES
 - Default duration is 10 unless user specifies otherwise
 - Never set productName to a generic word like "product" — leave it blank if no real name given
 - direction should capture the specific visual/narrative asks, not restate the whole brief
+- WARDROBE / STYLING / PROPS / ACTION ("make her wear hiking clothes", "hair tied
+  back", "holding the can", "sitting down") belong in "direction" — APPEND them to
+  the existing direction rather than replacing it. They are NEVER part of
+  creatorName: that field is casting only, and it is what the renderer matches a
+  saved creator against, so styling text in it is silently dropped.
+- If the current state already has a creatorId (a saved creator is attached), do
+  NOT return creatorName at all — that person is already cast. Put any change to
+  how they look or what they're doing in "direction".
 
 Return ONLY the JSON object. No prose, no markdown fences.`
 
