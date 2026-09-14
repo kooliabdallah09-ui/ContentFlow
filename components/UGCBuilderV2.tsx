@@ -21,6 +21,7 @@ import { getSupabase } from '@/lib/auth'
 import { showError } from '@/lib/notifications'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
 import { UGC_FORMAT_GROUPS, getUgcFormat, isMotionBrollFormat, type CampaignFormat } from '@/lib/campaign-formats'
+import { saveUgcSession, loadUgcSession } from '@/lib/ugc-session'
 
 // ── Field shapes ────────────────────────────────────────────────────
 export interface BuilderState {
@@ -123,8 +124,13 @@ interface UGCBuilderV2Props {
 }
 
 export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilderV2Props) {
-  const [state, setState] = useState<BuilderState>(INITIAL)
-  const [messages, setMessages] = useState<Message[]>([])
+  // Restore synchronously in the initialiser so a returning user never sees an
+  // empty chat flash before the saved one paints.
+  const restored = typeof window !== 'undefined' ? loadUgcSession() : null
+  const [state, setState] = useState<BuilderState>(
+    restored?.state ? { ...INITIAL, ...restored.state } : INITIAL,
+  )
+  const [messages, setMessages] = useState<Message[]>(restored?.messages ?? [])
   const [composer, setComposer] = useState('')
   const [parsing, setParsing] = useState(false)
   const [openPanel, setOpenPanel] = useState<'settings' | 'product' | 'creator' | 'refs' | 'format' | 'scene' | null>(null)
@@ -140,6 +146,63 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   // second Generate would stack a competing pipeline in the thread.
   const [busy, setBusy] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Persist the transcript so leaving the page and coming back doesn't drop it.
+  // Callbacks and base64 blobs are stripped on the way out — see lib/ugc-session.
+  useEffect(() => {
+    saveUgcSession(messages, state)
+  }, [messages, state])
+
+  // Reattach an orphaned render.
+  //
+  // A restored transcript can end on a "Rendering your video…" bubble whose
+  // polling loop died with the previous page. The job itself is tracked
+  // server-side now, so ask what actually happened to it and settle the bubble
+  // rather than leaving a spinner that will never resolve.
+  useEffect(() => {
+    const pending = messages.filter(m => m.kind === 'rendering')
+    if (!pending.length) return
+    let cancelled = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const check = async () => {
+      try {
+        const supabase = getSupabase()
+        if (!supabase) return
+        const { data: sess } = await supabase.auth.getSession()
+        const token = sess?.session?.access_token
+        if (!token) return
+        const res = await fetch('/api/ugc/renders/active', { headers: { Authorization: `Bearer ${token}` } })
+        if (!res.ok || cancelled) return
+        const { renders } = await res.json() as {
+          renders: Array<{ id: string; status: string; videoUrl?: string; creditCost: number }>
+        }
+        // Most recent render wins — the bubble belongs to whatever this
+        // transcript submitted last.
+        const latest = renders[0]
+        if (!latest || latest.status === 'generating') return
+
+        const last = pending[pending.length - 1]
+        if (latest.status === 'completed' && latest.videoUrl) {
+          patchMsg(last.id, { kind: 'video', videoUrl: latest.videoUrl, text: undefined })
+          cancelled = true
+        } else if (latest.status === 'failed') {
+          patchMsg(last.id, {
+            kind: 'error',
+            text: `That render didn't finish.${latest.creditCost > 0 ? ` ${latest.creditCost} credits were refunded.` : ''}`,
+          })
+          cancelled = true
+        }
+      } catch { /* retry on the next tick */ }
+      finally {
+        if (!cancelled) timer = setTimeout(check, 15_000)
+      }
+    }
+
+    void check()
+    return () => { cancelled = true; if (timer) clearTimeout(timer) }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages.length])
 
   // Lazy-load product + creator libraries the first time the user opens
   // either attach sheet. Cheap enough to fetch both together.

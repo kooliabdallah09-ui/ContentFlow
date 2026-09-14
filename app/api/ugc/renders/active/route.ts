@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
     const { data, error } = await supabase
       .from('ugc_content')
-      .select('id, status, metadata, credit_cost, created_at')
+      .select('id, status, metadata, credit_cost, created_at, storage_url')
       .eq('user_id', userData.user.id)
       .eq('content_type', 'video')
       .gte('created_at', since)
@@ -40,9 +40,22 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
+    // storage_url holds the component blob; pull the finished video out of it
+    // so a restored chat bubble can resolve without a second round-trip.
+    const videoUrlOf = (raw: unknown): string | undefined => {
+      if (typeof raw !== 'string') return undefined
+      try {
+        const parsed = JSON.parse(raw)
+        return typeof parsed?.video?.videoUrl === 'string' ? parsed.video.videoUrl : undefined
+      } catch {
+        return raw.startsWith('http') ? raw : undefined
+      }
+    }
+
     const renders = (data ?? []).map(r => ({
       id: r.id,
       status: r.status as string,
+      videoUrl: videoUrlOf(r.storage_url),
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       productName: ((r.metadata as any)?.productName as string) ?? 'your ad',
       creditCost: Number(r.credit_cost) || 0,
