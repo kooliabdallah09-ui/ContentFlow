@@ -58,6 +58,17 @@ export function useRenderWatcher(): { running: number } {
         const token = sess?.session?.access_token
         if (!token) return
 
+        // Drive the reconcile ourselves rather than relying on a per-minute
+        // cron: Vercel's Hobby plan rejects sub-daily schedules at deploy
+        // time, so the cron can only be an optional backstop. With this, a
+        // render resolves as long as the app is open in any tab.
+        if (previous.current && [...previous.current.values()].includes('generating')) {
+          await fetch('/api/ugc/renders/reconcile', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => null)
+        }
+
         const res = await fetch('/api/ugc/renders/active', {
           headers: { Authorization: `Bearer ${token}` },
         })

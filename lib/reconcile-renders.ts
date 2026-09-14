@@ -135,7 +135,12 @@ async function refundOnce(supabase: Supa, row: PendingRow, reason: string): Prom
   }
 }
 
-export async function reconcileRenders(limit = 40): Promise<ReconcileStats> {
+/**
+ * @param userId  Scope to one user's renders. The client-triggered path passes
+ *                this so a signed-in user resolves their own jobs without
+ *                touching anyone else's; the cron omits it to sweep everything.
+ */
+export async function reconcileRenders(limit = 40, userId?: string): Promise<ReconcileStats> {
   const supabase = svc()
   const stats: ReconcileStats = {
     scanned: 0, completed: 0, failed: 0,
@@ -143,12 +148,15 @@ export async function reconcileRenders(limit = 40): Promise<ReconcileStats> {
   }
 
   const nowIso = new Date().toISOString()
-  const { data: rows, error } = await supabase
+  let query = supabase
     .from('ugc_content')
     .select('id, user_id, provider, provider_job_id, storage_url, credit_cost, poll_attempts, created_at, refunded_at')
     .eq('status', 'generating')
     .not('provider_job_id', 'is', null)
     .or(`poll_after.is.null,poll_after.lte.${nowIso}`)
+  if (userId) query = query.eq('user_id', userId)
+
+  const { data: rows, error } = await query
     .order('poll_after', { ascending: true, nullsFirst: true })
     .limit(limit)
 

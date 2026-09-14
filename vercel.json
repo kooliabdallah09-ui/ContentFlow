@@ -10,10 +10,6 @@
     {
       "path": "/api/cron/cleanup-storage",
       "schedule": "0 4 * * *"
-    },
-    {
-      "path": "/api/cron/reconcile-renders",
-      "schedule": "* * * * *"
     }
   ]
 }
