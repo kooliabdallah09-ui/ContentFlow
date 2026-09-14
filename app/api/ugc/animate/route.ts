@@ -448,7 +448,13 @@ export async function POST(request: NextRequest) {
     await supabase.from('ugc_content').insert({
       user_id: userId,
       content_type: 'video',
-      external_id: `ugc-${Date.now()}`,
+      // The provider's real task id — this is what makes the render resumable
+      // after the browser goes away. It used to be `ugc-<timestamp>`, which
+      // recorded that a render started but not how to find it again.
+      external_id: primary.predictionId ?? `ugc-${Date.now()}`,
+      provider: 'seedance',
+      provider_job_id: primary.predictionId ?? null,
+      poll_after: new Date(Date.now() + 30_000).toISOString(),
       storage_url: JSON.stringify(components),
       metadata: {
         ugcType,

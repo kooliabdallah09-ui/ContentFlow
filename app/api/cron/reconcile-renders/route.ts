@@ -1,0 +1,33 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { reconcileRenders } from '@/lib/reconcile-renders'
+
+// Runs every minute via Vercel Cron (see vercel.json). Finishes renders whose
+// browser navigated away mid-generation, and refunds the ones that failed.
+// See lib/reconcile-renders.ts for the resolution rules.
+//
+// Auth: Vercel Cron sends `Authorization: Bearer $CRON_SECRET` when CRON_SECRET
+// is set in the project env. Any other caller must present the same secret.
+
+export const maxDuration = 300
+
+export async function GET(request: NextRequest) {
+  const secret = process.env.CRON_SECRET
+  if (secret) {
+    const auth = request.headers.get('authorization') ?? ''
+    if (auth !== `Bearer ${secret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+  }
+
+  try {
+    const stats = await reconcileRenders()
+    if (stats.scanned > 0) console.log('[cron/reconcile-renders]', JSON.stringify(stats))
+    return NextResponse.json({ ok: true, stats })
+  } catch (err) {
+    console.error('[cron/reconcile-renders] failed:', err)
+    return NextResponse.json(
+      { error: err instanceof Error ? err.message : 'Reconcile failed' },
+      { status: 500 },
+    )
+  }
+}
