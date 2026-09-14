@@ -93,7 +93,9 @@ export async function POST(request: NextRequest) {
     // Cost: sum per-shot single-shot cost. Each shot pays its own overhead
     // (dedicated frame render + Seedance job) — this matches the actual
     // provider spend and keeps margin stable.
-    const totalCost = shots.reduce((sum, s) => sum + ugcPackageCost(s.durationSec, resolution, engine), 0)
+    // 1 frame per shot here — multishot renders a single dedicated frame for
+    // each shot rather than the 4-up picker the other frame endpoints use.
+    const totalCost = shots.reduce((sum, s) => sum + ugcPackageCost(s.durationSec, resolution, engine, 1), 0)
 
     const { data: userCredits } = await supabase
       .from('user_credits')

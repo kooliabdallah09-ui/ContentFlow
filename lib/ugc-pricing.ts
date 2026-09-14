@@ -16,9 +16,18 @@ export type UGCResolution = '480p' | '720p' | '1080p' | '4k'
 export type UGCEngine = 'seedance-2' | 'seedance-2-5' | 'seedance-mini' | 'omni-flash'
 
 const MARKUP    = 1.4
-const NB_PRO    = 0.075  // one reference frame per video
+const NB_PRO    = 0.075  // one Nano Banana Pro frame at 1K/2K
 const CLAUDE    = 0.010  // script + prompt calls
 const CR_VALUE  = 0.025  // 1 credit = $0.025 USD
+
+// The frame endpoints don't render one frame — they fan out four in parallel so
+// the user gets a picker (hero-frames, motion-broll-frames and two-person-frames
+// all do this). Pricing counted a single frame, leaving roughly $0.22 of real
+// spend per generation unbilled.
+export const HERO_FRAME_COUNT = 4
+
+// Nano Banana Pro bills 1K and 2K identically; 4K is about 1.7x.
+const NB_PRO_4K_MULT = 1.7
 
 // Raw Seedance 2.0 cost per second at portrait 9:16 (actual BytePlus rates)
 const SEEDANCE_RAW_PER_S: Record<UGCResolution, number> = {
@@ -75,24 +84,40 @@ export function ugcPackageCost(
   durationSeconds: number,
   resolution: UGCResolution,
   engine: UGCEngine = 'seedance-2',
+  // How many starting frames this render actually pays for. Defaults to the
+  // picker fan-out; multishot renders one frame per shot and already sums this
+  // per shot, so it passes 1.
+  frameCount: number = HERO_FRAME_COUNT,
 ): number {
   let rawPerS: number
+  // What the video actually renders at, after per-engine caps. Frame cost keys
+  // off this rather than the requested resolution so a 4K request on an engine
+  // that caps lower isn't billed for 4K frames.
+  let effectiveResolution: UGCResolution = resolution
 
   if (engine === 'seedance-mini') {
     const res = resolution === '480p' ? '480p' : '720p'
+    effectiveResolution = res
     rawPerS = SEEDANCE_MINI_RAW_PER_S[res]
   } else if (engine === 'omni-flash') {
     const res = resolution === '1080p' ? '1080p' : '720p'
+    effectiveResolution = res
     rawPerS = OMNI_FLASH_RAW_PER_S[res]
   } else if (engine === 'seedance-2-5') {
     // 2.5 caps at 1080p — 4K requests get billed at 1080p (the render also
     // downgrades server-side in the animate route).
     const res: '480p' | '720p' | '1080p' = resolution === '4k' ? '1080p' : resolution
+    effectiveResolution = res
     rawPerS = SEEDANCE_2_5_RAW_PER_S[res]
   } else {
     rawPerS = SEEDANCE_RAW_PER_S[resolution] ?? SEEDANCE_RAW_PER_S['1080p']
   }
 
-  const totalUSD = (rawPerS * durationSeconds + NB_PRO + CLAUDE) * MARKUP
+  // Starting frames are passed through at cost — no markup — so the margin on
+  // an ad comes from the video and script work, not from the picker.
+  const framesUSD = NB_PRO * Math.max(0, frameCount)
+    * (effectiveResolution === '4k' ? NB_PRO_4K_MULT : 1)
+
+  const totalUSD = (rawPerS * durationSeconds + CLAUDE) * MARKUP + framesUSD
   return Math.ceil(totalUSD / CR_VALUE)
 }
