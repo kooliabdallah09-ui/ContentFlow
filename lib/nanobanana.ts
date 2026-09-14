@@ -477,6 +477,8 @@ export async function generateCharacterWithProduct(
   // the same face from multiple angles. Passed WITH actorPortrait as
   // additional "character" refs, all labelled as the same person.
   extraActorRefs?: Array<{ base64: string; mimeType: string }>,
+  // NB Pro output resolution. 1K and 2K bill at the same rate; 4K costs ~1.7x.
+  resolution?: '1K' | '2K' | '4K',
 ): Promise<NanoBananaResult> {
   // Adaptive product placement — the reference image can be either a physical product
   // (skincare bottle, perfume) OR a screenshot of a software UI / app. Telling Nano
@@ -579,7 +581,7 @@ Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER I
     refs.push(...extraProductRefs)
     finalPrompt += `\n\nADDITIONAL REFERENCE IMAGES: ${extraProductRefs.length} extra image(s) attached AFTER the main product photo, numbered image1 through image${extraProductRefs.length} in the order they were attached. These may be: (a) additional angles/states of the SAME product (packaging vs. contents), or (b) mood-board / style / composition references the user wants incorporated. If the user's brief mentions "@image1", "@image2" etc., treat each numbered reference exactly as the brief describes — use the referenced image for that specific purpose (packaging fidelity, model likeness, scene composition, product state, etc.). If the brief doesn't mention them, default to treating them as extra angles of the same product for maximum fidelity.`
   }
-  return callNanoBanana(finalPrompt, refs, aspectRatio)
+  return callNanoBanana(finalPrompt, refs, aspectRatio, 'pro', resolution)
 }
 
 // Generate a character in front of a large screen displaying the app/software UI.

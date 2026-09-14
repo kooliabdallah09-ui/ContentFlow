@@ -569,6 +569,10 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           extraProductImages: state.referenceImages.map(r => ({ base64: r.base64, mimeType: r.mimeType })),
           formatKey: state.formatKey,
           sceneId: state.sceneId,
+          // Sizes the starting frame to the chosen video resolution — without
+          // it the frame renders at the legacy 1K size and the video model
+          // upscales from a source softer than its own output.
+          resolution: state.resolution,
         }),
       })
       const framesRaw = await framesRes.text()

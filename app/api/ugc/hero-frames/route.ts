@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       productPhotoAngles,   // parallel to [primary, ...extras] — angle labels so NB knows which UI screen each ref shows
       formatKey,            // campaign format key — drives shot-type-aware first frame
       productType,          // 'physical' | 'website' — website = the product image is a landing-page screenshot
+      resolution,           // the video's output resolution — the frame is sized to stay ahead of it
     } = body as Record<string, unknown>
 
     const safeFormatKey = typeof formatKey === 'string' && formatKey.length > 0 ? formatKey : undefined
@@ -72,8 +73,13 @@ export async function POST(request: NextRequest) {
       : []
 
     // Resolve aspect for output dimensions.
-    const { getAspect } = await import('@/lib/aspects')
+    const { getAspect, frameQualityFor, frameSizeFor } = await import('@/lib/aspects')
     const aspect = getAspect(typeof aspectId === 'string' ? aspectId : undefined)
+    // Starting frames were always written at the legacy 1K size (720×1280 for
+    // portrait) — below the video's own output, so the video model upscaled
+    // from a soft source. Size the frame to the chosen video resolution.
+    const frameQuality = frameQualityFor(typeof resolution === 'string' ? resolution : undefined)
+    const frameSize = frameSizeFor(aspect, frameQuality)
 
     const safeProductName = String(productName || 'the topic').trim() || 'the topic'
     const safeProductDescription = String(productDescription || '').trim()
@@ -336,6 +342,7 @@ important=false when it is a generic talking-head that could be filmed anywhere.
           identityRefs[0]?.mimeType,
           extraProductRefs.length ? extraProductRefs : undefined,
           identityRefs.length > 1 ? identityRefs.slice(1) : undefined,
+          frameQuality,
         )
         return { base64: f.imageBase64, mimeType: f.mimeType }
       }
@@ -347,6 +354,7 @@ important=false when it is a generic talking-head that could be filmed anywhere.
         const combined = sceneAnchorRef ? [...identityRefs, sceneAnchorRef] : identityRefs
         const f = await generateNanoBananaImage(imagePrompt, {
           style: 'realistic',
+          resolution: frameQuality,
           ratio: aspect.nanoBananaRatio === '1:1' ? '1:1' : aspect.nanoBananaRatio === '16:9' ? '16:9' : '9:16',
           referenceImages: combined,
           referenceHint: sceneAnchorRef
@@ -360,6 +368,7 @@ important=false when it is a generic talking-head that could be filmed anywhere.
       if (sceneAnchorRef) {
         const f = await generateNanoBananaImage(imagePrompt, {
           style: 'realistic',
+          resolution: frameQuality,
           ratio: aspect.nanoBananaRatio === '1:1' ? '1:1' : aspect.nanoBananaRatio === '16:9' ? '16:9' : '9:16',
           referenceImages: [sceneAnchorRef],
           referenceHint: 'The attached image is the EXACT scene — architecture, materials, decor, palette, and lighting must match it faithfully. Compose the person INSIDE this scene from the prompt.',
@@ -386,7 +395,7 @@ important=false when it is a generic talking-head that could be filmed anywhere.
     for (let i = 0; i < successes.length; i++) {
       const { base64 } = successes[i].value
       const resized = await sharp(Buffer.from(base64, 'base64'))
-        .resize(aspect.width, aspect.height, { fit: 'cover', position: 'center' })
+        .resize(frameSize.width, frameSize.height, { fit: 'cover', position: 'center' })
         .png()
         .toBuffer()
       const filename = `kling-source/${userId}-${stamp}-${i}.png`

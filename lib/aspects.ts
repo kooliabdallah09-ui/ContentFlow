@@ -76,3 +76,31 @@ export function getAspect(id?: string): AspectConfig {
   }
   return ASPECTS[DEFAULT_ASPECT]
 }
+
+// ── Frame resolution ────────────────────────────────────────────────────
+//
+// The width/height above are the legacy 1K frame size — portrait is 720×1280,
+// which is BELOW the 1080×1920 the video renders at. The starting frame was the
+// weakest link in the chain and the video model was upscaling from it.
+//
+// Nano Banana Pro bills 1K and 2K at the same rate and only charges more for
+// 4K, so 2K is a free quality win. 4K is worth paying for only when the video
+// itself renders at 4K — below that the video model just downscales it again.
+
+export type FrameQuality = '1K' | '2K' | '4K'
+
+const LONG_EDGE: Record<FrameQuality, number> = { '1K': 1280, '2K': 2048, '4K': 3840 }
+
+/** Frame quality to request for a given video output resolution. */
+export function frameQualityFor(videoResolution?: string): FrameQuality {
+  return videoResolution === '4k' ? '4K' : '2K'
+}
+
+/** Pixel dimensions for an aspect at a given quality, preserving its ratio. */
+export function frameSizeFor(aspect: AspectConfig, quality: FrameQuality): { width: number; height: number } {
+  const long = LONG_EDGE[quality]
+  const ratio = aspect.width / aspect.height
+  return ratio >= 1
+    ? { width: long, height: Math.round(long / ratio) }
+    : { width: Math.round(long * ratio), height: long }
+}
