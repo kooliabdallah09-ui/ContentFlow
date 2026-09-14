@@ -247,7 +247,43 @@ export default function LibraryPage() {
         </div>
       ) : (
         <div className="lib-grid">
-          {filteredItems.map(item => (
+          {filteredItems.map(item => item.status !== 'completed' ? (
+            // Unfinished renders. storage_url on these is the component blob,
+            // not a playable URL, so they can't use the video card below —
+            // and they're not selectable or previewable until they land.
+            <div key={item.id} className="lib-card" style={{ textAlign: 'left' }}>
+              <div className="lib-thumb" style={{ display: 'grid', placeItems: 'center', background: 'var(--surface-2)' }}>
+                <div style={{ textAlign: 'center', padding: 16 }}>
+                  {item.status === 'failed' ? (
+                    <>
+                      <div style={{ fontSize: 22, marginBottom: 6 }}>⚠</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>Render failed</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 3, lineHeight: 1.45 }}>
+                        {item.credit_cost > 0 ? `${item.credit_cost} credits refunded` : 'No credits charged'}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div
+                        style={{
+                          width: 22, height: 22, margin: '0 auto 10px', borderRadius: '50%',
+                          border: '2.5px solid var(--border)', borderTopColor: 'var(--ink)',
+                          animation: 'spin 0.9s linear infinite',
+                        }}
+                      />
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>Rendering…</div>
+                      <div style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginTop: 3, lineHeight: 1.45 }}>
+                        Keeps going if you leave this page
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="lib-meta">
+                <p className="lib-title">{getVideoTitle(item)}</p>
+              </div>
+            </div>
+          ) : (
             <div
               key={item.id}
               className="lib-card"

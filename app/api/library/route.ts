@@ -30,7 +30,11 @@ export async function GET(request: NextRequest) {
       .select('id, content_type, storage_url, metadata, credit_cost, status, created_at')
       .eq('user_id', userId)
       .eq('content_type', 'video')
-      .eq('status', 'completed')
+      // In-progress and failed renders are included so a job the user walked
+      // away from is visible here instead of vanishing until it finishes.
+      // Note: only columns that predate migration 018 are selected above —
+      // see the comment on that select about PGRST204.
+      .in('status', ['completed', 'generating', 'failed'])
       .order('created_at', { ascending: false })
       .limit(100)
 

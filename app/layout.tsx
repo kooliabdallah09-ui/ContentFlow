@@ -12,6 +12,7 @@ import { CreditsProvider } from '@/lib/CreditsContext'
 import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { VisitTracker } from '@/components/VisitTracker'
+import { RenderWatcher } from '@/components/RenderWatcher'
 import { MobileShell } from '@/components/mobile/MobileShell'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { resolveMobileVariant, resolveMobileTitle } from '@/lib/page-meta'
@@ -265,6 +266,7 @@ function AppFrame({
           {children}
         </MobileShell>
         {showLayout && <OnboardingTour />}
+        {showLayout && <RenderWatcher />}
       </>
     )
   }
@@ -296,6 +298,7 @@ function AppFrame({
         {children}
       </div>
       <OnboardingTour />
+      <RenderWatcher />
     </div>
   )
 }
