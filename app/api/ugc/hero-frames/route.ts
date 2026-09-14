@@ -134,24 +134,6 @@ export async function POST(request: NextRequest) {
       imagePrompt = built.imagePrompt
     }
 
-    // A saved actor's prompt is stored verbatim so the face doesn't drift
-    // between renders — but it freezes wardrobe and styling along with the
-    // identity, so "put them in hiking clothes" silently did nothing whenever a
-    // creator was attached (the direction only reached the prompt on the
-    // fresh-character path above). Re-apply it here, scoped to everything
-    // EXCEPT identity so the face stays locked.
-    if (usingSavedActor && safeVideoDirection) {
-      imagePrompt = `${imagePrompt}
-
-=== USER DIRECTION — OVERRIDES WARDROBE, STYLING, PROPS AND ACTION ABOVE ===
-${safeVideoDirection}
-Apply this to clothing, hair styling, accessories, props, posture and what the
-character is doing. Where it contradicts the wardrobe described above, THIS WINS.
-DO NOT change facial structure, skin tone, eye colour, natural hair colour, age
-or body type — those define who this person is and must stay exactly as above.
-===========================================================================`
-    }
-
     // Hard imperative override — append the shot-direction verbatim to the
     // end of whatever Sonnet produced (or whatever was loaded from a saved
     // actor). Sonnet's rewrite tends to water composition down; putting the
@@ -319,6 +301,34 @@ important=false when it is a generic talking-head that could be filmed anywhere.
       } catch (err) {
         console.warn('[hero-frames] influencer refs load failed, text-only identity:', err instanceof Error ? err.message : err)
       }
+    }
+
+    // A saved actor's prompt is stored verbatim so the face doesn't drift
+    // between renders — but it freezes wardrobe and styling along with the
+    // identity, so "put them in hiking clothes" silently did nothing whenever a
+    // creator was attached. Re-apply the direction here, scoped to everything
+    // EXCEPT identity.
+    //
+    // This runs AFTER identityRefs is resolved on purpose. When a reference
+    // photo is attached, the downstream prompt tells the model the photo — not
+    // any text — is the authoritative source for the face, because text
+    // descriptions compete with the image and the model tends to favour the
+    // text. Anchoring identity to "as described above" here would pull against
+    // that and is a plausible cause of the odd frame coming back as a
+    // different person. Point at the photo when we have one, at the text only
+    // when we don't.
+    if (usingSavedActor && safeVideoDirection) {
+      const identityAnchor = identityRefs.length > 0
+        ? `The attached reference photo${identityRefs.length > 1 ? 's are' : ' is'} the authoritative source for WHO this person is — face, bone structure, skin tone, eye colour, natural hair colour, age and build all come from the photo${identityRefs.length > 1 ? 's' : ''}, never from any text description. Change only what this direction asks for.`
+        : `DO NOT change facial structure, skin tone, eye colour, natural hair colour, age or body type — those define who this person is and must stay exactly as described above.`
+      imagePrompt = `${imagePrompt}
+
+=== USER DIRECTION — OVERRIDES WARDROBE, STYLING, PROPS AND ACTION ABOVE ===
+${safeVideoDirection}
+Apply this to clothing, hair styling, accessories, props, posture and what the
+character is doing. Where it contradicts the wardrobe described above, THIS WINS.
+${identityAnchor}
+===========================================================================`
     }
 
     // Generate one hero frame from the Sonnet-drafted prompt. When a
