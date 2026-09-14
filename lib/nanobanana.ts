@@ -522,7 +522,7 @@ export async function generateCharacterWithProduct(
   // (freshly-cast character), so text-to-image renders still get their
   // full appearance guidance.
   const characterLine = identityCount > 0
-    ? `CHARACTER: match the person shown in Image${identityCount > 1 ? 's' : ''} 1${identityCount > 1 ? `–${identityCount}` : ''} EXACTLY — face, hair, skin, eyes, bone structure, body proportions all come from the reference photo${identityCount > 1 ? 's' : ''}. Do not substitute a lookalike. Do not use any text description of appearance — the reference image${identityCount > 1 ? 's are' : ' is'} the authoritative source. The character's personality and mood context: ${characterPrompt}`
+    ? `CHARACTER: match the person shown in Image${identityCount > 1 ? 's' : ''} 1${identityCount > 1 ? `–${identityCount}` : ''} EXACTLY — face, hair, skin, eyes, bone structure, body proportions all come from the reference photo${identityCount > 1 ? 's' : ''}. Do not substitute a lookalike. Do not use any text description of WHO THIS PERSON IS — the reference image${identityCount > 1 ? 's are' : ' is'} the authoritative source for identity. CLOTHING AND STYLING ARE THE EXCEPTION: if USER INSTRUCTIONS below specify an outfit, follow those instead of whatever the reference photo${identityCount > 1 ? 's show' : ' shows'} or the text below describes. The character's personality and mood context: ${characterPrompt}`
     : `CHARACTER: ${characterPrompt}`
 
   const prompt = `${actorImageBlock}Using the attached ${productRefLabel} as the exact product subject (preserve every detail — packaging, label text, UI layout, colours, shape, proportions — do not redesign or restyle), generate a hyper-realistic phone-selfie photograph for a UGC ad first frame.
@@ -563,7 +563,9 @@ REALISM ANCHORS — these must all be present:
 
 Phone-camera-natural rendering: slight sensor grain in shadow areas, mild highlight clipping on the bright side of the face, no beauty filter, no over-sharpening, no glass-skin look, no commercial polish. The frame should read as a frozen second from a video that hasn't been recorded yet — a real person caught mid-moment on a real phone.
 
-Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGH PRIORITY — apply to the character's expression, pose, or scene; override defaults where they conflict):\n${customInstructions.trim()}` : ''}`
+SINGLE SUBJECT — ANATOMY: exactly ONE person in the frame. Every visible hand, arm, shoulder and body part must belong to that same person and connect plausibly to their body at natural scale and angle. No disembodied or floating hands, no second person's arm entering the frame, no duplicated or extra limbs, no hand that doesn't attach to a visible arm. This is a selfie: the far arm is the one holding the camera and stays mostly out of frame, and the near hand holds the product — that is the ONLY other hand that may appear.
+
+Render in ${aspectRatio} aspect ratio.${customInstructions?.trim() ? `\n\nUSER INSTRUCTIONS (HIGHEST PRIORITY — apply to the character's clothing and styling, expression, pose, props and scene; override the defaults AND any conflicting wardrobe described above. They never override the reference photo for face, bone structure, skin tone, eye colour or natural hair colour — identity always comes from the photo):\n${customInstructions.trim()}` : ''}`
 
   const refs: Array<{ base64: string; mimeType: string }> = []
   if (actorPortraitBase64 && actorPortraitMimeType) {

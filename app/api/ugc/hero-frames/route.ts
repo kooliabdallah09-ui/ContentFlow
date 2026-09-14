@@ -303,33 +303,32 @@ important=false when it is a generic talking-head that could be filmed anywhere.
       }
     }
 
-    // A saved actor's prompt is stored verbatim so the face doesn't drift
-    // between renders — but it freezes wardrobe and styling along with the
-    // identity, so "put them in hiking clothes" silently did nothing whenever a
-    // creator was attached. Re-apply the direction here, scoped to everything
-    // EXCEPT identity.
+    // A saved actor's stored prompt freezes wardrobe along with identity, so
+    // "put them in hiking clothes" did nothing whenever a creator was attached.
     //
-    // This runs AFTER identityRefs is resolved on purpose. When a reference
-    // photo is attached, the downstream prompt tells the model the photo — not
-    // any text — is the authoritative source for the face, because text
-    // descriptions compete with the image and the model tends to favour the
-    // text. Anchoring identity to "as described above" here would pull against
-    // that and is a plausible cause of the odd frame coming back as a
-    // different person. Point at the photo when we have one, at the text only
-    // when we don't.
-    if (usingSavedActor && safeVideoDirection) {
-      const identityAnchor = identityRefs.length > 0
-        ? `The attached reference photo${identityRefs.length > 1 ? 's are' : ' is'} the authoritative source for WHO this person is — face, bone structure, skin tone, eye colour, natural hair colour, age and build all come from the photo${identityRefs.length > 1 ? 's' : ''}, never from any text description. Change only what this direction asks for.`
-        : `DO NOT change facial structure, skin tone, eye colour, natural hair colour, age or body type — those define who this person is and must stay exactly as described above.`
-      imagePrompt = `${imagePrompt}
+    // Appending the direction to imagePrompt was only a half-fix: imagePrompt
+    // is passed downstream as `characterPrompt`, which the product path injects
+    // as "the character's personality and mood context" — the same sentence
+    // that tells the model to ignore text descriptions of appearance. The
+    // wardrobe instruction landed inside the slot it had just been told to
+    // ignore, which is why it took on some frames and not others.
+    //
+    // It now travels in the dedicated USER INSTRUCTIONS slot instead, which
+    // sits at the end of the prompt at highest priority and outside
+    // characterPrompt. The branches with no such slot still get it appended.
+    const directionBlock = (usingSavedActor && safeVideoDirection)
+      ? `${safeVideoDirection}${identityRefs.length > 0
+          ? `\n(Identity still comes from the attached reference photo — change only clothing, styling, props and action.)`
+          : ''}`
+      : ''
+
+    const promptWithDirection = directionBlock
+      ? `${imagePrompt}
 
 === USER DIRECTION — OVERRIDES WARDROBE, STYLING, PROPS AND ACTION ABOVE ===
-${safeVideoDirection}
-Apply this to clothing, hair styling, accessories, props, posture and what the
-character is doing. Where it contradicts the wardrobe described above, THIS WINS.
-${identityAnchor}
+${directionBlock}
 ===========================================================================`
-    }
+      : imagePrompt
 
     // Generate one hero frame from the Sonnet-drafted prompt. When a
     // physical product is provided we attach its image as reference so
@@ -346,7 +345,7 @@ ${identityAnchor}
           safeProductName,
           imagePrompt,
           requiredScene ?? '',   // explicit scene override when the script needs a place
-          undefined,          // no legacy custom-instructions inject
+          directionBlock || undefined,   // rides the HIGH-PRIORITY slot, not characterPrompt
           aspect.nanoBananaRatio,
           identityRefs[0]?.base64,     // primary identity anchor
           identityRefs[0]?.mimeType,
@@ -362,7 +361,7 @@ ${identityAnchor}
         // anchor at the end when we have one so NB matches the location
         // faithfully instead of inventing a room.
         const combined = sceneAnchorRef ? [...identityRefs, sceneAnchorRef] : identityRefs
-        const f = await generateNanoBananaImage(imagePrompt, {
+        const f = await generateNanoBananaImage(promptWithDirection, {
           style: 'realistic',
           resolution: frameQuality,
           ratio: aspect.nanoBananaRatio === '1:1' ? '1:1' : aspect.nanoBananaRatio === '16:9' ? '16:9' : '9:16',
@@ -376,7 +375,7 @@ ${identityAnchor}
       // No product, no identity refs — text-only from the Sonnet image
       // prompt, plus the scene anchor when the user picked one.
       if (sceneAnchorRef) {
-        const f = await generateNanoBananaImage(imagePrompt, {
+        const f = await generateNanoBananaImage(promptWithDirection, {
           style: 'realistic',
           resolution: frameQuality,
           ratio: aspect.nanoBananaRatio === '1:1' ? '1:1' : aspect.nanoBananaRatio === '16:9' ? '16:9' : '9:16',
@@ -385,7 +384,7 @@ ${identityAnchor}
         })
         return { base64: f.imageBase64, mimeType: f.mimeType }
       }
-      const f = await generateTextToImage(imagePrompt)
+      const f = await generateTextToImage(promptWithDirection)
       return { base64: f.imageBase64, mimeType: f.mimeType }
     }
 
