@@ -47,6 +47,7 @@ const REGISTRY: Array<{ match: (p: string) => boolean; meta: PageMeta }> = [
   // ── App pages — friendly titles for the mobile header ──────
   { match: p => p === '/dashboard',               meta: { title: 'Home',         variant: 'app' } },
   { match: p => p.startsWith('/library'),         meta: { title: 'Library',      variant: 'app' } },
+  { match: p => p.startsWith('/watchlist'),       meta: { title: 'Watchlist',    variant: 'app' } },
   { match: p => p.startsWith('/generate/ugc'),    meta: { title: 'UGC Package',  variant: 'app' } },
   { match: p => p.startsWith('/generate/social'), meta: { title: 'Social',       variant: 'app' } },
   { match: p => p.startsWith('/generate/image'),  meta: { title: 'Image',        variant: 'app' } },

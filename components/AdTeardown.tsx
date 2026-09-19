@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
-import { Loader2, Lock, Check, Copy, RotateCcw } from 'lucide-react'
+import { Loader2, Lock, Check, Copy, RotateCcw, Eye } from 'lucide-react'
 
 interface Caption {
   text: string
@@ -66,6 +66,8 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
   const [result, setResult] = useState<AnalyzeResult | null>(null)
   const [editablePrompt, setEditablePrompt] = useState('')
   const [copied, setCopied] = useState(false)
+  const [watchSaving, setWatchSaving] = useState(false)
+  const [watchSaved, setWatchSaved] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -79,6 +81,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
   }, [])
 
   function reset() {
+    setWatchSaved(false)
     setResult(null)
     setEditablePrompt('')
     setFrames([])
@@ -232,6 +235,42 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
     } catch { /* quota — ignore */ }
     if (signedIn) router.push('/generate/ugc')
     else router.push('/auth/signup?next=/generate/ugc')
+  }
+
+  // Put this ad on the watchlist. The teardown rides along so "make my version"
+  // later doesn't have to re-analyse (and re-charge for) an ad already broken
+  // down, and so the record survives even if the source ad disappears.
+  async function saveToWatchlist() {
+    if (!result || watchSaving || watchSaved) return
+    const competitor = window.prompt('Which brand is this ad from?')?.trim()
+    if (!competitor) return
+
+    setWatchSaving(true)
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: null }
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Not signed in')
+
+      const res = await fetch('/api/watchlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          competitor,
+          teardown: { ...result.breakdown, videoPrompt: editablePrompt },
+          // First sampled frame doubles as the card thumbnail.
+          thumbUrl: frames[0] ? `data:image/jpeg;base64,${frames[0].base64}` : undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not save')
+      setWatchSaved(true)
+      showSuccess('Added to your watchlist', `We'll track how long ${competitor} keeps running this.`)
+    } catch (err) {
+      showError('Could not save', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setWatchSaving(false)
+    }
   }
 
   async function copyPrompt() {
@@ -681,12 +720,31 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
               <p style={{ fontSize: 14, color: 'var(--ink-dim)', margin: '0 auto 20px', maxWidth: 420, lineHeight: 1.6 }}>
                 Same beats, same pacing — your product, your actor, your voice.
               </p>
-              <button onClick={useForUGC} style={{
-                padding: '14px 30px', borderRadius: 12, background: ACCENT, color: '#fff',
-                border: 'none', fontSize: 14.5, fontWeight: 600, cursor: 'pointer',
-              }}>
-                {signedIn ? 'Build this ad for my product →' : 'Build this for my product — free →'}
-              </button>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+                <button onClick={useForUGC} style={{
+                  padding: '14px 30px', borderRadius: 12, background: ACCENT, color: '#fff',
+                  border: 'none', fontSize: 14.5, fontWeight: 600, cursor: 'pointer',
+                }}>
+                  {signedIn ? 'Build this ad for my product →' : 'Build this for my product — free →'}
+                </button>
+                {signedIn && (
+                  <button
+                    onClick={saveToWatchlist}
+                    disabled={watchSaving || watchSaved}
+                    title="Track how long this ad keeps running — the longer it survives, the better it's working"
+                    style={{
+                      padding: '14px 24px', borderRadius: 12,
+                      background: 'transparent', border: '1px solid var(--border)',
+                      color: watchSaved ? 'var(--ink-mute)' : 'var(--ink)',
+                      fontSize: 14, fontWeight: 600,
+                      cursor: watchSaving || watchSaved ? 'default' : 'pointer',
+                      display: 'inline-flex', alignItems: 'center', gap: 8,
+                    }}
+                  >
+                    {watchSaved ? <><Check size={14} /> Watching</> : <><Eye size={14} /> {watchSaving ? 'Saving…' : 'Watch this ad'}</>}
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

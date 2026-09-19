@@ -18,6 +18,7 @@ const PAGES: Array<{ label: string; href: string; group: string; sub?: string; a
   { label: 'Dashboard', href: '/dashboard', group: 'Navigation' },
   { label: 'Library', href: '/library', group: 'Navigation' },
   { label: 'Analytics', href: '/analytics', group: 'Navigation' },
+  { label: 'Ad Watchlist', href: '/watchlist', group: 'Navigation', sub: 'Track competitor ads over time' },
   { label: 'Chat', href: '/ask', group: 'Navigation' },
   { label: 'UGC Package', href: '/generate/ugc', group: 'Create', sub: 'Flagship talking-head ad' },
   { label: 'AI Video', href: '/generate/video', group: 'Create', sub: 'Seedance 2.0 cinematic video' },

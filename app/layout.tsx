@@ -58,6 +58,7 @@ export default function RootLayout({
       '/dashboard': 'Dashboard — ContentFlow Web',
       '/campaigns': 'Campaigns — ContentFlow Web',
       '/library': 'Library — ContentFlow Web',
+      '/watchlist': 'Ad Watchlist — ContentFlow Web',
       '/analytics': 'Analytics — ContentFlow Web',
       '/generate/blog': 'Blog Post — ContentFlow Web',
       '/generate/social': 'Social Post — ContentFlow Web',

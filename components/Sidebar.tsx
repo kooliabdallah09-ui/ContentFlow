@@ -190,6 +190,11 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
           <span style={{ flex: 1 }}>Ad Teardown</span>
           <span className="flagship-badge">Free</span>
         </Link>
+        <Link href="/watchlist" className={`nav-item ${isActive('/watchlist') ? 'active' : ''}`} onClick={handleNavClick}>
+          <Icon.TrendUp />
+          <span style={{ flex: 1 }}>Watchlist</span>
+          <span className="flagship-badge">New</span>
+        </Link>
         {businessCardAccess && (
           <Link href="/generate/business-card" className={`nav-item ${isActive('/generate/business-card') ? 'active' : ''}`} onClick={handleNavClick}>
             <Icon.Card />
