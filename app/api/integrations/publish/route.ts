@@ -3,7 +3,6 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { initializeTwitterPublisher } from '@/lib/integrations/twitter'
 import { publishToInstagram, publishToFacebook } from '@/lib/integrations/instagram'
-import { publishToYouTube, refreshYouTubeToken } from '@/lib/integrations/youtube'
 import { publishToTikTok, refreshTikTokToken } from '@/lib/integrations/tiktok'
 import { initializeWordPressPublisher } from '@/lib/integrations/wordpress'
 import { createClient } from '@supabase/supabase-js'
@@ -119,32 +118,6 @@ export async function POST(request: NextRequest) {
         videoUrl: videoUrl || undefined,
       })
       if (!result.success) throw new Error(result.error)
-      publishedId = result.postId
-    }
-
-    // --- YOUTUBE ---
-    else if (platform === 'youtube') {
-      if (!videoUrl) {
-        return NextResponse.json(
-          { error: 'YouTube requires a video. Generate one first.' },
-          { status: 400 }
-        )
-      }
-      // Refresh token if we have one
-      if (integration.refresh_token) {
-        try {
-          accessToken = await refreshYouTubeToken(integration.refresh_token)
-          await supabase.from('integrations')
-            .update({ access_token: accessToken })
-            .eq('id', integration.id)
-        } catch {}
-      }
-      const result = await publishToYouTube({
-        accessToken,
-        videoUrl,
-        title: content.title || 'New Video',
-        description: body,
-      })
       publishedId = result.postId
     }
 

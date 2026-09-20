@@ -92,7 +92,7 @@ export default async function DataDeletionPage({
         <p>
           Once confirmed, your account is scheduled for deletion. All personal data, brand information, generated
           videos, images, carousels, scheduled posts, and OAuth tokens for connected platforms (Facebook, Instagram,
-          TikTok, YouTube) are permanently removed within 30 days.
+          TikTok) are permanently removed within 30 days.
         </p>
       </Section>
 
@@ -134,7 +134,7 @@ export default async function DataDeletionPage({
           <li>Brand profile, product info, uploaded logos</li>
           <li>All generated videos, images, carousels, and social posts</li>
           <li>Scheduled and published post history</li>
-          <li>OAuth access tokens for Facebook, Instagram, TikTok, YouTube</li>
+          <li>OAuth access tokens for Facebook, Instagram, TikTok</li>
           <li>Billing metadata (we retain invoices only where required by tax law)</li>
         </ul>
       </Section>

@@ -6,7 +6,7 @@ import { getSupabase } from '@/lib/auth'
 
 interface Notification {
   id: string
-  icon: 'check' | 'video' | 'youtube' | 'alert' | 'credit'
+  icon: 'check' | 'video' | 'alert' | 'credit'
   title: string
   detail: string
   date: string
@@ -34,9 +34,6 @@ function Icon({ name }: { name: Notification['icon'] }) {
     case 'video': return (
       <svg {...props}><rect x="2" y="6" width="14" height="12" rx="2"/><path d="m16 10 6-4v12l-6-4"/></svg>
     )
-    case 'youtube': return (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="#FF0000"><path d="M23.498 6.186a3.016 3.016 0 00-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 00.502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 002.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 002.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>
-    )
     case 'alert': return (
       <svg {...props}><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
     )
@@ -49,7 +46,6 @@ function Icon({ name }: { name: Notification['icon'] }) {
 const COLORS: Record<Notification['icon'], string> = {
   check: '#10B981',
   video: '#7C6CF8',
-  youtube: '#FF0000',
   alert: '#EF4444',
   credit: '#F59E0B',
 }
@@ -69,9 +65,8 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
     const token = sess?.session?.access_token
     if (!token) { setLoading(false); return }
 
-    const [libRes, ytRes, creditsRes] = await Promise.allSettled([
+    const [libRes, creditsRes] = await Promise.allSettled([
       fetch('/api/library', { headers: { Authorization: `Bearer ${token}` } }),
-      fetch('/api/youtube/queue', { headers: { Authorization: `Bearer ${token}` } }),
       fetch('/api/credits/balance', { headers: { Authorization: `Bearer ${token}` } }),
     ])
 
@@ -95,44 +90,6 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
             unread: new Date(item.created_at) > new Date(lastReadAt),
           })
         })
-    }
-
-    // YouTube queue events
-    if (ytRes.status === 'fulfilled' && ytRes.value.ok) {
-      const { jobs } = await ytRes.value.json()
-      ;(jobs ?? []).slice(0, 5).forEach((j: { id: string; status: string; title: string; scheduled_at: string; error_message?: string }) => {
-        if (j.status === 'published') {
-          events.push({
-            id: `yt-${j.id}`,
-            icon: 'youtube',
-            title: 'Published to YouTube',
-            detail: j.title,
-            date: j.scheduled_at,
-            href: '/library',
-            unread: new Date(j.scheduled_at) > new Date(lastReadAt),
-          })
-        } else if (j.status === 'failed') {
-          events.push({
-            id: `yt-${j.id}`,
-            icon: 'alert',
-            title: 'YouTube publish failed',
-            detail: j.error_message || j.title,
-            date: j.scheduled_at,
-            href: '/library',
-            unread: new Date(j.scheduled_at) > new Date(lastReadAt),
-          })
-        } else if (j.status === 'queued') {
-          events.push({
-            id: `yt-${j.id}`,
-            icon: 'youtube',
-            title: 'Scheduled for YouTube',
-            detail: j.title,
-            date: j.scheduled_at,
-            href: '/library',
-            unread: false,
-          })
-        }
-      })
     }
 
     // Credits low
@@ -225,7 +182,7 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
             ) : notifications.length === 0 ? (
               <div style={{ padding: '36px 16px', textAlign: 'center' }}>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>All caught up</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>You&apos;ll see content events and YouTube publishes here.</div>
+                <div style={{ fontSize: 12, color: 'var(--ink-mute)' }}>You&apos;ll see content events here as your renders finish.</div>
               </div>
             ) : (
               notifications.map(n => (

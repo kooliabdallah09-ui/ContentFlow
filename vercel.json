@@ -4,10 +4,6 @@
   "framework": "nextjs",
   "crons": [
     {
-      "path": "/api/youtube/auto-publish",
-      "schedule": "0 9 * * *"
-    },
-    {
       "path": "/api/cron/cleanup-storage",
       "schedule": "0 4 * * *"
     }

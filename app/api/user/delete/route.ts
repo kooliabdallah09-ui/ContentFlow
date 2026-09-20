@@ -43,7 +43,6 @@ export async function POST(request: NextRequest) {
       'campaign_shots',
       'scenes',
       'integrations',
-      'youtube_publish_queue',
       'data_deletion_requests',
       'saved_actors',
       'brand_launches',

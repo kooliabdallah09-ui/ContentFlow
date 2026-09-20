@@ -224,7 +224,7 @@ export default function AnalyticsPage() {
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>Social performance analytics</div>
               <div style={{ fontSize: 12.5, color: 'var(--ink-mute)', lineHeight: 1.5 }}>
-                Views, engagement, reach, and conversions from Instagram, TikTok &amp; YouTube — coming once your integrations are live.
+                Views, engagement, reach, and conversions from Instagram &amp; TikTok — coming once your integrations are live.
               </div>
             </div>
           </div>

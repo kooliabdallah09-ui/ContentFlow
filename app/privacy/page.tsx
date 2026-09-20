@@ -60,7 +60,7 @@ export default function PrivacyPage() {
 
         <h3 style={h3}>Integration credentials</h3>
         <p>
-          When you connect a third-party platform (YouTube, TikTok, Instagram, Facebook, Google Drive), we store
+          When you connect a third-party platform (TikTok, Instagram, Facebook, Google Drive), we store
           OAuth access tokens and refresh tokens to publish content on your behalf. We do not store your passwords
           for those platforms.
         </p>
@@ -87,7 +87,7 @@ export default function PrivacyPage() {
         <ul>
           <li>Provide, operate, and maintain the Service</li>
           <li>Generate AI content in response to your inputs using third-party AI models</li>
-          <li>Publish content to connected platforms (YouTube, TikTok, Instagram, Facebook) when you request it</li>
+          <li>Publish content to connected platforms (TikTok, Instagram, Facebook) when you request it</li>
           <li>Manage your subscription, credits, and billing</li>
           <li>Send transactional emails (account verification, receipts, usage alerts)</li>
           <li>Respond to support requests and troubleshoot issues</li>
@@ -118,7 +118,6 @@ export default function PrivacyPage() {
 
         <h3 style={h3}>Social platform integrations</h3>
         <ul>
-          <li><strong>YouTube (Google)</strong> — OAuth 2.0 token used to upload and schedule videos</li>
           <li><strong>TikTok</strong> — OAuth token used to publish videos via the TikTok Content Posting API</li>
           <li><strong>Instagram / Facebook (Meta)</strong> — OAuth token used to post to Instagram and Facebook Pages via the Meta Graph API</li>
           <li><strong>Google Drive</strong> — OAuth token used to save generated files to your Drive</li>
