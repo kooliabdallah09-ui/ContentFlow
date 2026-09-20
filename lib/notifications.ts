@@ -8,10 +8,24 @@ export interface Toast {
   message: string
   description?: string
   duration?: number
+  /**
+   * Survive client-side navigation. Defaults to false: a toast belongs to the
+   * page that raised it, so an error from one screen can't follow you onto an
+   * unrelated one and look like it came from whatever you're now looking at.
+   *
+   * Opt in for hand-offs that deliberately report on the previous page's work
+   * ("charged N credits", "now available in the UGC step").
+   */
+  persist?: boolean
   action?: {
     label: string
     onClick: () => void
   }
+}
+
+export interface ToastOptions {
+  duration?: number
+  persist?: boolean
 }
 
 let toastCallbacks: Set<(toast: Toast) => void> = new Set()
@@ -25,8 +39,9 @@ export function showToast(
   type: ToastType,
   message: string,
   description?: string,
-  duration = 5000
+  options: ToastOptions = {}
 ) {
+  const { duration = 5000, persist = false } = options
   const id = `${Date.now()}-${Math.random()}`
   const toast: Toast = {
     id,
@@ -34,6 +49,7 @@ export function showToast(
     message,
     description,
     duration,
+    persist,
   }
 
   toastCallbacks.forEach((cb) => cb(toast))
@@ -53,18 +69,18 @@ export function removeToast(id: string) {
   )
 }
 
-export function showSuccess(message: string, description?: string) {
-  return showToast('success', message, description)
+export function showSuccess(message: string, description?: string, options?: ToastOptions) {
+  return showToast('success', message, description, options)
 }
 
-export function showError(message: string, description?: string) {
-  return showToast('error', message, description)
+export function showError(message: string, description?: string, options?: ToastOptions) {
+  return showToast('error', message, description, options)
 }
 
-export function showInfo(message: string, description?: string) {
-  return showToast('info', message, description)
+export function showInfo(message: string, description?: string, options?: ToastOptions) {
+  return showToast('info', message, description, options)
 }
 
-export function showWarning(message: string, description?: string) {
-  return showToast('warning', message, description)
+export function showWarning(message: string, description?: string, options?: ToastOptions) {
+  return showToast('warning', message, description, options)
 }

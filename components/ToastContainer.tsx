@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { subscribeToToasts, type Toast } from '@/lib/notifications'
 import { X, CheckCircle2, AlertCircle, Info, AlertTriangle } from 'lucide-react'
 
 export default function ToastContainer() {
   const [toasts, setToasts] = useState<Toast[]>([])
+  const pathname = usePathname()
 
   useEffect(() => {
     const unsubscribe = subscribeToToasts((toast) => {
@@ -17,6 +19,15 @@ export default function ToastContainer() {
     })
     return () => { unsubscribe() }
   }, [])
+
+  // This container lives in the root layout, so it survives client-side
+  // navigation — which meant an error raised on one screen could still be on
+  // top of a completely different one seconds later, reading as though it
+  // belonged there. Drop page-scoped toasts on navigation; anything marked
+  // persist is a deliberate hand-off and stays.
+  useEffect(() => {
+    setToasts((prev) => prev.filter((t) => t.persist))
+  }, [pathname])
 
   const accent = (type: Toast['type']) => {
     switch (type) {

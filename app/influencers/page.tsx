@@ -583,7 +583,8 @@ export default function InfluencersPage() {
       })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Failed')
-      showSuccess('Ready for UGC', `${selected.name} now appears in the UGC character step.`)
+      // Reports on this page's work but is read on the next one.
+      showSuccess('Ready for UGC', `${selected.name} now appears in the UGC character step.`, { persist: true })
       router.push('/generate/ugc')
     } catch (err) {
       showError('Failed', err instanceof Error ? err.message : 'Try again')

@@ -179,24 +179,44 @@ export default function VideoGeneratorPage() {
     if (videoProductId === sp.id) { setVideoProductId(undefined); setRefImages([]); return }
     setVideoProductId(sp.id)
     const imgs: Array<{ base64: string; mimeType: string; preview: string }> = []
+    const failures: string[] = []
     for (const url of (sp.photo_urls ?? []).slice(0, 2)) {
       try {
         const r = await fetch(url)
-        if (!r.ok) continue
+        if (!r.ok) throw new Error(`fetch returned ${r.status}`)
         const blob = await r.blob()
-        const buf = new Uint8Array(await blob.arrayBuffer())
-        let bin = ''
-        for (let i = 0; i < buf.length; i++) bin += String.fromCharCode(buf[i])
-        const base64 = btoa(bin)
-        const mimeType = blob.type || 'image/png'
-        imgs.push({ base64, mimeType, preview: `data:${mimeType};base64,${base64}` })
-      } catch { /* skip */ }
+        // FileReader rather than a byte-at-a-time String.fromCharCode loop:
+        // that built a multi-megabyte string one character at a time, which is
+        // slow enough on mobile Safari to stall the tab and can throw outright
+        // on a full-size product photo. readAsDataURL does it natively, and
+        // hands back the exact data URL the preview needs.
+        const dataUrl = await new Promise<string>((resolve, reject) => {
+          const fr = new FileReader()
+          fr.onload = () => resolve(String(fr.result))
+          fr.onerror = () => reject(fr.error ?? new Error('FileReader failed'))
+          fr.readAsDataURL(blob)
+        })
+        const base64 = dataUrl.split(',')[1] ?? ''
+        if (!base64) throw new Error('decoded to an empty payload')
+        imgs.push({ base64, mimeType: blob.type || 'image/png', preview: dataUrl })
+      } catch (err) {
+        // Previously swallowed, which left no trace anywhere — not in the
+        // browser, and nothing server-side either, since these are direct
+        // storage fetches. The toast below was the only signal it happened.
+        const reason = err instanceof Error ? err.message : String(err)
+        failures.push(reason)
+        console.error('[importStudioProduct] photo failed', { url, reason })
+      }
     }
     if (imgs.length) {
       setRefImages(imgs)
       showSuccess('Product loaded', `${sp.name} — ${imgs.length} photo${imgs.length > 1 ? 's' : ''} set as reference.`)
     } else {
-      showError('Load failed', 'Could not fetch the product photos')
+      setVideoProductId(undefined)
+      showError(
+        'Could not load product photos',
+        `${sp.name}: ${failures[0] ?? 'no photos on this product'}`,
+      )
     }
   }
   const [duration, setDuration] = useState(5)

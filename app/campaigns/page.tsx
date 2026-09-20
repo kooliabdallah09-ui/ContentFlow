@@ -238,7 +238,9 @@ export default function CampaignsPage() {
         throw new Error(`Server returned an unexpected response (${res.status}).`)
       }
       if (!res.ok) throw new Error(data.error ?? 'Planner failed')
-      showSuccess(`Planned ${data.count} shots · charged ${PLAN_COST} cr`)
+      // Credit charges must survive the redirect — this is the only place the
+      // user is told what the plan cost them.
+      showSuccess(`Planned ${data.count} shots · charged ${PLAN_COST} cr`, undefined, { persist: true })
       router.push(`/campaigns/${data.id}`)
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Planner failed')
