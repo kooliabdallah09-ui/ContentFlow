@@ -1,25 +1,24 @@
-// Shared in-memory IP rate limiter for public (signed-out) endpoints.
+// Shared rate limiter for public and cost-sensitive endpoints.
 //
-// Vercel serverless instances don't share memory, so a determined user can
-// get roughly (limit × instance count) requests. That's acceptable for the
-// endpoints using this — each one is cheap and the limit exists to stop
-// runaway cost on a traffic spike, not to be airtight. Move to Vercel KV if
-// real abuse shows up.
+// Backed by Postgres (`rate_limits` + the check_rate_limit RPC, see
+// migrations/020_add_rate_limits.sql) rather than process memory. Vercel runs
+// many function instances and recycles them constantly, so the in-memory
+// version this replaces allowed roughly (limit × live instances) and reset
+// every cold start.
 //
-// Existing in-route limiter in /api/preview/generate predates this helper and
-// still has its own copy; new public routes should use this.
+// Fails CLOSED: if the limit can't be verified, the request is denied. That
+// costs nothing in availability terms — every route using this already needs
+// Supabase to do its actual work, so a database outage takes the endpoint down
+// either way — and it keeps a database blip from turning into unbounded spend
+// on the paid generation paths.
 
 import type { NextRequest } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
 
 export function getClientIp(req: NextRequest): string {
   const fwd = req.headers.get('x-forwarded-for')
   if (fwd) return fwd.split(',')[0].trim()
   return req.headers.get('x-real-ip') ?? 'unknown'
-}
-
-interface Bucket {
-  count: number
-  resetAt: number
 }
 
 export interface RateLimitResult {
@@ -28,53 +27,66 @@ export interface RateLimitResult {
   retryAfterSeconds: number
 }
 
-/**
- * Fixed-window counter keyed by `${name}:${ip}`. Returns ok:false once `limit`
- * requests have been made inside `windowMs`.
- */
-export function checkRateLimit(
-  name: string,
-  ip: string,
-  limit: number,
-  windowMs: number,
-): RateLimitResult {
-  const store = getStore(name)
-  const now = Date.now()
-
-  // Keep the map bounded — sweep expired buckets when it grows.
-  if (store.size > 5000) {
-    for (const [k, b] of store) if (b.resetAt <= now) store.delete(k)
-  }
-
-  const existing = store.get(ip)
-  if (!existing || existing.resetAt <= now) {
-    store.set(ip, { count: 1, resetAt: now + windowMs })
-    return { ok: true, remaining: limit - 1, retryAfterSeconds: 0 }
-  }
-
-  if (existing.count >= limit) {
-    return {
-      ok: false,
-      remaining: 0,
-      retryAfterSeconds: Math.max(1, Math.ceil((existing.resetAt - now) / 1000)),
-    }
-  }
-
-  existing.count += 1
-  return { ok: true, remaining: limit - existing.count, retryAfterSeconds: 0 }
+function adminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { persistSession: false } },
+  )
 }
 
-// One map per limiter name, kept on globalThis so Next's dev-mode module
-// reloading doesn't silently reset every counter on each edit.
-const GLOBAL_KEY = '__cf_rate_limit_stores__'
+/**
+ * Fixed-window counter keyed by `${name}:${key}`, shared across every instance.
+ * Returns ok:false once `limit` requests have been made inside `windowMs`.
+ *
+ * `key` is usually an IP (public routes) or a user id (authenticated ones).
+ */
+export async function checkRateLimit(
+  name: string,
+  key: string,
+  limit: number,
+  windowMs: number,
+): Promise<RateLimitResult> {
+  try {
+    const { data, error } = await adminClient().rpc('check_rate_limit', {
+      p_key: `${name}:${key}`,
+      p_limit: limit,
+      p_window_ms: windowMs,
+    })
+    if (error) throw new Error(error.message)
 
-function getStore(name: string): Map<string, Bucket> {
-  const g = globalThis as unknown as Record<string, Map<string, Map<string, Bucket>>>
-  if (!g[GLOBAL_KEY]) g[GLOBAL_KEY] = new Map()
-  const stores = g[GLOBAL_KEY]
-  let store = stores.get(name)
-  if (!store) { store = new Map(); stores.set(name, store) }
-  return store
+    const row = Array.isArray(data) ? data[0] : data
+    if (!row) throw new Error('check_rate_limit returned no row')
+
+    return {
+      ok: Boolean(row.allowed),
+      remaining: row.remaining ?? 0,
+      retryAfterSeconds: row.retry_after_seconds ?? 0,
+    }
+  } catch (err) {
+    console.error('[rate-limit] check failed, denying request:', err)
+    return { ok: false, remaining: 0, retryAfterSeconds: 60 }
+  }
+}
+
+/**
+ * Give back a slot taken by {@link checkRateLimit}.
+ *
+ * For endpoints where the cost lands partway through the request, reserve the
+ * slot up front and release it if the request fails before spending anything.
+ * Reserving first is what keeps concurrent requests from all passing the check
+ * at once; releasing on failure is what stops a bad URL from burning a real
+ * user's quota. Best-effort — a failed release only costs one extra slot.
+ */
+export async function releaseRateLimit(name: string, key: string): Promise<void> {
+  try {
+    const { error } = await adminClient().rpc('release_rate_limit', {
+      p_key: `${name}:${key}`,
+    })
+    if (error) throw new Error(error.message)
+  } catch (err) {
+    console.error('[rate-limit] release failed:', err)
+  }
 }
 
 /** Human-friendly "3h" / "2 days" rendering for a retry-after duration. */

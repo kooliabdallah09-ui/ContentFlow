@@ -2,6 +2,7 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { initializeUserCredits } from '@/lib/credits'
 import { sendWelcomeEmail } from '@/lib/email'
 import { NextRequest } from 'next/server'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 // Seed source: whichever admin owns the canonical Sloane Mercer record.
 // Overridable via env for staging / test environments.
@@ -47,28 +48,18 @@ async function copyDefaultInfluencers(supabase: SupabaseClient, newUserId: strin
   if (error) console.error('[signup] insert default influencer failed:', error.message)
 }
 
-// Simple in-process rate limiter: max 5 signups per IP per 10 minutes
-const signupAttempts = new Map<string, { count: number; reset: number }>()
+// Max 5 signups per IP per 10 minutes. Shared across instances — each free
+// account grants signup credits, so this is a spend control, not just hygiene.
 const RATE_LIMIT = 5
 const RATE_WINDOW_MS = 10 * 60 * 1000
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now()
-  const entry = signupAttempts.get(ip)
-  if (!entry || now > entry.reset) {
-    signupAttempts.set(ip, { count: 1, reset: now + RATE_WINDOW_MS })
-    return true
-  }
-  if (entry.count >= RATE_LIMIT) return false
-  entry.count++
-  return true
-}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/
 
 export async function POST(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
-  if (!checkRateLimit(ip)) {
+  const limit = await checkRateLimit(
+    'signup', getClientIp(request), RATE_LIMIT, RATE_WINDOW_MS,
+  )
+  if (!limit.ok) {
     return Response.json({ error: 'Too many signup attempts. Try again later.' }, { status: 429 })
   }
 

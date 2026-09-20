@@ -1,33 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 interface BatchRequest {
   type: 'images' | 'voices' | 'videos'
   items: any[]
 }
 
-// In-memory rate limiting (in production, use Redis)
-const rateLimits = new Map<
-  string,
-  { count: number; resetTime: number }
->()
-
-function checkRateLimit(userId: string): boolean {
-  const limit = rateLimits.get(userId)
-  const now = Date.now()
-
-  if (!limit || now > limit.resetTime) {
-    rateLimits.set(userId, { count: 1, resetTime: now + 60 * 1000 })
-    return true
-  }
-
-  if (limit.count >= 10) {
-    // 10 batch jobs per minute
-    return false
-  }
-
-  limit.count++
-  return true
-}
+// 10 batch jobs per minute, per user, shared across instances.
+const RATE_LIMIT = 10
+const RATE_WINDOW_MS = 60 * 1000
 
 export async function POST(request: Request) {
   const authHeader = request.headers.get('authorization')
@@ -49,7 +30,8 @@ export async function POST(request: Request) {
     }
 
     // Check rate limit
-    if (!checkRateLimit(userData.user.id)) {
+    const limit = await checkRateLimit('batch', userData.user.id, RATE_LIMIT, RATE_WINDOW_MS)
+    if (!limit.ok) {
       return Response.json(
         { error: 'Rate limit exceeded. Maximum 10 batch jobs per minute.' },
         { status: 429 }

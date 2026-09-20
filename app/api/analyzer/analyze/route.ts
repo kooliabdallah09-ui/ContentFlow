@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           { status: 401 },
         )
       }
-      const limit = checkRateLimit(
+      const limit = await checkRateLimit(
         'analyzer', getClientIp(request), ANON_RATE_LIMIT, ANON_RATE_WINDOW_MS,
       )
       if (!limit.ok) {

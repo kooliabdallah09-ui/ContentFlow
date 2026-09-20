@@ -3,47 +3,32 @@ import Anthropic from '@anthropic-ai/sdk'
 import { scrapeProductUrl } from '@/lib/preview-scraper'
 import { submitSeedanceJob } from '@/lib/seedance'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, releaseRateLimit, getClientIp, formatRetryAfter } from '@/lib/rate-limit'
 
 export const maxDuration = 60
 
-// In-memory IP rate limit. Vercel serverless instances don't share memory,
-// so worst-case a determined user gets 2-3 previews per day. Acceptable at
-// ~$0.20 raw cost per preview. Upgrade to Vercel KV if abuse becomes real.
+// One free preview per IP per week. This is the loss leader — each preview is
+// ~$0.18 of vendor spend against $0 of revenue — so the limiter is shared
+// across instances and durable rather than in-process. See lib/rate-limit.ts.
 const RATE_LIMIT_WINDOW_MS = 7 * 24 * 60 * 60 * 1000  // 7 days
-const previewLog = new Map<string, number>()
-
-function getIp(req: NextRequest): string {
-  const fwd = req.headers.get('x-forwarded-for')
-  if (fwd) return fwd.split(',')[0].trim()
-  return req.headers.get('x-real-ip') ?? 'unknown'
-}
-
-function checkRateLimit(ip: string): { ok: boolean; retryAfterHours?: number } {
-  const now = Date.now()
-  // Sweep expired entries occasionally to keep the map bounded.
-  if (previewLog.size > 5000) {
-    for (const [k, t] of previewLog) if (now - t > RATE_LIMIT_WINDOW_MS) previewLog.delete(k)
-  }
-  const last = previewLog.get(ip)
-  if (last && now - last < RATE_LIMIT_WINDOW_MS) {
-    return { ok: false, retryAfterHours: Math.ceil((RATE_LIMIT_WINDOW_MS - (now - last)) / (60 * 60 * 1000)) }
-  }
-  return { ok: true }
-}
+const RATE_LIMIT = 1
 
 export async function POST(request: NextRequest) {
-  try {
-    const ip = getIp(request)
-    const limit = checkRateLimit(ip)
-    if (!limit.ok) {
-      const hours = limit.retryAfterHours ?? 0
-      const wait = hours >= 24 ? `${Math.ceil(hours / 24)} day${Math.ceil(hours / 24) === 1 ? '' : 's'}` : `${hours}h`
-      return NextResponse.json({
-        error: `You've already generated your free preview this week. Sign up for unlimited generations, or come back in ${wait}.`,
-        code: 'rate_limited',
-      }, { status: 429 })
-    }
+  const ip = getClientIp(request)
+  const limit = await checkRateLimit('preview', ip, RATE_LIMIT, RATE_LIMIT_WINDOW_MS)
+  if (!limit.ok) {
+    return NextResponse.json({
+      error: `You've already generated your free preview this week. Sign up for unlimited generations, or come back in ${formatRetryAfter(limit.retryAfterSeconds)}.`,
+      code: 'rate_limited',
+    }, { status: 429 })
+  }
 
+  // The slot is reserved above so a burst of concurrent requests can't all pass
+  // the check together. It's handed back in the `finally` unless a Seedance job
+  // was actually submitted, since only a submission costs money — a bad URL
+  // shouldn't burn someone's one preview for the week.
+  let submitted = false
+  try {
     const body = await request.json().catch(() => ({}))
     const rawUrl = typeof body.url === 'string' ? body.url.trim().slice(0, 500) : ''
     if (!rawUrl) return NextResponse.json({ error: 'Product URL is required' }, { status: 400 })
@@ -121,8 +106,7 @@ Rules:
       watermark: true,
     })
 
-    // Only record the successful submission — errors above don't burn the daily slot.
-    previewLog.set(ip, Date.now())
+    submitted = true
 
     return NextResponse.json({
       success: true,
@@ -139,5 +123,7 @@ Rules:
     return NextResponse.json({
       error: error instanceof Error ? error.message : 'Preview generation failed',
     }, { status: 500 })
+  } finally {
+    if (!submitted) await releaseRateLimit('preview', ip)
   }
 }
