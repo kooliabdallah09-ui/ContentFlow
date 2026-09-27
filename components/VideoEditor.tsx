@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import dynamic from 'next/dynamic'
 import { EditSpec, TextOverlay, ImageOverlay, EMPTY_EDIT_SPEC, MUSIC_LIBRARY, DEFAULT_FILTERS } from '@/lib/edit-spec'
 import {
   Input, ALL_FORMATS, BlobSource,
@@ -8,6 +9,16 @@ import {
   VideoSampleSink, AudioBufferSink,
 } from 'mediabunny'
 import { getSupabase } from '@/lib/auth'
+import {
+  type EndCardProps, END_CARD_FPS, END_CARD_SECONDS, ACCENT_SWATCHES, CTA_SUGGESTIONS, DEFAULT_ACCENT,
+  accentFromBrandColors, ctaDefault, displayWebsite,
+} from '@/lib/end-card'
+
+// Remotion's Player and font loader are browser-only.
+const EndCardPreview = dynamic(() => import('@/components/EndCardPreview'), {
+  ssr: false,
+  loading: () => <div style={{ width: '100%', maxWidth: 236, aspectRatio: '9 / 16', margin: '0 auto', borderRadius: 10, background: 'var(--surface-2)', border: '1px solid var(--border)' }} />,
+})
 
 interface VideoEditorProps {
   initialVideoUrl?: string
@@ -15,7 +26,53 @@ interface VideoEditorProps {
   initialAspect?: '9:16' | '1:1' | '16:9'
 }
 
-type Panel = 'trim' | 'text' | 'image' | 'adjust' | 'music' | 'ai' | 'export'
+type Panel = 'trim' | 'text' | 'image' | 'adjust' | 'music' | 'ai' | 'endcard' | 'export'
+
+// The outro panel's working state: the card's props plus what the panel
+// needs to edit them. Kept out of EditSpec — it isn't part of undo history
+// or the AI edit, and the server-side render has no end card support.
+type EndCardState = Omit<EndCardProps, 'logoUrl'> & {
+  enabled: boolean
+  productId: string | null
+  brandLogoUrl: string | null
+  showLogo: boolean
+}
+
+interface StudioProductLite {
+  id: string
+  name: string
+  photo_urls: string[]
+  product_type: 'physical' | 'app' | null
+  website_url: string | null
+  last_used_at: string | null
+}
+
+function toEndCardProps(s: EndCardState): EndCardProps {
+  return {
+    brandName: s.brandName,
+    logoUrl: s.showLogo ? s.brandLogoUrl : null,
+    imageUrl: s.imageUrl,
+    imageKind: s.imageKind,
+    imageAspect: s.imageAspect,
+    headline: s.headline,
+    offer: s.offer,
+    cta: s.cta,
+    website: s.website,
+    accent: s.accent,
+    theme: s.theme,
+  }
+}
+
+// Width / height of an image, so the card can frame it without cropping
+// most of it away. Falls back to square if it won't load.
+function measureAspect(url: string): Promise<number> {
+  return new Promise(resolve => {
+    const img = new Image()
+    img.onload = () => resolve(img.naturalHeight > 0 ? img.naturalWidth / img.naturalHeight : 1)
+    img.onerror = () => resolve(1)
+    img.src = url
+  })
+}
 
 function genId() { return Math.random().toString(36).slice(2, 9) }
 function fmt(s: number) {
@@ -32,6 +89,7 @@ const PANEL_TABS: { id: Panel; icon: string; label: string }[] = [
   { id: 'adjust', icon: '✦',  label: 'Adjust' },
   { id: 'music',  icon: '♪',  label: 'Music'  },
   { id: 'ai',     icon: '✧',  label: 'AI'     },
+  { id: 'endcard', icon: '▣', label: 'Outro'  },
   { id: 'export', icon: '↗',  label: 'Export' },
 ]
 
@@ -145,6 +203,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   const [activeCaptionStyle, setActiveCaptionStyle] = useState<TextOverlay['style']>('caption')
   const [zoomEnabled, setZoomEnabled] = useState(false)
   const [expandedOverlayId, setExpandedOverlayId] = useState<string | null>(null)
+  // Null until the Outro panel first opens and fills it in.
+  const [endCard, setEndCard] = useState<EndCardState | null>(null)
+  const [endCardProducts, setEndCardProducts] = useState<StudioProductLite[]>([])
 
   const videoRef = useRef<HTMLVideoElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -225,6 +286,93 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [isPlaying])
 
+  // Fill the outro from the brand profile and Product Studio the first time
+  // its panel opens (not on mount, so nobody who never opens it pays for
+  // the fetches). Physical products get "Shop now"; app products get their
+  // screenshot, "Try it free" and their website.
+  useEffect(() => {
+    if (activePanel !== 'endcard' || endCard) return
+    let cancelled = false
+    ;(async () => {
+      let brand: { company_name: string | null; unique_value_prop: string | null; brand_colors: string | null; logo_url: string | null } | null = null
+      let products: StudioProductLite[] = []
+      try {
+        const supabase = getSupabase()
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+        const session = sess?.session
+        if (supabase && session) {
+          const [brandRes, productRes] = await Promise.all([
+            supabase
+              .from('brand_profiles')
+              .select('company_name, unique_value_prop, brand_colors, logo_url')
+              .eq('user_id', session.user.id)
+              .maybeSingle(),
+            fetch('/api/products-studio', { headers: { Authorization: `Bearer ${session.access_token}` } })
+              .then(r => (r.ok ? r.json() : { products: [] }))
+              .catch(() => ({ products: [] })),
+          ])
+          brand = brandRes.data
+          products = ((productRes.products ?? []) as StudioProductLite[])
+            .filter(p => Array.isArray(p.photo_urls) && p.photo_urls.length > 0)
+            .sort((a, b) => (b.last_used_at ?? '').localeCompare(a.last_used_at ?? ''))
+        }
+      } catch (err) {
+        console.warn('[editor] outro defaults unavailable', err)
+      }
+      const product = products[0] ?? null
+      const imageUrl = product?.photo_urls[0] ?? null
+      const imageAspect = imageUrl ? await measureAspect(imageUrl) : 1
+      if (cancelled) return
+      const imageKind: EndCardProps['imageKind'] = product?.product_type === 'app' ? 'screenshot' : 'product'
+      // The value prop only makes a headline if it's short; most are a
+      // paragraph written for prompts, not a 2-line card.
+      const uvp = brand?.unique_value_prop?.split(/(?<=[.!?])\s/)[0]?.trim().replace(/\.$/, '') ?? ''
+      setEndCardProducts(products)
+      setEndCard({
+        // Opening the panel is the intent signal; a card someone filled in
+        // but forgot to switch on would be the worse surprise.
+        enabled: true,
+        productId: product?.id ?? null,
+        brandName: brand?.company_name ?? '',
+        brandLogoUrl: brand?.logo_url ?? null,
+        showLogo: !!brand?.logo_url,
+        imageUrl,
+        imageKind,
+        imageAspect,
+        headline: (uvp.length <= 48 ? uvp : '') || product?.name || brand?.company_name || 'See it for yourself',
+        offer: '',
+        cta: ctaDefault(imageKind),
+        website: displayWebsite(product?.website_url),
+        accent: accentFromBrandColors(brand?.brand_colors) ?? DEFAULT_ACCENT,
+        theme: 'dark',
+      })
+    })()
+    return () => { cancelled = true }
+  }, [activePanel, endCard])
+
+  async function pickEndCardProduct(productId: string) {
+    if (!endCard) return
+    const product = endCardProducts.find(p => p.id === productId) ?? null
+    if (!product) {
+      setEndCard({ ...endCard, productId: null, imageUrl: null })
+      return
+    }
+    const imageUrl = product.photo_urls[0]
+    const imageKind: EndCardProps['imageKind'] = product.product_type === 'app' ? 'screenshot' : 'product'
+    const imageAspect = await measureAspect(imageUrl)
+    setEndCard(prev => prev && ({
+      ...prev,
+      productId,
+      imageUrl,
+      imageKind,
+      imageAspect,
+      // Only swap the button / site if they're still the defaults — never
+      // overwrite something the user typed.
+      cta: prev.cta === ctaDefault(prev.imageKind) ? ctaDefault(imageKind) : prev.cta,
+      website: prev.website ? prev.website : displayWebsite(product.website_url),
+    }))
+  }
+
   function loadVideoFile(file: File) {
     const url = URL.createObjectURL(file)
     uploadedFileRef.current = file
@@ -289,6 +437,23 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       const speed     = spec.speed ?? 1
       const outDur    = Math.max(0.2, (trimEnd - trimStart) / speed)
 
+      // Outro first: it's the step most likely to fail (fonts, images), so a
+      // failure stops the export before the long frame loop, not after it.
+      let endCardBlob: Blob | null = null
+      if (endCard?.enabled) {
+        setExportStatus('Rendering outro…')
+        const { renderEndCardVideo } = await import('@/lib/end-card-render')
+        endCardBlob = await renderEndCardVideo(toEndCardProps(endCard), spec.aspectRatio, {
+          onProgress: p => {
+            setExportProgress(Math.round(p * 10))
+            setExportStatus(`Rendering outro… ${Math.round(p * 100)}%`)
+          },
+        })
+      }
+      const endDur = endCardBlob ? END_CARD_SECONDS : 0
+      // Share of the progress bar already spent on the outro.
+      const progressBase = endCardBlob ? 10 : 0
+
       const srcBlob = await getSourceBlob()
       const input = new Input({ formats: ALL_FORMATS, source: new BlobSource(srcBlob) })
       const vTrack = await input.getPrimaryVideoTrack()
@@ -330,7 +495,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         void ac.close()
       } catch { /* container not decodable — try mediabunny below */ }
       const sampleRate = 48000
-      const oac = new OfflineAudioContext(2, Math.max(1, Math.ceil(outDur * sampleRate)), sampleRate)
+      // Runs past the video by the outro's length: the voice ends with the
+      // video, the music (looped) carries through the outro.
+      const oac = new OfflineAudioContext(2, Math.max(1, Math.ceil((outDur + endDur) * sampleRate)), sampleRate)
       let haveAudio = false
       if (srcAudio) {
         const node = oac.createBufferSource()
@@ -388,6 +555,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       setExportStatus('Rendering frames…')
       const sink = new VideoSampleSink(vTrack)
       let lastOutT = -1
+      let mainEnd = 0
       for await (const sample of sink.samples(trimStart, trimEnd)) {
         const t = sample.timestamp
         const outT = Math.max(0, (t - trimStart) / speed)
@@ -446,11 +614,36 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         // Guard against out-of-order/duplicate timestamps.
         const safeT = outT <= lastOutT ? lastOutT + 0.001 : outT
         lastOutT = safeT
+        mainEnd = safeT + frameDur
         await canvasSource.add(safeT, frameDur)
         sample.close()
-        const pct = Math.min(99, Math.round(((t - trimStart) / Math.max(0.001, trimEnd - trimStart)) * 100))
+        const frac = (t - trimStart) / Math.max(0.001, trimEnd - trimStart)
+        const pct = Math.min(99, progressBase + Math.round(frac * (99 - progressBase)))
         setExportProgress(pct)
         setExportStatus(`Rendering frames… ${pct}%`)
+      }
+
+      // Splice the outro in after the last video frame. It was rendered at
+      // exactly outW×outH, so each frame is drawn 1:1 — no overlays, filters
+      // or zoom from the edit carry over onto it.
+      if (endCardBlob) {
+        setExportStatus('Adding outro…')
+        const ecInput = new Input({ formats: ALL_FORMATS, source: new BlobSource(endCardBlob) })
+        const ecTrack = await ecInput.getPrimaryVideoTrack()
+        if (!ecTrack) throw new Error('Outro render produced no video')
+        for await (const sample of new VideoSampleSink(ecTrack).samples()) {
+          ctx.save()
+          ctx.setTransform(1, 0, 0, 1, 0, 0)
+          ctx.globalAlpha = 1
+          ctx.filter = 'none'
+          sample.draw(ctx, 0, 0, outW, outH)
+          ctx.restore()
+          const t = mainEnd + sample.timestamp
+          const safeT = t <= lastOutT ? lastOutT + 0.001 : t
+          lastOutT = safeT
+          await canvasSource.add(safeT, sample.duration || 1 / END_CARD_FPS)
+          sample.close()
+        }
       }
 
       setExportStatus('Finalizing MP4…')
@@ -464,7 +657,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       setExportUrl(url)
       setExportProgress(100)
       setSavedToLibrary(false)
-      setExportStatus(`Done — ${((trimEnd - trimStart) / speed).toFixed(1)}s · ${(mp4.size / 1024 / 1024).toFixed(1)} MB MP4`)
+      setExportStatus(`Done — ${(outDur + endDur).toFixed(1)}s · ${(mp4.size / 1024 / 1024).toFixed(1)} MB MP4`)
       const a = document.createElement('a')
       a.href = url
       a.download = `${(exportName.trim() || 'contentflow-export').replace(/[^a-zA-Z0-9-_ ]/g, '')}.mp4`
@@ -482,8 +675,18 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       try {
         return await handleWebCodecsExport()
       } catch (err) {
+        // The realtime fallback can't draw the outro, so falling back would
+        // quietly ship the video without the card the user just set up.
+        if (endCard?.enabled) {
+          console.error('[editor] export with outro failed:', err)
+          setExportStatus('')
+          alert(`Export failed: ${err instanceof Error ? err.message : 'unknown error'}. Try again, or switch the outro off to export without it.`)
+          return
+        }
         console.warn('[editor] WebCodecs export failed, falling back to realtime renderer:', err)
       }
+    } else if (endCard?.enabled) {
+      alert('This browser can’t render the outro, so the video will export without it. Use a recent Chrome, Edge or Safari to include it.')
     }
     return handleLocalExport()
   }
@@ -3034,6 +3237,174 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
               </>
             )}
 
+            {/* ── Outro (end card) ──────────────────────────────────────── */}
+            {activePanel === 'endcard' && (
+              !endCard ? (
+                <div style={{ fontSize: 12, color: 'var(--ink-mute)', textAlign: 'center' as const, padding: '24px 0' }}>
+                  Loading your brand…
+                </div>
+              ) : (
+                <>
+                  <div style={S.toggleCard(endCard.enabled)} onClick={() => setEndCard({ ...endCard, enabled: !endCard.enabled })}>
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Add outro to the end</span>
+                    <div style={{
+                      width: 20,
+                      height: 20,
+                      borderRadius: 4,
+                      border: `2px solid ${endCard.enabled ? 'var(--ink)' : 'var(--border)'}`,
+                      background: endCard.enabled ? 'var(--ink)' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.15s',
+                    }}>
+                      {endCard.enabled && <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="var(--surface)" strokeWidth="2"><polyline points="1.5,5 4,7.5 8.5,2.5"/></svg>}
+                    </div>
+                  </div>
+
+                  <div style={{ opacity: endCard.enabled ? 1 : 0.45, transition: 'opacity 0.15s' }}>
+                    <EndCardPreview props={toEndCardProps(endCard)} aspect={spec.aspectRatio} />
+                    <div style={{ fontSize: 11, color: 'var(--ink-mute)', textAlign: 'center' as const, marginTop: 6 }}>
+                      {END_CARD_SECONDS}s · plays after your video · rendered on your device
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={S.fieldLabel}>Image</label>
+                    <select
+                      value={endCard.productId ?? ''}
+                      onChange={e => { void pickEndCardProduct(e.target.value) }}
+                      style={S.select}
+                    >
+                      <option value="">No image</option>
+                      {endCardProducts.map(p => (
+                        <option key={p.id} value={p.id}>{p.name}{p.product_type === 'app' ? ' (app)' : ''}</option>
+                      ))}
+                    </select>
+                    {endCardProducts.length === 0 && (
+                      <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 5 }}>
+                        Add a product in Product Studio to show it on the outro.
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={S.fieldLabel}>Brand name</label>
+                    <input
+                      value={endCard.brandName}
+                      onChange={e => setEndCard({ ...endCard, brandName: e.target.value })}
+                      maxLength={40}
+                      placeholder="Your brand"
+                      style={S.input}
+                    />
+                    {endCard.brandLogoUrl && (
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--ink-dim)', marginTop: 6, cursor: 'pointer' }}>
+                        <input
+                          type="checkbox"
+                          checked={endCard.showLogo}
+                          onChange={e => setEndCard({ ...endCard, showLogo: e.target.checked })}
+                          style={{ accentColor: 'var(--ink)' }}
+                        />
+                        Show my logo instead of the name
+                      </label>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={S.fieldLabel}>Headline</label>
+                    <textarea
+                      value={endCard.headline}
+                      onChange={e => setEndCard({ ...endCard, headline: e.target.value })}
+                      maxLength={70}
+                      rows={2}
+                      placeholder="The one line you want remembered"
+                      style={{ ...S.input, resize: 'vertical', lineHeight: 1.5 }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={S.fieldLabel}>Offer <span style={{ color: 'var(--ink-mute)' }}>(optional)</span></label>
+                    <input
+                      value={endCard.offer}
+                      onChange={e => setEndCard({ ...endCard, offer: e.target.value })}
+                      maxLength={40}
+                      placeholder={endCard.imageKind === 'screenshot' ? 'e.g. Free 14-day trial' : 'e.g. 20% off your first order'}
+                      style={S.input}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={S.fieldLabel}>Button</label>
+                    <input
+                      value={endCard.cta}
+                      onChange={e => setEndCard({ ...endCard, cta: e.target.value })}
+                      maxLength={24}
+                      style={S.input}
+                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 6, marginTop: 8 }}>
+                      {CTA_SUGGESTIONS[endCard.imageKind === 'screenshot' ? 'app' : 'physical'].map(c => (
+                        <button key={c} onClick={() => setEndCard({ ...endCard, cta: c })} style={S.pillBtn(endCard.cta === c)}>
+                          {c}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={S.fieldLabel}>Website <span style={{ color: 'var(--ink-mute)' }}>(optional)</span></label>
+                    <input
+                      value={endCard.website}
+                      onChange={e => setEndCard({ ...endCard, website: e.target.value })}
+                      onBlur={e => setEndCard({ ...endCard, website: displayWebsite(e.target.value) })}
+                      maxLength={40}
+                      placeholder="yourbrand.com"
+                      style={S.input}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={S.fieldLabel}>Color</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 8, alignItems: 'center' }}>
+                      {Array.from(new Set([endCard.accent.toUpperCase(), ...ACCENT_SWATCHES])).map(hex => (
+                        <button
+                          key={hex}
+                          title={hex}
+                          onClick={() => setEndCard({ ...endCard, accent: hex })}
+                          style={{
+                            width: 26,
+                            height: 26,
+                            borderRadius: '50%',
+                            background: hex,
+                            border: endCard.accent.toUpperCase() === hex ? '2px solid var(--ink)' : '2px solid transparent',
+                            boxShadow: '0 0 0 1px var(--border)',
+                            cursor: 'pointer',
+                          }}
+                        />
+                      ))}
+                      <input
+                        type="color"
+                        value={endCard.accent}
+                        onChange={e => setEndCard({ ...endCard, accent: e.target.value.toUpperCase() })}
+                        title="Custom color"
+                        style={{ width: 30, height: 30, padding: 0, border: 'none', background: 'none', cursor: 'pointer' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={S.fieldLabel}>Style</label>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      {(['dark', 'light'] as const).map(t => (
+                        <button key={t} onClick={() => setEndCard({ ...endCard, theme: t })} style={S.chipBtn(endCard.theme === t)}>
+                          {t === 'dark' ? 'Dark' : 'Light'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )
+            )}
+
             {/* ── Export ────────────────────────────────────────────────── */}
             {activePanel === 'export' && (
               <>
@@ -3048,6 +3419,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
                     ['Filters', currentFilters.preset !== 'none' ? PRESET_LABELS[currentFilters.preset] : 'None'],
                     ['Text overlays', String(spec.overlays.length)],
                     ['Music', spec.music ? `${spec.music.label} (${Math.round(spec.music.volume * 100)}%)` : 'None'],
+                    ['Outro', endCard?.enabled ? `+${END_CARD_SECONDS}s · ${endCard.cta.trim() || 'no button'}` : 'None'],
                   ].map(([k, v], i, arr) => (
                     <div key={k} style={{ ...S.summaryRow, padding: '10px 14px', borderBottom: i < arr.length - 1 ? '1px solid var(--border)' : 'none', margin: 0 }}>
                       <span style={{ color: 'var(--ink-mute)' }}>{k}</span>
