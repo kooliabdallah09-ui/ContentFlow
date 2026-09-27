@@ -49,7 +49,7 @@ export default function ImageGeneratorPage() {
   const [style, setStyle] = useState('raw')
   const [imgModel, setImgModel] = useState<'pro' | 'nb2'>('pro')
   const [imgResolution, setImgResolution] = useState<'2K' | '4K'>('2K')
-  const [ratio, setRatio] = useState(RATIOS[1].id) // default 4:5 to match the design
+  const [ratio, setRatio] = useState(RATIOS[1].id) // default 3:4
   const [count, setCount] = useState<number>(2)
   const [images, setImages] = useState<string[]>([])
   // Persistent gallery — every image ever generated here, like the studios.
@@ -116,36 +116,49 @@ export default function ImageGeneratorPage() {
     })()
   }, [])
 
-  function addReference(file: File) {
-    if (references.length >= MAX_REFS) return
+  function readReference(file: File): Promise<{ base64: string; mimeType: string; preview: string } | null> {
     const maxBytes = isAdmin ? 20 * 1024 * 1024 : 5 * 1024 * 1024
     const maxLabel = isAdmin ? '20MB' : '5MB'
-    if (file.size > maxBytes) { setError(`Reference image must be under ${maxLabel}`); return }
-    const reader = new FileReader()
-    reader.onload = ev => {
-      const result = ev.target?.result as string
-      const preview = result
-      const img = new Image()
-      img.onload = () => {
-        const MAX = 1280
-        let { width, height } = img
-        if (width > MAX || height > MAX) {
-          if (width > height) { height = Math.round(height * MAX / width); width = MAX }
-          else { width = Math.round(width * MAX / height); height = MAX }
+    if (file.size > maxBytes) { setError(`Reference image must be under ${maxLabel}`); return Promise.resolve(null) }
+    return new Promise(resolve => {
+      const reader = new FileReader()
+      reader.onerror = () => resolve(null)
+      reader.onload = ev => {
+        const result = ev.target?.result as string
+        const preview = result
+        const img = new Image()
+        img.onerror = () => resolve(null)
+        img.onload = () => {
+          const MAX = 1280
+          let { width, height } = img
+          if (width > MAX || height > MAX) {
+            if (width > height) { height = Math.round(height * MAX / width); width = MAX }
+            else { width = Math.round(width * MAX / height); height = MAX }
+          }
+          const canvas = document.createElement('canvas')
+          canvas.width = width; canvas.height = height
+          canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
+          const resized = canvas.toDataURL('image/jpeg', 0.88)
+          resolve({ base64: resized.split(',')[1] ?? '', mimeType: 'image/jpeg', preview })
         }
-        const canvas = document.createElement('canvas')
-        canvas.width = width; canvas.height = height
-        canvas.getContext('2d')!.drawImage(img, 0, 0, width, height)
-        const resized = canvas.toDataURL('image/jpeg', 0.88)
-        setReferences(prev => [...prev, { base64: resized.split(',')[1] ?? '', mimeType: 'image/jpeg', preview }])
+        img.src = result
       }
-      img.src = result
+      reader.readAsDataURL(file)
+    })
+  }
+
+  // One file at a time, so the references keep the order they were picked
+  // in. Read in parallel, whichever decoded first landed first — so "image 1"
+  // in the prompt could be a different photo from image 1 sent to the model.
+  async function addReferences(files: File[]) {
+    for (const file of files) {
+      const ref = await readReference(file)
+      if (ref) setReferences(prev => (prev.length >= MAX_REFS ? prev : [...prev, ref]))
     }
-    reader.readAsDataURL(file)
   }
   const referenceDrop = useImageDrop({
     multiple: true,
-    onFiles: files => files.slice(0, MAX_REFS - references.length).forEach(addReference),
+    onFiles: files => { void addReferences(files.slice(0, MAX_REFS - references.length)) },
     disabled: loading,
   })
 
@@ -266,6 +279,15 @@ export default function ImageGeneratorPage() {
             <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
               <img src={ref.preview} alt={`ref ${idx + 1}`}
                 style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', display: 'block', border: '1.5px solid var(--border)' }} />
+              {/* Matches the "Image N:" label the model receives with this photo. */}
+              {references.length > 1 && (
+                <span style={{
+                  position: 'absolute', left: 4, bottom: 4,
+                  minWidth: 16, height: 16, borderRadius: 5, padding: '0 4px',
+                  background: 'rgba(0,0,0,0.72)', color: '#fff',
+                  fontSize: 10.5, fontWeight: 700, lineHeight: '16px', textAlign: 'center',
+                }}>{idx + 1}</span>
+              )}
               <button type="button" onClick={() => setReferences(prev => prev.filter((_, i) => i !== idx))} disabled={loading}
                 style={{
                   position: 'absolute', top: -6, right: -6,
@@ -294,14 +316,16 @@ export default function ImageGeneratorPage() {
                   : `+ Add another (${references.length}/${MAX_REFS})`}
               </span>
               <input type="file" accept="image/jpeg,image/png,image/webp" multiple
-                onChange={e => Array.from(e.target.files ?? []).forEach(addReference)}
+                onChange={e => { void addReferences(Array.from(e.target.files ?? []).slice(0, MAX_REFS - references.length)) }}
                 disabled={loading}
                 style={{ display: 'none' }} />
             </label>
           )}
           {references.length > 0 && (
             <span style={{ fontSize: 11.5, color: 'var(--ink-mute)', marginLeft: 4 }}>
-              AI will carry {references.length === 1 ? 'this subject' : 'these subjects'} into the output
+              {references.length === 1
+                ? 'AI will carry this subject into the output'
+                : `Refer to them as image 1${references.length === 3 ? ', 2 and 3' : ' and 2'} in your prompt`}
             </span>
           )}
         </div>

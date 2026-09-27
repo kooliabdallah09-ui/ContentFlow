@@ -99,12 +99,7 @@ async function callNanoBananaVertex(
   sa: VertexServiceAccount,
 ): Promise<NanoBananaResult> {
   const modelId = model === 'nb2' ? GOOGLE_NB2_MODEL : GOOGLE_PRO_MODEL
-  const parts: Array<Record<string, unknown>> = [{ text: prompt }]
-  if (referenceImages?.length) {
-    for (const r of referenceImages) {
-      parts.push({ inlineData: { mimeType: r.mimeType, data: r.base64 } })
-    }
-  }
+  const parts = buildParts(prompt, referenceImages)
   const imageConfig: Record<string, unknown> = {}
   if (aspectRatio) imageConfig.aspectRatio = aspectRatio
   if (resolution && model === 'pro') imageConfig.imageSize = resolution
@@ -145,6 +140,23 @@ async function callNanoBananaVertex(
   }
 }
 
+// Prompt, then the references. With more than one, each image is preceded by
+// a text label ("Image 1:", "Image 2:"…) so a prompt that says "the car in
+// image 2" — or "la 1re photo" — points at a specific picture; unlabeled,
+// the model has nothing but attachment order to go on.
+function buildParts(
+  prompt: string,
+  referenceImages: Array<{ base64: string; mimeType: string }> | undefined,
+): Array<Record<string, unknown>> {
+  const parts: Array<Record<string, unknown>> = [{ text: prompt }]
+  const refs = referenceImages ?? []
+  refs.forEach((r, i) => {
+    if (refs.length > 1) parts.push({ text: `Image ${i + 1}:` })
+    parts.push({ inlineData: { mimeType: r.mimeType, data: r.base64 } })
+  })
+  return parts
+}
+
 // Google Gemini API path — image generation via generateContent, IMAGE modality.
 // Same interface as the Replicate path so `callNanoBanana` can pick between them
 // with just an env-var check.
@@ -158,12 +170,7 @@ async function callNanoBananaGoogle(
   const apiKey = process.env.GOOGLE_GENAI_API_KEY!
   const modelId = model === 'nb2' ? GOOGLE_NB2_MODEL : GOOGLE_PRO_MODEL
 
-  const parts: Array<Record<string, unknown>> = [{ text: prompt }]
-  if (referenceImages?.length) {
-    for (const r of referenceImages) {
-      parts.push({ inlineData: { mimeType: r.mimeType, data: r.base64 } })
-    }
-  }
+  const parts = buildParts(prompt, referenceImages)
 
   const imageConfig: Record<string, unknown> = {}
   if (aspectRatio) imageConfig.aspectRatio = aspectRatio
@@ -287,7 +294,7 @@ export async function generateNanoBananaImage(
   prompt: string,
   options: {
     style?: 'realistic' | 'artistic' | 'professional' | 'minimalist'
-    ratio?: '1:1' | '4:5' | '9:16' | '16:9'
+    ratio?: '1:1' | '3:4' | '4:5' | '9:16' | '16:9'
     referenceImageBase64?: string
     referenceImageMimeType?: string
     // Multiple references (takes precedence over the single-ref fields).
@@ -311,6 +318,7 @@ export async function generateNanoBananaImage(
                                        'Hyper-realistic product photograph — soft natural lighting, real surface texture, slight depth-of-field, no commercial gloss or AI gloss.'
 
   const ratioHint =
+    options.ratio === '3:4'  ? 'Portrait 3:4 framing.' :
     options.ratio === '4:5'  ? 'Portrait 4:5 framing.' :
     options.ratio === '9:16' ? 'Vertical 9:16 framing.' :
     options.ratio === '16:9' ? 'Wide 16:9 framing.' :

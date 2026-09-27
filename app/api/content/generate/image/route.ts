@@ -125,8 +125,8 @@ export async function POST(request: NextRequest) {
     const safeStyle = (['realistic', 'artistic', 'professional', 'minimalist'] as const).includes(style)
       ? (style as 'realistic' | 'artistic' | 'professional' | 'minimalist')
       : 'realistic'
-    const safeRatio = (['1:1', '4:5', '9:16', '16:9'] as const).includes(ratio)
-      ? (ratio as '1:1' | '4:5' | '9:16' | '16:9')
+    const safeRatio = (['1:1', '3:4', '4:5', '9:16', '16:9'] as const).includes(ratio)
+      ? (ratio as '1:1' | '3:4' | '4:5' | '9:16' | '16:9')
       : '1:1'
 
     // Normalize uploaded reference images (single legacy path + new multi-ref array).
@@ -304,12 +304,14 @@ export async function POST(request: NextRequest) {
       storage_url: urls[0],
       metadata: {
         prompt,
-        style: safeStyle,
+        style: rawMode ? 'raw' : safeStyle,
         ratio: safeRatio,
         size,
         urls,
         usedReference: !!safeRefBase64,
-        model: 'nano-banana-pro',
+        referenceCount: imageOpts.referenceImages?.length ?? (safeRefBase64 ? 1 : 0),
+        model: model === 'nb2' ? 'nano-banana-2' : 'nano-banana-pro',
+        resolution: model === 'pro' ? resolution : null,
         generatedAt: new Date().toISOString(),
       },
       credit_cost: creditCost,
