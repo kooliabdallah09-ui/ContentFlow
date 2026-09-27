@@ -51,3 +51,6 @@ logo.png
 # Session transcripts
 cfai.txt
 gangers.txt
+
+# Motion sandbox bundle (built by scripts/build-motion-sandbox.mjs)
+/public/motion-sandbox/

@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "node scripts/build-motion-sandbox.mjs && next dev",
+    "build": "node scripts/build-motion-sandbox.mjs && next build",
     "start": "next start",
     "lint": "eslint",
-    "actors:portraits": "node scripts/generate-actor-portraits.mjs"
+    "actors:portraits": "node scripts/generate-actor-portraits.mjs",
+    "build:sandbox": "node scripts/build-motion-sandbox.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
@@ -43,8 +44,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "esbuild": "0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "sucrase": "3.35.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

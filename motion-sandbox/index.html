@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <!--
+    Loaded only as <iframe sandbox="allow-scripts"> (opaque origin). The CSP
+    narrows what AI-written ad code can reach: no fetches to arbitrary hosts,
+    only fonts, images passed in as blobs, the kit's own bundle and
+    Remotion's license check (licenseKey "free-license" registers usage).
+    'unsafe-eval' is required: compiled ad code runs through new Function().
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-eval'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com data: blob:; img-src data: blob:; media-src data: blob:; connect-src data: blob: https://fonts.gstatic.com https://fonts.googleapis.com https://www.remotion.pro; worker-src blob:">
+  <style>html, body, #root { margin: 0; height: 100%; background: #111; overflow: hidden; }</style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="./sandbox.js"></script>
+</body>
+</html>
