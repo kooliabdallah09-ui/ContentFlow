@@ -92,11 +92,14 @@ export const EMPTY_EDIT_SPEC: EditSpec = {
   aspectRatio: '9:16',
 }
 
+// Mixkit, free for commercial use with no attribution (Mixkit Stock Music
+// Free License). These replaced Pixabay links, which Pixabay now answers with
+// 403 when hotlinked.
 export const MUSIC_LIBRARY: MusicTrack[] = [
-  { url: 'https://cdn.pixabay.com/download/audio/2022/03/10/audio_270f42fe9d.mp3', label: 'Chill Lo-fi', volume: 0.25 },
-  { url: 'https://cdn.pixabay.com/download/audio/2023/06/08/audio_58c1e76847.mp3', label: 'Upbeat Pop', volume: 0.25 },
-  { url: 'https://cdn.pixabay.com/download/audio/2022/10/25/audio_943d4f9d08.mp3', label: 'Motivational', volume: 0.25 },
-  { url: 'https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3', label: 'Ambient Drift', volume: 0.25 },
-  { url: 'https://cdn.pixabay.com/download/audio/2021/11/25/audio_91b32e085a.mp3', label: 'Cinematic Rise', volume: 0.25 },
-  { url: 'https://cdn.pixabay.com/download/audio/2023/01/24/audio_4c892f2b75.mp3', label: 'Vlog Beat', volume: 0.25 },
+  { url: 'https://assets.mixkit.co/music/763/763.mp3', label: 'Chill Lo-fi', volume: 0.25 },
+  { url: 'https://assets.mixkit.co/music/5/5.mp3', label: 'Upbeat Pop', volume: 0.25 },
+  { url: 'https://assets.mixkit.co/music/1012/1012.mp3', label: 'Motivational', volume: 0.25 },
+  { url: 'https://assets.mixkit.co/music/127/127.mp3', label: 'Ambient Drift', volume: 0.25 },
+  { url: 'https://assets.mixkit.co/music/562/562.mp3', label: 'Cinematic Rise', volume: 0.25 },
+  { url: 'https://assets.mixkit.co/music/738/738.mp3', label: 'Vlog Beat', volume: 0.25 },
 ]

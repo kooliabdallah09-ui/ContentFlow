@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
-import { EditSpec } from '@/lib/edit-spec'
+import { EditSpec, MUSIC_LIBRARY } from '@/lib/edit-spec'
 
 export async function POST(request: NextRequest) {
   try {
@@ -62,7 +62,7 @@ Rules:
 - x and y are 0–1 where 0.5 is center; y=0.1 is near top, y=0.85 is near bottom
 - For "make a caption" or "add caption/text": add an overlay with the text centered
 - For "cut the last Ns": set trimEnd = duration - N
-- Available music tracks: Chill Lo-fi (https://cdn.pixabay.com/download/audio/2022/03/10/audio_270f42fe9d.mp3), Upbeat Pop (https://cdn.pixabay.com/download/audio/2023/06/08/audio_58c1e76847.mp3), Motivational (https://cdn.pixabay.com/download/audio/2022/10/25/audio_943d4f9d08.mp3)`,
+- Available music tracks: ${MUSIC_LIBRARY.map(t => `${t.label} (${t.url})`).join(', ')}`,
       }],
     })
 
