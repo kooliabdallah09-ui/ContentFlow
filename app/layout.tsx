@@ -13,7 +13,8 @@ import { Analytics } from '@vercel/analytics/react'
 import { SpeedInsights } from '@vercel/speed-insights/next'
 import { VisitTracker } from '@/components/VisitTracker'
 import { RenderWatcher } from '@/components/RenderWatcher'
-import { MobileShell } from '@/components/mobile/MobileShell'
+import { MobileHeader } from '@/components/mobile/MobileHeader'
+import { BottomNav } from '@/components/mobile/BottomNav'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { resolveMobileVariant, resolveMobileTitle } from '@/lib/page-meta'
 import "./globals.css";
@@ -225,10 +226,16 @@ export default function RootLayout({
   )
 }
 
-// Decides which chrome (desktop sidebar+topbar OR mobile shell) to render
-// around the page content. Split into its own component so it can call the
-// useIsMobile() hook — the parent RootLayout already burns its useEffect
-// budget on other concerns.
+// Decides which chrome surrounds the page: the desktop sidebar + topbar, or
+// the mobile header + bottom nav (variant per route from lib/page-meta).
+//
+// The page itself ({children}) always sits at the same place in ONE element
+// tree (outer div > inner div > children); only the chrome around it
+// changes. Rendering a different tree per layout used to remount the page,
+// wiping its state, whenever the 900px breakpoint was crossed (rotating a
+// tablet, split-screen, resizing a window), and on every page load on a
+// phone, since the first render is desktop until useIsMobile has measured.
+// Wrappers that shouldn't affect layout use display: contents.
 interface AppFrameProps {
   pathname: string
   user: unknown
@@ -242,6 +249,8 @@ interface AppFrameProps {
   children: React.ReactNode
 }
 
+const CONTENTS: React.CSSProperties = { display: 'contents' }
+
 function AppFrame({
   pathname, isDark, toggleTheme,
   mobileMenuOpen, setMobileMenuOpen,
@@ -249,57 +258,69 @@ function AppFrame({
   showLayout, children,
 }: AppFrameProps) {
   const isMobile = useIsMobile()
+  const variant = resolveMobileVariant(pathname)
 
-  // Mobile path — hand off to MobileShell, which picks its own variant
-  // (app / canvas / flow / public) from the page-meta registry.
-  if (isMobile) {
-    const variant = resolveMobileVariant(pathname)
-    const title = resolveMobileTitle(pathname)
-    return (
-      <>
-        <MobileShell
-          variant={variant}
-          title={title}
+  // Mobile: 'app' = header + bottom nav, 'canvas' = header only, 'flow' =
+  // neither (auth / onboarding), 'public' = no chrome at all.
+  const mobileChrome = isMobile && variant !== 'public'
+  const desktopChrome = !isMobile && showLayout
+  const showHeader = mobileChrome && variant !== 'flow'
+  const showBottomNav = mobileChrome && variant === 'app'
+
+  const outer: { className?: string; style?: React.CSSProperties } = desktopChrome
+    ? { className: 'app' }
+    : mobileChrome
+      ? {
+          className: 'mobile-shell',
+          style: {
+            display: 'flex', flexDirection: 'column', minHeight: '100vh',
+            // Room for the fixed bottom nav (74px + safe area).
+            paddingBottom: showBottomNav ? 'calc(74px + env(safe-area-inset-bottom, 0))' : 0,
+            background: 'var(--m-bg)',
+          },
+        }
+      : { style: CONTENTS }
+  const inner: { className?: string; style?: React.CSSProperties } = desktopChrome
+    ? { className: 'main' }
+    : mobileChrome
+      ? { style: { flex: 1, minHeight: 0 } }
+      : { style: CONTENTS }
+
+  return (
+    <div {...outer}>
+      {desktopChrome && mobileMenuOpen ? (
+        <div className="rail-overlay active" onClick={() => setMobileMenuOpen(false)} />
+      ) : null}
+      {desktopChrome ? (
+        <Sidebar
+          currentPath={pathname}
+          mobileOpen={mobileMenuOpen}
+          onMobileClose={() => setMobileMenuOpen(false)}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
+        />
+      ) : showHeader ? (
+        <MobileHeader
+          title={resolveMobileTitle(pathname)}
           isDark={isDark}
           onToggleTheme={toggleTheme}
           hideCredits={variant !== 'app'}
-        >
-          {children}
-        </MobileShell>
-        {showLayout && <OnboardingTour />}
-        {showLayout && <RenderWatcher />}
-      </>
-    )
-  }
-
-  // Desktop path — unchanged.
-  if (!showLayout) return <>{children}</>
-  return (
-    <div className="app">
-      {mobileMenuOpen && (
-        <div
-          className="rail-overlay active"
-          onClick={() => setMobileMenuOpen(false)}
         />
-      )}
-      <Sidebar
-        currentPath={pathname}
-        mobileOpen={mobileMenuOpen}
-        onMobileClose={() => setMobileMenuOpen(false)}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={toggleSidebar}
-      />
-      <div className="main">
-        <TopBar
-          currentPath={pathname}
-          onMenuToggle={() => setMobileMenuOpen(o => !o)}
-          isDark={isDark}
-          onToggleTheme={toggleTheme}
-        />
+      ) : null}
+      <div {...inner}>
+        {desktopChrome ? (
+          <TopBar
+            currentPath={pathname}
+            onMenuToggle={() => setMobileMenuOpen(o => !o)}
+            isDark={isDark}
+            onToggleTheme={toggleTheme}
+          />
+        ) : null}
         {children}
       </div>
-      <OnboardingTour />
-      <RenderWatcher />
+      {showBottomNav ? <BottomNav /> : null}
+      {showLayout ? <OnboardingTour /> : null}
+      {showLayout ? <RenderWatcher /> : null}
     </div>
   )
 }

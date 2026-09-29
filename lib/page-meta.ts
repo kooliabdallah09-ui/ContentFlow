@@ -1,5 +1,5 @@
 // Central registry of page titles + mobile shell variants. Used by the
-// root layout to render the right MobileShell variant per route.
+// root layout (AppFrame) to render the right mobile chrome per route.
 //
 // If a path isn't in the registry, it falls back to:
 //   - variant: 'app' (full shell with header + bottom nav)
