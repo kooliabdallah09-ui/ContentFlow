@@ -2088,3 +2088,15 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
 @media (max-width: 640px) {
   .stack-on-phone { flex-direction: column !important; align-items: stretch !important; }
 }
+
+/* Studio sub-header (session, model switcher, credits, New) is one row
+   with nothing marked nowrap, so on a phone every label wrapped a letter
+   or two per line. On phones the row scrolls sideways instead. */
+@media (max-width: 900px) {
+  .studio-subheader { overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+  .studio-subheader::-webkit-scrollbar { display: none; }
+  .studio-subheader > * { flex-shrink: 0; }
+  .studio-subheader button, .studio-subheader span, .studio-subheader p { white-space: nowrap; }
+  .studio-subheader button { min-height: 0; }
+  .studio-brand-chip { display: none; }
+}

@@ -1126,7 +1126,7 @@ export default function StudioPage() {
       <div style={{ height: 'calc(100vh - 60px)', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--bg)' }}>
 
         {/* ── Sub-header ─────────────────────────────────────────────────── */}
-        <div style={{ height: 46, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div className="studio-subheader" style={{ height: 46, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 14px', gap: 10, borderBottom: '1px solid var(--border)', background: 'var(--surface)' }}>
           <div ref={sessionPickerRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setShowSessionList(s => !s)}
@@ -1155,7 +1155,7 @@ export default function StudioPage() {
           </div>
 
           {brandName && (
-            <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 10px' }}>
+            <span className="studio-brand-chip" style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 10px' }}>
               ✦ {brandName}
             </span>
           )}
