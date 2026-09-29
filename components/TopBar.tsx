@@ -27,6 +27,7 @@ const TITLES: Record<string, string> = {
   '/generate/social': 'Social',
   '/generate/email': 'Email',
   '/generate/image': 'Image',
+  '/generate/motion': 'Motion ads',
   '/generate/voice': 'Voiceover',
   '/generate/video': 'Video',
   '/generate/ugc': 'UGC Package',

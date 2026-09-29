@@ -65,9 +65,16 @@ function App() {
             assetUrls.current.push(u)
             return u
           }
+          const { music, sfx = {} } = msg.assets
           const next: Loaded = {
             id: msg.id, ad, width: msg.width, height: msg.height, fps: msg.fps,
-            props: { assets: { productImage: toUrl(msg.assets.productImage), logo: toUrl(msg.assets.logo) } },
+            props: {
+              assets: { productImage: toUrl(msg.assets.productImage), logo: toUrl(msg.assets.logo) },
+              audio: {
+                music: music ? { src: toUrl(music.blob)!, offset: music.offset } : null,
+                sfx: Object.fromEntries(Object.entries(sfx).map(([name, blob]) => [name, toUrl(blob)!])),
+              },
+            },
           }
           current.current = next
           setLoaded(next)
@@ -111,7 +118,7 @@ function App() {
         try {
           const { getBlob } = await renderMediaOnWeb({
             composition: composition(l), inputProps: l.props,
-            muted: true, videoBitrate: 'high', licenseKey: 'free-license',
+            videoBitrate: 'high', licenseKey: 'free-license',
             onProgress: p => send({ type: 'progress', id: msg.id, progress: p.progress }),
           })
           send({ type: 'rendered', id: msg.id, video: await getBlob() })

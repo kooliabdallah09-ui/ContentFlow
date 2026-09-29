@@ -51,6 +51,10 @@ Components that take \`at\` animate themselves in at that frame (relative to the
 - <Logo x y src? text? size?=120 at? /> — the logo image, or \`text\` as a wordmark when src is null.
 - <CtaButton x y text color?="coral" at? pressAt? size?=58 /> — the call-to-action button; it visibly gets pressed at pressAt.
 
+### Sound
+- <Music volume?=0.55 /> — the ad's soundtrack (chosen for you, faded in and out). Put exactly one inside the Stage, before the scenes. Renders nothing when the brief has no music.
+- <Sfx name at volume?=1 /> — a one-shot effect at frame \`at\` (relative to its Sequence). Names: "click" (button press, selection), "pop" (something appears: bubbles, cards), "switch" (toggle), "whoosh" (entrances, slides, scene changes), "tick" (checklist item), "type" (one keypress; repeat every 5-6 frames while text types), "impact" (landing, big reveal), "bonk" (comic hit, bursts), "success" (win, payoff, logo), "bong" (soft accent, realisation), "error" (fail, wrong answer), "glitch" (tiny chaotic accent).
+
 ### Motion helpers
 - pop(frame, at, fps, bounce?=0.6) → 0→1 spring with overshoot starting at \`at\`.
 - glide(frame, at, fps) → 0→1 smooth, no overshoot.

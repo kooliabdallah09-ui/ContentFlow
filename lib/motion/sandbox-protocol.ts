@@ -6,7 +6,14 @@
 // session, cookies or storage. Assets cross as Blobs, videos and stills
 // come back as Blobs.
 
-export type SandboxAssets = { productImage?: Blob | null; logo?: Blob | null }
+import type { SfxName } from './music'
+
+export type SandboxAssets = {
+  productImage?: Blob | null
+  logo?: Blob | null
+  music?: { blob: Blob; offset: number } | null
+  sfx?: Partial<Record<SfxName, Blob>>
+}
 
 export type ToSandbox =
   | { type: 'load'; id: string; code: string; width: number; height: number; fps: number; assets: SandboxAssets }

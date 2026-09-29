@@ -7,9 +7,12 @@ import * as React from 'react'
 import * as Remotion from 'remotion'
 import { transform } from 'sucrase'
 import * as Kit from './kit'
+import { AudioAssetsContext, type AudioAssets } from './kit/audio'
 
 export type AdAssets = { productImage?: string | null; logo?: string | null }
-export type AdProps = { assets: AdAssets }
+// `audio` isn't read by ad code directly: the wrapper below puts it in
+// context for the kit's <Music> and <Sfx>.
+export type AdProps = { assets: AdAssets; audio: AudioAssets }
 export type CompiledAd = { Component: React.ComponentType<AdProps>; durationInFrames: number }
 
 // The only modules an ad may import. Namespace objects are rebuilt as plain
@@ -49,11 +52,14 @@ export function compileAd(source: string): CompiledAd {
   }
   new Function('require', 'module', 'exports', 'React', 'Math', code)(require, mod, mod.exports, React, seededMath())
 
-  const Component = mod.exports.default
-  if (typeof Component !== 'function') throw new Error('The ad must `export default` its component.')
+  const Ad = mod.exports.default
+  if (typeof Ad !== 'function') throw new Error('The ad must `export default` its component.')
   const duration = Number(mod.exports.durationInFrames)
   if (!Number.isFinite(duration) || duration < 60 || duration > 1800) {
     throw new Error('The ad must `export const durationInFrames` between 60 and 1800.')
   }
-  return { Component: Component as React.ComponentType<AdProps>, durationInFrames: Math.round(duration) }
+  const Inner = Ad as React.ComponentType<AdProps>
+  const Component = (props: AdProps) =>
+    React.createElement(AudioAssetsContext.Provider, { value: props.audio }, React.createElement(Inner, props))
+  return { Component, durationInFrames: Math.round(duration) }
 }

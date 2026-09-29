@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
 import { useRouter } from 'next/navigation'
 import { getSupabase } from '@/lib/auth'
-import { canAccessInfluencerStudio, canAccessBrandLaunch, canAccessStudio, canAccessBusinessCard } from '@/lib/pov-access'
+import { canAccessInfluencerStudio, canAccessBrandLaunch, canAccessStudio, canAccessBusinessCard, canAccessMotionAds } from '@/lib/pov-access'
 import { Logo } from '@/components/Logo'
 
 interface SidebarProps {
@@ -32,6 +32,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
   const [brandLaunchAccess, setBrandLaunchAccess] = useState(false)
   const [studioAccess, setStudioAccess] = useState(false)
   const [businessCardAccess, setBusinessCardAccess] = useState(false)
+  const [motionAdsAccess, setMotionAdsAccess] = useState(false)
   const [screenshotMode, setScreenshotMode] = useState(false)
   useEffect(() => {
     (async () => {
@@ -43,6 +44,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
       setBrandLaunchAccess(canAccessBrandLaunch(email))
       setStudioAccess(canAccessStudio(email))
       setBusinessCardAccess(canAccessBusinessCard(email))
+      setMotionAdsAccess(canAccessMotionAds(email))
     })()
   }, [])
 
@@ -160,6 +162,13 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
           <span style={{ flex: 1 }}>Video Studio</span>
           <span className="flagship-badge">Flagship</span>
         </Link>
+        {motionAdsAccess && (
+          <Link href="/generate/motion" className={`nav-item ${isActive('/generate/motion') ? 'active' : ''}`} onClick={handleNavClick}>
+            <Icon.Sparkle />
+            <span style={{ flex: 1 }}>Motion Ads</span>
+            <span className="flagship-badge">Alpha</span>
+          </Link>
+        )}
         {/* Fused Studios — 3 tabs: Influencers · Products · Scenes.
             Sidebar links to Influencers as default. */}
         {influencerAccess && (

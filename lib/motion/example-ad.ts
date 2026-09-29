@@ -8,7 +8,7 @@
 export const EXAMPLE_AD = `import { Sequence, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import {
   Stage, AppWindow, ChatInput, SpeechBubble, Character, RaceBar, raceBarTip,
-  Burst, Ground, Podium, podiumSpots, Confetti, Caption, ProductShot, CtaButton, Logo, Shake, ease,
+  Burst, Ground, Podium, podiumSpots, Confetti, Caption, ProductShot, CtaButton, Logo, Shake, ease, Music, Sfx,
 } from '@motion-kit'
 
 export const durationInFrames = 360
@@ -31,6 +31,10 @@ function Lost() {
         expression={frame < 42 ? 'neutral' : 'shocked'} mark={frame < 42 ? null : 'sweat'}
       />
       <ChatInput x={winW / 2} y={winH - 150} width={winW - 80} text="search: that one idea" progress={ease(frame, [8, 56], [0, 1])} />
+      {[10, 16, 22, 28, 34, 40, 46].map(f => <Sfx key={f} name="type" at={f} />)}
+      <Sfx name="pop" at={20} />
+      <Sfx name="pop" at={50} />
+      <Sfx name="bong" at={42} />
     </AppWindow>
   )
 }
@@ -54,6 +58,8 @@ function Week() {
         {bars.map((b, i) => (
           <RaceBar key={b.label} x={winW / 2} y={250 + i * 270} width={barW} value={b.value} color={b.color} rank={i + 1} label={b.label} height={84} />
         ))}
+        <Sfx name="whoosh" at={8} />
+        <Sfx name="error" at={55} />
         <Character
           shape="triangle" color="coral" size={150} anchor="bottom" bob={0} seed={1}
           x={raceBarTip(winW / 2, barW, bars[0].value, true, 84) - 60} y={250 - 42}
@@ -88,6 +94,10 @@ function Found() {
       />
       <Character shape="robot" color="teal" size={270} anchor="bottom" x={x} y={y} expression="happy" crown={frame > 58} squash={landing} bob={frame < 62 ? 0 : 4} seed={3} />
       <Confetti at={58} />
+      <Sfx name="whoosh" at={2} />
+      <Sfx name="bonk" at={18} />
+      <Sfx name="impact" at={54} />
+      <Sfx name="success" at={58} />
     </>
   )
 }
@@ -103,6 +113,8 @@ function Offer({ assets }: { assets: Assets }) {
         : <Character shape="robot" color="teal" size={420} x={W / 2} y={H * 0.41} expression="wink" crown />}
       <Logo x={W / 2} y={H * 0.63} src={assets.logo} text="Pagely" size={160} at={16} />
       <CtaButton x={W / 2} y={H * 0.735} text="Try it free" color="coral" at={24} pressAt={56} size={70} />
+      <Sfx name="pop" at={8} />
+      <Sfx name="click" at={58} />
     </>
   )
 }
@@ -110,6 +122,7 @@ function Offer({ assets }: { assets: Assets }) {
 export default function Ad({ assets }: { assets: Assets }) {
   return (
     <Stage>
+      <Music />
       <Sequence durationInFrames={90}><Lost /></Sequence>
       <Sequence from={90} durationInFrames={100}><Week /></Sequence>
       <Sequence from={190} durationInFrames={90}><Found /></Sequence>

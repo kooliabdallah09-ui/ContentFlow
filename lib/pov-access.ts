@@ -97,3 +97,10 @@ export function canAccessScreenDemo(email: string | null | undefined): boolean {
   if (!email) return false
   return ADMIN_EMAILS.has(email.toLowerCase())
 }
+
+// Motion ads (AI-written animated story ads): admin-only while it's new.
+// Each ad is a real Opus call (~$0.45); the /api/motion routes check this too.
+export function canAccessMotionAds(email: string | null | undefined): boolean {
+  if (!email) return false
+  return ADMIN_EMAILS.has(email.toLowerCase())
+}
