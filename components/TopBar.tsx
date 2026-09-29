@@ -7,6 +7,7 @@ import { getSupabase } from '@/lib/auth'
 import { CommandPalette } from '@/components/CommandPalette'
 import { NotificationsDropdown } from '@/components/NotificationsDropdown'
 import { useCredits } from '@/lib/CreditsContext'
+import { resolveMobileTitle } from '@/lib/page-meta'
 
 interface TopBarProps {
   currentPath: string
@@ -41,7 +42,9 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
   const [menuOpen, setMenuOpen] = useState(false)
   const [initial, setInitial] = useState('A')
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const title = TITLES[currentPath] || 'Dashboard'
+  // Routes missing from TITLES fall back to the shared page registry
+  // (the mobile header's), not to a wrong "Dashboard".
+  const title = TITLES[currentPath] || resolveMobileTitle(currentPath) || 'Dashboard'
   const { balance: creditBalance } = useCredits()
   const displayBalance = creditBalance ?? 0
 

@@ -9,6 +9,7 @@ import {
   VideoSampleSink, AudioBufferSink,
 } from 'mediabunny'
 import { getSupabase } from '@/lib/auth'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import {
   type EndCardProps, END_CARD_FPS, END_CARD_SECONDS, ACCENT_SWATCHES, CTA_SUGGESTIONS, DEFAULT_ACCENT,
   accentFromBrandColors, ctaDefault, displayWebsite,
@@ -165,6 +166,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
   })
 
   const [spec, setSpec] = useState<EditSpec>(makeInitialSpec)
+  // Phones get a stacked layout: toolbar, preview, then the tools below.
+  const isMobile = useIsMobile()
   const [currentTime, setCurrentTime] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -1442,7 +1445,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     root: {
       display: 'flex',
       flexDirection: 'column' as const,
-      height: 'calc(100vh - 60px)',
+      height: isMobile ? 'calc(100dvh - 56px)' : 'calc(100vh - 60px)',
       background: 'var(--surface-2)',
       color: 'var(--ink)',
       fontFamily: 'var(--font-sans)',
@@ -1451,16 +1454,19 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     topBar: {
       display: 'flex',
       alignItems: 'center',
-      gap: 12,
-      padding: '0 20px',
+      gap: isMobile ? 6 : 12,
+      padding: isMobile ? '0 10px' : '0 20px',
+      overflowX: isMobile ? ('auto' as const) : undefined,
       height: 52,
       borderBottom: '1px solid var(--border)',
       background: 'var(--surface)',
       flexShrink: 0,
     },
-    title: { fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginRight: 'auto' },
+    // On phones the mobile header already says "Editor".
+    title: { fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginRight: 'auto', display: isMobile ? 'none' : undefined },
     arBtn: (active: boolean) => ({
-      padding: '4px 10px',
+      flexShrink: 0,
+      padding: isMobile ? '4px 8px' : '4px 10px',
       fontSize: 12,
       fontWeight: 500,
       borderRadius: 6,
@@ -1490,7 +1496,8 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       display: 'flex',
       alignItems: 'center',
       gap: 6,
-      padding: '6px 14px',
+      flexShrink: 0,
+      padding: isMobile ? '6px 10px' : '6px 14px',
       fontSize: 13,
       fontWeight: 600,
       borderRadius: 8,
@@ -1504,7 +1511,9 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       display: 'flex',
       alignItems: 'center',
       gap: 6,
-      padding: '6px 16px',
+      flexShrink: 0,
+      marginLeft: isMobile ? 'auto' : undefined,
+      padding: isMobile ? '6px 12px' : '6px 16px',
       fontSize: 13,
       fontWeight: 700,
       borderRadius: 8,
@@ -1515,18 +1524,20 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     },
     body: {
       display: 'flex',
+      flexDirection: isMobile ? ('column' as const) : ('row' as const),
       flex: 1,
+      minHeight: 0,
       overflow: 'hidden',
     },
     // ── Preview area ──────────────────────────────────────────────────────
     previewArea: {
-      flex: 1,
+      flex: isMobile ? '0 0 auto' : 1,
       display: 'flex',
       flexDirection: 'column' as const,
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: 24,
-      gap: 16,
+      justifyContent: isMobile ? 'flex-start' : 'center',
+      padding: isMobile ? 12 : 24,
+      gap: isMobile ? 10 : 16,
       background: 'var(--surface-3)',
       overflow: 'hidden',
     },
@@ -1536,7 +1547,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
       borderRadius: 12,
       overflow: 'hidden',
       aspectRatio: aspectStyle,
-      maxHeight: 'calc(100vh - 280px)',
+      maxHeight: isMobile ? '38dvh' : 'calc(100vh - 280px)',
       maxWidth: '100%',
       boxShadow: '0 4px 24px rgba(0,0,0,0.15)',
     },
@@ -1592,7 +1603,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     },
     timelineTrack: {
       position: 'relative' as const,
-      height: 90,
+      height: isMobile ? 64 : 90,
       background: 'var(--surface)',
       borderRadius: 8,
       overflow: 'visible',
@@ -1601,9 +1612,15 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
     },
     // ── Right panel ───────────────────────────────────────────────────────
     rightPanel: {
-      width: 320,
+      width: isMobile ? '100%' : 320,
+      // Longhands, not `flex`: React warns when a shorthand and its
+      // longhand change together across renders (desktop ↔ phone).
+      flexGrow: isMobile ? 1 : 0,
       flexShrink: 0,
-      borderLeft: '1px solid var(--border)',
+      flexBasis: isMobile ? 0 : 'auto',
+      minHeight: 0,
+      borderLeft: isMobile ? 'none' : '1px solid var(--border)',
+      borderTop: isMobile ? '1px solid var(--border)' : 'none',
       background: 'var(--surface)',
       display: 'flex',
       flexDirection: 'column' as const,
@@ -1781,7 +1798,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         </span>
 
         {/* Undo / Redo */}
-        <div style={{ display: 'flex', gap: 4 }}>
+        <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
           <button
             style={S.undoRedoBtn(historyIndex.current <= 0)}
             onClick={undo}
@@ -1797,7 +1814,7 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         </div>
 
         {/* Aspect ratio */}
-        <div style={{ display: 'flex', gap: 6 }}>
+        <div style={{ display: 'flex', gap: isMobile ? 4 : 6, flexShrink: 0 }}>
           {(['9:16', '1:1', '16:9'] as const).map(ar => (
             <button key={ar} onClick={() => pushHistory({ ...spec, aspectRatio: ar })} style={S.arBtn(spec.aspectRatio === ar)}>
               {ar}
@@ -1817,14 +1834,14 @@ export default function VideoEditor({ initialVideoUrl = '', initialDuration = 0,
         }} style={{ display: 'none' }} />
         <button style={S.uploadBtn} onClick={() => fileInputRef.current?.click()}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          Upload Video
+          {isMobile ? 'Upload' : 'Upload Video'}
         </button>
 
-        {/* Quick export */}
-        <button style={S.exportTopBtn} onClick={() => setActivePanel('export')}>
+        {/* Quick export (on phones it's the last tool tab instead; the toolbar has no room) */}
+        {!isMobile && <button style={S.exportTopBtn} onClick={() => setActivePanel('export')}>
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export
-        </button>
+        </button>}
       </div>
 
       {/* ── Body ─────────────────────────────────────────────────────────── */}
