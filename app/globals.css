@@ -1214,17 +1214,28 @@ a { color: inherit; text-decoration: none; }
   /* --- Typography --- */
   .page-title { font-size: 26px !important; line-height: 1.15; }
 
-  /* --- Collapse ALL inline grid-template-columns to 1fr --- */
-  [style*="grid-template-columns"] {
+  /* --- Inline grids on phones. Layout splits ("320px 1fr") stack to one
+     column; galleries and tile grids built with repeat() keep two, so
+     thumbnails and cards don't become one giant item per row. Zero
+     specificity (:where) so any class-based rule below still wins, and a
+     grid can opt out entirely with data-grid="keep". --- */
+  :where([style*="grid-template-columns"]):not([data-grid="keep"]) {
     grid-template-columns: 1fr !important;
+  }
+  :where([style*="grid-template-columns"][style*="repeat("]):not([data-grid="keep"]) {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
   }
 
   /* --- Override CSS grid classes --- */
   .hero-grid,
   .brand-grid,
-  .suggestions,
-  .lib-grid {
+  .suggestions {
     grid-template-columns: 1fr !important;
+  }
+  /* Library thumbnails: two per row, not one screen-high card each. */
+  .lib-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
   }
 
   /* Stats: keep 2 columns */
@@ -1434,6 +1445,16 @@ img, video, svg { max-width: 100%; }
   .ls-actions { display: none !important; }
   .ls-mobile-actions { display: flex !important; }
 }
+/* Phones: logo + Get started + burger didn't fit one row with the theme
+   toggle too, so the burger wrapped onto a second line. The toggle moves
+   into the menu panel; Get started stays in the header above 360px. */
+@media (max-width: 640px) {
+  .ls-theme { display: none !important; }
+  .ls-mobile-actions { display: flex !important; }
+}
+@media (min-width: 361px) and (max-width: 640px) {
+  .ls-mobile-cta { display: none !important; }
+}
 
 @media (max-width: 640px) {
   .ugc-summary-grid { grid-template-columns: 1fr !important; }
@@ -1580,8 +1601,12 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
 
   /* --- Aggressive: any inline fixed pixel WIDTH that's bigger than the
      viewport → clamp to full width. Catches side-panel builders. --- */
-  [style*="width: 380px"], [style*="width: 400px"], [style*="width: 420px"],
-  [style*="width: 440px"], [style*="width: 480px"], [style*="width: 500px"] {
+  /* Matches `width: Npx` only, at the start of the style or after a ";" —
+     a bare substring match also caught `max-width: 380px` and blew the
+     toast stack past the screen edge. */
+  [style^="width: 380px"], [style*="; width: 380px"], [style^="width: 400px"], [style*="; width: 400px"],
+  [style^="width: 420px"], [style*="; width: 420px"], [style^="width: 440px"], [style*="; width: 440px"],
+  [style^="width: 480px"], [style*="; width: 480px"], [style^="width: 500px"], [style*="; width: 500px"] {
     width: 100% !important;
     max-width: 100% !important;
   }
@@ -1685,6 +1710,7 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
   .cf-toast-stack {
     left: 12px !important;
     right: 12px !important;
+    width: auto !important;
     max-width: none !important;
     bottom: max(12px, env(safe-area-inset-bottom, 12px)) !important;
   }
@@ -2044,4 +2070,21 @@ p, li, td, div, span, a { overflow-wrap: break-word; word-wrap: break-word; }
     flex-wrap: wrap !important;
     overflow-x: visible !important;
   }
+}
+
+/* ── Drive banner: compact on phones. The full explanation stays on
+   desktop; on a phone it was a quarter of the screen on every page. ── */
+.drive-banner-short { display: none; }
+@media (max-width: 640px) {
+  .drive-banner { padding: 10px 12px !important; gap: 10px !important; flex-wrap: nowrap !important; margin-bottom: 14px !important; }
+  .drive-banner-icon { font-size: 16px !important; }
+  .drive-banner-text { min-width: 0 !important; }
+  .drive-banner-long, .drive-banner-desc { display: none !important; }
+  .drive-banner-short { display: inline; }
+  .drive-banner-cta { padding: 8px 12px !important; }
+}
+
+/* Cards that pair text with a button stack them on phones. */
+@media (max-width: 640px) {
+  .stack-on-phone { flex-direction: column !important; align-items: stretch !important; }
 }

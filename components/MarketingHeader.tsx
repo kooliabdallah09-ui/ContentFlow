@@ -103,6 +103,7 @@ export function MarketingHeader() {
 
         <div className="ls-actions" style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
           <button
+            className="ls-theme"
             onClick={toggleTheme}
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             style={{
@@ -180,7 +181,7 @@ export function MarketingHeader() {
             >
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
-            <Link href="/auth/signup" onClick={() => setMenuOpen(false)} style={{
+            <Link href="/auth/signup" className="ls-mobile-cta" onClick={() => setMenuOpen(false)} style={{
               flex: 1, textAlign: 'center', padding: '12px 16px', borderRadius: 10,
               background: 'var(--ink)', color: 'var(--on-ink)',
               fontSize: 14.5, fontWeight: 600, whiteSpace: 'nowrap', textDecoration: 'none',

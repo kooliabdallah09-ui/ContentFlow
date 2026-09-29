@@ -6,6 +6,8 @@
 // in from the parent page component.
 
 import Link from 'next/link'
+import { CREATE_OPTIONS } from '@/lib/create-options'
+import { OptionIcon } from '@/components/mobile/BottomNav'
 
 interface RecentItem {
   id: string
@@ -32,12 +34,8 @@ interface MobileDashboardProps {
   brandName: string | null
 }
 
-const CREATE_TILES = [
-  { href: '/generate/ugc',    label: 'UGC Package', sub: 'Full talking-head ad',      cost: '40 cr',      tint: '#F1E6C9' },
-  { href: '/generate/image',  label: 'Image',       sub: 'Product & creative shots',  cost: 'from 8 cr',  tint: '#E8EDE4' },
-  { href: '/generate/voice',  label: 'Voiceover',   sub: 'Script to studio audio',    cost: '5 cr',       tint: '#F0E7E4' },
-  { href: '/campaigns',       label: 'Campaign',    sub: 'A month, planned',          cost: '40 cr',      tint: '#EDEAE0' },
-]
+// Four of the create options, same prices as the Create sheet.
+const CREATE_TILES = CREATE_OPTIONS.filter(o => ['/generate/ugc', '/generate/image', '/generate/voice', '/campaigns'].includes(o.href))
 
 function timeAgo(iso: string): string {
   const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -166,7 +164,7 @@ export function MobileDashboard({
           Costs shown per run
         </span>
       </div>
-      <div style={{
+      <div data-grid="keep" style={{
         display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
         marginBottom: 20,
       }}>
@@ -180,10 +178,7 @@ export function MobileDashboard({
             boxShadow: '0 2px 10px rgba(30,26,16,0.04)',
             textDecoration: 'none', color: 'var(--m-ink)',
           }}>
-            <div style={{
-              width: 30, height: 30, borderRadius: 9,
-              background: t.tint, marginBottom: 10, flexShrink: 0,
-            }} />
+            <div style={{ marginBottom: 10 }}><OptionIcon name={t.icon} tint={t.tint} size={30} /></div>
             <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 2 }}>
               {t.label}
             </div>

@@ -12,7 +12,9 @@ export const maxDuration = 300
 // Flat fee to run the planner (Sonnet + trend search + inspiration fetch).
 // Rendering individual shots is charged separately, per-shot, from the
 // shot table page.
-const PLAN_COST = 5
+import { CAMPAIGN_PLAN_CREDITS } from '@/lib/create-options'
+
+const PLAN_COST = CAMPAIGN_PLAN_CREDITS
 
 // Campaign Planner — one product + one brief → shot table.
 // Reads brand voice + product info + user brief, asks Sonnet to draft ~20-30

@@ -10,32 +10,28 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { Sheet } from './Sheet'
+import { Icon } from '@/components/Icons'
+import { CREATE_OPTIONS } from '@/lib/create-options'
 
 interface Tab {
   href: string
   label: string
+  icon: keyof typeof Icon
   match: (path: string) => boolean
 }
 
 const LEFT_TABS: Tab[] = [
-  { href: '/dashboard',  label: 'Home',    match: p => p === '/dashboard' || p === '/' },
-  { href: '/library',    label: 'Library', match: p => p.startsWith('/library') },
+  { href: '/dashboard',  label: 'Home',    icon: 'Dashboard', match: p => p === '/dashboard' || p === '/' },
+  { href: '/library',    label: 'Library', icon: 'Library',   match: p => p.startsWith('/library') },
 ]
 
 const RIGHT_TABS: Tab[] = [
-  { href: '/analytics',       label: 'Stats', match: p => p.startsWith('/analytics') },
-  { href: '/settings/billing', label: 'Plan', match: p => p.startsWith('/settings/billing') || p === '/pricing' },
+  { href: '/analytics',       label: 'Stats', icon: 'BarChart', match: p => p.startsWith('/analytics') },
+  { href: '/settings/billing', label: 'Plan', icon: 'Card',     match: p => p.startsWith('/settings/billing') || p === '/pricing' },
 ]
 
-// Options that appear in the create sheet — mapped to your existing routes.
-const CREATE_OPTIONS = [
-  { href: '/generate/ugc',      label: 'UGC Package', sub: 'Full talking-head ad',      cost: '40 cr',  tint: '#F1E6C9' },
-  { href: '/generate/image',    label: 'Image',       sub: 'Product & creative shots',  cost: 'from 8 cr', tint: '#E8EDE4' },
-  { href: '/generate/social',   label: 'Social post', sub: 'Caption + optional visual', cost: 'from 5 cr', tint: '#F0EDE3' },
-  { href: '/generate/voice',    label: 'Voiceover',   sub: 'Script to studio audio',    cost: '5 cr',   tint: '#F0E7E4' },
-  { href: '/generate/video',    label: 'Video',       sub: 'Any format',                cost: 'from 12 cr', tint: '#E8EDE4' },
-  { href: '/campaigns',         label: 'Campaign',    sub: 'A month, planned',          cost: '40 cr',  tint: '#EDEAE0' },
-]
+// Options in the create sheet: shared with the mobile home screen, priced
+// from the generators' own constants (lib/create-options.ts).
 
 export function BottomNav() {
   const pathname = usePathname() ?? ''
@@ -115,10 +111,7 @@ export function BottomNav() {
                 fontFamily: 'var(--m-sans)', color: 'var(--m-ink)',
               }}
             >
-              <div style={{
-                width: 34, height: 34, borderRadius: 10, background: o.tint,
-                flexShrink: 0,
-              }} />
+              <OptionIcon name={o.icon} tint={o.tint} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{o.label}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--m-mute)', marginTop: 1 }}>{o.sub}</div>
@@ -150,11 +143,7 @@ function TabItem({ tab, active }: { tab: Tab; active: boolean }) {
         textDecoration: 'none',
       }}
     >
-      <div style={{
-        width: 22, height: 22, borderRadius: 7,
-        background: active ? 'var(--m-ink)' : 'transparent',
-        border: `2px solid ${active ? 'var(--m-ink)' : 'var(--m-mute-2)'}`,
-      }} />
+      <TabIcon name={tab.icon} active={active} />
       <span style={{
         fontSize: 10,
         fontWeight: active ? 700 : 500,
@@ -163,5 +152,30 @@ function TabItem({ tab, active }: { tab: Tab; active: boolean }) {
         {tab.label}
       </span>
     </Link>
+  )
+}
+
+function TabIcon({ name, active }: { name: keyof typeof Icon; active: boolean }) {
+  const Glyph = Icon[name]
+  return (
+    <Glyph
+      width={22}
+      height={22}
+      strokeWidth={active ? 2.1 : 1.7}
+      style={{ color: active ? 'var(--m-ink)' : 'var(--m-mute)', display: 'block' }}
+      aria-hidden
+    />
+  )
+}
+
+export function OptionIcon({ name, tint, size = 34 }: { name: keyof typeof Icon; tint: string; size?: number }) {
+  const Glyph = Icon[name]
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: size * 0.3, background: tint, flexShrink: 0,
+      display: 'grid', placeItems: 'center', color: 'var(--m-ink)',
+    }}>
+      <Glyph width={size * 0.53} height={size * 0.53} aria-hidden />
+    </div>
   )
 }

@@ -259,7 +259,7 @@ export default function BrandSettingsPage() {
         </section>
 
         {/* Products — link to Product Studio */}
-        <div style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div className="stack-on-phone" style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>Your products live in Product Studio</div>
             <p className="help" style={{ margin: 0 }}>Brand is your identity — logo, name, description, audience. Each individual product you sell lives in Product Studio, where you upload photos from every angle and generate AI shoots. Campaigns and the UGC builder pull products from there.</p>
