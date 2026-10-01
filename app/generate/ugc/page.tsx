@@ -474,7 +474,11 @@ export default function UGCGeneratorPage() {
     setUrlLoading(true)
     setUrlError('')
     try {
-      const res = await fetch(`/api/product-url?url=${encodeURIComponent(trimmed)}`)
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+      const res = await fetch(`/api/product-url?url=${encodeURIComponent(trimmed)}`, {
+        headers: { Authorization: `Bearer ${sess.session?.access_token ?? ''}` },
+      })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not extract product info')
       setExternalPrefill({

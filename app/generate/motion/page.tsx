@@ -235,7 +235,7 @@ export default function MotionAdsPage() {
     if (!url) return
     setFilling(true)
     try {
-      const res = await fetch(`/api/product-url?url=${encodeURIComponent(/^https?:\/\//i.test(url) ? url : `https://${url}`)}`)
+      const res = await fetch(`/api/product-url?url=${encodeURIComponent(/^https?:\/\//i.test(url) ? url : `https://${url}`)}`, { headers: await authHeaders() })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not read that page')
       setBrief(prev => ({
