@@ -161,7 +161,7 @@ export default function LoginPage() {
                 <label className="form-label" style={{ margin: 0 }}>Password</label>
                 <button type="button" onClick={() => { setResetMode(true); setResetEmail(email); setError('') }}
                   style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', fontSize: 12.5, cursor: 'pointer', padding: 0 }}>
-                  Mot de passe oublié ?
+                  Forgot password?
                 </button>
               </div>
               <input type="password" className="input" placeholder="••••••••"
