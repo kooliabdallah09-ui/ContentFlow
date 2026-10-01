@@ -10,11 +10,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 import { useCredits } from '@/lib/useCredits'
-import { showError, showSuccess } from '@/lib/notifications'
+import { showError, showInfo, showSuccess } from '@/lib/notifications'
 import { MotionSandbox } from '@/lib/motion/sandbox-client'
 import type { SandboxAssets } from '@/lib/motion/sandbox-protocol'
 import { MOTION_TONES, MOTION_TRACKS, SFX_NAMES, motionTrack, sfxUrl, type MotionTone } from '@/lib/motion/music'
 import type { MotionStoryboard } from '@/lib/motion/generate'
+import { dominantColors } from '@/lib/brand-assets'
 
 const AD_CREDITS = 35 // keep in step with MOTION_AD_CREDITS in lib/motion/server.ts
 const W = 1080
@@ -31,7 +32,12 @@ type Brief = {
   website: string
   tone: MotionTone
   trackKey: string | null
+  brandColors?: string[]
 }
+
+// Imagery pulled from a website (data URLs). Kept in memory only: it's too big for the sessionStorage draft.
+type SiteBrand = { image: string | null; logo: string | null; host: string }
+const SITE = 'site' // the product-image choice that means "the website's own image"
 
 type Product = { id: string; name: string; description?: string | null; photo_urls: string[]; product_type: 'physical' | 'app' | null; website_url: string | null }
 
@@ -83,6 +89,22 @@ async function fetchBlob(url: string | null | undefined): Promise<Blob | null> {
   }
 }
 
+// Fallback when the page's HTML names no brand colours: sample the logo itself.
+async function logoColors(dataUrl: string): Promise<string[]> {
+  try {
+    const img = new Image()
+    img.src = dataUrl
+    await img.decode()
+    const canvas = document.createElement('canvas')
+    canvas.width = canvas.height = 48
+    const ctx = canvas.getContext('2d')!
+    ctx.drawImage(img, 0, 0, 48, 48)
+    return dominantColors(ctx.getImageData(0, 0, 48, 48).data)
+  } catch {
+    return []
+  }
+}
+
 async function blobToBase64(b: Blob): Promise<string> {
   const buf = new Uint8Array(await b.arrayBuffer())
   let s = ''
@@ -122,6 +144,7 @@ export default function MotionAdsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [productId, setProductId] = useState<string>('')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [brand, setBrand] = useState<SiteBrand | null>(null)
   const [useLogo, setUseLogo] = useState(true)
   const [siteUrl, setSiteUrl] = useState('')
   const [filling, setFilling] = useState(false)
@@ -143,7 +166,8 @@ export default function MotionAdsPage() {
   // empty state of a remount would overwrite it first.
   const draftRestored = useRef(false)
 
-  const product = products.find(p => p.id === productId) ?? null
+  const productImageSrc = productId === SITE ? brand?.image ?? null : products.find(p => p.id === productId)?.photo_urls[0] ?? null
+  const logoSrc = useLogo ? brand?.logo ?? logoUrl : null
   const busy = stage === 'planning' || stage === 'writing' || stage === 'checking' || stage === 'reviewing'
 
   // The sandbox iframe is created once and stays on screen: Chrome throttles
@@ -165,7 +189,7 @@ export default function MotionAdsPage() {
         const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
         const session = sess?.session
         if (draft?.brief) setBrief(draft.brief)
-        if (draft?.productId !== undefined) setProductId(draft.productId)
+        if (draft?.productId !== undefined) setProductId(draft.productId === SITE ? '' : draft.productId)
         if (draft?.useLogo !== undefined) setUseLogo(draft.useLogo)
         if (draft?.storyboard) { setStoryboard(draft.storyboard); go('storyboard') }
         if (draft?.ad) setRestorable(draft.ad)
@@ -224,8 +248,8 @@ export default function MotionAdsPage() {
   function briefPayload() {
     return {
       ...brief,
-      hasProductImage: !!product,
-      hasLogo: !!(logoUrl && useLogo),
+      hasProductImage: !!productImageSrc,
+      hasLogo: !!logoSrc,
       storyboard,
     }
   }
@@ -235,21 +259,35 @@ export default function MotionAdsPage() {
     if (!url) return
     setFilling(true)
     try {
-      const res = await fetch(`/api/product-url?url=${encodeURIComponent(/^https?:\/\//i.test(url) ? url : `https://${url}`)}`, { headers: await authHeaders() })
+      const res = await fetch(`/api/product-url?brand=1&url=${encodeURIComponent(/^https?:\/\//i.test(url) ? url : `https://${url}`)}`, { headers: await authHeaders() })
       const data = await res.json()
       if (!res.ok) throw new Error(data.error || 'Could not read that page')
+      const found = data.brand as { image: string | null; logo: string | null; colors: string[] } | null
+      const colors = found?.colors.length ? found.colors : found?.logo ? await logoColors(found.logo) : []
+      const gotBrand = !!(found && (found.image || found.logo || colors.length))
       setBrief(prev => ({
         ...prev,
         brandName: prev.brandName || data.productName || '',
         product: [data.productDescription, data.benefits].filter(Boolean).join('\n') || prev.product,
         cta: data.callToAction || prev.cta,
         website: hostOf(url),
+        brandColors: colors.length ? colors : undefined,
       }))
+      setBrand(gotBrand ? { image: found!.image, logo: found!.logo, host: hostOf(url) } : null)
+      setProductId(prev => (found?.image ? SITE : prev === SITE ? products[0]?.id ?? '' : prev))
+      if (found?.logo) setUseLogo(true)
+      if (!gotBrand) showInfo('Filled the text, but found no image, logo or colours on that site')
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Could not read that page')
     } finally {
       setFilling(false)
     }
+  }
+
+  function clearBrand() {
+    setBrand(null)
+    setBrief(prev => ({ ...prev, brandColors: undefined }))
+    if (productId === SITE) setProductId(products[0]?.id ?? '')
   }
 
   async function plan() {
@@ -268,8 +306,8 @@ export default function MotionAdsPage() {
     const track = motionTrack(brief.trackKey)
     return (async () => {
       const [productImage, logo, music, ...sfx] = await Promise.all([
-        fetchBlob(product?.photo_urls[0]),
-        fetchBlob(useLogo ? logoUrl : null),
+        fetchBlob(productImageSrc),
+        fetchBlob(logoSrc),
         fetchBlob(track?.url),
         ...SFX_NAMES.map(n => fetchBlob(sfxUrl(n))),
       ])
@@ -432,6 +470,15 @@ export default function MotionAdsPage() {
                 <input value={siteUrl} onChange={e => setSiteUrl(e.target.value)} placeholder="Fill from a website: yourbrand.com" style={{ ...input, flex: 1 }} disabled={filling || busy} />
                 <button type="button" onClick={fillFromWebsite} disabled={filling || busy || !siteUrl.trim()} style={ghost}>{filling ? 'Reading…' : 'Fill'}</button>
               </div>
+              {brand && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--ink-dim)' }}>
+                  {brand.image && <img src={brand.image} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />}
+                  {brand.logo && <img src={brand.logo} alt="" style={{ height: 40, maxWidth: 80, objectFit: 'contain', borderRadius: 8, border: '1px solid var(--border)', background: '#fff' }} />}
+                  {brief.brandColors?.map(c => <span key={c} title={c} style={{ width: 20, height: 20, borderRadius: 999, background: c, border: '1px solid var(--border)' }} />)}
+                  <span>From {brand.host}</span>
+                  <button type="button" onClick={clearBrand} disabled={busy} style={{ marginLeft: 'auto', background: 'none', border: 'none', padding: 0, color: 'var(--ink-dim)', textDecoration: 'underline', fontSize: 12.5, cursor: 'pointer' }}>Clear</button>
+                </div>
+              )}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
@@ -467,6 +514,7 @@ export default function MotionAdsPage() {
                   <span style={label}>Product image</span>
                   <select value={productId} onChange={e => setProductId(e.target.value)} style={input} disabled={busy}>
                     <option value="">None</option>
+                    {brand?.image && <option value={SITE}>Website image ({brand.host})</option>}
                     {products.map(p => <option key={p.id} value={p.id}>{p.name}{p.product_type === 'app' ? ' (app)' : ''}</option>)}
                   </select>
                 </div>
@@ -482,10 +530,10 @@ export default function MotionAdsPage() {
                   </select>
                 </div>
               </div>
-              {logoUrl && (
+              {(brand?.logo || logoUrl) && (
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-dim)', cursor: 'pointer' }}>
                   <input type="checkbox" checked={useLogo} onChange={e => setUseLogo(e.target.checked)} disabled={busy} />
-                  Show my logo
+                  {brand?.logo ? "Show the website's logo" : 'Show my logo'}
                 </label>
               )}
 

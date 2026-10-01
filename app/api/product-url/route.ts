@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { extractBrand } from '@/lib/brand-assets'
 
 export const maxDuration = 30
 
@@ -23,6 +24,65 @@ function isPublicHttpUrl(raw: string): boolean {
   return true
 }
 
+const UA = 'Mozilla/5.0 (compatible; ContentFlow/1.0)'
+
+// Downloads a public URL. Every redirect hop is re-checked (a public page
+// must not be able to bounce us to an internal address), the whole request
+// including the body is bounded by the timeout, and a body over maxBytes is
+// cut off (truncate) or refused. Returns null on any failure.
+async function fetchBytes(startUrl: string, accept: string, maxBytes: number, timeoutMs: number, truncate: boolean) {
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), timeoutMs)
+  try {
+    let url = startUrl
+    for (let hop = 0; hop <= 3; hop++) {
+      if (!isPublicHttpUrl(url)) return null
+      const res = await fetch(url, { signal: controller.signal, redirect: 'manual', headers: { 'User-Agent': UA, Accept: accept } })
+      const location = res.headers.get('location')
+      if (res.status >= 300 && res.status < 400 && location) {
+        url = new URL(location, url).toString()
+        await res.body?.cancel()
+        continue
+      }
+      if (!res.ok || !res.body) return null
+      const chunks: Uint8Array[] = []
+      let size = 0
+      const reader = res.body.getReader()
+      for (;;) {
+        const { done, value } = await reader.read()
+        if (done) break
+        size += value.length
+        if (size > maxBytes && !truncate) { await reader.cancel(); return null }
+        chunks.push(value)
+        if (size > maxBytes) { await reader.cancel(); break }
+      }
+      return { bytes: Buffer.concat(chunks).subarray(0, maxBytes), type: (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase(), url }
+    }
+    return null
+  } catch {
+    return null
+  } finally {
+    clearTimeout(timer)
+  }
+}
+
+// The browser can't download these itself (most CDNs send no CORS headers),
+// so they travel back inside the JSON as data URLs. Capped so both fit in
+// Vercel's 4.5 MB response limit.
+async function firstImage(urls: string[], maxBytes: number): Promise<string | null> {
+  for (const u of urls) {
+    const f = await fetchBytes(u, 'image/*', maxBytes, 5000, false)
+    if (f && /^image\/(png|jpe?g|webp|gif)$/.test(f.type)) return `data:${f.type};base64,${f.bytes.toString('base64')}`
+  }
+  return null
+}
+
+async function importBrand(html: string, pageUrl: string) {
+  const found = extractBrand(html, pageUrl)
+  const [image, logo] = await Promise.all([firstImage(found.images, 2_000_000), firstImage(found.logos, 500_000)])
+  return { image, logo, colors: found.colors }
+}
+
 export async function GET(request: NextRequest) {
   const header = request.headers.get('Authorization')
   if (!header?.startsWith('Bearer ')) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -37,31 +97,20 @@ export async function GET(request: NextRequest) {
   const limit = await checkRateLimit('product-url', userData.user.id, 30, 3600 * 1000)
   if (!limit.ok) return NextResponse.json({ error: 'Too many lookups, try again in a bit' }, { status: 429 })
 
-  let html = ''
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8000)
-    const res = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; ContentFlow/1.0)',
-        Accept: 'text/html,application/xhtml+xml',
-      },
-    })
-    clearTimeout(timeout)
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
-    const raw = await res.text()
-    // Strip scripts, styles, and HTML tags; keep readable text, limit size
-    html = raw
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
-      .replace(/<[^>]+>/g, ' ')
-      .replace(/\s{2,}/g, ' ')
-      .trim()
-      .slice(0, 6000)
-  } catch {
-    return NextResponse.json({ error: 'Could not fetch the URL. Make sure it is a public product page.' }, { status: 422 })
-  }
+  const page = await fetchBytes(url, 'text/html,application/xhtml+xml', 800_000, 8000, true)
+  if (!page) return NextResponse.json({ error: 'Could not fetch the URL. Make sure it is a public product page.' }, { status: 422 })
+  const pageHtml = page.bytes.toString('utf8')
+  // Strip scripts, styles, and HTML tags; keep readable text, limit size
+  const html = pageHtml
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 6000)
+
+  // Motion Ads asks for the brand's imagery too (?brand=1); it runs alongside the Haiku call.
+  const brand = request.nextUrl.searchParams.get('brand') === '1' ? importBrand(pageHtml, page.url).catch(() => null) : null
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const msg = await anthropic.messages.create({
@@ -80,7 +129,7 @@ export async function GET(request: NextRequest) {
     const jsonStart = raw.indexOf('{')
     const jsonEnd = raw.lastIndexOf('}')
     const parsed = JSON.parse(raw.slice(jsonStart, jsonEnd + 1))
-    return NextResponse.json(parsed)
+    return NextResponse.json(brand ? { ...parsed, brand: await brand } : parsed)
   } catch {
     return NextResponse.json({ error: 'Could not extract product info from this page.' }, { status: 422 })
   }

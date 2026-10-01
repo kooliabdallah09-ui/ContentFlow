@@ -11,7 +11,7 @@ export interface ScrapedProduct {
 
 const UA = 'Mozilla/5.0 (compatible; ContentFlowPreviewBot/1.0)'
 
-function pickMeta(html: string, name: string): string | null {
+export function pickMeta(html: string, name: string): string | null {
   const re1 = new RegExp(`<meta[^>]+(?:name|property)=["']${name}["'][^>]*content=["']([^"']+)["']`, 'i')
   const re2 = new RegExp(`<meta[^>]+content=["']([^"']+)["'][^>]*(?:name|property)=["']${name}["']`, 'i')
   const m = html.match(re1) ?? html.match(re2)
@@ -23,7 +23,7 @@ function pickTitle(html: string): string | null {
   return m?.[1]?.trim().replace(/\s+/g, ' ') || null
 }
 
-function decodeEntities(s: string): string {
+export function decodeEntities(s: string): string {
   return s
     .replace(/&amp;/g, '&')
     .replace(/&lt;/g, '<')
