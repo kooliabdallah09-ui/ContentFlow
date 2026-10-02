@@ -253,6 +253,7 @@ export default function MotionAdsPage() {
       hasProductImage: !!productImageSrc,
       hasLogo: !!logoSrc,
       hasSiteShot: !!siteShotSrc,
+      siteDesign: siteShotSrc ?? undefined,
       storyboard,
     }
   }
@@ -560,7 +561,7 @@ export default function MotionAdsPage() {
               {brand?.shot && (
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-dim)', cursor: 'pointer' }}>
                   <input type="checkbox" checked={useShot} onChange={e => setUseShot(e.target.checked)} disabled={busy} />
-                  Show the real website in the ad
+                  Copy the website&apos;s design in the ad
                 </label>
               )}
               {(brand?.logo || logoUrl) && (

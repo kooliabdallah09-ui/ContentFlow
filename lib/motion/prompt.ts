@@ -19,7 +19,7 @@ Flat, playful "cartoon UI": cream paper, thick ink outlines, candy colors, simpl
 - Alive. Characters move and react (switch expressions on specific frames, use marks), bars grow, things type, get clicked, pop in. Nothing sits still for more than half a second.
 - Funny earns its place: humor comes from the brand's own situation, not from trying.
 - Every frame postable. Any frozen frame should be clean enough to share: no half-empty frames, no muddy overlaps between scenes.
-- When assets.siteShot is provided it is a screenshot of the brand's real website. Show it in a <SiteShot> in at least one scene, big (width 800-960) and held for at least 2 seconds, with the character reacting to it or pointing at it; push in on the part that matters. Never redraw that site's UI as a cartoon: the real page is the point. Build every other interface (chats, dashboards, notifications) as cartoon UI as usual.
+- When assets.siteShot is provided, an image of the brand's real website is attached to the brief. COPY ITS DESIGN into the ad: look at the screenshot and rebuild its actual interface from the kit's primitives and plain divs, inside the ad's windows, then animate it (elements sliding in, buttons pressed, numbers counting, text typing). Match what makes the site recognisable: its real headline and button wording, layout (nav bar, hero, cards, grid), colour palette (use the exact hex values you see for backgrounds, buttons, accents and text instead of the kit's colours inside that UI), corner radius, spacing and the weight and casing of its type. The brand's interface must look like the brand, not like the kit's cartoon windows; the characters, bubbles and the ad's own captions keep the kit style. Use FONT but mimic the site's typographic feel (weight, size hierarchy, letter-spacing). Remember the Remotion CSS limits. You may also cut to the screenshot itself in a <SiteShot> for a beat (width 800-960, 2 s) as the "this is the real site" moment, but the rebuilt UI is the main event.
 - End with the product (assets.productImage if present), the brand (assets.logo, or the name as a wordmark) and the call-to-action button, held on screen for at least 2 seconds.
 - Big and readable on a phone: captions 80-110px, bubbles 44-60px, characters 150-300px wide.
 - Fill the frame. Each scene's content should span most of the safe area, roughly y = 8% to 80% of the height, not huddle in the top half with empty paper below. Windows and phones are big (80-90% of the width, often more than half the height); characters stand in the lower part of the scene.
@@ -53,7 +53,7 @@ export const MOTION_PLAN_PROMPT = `Plan this ad before any code, as a storyboard
 - angle: one sentence on why this ad will work for this audience.
 - hook: what is on screen and moving in the first 2 seconds, in one plain sentence.
 - scenes: 3-6 scenes in order. seconds: each scene's length; together 12-18 s. title: a short name. action: what happens on screen, in 1-2 plain sentences the client can read and edit: who is there, what they do, how it ends. No frame numbers, pixel sizes or component names; you'll work out the choreography and music timing when you write the code. text: the exact words on screen in that scene (bubbles, captions, buttons), separated by " / ".
-- If the brief says assets.siteShot is provided, at least one scene (2-4 s) must show the brand's real website screenshot big on screen, with the character reacting to or pointing at it. Say so in that scene's action ("the real {brand} homepage fills the screen"). Do not describe a made-up cartoon version of the brand's own interface.
+- If the brief says assets.siteShot is provided, the ad must copy the real website's design: describe the brand's interface in the scenes as it looks in the attached screenshot (its real headline, buttons, layout and colours), not as a generic cartoon app window, and use the site's own wording for on-screen text where it fits.
 - punchline: the line or moment the ad lands on.
 - shareCopy: 1-3 sentences to post with the video: specific, in the tone, no "excited to share".`
 
@@ -65,7 +65,7 @@ Review the frames as a strict art director would, for problems a viewer would no
 - anything important below y = 80% of the height (covered by the app UI there) or off-canvas
 - things too small to read on a phone, or big empty areas: in particular, the band between 50% and 80% of the height left empty while everything sits in the top half
 - a scene that doesn't read: unclear what's happening or what the character is doing
-- assets.siteShot was provided but no frame shows it big: add a <SiteShot> scene
+- assets.siteShot was provided but the brand's interface in the frames still looks like generic cartoon windows rather than the real site's layout and colours: rebuild it closer to the screenshot
 - the ending: product, brand and call-to-action button all clearly visible
 
 If there is nothing worth changing, reply with exactly NO_CHANGES.

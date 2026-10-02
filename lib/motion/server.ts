@@ -53,6 +53,7 @@ export function parseBrief(raw: unknown): MotionBrief | string {
     hasProductImage: b.hasProductImage === true,
     hasLogo: b.hasLogo === true,
     hasSiteShot: b.hasSiteShot === true,
+    siteDesign: typeof b.siteDesign === 'string' && b.siteDesign.length < 1_500_000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(b.siteDesign) ? b.siteDesign : undefined,
     brandColors: Array.isArray(b.brandColors) ? b.brandColors.filter((c): c is string => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 3) : undefined,
     storyboard: parseStoryboard(b.storyboard),
   }

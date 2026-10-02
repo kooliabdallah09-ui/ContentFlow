@@ -44,6 +44,8 @@ export type MotionBrief = {
   hasProductImage: boolean
   hasLogo: boolean
   hasSiteShot?: boolean
+  /** The site's homepage screenshot as a data URL, shown to the model as the design to copy. */
+  siteDesign?: string
   /** The brand's own colours as #rrggbb, main one first. */
   brandColors?: string[]
   /** The storyboard the user approved, when writing the code. */
@@ -72,7 +74,7 @@ function briefText(b: MotionBrief): string {
       : 'Music: none (no <Music />).',
     `assets.productImage: ${b.hasProductImage ? 'provided (show it at the end)' : 'null'}`,
     `assets.logo: ${b.hasLogo ? 'provided' : 'null (use the brand name as a wordmark)'}`,
-    `assets.siteShot: ${b.hasSiteShot ? "provided (a screenshot of the brand's real website, show it)" : 'null'}`,
+    `assets.siteShot: ${b.hasSiteShot ? "provided. The image attached below is the brand's real website: copy its design (see the rules), and you may also cut to the screenshot itself" : 'null'}`,
     b.brandColors?.length &&
       `Brand colors: ${b.brandColors.join(', ')}. Use the first as the main accent (call-to-action button, highlighted words, the lead character) and the others as secondary accents; keep paper and ink as the base.`,
   ]
@@ -87,6 +89,18 @@ function briefText(b: MotionBrief): string {
     )
   }
   return lines.filter((l): l is string => typeof l === 'string').join('\n')
+}
+
+/** The brief as message content: the text, preceded by the site screenshot when there is one. */
+function briefBlocks(b: MotionBrief, lead: string): Anthropic.ContentBlockParam[] {
+  const text: Anthropic.ContentBlockParam = { type: 'text', text: `${lead}\n${briefText(b)}` }
+  const m = b.hasSiteShot ? b.siteDesign?.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/) : null
+  if (!m) return [text]
+  return [
+    { type: 'text', text: "Screenshot of the brand's real website (the design to copy):" },
+    { type: 'image', source: { type: 'base64', media_type: m[1] as 'image/jpeg' | 'image/png' | 'image/webp', data: m[2] } },
+    text,
+  ]
 }
 
 function costOf(model: MotionModel, u: Anthropic.Usage): number {
@@ -158,7 +172,7 @@ const STORYBOARD_SCHEMA: Anthropic.JSONOutputFormat = {
 
 /** The storyboard, for the user to approve or edit before any code is written. */
 export async function planMotionAd(brief: MotionBrief, model: MotionModel = MOTION_MODEL): Promise<MotionUsage & { storyboard: MotionStoryboard }> {
-  const r = await call(model, [{ type: 'text', text: `Brief:\n${briefText({ ...brief, storyboard: null })}\n\n${MOTION_PLAN_PROMPT}` }], { effort: 'medium', format: STORYBOARD_SCHEMA })
+  const r = await call(model, [...briefBlocks({ ...brief, storyboard: null }, 'Brief:'), { type: 'text', text: MOTION_PLAN_PROMPT }], { effort: 'medium', format: STORYBOARD_SCHEMA })
   const storyboard = JSON.parse(r.text) as MotionStoryboard
   if (!Array.isArray(storyboard.scenes) || storyboard.scenes.length === 0) throw new Error('The storyboard came back empty')
   return { ...r, storyboard }
@@ -166,7 +180,7 @@ export async function planMotionAd(brief: MotionBrief, model: MotionModel = MOTI
 
 /** First draft of the ad's code. */
 export async function writeMotionAd(brief: MotionBrief, model: MotionModel = MOTION_MODEL): Promise<MotionResult> {
-  const r = await call(model, [{ type: 'text', text: `Write the ad for this brief.\n\n${briefText(brief)}` }])
+  const r = await call(model, briefBlocks(brief, 'Write the ad for this brief.\n'))
   return { ...r, code: extractCode(r.text) }
 }
 
@@ -181,9 +195,7 @@ export async function reviseMotionAd(opts: {
   error?: string
   stills?: Array<{ frame: number; jpegBase64: string }>
 }): Promise<MotionResult> {
-  const content: Anthropic.ContentBlockParam[] = [
-    { type: 'text', text: `Brief:\n${briefText(opts.brief)}` },
-  ]
+  const content: Anthropic.ContentBlockParam[] = briefBlocks(opts.brief, 'Brief:')
   for (const s of opts.stills ?? []) {
     content.push({ type: 'text', text: `Frame ${s.frame}:` })
     content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: s.jpegBase64 } })
