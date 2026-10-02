@@ -48,6 +48,7 @@ Components that take \`at\` animate themselves in at that frame (relative to the
 ### Ad copy & brand
 - <Caption x y text size?=84 color? highlight?={["word"]} highlightColor?="coral" at? stagger?=3 maxWidth?=920 align?="center"|"left" /> — big headline, words pop in one by one. "\\n" breaks lines. highlight colors matching words (case-insensitive).
 - <ProductShot x y src size?=440 at? rotate?=-3 fit?="cover"|"contain" /> — image on a white card with a hard shadow. Renders nothing if src is null.
+- <SiteShot x y src width?=900 at? rotate?=0 focusX?=0.5 focusY?=0.25 zoomTo?=1 duration?=90 /> — a screenshot of the brand's REAL website in a browser window (body is 16:10, so height = width × 0.625 + 56). Pass assets.siteShot as src. It slowly pushes in toward the point (focusX, focusY), as fractions of the page, up to zoomTo (e.g. 1.6) starting 20 frames after \`at\`. Renders nothing if src is null.
 - <Logo x y src? text? size?=120 at? /> — the logo image, or \`text\` as a wordmark when src is null.
 - <CtaButton x y text color?="coral" at? pressAt? size?=58 /> — the call-to-action button; it visibly gets pressed at pressAt.
 

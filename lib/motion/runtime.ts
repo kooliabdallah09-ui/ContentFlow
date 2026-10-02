@@ -9,7 +9,7 @@ import { transform } from 'sucrase'
 import * as Kit from './kit'
 import { AudioAssetsContext, type AudioAssets } from './kit/audio'
 
-export type AdAssets = { productImage?: string | null; logo?: string | null }
+export type AdAssets = { productImage?: string | null; logo?: string | null; siteShot?: string | null }
 // `audio` isn't read by ad code directly: the wrapper below puts it in
 // context for the kit's <Music> and <Sfx>.
 export type AdProps = { assets: AdAssets; audio: AudioAssets }

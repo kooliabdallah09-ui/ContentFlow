@@ -69,7 +69,7 @@ function App() {
           const next: Loaded = {
             id: msg.id, ad, width: msg.width, height: msg.height, fps: msg.fps,
             props: {
-              assets: { productImage: toUrl(msg.assets.productImage), logo: toUrl(msg.assets.logo) },
+              assets: { productImage: toUrl(msg.assets.productImage), logo: toUrl(msg.assets.logo), siteShot: toUrl(msg.assets.siteShot) },
               audio: {
                 music: music ? { src: toUrl(music.blob)!, offset: music.offset } : null,
                 sfx: Object.fromEntries(Object.entries(sfx).map(([name, blob]) => [name, toUrl(blob)!])),

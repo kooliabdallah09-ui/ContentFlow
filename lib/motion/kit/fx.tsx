@@ -3,7 +3,7 @@
 
 import type { ReactNode } from 'react'
 import { Img, interpolate, random, useCurrentFrame, useVideoConfig } from 'remotion'
-import { glide, pop } from './anim'
+import { ease, glide, pop } from './anim'
 import { COLORS, INK, type KitColor, color as resolve, useUnit } from './theme'
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const
@@ -149,6 +149,39 @@ export function ProductShot({ x, y, src, size = 440, at = 0, rotate = -3, fit = 
       transform: `rotate(${rotate}deg) scale(${p})`, opacity: interpolate(p, [0, 0.3], [0, 1], CLAMP),
     }}>
       <Img src={src} style={{ width: '100%', height: '100%', objectFit: fit }} />
+    </div>
+  )
+}
+
+/** A screenshot of the brand's real website in a browser window (16:10 body). Pushes in toward (focusX, focusY), fractions of the page, from at+20 for `duration` frames. Renders nothing if src is null. */
+export function SiteShot({ x, y, src, width = 900, at = 0, rotate = 0, focusX = 0.5, focusY = 0.25, zoomTo = 1, duration = 90 }: {
+  x: number; y: number; src?: string | null; width?: number; at?: number; rotate?: number
+  focusX?: number; focusY?: number; zoomTo?: number; duration?: number
+}) {
+  const frame = useCurrentFrame()
+  const { fps } = useVideoConfig()
+  const u = useUnit()
+  if (!src) return null
+  const p = pop(frame, at, fps, 0.5)
+  const w = width * u
+  const bar = 56 * u
+  const body = w * 0.625
+  const zoom = ease(frame, [at + 20, at + 20 + duration], [1, zoomTo])
+  return (
+    <div style={{
+      position: 'absolute', left: x - w / 2, top: y - (body + bar) / 2, width: w, height: body + bar,
+      background: COLORS.white, border: `${6 * u}px solid ${INK}`, borderRadius: 28 * u, overflow: 'hidden',
+      boxShadow: `${12 * u}px ${14 * u}px 0 ${INK}`,
+      transform: `rotate(${rotate}deg) scale(${p})`, opacity: interpolate(p, [0, 0.3], [0, 1], CLAMP),
+    }}>
+      <div style={{ height: bar, borderBottom: `${5 * u}px solid ${INK}`, display: 'flex', alignItems: 'center', padding: `0 ${20 * u}px` }}>
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ width: 14 * u, height: 14 * u, borderRadius: 99, border: `${4 * u}px solid ${INK}`, marginRight: 8 * u }} />
+        ))}
+      </div>
+      <div style={{ position: 'relative', width: '100%', height: body, overflow: 'hidden' }}>
+        <Img src={src} style={{ width: '100%', height: '100%', objectFit: 'cover', transformOrigin: `${focusX * 100}% ${focusY * 100}%`, transform: `scale(${zoom})` }} />
+      </div>
     </div>
   )
 }

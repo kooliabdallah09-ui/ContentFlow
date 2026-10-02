@@ -52,6 +52,7 @@ export function parseBrief(raw: unknown): MotionBrief | string {
     trackKey,
     hasProductImage: b.hasProductImage === true,
     hasLogo: b.hasLogo === true,
+    hasSiteShot: b.hasSiteShot === true,
     brandColors: Array.isArray(b.brandColors) ? b.brandColors.filter((c): c is string => typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c)).slice(0, 3) : undefined,
     storyboard: parseStoryboard(b.storyboard),
   }

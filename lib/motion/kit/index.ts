@@ -9,5 +9,5 @@ export {
   Stage, AppWindow, ChatInput, SpeechBubble, RankBadge, RaceBar, raceBarTip,
   Slider, sliderKnobX, Rope, Pill, Ground, Podium, podiumSpots,
 } from './ui'
-export { Confetti, Burst, Banner, Caption, ProductShot, CtaButton, Logo, Counter, Checklist, PhoneFrame } from './fx'
+export { Confetti, Burst, Banner, Caption, ProductShot, SiteShot, CtaButton, Logo, Counter, Checklist, PhoneFrame } from './fx'
 export { Music, Sfx } from './audio'

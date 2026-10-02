@@ -30,7 +30,10 @@ export async function POST(request: NextRequest) {
     // so we can pull the exact screenshot URL out of the payload, then
     // download the image bytes ourselves — this gives us clean base64 for
     // downstream Nano Banana use.
-    const microlinkEndpoint = `https://api.microlink.io/?url=${encodeURIComponent(normalised)}&screenshot=true&meta=false&viewport.width=1440&viewport.height=900&type=png`
+    // `compact` (Motion Ads) asks for a 1440x900 JPEG: the default 2x PNG can be
+    // several MB, past Vercel's 4.5 MB response limit once base64-encoded.
+    const shot = body?.compact === true ? 'type=jpeg&quality=85&viewport.deviceScaleFactor=1' : 'type=png'
+    const microlinkEndpoint = `https://api.microlink.io/?url=${encodeURIComponent(normalised)}&screenshot=true&meta=false&viewport.width=1440&viewport.height=900&${shot}`
 
     const res = await fetch(microlinkEndpoint, {
       headers: { Accept: 'application/json' },

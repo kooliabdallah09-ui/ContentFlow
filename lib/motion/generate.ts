@@ -43,6 +43,7 @@ export type MotionBrief = {
   trackKey: string | null
   hasProductImage: boolean
   hasLogo: boolean
+  hasSiteShot?: boolean
   /** The brand's own colours as #rrggbb, main one first. */
   brandColors?: string[]
   /** The storyboard the user approved, when writing the code. */
@@ -71,6 +72,7 @@ function briefText(b: MotionBrief): string {
       : 'Music: none (no <Music />).',
     `assets.productImage: ${b.hasProductImage ? 'provided (show it at the end)' : 'null'}`,
     `assets.logo: ${b.hasLogo ? 'provided' : 'null (use the brand name as a wordmark)'}`,
+    `assets.siteShot: ${b.hasSiteShot ? "provided (a screenshot of the brand's real website, show it)" : 'null'}`,
     b.brandColors?.length &&
       `Brand colors: ${b.brandColors.join(', ')}. Use the first as the main accent (call-to-action button, highlighted words, the lead character) and the others as secondary accents; keep paper and ink as the base.`,
   ]

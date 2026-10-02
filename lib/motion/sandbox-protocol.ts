@@ -11,6 +11,7 @@ import type { SfxName } from './music'
 export type SandboxAssets = {
   productImage?: Blob | null
   logo?: Blob | null
+  siteShot?: Blob | null
   music?: { blob: Blob; offset: number } | null
   sfx?: Partial<Record<SfxName, Blob>>
 }

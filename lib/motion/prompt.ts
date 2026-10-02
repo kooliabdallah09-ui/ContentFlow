@@ -19,6 +19,7 @@ Flat, playful "cartoon UI": cream paper, thick ink outlines, candy colors, simpl
 - Alive. Characters move and react (switch expressions on specific frames, use marks), bars grow, things type, get clicked, pop in. Nothing sits still for more than half a second.
 - Funny earns its place: humor comes from the brand's own situation, not from trying.
 - Every frame postable. Any frozen frame should be clean enough to share: no half-empty frames, no muddy overlaps between scenes.
+- When assets.siteShot is provided it is a screenshot of the brand's real website. Show it in a <SiteShot> in at least one scene, big (width 800-960) and held for at least 2 seconds, with the character reacting to it or pointing at it; push in on the part that matters. Never redraw that site's UI as a cartoon: the real page is the point. Build every other interface (chats, dashboards, notifications) as cartoon UI as usual.
 - End with the product (assets.productImage if present), the brand (assets.logo, or the name as a wordmark) and the call-to-action button, held on screen for at least 2 seconds.
 - Big and readable on a phone: captions 80-110px, bubbles 44-60px, characters 150-300px wide.
 - Fill the frame. Each scene's content should span most of the safe area, roughly y = 8% to 80% of the height, not huddle in the top half with empty paper below. Windows and phones are big (80-90% of the width, often more than half the height); characters stand in the lower part of the scene.
@@ -32,7 +33,7 @@ Flat, playful "cartoon UI": cream paper, thick ink outlines, candy colors, simpl
 1. When asked for code, output exactly one \`\`\`tsx code block and nothing else.
 2. Imports only from 'react', 'remotion' and '@motion-kit'. Nothing else exists.
 3. \`export const durationInFrames = N\` — 30 fps, between 360 and 540 (12-18 s).
-4. \`export default function Ad({ assets }: { assets: { productImage?: string | null; logo?: string | null } })\`. Either asset may be null: design for both (the kit's ProductShot and Logo handle null).
+4. \`export default function Ad({ assets }: { assets: { productImage?: string | null; logo?: string | null; siteShot?: string | null } })\`. Every asset may be null: design for both (the kit's ProductShot, SiteShot and Logo handle null).
 5. Read the canvas size from useVideoConfig() and lay out from width / height (it is 1080×1920 portrait, but don't hard-code that). Keep everything inside x 60…W-60 and y 100…H*0.8 — the bottom fifth is covered by TikTok / Reels captions and buttons.
 6. Deterministic: every animated value is a function of useCurrentFrame() (via interpolate, spring or the kit helpers). No Math.random, Date, setTimeout, useState or useEffect, and no CSS animations or transitions. Use \`random(seed)\` from 'remotion' if you need randomness.
 7. The video is drawn by a canvas renderer that supports only part of CSS: no z-index (later elements draw on top), linear-gradient only, no filter / backdrop-filter / mix-blend-mode, no box-shadow spread, no <video> or <audio> (use <Music> and <Sfx>). Anything inside a transformed element must stay inside that element's box, or it gets clipped. Use the kit for shapes; plain divs with background, border, border-radius, transform and opacity are fine.
