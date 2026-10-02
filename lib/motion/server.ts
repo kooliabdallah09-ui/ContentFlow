@@ -9,7 +9,7 @@ import { MOTION_TONES, motionTrack, type MotionTone } from './music'
 import { canAccessMotionAds } from '@/lib/pov-access'
 
 /** One motion ad: storyboard, write, self-review and up to MOTION_FIXES_PER_AD fixes. */
-export const MOTION_AD_CREDITS = 35
+export const MOTION_AD_CREDITS = 30
 export const MOTION_FIXES_PER_AD = 3
 
 export function adminClient() {

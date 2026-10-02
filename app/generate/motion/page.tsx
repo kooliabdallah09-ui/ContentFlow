@@ -17,7 +17,7 @@ import { MOTION_TONES, MOTION_TRACKS, SFX_NAMES, motionTrack, sfxUrl, type Motio
 import type { MotionStoryboard } from '@/lib/motion/generate'
 import { dominantColors } from '@/lib/brand-assets'
 
-const AD_CREDITS = 35 // keep in step with MOTION_AD_CREDITS in lib/motion/server.ts
+const AD_CREDITS = 30 // keep in step with MOTION_AD_CREDITS in lib/motion/server.ts
 const W = 1080
 const H = 1920
 
@@ -397,14 +397,24 @@ export default function MotionAdsPage() {
     }
   }
 
-  async function exportVideo() {
+  function download(url: string) {
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${brief.brandName || 'motion'}-ad.mp4`.replace(/[^a-zA-Z0-9._-]+/g, '-')
+    a.click()
+  }
+
+  // Renders the MP4 on first use, then downloads it; later clicks just download again.
+  async function downloadVideo() {
+    if (video) return download(video.url)
     if (!ad || !sandbox.current) return
     setRenderProgress(0)
     try {
       const blob = await sandbox.current.render(ad.id, p => setRenderProgress(p))
-      if (video) URL.revokeObjectURL(video.url)
-      setVideo({ blob, url: URL.createObjectURL(blob) })
+      const url = URL.createObjectURL(blob)
+      setVideo({ blob, url })
       setSaved(false)
+      download(url)
     } catch (err) {
       showError(err instanceof Error ? err.message : 'Export failed')
     } finally {
@@ -583,18 +593,13 @@ export default function MotionAdsPage() {
           {stage === 'ready' && ad && (
             <div style={card}>
               <div style={{ fontSize: 16, fontWeight: 700 }}>Your ad is ready</div>
-              <p style={{ margin: 0, fontSize: 13.5, color: 'var(--ink-dim)' }}>Press play in the preview to hear it. Export renders the MP4 on your device, with sound.</p>
+              <p style={{ margin: 0, fontSize: 13.5, color: 'var(--ink-dim)' }}>Press play in the preview to hear it. Download renders the MP4 on your device, with sound.</p>
               {previewError && <div style={{ fontSize: 12.5, color: 'var(--danger)' }}>The preview hit an error: {previewError}</div>}
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button type="button" onClick={exportVideo} disabled={renderProgress !== null} style={primary(renderProgress !== null)}>
-                  {renderProgress !== null ? `Exporting… ${Math.round(renderProgress * 100)}%` : video ? 'Export again' : 'Export MP4'}
+                <button type="button" onClick={downloadVideo} disabled={renderProgress !== null} style={primary(renderProgress !== null)}>
+                  {renderProgress !== null ? `Rendering… ${Math.round(renderProgress * 100)}%` : video ? 'Download again' : 'Download MP4'}
                 </button>
-                {video && (
-                  <>
-                    <a href={video.url} download={`${brief.brandName || 'motion'}-ad.mp4`.replace(/[^a-zA-Z0-9._-]+/g, '-')} style={{ ...ghost, textDecoration: 'none' }}>Download</a>
-                    <button type="button" onClick={saveToLibrary} disabled={saving || saved} style={ghost}>{saved ? '✓ In your Library' : saving ? 'Saving…' : 'Save to Library'}</button>
-                  </>
-                )}
+                {video && <button type="button" onClick={saveToLibrary} disabled={saving || saved} style={ghost}>{saved ? '✓ In your Library' : saving ? 'Saving…' : 'Save to Library'}</button>}
               </div>
               {storyboard?.shareCopy && (
                 <div>
