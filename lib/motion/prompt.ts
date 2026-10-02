@@ -53,6 +53,7 @@ export const MOTION_PLAN_PROMPT = `Plan this ad before any code, as a storyboard
 - angle: one sentence on why this ad will work for this audience.
 - hook: what is on screen and moving in the first 2 seconds, in one plain sentence.
 - scenes: 3-6 scenes in order. seconds: each scene's length; together 12-18 s. title: a short name. action: what happens on screen, in 1-2 plain sentences the client can read and edit: who is there, what they do, how it ends. No frame numbers, pixel sizes or component names; you'll work out the choreography and music timing when you write the code. text: the exact words on screen in that scene (bubbles, captions, buttons), separated by " / ".
+- If the brief says assets.siteShot is provided, at least one scene (2-4 s) must show the brand's real website screenshot big on screen, with the character reacting to or pointing at it. Say so in that scene's action ("the real {brand} homepage fills the screen"). Do not describe a made-up cartoon version of the brand's own interface.
 - punchline: the line or moment the ad lands on.
 - shareCopy: 1-3 sentences to post with the video: specific, in the tone, no "excited to share".`
 
@@ -64,6 +65,7 @@ Review the frames as a strict art director would, for problems a viewer would no
 - anything important below y = 80% of the height (covered by the app UI there) or off-canvas
 - things too small to read on a phone, or big empty areas: in particular, the band between 50% and 80% of the height left empty while everything sits in the top half
 - a scene that doesn't read: unclear what's happening or what the character is doing
+- assets.siteShot was provided but no frame shows it big: add a <SiteShot> scene
 - the ending: product, brand and call-to-action button all clearly visible
 
 If there is nothing worth changing, reply with exactly NO_CHANGES.
