@@ -37,6 +37,15 @@ export function color(c: KitColor | undefined, fallback: KitColor = 'teal'): str
   return (COLORS as Record<string, string>)[key] ?? key
 }
 
+/** Ink or white, whichever reads better on `bg` (a hex colour). */
+export function textOn(bg: string): string {
+  const h = bg.replace('#', '')
+  if (!/^[0-9a-f]{6}$/i.test(h)) return COLORS.white
+  const n = parseInt(h, 16)
+  const lum = (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255
+  return lum > 0.62 ? INK : COLORS.white
+}
+
 /**
  * 1 unit = 1px at 1080 on the short edge. Everything in the kit is sized in
  * units, so one layout works at 1080×1920, 1080×1080 and 1920×1080.

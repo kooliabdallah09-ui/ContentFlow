@@ -230,7 +230,7 @@ export function Counter({ x, y, from = 0, to, at = 0, duration = 30, prefix = ''
   const v = interpolate(frame, [at, at + duration], [from, to], { ...CLAMP, easing: t => 1 - Math.pow(1 - t, 3) })
   return (
     <div style={{ position: 'absolute', left: x, top: y, transform: 'translate(-50%, -50%)', fontSize: size * u, fontWeight: 700, color: resolve(color, 'ink'), whiteSpace: 'nowrap', letterSpacing: '-0.02em' }}>
-      {prefix}{v.toFixed(decimals)}{suffix}
+      {prefix}{v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })}{suffix}
     </div>
   )
 }

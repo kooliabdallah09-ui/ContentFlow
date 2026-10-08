@@ -5,7 +5,7 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { AbsoluteFill, interpolate, useCurrentFrame, useVideoConfig } from 'remotion'
 import { pop } from './anim'
-import { COLORS, FONT, INK, PAPER, type KitColor, color as resolve, useUnit } from './theme'
+import { COLORS, FONT, INK, PAPER, type KitColor, color as resolve, textOn, useUnit } from './theme'
 
 const CLAMP = { extrapolateLeft: 'clamp', extrapolateRight: 'clamp' } as const
 
@@ -238,7 +238,7 @@ export function Pill({ x, y, text, color = 'teal', filled = true, at, size = 36 
     <div style={{ position: 'absolute', left: x, top: y, transform: `translate(-50%, -50%) scale(${p})` }}>
       <div style={{
         padding: `${10 * u}px ${34 * u}px`, borderRadius: 999, border: `${4 * u}px solid ${INK}`, background: bg,
-        fontSize: size * u, fontWeight: 700, whiteSpace: 'nowrap', color: filled ? COLORS.white : INK,
+        fontSize: size * u, fontWeight: 700, whiteSpace: 'nowrap', color: filled ? textOn(bg) : INK,
       }}>
         {text}
       </div>

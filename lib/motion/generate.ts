@@ -58,7 +58,7 @@ export type MotionResult = MotionUsage & {
   code: string | null
 }
 
-function briefText(b: MotionBrief): string {
+export function briefText(b: MotionBrief): string {
   const tone = MOTION_TONES[b.tone] ?? MOTION_TONES.playful
   const track = motionTrack(b.trackKey)
   const lines = [

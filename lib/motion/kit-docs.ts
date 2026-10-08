@@ -33,7 +33,7 @@ Components that take \`at\` animate themselves in at that frame (relative to the
 - <RankBadge x y rank size?=76 />
 - <Slider x y width value leftColor? rightColor? /> and sliderKnobX(x, width, value) → knob x.
 - <Rope from={[x,y]} to={[x,y]} sag?=40 color? thickness? /> — sagging rope (tug-of-war, leashes).
-- <Pill x y text color? filled?=true at? size?=36 /> — pill button / tag.
+- <Pill x y text color? filled?=true at? size?=36 /> — pill button / tag. Filled pills pick ink or white text to suit the colour.
 - <PhoneFrame x y height?=900 at?>children</PhoneFrame> — phone outline; children are positioned inside the screen.
 
 ### Payoffs
@@ -42,7 +42,7 @@ Components that take \`at\` animate themselves in at that frame (relative to the
 - <Burst x y text size?=260 color?="yellow" at? rotate? /> — comic starburst ("BONK!", "WOW", "-50%"). Text shrinks to fit.
 - <Banner x y text at? color?="ink" textColor?="yellow" size?=72 rotate? /> — the "NEW #1" moment.
 - <Confetti at? count?=70 duration?=90 seed? /> — full-screen confetti shower.
-- <Counter x y to from?=0 at? duration?=30 prefix? suffix? decimals? size?=120 color? /> — number counting up (prices, stats, "10x").
+- <Counter x y to from?=0 at? duration?=30 prefix? suffix? decimals? size?=120 color? /> — number counting up (prices, stats, "10x"), with thousands separators (4,800).
 - <Checklist x y items={[...]} at? stagger?=12 size?=44 color?="green" /> — ticks items off one by one.
 
 ### Ad copy & brand
