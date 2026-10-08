@@ -41,6 +41,8 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
+    "@remotion/bundler": "^4.0.529",
+    "@remotion/renderer": "^4.0.529",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

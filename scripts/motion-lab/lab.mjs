@@ -123,9 +123,13 @@ async function serve(onPost) {
     entryPoints: [path.join(ROOT, 'scripts/motion-lab/viewer.tsx')], outfile: viewer, bundle: true, format: 'iife',
     target: 'es2022', jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"' }, logLevel: 'warning',
   })
-  const types = { '.js': 'text/javascript', '.json': 'application/json', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.tsx': 'text/plain' }
+  const types = { '.wav': 'audio/wav', '.flac': 'audio/flac', '.mp4': 'video/mp4', '.js': 'text/javascript', '.json': 'application/json', '.mp3': 'audio/mpeg', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.gif': 'image/gif', '.tsx': 'text/plain' }
   const server = createServer(async (req, res) => {
     const u = new URL(req.url, `http://localhost:${PORT}`)
+    res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Headers', '*')
+    res.setHeader('Access-Control-Expose-Headers', 'Content-Range, Content-Length, Accept-Ranges')
+    if (req.method === 'OPTIONS') return res.end()
     if (req.method === 'POST') {
       const chunks = []
       for await (const c of req) chunks.push(c)
@@ -138,10 +142,21 @@ async function serve(onPost) {
     }
     const file = u.pathname === '/viewer.js' ? viewer
       : u.pathname.startsWith('/motion-lab/runs/') ? path.join(ROOT, decodeURIComponent(u.pathname))
+      : u.pathname.startsWith('/pack/') ? path.join(ROOT, 'Social SFX Pack - Collection 1', decodeURIComponent(u.pathname.slice(6)))
       : path.join(ROOT, 'public', decodeURIComponent(u.pathname))
     if (!file.startsWith(ROOT) || !existsSync(file)) { res.statusCode = 404; return res.end() }
-    res.setHeader('Content-Type', types[path.extname(file)] ?? 'application/octet-stream')
-    res.end(await readFile(file))
+    const data = await readFile(file)
+    res.setHeader('Content-Type', types[path.extname(file).toLowerCase()] ?? 'application/octet-stream')
+    res.setHeader('Accept-Ranges', 'bytes')
+    const range = /bytes=(\d*)-(\d*)/.exec(req.headers.range ?? '')
+    if (range) {
+      const start = range[1] ? Number(range[1]) : data.length - Number(range[2])
+      const end = range[1] && range[2] ? Math.min(Number(range[2]), data.length - 1) : data.length - 1
+      res.statusCode = 206
+      res.setHeader('Content-Range', `bytes ${start}-${end}/${data.length}`)
+      return res.end(data.subarray(start, end + 1))
+    }
+    res.end(data)
   })
   await new Promise(r => server.listen(PORT, r))
   return server
@@ -168,7 +183,52 @@ async function headless(slug, query) {
   process.exit()
 }
 
-if (cmd === 'prep' && arg1) await prep(arg1, arg2)
+// Server render: bundles the ad with Remotion's bundler and renders it in local
+// Chrome, where the whole of CSS works. Assets are served by the lab server.
+async function serverRender(slug, frames) {
+  const { bundle } = await import('@remotion/bundler')
+  const { renderMedia, renderStill, selectComposition } = await import('@remotion/renderer')
+  const dir = runDir(slug)
+  const brief = JSON.parse(await readFile(path.join(dir, 'brief.json'), 'utf8'))
+  const server = await serve()
+  const base = `http://localhost:${PORT}/motion-lab/runs/${encodeURIComponent(slug)}/`
+  const url = f => (f ? base + f.split('/').map(encodeURIComponent).join('/') : null)
+  const f = brief.files ?? {}
+  const sfxNames = ['click', 'pop', 'switch', 'whoosh', 'tick', 'type', 'impact', 'bonk', 'success', 'bong', 'error', 'glitch']
+  const inputProps = {
+    assets: {
+      productImage: brief.hasProductImage ? url(f.image) : null, logo: brief.hasLogo ? url(f.logo) : null, siteShot: brief.hasSiteShot ? url(f.siteShot) : null,
+      images: (f.images ?? []).map(url), videos: (f.videos ?? []).map(url), voice: url(f.voice), pack: `http://localhost:${PORT}/pack/`, base,
+    },
+    audio: {
+      music: f.music ? { src: url(f.music), offset: brief.musicOffset ?? 0 } : null,
+      sfx: Object.fromEntries(sfxNames.map(n => [n, `http://localhost:${PORT}/motion-audio/sfx/${n}.mp3`])),
+    },
+  }
+  const serveUrl = await bundle({
+    entryPoint: path.join(ROOT, 'scripts/motion-lab/remotion-entry.tsx'),
+    webpackOverride: c => ({ ...c, resolve: { ...c.resolve, alias: { ...(c.resolve?.alias ?? {}), 'lab-ad': path.join(dir, 'ad.tsx'), '@motion-kit': path.join(ROOT, 'lib/motion/kit/index.ts') } } }),
+  })
+  const opts = { serveUrl, inputProps, browserExecutable: CHROME, chromiumOptions: { gl: 'angle' } }
+  const composition = await selectComposition({ ...opts, id: 'ad' })
+  if (frames) {
+    for (const fr of await readdir(dir)) if (fr.startsWith('still-')) await rm(path.join(dir, fr))
+    const list = frames === 'auto' ? Array.from({ length: 10 }, (_, i) => Math.round((i + 0.5) * composition.durationInFrames / 10)) : frames.split(',').map(Number)
+    for (const frame of list) {
+      await renderStill({ ...opts, composition, frame, output: path.join(dir, `still-${String(frame).padStart(3, '0')}.jpg`), imageFormat: 'jpeg', jpegQuality: 85, scale: 0.5 })
+    }
+  } else {
+    await renderMedia({ ...opts, composition, codec: 'h264', crf: 16, outputLocation: path.join(dir, 'ad.mp4'),
+      onProgress: ({ progress }) => process.stdout.write(`\r${Math.round(progress * 100)}%`) })
+    console.log()
+  }
+  server.close()
+  console.log(`done → ${path.relative(ROOT, dir)}`)
+}
+
+if (cmd === 'sstills' && arg1) await serverRender(arg1, arg2 || 'auto')
+else if (cmd === 'srender' && arg1) await serverRender(arg1, null)
+else if (cmd === 'prep' && arg1) await prep(arg1, arg2)
 else if (cmd === 'request' && arg1) await request(arg1)
 else if (cmd === 'stills' && arg1) await headless(arg1, `stills=${arg2 || 'auto'}`)
 else if (cmd === 'render' && arg1) await headless(arg1, 'render=1')
