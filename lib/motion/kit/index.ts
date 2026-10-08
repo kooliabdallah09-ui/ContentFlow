@@ -11,3 +11,4 @@ export {
 } from './ui'
 export { Confetti, Burst, Banner, Caption, ProductShot, SiteShot, CtaButton, Logo, Counter, Checklist, PhoneFrame } from './fx'
 export { Music, Sfx } from './audio'
+export { Video } from '@remotion/media'

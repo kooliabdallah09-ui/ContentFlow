@@ -29,15 +29,17 @@ async function load(): Promise<{ ad: CompiledAd; props: AdProps }> {
     blobUrl(brief.hasProductImage ? base + brief.files.image : null),
     blobUrl(brief.hasLogo ? base + brief.files.logo : null),
     blobUrl(brief.hasSiteShot ? base + brief.files.siteShot : null),
-    blobUrl(track?.url),
+    blobUrl(brief.files.music ? base + brief.files.music : track?.url),
     ...SFX_NAMES.map(n => blobUrl(sfxUrl(n))),
   ])
+  const images = await Promise.all((brief.files.images ?? []).map((f: string) => blobUrl(base + f)))
+  const videos = await Promise.all((brief.files.videos ?? []).map((f: string) => blobUrl(base + f)))
   return {
     ad,
     props: {
-      assets: { productImage, logo, siteShot },
+      assets: { productImage, logo, siteShot, images, videos } as AdProps['assets'],
       audio: {
-        music: music && track ? { src: music, offset: track.offset } : null,
+        music: music ? { src: music, offset: brief.files.music ? brief.musicOffset ?? 0 : track?.offset ?? 0 } : null,
         sfx: Object.fromEntries(SFX_NAMES.flatMap((n, i) => (sfx[i] ? [[n, sfx[i]!]] : []))),
       },
     },
