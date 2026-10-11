@@ -713,10 +713,10 @@ export default function InfluencersPage() {
         </button>
 
         {/* Identity card — horizontal 16:9-ish banner across the top */}
-        <div className="inf-identity" style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)', marginBottom: 20 }}>
+        <div className="inf-identity" style={{ display: 'grid', gridTemplateColumns: '220px minmax(0, 1fr)', gridTemplateRows: '1fr auto', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)', marginBottom: 20 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="inf-identity-img" src={selected.portrait_url} alt={selected.name} style={{ width: 220, minHeight: 250, objectFit: 'cover', display: 'block', flexShrink: 0 }} />
-          <div className="inf-identity-body" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
+          <img className="inf-identity-img" src={selected.portrait_url} alt={selected.name} style={{ width: '100%', height: '100%', minHeight: 250, gridRow: '1 / span 2', objectFit: 'cover', display: 'block' }} />
+          <div className="inf-identity-body" style={{ padding: '20px 24px 0', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
               <span className="inf-identity-name" style={{ fontFamily: 'var(--font-serif)', fontSize: 26 }}>{selected.name}</span>
               {selected.handle && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--ink-dim)' }}>{selected.handle}</span>}
@@ -724,7 +724,8 @@ export default function InfluencersPage() {
             {selected.niche && <div style={{ fontSize: 11.5, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{selected.niche}</div>}
             {selected.bio && <p className="inf-identity-bio" style={{ fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1.55, margin: '4px 0 0' }}>{selected.bio}</p>}
             {selected.personality && <p className="inf-identity-personality" style={{ fontSize: 12.5, color: 'var(--ink-mute)', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>{selected.personality}</p>}
-            <div className="inf-identity-actions" style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+          </div>
+            <div className="inf-identity-actions" style={{ display: 'flex', gap: 10, padding: '12px 24px 20px', flexWrap: 'wrap', alignItems: 'center', minWidth: 0 }}>
               <button onClick={useInUgc} disabled={bridging} className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 {bridging ? <Loader2 size={14} className="animate-spin" /> : <Clapperboard size={14} />} Use in UGC
               </button>
@@ -770,7 +771,6 @@ export default function InfluencersPage() {
                 <Trash2 size={13} /> Delete
               </button>
             </div>
-          </div>
         </div>
 
         {/* Gallery — center stage, bigger tiles */}

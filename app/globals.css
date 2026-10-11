@@ -1506,20 +1506,31 @@ img, video, svg { max-width: 100%; }
 /* Influencer detail on phones: compact identity card, 2-col gallery,
    and a composer that only shows prompt + Shoot until Options is opened. */
 @media (max-width: 640px) {
-  .inf-identity { flex-wrap: wrap; }
-  .inf-identity-img { width: 112px !important; min-height: 140px !important; height: 140px; }
-  .inf-identity-body { padding: 12px 14px !important; flex: 1 1 0 !important; }
-  .inf-identity-name { font-size: 20px !important; }
+  .inf-identity { grid-template-columns: 104px minmax(0, 1fr) !important; grid-template-rows: auto auto !important; }
+  .inf-identity-img { grid-row: 1 !important; min-height: 0 !important; height: 100% !important; max-height: 150px; }
+  .inf-identity-body { padding: 12px 14px 8px !important; }
+  .inf-identity-name { font-size: 19px !important; }
   .inf-identity-bio {
     display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+    font-size: 12.5px !important;
   }
   .inf-identity-personality { display: none; }
   .inf-identity-actions {
-    flex-basis: 100%; padding-top: 4px !important; gap: 8px !important;
+    grid-column: 1 / -1; padding: 0 12px 12px !important; gap: 8px !important;
+    flex-wrap: nowrap !important; overflow-x: auto; scrollbar-width: none;
   }
-  .inf-identity-body .inf-identity-actions { margin-top: 8px !important; }
+  .inf-identity-actions::-webkit-scrollbar { display: none; }
+  .inf-identity-actions > * { flex-shrink: 0; white-space: nowrap; margin-left: 0 !important; }
   .inf-gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+
+  /* Compact composer: options bar, then attach + prompt on one row, then Shoot. */
   .studio-composer[data-options-open="false"] .ps-controls-row { display: none !important; }
+  .studio-composer .studio-options-toggle { margin: 0 0 8px; padding: 6px 10px; }
+  .studio-composer .ps-composer-row { display: grid !important; grid-template-columns: auto minmax(0, 1fr); gap: 8px !important; align-items: stretch !important; }
+  .studio-composer .ps-composer-row > div:first-child { grid-row: 1; align-items: flex-start !important; }
+  .studio-composer .ps-composer-row textarea { grid-column: 2; min-height: 0; height: 56px; }
+  .studio-composer .ps-composer-row > :not(div):not(textarea) { grid-column: 1 / -1; }
+  .studio-composer .ps-composer-row .btn-primary { padding: 11px 16px !important; }
 }
 
 /* Composer options toggle — visible on all screen sizes */
@@ -2333,7 +2344,7 @@ html[data-ui="press"] .lib-tab.on { background: var(--ink); color: var(--on-ink)
 html[data-ui="press"][data-theme="dark"] .lib-tab.on { background: #FFE08A; color: #1A1814; border-color: #FFE08A; }
 
 /* Cards: ticket stock outlined in navy; hover lifts with a print-style offset */
-html[data-ui="press"] :is(.card, .canvas-card, .hero-card, .lib-card, .brand-card, .voice-card, .sugg, .streak-card, .day-card, .popover, .stats-row, .drive-banner-short) {
+html[data-ui="press"] :is(.card, .canvas-card, .hero-card, .lib-card, .brand-card, .voice-card, .sugg, .streak-card, .day-card, .popover, .stats-row) {
   background: var(--surface); border: 1px solid var(--border-strong); border-radius: 6px; box-shadow: none;
 }
 html[data-ui="press"][data-theme="dark"] :is(.card, .canvas-card, .hero-card, .lib-card, .brand-card, .voice-card, .sugg, .streak-card, .day-card, .popover, .stats-row) { border-color: var(--border-strong); }
