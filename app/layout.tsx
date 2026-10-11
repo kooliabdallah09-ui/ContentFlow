@@ -53,10 +53,18 @@ export default function RootLayout({
     }
   }, [])
 
+  // The You tab changes the theme itself and announces it here.
+  useEffect(() => {
+    const onTheme = (e: Event) => setIsDark(!!(e as CustomEvent).detail)
+    window.addEventListener('cf-theme-change', onTheme)
+    return () => window.removeEventListener('cf-theme-change', onTheme)
+  }, [])
+
   useEffect(() => {
     const titles: Record<string, string> = {
       '/': 'ContentFlow Web — AI Content Studio',
       '/dashboard': 'Dashboard — ContentFlow Web',
+      '/you': 'You — ContentFlow Web',
       '/campaigns': 'Campaigns — ContentFlow Web',
       '/library': 'Library — ContentFlow Web',
       '/watchlist': 'Ad Watchlist — ContentFlow Web',

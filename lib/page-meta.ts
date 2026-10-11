@@ -46,7 +46,8 @@ const REGISTRY: Array<{ match: (p: string) => boolean; meta: PageMeta }> = [
 
   // ── App pages — friendly titles for the mobile header ──────
   { match: p => p === '/dashboard',               meta: { title: 'Home',         variant: 'app' } },
-  { match: p => p.startsWith('/library'),         meta: { title: 'Library',      variant: 'app' } },
+  { match: p => p.startsWith('/you'),             meta: { title: 'You',          variant: 'app' } },
+  { match: p => p.startsWith('/library'),         meta: { title: '',             variant: 'app' } },
   { match: p => p.startsWith('/watchlist'),       meta: { title: 'Watchlist',    variant: 'app' } },
   { match: p => p.startsWith('/generate/ugc'),    meta: { title: 'UGC Package',  variant: 'app' } },
   { match: p => p.startsWith('/generate/social'), meta: { title: 'Social',       variant: 'app' } },
@@ -65,7 +66,8 @@ const REGISTRY: Array<{ match: (p: string) => boolean; meta: PageMeta }> = [
   { match: p => p.startsWith('/generate'),        meta: { title: 'Generate',     variant: 'app' } },
   { match: p => p.startsWith('/influencers'),     meta: { title: 'Influencers',  variant: 'app' } },
   { match: p => p.startsWith('/scenes'),          meta: { title: 'Scenes',       variant: 'app' } },
-  { match: p => p.startsWith('/campaigns'),       meta: { title: 'Campaigns',    variant: 'app' } },
+  { match: p => p === '/campaigns',               meta: { title: '',             variant: 'app' } },
+  { match: p => p.startsWith('/campaigns'),       meta: { title: 'Campaign',     variant: 'app' } },
   { match: p => p.startsWith('/analytics'),       meta: { title: 'Analytics',    variant: 'app' } },
   { match: p => p.startsWith('/brand-launch'),    meta: { title: 'Brand Launch', variant: 'app' } },
   { match: p => p.startsWith('/brand'),           meta: { title: 'Brand',        variant: 'app' } },

@@ -54,19 +54,20 @@ export function Sheet({ open, onClose, title, children, height = '88vh' }: Sheet
         style={{
           position: 'relative',
           background: 'var(--surface)',
-          borderTopLeftRadius: 18,
-          borderTopRightRadius: 18,
+          borderTopLeftRadius: 14,
+          borderTopRightRadius: 14,
+          borderTop: '1px solid var(--border-strong)',
           maxHeight: height,
           height,
           display: 'flex', flexDirection: 'column',
           paddingBottom: 'env(safe-area-inset-bottom, 0)',
           animation: 'cf-sheet-up 260ms cubic-bezier(0.32, 0.72, 0, 1)',
-          boxShadow: '0 -12px 40px rgba(0,0,0,0.24)',
+          boxShadow: '0 -4px 0 var(--border-strong)',
         }}
       >
         {/* Grabber */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '8px 0 0' }}>
-          <span style={{ width: 40, height: 4, borderRadius: 4, background: 'var(--ink-mute)', opacity: 0.35 }} />
+          <span style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--ink-mute)', opacity: 0.5 }} />
         </div>
         {/* Header — always render the close button so tapping it works even
            when there's no title. */}
@@ -75,12 +76,12 @@ export function Sheet({ open, onClose, title, children, height = '88vh' }: Sheet
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '10px 18px 8px', minHeight: 48,
           }}>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{title}</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, fontWeight: 700, letterSpacing: '-0.03em', color: 'var(--ink)' }}>{title}</div>
             <button
               onClick={onClose}
               aria-label="Close"
               style={{
-                width: 32, height: 32, borderRadius: 999, border: 'none',
+                width: 32, height: 32, borderRadius: 5, border: '1px solid var(--border-strong)',
                 background: 'var(--surface-2, rgba(0,0,0,0.05))', color: 'var(--ink)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 cursor: 'pointer', padding: 0,

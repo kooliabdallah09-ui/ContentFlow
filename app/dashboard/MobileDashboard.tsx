@@ -1,11 +1,11 @@
 'use client'
 
-// Editorial-warm mobile Dashboard, matching the Claude design artifact.
-// Layout: serif greeting → dark credits card → Create 2×2 grid → Recent
-// horizontal scroll. Same data source as the desktop dashboard, passed
-// in from the parent page component.
+// Press Proof mobile Home: greeting, live renders, ticket tiles, recent posters.
+// Same data as the desktop dashboard, passed in from the parent page.
+// Styles live in globals.css under .mx-*.
 
 import Link from 'next/link'
+import { ArrowUpRight, Play } from 'lucide-react'
 import { CREATE_OPTIONS } from '@/lib/create-options'
 import { OptionIcon } from '@/components/mobile/BottomNav'
 
@@ -36,6 +36,7 @@ interface MobileDashboardProps {
 
 // Four of the create options, same prices as the Create sheet.
 const CREATE_TILES = CREATE_OPTIONS.filter(o => ['/generate/ugc', '/generate/image', '/generate/voice', '/campaigns'].includes(o.href))
+const STOCKS = ['var(--stock-coral)', 'var(--stock-butter)', 'var(--stock-mint)', 'var(--stock-lilac)']
 
 function timeAgo(iso: string): string {
   const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
@@ -62,232 +63,80 @@ export function MobileDashboard({
   greeting,
   recentItems,
   recentLoading,
-  credits,
   brandName,
 }: MobileDashboardProps) {
-  // Strip trailing "," so we can drop the name on its own line.
   const cleanGreeting = greeting.replace(/,\s*$/, '')
   const firstName = userName.split(' ')[0]
+  const cap = firstName.charAt(0).toUpperCase() + firstName.slice(1)
 
-  // Progress bar shows how much of the monthly allocation is left.
-  const monthly = credits?.monthlyCredits ?? 0
-  const balance = credits?.balance ?? 0
-  const pct = monthly > 0 ? Math.min(100, Math.round((balance / monthly) * 100)) : 0
-
-  const resetLabel = credits?.resetDate
-    ? new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-    : '—'
-
-  const planLabel = (credits?.plan ?? 'free').replace(/^\w/, c => c.toUpperCase()) + ' plan'
+  const live = recentItems.filter(i => i.status === 'generating')
+  const done = recentItems.filter(i => i.status === 'completed' || i.status === 'ready')
 
   return (
-    <div data-mobile-native="true" style={{ padding: '18px 18px 30px', minHeight: '100%' }}>
-      {/* Greeting */}
-      <div style={{
-        fontFamily: 'var(--m-serif)',
-        fontSize: 29, lineHeight: 1.15, letterSpacing: '-0.02em',
-        marginBottom: 3, color: 'var(--m-ink)',
-      }}>
-        {cleanGreeting},<br />
-        <em>{firstName}.</em>
-      </div>
-      <div style={{ fontSize: 13, color: 'var(--m-mute)', marginBottom: 16 }}>
-        {brandName ? `Working on ${brandName}.` : 'What are we making today?'}
-      </div>
+    <div data-mobile-native="true" className="mx-page">
+      <h1 className="mx-greet">
+        {cleanGreeting}, {cap}.<br />
+        <span>{brandName ? `Working on ${brandName}.` : 'What are we making?'}</span>
+      </h1>
 
-      {/* Dark credits card */}
-      {credits && (
-        <div style={{
-          background: 'var(--m-dark-card)',
-          borderRadius: 8, padding: '18px 20px', color: '#fff',
-          marginBottom: 18,
-        }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-            <div>
-              <div style={{
-                fontSize: 9.5, fontWeight: 600, letterSpacing: '0.11em',
-                textTransform: 'uppercase', color: 'var(--m-credits-hint)',
-                marginBottom: 5, fontFamily: 'var(--m-mono)',
-              }}>
-                Available credits
+      {live.length > 0 && (
+        <div className="mx-live-list">
+          {live.slice(0, 2).map(item => (
+            <Link key={item.id} href="/library" data-press className="mx-live">
+              <div className="mx-live-top">
+                <span className="mx-live-name">{item.metadata?.productName ?? item.content_type.replace(/_/g, ' ')}</span>
+                <span className="mx-pill">Rendering</span>
               </div>
-              <div style={{
-                fontFamily: 'var(--m-serif)', fontSize: 36,
-                lineHeight: 1, letterSpacing: '-0.02em',
-              }}>
-                {balance.toLocaleString()}
-              </div>
-            </div>
-            <span style={{
-              fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
-              textTransform: 'uppercase',
-              background: 'rgba(255,255,255,0.12)',
-              borderRadius: 4, padding: '5px 10px',
-            }}>
-              {planLabel}
-            </span>
-          </div>
-          <div style={{
-            height: 4, background: 'rgba(255,255,255,0.14)',
-            borderRadius: 99, margin: '14px 0 10px',
-          }}>
-            <div style={{
-              height: '100%', width: `${pct}%`,
-              background: 'var(--m-credits-fill)', borderRadius: 99,
-            }} />
-          </div>
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          }}>
-            <span style={{ fontSize: 11.5, color: '#B5B29E' }}>
-              Resets {resetLabel} · {monthly.toLocaleString()}/mo allocation
-            </span>
-            <Link href="/settings/billing" data-press style={{
-              fontSize: 12, fontWeight: 600, color: '#fff',
-              textDecoration: 'underline', textUnderlineOffset: 3,
-            }}>
-              Upgrade
+              <div className="mx-prog"><i /></div>
+              <div className="mx-mono">Started {timeAgo(item.created_at)}</div>
             </Link>
-          </div>
+          ))}
         </div>
       )}
 
-      {/* Start creating */}
-      <div style={{
-        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-        marginBottom: 10,
-      }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600 }}>Start creating</div>
-        <span style={{
-          fontSize: 11, color: 'var(--m-mute-2)', whiteSpace: 'nowrap',
-        }}>
-          Costs shown per run
-        </span>
+      <div className="mx-sec">
+        <span className="mx-mono">Make something</span>
+        <span className="mx-mono">Cost per run</span>
       </div>
-      <div data-grid="keep" style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10,
-        marginBottom: 20,
-      }}>
-        {CREATE_TILES.map(t => (
-          <Link key={t.href} href={t.href} data-press style={{
-            background: 'var(--m-card)',
-            border: '1px solid var(--m-border)',
-            borderRadius: 8, padding: 14, minHeight: 104,
-            display: 'flex', flexDirection: 'column',
-            cursor: 'pointer',
-            boxShadow: '0 2px 10px rgba(30,26,16,0.04)',
-            textDecoration: 'none', color: 'var(--m-ink)',
-          }}>
-            <div style={{ marginBottom: 10 }}><OptionIcon name={t.icon} tint={t.tint} size={30} /></div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, marginBottom: 2 }}>
-              {t.label}
-            </div>
-            <div style={{ fontSize: 11, color: 'var(--m-mute)', lineHeight: 1.4 }}>
-              {t.sub}
-            </div>
-            <div style={{
-              marginTop: 'auto', paddingTop: 8,
-              fontFamily: 'var(--m-mono)', fontSize: 10.5,
-              fontWeight: 600, color: 'var(--ink-dim)', whiteSpace: 'nowrap',
-            }}>
-              {t.cost}
-            </div>
+      <div data-grid="keep" className="mx-tiles">
+        {CREATE_TILES.map((t, i) => (
+          <Link key={t.href} href={t.href} data-press className="mx-tile" style={{ ['--stock' as string]: STOCKS[i % STOCKS.length] }}>
+            <ArrowUpRight className="mx-tile-arrow" size={14} strokeWidth={2.2} aria-hidden />
+            {i === 0 ? <span className="mx-flag">Flagship</span> : <OptionIcon name={t.icon} tint="transparent" size={26} />}
+            <span>
+              <b>{t.label}</b>
+              <span className="mx-mono mx-tile-cost">{t.cost}</span>
+            </span>
           </Link>
         ))}
       </div>
 
-      {/* Recent */}
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        marginBottom: 10,
-      }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600 }}>Recent</div>
-        <Link href="/library" style={{
-          fontSize: 12, color: 'var(--m-mute)', textDecoration: 'none',
-          whiteSpace: 'nowrap',
-        }}>
-          Library →
-        </Link>
+      <div className="mx-sec">
+        <span className="mx-mono">Recent</span>
+        <Link href="/library" className="mx-mono mx-link">See all</Link>
       </div>
       {recentLoading ? (
-        <div className="m-noscroll" style={{
-          display: 'flex', gap: 10, overflowX: 'auto',
-          margin: '0 -18px', padding: '0 18px 4px',
-        }}>
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} style={{
-              flexShrink: 0, width: 112,
-            }}>
-              <div style={{
-                height: 140, borderRadius: 8,
-                background: 'var(--m-surface-3)',
-                animation: 'cf-m-pulse 1.4s ease-in-out infinite',
-                animationDelay: `${i * 0.1}s`,
-                marginBottom: 6,
-              }} />
-              <div style={{ height: 12, width: '70%', background: 'var(--m-surface-3)', borderRadius: 4, marginBottom: 4 }} />
-              <div style={{ height: 10, width: '45%', background: 'var(--m-surface-3)', borderRadius: 4 }} />
-            </div>
-          ))}
-          <style>{`
-            @keyframes cf-m-pulse {
-              0%, 100% { opacity: 0.55; }
-              50% { opacity: 0.85; }
-            }
-          `}</style>
+        <div className="mx-posters m-noscroll">
+          {[0, 1, 2, 3].map(i => <div key={i} className="mx-poster"><div className="mx-poster-im mx-skel" /></div>)}
         </div>
-      ) : recentItems.length === 0 ? (
-        <div style={{
-          padding: 22, borderRadius: 8,
-          border: `1.5px dashed var(--m-border-2)`,
-          textAlign: 'center', color: 'var(--m-mute-2)',
-          fontSize: 12.5,
-        }}>
-          Nothing here yet. Tap Create above to make your first asset.
-        </div>
+      ) : done.length === 0 ? (
+        <div className="mx-empty">Nothing here yet. Tap Create to make your first asset.</div>
       ) : (
-        <div className="m-noscroll" style={{
-          display: 'flex', gap: 10, overflowX: 'auto',
-          margin: '0 -18px', padding: '0 18px 4px',
-        }}>
-          {recentItems.map(item => (
-            <Link
-              key={item.id}
-              href={`/library?id=${item.id}`}
-              data-press
-              style={{
-                flexShrink: 0, width: 112,
-                textDecoration: 'none', color: 'var(--m-ink)',
-              }}
-            >
-              <div style={{
-                height: 140, borderRadius: 8,
-                background: 'var(--m-surface-3)',
-                display: 'grid', placeItems: 'center',
-                fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em',
-                color: 'var(--m-mute-3)',
-                fontFamily: 'var(--m-mono)',
-                overflow: 'hidden', position: 'relative',
-                marginBottom: 6,
-              }}>
+        <div className="mx-posters m-noscroll">
+          {done.map((item, i) => (
+            <Link key={item.id} href={`/library?id=${item.id}`} data-press className="mx-poster">
+              <div className="mx-poster-im" style={{ ['--stock' as string]: STOCKS[i % STOCKS.length] }}>
                 {item.metadata?.image ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={item.metadata.image} alt="" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <img src={item.metadata.image} alt="" />
                 ) : item.metadata?.video ? (
-                  <video src={item.metadata.video} muted playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  contentTypeLabel(item.content_type)
-                )}
+                  <video src={item.metadata.video} muted playsInline />
+                ) : null}
+                <span className="mx-tag">{contentTypeLabel(item.content_type)}</span>
+                {item.metadata?.video && <span className="mx-play"><i><Play size={9} fill="currentColor" aria-hidden /></i></span>}
               </div>
-              <div style={{
-                fontSize: 11.5, fontWeight: 600,
-                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-              }}>
-                {item.metadata?.productName ?? item.content_type.replace(/_/g, ' ')}
-              </div>
-              <div style={{ fontSize: 10.5, color: 'var(--m-mute-2)' }}>
-                {timeAgo(item.created_at)}
-              </div>
+              <span className="mx-poster-name">{item.metadata?.productName ?? item.content_type.replace(/_/g, ' ')}</span>
+              <span className="mx-mono">{timeAgo(item.created_at)}</span>
             </Link>
           ))}
         </div>
