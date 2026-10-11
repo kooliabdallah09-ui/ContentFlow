@@ -713,18 +713,18 @@ export default function InfluencersPage() {
         </button>
 
         {/* Identity card — horizontal 16:9-ish banner across the top */}
-        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)', marginBottom: 20 }}>
+        <div className="inf-identity" style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)', marginBottom: 20 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={selected.portrait_url} alt={selected.name} style={{ width: 220, minHeight: 250, objectFit: 'cover', display: 'block', flexShrink: 0 }} />
-          <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
+          <img className="inf-identity-img" src={selected.portrait_url} alt={selected.name} style={{ width: 220, minHeight: 250, objectFit: 'cover', display: 'block', flexShrink: 0 }} />
+          <div className="inf-identity-body" style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26 }}>{selected.name}</span>
+              <span className="inf-identity-name" style={{ fontFamily: 'var(--font-serif)', fontSize: 26 }}>{selected.name}</span>
               {selected.handle && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--ink-dim)' }}>{selected.handle}</span>}
             </div>
             {selected.niche && <div style={{ fontSize: 11.5, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{selected.niche}</div>}
-            {selected.bio && <p style={{ fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1.55, margin: '4px 0 0' }}>{selected.bio}</p>}
-            {selected.personality && <p style={{ fontSize: 12.5, color: 'var(--ink-mute)', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>{selected.personality}</p>}
-            <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
+            {selected.bio && <p className="inf-identity-bio" style={{ fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1.55, margin: '4px 0 0' }}>{selected.bio}</p>}
+            {selected.personality && <p className="inf-identity-personality" style={{ fontSize: 12.5, color: 'var(--ink-mute)', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>{selected.personality}</p>}
+            <div className="inf-identity-actions" style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 12, flexWrap: 'wrap', alignItems: 'center' }}>
               <button onClick={useInUgc} disabled={bridging} className="btn btn-primary" style={{ padding: '10px 18px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 {bridging ? <Loader2 size={14} className="animate-spin" /> : <Clapperboard size={14} />} Use in UGC
               </button>
@@ -782,7 +782,7 @@ export default function InfluencersPage() {
                center-safe for portraits. Previously used CSS columns
                masonry, but that leaves visible gaps when column
                heights don't match (e.g. 7 items in a 4-col layout). */
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
+            <div className="inf-gallery-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
               {photos.map(p => (
                 <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene, photoId: p.id }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', aspectRatio: '4 / 5', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}

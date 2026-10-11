@@ -1503,6 +1503,25 @@ img, video, svg { max-width: 100%; }
   }
 }
 
+/* Influencer detail on phones: compact identity card, 2-col gallery,
+   and a composer that only shows prompt + Shoot until Options is opened. */
+@media (max-width: 640px) {
+  .inf-identity { flex-wrap: wrap; }
+  .inf-identity-img { width: 112px !important; min-height: 140px !important; height: 140px; }
+  .inf-identity-body { padding: 12px 14px !important; flex: 1 1 0 !important; }
+  .inf-identity-name { font-size: 20px !important; }
+  .inf-identity-bio {
+    display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .inf-identity-personality { display: none; }
+  .inf-identity-actions {
+    flex-basis: 100%; padding-top: 4px !important; gap: 8px !important;
+  }
+  .inf-identity-body .inf-identity-actions { margin-top: 8px !important; }
+  .inf-gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 8px !important; }
+  .studio-composer[data-options-open="false"] .ps-controls-row { display: none !important; }
+}
+
 /* Composer options toggle — visible on all screen sizes */
 .studio-options-toggle {
   display: flex;
