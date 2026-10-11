@@ -108,8 +108,8 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
         onClick={() => router.push('/settings/billing')}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
-          background: '#F1E6C9', border: '1px solid #E4D2A0',
-          borderRadius: 99, padding: '5px 12px 5px 9px',
+          background: 'var(--rail-soft)', border: '1px solid var(--border-strong)',
+          borderRadius: 4, padding: '5px 12px 5px 9px',
           cursor: 'pointer', flexShrink: 0,
         }}
       >
@@ -146,7 +146,7 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
           <div style={{
             position: 'absolute', top: '100%', right: 0, marginTop: 8,
             minWidth: 180, background: 'var(--surface)', border: '1px solid var(--border)',
-            borderRadius: 13, boxShadow: 'var(--shadow-md)', overflow: 'hidden',
+            borderRadius: 8, boxShadow: 'var(--shadow-md)', overflow: 'hidden',
             zIndex: 100,
           }}>
             <button onClick={() => { setMenuOpen(false); router.push('/settings/account') }} style={menuItem}>Account</button>

@@ -328,7 +328,7 @@ function StatusPill({ status }: { status: JobState['status'] }) {
   }
   const { label, color, bg } = map[status]
   return (
-    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color, background: bg, borderRadius: 99, padding: '4px 10px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+    <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color, background: bg, borderRadius: 4, padding: '4px 10px', whiteSpace: 'nowrap', flexShrink: 0 }}>
       {label}
     </span>
   )

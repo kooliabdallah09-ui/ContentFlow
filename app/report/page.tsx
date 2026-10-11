@@ -59,8 +59,8 @@ export default function ReportPage() {
       </p>
 
       {state === 'sent' ? (
-        <div style={{ padding: 24, border: '1px solid #16a34a', borderRadius: 12, background: '#f0fdf4' }}>
-          <div style={{ fontWeight: 700, color: '#166534', marginBottom: 6 }}>Report received</div>
+        <div style={{ padding: 24, border: '1px solid var(--good)', borderRadius: 6, background: 'var(--good-soft)' }}>
+          <div style={{ fontWeight: 700, color: 'var(--good)', marginBottom: 6 }}>Report received</div>
           <p style={{ margin: 0, fontSize: 13.5, color: '#15803d' }}>Thanks — a moderator will review it within 24 hours. If we need more information we&apos;ll email you at the address you provided (optional).</p>
         </div>
       ) : (
@@ -88,10 +88,10 @@ export default function ReportPage() {
             <input type="email" value={reporterEmail} onChange={e => setReporterEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
           </label>
 
-          {errorMsg && <div style={{ fontSize: 13, color: '#b91c1c' }}>{errorMsg}</div>}
+          {errorMsg && <div style={{ fontSize: 13, color: 'var(--danger)' }}>{errorMsg}</div>}
 
           <button type="submit" disabled={state === 'sending'} style={{
-            padding: '13px 22px', borderRadius: 10, border: 'none',
+            padding: '13px 22px', borderRadius: 6, border: 'none',
             background: 'var(--ink)', color: 'var(--on-ink, #fff)',
             fontWeight: 600, fontSize: 14, cursor: 'pointer',
             opacity: state === 'sending' ? 0.5 : 1,
@@ -105,7 +105,7 @@ export default function ReportPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  padding: '10px 14px', borderRadius: 8,
+  padding: '10px 14px', borderRadius: 5,
   border: '1px solid var(--border)',
   background: 'var(--surface)',
   color: 'var(--ink)',

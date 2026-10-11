@@ -71,7 +71,7 @@ export function BottomNav() {
             data-press
             aria-label="Create"
             style={{
-              width: 46, height: 46, borderRadius: 16,
+              width: 46, height: 46, borderRadius: 5,
               background: 'var(--m-ink)',
               color: '#fff',
               fontSize: 26, fontWeight: 300, lineHeight: 1,
@@ -106,7 +106,7 @@ export function BottomNav() {
                 width: '100%', padding: '13px 14px',
                 background: 'var(--m-card)',
                 border: '1px solid var(--m-border)',
-                borderRadius: 14,
+                borderRadius: 5,
                 cursor: 'pointer', textAlign: 'left',
                 fontFamily: 'var(--m-sans)', color: 'var(--m-ink)',
               }}
@@ -118,8 +118,8 @@ export function BottomNav() {
               </div>
               <span style={{
                 fontFamily: 'var(--m-mono)', fontSize: 11,
-                fontWeight: 600, color: '#8A6420',
-                background: '#F6EEDA', borderRadius: 99, padding: '4px 9px',
+                fontWeight: 600, color: 'var(--ink-dim)',
+                background: '#F6EEDA', borderRadius: 4, padding: '4px 9px',
                 whiteSpace: 'nowrap',
               }}>
                 {o.cost}
@@ -173,7 +173,7 @@ export function OptionIcon({ name, tint, size = 34 }: { name: keyof typeof Icon;
   return (
     <div style={{
       width: size, height: size, borderRadius: size * 0.3, background: tint, flexShrink: 0,
-      display: 'grid', placeItems: 'center', color: 'var(--m-ink)',
+      display: 'grid', placeItems: 'center', color: '#17203A',
     }}>
       <Glyph width={size * 0.53} height={size * 0.53} aria-hidden />
     </div>

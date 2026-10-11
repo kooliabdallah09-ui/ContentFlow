@@ -295,7 +295,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
             className="td-drop"
             style={{
               position: 'relative', display: 'block', cursor: 'pointer',
-              borderRadius: 22, overflow: 'hidden',
+              borderRadius: 8, overflow: 'hidden',
               border: `1.5px dashed ${dragging ? ACCENT : 'var(--border)'}`,
               background: 'var(--surface)',
               transform: dragging ? 'scale(1.01)' : 'none',
@@ -337,7 +337,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
               </div>
 
               <span style={{
-                display: 'inline-block', padding: '12px 26px', borderRadius: 11,
+                display: 'inline-block', padding: '12px 26px', borderRadius: 6,
                 background: ACCENT, color: '#fff', fontSize: 14, fontWeight: 600,
               }}>
                 Choose a video
@@ -351,7 +351,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
                   <span key={t} style={{
                     fontSize: 11.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em',
                     color: 'var(--ink-mute)', border: '1px solid var(--border)',
-                    borderRadius: 999, padding: '5px 12px', background: 'var(--bg)',
+                    borderRadius: 4, padding: '5px 12px', background: 'var(--bg)',
                   }}>{t}</span>
                 ))}
               </div>
@@ -369,10 +369,10 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
       {/* ── Stage 2: loaded / analyzing ─────────────────────────── */}
       {file && !result && (
         <div style={{
-          border: '1px solid var(--border)', borderRadius: 22, background: 'var(--surface)',
+          border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)',
           padding: 24, display: 'grid', gridTemplateColumns: '240px 1fr', gap: 26,
         }} className="td-stage">
-          <div style={{ position: 'relative', borderRadius: 14, overflow: 'hidden', background: '#000', aspectRatio: '9 / 16' }}>
+          <div style={{ position: 'relative', borderRadius: 8, overflow: 'hidden', background: '#000', aspectRatio: '9 / 16' }}>
             <video
               ref={videoRef}
               src={previewUrl ?? undefined}
@@ -432,13 +432,13 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
             ) : (
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button onClick={analyze} disabled={!duration} style={{
-                  padding: '13px 26px', borderRadius: 11, background: ACCENT, color: '#fff',
+                  padding: '13px 26px', borderRadius: 6, background: ACCENT, color: '#fff',
                   border: 'none', fontSize: 14, fontWeight: 600, cursor: duration ? 'pointer' : 'wait',
                 }}>
                   Tear it down →
                 </button>
                 <button onClick={reset} style={{
-                  padding: '13px 18px', borderRadius: 11, background: 'transparent',
+                  padding: '13px 18px', borderRadius: 6, background: 'transparent',
                   border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 13.5, cursor: 'pointer',
                 }}>
                   Replace
@@ -475,7 +475,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* hook as editorial pull-quote */}
           <div style={{
-            position: 'relative', borderRadius: 22, overflow: 'hidden',
+            position: 'relative', borderRadius: 8, overflow: 'hidden',
             border: '1px solid var(--border)', background: 'var(--surface)', padding: '34px 34px 30px',
           }}>
             <div style={{
@@ -497,7 +497,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
               </div>
               <button onClick={reset} style={{
                 flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'transparent', border: '1px solid var(--border)', borderRadius: 9,
+                background: 'transparent', border: '1px solid var(--border)', borderRadius: 5,
                 padding: '7px 13px', fontSize: 12.5, cursor: 'pointer', color: 'var(--ink)',
               }}>
                 <RotateCcw size={12} /> New
@@ -548,7 +548,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
 
           {/* anatomy timeline + who/where */}
           <div style={{ display: 'grid', gridTemplateColumns: '1.35fr 1fr', gap: 16 }} className="td-split">
-            <div style={{ border: '1px solid var(--border)', borderRadius: 22, background: 'var(--surface)', padding: 28 }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: 28 }}>
               <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', color: 'var(--ink-fade)', textTransform: 'uppercase', marginBottom: 20 }}>
                 Anatomy · {result.breakdown.beats.length} beats
               </div>
@@ -587,7 +587,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
 
           {/* frames read */}
           {frames.length > 0 && (
-            <div style={{ border: '1px solid var(--border)', borderRadius: 22, background: 'var(--surface)', padding: 24 }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: 24 }}>
               <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', color: 'var(--ink-fade)', textTransform: 'uppercase', marginBottom: 14 }}>
                 What we looked at
               </div>
@@ -597,7 +597,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
                     <img
                       src={`data:image/jpeg;base64,${f.base64}`}
                       alt=""
-                      style={{ height: 104, borderRadius: 8, border: '1px solid var(--border)', display: 'block' }}
+                      style={{ height: 104, borderRadius: 5, border: '1px solid var(--border)', display: 'block' }}
                     />
                     <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-fade)', marginTop: 5 }}>
                       {f.timeSeconds.toFixed(1)}s
@@ -609,14 +609,14 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
           )}
 
           {/* prompt */}
-          <div style={{ border: '1px solid var(--border)', borderRadius: 22, background: 'var(--surface)', padding: 28 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: 28 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, gap: 12 }}>
               <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', color: 'var(--ink-fade)', textTransform: 'uppercase' }}>
                 Your rebuild prompt
               </div>
               <button onClick={copyPrompt} style={{
                 display: 'inline-flex', alignItems: 'center', gap: 6,
-                background: 'transparent', border: '1px solid var(--border)', borderRadius: 8,
+                background: 'transparent', border: '1px solid var(--border)', borderRadius: 5,
                 padding: '6px 12px', fontSize: 12, cursor: 'pointer',
                 color: copied ? ACCENT : 'var(--ink)',
               }}>
@@ -632,7 +632,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
               onChange={e => setEditablePrompt(e.target.value)}
               rows={7}
               style={{
-                width: '100%', boxSizing: 'border-box', padding: 16, borderRadius: 13,
+                width: '100%', boxSizing: 'border-box', padding: 16, borderRadius: 8,
                 border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)',
                 fontSize: 13, fontFamily: 'var(--font-mono)', lineHeight: 1.65, resize: 'vertical',
               }}
@@ -642,13 +642,13 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
           {/* captions — real, or locked */}
           {result.captionsLocked ? (
             <div style={{
-              position: 'relative', border: `1px solid var(--border)`, borderRadius: 22,
+              position: 'relative', border: `1px solid var(--border)`, borderRadius: 8,
               background: 'var(--surface)', padding: 28, overflow: 'hidden',
             }}>
               {/* blurred teaser rows behind the lock */}
               <div aria-hidden style={{ filter: 'blur(6px)', opacity: 0.4, pointerEvents: 'none', userSelect: 'none' }}>
                 {[['0.0s – 1.2s', 'okay so I never post this'], ['1.2s – 2.6s', 'but this thing actually'], ['2.6s – 4.1s', 'changed how my skin looks']].map(([t, s]) => (
-                  <div key={t} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 6 }}>
+                  <div key={t} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 6, marginBottom: 6 }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--ink-mute)' }}>{t}</span>
                     <span style={{ fontSize: 13 }}>{s}</span>
                   </div>
@@ -660,7 +660,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
                 background: 'color-mix(in srgb, var(--surface) 72%, transparent)',
               }}>
                 <div style={{
-                  width: 38, height: 38, borderRadius: 11, marginBottom: 12,
+                  width: 38, height: 38, borderRadius: 6, marginBottom: 12,
                   background: 'var(--bg)', border: '1px solid var(--border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}>
@@ -674,7 +674,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
                   Free account, 30 credits, no card.
                 </p>
                 <Link href={`/auth/signup?next=${encodeURIComponent(signupNext)}`} style={{
-                  padding: '11px 22px', borderRadius: 11, background: ACCENT, color: '#fff',
+                  padding: '11px 22px', borderRadius: 6, background: ACCENT, color: '#fff',
                   textDecoration: 'none', fontSize: 13.5, fontWeight: 600,
                 }}>
                   Unlock the transcript →
@@ -682,7 +682,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
               </div>
             </div>
           ) : (
-            <div style={{ border: '1px solid var(--border)', borderRadius: 22, background: 'var(--surface)', padding: 28 }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: 28 }}>
               <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', color: 'var(--ink-fade)', textTransform: 'uppercase', marginBottom: 14 }}>
                 Transcript · {result.captions.length} lines
               </div>
@@ -691,7 +691,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 280, overflowY: 'auto' }}>
                   {result.captions.map((c, i) => (
-                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 10 }}>
+                    <div key={i} style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 12, padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 6 }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--ink-mute)' }}>
                         {c.start.toFixed(1)}s – {c.end.toFixed(1)}s
                       </span>
@@ -705,7 +705,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
 
           {/* closing CTA */}
           <div style={{
-            border: '1px solid var(--border)', borderRadius: 22, padding: '30px 28px',
+            border: '1px solid var(--border)', borderRadius: 8, padding: '30px 28px',
             background: 'var(--surface)', textAlign: 'center', position: 'relative', overflow: 'hidden',
           }}>
             <div style={{
@@ -722,7 +722,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
               </p>
               <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
                 <button onClick={useForUGC} style={{
-                  padding: '14px 30px', borderRadius: 12, background: ACCENT, color: '#fff',
+                  padding: '14px 30px', borderRadius: 6, background: ACCENT, color: '#fff',
                   border: 'none', fontSize: 14.5, fontWeight: 600, cursor: 'pointer',
                 }}>
                   {signedIn ? 'Build this ad for my product →' : 'Build this for my product — free →'}
@@ -733,7 +733,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
                     disabled={watchSaving || watchSaved}
                     title="Track how long this ad keeps running — the longer it survives, the better it's working"
                     style={{
-                      padding: '14px 24px', borderRadius: 12,
+                      padding: '14px 24px', borderRadius: 6,
                       background: 'transparent', border: '1px solid var(--border)',
                       color: watchSaved ? 'var(--ink-mute)' : 'var(--ink)',
                       fontSize: 14, fontWeight: 600,
@@ -800,7 +800,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
 
 function StatTile({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', padding: '16px 18px' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: '16px 18px' }}>
       <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', color: 'var(--ink-fade)', textTransform: 'uppercase' }}>
         {label}
       </div>
@@ -811,7 +811,7 @@ function StatTile({ label, children }: { label: string; children: React.ReactNod
 
 function DetailCard({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ border: '1px solid var(--border)', borderRadius: 18, background: 'var(--surface)', padding: 24, flex: 1 }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: 24, flex: 1 }}>
       <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.12em', color: 'var(--ink-fade)', textTransform: 'uppercase', marginBottom: 10 }}>
         {label}
       </div>

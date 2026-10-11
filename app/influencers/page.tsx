@@ -52,14 +52,14 @@ const traitLabel: CSSProperties = {
   color: 'var(--ink-2)', marginBottom: 8,
 }
 const traitInput: CSSProperties = {
-  width: '100%', padding: '9px 12px', borderRadius: 9,
+  width: '100%', padding: '9px 12px', borderRadius: 5,
   border: '1px solid var(--border)', background: 'var(--bg)',
   color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none',
   boxSizing: 'border-box',
 }
 const chip = (active: boolean): CSSProperties => ({
   display: 'inline-flex', alignItems: 'center',
-  padding: '7px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
+  padding: '7px 13px', borderRadius: 4, fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
   border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
   background: active ? 'var(--ink)' : 'var(--surface)',
   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -656,7 +656,7 @@ export default function InfluencersPage() {
       {typeof document !== 'undefined' && regenMenuAnchor && createPortal(
         <div
           id="influencer-detail-popover"
-          style={{ position: 'fixed', top: regenMenuAnchor.bottom + 4, left: regenMenuAnchor.left, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 12px 40px rgba(0,0,0,0.22)', overflow: 'hidden', minWidth: 260 }}
+          style={{ position: 'fixed', top: regenMenuAnchor.bottom + 4, left: regenMenuAnchor.left, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 5, boxShadow: '0 12px 40px rgba(0,0,0,0.22)', overflow: 'hidden', minWidth: 260 }}
         >
           <div style={{ padding: '10px 12px 8px' }}>
             <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginBottom: 6 }}>Optional tweak before regenerating</div>
@@ -691,7 +691,7 @@ export default function InfluencersPage() {
       {typeof document !== 'undefined' && sheetMenuAnchor && createPortal(
         <div
           id="influencer-detail-popover"
-          style={{ position: 'fixed', top: sheetMenuAnchor.bottom + 4, left: sheetMenuAnchor.left, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 9, boxShadow: '0 12px 40px rgba(0,0,0,0.22)', overflow: 'hidden', minWidth: 240 }}
+          style={{ position: 'fixed', top: sheetMenuAnchor.bottom + 4, left: sheetMenuAnchor.left, zIndex: 200, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 5, boxShadow: '0 12px 40px rgba(0,0,0,0.22)', overflow: 'hidden', minWidth: 240 }}
         >
           <div style={{ padding: '8px 14px 4px', fontSize: 10.5, fontWeight: 700, color: 'var(--ink-mute)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Lifestyle mood board</div>
           <button onClick={() => generateSheet('4K', 'lifestyle')} style={{ width: '100%', textAlign: 'left', padding: '8px 14px 10px', fontSize: 12.5, background: 'transparent', border: 'none', color: 'var(--ink-2)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -713,7 +713,7 @@ export default function InfluencersPage() {
         </button>
 
         {/* Identity card — horizontal 16:9-ish banner across the top */}
-        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', marginBottom: 20 }}>
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)', marginBottom: 20 }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={selected.portrait_url} alt={selected.name} style={{ width: 220, minHeight: 250, objectFit: 'cover', display: 'block', flexShrink: 0 }} />
           <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0, flex: 1 }}>
@@ -740,19 +740,19 @@ export default function InfluencersPage() {
                 }}
                 disabled={regenerating}
                 title="Rewrite the appearance with the current visual guidelines and pick a fresh portrait"
-                style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 5, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
               >
                 {regenerating ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Regenerate look <span style={{ opacity: 0.6, fontSize: 10 }}>▾</span>
               </button>
               {selected.character_sheet_url ? (
                 <>
-                  <button onClick={() => { setLightbox({ url: selected.character_sheet_url!, label: 'Character sheet' }); setLightboxZoom(false) }} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-2)', cursor: 'pointer' }}>
+                  <button onClick={() => { setLightbox({ url: selected.character_sheet_url!, label: 'Character sheet' }); setLightboxZoom(false) }} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 5, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-2)', cursor: 'pointer' }}>
                     View character sheet
                   </button>
                   <button
                     onClick={() => generateSheet('4K')}
                     disabled={sheetLoading}
-                    style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                    style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 5, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   >
                     {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : null} Regenerate sheet <span style={{ opacity: 0.6, fontSize: 10 }}>4K · 14 cr</span>
                   </button>
@@ -761,12 +761,12 @@ export default function InfluencersPage() {
                 <button
                   onClick={() => generateSheet('4K')}
                   disabled={sheetLoading}
-                  style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 5, background: 'transparent', border: '1px dashed var(--border)', color: 'var(--ink-2)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                 >
                   {sheetLoading ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />} Generate character sheet <span style={{ opacity: 0.6, fontSize: 10 }}>4K · 14 cr</span>
                 </button>
               )}
-              <button onClick={remove} disabled={deleting} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 9, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+              <button onClick={remove} disabled={deleting} style={{ padding: '9px 14px', fontSize: 12.5, borderRadius: 5, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
                 <Trash2 size={13} /> Delete
               </button>
             </div>
@@ -784,21 +784,21 @@ export default function InfluencersPage() {
                heights don't match (e.g. 7 items in a 4-col layout). */
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
               {photos.map(p => (
-                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene, photoId: p.id }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', aspectRatio: '4 / 5', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
+                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.scene, photoId: p.id }); setLightboxZoom(false) }} title={p.scene} style={{ display: 'block', width: '100%', aspectRatio: '4 / 5', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image_url} alt={p.scene} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'cover' }} />
                 </button>
               ))}
             </div>
           ) : (
-            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13.5, border: '1px dashed var(--border)', borderRadius: 14 }}>
+            <div style={{ padding: '60px 20px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13.5, border: '1px dashed var(--border)', borderRadius: 8 }}>
               No photos yet — describe a scene below and hit Shoot.
             </div>
           )}
         </div>
 
         {/* Composer — pinned at the bottom like a chat input */}
-        <div className="studio-composer" data-options-open={mobileOptionsOpen ? 'true' : 'false'} style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+        <div className="studio-composer" data-options-open={mobileOptionsOpen ? 'true' : 'false'} style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
           <div className="studio-options">
           {studioProducts.length > 0 && (
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 10 }}>
@@ -816,7 +816,7 @@ export default function InfluencersPage() {
                     key={sp.id}
                     onClick={() => setShootProductId(active ? undefined : sp.id)}
                     title={sp.name}
-                    style={{ width: 40, height: 40, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', flexShrink: 0 }}
+                    style={{ width: 40, height: 40, borderRadius: 5, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', flexShrink: 0 }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -871,7 +871,7 @@ export default function InfluencersPage() {
                     key={s.id}
                     onClick={() => setShootSceneId(active ? undefined : s.id)}
                     title={s.name}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0, borderRadius: 10, overflow: 'hidden', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', cursor: 'pointer', flexShrink: 0 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0, borderRadius: 6, overflow: 'hidden', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', cursor: 'pointer', flexShrink: 0 }}
                   >
                     {s.hero_image_url && (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -886,7 +886,7 @@ export default function InfluencersPage() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
             {SCENE_PRESETS.map(p => (
               <button key={p} onClick={() => { setScene(p); setShootSceneId(undefined) }} style={{
-                padding: '5px 11px', borderRadius: 999, fontSize: 11.5, cursor: 'pointer',
+                padding: '5px 11px', borderRadius: 4, fontSize: 11.5, cursor: 'pointer',
                 border: `1px solid ${scene === p ? 'var(--ink)' : 'var(--border)'}`,
                 background: scene === p ? 'var(--surface-2)' : 'var(--surface)',
                 color: 'var(--ink-2)',
@@ -939,7 +939,7 @@ export default function InfluencersPage() {
                   <button onClick={() => document.getElementById('sceneRefInput')?.click()}
                     title="Attach an outfit, product, or location photo to include in the shots — drag & drop works too"
                     {...sceneImagesDrop.dropzoneProps}
-                    style={{ width: 44, height: 44, borderRadius: 9, border: `1.5px dashed ${sceneImagesDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: sceneImagesDrop.isDragging ? 'var(--hover)' : 'var(--surface-2, var(--surface))', color: sceneImagesDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 120ms, border-color 120ms, color 120ms' }}>
+                    style={{ width: 44, height: 44, borderRadius: 5, border: `1.5px dashed ${sceneImagesDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: sceneImagesDrop.isDragging ? 'var(--hover)' : 'var(--surface-2, var(--surface))', color: sceneImagesDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 120ms, border-color 120ms, color 120ms' }}>
                     <ImagePlus size={16} />
                   </button>
                 </>
@@ -983,7 +983,7 @@ export default function InfluencersPage() {
                 return (
                   <button key={r.id} onClick={() => setRatio(r.id)} title={r.id} style={{
                     display: 'inline-flex', alignItems: 'center', gap: 7,
-                    padding: '6px 11px', borderRadius: 9, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+                    padding: '6px 11px', borderRadius: 5, fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'var(--surface)',
                     color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -997,7 +997,7 @@ export default function InfluencersPage() {
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
               {[1, 2, 3, 4].map(n => (
                 <button key={n} onClick={() => setShotCount(n)} style={{
-                  width: 30, height: 30, borderRadius: 8, fontSize: 12.5, cursor: 'pointer',
+                  width: 30, height: 30, borderRadius: 5, fontSize: 12.5, cursor: 'pointer',
                   border: `1px solid ${shotCount === n ? 'var(--ink)' : 'var(--border)'}`,
                   background: shotCount === n ? 'var(--ink)' : 'var(--surface)',
                   color: shotCount === n ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -1024,7 +1024,7 @@ export default function InfluencersPage() {
             <div
               onClick={e => e.stopPropagation()}
               style={lightboxZoom
-                ? { maxWidth: '92vw', maxHeight: '82vh', overflow: 'auto', borderRadius: 12, cursor: 'zoom-out' }
+                ? { maxWidth: '92vw', maxHeight: '82vh', overflow: 'auto', borderRadius: 6, cursor: 'zoom-out' }
                 : { display: 'contents' }}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1034,7 +1034,7 @@ export default function InfluencersPage() {
                 onClick={e => { e.stopPropagation(); setLightboxZoom(z => !z) }}
                 style={lightboxZoom
                   ? { display: 'block', maxWidth: 'none', maxHeight: 'none', width: 'auto', cursor: 'zoom-out' }
-                  : { maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 12, cursor: 'zoom-in' }}
+                  : { maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 6, cursor: 'zoom-in' }}
               />
             </div>
             <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, cursor: 'default' }}>
@@ -1050,7 +1050,7 @@ export default function InfluencersPage() {
                     a.click()
                   } catch { window.open(lightbox.url, '_blank') }
                 }}
-                style={{ padding: '8px 16px', borderRadius: 9, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 5, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
               >
                 Download
               </button>
@@ -1058,7 +1058,7 @@ export default function InfluencersPage() {
                 <button
                   onClick={() => removePhoto(lightbox.photoId!)}
                   disabled={removingPhoto}
-                  style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,120,120,0.55)', color: 'rgba(255,150,150,0.95)', fontSize: 12.5, fontWeight: 600, cursor: removingPhoto ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  style={{ padding: '8px 16px', borderRadius: 5, background: 'transparent', border: '1px solid rgba(255,120,120,0.55)', color: 'rgba(255,150,150,0.95)', fontSize: 12.5, fontWeight: 600, cursor: removingPhoto ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   title="Remove this photo permanently"
                 >
                   <Trash2 size={13} /> {removingPhoto ? 'Removing…' : 'Remove'}
@@ -1066,7 +1066,7 @@ export default function InfluencersPage() {
               )}
               <button
                 onClick={() => setLightbox(null)}
-                style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)', fontSize: 12.5, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 5, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)', fontSize: 12.5, cursor: 'pointer' }}
               >
                 Close
               </button>
@@ -1079,14 +1079,14 @@ export default function InfluencersPage() {
             modal below, and Regenerate Look is triggered from THIS view. */}
         {candidates.length > 0 && candidateIdentity && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-            <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 980, width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
+            <div style={{ background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', padding: 24, maxWidth: 980, width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
                 <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26 }}>{candidateIdentity.name}</span>
                 {candidateIdentity.handle && <span style={{ fontSize: 12.5, color: 'var(--ink-mute)' }}>{candidateIdentity.handle}</span>}
                 <button
                   onClick={cancelCandidates}
                   disabled={pickingCandidate}
-                  style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}
+                  style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', padding: '6px 12px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}
                 >Discard</button>
               </div>
               <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: '0 0 18px' }}>
@@ -1099,7 +1099,7 @@ export default function InfluencersPage() {
                     onClick={() => chooseCandidate(c.url)}
                     disabled={pickingCandidate}
                     title={`Pick this look (${c.vibe})`}
-                    style={{ padding: 0, background: 'var(--surface-2, var(--surface))', border: '2px solid var(--border)', borderRadius: 14, cursor: pickingCandidate ? 'wait' : 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'transform 120ms, border-color 120ms' }}
+                    style={{ padding: 0, background: 'var(--surface-2, var(--surface))', border: '2px solid var(--border)', borderRadius: 8, cursor: pickingCandidate ? 'wait' : 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'transform 120ms, border-color 120ms' }}
                     onMouseEnter={e => { if (!pickingCandidate) { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.transform = 'translateY(-2px)' } }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
                   >
@@ -1152,7 +1152,7 @@ export default function InfluencersPage() {
         <div style={{ position: 'relative', width: 90, height: 90, marginBottom: 52, flexShrink: 0 }}>
           <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(255,255,255,.1)', animation: 'cf-pulse-ring 3s ease-in-out infinite' }} />
           <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 8, height: 8, borderRadius: '50%', background: '#fff', opacity: .85 }} />
-          <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -4, marginLeft: -4, width: 8, height: 8, borderRadius: '50%', background: '#c8a97e', animation: 'cf-orbit-a 2.8s linear infinite' }} />
+          <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -4, marginLeft: -4, width: 8, height: 8, borderRadius: '50%', background: 'var(--brand)', animation: 'cf-orbit-a 2.8s linear infinite' }} />
           <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -3, marginLeft: -3, width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,.4)', animation: 'cf-orbit-b 1.9s linear infinite' }} />
           <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -2.5, marginLeft: -2.5, width: 5, height: 5, borderRadius: '50%', background: 'rgba(255,255,255,.18)', animation: 'cf-orbit-c 4s linear infinite' }} />
         </div>
@@ -1167,7 +1167,7 @@ export default function InfluencersPage() {
         }}>
           {/* Doc header */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 22, paddingBottom: 16, borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-            <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#c8a97e', opacity: .8 }} />
+            <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--brand)', opacity: .8 }} />
             <span style={{ fontFamily: 'monospace', fontSize: 10.5, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.3)' }}>
               AI Identity Brief — generating
             </span>
@@ -1188,7 +1188,7 @@ export default function InfluencersPage() {
             {/* Current typing line */}
             <div style={{ fontFamily: 'monospace', fontSize: 12.5, color: 'rgba(255,255,255,0.75)', display: 'flex', alignItems: 'center', gap: 0 }}>
               <span style={{ whiteSpace: 'pre' }}>{currentTyped}</span>
-              <span style={{ display: 'inline-block', width: 2, height: 14, background: '#c8a97e', marginLeft: 1, animation: 'cf-blink 1s ease-in-out infinite', borderRadius: 1 }} />
+              <span style={{ display: 'inline-block', width: 2, height: 14, background: 'var(--brand)', marginLeft: 1, animation: 'cf-blink 1s ease-in-out infinite', borderRadius: 1 }} />
             </div>
           </div>
         </div>
@@ -1232,7 +1232,7 @@ export default function InfluencersPage() {
           <button
             onClick={() => setShowCreate(true)}
             className="btn btn-primary"
-            style={{ padding: '12px 22px', fontSize: 14, borderRadius: 11, display: 'inline-flex', alignItems: 'center', gap: 8 }}
+            style={{ padding: '12px 22px', fontSize: 14, borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 8 }}
           >
             <Sparkles size={15} /> Create new influencer
             {list.filter(i => !i.is_seed && i.handle !== '@sloanemerc').length === 0 && !usedFreeInfluencer && (
@@ -1258,7 +1258,7 @@ export default function InfluencersPage() {
 
       {/* How it works + Persona ideas — hidden behind the ⓘ button */}
       {showInfo && !showCreate && (
-        <div style={{ marginBottom: 28, padding: '24px 28px', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+        <div style={{ marginBottom: 28, padding: '24px 28px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)' }}>
           <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>How it works</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 12, marginBottom: 28 }}>
             {[
@@ -1266,7 +1266,7 @@ export default function InfluencersPage() {
               ['2', 'Shoot them anywhere', 'Beach, gym, Tokyo in the rain — every photo keeps their exact identity, anchored to their character sheet.'],
               ['3', 'Put them to work', 'Drop them into UGC ads, social carousels, or product shoots — the same face across your whole brand.'],
             ].map(([n, title, desc]) => (
-              <div key={n} style={{ padding: '16px 18px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--bg)' }}>
+              <div key={n} style={{ padding: '16px 18px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)' }}>
                 <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--ink)', color: 'var(--on-ink)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, marginBottom: 10 }}>{n}</div>
                 <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{title}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.55 }}>{desc}</div>
@@ -1292,7 +1292,7 @@ export default function InfluencersPage() {
                   setShowInfo(false)
                   window.scrollTo({ top: 0, behavior: 'smooth' })
                 }}
-                style={{ textAlign: 'left', padding: '14px 16px', borderRadius: 13, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
+                style={{ textAlign: 'left', padding: '14px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
               >
                 <span style={{ fontSize: 20 }}>{emoji}</span>
                 <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{title}</span>
@@ -1307,14 +1307,14 @@ export default function InfluencersPage() {
           vibes, user picks the one they like most. */}
       {candidates.length > 0 && candidateIdentity && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 980, width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', padding: 24, maxWidth: 980, width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: 'var(--font-serif)', fontSize: 26 }}>{candidateIdentity.name}</span>
               {candidateIdentity.handle && <span style={{ fontSize: 12.5, color: 'var(--ink-mute)' }}>{candidateIdentity.handle}</span>}
               <button
                 onClick={cancelCandidates}
                 disabled={pickingCandidate}
-                style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', padding: '6px 12px', borderRadius: 8, cursor: 'pointer', fontSize: 12 }}
+                style={{ marginLeft: 'auto', background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', padding: '6px 12px', borderRadius: 5, cursor: 'pointer', fontSize: 12 }}
               >Discard</button>
             </div>
             <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: '0 0 18px' }}>
@@ -1327,7 +1327,7 @@ export default function InfluencersPage() {
                   onClick={() => chooseCandidate(c.url)}
                   disabled={pickingCandidate}
                   title={`Pick this look (${c.vibe})`}
-                  style={{ padding: 0, background: 'var(--surface-2, var(--surface))', border: '2px solid var(--border)', borderRadius: 14, cursor: pickingCandidate ? 'wait' : 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'transform 120ms, border-color 120ms' }}
+                  style={{ padding: 0, background: 'var(--surface-2, var(--surface))', border: '2px solid var(--border)', borderRadius: 8, cursor: pickingCandidate ? 'wait' : 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'transform 120ms, border-color 120ms' }}
                   onMouseEnter={e => { if (!pickingCandidate) { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.transform = 'translateY(-2px)' } }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'translateY(0)' }}
                 >
@@ -1351,7 +1351,7 @@ export default function InfluencersPage() {
 
       {/* Create box — structured identity picker */}
       {showCreate && (
-      <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', padding: 22, marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 18 }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: 22, marginBottom: 32, display: 'flex', flexDirection: 'column', gap: 18 }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1469,11 +1469,11 @@ export default function InfluencersPage() {
         <div>
           <div style={traitLabel}>Image model</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={() => setCreateModel('pro')} style={{ ...chip(createModel === 'pro'), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 12, padding: '10px 14px' }}>
+            <button onClick={() => setCreateModel('pro')} style={{ ...chip(createModel === 'pro'), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 6, padding: '10px 14px' }}>
               <span style={{ fontWeight: 700 }}>Nano Banana Pro</span>
               <span style={{ fontSize: 11, opacity: 0.8 }}>best identity fidelity · 18 cr</span>
             </button>
-            <button onClick={() => setCreateModel('nb2')} style={{ ...chip(createModel === 'nb2'), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 12, padding: '10px 14px' }}>
+            <button onClick={() => setCreateModel('nb2')} style={{ ...chip(createModel === 'nb2'), flexDirection: 'column', alignItems: 'flex-start', borderRadius: 6, padding: '10px 14px' }}>
               <span style={{ fontWeight: 700 }}>Nano Banana 2</span>
               <span style={{ fontSize: 11, opacity: 0.8 }}>cheaper · 11 cr · not as sharp, can make mistakes</span>
             </button>
@@ -1530,7 +1530,7 @@ export default function InfluencersPage() {
               <button
                 onClick={() => document.getElementById('influencerRefInput')?.click()}
                 {...refImagesDrop.dropzoneProps}
-                style={{ width: 56, height: 56, borderRadius: 10, border: `1.5px dashed ${refImagesDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: refImagesDrop.isDragging ? 'var(--hover)' : 'var(--surface-2)', color: refImagesDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                style={{ width: 56, height: 56, borderRadius: 6, border: `1.5px dashed ${refImagesDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: refImagesDrop.isDragging ? 'var(--hover)' : 'var(--surface-2)', color: refImagesDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 120ms, border-color 120ms, color 120ms' }}
                 title="Add reference photos (up to 3) — drag & drop works too. The influencer's face and look will be based on them."
               >
                 <ImagePlus size={18} />
@@ -1560,7 +1560,7 @@ export default function InfluencersPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 14 }}>
           {list.map(inf => (
             <button key={inf.id} onClick={() => openDetail(inf)} style={{
-              textAlign: 'left', border: '1px solid var(--border)', borderRadius: 14,
+              textAlign: 'left', border: '1px solid var(--border)', borderRadius: 8,
               overflow: 'hidden', background: 'var(--surface)', cursor: 'pointer', padding: 0,
             }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1572,7 +1572,7 @@ export default function InfluencersPage() {
               </div>
             </button>
           ))}
-          <button onClick={() => setShowCreate(true)} style={{ border: '1.5px dashed var(--border)', borderRadius: 14, background: 'transparent', cursor: 'pointer', minHeight: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
+          <button onClick={() => setShowCreate(true)} style={{ border: '1.5px dashed var(--border)', borderRadius: 8, background: 'transparent', cursor: 'pointer', minHeight: 280, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
             <Sparkles size={22} />
             <span style={{ fontSize: 12.5, fontWeight: 600 }}>Create another influencer</span>
           </button>

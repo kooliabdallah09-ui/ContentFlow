@@ -122,7 +122,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
       {/* Mobile breathing room — loosens padding, gaps, wrap behavior below 520px */}
       <style>{`
         @media (max-width: 520px) {
-          .cf-preview-card { padding: 26px 20px 22px !important; border-radius: 22px !important; }
+          .cf-preview-card { padding: 26px 20px 22px !important; border-radius: 8px !important; }
           .cf-preview-label { margin-bottom: 16px !important; font-size: 10px !important; }
           .cf-preview-row { gap: 12px !important; }
           .cf-preview-input-wrap { flex: 1 1 100% !important; }
@@ -152,7 +152,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
       <div className="cf-preview-card" style={{
         position: 'relative',
         padding: '22px 22px 20px',
-        borderRadius: 20,
+        borderRadius: 8,
         border: '1px solid rgba(255, 220, 195, 0.12)',
         background: 'linear-gradient(180deg, rgba(42, 32, 28, 0.92) 0%, rgba(26, 20, 18, 0.94) 100%)',
         backdropFilter: 'blur(24px) saturate(1.2)',
@@ -183,7 +183,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
           <div className="cf-preview-input-wrap" style={{
             position: 'relative',
             flex: '1 1 280px', minWidth: 0,
-            borderRadius: 12,
+            borderRadius: 6,
             background: 'rgba(8, 5, 4, 0.85)',
             border: `1px solid ${focused ? 'rgba(220, 200, 190, 0.4)' : 'rgba(255, 220, 195, 0.1)'}`,
             boxShadow: focused
@@ -211,7 +211,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
               className="cf-preview-input"
               style={{
                 width: '100%', padding: '15px 16px 15px 40px', fontSize: 15,
-                borderRadius: 12, border: 'none', background: 'transparent',
+                borderRadius: 6, border: 'none', background: 'transparent',
                 color: '#f5f0ec', outline: 'none',
                 fontFamily: 'inherit', letterSpacing: '-0.005em',
                 opacity: inputDisabled ? 0.55 : 1,
@@ -230,7 +230,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
               flex: '0 0 auto',
               padding: '0 24px', height: 52, fontSize: 14.5, fontWeight: 600,
               letterSpacing: '-0.005em',
-              borderRadius: 12,
+              borderRadius: 6,
               border: '1px solid rgba(255, 210, 190, 0.14)',
               cursor: inputDisabled ? 'wait' : 'pointer',
               display: 'inline-flex', alignItems: 'center', gap: 9,
@@ -256,7 +256,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
             {/* Top specular highlight — the "wet paint" gloss */}
             {!inputDisabled && (
               <span aria-hidden style={{
-                position: 'absolute', inset: 0, borderRadius: 12,
+                position: 'absolute', inset: 0, borderRadius: 6,
                 background: 'linear-gradient(180deg, rgba(255, 240, 220, 0.18) 0%, rgba(255, 240, 220, 0) 45%)',
                 pointerEvents: 'none',
               }} />
@@ -338,10 +338,10 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
 
         {errorMsg && (
           <div style={{
-            marginTop: 12, padding: '10px 14px', borderRadius: 10,
+            marginTop: 12, padding: '10px 14px', borderRadius: 6,
             background: 'rgba(185, 28, 28, 0.10)',
             border: '1px solid rgba(185, 28, 28, 0.25)',
-            color: '#fca5a5', fontSize: 13,
+            color: 'var(--border)', fontSize: 13,
           }}>
             {errorMsg}
           </div>
@@ -369,7 +369,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
       <div ref={resultRef} style={{ scrollMarginTop: 24, position: 'relative', zIndex: 1 }}>
         {(phase === 'processing' || phase === 'done') && product && (
           <div style={{
-            marginTop: 20, padding: 14, borderRadius: 14,
+            marginTop: 20, padding: 14, borderRadius: 8,
             border: '1px solid rgba(255, 255, 255, 0.08)',
             background: 'linear-gradient(180deg, rgba(28, 22, 20, 0.7) 0%, rgba(18, 15, 14, 0.7) 100%)',
             backdropFilter: 'blur(12px)',
@@ -377,7 +377,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
           }}>
             {product.image && (
               <img src={product.image} alt="" style={{
-                width: 52, height: 52, objectFit: 'cover', borderRadius: 10,
+                width: 52, height: 52, objectFit: 'cover', borderRadius: 6,
                 background: '#222', flexShrink: 0,
                 border: '1px solid rgba(255, 255, 255, 0.08)',
               }} />
@@ -401,7 +401,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
 
         {phase === 'processing' && (
           <div style={{
-            marginTop: 16, padding: 32, borderRadius: 14,
+            marginTop: 16, padding: 32, borderRadius: 8,
             border: '1px solid rgba(255, 255, 255, 0.08)',
             background: 'linear-gradient(180deg, rgba(28, 22, 20, 0.6) 0%, rgba(18, 15, 14, 0.6) 100%)',
             backdropFilter: 'blur(12px)',
@@ -430,7 +430,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
         {phase === 'done' && videoUrl && (
           <>
             <div style={{
-              marginTop: 20, borderRadius: 16, overflow: 'hidden',
+              marginTop: 20, borderRadius: 8, overflow: 'hidden',
               border: '1px solid rgba(255, 255, 255, 0.1)',
               background: '#000',
               boxShadow: '0 30px 60px -20px rgba(0, 0, 0, 0.6), 0 8px 24px -8px rgba(185, 28, 28, 0.15)',
@@ -439,7 +439,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
             </div>
 
             <div style={{
-              marginTop: 18, padding: 24, borderRadius: 16,
+              marginTop: 18, padding: 24, borderRadius: 8,
               border: '1px solid rgba(220, 200, 190, 0.14)',
               background: 'linear-gradient(180deg, rgba(35, 26, 22, 0.85) 0%, rgba(22, 17, 15, 0.85) 100%)',
               backdropFilter: 'blur(20px)',
@@ -447,7 +447,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
             }}>
               <div style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 12,
-                padding: '4px 10px 4px 8px', borderRadius: 999,
+                padding: '4px 10px 4px 8px', borderRadius: 4,
                 background: 'rgba(185, 28, 28, 0.14)',
                 border: '1px solid rgba(185, 28, 28, 0.28)',
                 fontFamily: 'var(--font-mono, ui-monospace, monospace)',
@@ -464,7 +464,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
                 <Link href="/auth/signup" className="cf-preview-cta" style={{
                   position: 'relative', overflow: 'hidden',
                   display: 'inline-flex', alignItems: 'center', gap: 9,
-                  padding: '0 22px', height: 46, borderRadius: 11,
+                  padding: '0 22px', height: 46, borderRadius: 6,
                   border: '1px solid rgba(255, 210, 190, 0.14)',
                   background: 'linear-gradient(180deg, #d63a2a 0%, #a51818 100%)',
                   color: '#fef5ec', textDecoration: 'none', fontSize: 14, fontWeight: 600,
@@ -474,7 +474,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
                   transition: 'transform 160ms ease, filter 160ms ease',
                 }}>
                   <span aria-hidden style={{
-                    position: 'absolute', inset: 0, borderRadius: 11,
+                    position: 'absolute', inset: 0, borderRadius: 6,
                     background: 'linear-gradient(180deg, rgba(255, 240, 220, 0.18) 0%, rgba(255, 240, 220, 0) 45%)',
                     pointerEvents: 'none',
                   }} />
@@ -485,7 +485,7 @@ export function PreviewGenerator({ compact = false }: PreviewGeneratorProps) {
                 </Link>
                 <Link href="/pricing" style={{
                   display: 'inline-flex', alignItems: 'center',
-                  padding: '0 20px', height: 44, borderRadius: 11,
+                  padding: '0 20px', height: 44, borderRadius: 6,
                   border: '1px solid rgba(255, 255, 255, 0.12)',
                   color: '#f5f0ec', textDecoration: 'none', fontSize: 14, fontWeight: 500,
                   background: 'rgba(255, 255, 255, 0.03)',

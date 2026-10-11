@@ -137,7 +137,7 @@ export default function AppAssistant() {
             width: 'min(380px, calc(100vw - 40px))',
             maxHeight: 'min(640px, calc(100vh - 40px))',
             background: 'var(--surface)', border: '1px solid var(--border)',
-            borderRadius: 18,
+            borderRadius: 8,
             boxShadow: 'var(--shadow-lg)',
             display: 'flex', flexDirection: 'column',
             overflow: 'hidden',
@@ -150,7 +150,7 @@ export default function AppAssistant() {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: 28, height: 28, borderRadius: 8,
+                width: 28, height: 28, borderRadius: 5,
                 background: 'var(--ink)', display: 'flex',
                 alignItems: 'center', justifyContent: 'center', color: 'var(--on-ink)',
               }}>
@@ -207,7 +207,7 @@ export default function AppAssistant() {
                       style={{
                         textAlign: 'left', padding: '10px 12px',
                         background: 'var(--surface)', border: '1px solid var(--border)',
-                        borderRadius: 11, cursor: 'pointer',
+                        borderRadius: 6, cursor: 'pointer',
                         fontSize: 12.5, color: 'var(--ink-2)',
                         transition: 'background 0.15s',
                       }}
@@ -233,7 +233,7 @@ export default function AppAssistant() {
                   style={{
                     maxWidth: '85%',
                     padding: '10px 14px',
-                    borderRadius: 12,
+                    borderRadius: 6,
                     background: m.role === 'user' ? 'var(--ink)' : 'var(--surface)',
                     color: m.role === 'user' ? '#fff' : 'var(--ink)',
                     fontSize: 13,
@@ -251,7 +251,7 @@ export default function AppAssistant() {
                         marginTop: 10,
                         padding: '7px 12px',
                         background: 'var(--ink)', color: 'var(--on-ink)',
-                        border: 'none', borderRadius: 9,
+                        border: 'none', borderRadius: 5,
                         fontSize: 12, fontWeight: 600,
                         cursor: 'pointer',
                       }}
@@ -313,7 +313,7 @@ export default function AppAssistant() {
               rows={1}
               style={{
                 flex: 1, resize: 'none',
-                padding: '9px 12px', borderRadius: 10,
+                padding: '9px 12px', borderRadius: 6,
                 background: 'var(--bg-elev)', border: '1px solid var(--border)',
                 color: 'var(--ink)', fontSize: 13, fontFamily: 'inherit',
                 outline: 'none', minHeight: 36, maxHeight: 120,
@@ -326,7 +326,7 @@ export default function AppAssistant() {
               style={{
                 width: 36, height: 36, padding: 0,
                 background: input.trim() && !sending ? 'var(--ink)' : 'var(--border)',
-                color: 'var(--on-ink)', border: 'none', borderRadius: 10,
+                color: 'var(--on-ink)', border: 'none', borderRadius: 6,
                 cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 flexShrink: 0,

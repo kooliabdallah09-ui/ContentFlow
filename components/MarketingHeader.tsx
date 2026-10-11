@@ -91,7 +91,7 @@ export function MarketingHeader() {
               href={item.href}
               onClick={handleNav(item.href)}
               style={{
-                padding: '9px 14px', fontSize: 14, textDecoration: 'none', borderRadius: 8,
+                padding: '9px 14px', fontSize: 14, textDecoration: 'none', borderRadius: 5,
                 fontWeight: isCurrent(item.href) ? 600 : 500,
                 color: item.accent ? '#b91c1c' : isCurrent(item.href) ? 'var(--ink)' : 'var(--ink-mute)',
               }}
@@ -107,7 +107,7 @@ export function MarketingHeader() {
             onClick={toggleTheme}
             aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
             style={{
-              width: 36, height: 36, borderRadius: 9, background: 'transparent',
+              width: 36, height: 36, borderRadius: 5, background: 'transparent',
               border: '1px solid var(--border)', color: 'var(--ink)', cursor: 'pointer',
               display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             }}
@@ -115,12 +115,12 @@ export function MarketingHeader() {
             {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           <Link href="/auth/login" className="ls-signin" style={{
-            padding: '9px 18px', borderRadius: 9, background: 'var(--surface)',
+            padding: '9px 18px', borderRadius: 5, background: 'var(--surface)',
             color: 'var(--ink)', fontSize: 14, fontWeight: 600,
             border: '1px solid var(--border)', whiteSpace: 'nowrap', textDecoration: 'none',
           }}>Sign in</Link>
           <Link href="/auth/signup" style={{
-            padding: '9px 18px', borderRadius: 9, background: '#b91c1c', color: '#fff',
+            padding: '9px 18px', borderRadius: 5, background: '#b91c1c', color: '#fff',
             fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', textDecoration: 'none',
           }}>Get started</Link>
         </div>
@@ -131,7 +131,7 @@ export function MarketingHeader() {
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen(o => !o)}
           style={{
-            display: 'none', width: 40, height: 40, borderRadius: 10,
+            display: 'none', width: 40, height: 40, borderRadius: 6,
             background: 'transparent', border: '1px solid var(--border)',
             color: 'var(--ink)', cursor: 'pointer',
             alignItems: 'center', justifyContent: 'center',
@@ -173,7 +173,7 @@ export function MarketingHeader() {
               onClick={toggleTheme}
               aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
               style={{
-                flex: '0 0 auto', width: 44, height: 44, borderRadius: 10,
+                flex: '0 0 auto', width: 44, height: 44, borderRadius: 6,
                 background: 'transparent', border: '1px solid var(--border)',
                 color: 'var(--ink)', cursor: 'pointer',
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
@@ -182,7 +182,7 @@ export function MarketingHeader() {
               {isDark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
             <Link href="/auth/signup" className="ls-mobile-cta" onClick={() => setMenuOpen(false)} style={{
-              flex: 1, textAlign: 'center', padding: '12px 16px', borderRadius: 10,
+              flex: 1, textAlign: 'center', padding: '12px 16px', borderRadius: 6,
               background: 'var(--ink)', color: 'var(--on-ink)',
               fontSize: 14.5, fontWeight: 600, whiteSpace: 'nowrap', textDecoration: 'none',
             }}>Get started</Link>

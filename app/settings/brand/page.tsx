@@ -182,12 +182,12 @@ export default function BrandSettingsPage() {
       <div style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 16 }}>
 
         {success && (
-          <div style={{ background: 'rgba(47,122,78,0.08)', border: '1px solid var(--good)', color: 'var(--good)', padding: '10px 14px', borderRadius: 11, fontSize: 13 }}>
+          <div style={{ background: 'rgba(47,122,78,0.08)', border: '1px solid var(--good)', color: 'var(--good)', padding: '10px 14px', borderRadius: 6, fontSize: 13 }}>
             ✓ {success}
           </div>
         )}
         {error && (
-          <div style={{ background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 11, fontSize: 13 }}>
+          <div style={{ background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 6, fontSize: 13 }}>
             {error}
           </div>
         )}
@@ -204,16 +204,16 @@ export default function BrandSettingsPage() {
             <label className="form-label">Brand logo <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>(optional)</span></label>
             <label {...logoDrop.dropzoneProps} style={{
               display: 'flex', alignItems: 'center', gap: 14,
-              padding: '14px 16px', borderRadius: 11,
+              padding: '14px 16px', borderRadius: 6,
               border: `1.5px dashed ${logoDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
               background: logoDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
               cursor: uploading ? 'wait' : 'pointer',
               transition: 'background 120ms, border-color 120ms',
             }}>
               {form.logoUrl ? (
-                <img src={form.logoUrl} alt="logo" style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', flexShrink: 0 }} />
+                <img src={form.logoUrl} alt="logo" style={{ width: 52, height: 52, objectFit: 'contain', borderRadius: 5, background: 'var(--surface)', border: '1px solid var(--border)', flexShrink: 0 }} />
               ) : (
-                <div style={{ width: 52, height: 52, borderRadius: 8, background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 52, height: 52, borderRadius: 5, background: 'var(--hover)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                 </div>
               )}
@@ -259,12 +259,12 @@ export default function BrandSettingsPage() {
         </section>
 
         {/* Products — link to Product Studio */}
-        <div className="stack-on-phone" style={{ padding: '16px 20px', borderRadius: 14, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 16 }}>
+        <div className="stack-on-phone" style={{ padding: '16px 20px', borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', marginBottom: 3 }}>Your products live in Product Studio</div>
             <p className="help" style={{ margin: 0 }}>Brand is your identity — logo, name, description, audience. Each individual product you sell lives in Product Studio, where you upload photos from every angle and generate AI shoots. Campaigns and the UGC builder pull products from there.</p>
           </div>
-          <a href="/generate/products" style={{ flexShrink: 0, padding: '9px 16px', borderRadius: 10, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+          <a href="/generate/products" style={{ flexShrink: 0, padding: '9px 16px', borderRadius: 6, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap' }}>
             Open Product Studio →
           </a>
         </div>
@@ -333,7 +333,7 @@ export default function BrandSettingsPage() {
             {exists ? 'Profile saved. Update anytime — changes apply immediately to new generations.' : 'No profile yet — fill it in to enable one-click prefill in the UGC builder.'}
           </p>
           <button type="button" onClick={save} disabled={saving} className="btn btn-primary"
-            style={{ padding: '11px 22px', fontSize: 13.5, borderRadius: 10, whiteSpace: 'nowrap' }}>
+            style={{ padding: '11px 22px', fontSize: 13.5, borderRadius: 6, whiteSpace: 'nowrap' }}>
             {saving ? 'Saving…' : exists ? 'Update brand' : 'Save brand'}
           </button>
         </div>

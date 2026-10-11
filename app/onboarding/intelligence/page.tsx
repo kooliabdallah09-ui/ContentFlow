@@ -153,7 +153,7 @@ export default function IntelligenceOnboardingPage() {
           onClick={autofillFromBrand}
           disabled={aiFilling}
           style={{
-            padding: '7px 14px', borderRadius: 8,
+            padding: '7px 14px', borderRadius: 5,
             border: '1px dashed var(--border)', background: 'var(--surface-2)',
             color: 'var(--ink)', fontSize: 12, fontWeight: 600,
             cursor: aiFilling ? 'wait' : 'pointer',
@@ -177,7 +177,7 @@ export default function IntelligenceOnboardingPage() {
                 style={{
                   textAlign: 'left',
                   padding: '16px 18px',
-                  borderRadius: 14,
+                  borderRadius: 8,
                   border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                   background: active ? 'var(--surface-2)' : 'var(--surface)',
                   cursor: 'pointer',
@@ -207,7 +207,7 @@ export default function IntelligenceOnboardingPage() {
           <button
             onClick={() => setStep(s => s - 1)}
             style={{
-              padding: '12px 20px', borderRadius: 11,
+              padding: '12px 20px', borderRadius: 6,
               background: 'transparent', border: '1px solid var(--border)',
               color: 'var(--ink)', fontSize: 14, cursor: 'pointer',
             }}
@@ -219,7 +219,7 @@ export default function IntelligenceOnboardingPage() {
           <button
             onClick={skipIntelligence}
             style={{
-              padding: '12px 16px', borderRadius: 11,
+              padding: '12px 16px', borderRadius: 6,
               background: 'transparent', border: 'none',
               color: 'var(--ink-dim)', fontSize: 13.5, cursor: 'pointer',
               textDecoration: 'underline', textUnderlineOffset: 3,
@@ -231,7 +231,7 @@ export default function IntelligenceOnboardingPage() {
             onClick={next}
             disabled={!canProceed}
             style={{
-              padding: '12px 28px', borderRadius: 11,
+              padding: '12px 28px', borderRadius: 6,
               background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
               fontSize: 14, fontWeight: 600, cursor: canProceed ? 'pointer' : 'not-allowed',
               opacity: canProceed ? 1 : 0.4,

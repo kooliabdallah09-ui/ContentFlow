@@ -94,7 +94,7 @@ export function GeneratingOverlay({ active, steps, tipSeconds = 30, holdMessage 
         position: 'absolute', top: 'max(28px, env(safe-area-inset-top, 20px))',
         left: '50%', transform: 'translateX(-50%)',
         display: 'flex', alignItems: 'center', gap: 8,
-        padding: '8px 14px', borderRadius: 99,
+        padding: '8px 14px', borderRadius: 4,
         background: 'rgba(200, 169, 126, 0.08)',
         border: '1px solid rgba(200, 169, 126, 0.18)',
         color: '#e6d4b6',
@@ -103,7 +103,7 @@ export function GeneratingOverlay({ active, steps, tipSeconds = 30, holdMessage 
       }}>
         <span style={{
           width: 6, height: 6, borderRadius: '50%',
-          background: '#c8a97e', animation: 'gol-pulse 1.6s ease-in-out infinite',
+          background: 'var(--brand)', animation: 'gol-pulse 1.6s ease-in-out infinite',
         }} />
         {holdMessage ?? "Please don't close this tab — your render is in progress"}
       </div>
@@ -113,7 +113,7 @@ export function GeneratingOverlay({ active, steps, tipSeconds = 30, holdMessage 
         <div style={{ position: 'absolute', inset: -14, borderRadius: '50%', border: '1px solid rgba(255,255,255,.06)', animation: 'gol-ring2 3.6s ease-in-out infinite' }} />
         <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1px solid rgba(255,255,255,.12)', animation: 'gol-ring 2.8s ease-in-out infinite' }} />
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', width: 14, height: 14, borderRadius: '50%', background: '#fff', opacity: .9 }} />
-        <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -5, marginLeft: -5, width: 10, height: 10, borderRadius: '50%', background: '#c8a97e', animation: 'gol-a 3.2s linear infinite' }} />
+        <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -5, marginLeft: -5, width: 10, height: 10, borderRadius: '50%', background: 'var(--brand)', animation: 'gol-a 3.2s linear infinite' }} />
         <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -4, marginLeft: -4, width: 8, height: 8, borderRadius: '50%', background: 'rgba(255,255,255,.5)', animation: 'gol-b 2.1s linear infinite' }} />
         <div style={{ position: 'absolute', top: '50%', left: '50%', marginTop: -3, marginLeft: -3, width: 6, height: 6, borderRadius: '50%', background: 'rgba(255,255,255,.22)', animation: 'gol-c 4.5s linear infinite' }} />
       </div>
@@ -132,7 +132,7 @@ export function GeneratingOverlay({ active, steps, tipSeconds = 30, holdMessage 
       <div style={{ marginTop: 32, width: 'min(240px, 60vw)', height: 3, background: 'rgba(255,255,255,.08)', borderRadius: 2, overflow: 'hidden' }}>
         <div style={{
           height: '100%', width: `${pct}%`,
-          background: 'linear-gradient(90deg, rgba(200,169,126,.4), #c8a97e)',
+          background: 'linear-gradient(90deg, color-mix(in srgb, var(--brand) 40%, transparent), var(--brand))',
           borderRadius: 2,
           transition: 'width 800ms ease-out',
         }} />

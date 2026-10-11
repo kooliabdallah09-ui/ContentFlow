@@ -52,7 +52,7 @@ export default function FormatsPage() {
         <p style={{ fontSize: 15, color: 'var(--ink-dim)', lineHeight: 1.7, maxWidth: 560 }}>
           40 pre-built templates — pick one, we auto-configure the script, scene, and editor overlays.
         </p>
-        <div style={{ marginTop: 24, padding: '20px 24px', border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ marginTop: 24, padding: '20px 24px', border: '1px solid var(--line)', borderRadius: 8, background: 'var(--surface)', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 20 }}>🚧</span>
           <div>
             <div style={{ fontSize: 14, fontWeight: 600 }}>Private beta</div>
@@ -110,7 +110,7 @@ export default function FormatsPage() {
               textAlign: 'left',
               padding: 18,
               border: '1px solid var(--border)',
-              borderRadius: 14,
+              borderRadius: 8,
               background: 'var(--surface)',
               cursor: 'pointer',
               display: 'flex', flexDirection: 'column', gap: 8,
@@ -158,7 +158,7 @@ export default function FormatsPage() {
             onClick={e => e.stopPropagation()}
             style={{
               width: '100%', maxWidth: 720, maxHeight: '90vh', overflowY: 'auto',
-              background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 18,
+              background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8,
               padding: 28,
             }}
           >
@@ -173,7 +173,7 @@ export default function FormatsPage() {
               </div>
               <button
                 onClick={() => setSelected(null)}
-                style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, cursor: 'pointer', color: 'var(--ink)' }}
+                style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: 5, padding: '6px 12px', fontSize: 12.5, cursor: 'pointer', color: 'var(--ink)' }}
               >
                 Close
               </button>
@@ -247,7 +247,7 @@ export default function FormatsPage() {
                   '/generate/ugc'
                 }
                 style={{
-                  padding: '12px 22px', borderRadius: 11,
+                  padding: '12px 22px', borderRadius: 6,
                   background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
                   fontSize: 14, fontWeight: 600, textDecoration: 'none',
                 }}
@@ -264,7 +264,7 @@ export default function FormatsPage() {
 
 function pill(active: boolean): React.CSSProperties {
   return {
-    padding: '8px 14px', borderRadius: 999,
+    padding: '8px 14px', borderRadius: 4,
     border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
     background: active ? 'var(--ink)' : 'transparent',
     color: active ? 'var(--on-ink)' : 'var(--ink)',

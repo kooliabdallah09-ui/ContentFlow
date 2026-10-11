@@ -203,7 +203,7 @@ export default function AskPage() {
             onClick={resetThread}
             style={{
               display: 'flex', alignItems: 'center', gap: 6,
-              padding: '7px 12px', borderRadius: 9,
+              padding: '7px 12px', borderRadius: 5,
               background: 'var(--surface)', border: '1px solid var(--border)',
               color: 'var(--ink-2)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer',
             }}
@@ -225,7 +225,7 @@ export default function AskPage() {
         {empty && (
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', gap: 10, padding: '40px 0' }}>
             <div style={{
-              width: 56, height: 56, borderRadius: 16,
+              width: 56, height: 56, borderRadius: 8,
               background: 'var(--ink)', display: 'flex',
               alignItems: 'center', justifyContent: 'center',
               marginBottom: 6,
@@ -248,7 +248,7 @@ export default function AskPage() {
                     textAlign: 'left',
                     padding: '14px 16px',
                     border: '1px solid var(--border)',
-                    borderRadius: 13,
+                    borderRadius: 8,
                     background: 'var(--surface)',
                     fontSize: 13.5,
                     color: 'var(--ink-2)',
@@ -280,7 +280,7 @@ export default function AskPage() {
                   style={{
                     maxWidth: '78%',
                     padding: '12px 16px',
-                    borderRadius: 14,
+                    borderRadius: 8,
                     background: m.role === 'user' ? 'var(--ink)' : 'var(--surface)',
                     color: m.role === 'user' ? 'var(--on-ink)' : 'var(--ink)',
                     fontSize: 14,
@@ -303,7 +303,7 @@ export default function AskPage() {
                         marginTop: 12,
                         padding: '8px 14px',
                         background: 'var(--ink)', color: 'var(--on-ink)',
-                        border: 'none', borderRadius: 9,
+                        border: 'none', borderRadius: 5,
                         fontSize: 13, fontWeight: 600,
                         cursor: 'pointer',
                       }}
@@ -355,7 +355,7 @@ export default function AskPage() {
         <div style={{
           display: 'flex', alignItems: 'flex-end', gap: 10,
           border: '1px solid var(--border)',
-          borderRadius: 16,
+          borderRadius: 8,
           background: 'var(--surface)',
           padding: '9px 9px 9px 16px',
           boxShadow: '0 2px 12px rgba(20,18,12,0.04)',
@@ -396,7 +396,7 @@ export default function AskPage() {
             aria-label="Send"
             style={{
               width: 38, height: 38, flexShrink: 0,
-              borderRadius: 11,
+              borderRadius: 6,
               background: input.trim() && !sending ? 'var(--ink)' : 'var(--border)',
               border: 'none', cursor: input.trim() && !sending ? 'pointer' : 'not-allowed',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -417,7 +417,7 @@ export default function AskPage() {
 function ResultBlock({ result }: { result: ChatResult }) {
   if (result.kind === 'image') {
     return (
-      <div style={{ border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', background: 'var(--bg)' }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', background: 'var(--bg)' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={result.url} alt={result.prompt} style={{ display: 'block', width: '100%', maxWidth: 480 }} />
         <div style={{ padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink-mute)' }}>
@@ -429,7 +429,7 @@ function ResultBlock({ result }: { result: ChatResult }) {
   }
   if (result.kind === 'social') {
     return (
-      <div style={{ border: '1px solid var(--border)', borderRadius: 12, background: 'var(--bg)', padding: 14 }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 6, background: 'var(--bg)', padding: 14 }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', color: 'var(--ink-mute)', marginBottom: 8 }}>
           SOCIAL · {result.credits} CR
         </div>
@@ -444,7 +444,7 @@ function ResultBlock({ result }: { result: ChatResult }) {
   }
   if (result.kind === 'navigate') {
     return (
-      <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--ink-dim)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--ink-dim)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <Loader2 size={14} className="animate-spin" />
         Opening {result.path}…
       </div>
@@ -452,7 +452,7 @@ function ResultBlock({ result }: { result: ChatResult }) {
   }
   if (result.kind === 'switch_agent') {
     return (
-      <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--ink-dim)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--ink-dim)', background: 'var(--surface)', display: 'flex', alignItems: 'center', gap: 8 }}>
         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-mute)', letterSpacing: '0.06em' }}>HANDOFF →</span>
         <strong style={{ color: 'var(--ink)', fontWeight: 600 }}>{result.agentName}</strong>
       </div>
@@ -460,7 +460,7 @@ function ResultBlock({ result }: { result: ChatResult }) {
   }
   if (result.kind === 'error') {
     return (
-      <div style={{ border: '1px solid var(--danger)', borderRadius: 10, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', background: 'rgba(184,58,53,0.08)' }}>
+      <div style={{ border: '1px solid var(--danger)', borderRadius: 6, padding: '10px 14px', fontSize: 13, color: 'var(--danger)', background: 'rgba(184,58,53,0.08)' }}>
         {result.message}
       </div>
     )
@@ -493,7 +493,7 @@ function AgentPicker({ agentId, onChange }: { agentId: string; onChange: (id: st
         style={{
           height: 38,
           padding: '0 12px',
-          borderRadius: 11,
+          borderRadius: 6,
           background: 'transparent',
           border: '1px solid var(--border)',
           color: 'var(--ink)',
@@ -520,7 +520,7 @@ function AgentPicker({ agentId, onChange }: { agentId: string; onChange: (id: st
             minWidth: 240,
             background: 'var(--surface)',
             border: '1px solid var(--border)',
-            borderRadius: 12,
+            borderRadius: 6,
             boxShadow: '0 12px 32px rgba(20,18,12,0.15)',
             padding: 6,
             zIndex: 20,
@@ -538,7 +538,7 @@ function AgentPicker({ agentId, onChange }: { agentId: string; onChange: (id: st
                   display: 'block',
                   textAlign: 'left',
                   padding: '9px 12px',
-                  borderRadius: 8,
+                  borderRadius: 5,
                   background: isActive ? 'var(--surface-2)' : 'transparent',
                   border: 'none',
                   cursor: 'pointer',

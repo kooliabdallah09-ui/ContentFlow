@@ -72,7 +72,7 @@ export default function OnboardingCampaignPage() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 32, background: 'var(--surface-2, #fafaf9)' }}>
-      <div style={{ maxWidth: 780, width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 36, boxShadow: '0 20px 60px rgba(0,0,0,0.06)' }}>
+      <div style={{ maxWidth: 780, width: '100%', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 36, boxShadow: '0 20px 60px rgba(0,0,0,0.06)' }}>
 
         {!preview ? (
           <>
@@ -91,14 +91,14 @@ export default function OnboardingCampaignPage() {
                 onChange={e => setBrief(e.target.value)}
                 placeholder="e.g. Launch push for our summer flavor. Gen Z audience, feels bright and spontaneous."
                 rows={3}
-                style={{ width: '100%', padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)', color: 'var(--ink)', resize: 'vertical', minHeight: 76 }}
+                style={{ width: '100%', padding: '11px 14px', fontSize: 14, fontFamily: 'inherit', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--ink)', resize: 'vertical', minHeight: 76 }}
               />
             </div>
 
             {products.length > 0 && (
               <div style={{ marginBottom: 22 }}>
                 <div style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: 0.5, color: 'var(--ink-2)', marginBottom: 6, textTransform: 'uppercase' }}>Product (optional)</div>
-                <select value={productId} onChange={e => setProductId(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)', color: 'var(--ink)' }}>
+                <select value={productId} onChange={e => setProductId(e.target.value)} style={{ width: '100%', padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', color: 'var(--ink)' }}>
                   <option value="">— use my brand generally —</option>
                   {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
@@ -125,7 +125,7 @@ export default function OnboardingCampaignPage() {
           </>
         ) : (
           <>
-            <div style={{ marginBottom: 8, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#166534' }}>Preview ready</div>
+            <div style={{ marginBottom: 8, fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--good)' }}>Preview ready</div>
             <h1 style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 30, lineHeight: 1.15, margin: '0 0 10px' }}>
               Here are six ideas for your first campaign.
             </h1>
@@ -135,7 +135,7 @@ export default function OnboardingCampaignPage() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 22 }}>
               {preview.shots.map(s => (
-                <div key={s.position} style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-2, #fafaf9)' }}>
+                <div key={s.position} style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface-2, #fafaf9)' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-2)' }}>#{s.position}</span>
                     <span style={{ fontSize: 14, fontWeight: 700 }}>{s.format_label}</span>

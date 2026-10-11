@@ -84,7 +84,7 @@ export default function BrandLaunchPage() {
               { icon: '📢', label: 'Launch content', desc: 'Ads, social posts, email — done' },
               { icon: '🛒', label: 'Shopify ready', desc: 'Download a brand kit and import' },
             ].map(item => (
-              <div key={item.label} style={{ padding: '20px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+              <div key={item.label} style={{ padding: '20px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>{item.icon}</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 4 }}>{item.label}</div>
                 <div style={{ fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>{item.desc}</div>
@@ -92,7 +92,7 @@ export default function BrandLaunchPage() {
             ))}
           </div>
 
-          <div style={{ textAlign: 'center', padding: '40px 20px', borderRadius: 16, border: '1px solid var(--border-soft)', background: 'var(--surface)' }}>
+          <div style={{ textAlign: 'center', padding: '40px 20px', borderRadius: 8, border: '1px solid var(--border-soft)', background: 'var(--surface)' }}>
             <div style={{ fontSize: 40, marginBottom: 12 }}>🚀</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Build your first brand</div>
             <div style={{ fontSize: 13, color: 'var(--ink-dim)', marginBottom: 20 }}>Takes about 5 minutes. 17 credits total.</div>
@@ -116,14 +116,14 @@ export default function BrandLaunchPage() {
               >
                 <div style={{
                   display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '14px 16px', borderRadius: 12,
+                  padding: '14px 16px', borderRadius: 6,
                   border: '1px solid var(--border)', background: 'var(--surface)',
                   cursor: 'pointer', transition: 'border-color 0.15s',
                 }}>
                   {brand.logo_url ? (
-                    <img src={brand.logo_url} alt="" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 8, border: '1px solid var(--border)', background: '#fff', padding: 4 }} />
+                    <img src={brand.logo_url} alt="" style={{ width: 44, height: 44, objectFit: 'contain', borderRadius: 5, border: '1px solid var(--border)', background: '#fff', padding: 4 }} />
                   ) : (
-                    <div style={{ width: 44, height: 44, borderRadius: 8, background: brand.colors?.primary || 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 5, background: brand.colors?.primary || 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       <span style={{ fontSize: 18, fontWeight: 800, color: '#fff' }}>{(brand.name || brand.niche || '?').charAt(0).toUpperCase()}</span>
                     </div>
                   )}

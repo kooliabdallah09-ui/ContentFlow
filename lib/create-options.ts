@@ -26,10 +26,10 @@ export type CreateOption = {
 const ugcFrom = Math.min(...DURATION_OPTIONS.map(d => TIER_DURATION_CREDITS.standard[d]))
 
 export const CREATE_OPTIONS: CreateOption[] = [
-  { href: '/generate/ugc',    label: 'UGC Package', sub: 'Full talking-head ad',      cost: `from ${ugcFrom} cr`,                  icon: 'Video',    tint: '#F1E6C9' },
-  { href: '/generate/image',  label: 'Image',       sub: 'Product & creative shots',  cost: `from ${CREDIT_COSTS.image} cr`,       icon: 'Image',    tint: '#E8EDE4' },
-  { href: '/generate/social', label: 'Social post', sub: 'Caption + optional visual', cost: `from ${CREDIT_COSTS.social} cr`,      icon: 'Social',   tint: '#F0EDE3' },
-  { href: '/generate/voice',  label: 'Voiceover',   sub: 'Script to studio audio',    cost: `from ${CREDIT_COSTS.voice} cr`,       icon: 'Voice',    tint: '#F0E7E4' },
-  { href: '/generate/video',  label: 'Video',       sub: 'Any format, per second',    cost: `from ${VIDEO_FROM_CR_PER_SECOND} cr/s`, icon: 'Monitor',  tint: '#E8EDE4' },
-  { href: '/campaigns',       label: 'Campaign',    sub: 'A month, planned',          cost: `${CAMPAIGN_PLAN_CREDITS} cr to plan`, icon: 'Calendar', tint: '#EDEAE0' },
+  { href: '/generate/ugc',    label: 'UGC Package', sub: 'Full talking-head ad',      cost: `from ${ugcFrom} cr`,                  icon: 'Video',    tint: 'var(--stock-coral)' },
+  { href: '/generate/image',  label: 'Image',       sub: 'Product & creative shots',  cost: `from ${CREDIT_COSTS.image} cr`,       icon: 'Image',    tint: 'var(--stock-butter)' },
+  { href: '/generate/social', label: 'Social post', sub: 'Caption + optional visual', cost: `from ${CREDIT_COSTS.social} cr`,      icon: 'Social',   tint: 'var(--stock-lilac)' },
+  { href: '/generate/voice',  label: 'Voiceover',   sub: 'Script to studio audio',    cost: `from ${CREDIT_COSTS.voice} cr`,       icon: 'Voice',    tint: 'var(--stock-mint)' },
+  { href: '/generate/video',  label: 'Video',       sub: 'Any format, per second',    cost: `from ${VIDEO_FROM_CR_PER_SECOND} cr/s`, icon: 'Monitor',  tint: 'var(--stock-coral)' },
+  { href: '/campaigns',       label: 'Campaign',    sub: 'A month, planned',          cost: `${CAMPAIGN_PLAN_CREDITS} cr to plan`, icon: 'Calendar', tint: 'var(--stock-butter)' },
 ]

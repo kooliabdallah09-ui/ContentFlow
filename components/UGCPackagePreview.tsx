@@ -746,7 +746,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
   if (!components) return (
     <div className="card" style={{ padding: '14px' }}>
       <div style={{
-        aspectRatio: '0.62', borderRadius: 11,
+        aspectRatio: '0.62', borderRadius: 6,
         background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 9px, var(--surface-3) 9px 18px)',
         border: '1px solid var(--border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -767,7 +767,7 @@ export default function UGCPackagePreview({ components, ugcType, isLoading, erro
       {creditDeducted !== undefined && (
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '10px 14px', borderRadius: 11,
+          padding: '10px 14px', borderRadius: 6,
           background: 'var(--hover)', border: '1px solid var(--border)',
         }}>
           <span style={{ fontSize: '13px', color: 'var(--ink-dim)' }}>Generation cost</span>

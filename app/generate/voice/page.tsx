@@ -126,7 +126,7 @@ export default function VoicePage() {
       {/* Composer card */}
       <div style={{
         background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 18, padding: 20,
+        borderRadius: 8, padding: 20,
         display: 'flex', flexDirection: 'column', gap: 16,
       }}>
         {/* Script textarea */}
@@ -171,7 +171,7 @@ export default function VoicePage() {
                 disabled={loading}
                 title={v.sub}
                 style={{
-                  padding: '9px 18px', borderRadius: 999,
+                  padding: '9px 18px', borderRadius: 4,
                   background: active ? 'var(--ink)' : 'var(--surface)',
                   border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -199,7 +199,7 @@ export default function VoicePage() {
             onChange={e => setLanguage(e.target.value)}
             disabled={loading}
             style={{
-              padding: '8px 14px', borderRadius: 999,
+              padding: '8px 14px', borderRadius: 4,
               background: 'var(--surface)', border: '1px solid var(--border)',
               color: 'var(--ink-2)', fontSize: 13, fontWeight: 500,
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -235,7 +235,7 @@ export default function VoicePage() {
             disabled={!canGenerate || loading}
             style={{
               marginLeft: 'auto',
-              padding: '11px 26px', borderRadius: 999,
+              padding: '11px 26px', borderRadius: 4,
               background: !canGenerate || loading ? 'var(--ink-faint)' : 'var(--ink)',
               color: 'var(--on-ink)', border: 'none',
               fontSize: 14, fontWeight: 600,
@@ -267,7 +267,7 @@ export default function VoicePage() {
       {/* Error */}
       {error && (
         <div style={{
-          marginTop: 14, padding: '10px 14px', borderRadius: 11,
+          marginTop: 14, padding: '10px 14px', borderRadius: 6,
           background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)',
           color: 'var(--danger)', fontSize: 13,
         }}>{error}</div>
@@ -276,7 +276,7 @@ export default function VoicePage() {
       {/* Empty state */}
       {results.length === 0 && !loading && (
         <div style={{
-          marginTop: 24, padding: '32px 24px', borderRadius: 14,
+          marginTop: 24, padding: '32px 24px', borderRadius: 8,
           border: '1px solid var(--border)',
           background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 120,
@@ -290,7 +290,7 @@ export default function VoicePage() {
       {/* Loading placeholder */}
       {loading && (
         <div style={{
-          marginTop: 24, padding: '32px 24px', borderRadius: 14,
+          marginTop: 24, padding: '32px 24px', borderRadius: 8,
           border: '1px solid var(--border)',
           background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, minHeight: 120,
@@ -306,7 +306,7 @@ export default function VoicePage() {
           {results.map((r, idx) => (
             <div key={idx} style={{
               background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 14, padding: '14px 16px',
+              borderRadius: 8, padding: '14px 16px',
               display: 'flex', alignItems: 'center', gap: 14,
             }}>
               <button
@@ -349,7 +349,7 @@ export default function VoicePage() {
               <a href={r.url} download={`voiceover-${r.voiceLabel}-${Date.now()}.mp3`}
                 target="_blank" rel="noopener noreferrer"
                 style={{
-                  flexShrink: 0, width: 34, height: 34, borderRadius: 8,
+                  flexShrink: 0, width: 34, height: 34, borderRadius: 5,
                   background: 'var(--bg-elev)', border: '1px solid var(--border)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   color: 'var(--ink-dim)',

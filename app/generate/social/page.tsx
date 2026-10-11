@@ -847,7 +847,7 @@ export default function SocialPage() {
             <button key={ct.id} type="button" onClick={() => setContentType(ct.id)}
               style={{
                 display: 'flex', alignItems: 'center', gap: 14,
-                padding: '16px 20px', borderRadius: 14,
+                padding: '16px 20px', borderRadius: 8,
                 background: active ? 'var(--ink)' : 'var(--surface)',
                 border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                 cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s',
@@ -875,7 +875,7 @@ export default function SocialPage() {
       {contentType === 'caption' && (
         <div style={{ display: 'grid', gridTemplateColumns: hasPosts ? '400px 1fr' : '1fr', gap: 20, alignItems: 'start' }}>
           {/* Composer */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 22, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 22, display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Topic or product</label>
               <textarea
@@ -883,7 +883,7 @@ export default function SocialPage() {
                 onKeyDown={e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) generateCaption() }}
                 placeholder="e.g. Our skincare serum just hit 10,000 five-star reviews…"
                 disabled={capLoading} rows={3}
-                style={{ width: '100%', resize: 'vertical', minHeight: 84, border: '1px solid var(--border)', borderRadius: 10, outline: 'none', background: 'var(--bg-elev)', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.6, color: 'var(--ink)', padding: '10px 12px', boxSizing: 'border-box' }}
+                style={{ width: '100%', resize: 'vertical', minHeight: 84, border: '1px solid var(--border)', borderRadius: 6, outline: 'none', background: 'var(--bg-elev)', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.6, color: 'var(--ink)', padding: '10px 12px', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -893,7 +893,7 @@ export default function SocialPage() {
                 {CAPTION_PLATFORMS.map(p => {
                   const selected = selPlatforms.includes(p.id)
                   return (
-                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, cursor: 'pointer', background: selected ? 'var(--bg-elev)' : 'transparent', border: `1px solid ${selected ? 'var(--border)' : 'transparent'}`, transition: 'all 0.12s' }}>
+                    <label key={p.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 6, cursor: 'pointer', background: selected ? 'var(--bg-elev)' : 'transparent', border: `1px solid ${selected ? 'var(--border)' : 'transparent'}`, transition: 'all 0.12s' }}>
                       <input type="checkbox" checked={selected} onChange={() => togglePlatform(p.id)} disabled={capLoading} style={{ width: 15, height: 15, accentColor: p.color, cursor: 'pointer' }} />
                       <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{p.label}</span>
                       {selected && (
@@ -914,7 +914,7 @@ export default function SocialPage() {
                   const active = capTone === t.id
                   return (
                     <button key={t.id} type="button" onClick={() => setCapTone(t.id)} disabled={capLoading}
-                      style={{ padding: '8px 16px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: capLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                      style={{ padding: '8px 16px', borderRadius: 4, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: capLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {t.label}
                     </button>
                   )
@@ -934,7 +934,7 @@ export default function SocialPage() {
                   return (
                     <button key={pt.id} type="button" onClick={() => setPostType(pt.id)} disabled={capLoading}
                       style={{
-                        padding: '12px 14px', borderRadius: 12, textAlign: 'left',
+                        padding: '12px 14px', borderRadius: 6, textAlign: 'left',
                         background: active ? 'var(--ink)' : 'var(--surface)',
                         border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                         color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -960,11 +960,11 @@ export default function SocialPage() {
                   {studioProducts.length > 0 && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.05em', width: 92 }}>Product</span>
-                      <button onClick={() => setPostProductId(undefined)} disabled={capLoading} style={{ padding: '6px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${!postProductId ? 'var(--ink)' : 'var(--border)'}`, background: !postProductId ? 'var(--ink)' : 'var(--surface)', color: !postProductId ? 'var(--on-ink)' : 'var(--ink-2)' }}>None</button>
+                      <button onClick={() => setPostProductId(undefined)} disabled={capLoading} style={{ padding: '6px 12px', borderRadius: 4, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${!postProductId ? 'var(--ink)' : 'var(--border)'}`, background: !postProductId ? 'var(--ink)' : 'var(--surface)', color: !postProductId ? 'var(--on-ink)' : 'var(--ink-2)' }}>None</button>
                       {studioProducts.map(sp => {
                         const active = postProductId === sp.id
                         return (
-                          <button key={sp.id} onClick={() => setPostProductId(active ? undefined : sp.id)} disabled={capLoading} title={sp.name} style={{ width: 40, height: 40, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}>
+                          <button key={sp.id} onClick={() => setPostProductId(active ? undefined : sp.id)} disabled={capLoading} title={sp.name} style={{ width: 40, height: 40, borderRadius: 5, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           </button>
@@ -975,11 +975,11 @@ export default function SocialPage() {
                   {influencers.length > 0 && (
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.05em', width: 92 }}>Influencer</span>
-                      <button onClick={() => setPostInfluencerId(undefined)} disabled={capLoading} style={{ padding: '6px 12px', borderRadius: 999, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${!postInfluencerId ? 'var(--ink)' : 'var(--border)'}`, background: !postInfluencerId ? 'var(--ink)' : 'var(--surface)', color: !postInfluencerId ? 'var(--on-ink)' : 'var(--ink-2)' }}>None</button>
+                      <button onClick={() => setPostInfluencerId(undefined)} disabled={capLoading} style={{ padding: '6px 12px', borderRadius: 4, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${!postInfluencerId ? 'var(--ink)' : 'var(--border)'}`, background: !postInfluencerId ? 'var(--ink)' : 'var(--surface)', color: !postInfluencerId ? 'var(--on-ink)' : 'var(--ink-2)' }}>None</button>
                       {influencers.map(inf => {
                         const active = postInfluencerId === inf.id
                         return (
-                          <button key={inf.id} onClick={() => setPostInfluencerId(active ? undefined : inf.id)} disabled={capLoading} title={inf.name} style={{ width: 40, height: 52, borderRadius: 9, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}>
+                          <button key={inf.id} onClick={() => setPostInfluencerId(active ? undefined : inf.id)} disabled={capLoading} title={inf.name} style={{ width: 40, height: 52, borderRadius: 5, overflow: 'hidden', padding: 0, cursor: 'pointer', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={inf.portrait_url} alt={inf.name} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
                           </button>
@@ -1000,7 +1000,7 @@ export default function SocialPage() {
                   placeholder="e.g. Aesthetic, clean, soft lighting / Bold with neon accents / Minimal flat-lay"
                   style={{
                     width: '100%', resize: 'vertical', minHeight: 60,
-                    border: '1px solid var(--border)', borderRadius: 10, outline: 'none',
+                    border: '1px solid var(--border)', borderRadius: 6, outline: 'none',
                     background: 'var(--bg-elev)', fontFamily: 'inherit', fontSize: 13.5,
                     lineHeight: 1.55, color: 'var(--ink)', padding: '9px 12px', boxSizing: 'border-box',
                   }}
@@ -1019,7 +1019,7 @@ export default function SocialPage() {
                 onChange={e => setMusicMood(e.target.value)}
                 disabled={capLoading}
                 style={{
-                  width: '100%', padding: '10px 12px', borderRadius: 10,
+                  width: '100%', padding: '10px 12px', borderRadius: 6,
                   border: '1px solid var(--border)', background: 'var(--bg-elev)',
                   color: 'var(--ink)', fontSize: 13.5, outline: 'none', fontFamily: 'inherit',
                   cursor: capLoading ? 'not-allowed' : 'pointer',
@@ -1037,7 +1037,7 @@ export default function SocialPage() {
             </div>
 
             <button onClick={generateCaption} disabled={!canCaption}
-              style={{ padding: '13px 28px', borderRadius: 999, background: !canCaption ? 'var(--ink-faint)' : 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCaption ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
+              style={{ padding: '13px 28px', borderRadius: 4, background: !canCaption ? 'var(--ink-faint)' : 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCaption ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
               {capLoading ? <><Loader2 size={15} className="animate-spin" /> Writing posts…</> : `Generate${selPlatforms.length > 1 ? ` (${selPlatforms.length} platforms)` : ''}`}
             </button>
 
@@ -1049,7 +1049,7 @@ export default function SocialPage() {
 
           {/* Results */}
           {hasPosts && (
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', overflowX: 'auto' }}>
                 {selPlatforms.filter(p => posts[p]).map(p => {
                   const platform = CAPTION_PLATFORMS.find(pl => pl.id === p)!
@@ -1081,14 +1081,14 @@ export default function SocialPage() {
                         )}
                       </div>
                       <button onClick={() => copyPost(p)}
-                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 8, background: isCopied ? 'var(--good-bg, #f0fdf4)' : 'var(--bg-elev)', border: `1px solid ${isCopied ? 'var(--good, #16a34a)' : 'var(--border)'}`, color: isCopied ? 'var(--good, #16a34a)' : 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 14px', borderRadius: 5, background: isCopied ? 'var(--good-bg, var(--good-soft))' : 'var(--bg-elev)', border: `1px solid ${isCopied ? 'var(--good, #16a34a)' : 'var(--border)'}`, color: isCopied ? 'var(--good, #16a34a)' : 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s' }}>
                         {isCopied ? <><Check size={13} /> Copied</> : <><Copy size={13} /> Copy</>}
                       </button>
                     </div>
 
                     {postImage && (
                       <div style={{ padding: '14px 20px 0' }}>
-                        <div style={{ position: 'relative', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
+                        <div style={{ position: 'relative', borderRadius: 6, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
                           <img src={watermarkedImage ?? postImage} alt="Post visual" style={{ width: '100%', display: 'block', maxHeight: 380, objectFit: 'cover' }} />
                           {postOverlayText.trim() && (
                             // Gradient + white text — matches the carousel treatment.
@@ -1111,7 +1111,7 @@ export default function SocialPage() {
                             style={{
                               position: 'absolute', top: 10, right: 10,
                               display: 'inline-flex', alignItems: 'center', gap: 5,
-                              padding: '6px 10px', borderRadius: 8,
+                              padding: '6px 10px', borderRadius: 5,
                               background: 'rgba(0,0,0,0.72)', color: '#fff',
                               fontSize: 11.5, fontWeight: 600, border: 'none', cursor: 'pointer',
                             }}
@@ -1127,7 +1127,7 @@ export default function SocialPage() {
                           maxLength={140}
                           style={{
                             width: '100%', marginTop: 10, padding: '9px 12px',
-                            border: '1px solid var(--border)', borderRadius: 8,
+                            border: '1px solid var(--border)', borderRadius: 5,
                             background: 'var(--surface)', color: 'var(--ink)',
                             fontSize: 13, outline: 'none',
                           }}
@@ -1161,14 +1161,14 @@ export default function SocialPage() {
       {contentType === 'carousel' && (
         <div style={{ display: 'grid', gridTemplateColumns: hasSlides ? '380px 1fr' : '1fr', gap: 20, alignItems: 'start' }}>
           {/* Carousel composer */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 22, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 22, display: 'flex', flexDirection: 'column', gap: 20 }}>
             <div>
               <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Topic or product</label>
               <textarea
                 value={carTopic} onChange={e => setCarTopic(e.target.value)}
                 placeholder="e.g. 5 reasons our collagen serum outperforms competitors"
                 disabled={carLoading} rows={3}
-                style={{ width: '100%', resize: 'vertical', minHeight: 84, border: '1px solid var(--border)', borderRadius: 10, outline: 'none', background: 'var(--bg-elev)', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.6, color: 'var(--ink)', padding: '10px 12px', boxSizing: 'border-box' }}
+                style={{ width: '100%', resize: 'vertical', minHeight: 84, border: '1px solid var(--border)', borderRadius: 6, outline: 'none', background: 'var(--bg-elev)', fontFamily: 'inherit', fontSize: 14.5, lineHeight: 1.6, color: 'var(--ink)', padding: '10px 12px', boxSizing: 'border-box' }}
               />
             </div>
 
@@ -1179,7 +1179,7 @@ export default function SocialPage() {
                   const active = carPlatform === p.id
                   return (
                     <button key={p.id} type="button" onClick={() => setCarPlatform(p.id)} disabled={carLoading}
-                      style={{ padding: '9px 20px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 13, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                      style={{ padding: '9px 20px', borderRadius: 4, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 13, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {p.label}
                     </button>
                   )
@@ -1194,7 +1194,7 @@ export default function SocialPage() {
                   const active = slideCount === n
                   return (
                     <button key={n} type="button" onClick={() => setSlideCount(n)} disabled={carLoading}
-                      style={{ width: 48, height: 40, borderRadius: 10, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                      style={{ width: 48, height: 40, borderRadius: 6, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {n}
                     </button>
                   )
@@ -1209,7 +1209,7 @@ export default function SocialPage() {
                   const active = carTone === t.id
                   return (
                     <button key={t.id} type="button" onClick={() => setCarTone(t.id)} disabled={carLoading}
-                      style={{ padding: '8px 16px', borderRadius: 999, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
+                      style={{ padding: '8px 16px', borderRadius: 4, background: active ? 'var(--ink)' : 'var(--surface)', border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`, color: active ? 'var(--on-ink)' : 'var(--ink-2)', fontSize: 12.5, fontWeight: 600, cursor: carLoading ? 'not-allowed' : 'pointer', transition: 'all 0.15s' }}>
                       {t.label}
                     </button>
                   )
@@ -1234,7 +1234,7 @@ export default function SocialPage() {
                       onClick={() => setCarModel(id)}
                       disabled={carLoading}
                       style={{
-                        flex: 1, textAlign: 'left', padding: '10px 14px', borderRadius: 11, cursor: 'pointer',
+                        flex: 1, textAlign: 'left', padding: '10px 14px', borderRadius: 6, cursor: 'pointer',
                         border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                         background: active ? 'var(--ink)' : 'var(--surface)',
                         color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -1259,7 +1259,7 @@ export default function SocialPage() {
                   <button
                     onClick={() => setCarProductId(undefined)}
                     disabled={carLoading}
-                    style={{ width: 62, height: 62, borderRadius: 10, fontSize: 10.5, fontWeight: 600, lineHeight: 1.3, cursor: 'pointer', padding: 4,
+                    style={{ width: 62, height: 62, borderRadius: 6, fontSize: 10.5, fontWeight: 600, lineHeight: 1.3, cursor: 'pointer', padding: 4,
                       border: `1.5px solid ${!carProductId ? 'var(--ink)' : 'var(--border)'}`,
                       background: !carProductId ? 'var(--ink)' : 'var(--surface)',
                       color: !carProductId ? 'var(--on-ink)' : 'var(--ink-2)' }}
@@ -1274,7 +1274,7 @@ export default function SocialPage() {
                         onClick={() => setCarProductId(active ? undefined : sp.id)}
                         disabled={carLoading}
                         title={sp.name}
-                        style={{ width: 62, height: 62, borderRadius: 10, overflow: 'hidden', padding: 0, cursor: 'pointer',
+                        style={{ width: 62, height: 62, borderRadius: 6, overflow: 'hidden', padding: 0, cursor: 'pointer',
                           border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1296,7 +1296,7 @@ export default function SocialPage() {
                   <button
                     onClick={() => setCarInfluencerId(undefined)}
                     disabled={carLoading}
-                    style={{ width: 62, height: 82, borderRadius: 10, fontSize: 10.5, fontWeight: 600, lineHeight: 1.3, cursor: 'pointer', padding: 4,
+                    style={{ width: 62, height: 82, borderRadius: 6, fontSize: 10.5, fontWeight: 600, lineHeight: 1.3, cursor: 'pointer', padding: 4,
                       border: `1.5px solid ${!carInfluencerId ? 'var(--ink)' : 'var(--border)'}`,
                       background: !carInfluencerId ? 'var(--ink)' : 'var(--surface)',
                       color: !carInfluencerId ? 'var(--on-ink)' : 'var(--ink-2)' }}
@@ -1311,7 +1311,7 @@ export default function SocialPage() {
                         onClick={() => setCarInfluencerId(active ? undefined : inf.id)}
                         disabled={carLoading}
                         title={inf.name}
-                        style={{ width: 62, height: 82, borderRadius: 10, overflow: 'hidden', padding: 0, cursor: 'pointer',
+                        style={{ width: 62, height: 82, borderRadius: 6, overflow: 'hidden', padding: 0, cursor: 'pointer',
                           border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)' }}
                       >
                         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1336,7 +1336,7 @@ export default function SocialPage() {
                 placeholder="e.g. Minimalist flat-lay of the product on marble. Warm lighting, pastel palette."
                 style={{
                   width: '100%', resize: 'vertical', minHeight: 60,
-                  border: '1px solid var(--border)', borderRadius: 10, outline: 'none',
+                  border: '1px solid var(--border)', borderRadius: 6, outline: 'none',
                   background: 'var(--bg-elev)', fontFamily: 'inherit', fontSize: 13.5,
                   lineHeight: 1.55, color: 'var(--ink)', padding: '9px 12px', boxSizing: 'border-box',
                 }}
@@ -1348,8 +1348,8 @@ export default function SocialPage() {
 
             {/* Reference image */}
             {reference ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
-                <img src={reference.preview} alt="reference" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 6, background: 'var(--bg-elev)', border: '1px solid var(--border)' }}>
+                <img src={reference.preview} alt="reference" style={{ width: 44, height: 44, borderRadius: 5, objectFit: 'cover', flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Reference image attached</p>
                   <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '2px 0 0' }}>AI will carry this visual through all slides.</p>
@@ -1360,7 +1360,7 @@ export default function SocialPage() {
                 </button>
               </div>
             ) : (
-              <label {...referenceDrop.dropzoneProps} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`, background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)', cursor: carLoading ? 'not-allowed' : 'pointer', color: referenceDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13, alignSelf: 'flex-start', transition: 'background 120ms, border-color 120ms, color 120ms' }}>
+              <label {...referenceDrop.dropzoneProps} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 6, border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`, background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)', cursor: carLoading ? 'not-allowed' : 'pointer', color: referenceDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13, alignSelf: 'flex-start', transition: 'background 120ms, border-color 120ms, color 120ms' }}>
                 <ImageIcon size={16} />
                 <span>Add product / reference image <span style={{ color: 'var(--ink-faint)', fontSize: 11.5, marginLeft: 4 }}>(optional)</span></span>
                 <input type="file" accept="image/jpeg,image/png,image/webp" onChange={e => pickReference(e.target.files?.[0] ?? null)} disabled={carLoading} style={{ display: 'none' }} />
@@ -1368,7 +1368,7 @@ export default function SocialPage() {
             )}
 
             <button onClick={generateCarousel} disabled={!canCarousel}
-              style={{ padding: '13px 28px', borderRadius: 999, background: !canCarousel ? 'var(--ink-faint)' : 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCarousel ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
+              style={{ padding: '13px 28px', borderRadius: 4, background: !canCarousel ? 'var(--ink-faint)' : 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14.5, fontWeight: 600, cursor: !canCarousel ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'background 0.15s' }}>
               {carLoading ? <><Loader2 size={15} className="animate-spin" /> Generating {slideCount} slides…</> : `Generate ${slideCount} slides`}
             </button>
 
@@ -1382,7 +1382,7 @@ export default function SocialPage() {
           {hasSlides && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Viewer */}
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {/* Nav */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <button onClick={() => setActiveSlide(s => Math.max(0, s - 1))} disabled={activeSlide === 0}
@@ -1400,7 +1400,7 @@ export default function SocialPage() {
                 {(() => {
                   const slide = slides[activeSlide]
                   return (
-                    <div style={{ position: 'relative', width: '100%', paddingBottom: isSquare ? '100%' : '125%', borderRadius: 14, overflow: 'hidden', background: '#111' }}>
+                    <div style={{ position: 'relative', width: '100%', paddingBottom: isSquare ? '100%' : '125%', borderRadius: 8, overflow: 'hidden', background: '#111' }}>
                       {slide.imageBase64 && (
                         <img src={`data:${slide.mimeType};base64,${slide.imageBase64}`} alt={slide.headline}
                           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -1438,19 +1438,19 @@ export default function SocialPage() {
                 </div>
 
                 <button onClick={() => downloadSlide(slides[activeSlide], activeSlide)}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px 0', borderRadius: 10, background: 'var(--bg-elev)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px 0', borderRadius: 6, background: 'var(--bg-elev)', border: '1px solid var(--border)', fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer' }}>
                   <Download size={14} /> Download slide {activeSlide + 1}
                 </button>
               </div>
 
               <button onClick={downloadAll}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 0', borderRadius: 12, background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '13px 0', borderRadius: 6, background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
                 <Download size={15} /> Download all {slides.length} slides
               </button>
 
               {/* Post caption — short paste-ready copy for the whole carousel. */}
               {carouselCaption && (
-                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-mute)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Post caption</label>
                     <button
@@ -1464,9 +1464,9 @@ export default function SocialPage() {
                       }}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 5,
-                        padding: '5px 10px', borderRadius: 7,
+                        padding: '5px 10px', borderRadius: 4,
                         border: `1px solid ${carouselCaptionCopied ? 'var(--good, #16a34a)' : 'var(--border)'}`,
-                        background: carouselCaptionCopied ? 'var(--good-bg, #f0fdf4)' : 'var(--bg-elev)',
+                        background: carouselCaptionCopied ? 'var(--good-bg, var(--good-soft))' : 'var(--bg-elev)',
                         color: carouselCaptionCopied ? 'var(--good, #16a34a)' : 'var(--ink)',
                         fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
                       }}
@@ -1480,7 +1480,7 @@ export default function SocialPage() {
                     rows={4}
                     style={{
                       width: '100%', boxSizing: 'border-box',
-                      padding: '10px 12px', borderRadius: 8,
+                      padding: '10px 12px', borderRadius: 5,
                       border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)',
                       fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.5,
                       resize: 'vertical', outline: 'none',
@@ -1490,7 +1490,7 @@ export default function SocialPage() {
               )}
 
               {/* Slide list */}
-              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+              <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
                 {slides.map((slide, i) => (
                   <div key={i}
                     onClick={() => setActiveSlide(i)}
@@ -1508,7 +1508,7 @@ export default function SocialPage() {
                           <span style={{
                             flexShrink: 0, fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4,
                             padding: '2px 6px', borderRadius: 4,
-                            background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5',
+                            background: 'var(--danger-soft)', color: 'var(--danger)', border: '1px solid var(--border)',
                           }}>NO IMAGE · REFUNDED</span>
                         )}
                       </div>
@@ -1523,8 +1523,8 @@ export default function SocialPage() {
                         style={{
                           flexShrink: 0,
                           display: 'inline-flex', alignItems: 'center', gap: 5,
-                          padding: '6px 10px', borderRadius: 8,
-                          border: '1px solid #991b1b', background: '#991b1b', color: '#fff',
+                          padding: '6px 10px', borderRadius: 5,
+                          border: '1px solid var(--danger)', background: '#991b1b', color: '#fff',
                           fontSize: 11.5, fontWeight: 600,
                           cursor: slide.retrying ? 'wait' : 'pointer',
                           opacity: slide.retrying ? 0.6 : 1,

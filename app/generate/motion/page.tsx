@@ -118,17 +118,17 @@ const reviewFrames = (d: number) => [0.04, 0.16, 0.3, 0.44, 0.58, 0.72, 0.86, 0.
 const hostOf = (url: string | null | undefined) => (url ?? '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/[/?#].*$/, '')
 
 const chip = (active: boolean, disabled = false): React.CSSProperties => ({
-  padding: '8px 16px', borderRadius: 999,
+  padding: '8px 16px', borderRadius: 4,
   background: active ? 'var(--ink)' : 'var(--surface)',
   border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
   fontSize: 13, fontWeight: 600, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.15s',
 })
-const card: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }
+const card: React.CSSProperties = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, display: 'flex', flexDirection: 'column', gap: 14 }
 const label: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--ink-dim)', marginBottom: 6, display: 'block' }
-const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, fontFamily: 'inherit' }
-const primary = (disabled: boolean): React.CSSProperties => ({ padding: '12px 22px', borderRadius: 999, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 14, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 })
-const ghost: React.CSSProperties = { padding: '11px 18px', borderRadius: 999, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }
+const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', padding: '10px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 14, fontFamily: 'inherit' }
+const primary = (disabled: boolean): React.CSSProperties => ({ padding: '12px 22px', borderRadius: 4, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 14, fontWeight: 700, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.5 : 1 })
+const ghost: React.CSSProperties = { padding: '11px 18px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }
 
 const PROGRESS: Record<'writing' | 'checking' | 'reviewing', { title: string; sub: string }> = {
   writing: { title: 'Writing the animation', sub: 'Turning the storyboard into code. Usually 1–2 minutes.' },
@@ -499,9 +499,9 @@ export default function MotionAdsPage() {
               </div>
               {brand && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: 'var(--ink-dim)' }}>
-                  {brand.image && <img src={brand.image} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }} />}
-                  {brand.shot && <img src={brand.shot} alt="" style={{ height: 40, width: 64, objectFit: 'cover', objectPosition: 'top', borderRadius: 8, border: '1px solid var(--border)' }} />}
-                  {brand.logo && <img src={brand.logo} alt="" style={{ height: 40, maxWidth: 80, objectFit: 'contain', borderRadius: 8, border: '1px solid var(--border)', background: '#fff' }} />}
+                  {brand.image && <img src={brand.image} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border)' }} />}
+                  {brand.shot && <img src={brand.shot} alt="" style={{ height: 40, width: 64, objectFit: 'cover', objectPosition: 'top', borderRadius: 5, border: '1px solid var(--border)' }} />}
+                  {brand.logo && <img src={brand.logo} alt="" style={{ height: 40, maxWidth: 80, objectFit: 'contain', borderRadius: 5, border: '1px solid var(--border)', background: '#fff' }} />}
                   {brief.brandColors?.map(c => <span key={c} title={c} style={{ width: 20, height: 20, borderRadius: 999, background: c, border: '1px solid var(--border)' }} />)}
                   <span>From {brand.host}</span>
                   <button type="button" onClick={clearBrand} disabled={busy} style={{ marginLeft: 'auto', background: 'none', border: 'none', padding: 0, color: 'var(--ink-dim)', textDecoration: 'underline', fontSize: 12.5, cursor: 'pointer' }}>Clear</button>
@@ -629,7 +629,7 @@ export default function MotionAdsPage() {
                 <div>
                   <span style={label}>Caption to post with it</span>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start' }}>
-                    <p style={{ margin: 0, flex: 1, fontSize: 13.5, lineHeight: 1.5, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>{storyboard.shareCopy}</p>
+                    <p style={{ margin: 0, flex: 1, fontSize: 13.5, lineHeight: 1.5, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px' }}>{storyboard.shareCopy}</p>
                     <button type="button" onClick={() => { void navigator.clipboard.writeText(storyboard.shareCopy); showSuccess('Copied') }} style={ghost}>Copy</button>
                   </div>
                 </div>
@@ -653,7 +653,7 @@ export default function MotionAdsPage() {
                 <textarea value={storyboard.hook} onChange={e => setStoryboard({ ...storyboard, hook: e.target.value })} rows={2} style={{ ...input, resize: 'vertical' }} disabled={stage !== 'storyboard'} />
               </div>
               {storyboard.scenes.map((s, i) => (
-                <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-mute)' }}>{i + 1}</span>
                     <input value={s.title} onChange={e => updateScene(i, { title: e.target.value })} style={{ ...input, fontWeight: 600 }} disabled={stage !== 'storyboard'} />
@@ -681,7 +681,7 @@ export default function MotionAdsPage() {
 
         {/* ── Right: the sandboxed preview. Always mounted and on screen. ── */}
         <div style={{ position: 'sticky', top: 24 }}>
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 18, overflow: 'hidden', border: '1px solid var(--border)', background: '#111' }}>
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '9 / 16', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: '#111' }}>
             <div ref={box} style={{ position: 'absolute', inset: 0 }} />
             {stage !== 'ready' && stage !== 'checking' && stage !== 'reviewing' && (
               <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, background: 'var(--surface-2)', color: 'var(--ink-mute)', fontSize: 13, textAlign: 'center', padding: 24 }}>

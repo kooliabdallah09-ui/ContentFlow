@@ -95,7 +95,7 @@ export default function ApiKeysPage() {
       </div>
 
       {newKey && (
-        <div style={{ padding: 20, border: '1.5px solid var(--ink)', borderRadius: 14, marginBottom: 32, background: 'var(--surface)' }}>
+        <div style={{ padding: 20, border: '1.5px solid var(--ink)', borderRadius: 8, marginBottom: 32, background: 'var(--surface)' }}>
           <div style={{ display: 'flex', alignItems: 'start', gap: 12 }}>
             <span style={{ fontSize: 20 }}>🔑</span>
             <div style={{ flex: 1 }}>
@@ -110,7 +110,7 @@ export default function ApiKeysPage() {
                   background: 'var(--bg)',
                   padding: '12px 14px',
                   border: '1px solid var(--line)',
-                  borderRadius: 10,
+                  borderRadius: 6,
                   wordBreak: 'break-all',
                   marginBottom: 12,
                 }}
@@ -120,13 +120,13 @@ export default function ApiKeysPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button
                   onClick={() => { navigator.clipboard.writeText(newKey.key); showSuccess('Copied', 'Key copied to clipboard') }}
-                  style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', padding: '10px 16px', borderRadius: 10, fontSize: 13, cursor: 'pointer' }}
+                  style={{ background: 'var(--ink)', color: 'var(--bg)', border: 'none', padding: '10px 16px', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
                 >
                   Copy key
                 </button>
                 <button
                   onClick={() => setNewKey(null)}
-                  style={{ background: 'transparent', border: '1px solid var(--line)', padding: '10px 16px', borderRadius: 10, fontSize: 13, cursor: 'pointer', color: 'var(--ink)' }}
+                  style={{ background: 'transparent', border: '1px solid var(--line)', padding: '10px 16px', borderRadius: 6, fontSize: 13, cursor: 'pointer', color: 'var(--ink)' }}
                 >
                   Done
                 </button>
@@ -136,7 +136,7 @@ export default function ApiKeysPage() {
         </div>
       )}
 
-      <div style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 14, marginBottom: 32 }}>
+      <div style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 8, marginBottom: 32 }}>
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Create a new key</div>
         <div style={{ display: 'flex', gap: 10 }}>
           <input
@@ -151,7 +151,7 @@ export default function ApiKeysPage() {
             disabled={creating}
             style={{
               padding: '0 20px',
-              borderRadius: 10,
+              borderRadius: 6,
               background: 'var(--ink)',
               color: 'var(--bg)',
               border: 'none',
@@ -171,12 +171,12 @@ export default function ApiKeysPage() {
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Active keys</div>
         {loading && <div style={{ fontSize: 13, color: 'var(--ink-dim)' }}>Loading…</div>}
         {!loading && active.length === 0 && (
-          <div style={{ fontSize: 14, color: 'var(--ink-dim)', padding: 20, border: '1px dashed var(--line)', borderRadius: 12, textAlign: 'center' }}>
+          <div style={{ fontSize: 14, color: 'var(--ink-dim)', padding: 20, border: '1px dashed var(--line)', borderRadius: 6, textAlign: 'center' }}>
             No active keys yet. Create one above to start.
           </div>
         )}
         {active.map(k => (
-          <div key={k.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, border: '1px solid var(--line)', borderRadius: 12, marginBottom: 10 }}>
+          <div key={k.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 16, border: '1px solid var(--line)', borderRadius: 6, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 14, fontWeight: 600 }}>{k.name}</div>
               <div style={{ fontSize: 12, color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
@@ -188,7 +188,7 @@ export default function ApiKeysPage() {
             </div>
             <button
               onClick={() => revoke(k.id)}
-              style={{ background: 'transparent', border: '1px solid var(--line)', padding: '8px 14px', borderRadius: 8, fontSize: 12.5, cursor: 'pointer', color: 'var(--ink)' }}
+              style={{ background: 'transparent', border: '1px solid var(--line)', padding: '8px 14px', borderRadius: 5, fontSize: 12.5, cursor: 'pointer', color: 'var(--ink)' }}
             >
               Revoke
             </button>
@@ -206,12 +206,12 @@ export default function ApiKeysPage() {
         )}
       </section>
 
-      <section style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)' }}>
+      <section style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 8, background: 'var(--surface)' }}>
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>How to connect</div>
         <p style={{ fontSize: 13.5, color: 'var(--ink-dim)', lineHeight: 1.65, marginTop: 0 }}>
           <strong>Claude Desktop</strong> · edit <code style={{ fontFamily: 'var(--font-mono)', background: 'var(--bg)', padding: '1px 6px', borderRadius: 4 }}>claude_desktop_config.json</code>:
         </p>
-        <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 16, border: '1px solid var(--line)', borderRadius: 10, overflow: 'auto', margin: '10px 0 18px' }}>{`{
+        <pre style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 16, border: '1px solid var(--line)', borderRadius: 6, overflow: 'auto', margin: '10px 0 18px' }}>{`{
   "mcpServers": {
     "contentflow": {
       "command": "npx",
@@ -231,7 +231,7 @@ export default function ApiKeysPage() {
         </p>
       </section>
 
-      <section style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 14, background: 'var(--surface)', marginTop: 20 }}>
+      <section style={{ padding: 24, border: '1px solid var(--line)', borderRadius: 8, background: 'var(--surface)', marginTop: 20 }}>
         <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Using it in Claude Desktop</div>
         <ol style={{ fontSize: 13.5, color: 'var(--ink-dim)', lineHeight: 1.7, margin: 0, paddingLeft: 22 }}>
           <li><strong>Fully quit</strong> Claude Desktop after saving the config (Cmd+Q — not just closing the window). Hot-reload is unreliable; a fresh launch reads the config.</li>
@@ -240,11 +240,11 @@ export default function ApiKeysPage() {
           </li>
           <li>
             Invoke by <strong>explicit tool name</strong>. Ask something like:
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 10, border: '1px solid var(--line)', borderRadius: 8, margin: '8px 0' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 10, border: '1px solid var(--line)', borderRadius: 5, margin: '8px 0' }}>
               Call get_credit_balance
             </div>
             or
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 10, border: '1px solid var(--line)', borderRadius: 8, margin: '8px 0' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, background: 'var(--bg)', padding: 10, border: '1px solid var(--line)', borderRadius: 5, margin: '8px 0' }}>
               Call generate_social_captions with topic &quot;launching ContentFlow&quot; for Instagram and X
             </div>
           </li>

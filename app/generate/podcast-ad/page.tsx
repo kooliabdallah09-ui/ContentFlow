@@ -315,7 +315,7 @@ export default function PodcastAdPage() {
                     key={opt.value}
                     type="button"
                     onClick={() => setAspect(opt.value)}
-                    style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${aspect === opt.value ? 'var(--ink)' : 'var(--border)'}`, background: aspect === opt.value ? 'var(--ink)' : 'var(--surface)', color: aspect === opt.value ? 'var(--on-ink)' : 'var(--ink)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}
+                    style={{ padding: '7px 12px', borderRadius: 5, border: `1.5px solid ${aspect === opt.value ? 'var(--ink)' : 'var(--border)'}`, background: aspect === opt.value ? 'var(--ink)' : 'var(--surface)', color: aspect === opt.value ? 'var(--on-ink)' : 'var(--ink)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}
                   >
                     <span style={{ fontSize: 13, fontWeight: 700 }}>{opt.label}</span>
                     <span style={{ fontSize: 10, opacity: 0.65 }}>{opt.sub}</span>
@@ -334,7 +334,7 @@ export default function PodcastAdPage() {
           {/* Reference image */}
           <Field label="Reference image (optional)">
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 8, border: '1.5px dashed var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 13, color: 'var(--ink-2)', flexShrink: 0 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 5, border: '1.5px dashed var(--border)', background: 'var(--surface)', cursor: 'pointer', fontSize: 13, color: 'var(--ink-2)', flexShrink: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
                 {refImageBase64 ? 'Change image' : 'Upload a reference photo'}
                 <input type="file" accept="image/*" onChange={handleRefImage} style={{ display: 'none' }} />
@@ -360,10 +360,10 @@ export default function PodcastAdPage() {
                       key={s.id}
                       type="button"
                       onClick={() => setSelectedSceneId(active ? null : s.id)}
-                      style={{ flexShrink: 0, padding: 5, borderRadius: 10, border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: active ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 5, width: 88 }}
+                      style={{ flexShrink: 0, padding: 5, borderRadius: 6, border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: active ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 5, width: 88 }}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={s.hero_image_url} alt={s.name} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 7, display: 'block' }} />
+                      <img src={s.hero_image_url} alt={s.name} style={{ width: '100%', aspectRatio: '16/9', objectFit: 'cover', borderRadius: 4, display: 'block' }} />
                       <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textAlign: 'left' }}>{s.name}</div>
                     </button>
                   )
@@ -408,7 +408,7 @@ export default function PodcastAdPage() {
               </div>
             </div>
           )}
-          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', marginBottom: 16, fontSize: 13, color: 'var(--ink-2)' }}>
+          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface-2)', marginBottom: 16, fontSize: 13, color: 'var(--ink-2)' }}>
             Edit any line before rendering. Every line under 25 words works best — Seedance loses lip-sync on longer takes.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -416,7 +416,7 @@ export default function PodcastAdPage() {
               const shotKey = `shot${idx}` as keyof PodcastScript
               const shot = script[shotKey] as Record<string, string>
               return (
-                <div key={idx} style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)' }}>
+                <div key={idx} style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
                     <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-2)' }}>#{idx}</span>
                     <span style={{ fontSize: 13, fontWeight: 700 }}>Shot {idx}</span>
@@ -457,7 +457,7 @@ export default function PodcastAdPage() {
 
       {step === 'frames' && (
         <>
-          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', marginBottom: 20, fontSize: 13, color: 'var(--ink-2)' }}>
+          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface-2)', marginBottom: 20, fontSize: 13, color: 'var(--ink-2)' }}>
             Pick the scene composition you like best — this frame anchors the visual style for all 6 shots.
           </div>
           {frameOptions.length === 0 ? (
@@ -471,7 +471,7 @@ export default function PodcastAdPage() {
                     key={f.url}
                     type="button"
                     onClick={() => setSelectedFrame(f.url)}
-                    style={{ padding: 0, border: `2.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 12, background: 'var(--surface)', cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s' }}
+                    style={{ padding: 0, border: `2.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 6, background: 'var(--surface)', cursor: 'pointer', overflow: 'hidden', display: 'flex', flexDirection: 'column', transition: 'border-color 0.15s' }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={f.url} alt={f.label} style={{ width: '100%', aspectRatio: aspect.replace(':', '/'), objectFit: 'cover', display: 'block' }} />
@@ -500,28 +500,28 @@ export default function PodcastAdPage() {
 
       {step === 'rendering' && (
         <>
-          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface-2)', marginBottom: 16, fontSize: 13, color: 'var(--ink-2)' }}>
+          <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface-2)', marginBottom: 16, fontSize: 13, color: 'var(--ink-2)' }}>
             Each shot takes 2–5 minutes. All 6 render in parallel. This page updates automatically — you can leave it open.
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 12 }}>
             {jobs.map(job => (
-              <div key={job.shot} style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface)' }}>
+              <div key={job.shot} style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
                   <span style={{ fontSize: 12, fontWeight: 700 }}>Shot {job.shot}</span>
-                  <span style={{ fontSize: 10.5, marginLeft: 'auto', padding: '2px 8px', borderRadius: 999, background: job.status === 'completed' ? '#dcfce7' : job.status === 'failed' ? '#fee2e2' : 'var(--surface-2)', color: job.status === 'completed' ? '#166534' : job.status === 'failed' ? '#991b1b' : 'var(--ink-2)', fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: 10.5, marginLeft: 'auto', padding: '2px 8px', borderRadius: 4, background: job.status === 'completed' ? 'var(--good-soft)' : job.status === 'failed' ? 'var(--danger-soft)' : 'var(--surface-2)', color: job.status === 'completed' ? 'var(--good)' : job.status === 'failed' ? '#991b1b' : 'var(--ink-2)', fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase' }}>
                     {job.status}
                   </span>
                 </div>
                 {job.status === 'processing' && (
-                  <div style={{ aspectRatio: aspect.replace(':', '/'), background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 8 }}>
+                  <div style={{ aspectRatio: aspect.replace(':', '/'), background: 'var(--surface-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 5 }}>
                     <Loader2 size={22} className="animate-spin" style={{ color: 'var(--ink-2)' }} />
                   </div>
                 )}
                 {job.status === 'completed' && job.videoUrl && (
-                  <video src={job.videoUrl} controls playsInline style={{ width: '100%', aspectRatio: aspect.replace(':', '/'), objectFit: 'cover', borderRadius: 8, background: '#000' }} />
+                  <video src={job.videoUrl} controls playsInline style={{ width: '100%', aspectRatio: aspect.replace(':', '/'), objectFit: 'cover', borderRadius: 5, background: '#000' }} />
                 )}
                 {job.status === 'failed' && (
-                  <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: '#991b1b' }}>{job.error ?? 'Render failed'}</div>
+                  <div style={{ padding: 20, textAlign: 'center', fontSize: 12, color: 'var(--danger)' }}>{job.error ?? 'Render failed'}</div>
                 )}
               </div>
             ))}
@@ -556,7 +556,7 @@ function InfluencerPicker({ value, onChange, list }: { value: string; onChange: 
             key={i.id}
             onClick={() => onChange(active ? '' : i.id)}
             title={i.name}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 4px', borderRadius: 999, border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', cursor: 'pointer', flexShrink: 0 }}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 4px', borderRadius: 4, border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', cursor: 'pointer', flexShrink: 0 }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={i.portrait_url} alt={i.name} style={{ width: 26, height: 26, borderRadius: '50%', objectFit: 'cover' }} />
@@ -583,7 +583,7 @@ const inp: React.CSSProperties = {
   fontSize: 14,
   fontFamily: 'inherit',
   border: '1px solid var(--border)',
-  borderRadius: 9,
+  borderRadius: 5,
   background: 'var(--surface)',
   color: 'var(--ink)',
 }

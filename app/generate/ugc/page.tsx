@@ -574,7 +574,7 @@ export default function UGCGeneratorPage() {
         </div>
         <div style={{
           display: 'inline-flex', alignItems: 'center', gap: 8,
-          padding: '6px 12px', borderRadius: 999,
+          padding: '6px 12px', borderRadius: 4,
           background: 'var(--ink)', color: 'var(--on-ink)',
           fontSize: 11.5, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase',
         }}>
@@ -584,7 +584,7 @@ export default function UGCGeneratorPage() {
       </header>
 
       {/* URL → ad import bar */}
-      <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ marginBottom: 20, padding: '14px 16px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
           <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Start from a product URL</span>
@@ -597,13 +597,13 @@ export default function UGCGeneratorPage() {
             value={urlInput}
             onChange={e => setUrlInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleUrlImport()}
-            style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+            style={{ flex: 1, padding: '8px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
           />
           <button
             type="button"
             onClick={handleUrlImport}
             disabled={!urlInput.trim() || urlLoading}
-            style={{ padding: '8px 16px', borderRadius: 8, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13, fontWeight: 600, cursor: urlInput.trim() && !urlLoading ? 'pointer' : 'not-allowed', opacity: urlInput.trim() && !urlLoading ? 1 : 0.45, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
+            style={{ padding: '8px 16px', borderRadius: 5, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13, fontWeight: 600, cursor: urlInput.trim() && !urlLoading ? 'pointer' : 'not-allowed', opacity: urlInput.trim() && !urlLoading ? 1 : 0.45, whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', gap: 6 }}
           >
             {urlLoading ? <><span style={{ width: 11, height: 11, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Importing…</> : 'Import →'}
           </button>
@@ -621,25 +621,25 @@ export default function UGCGeneratorPage() {
       {false && batchMode && (
         <div style={{ marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {/* Product mini-form */}
-          <div style={{ padding: '18px 20px', borderRadius: 14, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ padding: '18px 20px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Product info</div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Product name *</label>
-                <input value={batchProductName} onChange={e => setBatchProductName(e.target.value)} placeholder="e.g. HydroGlow Serum" style={{ padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
+                <input value={batchProductName} onChange={e => setBatchProductName(e.target.value)} placeholder="e.g. HydroGlow Serum" style={{ padding: '8px 11px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Call to action</label>
-                <input value={batchCallToAction} onChange={e => setBatchCallToAction(e.target.value)} placeholder="e.g. Shop now" style={{ padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
+                <input value={batchCallToAction} onChange={e => setBatchCallToAction(e.target.value)} placeholder="e.g. Shop now" style={{ padding: '8px 11px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Product description *</label>
-              <textarea value={batchProductDescription} onChange={e => setBatchProductDescription(e.target.value)} rows={2} placeholder="What does it do and who is it for?" style={{ padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', resize: 'vertical' }} />
+              <textarea value={batchProductDescription} onChange={e => setBatchProductDescription(e.target.value)} rows={2} placeholder="What does it do and who is it for?" style={{ padding: '8px 11px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none', resize: 'vertical' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               <label style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)' }}>Key benefits</label>
-              <input value={batchBenefits} onChange={e => setBatchBenefits(e.target.value)} placeholder="e.g. clears skin in 7 days, no harsh chemicals" style={{ padding: '8px 11px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
+              <input value={batchBenefits} onChange={e => setBatchBenefits(e.target.value)} placeholder="e.g. clears skin in 7 days, no harsh chemicals" style={{ padding: '8px 11px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13, outline: 'none' }} />
             </div>
           </div>
 
@@ -658,7 +658,7 @@ export default function UGCGeneratorPage() {
                       active ? next.delete(angle.id) : next.add(angle.id)
                       return next
                     })}
-                    style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 10, border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: active ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3 }}
+                    style={{ textAlign: 'left', padding: '10px 12px', borderRadius: 6, border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: active ? 'var(--surface-2)' : 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3 }}
                   >
                     <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{active ? '✓ ' : ''}{angle.label}</span>
                     <span style={{ fontSize: 11.5, color: 'var(--ink-mute)', lineHeight: 1.4 }}>{angle.desc}</span>
@@ -673,7 +673,7 @@ export default function UGCGeneratorPage() {
             type="button"
             onClick={handleBatchGenerate}
             disabled={batchGenerating || !batchProductName.trim() || !batchProductDescription.trim() || selectedAngles.size === 0}
-            style={{ alignSelf: 'flex-start', padding: '10px 22px', borderRadius: 10, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13.5, fontWeight: 700, cursor: batchGenerating || !batchProductName.trim() || !batchProductDescription.trim() || selectedAngles.size === 0 ? 'not-allowed' : 'pointer', opacity: batchGenerating || !batchProductName.trim() || !batchProductDescription.trim() || selectedAngles.size === 0 ? 0.45 : 1, display: 'flex', alignItems: 'center', gap: 8 }}
+            style={{ alignSelf: 'flex-start', padding: '10px 22px', borderRadius: 6, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13.5, fontWeight: 700, cursor: batchGenerating || !batchProductName.trim() || !batchProductDescription.trim() || selectedAngles.size === 0 ? 'not-allowed' : 'pointer', opacity: batchGenerating || !batchProductName.trim() || !batchProductDescription.trim() || selectedAngles.size === 0 ? 0.45 : 1, display: 'flex', alignItems: 'center', gap: 8 }}
           >
             {batchGenerating ? (
               <><span style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', display: 'inline-block', animation: 'spin 0.7s linear infinite' }} />Generating {selectedAngles.size} variations…</>
@@ -686,7 +686,7 @@ export default function UGCGeneratorPage() {
           {batchJobs.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
               {batchJobs.map((job, i) => (
-                <div key={i} style={{ borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div key={i} style={{ borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{job.angle.label}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{job.angle.desc}</div>
@@ -704,7 +704,7 @@ export default function UGCGeneratorPage() {
                     {job.status === 'error' && <div style={{ fontSize: 12, color: '#e84040', textAlign: 'center' }}>{job.error || 'Failed'}</div>}
                     {job.status === 'done' && job.videoUrl && (
                       <>
-                        <video src={job.videoUrl} controls style={{ width: '100%', borderRadius: 8, background: '#000' }} />
+                        <video src={job.videoUrl} controls style={{ width: '100%', borderRadius: 5, background: '#000' }} />
                         <a href={job.videoUrl} download style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                           Download

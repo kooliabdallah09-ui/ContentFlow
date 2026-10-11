@@ -26,9 +26,9 @@ interface Report {
 }
 
 const STATUS_META: Record<Report['status'], { label: string; color: string; bg: string }> = {
-  new:        { label: 'New',        color: '#b45309', bg: '#fef3c7' },
+  new:        { label: 'New',        color: 'var(--warn)', bg: 'var(--warn-soft)' },
   reviewing:  { label: 'Reviewing',  color: '#1e40af', bg: '#dbeafe' },
-  actioned:   { label: 'Actioned',   color: '#166534', bg: '#dcfce7' },
+  actioned:   { label: 'Actioned',   color: 'var(--good)', bg: 'var(--good-soft)' },
   dismissed:  { label: 'Dismissed',  color: '#57534e', bg: '#f5f5f4' },
 }
 
@@ -110,14 +110,14 @@ export default function AdminReportsPage() {
       </div>
 
       {/* Filter tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: 4, borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', width: 'fit-content' }}>
+      <div style={{ display: 'flex', gap: 6, marginBottom: 20, padding: 4, borderRadius: 6, background: 'var(--surface)', border: '1px solid var(--border)', width: 'fit-content' }}>
         {(['new', 'reviewing', 'actioned', 'dismissed', 'all'] as const).map(f => (
           <button
             key={f}
             type="button"
             onClick={() => setFilter(f)}
             style={{
-              padding: '6px 14px', borderRadius: 7, border: 'none', cursor: 'pointer',
+              padding: '6px 14px', borderRadius: 4, border: 'none', cursor: 'pointer',
               fontSize: 12.5, fontWeight: 600, letterSpacing: '-0.01em',
               background: filter === f ? 'var(--ink)' : 'transparent',
               color: filter === f ? 'var(--on-ink)' : 'var(--ink-dim)',
@@ -133,7 +133,7 @@ export default function AdminReportsPage() {
       {loading ? (
         <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-mute)', fontSize: 14 }}>Loading…</div>
       ) : reports.length === 0 ? (
-        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-mute)', fontSize: 14, background: 'var(--surface)', borderRadius: 14, border: '1px solid var(--border)' }}>
+        <div style={{ padding: 40, textAlign: 'center', color: 'var(--ink-mute)', fontSize: 14, background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)' }}>
           No reports in this queue.
         </div>
       ) : (
@@ -143,7 +143,7 @@ export default function AdminReportsPage() {
             const meta = STATUS_META[r.status]
             return (
               <div key={r.id} style={{
-                border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface)', padding: 16,
+                border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface)', padding: 16,
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
                   <span style={{
@@ -196,7 +196,7 @@ export default function AdminReportsPage() {
                       placeholder="Optional — what you did / decided"
                       style={{
                         width: '100%', boxSizing: 'border-box',
-                        padding: '8px 10px', borderRadius: 8,
+                        padding: '8px 10px', borderRadius: 5,
                         border: '1px solid var(--border)', background: 'var(--bg)',
                         color: 'var(--ink)', fontSize: 13, fontFamily: 'inherit',
                         resize: 'vertical', minHeight: 60, outline: 'none',
@@ -210,7 +210,7 @@ export default function AdminReportsPage() {
                           onClick={() => updateStatus(r.id, s)}
                           disabled={r.status === s}
                           style={{
-                            padding: '7px 14px', borderRadius: 8,
+                            padding: '7px 14px', borderRadius: 5,
                             border: `1px solid ${r.status === s ? 'var(--border)' : 'var(--ink)'}`,
                             background: r.status === s ? 'var(--surface-2)' : 'var(--ink)',
                             color: r.status === s ? 'var(--ink-mute)' : 'var(--on-ink)',

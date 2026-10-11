@@ -48,7 +48,7 @@ export default function SettingsPage() {
               display: 'flex', alignItems: 'flex-start', gap: 14,
               padding: 22,
               background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 16,
+              borderRadius: 8,
               transition: 'box-shadow 160ms, transform 160ms',
             }}
             onMouseEnter={e => {
@@ -61,8 +61,8 @@ export default function SettingsPage() {
             }}
           >
             <div style={{
-              width: 40, height: 40, borderRadius: 11,
-              background: 'var(--ink)', color: '#fff',
+              width: 40, height: 40, borderRadius: 6,
+              background: 'var(--ink)', color: 'var(--on-ink)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               flexShrink: 0,
             }}>

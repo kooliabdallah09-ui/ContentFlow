@@ -33,7 +33,7 @@ export default function EndCardPreview({ props, aspect }: { props: EndCardProps;
         maxWidth: Math.round((420 * w) / h),
         aspectRatio: `${w} / ${h}`,
         margin: '0 auto',
-        borderRadius: 10,
+        borderRadius: 6,
         overflow: 'hidden',
         border: '1px solid var(--border)',
         background: '#000',

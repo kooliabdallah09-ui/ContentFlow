@@ -27,7 +27,7 @@ interface Scene {
 
 const chip = (active: boolean): CSSProperties => ({
   display: 'inline-flex', alignItems: 'center',
-  padding: '7px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+  padding: '7px 13px', borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
   border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
   background: active ? 'var(--ink)' : 'var(--surface)',
   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -157,7 +157,7 @@ export default function ScenesStudio() {
 
       {/* Create composer */}
       {showCreate && (
-        <div style={{ padding: 20, borderRadius: 16, background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ padding: 20, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', marginBottom: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <span style={{ fontFamily: 'var(--font-serif)', fontSize: 20 }}>Describe the scene</span>
             <button onClick={() => setShowCreate(false)} title="Cancel" style={{ marginLeft: 'auto', background: 'transparent', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 4 }}>
@@ -207,7 +207,7 @@ export default function ScenesStudio() {
                 <button
                   onClick={() => document.getElementById('sceneRefInput')?.click()}
                   {...createRefsDrop.dropzoneProps}
-                  style={{ width: 74, height: 74, borderRadius: 10, border: `1.5px dashed ${createRefsDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: createRefsDrop.isDragging ? 'var(--hover)' : 'var(--surface-2, var(--surface))', color: createRefsDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                  style={{ width: 74, height: 74, borderRadius: 6, border: `1.5px dashed ${createRefsDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: createRefsDrop.isDragging ? 'var(--hover)' : 'var(--surface-2, var(--surface))', color: createRefsDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 120ms, border-color 120ms, color 120ms' }}
                   title="Attach up to 3 reference photos — the scene will be based on them"
                 >
                   <ImagePlus size={20} />
@@ -238,13 +238,13 @@ export default function ScenesStudio() {
       {loading ? (
         <Loader2 size={22} className="animate-spin" style={{ color: 'var(--ink-mute)' }} />
       ) : list.length === 0 && !showCreate ? (
-        <div style={{ padding: '54px 20px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13.5, border: '1px dashed var(--border)', borderRadius: 14 }}>
+        <div style={{ padding: '54px 20px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13.5, border: '1px dashed var(--border)', borderRadius: 8 }}>
           No scenes yet — hit &ldquo;New scene&rdquo; and describe a place. It becomes a reusable environment for every shoot.
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14 }}>
           {list.map(s => (
-            <div key={s.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+            <div key={s.id} style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
               <button
                 onClick={() => setLightbox({ url: s.hero_image_url ?? '', label: s.name })}
                 style={{ padding: 0, background: 'transparent', border: 0, cursor: 'zoom-in' }}
@@ -263,20 +263,20 @@ export default function ScenesStudio() {
                 <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 6 }}>
                   <button
                     onClick={() => setSelected(selected?.id === s.id ? null : s)}
-                    style={{ fontSize: 11.5, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-dim)', cursor: 'pointer' }}
+                    style={{ fontSize: 11.5, padding: '5px 10px', borderRadius: 5, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-dim)', cursor: 'pointer' }}
                   >
                     {selected?.id === s.id ? 'Hide prompt' : 'View prompt'}
                   </button>
                   <button
                     onClick={() => remove(s)}
                     disabled={deleting}
-                    style={{ marginLeft: 'auto', fontSize: 11.5, padding: '5px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                    style={{ marginLeft: 'auto', fontSize: 11.5, padding: '5px 10px', borderRadius: 5, border: '1px solid var(--border)', background: 'transparent', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 4 }}
                   >
                     <Trash2 size={12} /> Delete
                   </button>
                 </div>
                 {selected?.id === s.id && (
-                  <div style={{ marginTop: 8, padding: 10, borderRadius: 8, background: 'var(--surface-2, var(--hover))', fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
+                  <div style={{ marginTop: 8, padding: 10, borderRadius: 5, background: 'var(--surface-2, var(--hover))', fontSize: 11.5, color: 'var(--ink-dim)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>
                     {s.scene_prompt}
                   </div>
                 )}
@@ -292,7 +292,7 @@ export default function ScenesStudio() {
             <ArrowLeft size={16} />
           </button>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={lightbox.url} alt={lightbox.label} style={{ maxWidth: '92vw', maxHeight: '82vh', borderRadius: 12 }} />
+          <img src={lightbox.url} alt={lightbox.label} style={{ maxWidth: '92vw', maxHeight: '82vh', borderRadius: 6 }} />
           {lightbox.label && <div style={{ marginTop: 12, color: '#fff', fontSize: 13.5 }}>{lightbox.label}</div>}
         </div>
       )}

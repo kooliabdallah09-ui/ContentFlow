@@ -53,7 +53,7 @@ export default async function DataDeletionPage({
       </p>
 
       {code && (
-        <section style={{ marginBottom: 40, padding: 24, border: '1px solid var(--line)', borderRadius: 12 }}>
+        <section style={{ marginBottom: 40, padding: 24, border: '1px solid var(--line)', borderRadius: 6 }}>
           <h2 style={{ fontSize: 16, fontWeight: 700, margin: '0 0 12px' }}>Deletion request status</h2>
           {status ? (
             <>

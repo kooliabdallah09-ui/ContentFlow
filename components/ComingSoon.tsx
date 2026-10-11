@@ -37,14 +37,14 @@ export default function ComingSoon({ feature, description, eta, alternative }: C
       <div style={{
         maxWidth: 560, width: '100%',
         background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 18, padding: 44,
+        borderRadius: 8, padding: 44,
         textAlign: 'center',
         boxShadow: 'var(--shadow-md)',
       }}>
         <div style={{
           width: 56, height: 56,
           margin: '0 auto 18px',
-          borderRadius: 16,
+          borderRadius: 8,
           background: 'var(--ink)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           padding: 10,
@@ -87,7 +87,7 @@ export default function ComingSoon({ feature, description, eta, alternative }: C
                 display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
                 gap: 8, padding: '13px 28px',
                 background: 'var(--ink)', color: 'var(--on-ink)',
-                borderRadius: 11, textDecoration: 'none',
+                borderRadius: 6, textDecoration: 'none',
                 fontSize: 14, fontWeight: 600,
               }}
             >

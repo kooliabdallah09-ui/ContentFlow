@@ -49,13 +49,13 @@ export default function ResetPasswordPage() {
         </div>
 
         {done ? (
-          <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid #22c55e', color: '#22c55e', padding: '14px', borderRadius: 11, fontSize: 13 }}>
+          <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid var(--good)', color: 'var(--good)', padding: '14px', borderRadius: 6, fontSize: 13 }}>
             Password updated! Redirecting to dashboard…
           </div>
         ) : (
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {error && (
-              <div style={{ background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 11, fontSize: 13 }}>
+              <div style={{ background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 6, fontSize: 13 }}>
                 {error}
               </div>
             )}
@@ -70,7 +70,7 @@ export default function ResetPasswordPage() {
                 value={confirm} onChange={e => setConfirm(e.target.value)} required disabled={loading} />
             </div>
             <button type="submit" disabled={loading} className="btn btn-primary"
-              style={{ width: '100%', marginTop: 8, padding: '13px', opacity: loading ? 0.6 : 1, borderRadius: 11 }}>
+              style={{ width: '100%', marginTop: 8, padding: '13px', opacity: loading ? 0.6 : 1, borderRadius: 6 }}>
               {loading ? 'Updating…' : 'Update password'}
             </button>
           </form>

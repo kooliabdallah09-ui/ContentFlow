@@ -24,7 +24,7 @@ const CATEGORY_ORDER: CategoryKey[] = ['solo', 'two-person', 'motion', 'transfor
 
 const chip = (active: boolean): CSSProperties => ({
   display: 'inline-flex', alignItems: 'center',
-  padding: '7px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+  padding: '7px 13px', borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
   border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
   background: active ? 'var(--ink)' : 'var(--surface)',
   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -33,7 +33,7 @@ const chip = (active: boolean): CSSProperties => ({
 
 const infoChip: CSSProperties = {
   display: 'inline-flex', alignItems: 'center',
-  padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 600,
+  padding: '3px 9px', borderRadius: 4, fontSize: 11, fontWeight: 600,
   border: '1px solid var(--border)', background: 'var(--surface-2, var(--surface))',
   color: 'var(--ink-2)', letterSpacing: '0.02em',
 }
@@ -110,7 +110,7 @@ export default function FormatLibraryPage() {
                     padding: 16,
                     background: 'var(--surface)',
                     border: '1px solid var(--border)',
-                    borderRadius: 14,
+                    borderRadius: 8,
                     textDecoration: 'none',
                     color: 'inherit',
                     transition: 'border-color 0.12s, transform 0.12s',

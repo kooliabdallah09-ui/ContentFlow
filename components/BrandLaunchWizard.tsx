@@ -88,7 +88,7 @@ async function apiPatch(path: string, body: Record<string, unknown>) {
 function ColorSwatch({ color, label }: { color: string; label: string }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-      <div style={{ width: 40, height: 40, borderRadius: 8, background: color, border: '1px solid var(--border)' }} />
+      <div style={{ width: 40, height: 40, borderRadius: 5, background: color, border: '1px solid var(--border)' }} />
       <span style={{ fontSize: 10, color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>{color}</span>
       <span style={{ fontSize: 10, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
     </div>
@@ -176,7 +176,7 @@ function StepNiche({ brandId, onDone }: { brandId: string; onDone: (niche: strin
               onClick={() => setSelected(n)}
               style={{
                 padding: '16px 20px',
-                borderRadius: 12,
+                borderRadius: 6,
                 border: `2px solid ${selected?.name === n.name ? 'var(--ink)' : 'var(--border)'}`,
                 background: selected?.name === n.name ? 'var(--accent-soft)' : 'var(--surface)',
                 cursor: 'pointer',
@@ -298,7 +298,7 @@ function StepIdentity({
                   key={n}
                   onClick={() => { setSelectedName(n); setLogoUrl('') }}
                   style={{
-                    padding: '8px 16px', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: 'pointer',
+                    padding: '8px 16px', borderRadius: 5, fontSize: 15, fontWeight: 600, cursor: 'pointer',
                     border: `2px solid ${selectedName === n ? 'var(--ink)' : 'var(--border)'}`,
                     background: selectedName === n ? 'var(--ink)' : 'var(--surface)',
                     color: selectedName === n ? 'var(--on-ink)' : 'var(--ink)',
@@ -323,7 +323,7 @@ function StepIdentity({
           </div>
 
           {/* Brand voice */}
-          <div style={{ padding: '16px 20px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <div style={{ padding: '16px 20px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
             <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)', marginBottom: 10 }}>Brand voice</div>
             <div style={{ fontSize: 18, fontWeight: 700, fontFamily: 'var(--font-serif)', color: 'var(--ink)', marginBottom: 8 }}>
               &ldquo;{identity.voice.tagline}&rdquo;
@@ -342,7 +342,7 @@ function StepIdentity({
               <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)', marginBottom: 10 }}>Logo <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: 'var(--ink-mute)', fontSize: 11 }}>(optional)</span></div>
               {logoUrl ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <img src={logoUrl} alt="Brand logo" style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 10, border: '1px solid var(--border)', background: '#fff', padding: 8 }} />
+                  <img src={logoUrl} alt="Brand logo" style={{ width: 120, height: 120, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)', background: '#fff', padding: 8 }} />
                   <button onClick={generateLogo} disabled={logoLoading} className="btn" style={{ fontSize: 13 }}>
                     {logoLoading ? 'Regenerating…' : 'Regenerate'}
                   </button>
@@ -426,7 +426,7 @@ function StepProducts({
                 onClick={() => toggle(i)}
                 style={{
                   padding: '14px 16px',
-                  borderRadius: 12,
+                  borderRadius: 6,
                   border: `2px solid ${p.selected ? 'var(--ink)' : 'var(--border)'}`,
                   background: p.selected ? 'var(--accent-soft)' : 'var(--surface)',
                   cursor: 'pointer',
@@ -529,7 +529,7 @@ function StepContent({
             <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)', marginBottom: 10 }}>Social Media Posts</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {content.social.map((post) => (
-                <div key={post.label} style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                <div key={post.label} style={{ padding: '14px 16px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{post.label}</span>
                     <CopyButton text={post.caption} />
@@ -541,7 +541,7 @@ function StepContent({
           </div>
 
           {/* Ad */}
-          <div style={{ padding: '16px 20px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <div style={{ padding: '16px 20px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)' }}>Paid Ad (Meta)</div>
               <CopyButton text={`${content.ad.headline}\n\n${content.ad.primary_text}\n\n${content.ad.cta}`} />
@@ -552,7 +552,7 @@ function StepContent({
           </div>
 
           {/* Email */}
-          <div style={{ padding: '16px 20px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+          <div style={{ padding: '16px 20px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)' }}>Launch Email</div>
               <CopyButton text={`Subject: ${content.email.subject}\nPreview: ${content.email.preview}\n\n${content.email.body}`} />
@@ -616,16 +616,16 @@ function StepExport({
       {/* Brand summary card */}
       <div style={{
         padding: '24px',
-        borderRadius: 16,
+        borderRadius: 8,
         border: '1px solid var(--border)',
         background: 'var(--surface)',
         marginBottom: 24,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
           {logoUrl ? (
-            <img src={logoUrl} alt="Logo" style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 10, border: '1px solid var(--border)', background: '#fff', padding: 6 }} />
+            <img src={logoUrl} alt="Logo" style={{ width: 64, height: 64, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)', background: '#fff', padding: 6 }} />
           ) : (
-            <div style={{ width: 64, height: 64, borderRadius: 10, background: colors?.primary || 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 6, background: colors?.primary || 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{brandName.charAt(0)}</span>
             </div>
           )}
@@ -649,10 +649,10 @@ function StepExport({
         )}
 
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-          <div style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-dim)' }}>
+          <div style={{ padding: '6px 12px', borderRadius: 5, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-dim)' }}>
             {products.length} product{products.length !== 1 ? 's' : ''}
           </div>
-          <div style={{ padding: '6px 12px', borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-dim)' }}>
+          <div style={{ padding: '6px 12px', borderRadius: 5, background: 'var(--surface-2)', border: '1px solid var(--border)', fontSize: 12, color: 'var(--ink-dim)' }}>
             {content ? '6 content pieces' : 'no content yet'}
           </div>
         </div>

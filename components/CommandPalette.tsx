@@ -147,7 +147,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       <div style={{
         width: '100%', maxWidth: 580, margin: '0 16px',
         background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 14, boxShadow: 'var(--shadow-lg)',
+        borderRadius: 8, boxShadow: 'var(--shadow-lg)',
         overflow: 'hidden', maxHeight: '70vh', display: 'flex', flexDirection: 'column',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid var(--border-soft)' }}>

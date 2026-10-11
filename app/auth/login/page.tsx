@@ -83,13 +83,13 @@ export default function LoginPage() {
         {resetMode ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {resetSent ? (
-              <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid #22c55e', color: '#22c55e', padding: '12px 14px', borderRadius: 11, fontSize: 13, lineHeight: 1.5 }}>
+              <div style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid var(--good)', color: 'var(--good)', padding: '12px 14px', borderRadius: 6, fontSize: 13, lineHeight: 1.5 }}>
                 Check your inbox — a reset link has been sent to <strong>{resetEmail}</strong>.
               </div>
             ) : (
               <form onSubmit={handleReset} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 {error && (
-                  <div style={{ background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 11, fontSize: 13 }}>
+                  <div style={{ background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 6, fontSize: 13 }}>
                     {error}
                   </div>
                 )}
@@ -102,7 +102,7 @@ export default function LoginPage() {
                     value={resetEmail} onChange={e => setResetEmail(e.target.value)} required disabled={resetLoading} />
                 </div>
                 <button type="submit" disabled={resetLoading} className="btn btn-primary"
-                  style={{ width: '100%', padding: '13px', opacity: resetLoading ? 0.6 : 1, borderRadius: 11 }}>
+                  style={{ width: '100%', padding: '13px', opacity: resetLoading ? 0.6 : 1, borderRadius: 6 }}>
                   {resetLoading ? 'Sending…' : 'Send reset link'}
                 </button>
               </form>
@@ -115,7 +115,7 @@ export default function LoginPage() {
         ) : (
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {error && (
-              <div style={{ background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 11, fontSize: 13 }}>
+              <div style={{ background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)', color: 'var(--danger)', padding: '10px 14px', borderRadius: 6, fontSize: 13 }}>
                 {error}
               </div>
             )}
@@ -127,7 +127,7 @@ export default function LoginPage() {
               disabled={googleLoading || loading}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                width: '100%', padding: '12px', borderRadius: 11,
+                width: '100%', padding: '12px', borderRadius: 6,
                 border: '1px solid var(--border-strong, var(--border))',
                 background: '#fff', color: '#1f1f1f',
                 fontSize: 14, fontWeight: 600, cursor: googleLoading ? 'wait' : 'pointer',
@@ -169,7 +169,7 @@ export default function LoginPage() {
             </div>
 
             <button type="submit" disabled={loading} className="btn btn-primary"
-              style={{ width: '100%', marginTop: 8, padding: '13px', opacity: loading ? 0.6 : 1, borderRadius: 11 }}>
+              style={{ width: '100%', marginTop: 8, padding: '13px', opacity: loading ? 0.6 : 1, borderRadius: 6 }}>
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>

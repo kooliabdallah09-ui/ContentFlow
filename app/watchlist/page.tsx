@@ -125,7 +125,7 @@ export default function WatchlistPage() {
 
       {stale.length > 0 && (
         <div style={{
-          border: '1px solid var(--border)', borderRadius: 14, padding: '14px 18px',
+          border: '1px solid var(--border)', borderRadius: 8, padding: '14px 18px',
           background: 'var(--surface)', marginBottom: 22, fontSize: 13.5, color: 'var(--ink-dim)',
         }}>
           <strong style={{ color: 'var(--ink)' }}>{stale.length} ad{stale.length === 1 ? '' : 's'} need a check.</strong>
@@ -139,7 +139,7 @@ export default function WatchlistPage() {
         </div>
       ) : ads.length === 0 ? (
         <div style={{
-          border: '1.5px dashed var(--border)', borderRadius: 18, padding: '48px 28px',
+          border: '1.5px dashed var(--border)', borderRadius: 8, padding: '48px 28px',
           textAlign: 'center', background: 'var(--surface)',
         }}>
           <Eye size={24} style={{ color: 'var(--ink-mute)', marginBottom: 12 }} />
@@ -149,7 +149,7 @@ export default function WatchlistPage() {
             the day you add it — so the sooner you start, the more the history is worth.
           </p>
           <button onClick={() => router.push('/generate/teardown')} style={{
-            padding: '12px 24px', borderRadius: 11, background: ACCENT, color: '#fff',
+            padding: '12px 24px', borderRadius: 6, background: ACCENT, color: '#fff',
             border: 'none', fontSize: 14, fontWeight: 600, cursor: 'pointer',
           }}>
             Tear down an ad →
@@ -211,7 +211,7 @@ function AdCard({ ad, busy, onLive, onDead, onRemove, onBuild }: {
 
   return (
     <div style={{
-      border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)',
+      border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)',
       overflow: 'hidden', display: 'flex', flexDirection: 'column',
       opacity: ad.died_at ? 0.72 : 1,
     }}>
@@ -246,7 +246,7 @@ function AdCard({ ad, busy, onLive, onDead, onRemove, onBuild }: {
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 'auto', paddingTop: 6 }}>
           <button onClick={onBuild} style={{
-            padding: '7px 13px', borderRadius: 8, border: 'none', background: 'var(--ink)',
+            padding: '7px 13px', borderRadius: 5, border: 'none', background: 'var(--ink)',
             color: 'var(--on-ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer',
           }}>
             Make my version
@@ -271,7 +271,7 @@ function IconBtn({ label, busy, onClick, children }: {
 }) {
   return (
     <button onClick={onClick} disabled={busy} title={label} style={{
-      padding: '7px 11px', borderRadius: 8, border: '1px solid var(--border)',
+      padding: '7px 11px', borderRadius: 5, border: '1px solid var(--border)',
       background: 'transparent', color: 'var(--ink-mute)', fontSize: 12,
       cursor: busy ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 5,
     }}>

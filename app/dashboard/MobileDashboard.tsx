@@ -99,7 +99,7 @@ export function MobileDashboard({
       {credits && (
         <div style={{
           background: 'var(--m-dark-card)',
-          borderRadius: 20, padding: '18px 20px', color: '#fff',
+          borderRadius: 8, padding: '18px 20px', color: '#fff',
           marginBottom: 18,
         }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
@@ -122,7 +122,7 @@ export function MobileDashboard({
               fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
               textTransform: 'uppercase',
               background: 'rgba(255,255,255,0.12)',
-              borderRadius: 99, padding: '5px 10px',
+              borderRadius: 4, padding: '5px 10px',
             }}>
               {planLabel}
             </span>
@@ -172,7 +172,7 @@ export function MobileDashboard({
           <Link key={t.href} href={t.href} data-press style={{
             background: 'var(--m-card)',
             border: '1px solid var(--m-border)',
-            borderRadius: 16, padding: 14, minHeight: 104,
+            borderRadius: 8, padding: 14, minHeight: 104,
             display: 'flex', flexDirection: 'column',
             cursor: 'pointer',
             boxShadow: '0 2px 10px rgba(30,26,16,0.04)',
@@ -188,7 +188,7 @@ export function MobileDashboard({
             <div style={{
               marginTop: 'auto', paddingTop: 8,
               fontFamily: 'var(--m-mono)', fontSize: 10.5,
-              fontWeight: 600, color: '#8A6420', whiteSpace: 'nowrap',
+              fontWeight: 600, color: 'var(--ink-dim)', whiteSpace: 'nowrap',
             }}>
               {t.cost}
             </div>
@@ -219,7 +219,7 @@ export function MobileDashboard({
               flexShrink: 0, width: 112,
             }}>
               <div style={{
-                height: 140, borderRadius: 14,
+                height: 140, borderRadius: 8,
                 background: 'var(--m-surface-3)',
                 animation: 'cf-m-pulse 1.4s ease-in-out infinite',
                 animationDelay: `${i * 0.1}s`,
@@ -238,7 +238,7 @@ export function MobileDashboard({
         </div>
       ) : recentItems.length === 0 ? (
         <div style={{
-          padding: 22, borderRadius: 14,
+          padding: 22, borderRadius: 8,
           border: `1.5px dashed var(--m-border-2)`,
           textAlign: 'center', color: 'var(--m-mute-2)',
           fontSize: 12.5,
@@ -261,7 +261,7 @@ export function MobileDashboard({
               }}
             >
               <div style={{
-                height: 140, borderRadius: 14,
+                height: 140, borderRadius: 8,
                 background: 'var(--m-surface-3)',
                 display: 'grid', placeItems: 'center',
                 fontSize: 9.5, fontWeight: 700, letterSpacing: '0.08em',

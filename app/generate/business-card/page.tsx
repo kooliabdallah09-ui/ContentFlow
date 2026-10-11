@@ -52,7 +52,7 @@ function CardPreview({ form, styleId, accentHex, logoSrc, previewRef }: {
   const base: React.CSSProperties = {
     width: 420,
     height: 240,
-    borderRadius: 10,
+    borderRadius: 6,
     overflow: 'hidden',
     position: 'relative',
     flexShrink: 0,
@@ -250,7 +250,7 @@ function BusinessCardPage() {
   const inputStyle: React.CSSProperties = {
     width: '100%',
     padding: '9px 12px',
-    borderRadius: 9,
+    borderRadius: 5,
     border: '1px solid var(--border)',
     background: 'var(--bg-elev, var(--surface))',
     color: 'var(--ink)',
@@ -284,7 +284,7 @@ function BusinessCardPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Fields */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 4 }}>Details</div>
             {([
               ['name',    'Full Name *', 'Jane Smith'],
@@ -309,7 +309,7 @@ function BusinessCardPage() {
           </div>
 
           {/* Style presets */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
             <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 12 }}>Style</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {STYLES.map(s => {
@@ -320,7 +320,7 @@ function BusinessCardPage() {
                     type="button"
                     onClick={() => setStyleId(s.id)}
                     style={{
-                      padding: '8px 18px', borderRadius: 999,
+                      padding: '8px 18px', borderRadius: 4,
                       background: active ? 'var(--ink)' : 'transparent',
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       color: active ? 'var(--on-ink)' : 'var(--ink-dim)',
@@ -336,7 +336,7 @@ function BusinessCardPage() {
           </div>
 
           {/* Accent color */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
             <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 12 }}>Accent Color</div>
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               {ACCENT_COLORS.map(a => (
@@ -360,7 +360,7 @@ function BusinessCardPage() {
           </div>
 
           {/* Logo upload */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 20 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
             <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 12 }}>Logo (optional)</div>
             {logoSrc ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -373,7 +373,7 @@ function BusinessCardPage() {
             ) : (
               <label style={{
                 display: 'inline-flex', alignItems: 'center', gap: 8,
-                padding: '8px 16px', borderRadius: 9,
+                padding: '8px 16px', borderRadius: 5,
                 border: '1.5px dashed var(--border)',
                 color: 'var(--ink-dim)', fontSize: 13,
                 cursor: 'pointer',
@@ -392,7 +392,7 @@ function BusinessCardPage() {
             disabled={!canExport || loading}
             style={{
               width: '100%',
-              padding: '14px 0', borderRadius: 12,
+              padding: '14px 0', borderRadius: 6,
               background: !canExport || loading ? 'var(--border)' : 'var(--ink)',
               color: !canExport || loading ? 'var(--ink-dim)' : 'var(--on-ink)',
               border: 'none',
@@ -424,7 +424,7 @@ function BusinessCardPage() {
 
           {error && (
             <div style={{
-              padding: '10px 14px', borderRadius: 10,
+              padding: '10px 14px', borderRadius: 6,
               background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger, #e84a4a)',
               color: 'var(--danger, #e84a4a)', fontSize: 13,
             }}>{error}</div>
@@ -432,7 +432,7 @@ function BusinessCardPage() {
         </div>
 
         {/* Right panel — live card */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 40 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 40 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 24 }}>Live Preview</div>
           <div className="bc-preview-wrap" style={{ display: 'flex', justifyContent: 'center' }}>
             <CardPreview form={form} styleId={styleId} accentHex={accentHex} logoSrc={logoSrc} previewRef={cardRef} />

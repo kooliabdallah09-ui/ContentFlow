@@ -19,7 +19,7 @@ export function RenderWatcher() {
       style={{
         position: 'fixed', bottom: 20, left: 20, zIndex: 900,
         display: 'inline-flex', alignItems: 'center', gap: 9,
-        padding: '9px 15px 9px 13px', borderRadius: 999,
+        padding: '9px 15px 9px 13px', borderRadius: 4,
         background: 'var(--ink)', color: 'var(--on-ink)',
         fontSize: 12.5, fontWeight: 600, textDecoration: 'none',
         boxShadow: '0 6px 24px rgba(0,0,0,0.22)',

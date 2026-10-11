@@ -252,7 +252,7 @@ export default function CarouselGeneratorPage() {
         {/* Composer */}
         <div style={{
           background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 18, padding: 22,
+          borderRadius: 8, padding: 22,
           display: 'flex', flexDirection: 'column', gap: 20,
         }}>
           {/* Topic */}
@@ -268,7 +268,7 @@ export default function CarouselGeneratorPage() {
               rows={3}
               style={{
                 width: '100%', resize: 'vertical', minHeight: 80,
-                border: '1px solid var(--border)', borderRadius: 10, outline: 'none',
+                border: '1px solid var(--border)', borderRadius: 6, outline: 'none',
                 background: 'var(--bg-elev)', fontFamily: 'inherit',
                 fontSize: 14.5, lineHeight: 1.6, color: 'var(--ink)',
                 padding: '10px 12px', boxSizing: 'border-box',
@@ -287,7 +287,7 @@ export default function CarouselGeneratorPage() {
                 return (
                   <button key={p.id} type="button" onClick={() => setPlatform(p.id)} disabled={loading}
                     style={{
-                      padding: '9px 20px', borderRadius: 999,
+                      padding: '9px 20px', borderRadius: 4,
                       background: active ? 'var(--ink)' : 'var(--surface)',
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -312,7 +312,7 @@ export default function CarouselGeneratorPage() {
                 return (
                   <button key={n} type="button" onClick={() => setSlideCount(n)} disabled={loading}
                     style={{
-                      width: 48, height: 40, borderRadius: 10,
+                      width: 48, height: 40, borderRadius: 6,
                       background: active ? 'var(--ink)' : 'var(--surface)',
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -337,7 +337,7 @@ export default function CarouselGeneratorPage() {
                 return (
                   <button key={t.id} type="button" onClick={() => setTone(t.id)} disabled={loading}
                     style={{
-                      padding: '8px 18px', borderRadius: 999,
+                      padding: '8px 18px', borderRadius: 4,
                       background: active ? 'var(--ink)' : 'var(--surface)',
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -355,10 +355,10 @@ export default function CarouselGeneratorPage() {
           {reference ? (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px',
-              borderRadius: 12, background: 'var(--bg-elev)', border: '1px solid var(--border)',
+              borderRadius: 6, background: 'var(--bg-elev)', border: '1px solid var(--border)',
             }}>
               <img src={reference.preview} alt="reference"
-                style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+                style={{ width: 44, height: 44, borderRadius: 5, objectFit: 'cover', flexShrink: 0 }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Reference image attached</p>
                 <p style={{ fontSize: 11.5, color: 'var(--ink-mute)', margin: '2px 0 0' }}>AI will carry this visual through all slides.</p>
@@ -372,7 +372,7 @@ export default function CarouselGeneratorPage() {
           ) : (
             <label style={{
               display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
-              borderRadius: 12, border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
+              borderRadius: 6, border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
               background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
               cursor: loading ? 'not-allowed' : 'pointer', color: referenceDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', fontSize: 13,
               alignSelf: 'flex-start',
@@ -389,7 +389,7 @@ export default function CarouselGeneratorPage() {
           {/* Generate */}
           <button onClick={generate} disabled={!canGenerate}
             style={{
-              padding: '13px 28px', borderRadius: 999,
+              padding: '13px 28px', borderRadius: 4,
               background: !canGenerate ? 'var(--ink-faint)' : 'var(--ink)',
               color: '#fff', border: 'none', fontSize: 14.5, fontWeight: 600,
               cursor: !canGenerate ? 'not-allowed' : 'pointer',
@@ -418,7 +418,7 @@ export default function CarouselGeneratorPage() {
             {/* Slide viewer */}
             <div style={{
               background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 18, padding: 20, display: 'flex', flexDirection: 'column', gap: 16,
+              borderRadius: 8, padding: 20, display: 'flex', flexDirection: 'column', gap: 16,
             }}>
               {/* Slide counter + nav */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -451,7 +451,7 @@ export default function CarouselGeneratorPage() {
                 return (
                   <div style={{
                     position: 'relative', width: '100%', paddingBottom: isSquare ? '100%' : '125%',
-                    borderRadius: 14, overflow: 'hidden', background: '#111',
+                    borderRadius: 8, overflow: 'hidden', background: '#111',
                   }}>
                     {slide.imageBase64 && (
                       <img
@@ -482,7 +482,7 @@ export default function CarouselGeneratorPage() {
                       )}
                       {slide.cta && (
                         <div style={{
-                          marginTop: 14, background: '#fff', borderRadius: 8,
+                          marginTop: 14, background: '#fff', borderRadius: 5,
                           padding: '9px 0', textAlign: 'center',
                           color: '#000', fontSize: 13, fontWeight: 700,
                         }}>{slide.cta}</div>
@@ -509,7 +509,7 @@ export default function CarouselGeneratorPage() {
               <button onClick={() => downloadSlide(slides[activeSlide], activeSlide)}
                 style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
-                  padding: '10px 0', borderRadius: 10,
+                  padding: '10px 0', borderRadius: 6,
                   background: 'var(--bg-elev)', border: '1px solid var(--border)',
                   fontSize: 13, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
                 }}>
@@ -522,7 +522,7 @@ export default function CarouselGeneratorPage() {
             <button onClick={downloadAll}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                padding: '13px 0', borderRadius: 12,
+                padding: '13px 0', borderRadius: 6,
                 background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
                 fontSize: 14, fontWeight: 600, cursor: 'pointer',
               }}>
@@ -533,7 +533,7 @@ export default function CarouselGeneratorPage() {
             {/* Slide list */}
             <div style={{
               background: 'var(--surface)', border: '1px solid var(--border)',
-              borderRadius: 14, overflow: 'hidden',
+              borderRadius: 8, overflow: 'hidden',
             }}>
               {slides.map((slide, i) => (
                 <button key={i} onClick={() => setActiveSlide(i)}

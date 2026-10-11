@@ -228,7 +228,7 @@ function ScreenDemoPage() {
   const sectionCard: React.CSSProperties = {
     background: 'var(--surface)',
     border: '1px solid var(--border)',
-    borderRadius: 14,
+    borderRadius: 8,
     padding: 20,
   }
   const sectionLabel: React.CSSProperties = {
@@ -268,7 +268,7 @@ function ScreenDemoPage() {
             onClick={() => !videoFile && fileRef.current?.click()}
             style={{
               border: `2px dashed ${dragOver ? 'var(--ink)' : videoFile ? 'var(--good, #10b981)' : 'var(--border)'}`,
-              borderRadius: 10,
+              borderRadius: 6,
               padding: '28px 20px',
               textAlign: 'center',
               cursor: videoFile ? 'default' : 'pointer',
@@ -316,7 +316,7 @@ function ScreenDemoPage() {
                 placeholder="Describe your app or what you're showing…"
                 disabled={busy || generatingScript}
                 style={{
-                  flex: 1, padding: '9px 13px', borderRadius: 8,
+                  flex: 1, padding: '9px 13px', borderRadius: 5,
                   border: '1px solid var(--border)', background: 'transparent',
                   color: 'var(--ink)', fontSize: 13, outline: 'none',
                   fontFamily: 'inherit',
@@ -327,7 +327,7 @@ function ScreenDemoPage() {
                 onClick={handleGenerateScript}
                 disabled={!description.trim() || busy || generatingScript}
                 style={{
-                  padding: '9px 16px', borderRadius: 8,
+                  padding: '9px 16px', borderRadius: 5,
                   border: 'none', background: 'var(--ink)', color: 'var(--on-ink)',
                   fontSize: 13, fontWeight: 600, cursor: 'pointer',
                   opacity: !description.trim() || busy || generatingScript ? 0.4 : 1,
@@ -350,7 +350,7 @@ function ScreenDemoPage() {
             disabled={busy}
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '12px 14px', borderRadius: 10,
+              padding: '12px 14px', borderRadius: 6,
               border: '1px solid var(--border)', background: 'transparent',
               color: 'var(--ink)', fontSize: 13.5, lineHeight: 1.6,
               fontFamily: 'inherit', resize: 'vertical', outline: 'none',
@@ -370,7 +370,7 @@ function ScreenDemoPage() {
               return (
                 <button key={v.id} type="button" disabled={busy} onClick={() => setVoiceId(v.id)}
                   style={{
-                    padding: '11px 14px', borderRadius: 10, textAlign: 'left',
+                    padding: '11px 14px', borderRadius: 6, textAlign: 'left',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'transparent',
                     color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -412,7 +412,7 @@ function ScreenDemoPage() {
               return (
                 <button key={f.id} type="button" disabled={busy} onClick={() => setAspect(f.id)}
                   style={{
-                    flex: 1, padding: '14px 8px', borderRadius: 10, textAlign: 'center',
+                    flex: 1, padding: '14px 8px', borderRadius: 6, textAlign: 'center',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'transparent',
                     color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -439,7 +439,7 @@ function ScreenDemoPage() {
             onClick={handleGenerate}
             disabled={!canGenerate}
             style={{
-              width: '100%', padding: '14px 0', borderRadius: 12,
+              width: '100%', padding: '14px 0', borderRadius: 6,
               background: !canGenerate ? 'var(--border)' : 'var(--ink)',
               color: !canGenerate ? 'var(--ink-dim)' : 'var(--on-ink)',
               border: 'none', fontSize: 15, fontWeight: 700,
@@ -462,7 +462,7 @@ function ScreenDemoPage() {
 
         {/* Result */}
         {status === 'done' && resultUrl && (
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
             <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', padding: '16px 20px 0' }}>
               Result
             </div>
@@ -470,7 +470,7 @@ function ScreenDemoPage() {
             <div style={{ padding: '14px 20px', display: 'flex', gap: 10 }}>
               <a href={resultUrl} download="screen-demo.mp4"
                 style={{
-                  padding: '9px 20px', borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)',
+                  padding: '9px 20px', borderRadius: 5, background: 'var(--ink)', color: 'var(--on-ink)',
                   fontSize: 13, fontWeight: 600, textDecoration: 'none',
                   display: 'flex', alignItems: 'center', gap: 6,
                 }}>
@@ -478,7 +478,7 @@ function ScreenDemoPage() {
               </a>
               <button onClick={() => { setStatus('idle'); setResultUrl(null); setVideoFile(null); setScript(''); setDescription('') }}
                 style={{
-                  padding: '9px 20px', borderRadius: 9,
+                  padding: '9px 20px', borderRadius: 5,
                   border: '1.5px solid var(--border)', background: 'transparent',
                   color: 'var(--ink)', fontSize: 13, fontWeight: 600, cursor: 'pointer',
                 }}>
@@ -489,7 +489,7 @@ function ScreenDemoPage() {
         )}
 
         {status === 'failed' && (
-          <div style={{ padding: '12px 16px', borderRadius: 10, background: 'rgba(232,74,74,0.08)', border: '1px solid rgba(232,74,74,0.2)', fontSize: 13, color: 'var(--danger,#e84a4a)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ padding: '12px 16px', borderRadius: 6, background: 'rgba(232,74,74,0.08)', border: '1px solid rgba(232,74,74,0.2)', fontSize: 13, color: 'var(--danger,#e84a4a)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>Render failed — your credits were not charged.</span>
             <button onClick={() => setStatus('idle')} style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', textDecoration: 'underline', fontSize: 13 }}>Retry</button>
           </div>

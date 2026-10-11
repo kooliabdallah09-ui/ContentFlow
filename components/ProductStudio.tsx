@@ -33,7 +33,7 @@ interface ProductPhoto {
 
 const chip = (active: boolean): CSSProperties => ({
   display: 'inline-flex', alignItems: 'center',
-  padding: '7px 13px', borderRadius: 999, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+  padding: '7px 13px', borderRadius: 4, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
   border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
   background: active ? 'var(--ink)' : 'var(--surface)',
   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -480,7 +480,7 @@ export default function ProductStudio() {
         </button>
 
         {/* Product banner */}
-        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 16, overflow: 'hidden', background: 'var(--surface)', marginBottom: 18 }}>
+        <div style={{ display: 'flex', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)', marginBottom: 18 }}>
           <div style={{ display: 'flex', flexShrink: 0 }}>
             {selected.photo_urls.slice(0, 2).map((u, i) => (
               /* eslint-disable-next-line @next/next/no-img-element */
@@ -495,7 +495,7 @@ export default function ProductStudio() {
             {selected.description && <p style={{ fontSize: 13, color: 'var(--ink-dim)', lineHeight: 1.5, margin: 0 }}>{selected.description}</p>}
             <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 10 }}>
               <span style={{ fontSize: 11.5, color: 'var(--ink-mute)' }}>{selected.photo_urls.length} reference angle{selected.photo_urls.length > 1 ? 's' : ''}</span>
-              <button onClick={remove} disabled={deleting} style={{ marginLeft: 'auto', padding: '7px 13px', fontSize: 12, borderRadius: 8, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <button onClick={remove} disabled={deleting} style={{ marginLeft: 'auto', padding: '7px 13px', fontSize: 12, borderRadius: 5, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink-mute)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
                 <Trash2 size={12} /> Delete
               </button>
             </div>
@@ -507,22 +507,22 @@ export default function ProductStudio() {
           {photos.length > 0 ? (
             <div style={{ columns: '3 260px', columnGap: 12 }}>
               {photos.map(p => (
-                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.concept, photoId: p.id }); setLightboxZoom(false) }} title={p.concept} style={{ display: 'block', width: '100%', marginBottom: 12, breakInside: 'avoid', borderRadius: 13, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)', position: 'relative' }}>
+                <button key={p.id} onClick={() => { setLightbox({ url: p.image_url, label: p.concept, photoId: p.id }); setLightboxZoom(false) }} title={p.concept} style={{ display: 'block', width: '100%', marginBottom: 12, breakInside: 'avoid', borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', padding: 0, cursor: 'zoom-in', background: 'var(--surface)', position: 'relative' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={p.image_url} alt={p.concept} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
-                  <span style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 10.5, fontWeight: 600, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '3px 8px', borderRadius: 999 }}>{p.concept}</span>
+                  <span style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 10.5, fontWeight: 600, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '3px 8px', borderRadius: 4 }}>{p.concept}</span>
                 </button>
               ))}
             </div>
           ) : (
-            <div style={{ padding: '54px 20px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13.5, border: '1px dashed var(--border)', borderRadius: 14 }}>
+            <div style={{ padding: '54px 20px', textAlign: 'center', color: 'var(--ink-mute)', fontSize: 13.5, border: '1px dashed var(--border)', borderRadius: 8 }}>
               No photos yet — hit Shoot below. Leave the direction empty and the AI invents fresh concepts every time.
             </div>
           )}
         </div>
 
         {/* Composer */}
-        <div className="studio-composer" data-options-open={mobileOptionsOpen ? 'true' : 'false'} style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
+        <div className="studio-composer" data-options-open={mobileOptionsOpen ? 'true' : 'false'} style={{ position: 'sticky', bottom: 16, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 14, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}>
           {/* All secondary controls (features, mode, style ref, ratio, count,
               quality) collapse behind a fold on phones. On desktop they're
               always visible via CSS. */}
@@ -608,7 +608,7 @@ export default function ProductStudio() {
                     key={s.id}
                     onClick={() => setShootSceneId(active ? undefined : s.id)}
                     title={s.name}
-                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0, borderRadius: 10, overflow: 'hidden', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', cursor: 'pointer', flexShrink: 0 }}
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0, borderRadius: 6, overflow: 'hidden', border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`, background: 'var(--surface)', cursor: 'pointer', flexShrink: 0 }}
                   >
                     {s.hero_image_url && (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -625,7 +625,7 @@ export default function ProductStudio() {
             <button
               onClick={() => setMode('aesthetic')}
               style={{
-                padding: '7px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
+                padding: '7px 14px', borderRadius: 4, fontSize: 12.5, fontWeight: 600,
                 background: mode === 'aesthetic' ? 'var(--ink)' : 'var(--surface)',
                 color: mode === 'aesthetic' ? 'var(--on-ink)' : 'var(--ink)',
                 border: `1px solid ${mode === 'aesthetic' ? 'var(--ink)' : 'var(--border)'}`,
@@ -635,7 +635,7 @@ export default function ProductStudio() {
             <button
               onClick={() => setMode('ad')}
               style={{
-                padding: '7px 14px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
+                padding: '7px 14px', borderRadius: 4, fontSize: 12.5, fontWeight: 600,
                 background: mode === 'ad' ? 'var(--ink)' : 'var(--surface)',
                 color: mode === 'ad' ? 'var(--on-ink)' : 'var(--ink)',
                 border: `1px solid ${mode === 'ad' ? 'var(--ink)' : 'var(--border)'}`,
@@ -710,7 +710,7 @@ export default function ProductStudio() {
                       ? "Drop 1 image to copy its exact layout, or 2-6 to feed mood/palette/lighting only."
                       : `Add another inspo image (${6 - styleRefs.length} slots left).`}
                     {...styleRefDrop.dropzoneProps}
-                    style={{ width: 62, height: 62, borderRadius: 10, border: `1.5px dashed ${styleRefDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: styleRefDrop.isDragging ? 'var(--hover)' : 'var(--surface-2)', color: styleRefDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, flexShrink: 0, fontSize: 10, lineHeight: 1.1, transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                    style={{ width: 62, height: 62, borderRadius: 6, border: `1.5px dashed ${styleRefDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: styleRefDrop.isDragging ? 'var(--hover)' : 'var(--surface-2)', color: styleRefDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, flexShrink: 0, fontSize: 10, lineHeight: 1.1, transition: 'background 120ms, border-color 120ms, color 120ms' }}
                   >
                     <ImagePlus size={16} />
                     <span>{styleRefs.length === 0 ? 'Inspo' : `+${6 - styleRefs.length}`}</span>
@@ -722,8 +722,8 @@ export default function ProductStudio() {
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '8px 12px', marginBottom: 8,
-                border: '1px solid #86efac', background: '#dcfce7',
-                color: '#166534', borderRadius: 8, fontSize: 12.5,
+                border: '1px solid #86efac', background: 'var(--good-soft)',
+                color: 'var(--good)', borderRadius: 5, fontSize: 12.5,
                 width: '100%',
               }}>
                 <span style={{ fontSize: 14, lineHeight: 1 }}>✓</span>
@@ -799,7 +799,7 @@ export default function ProductStudio() {
         {/* Lightbox */}
         {lightbox && (
           <div onClick={() => setLightbox(null)} style={{ position: 'fixed', inset: 0, zIndex: 300, background: 'rgba(0,0,0,0.85)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 24, cursor: 'zoom-out' }}>
-            <div onClick={e => e.stopPropagation()} style={lightboxZoom ? { maxWidth: '92vw', maxHeight: '82vh', overflow: 'auto', borderRadius: 12, cursor: 'zoom-out' } : { display: 'contents' }}>
+            <div onClick={e => e.stopPropagation()} style={lightboxZoom ? { maxWidth: '92vw', maxHeight: '82vh', overflow: 'auto', borderRadius: 6, cursor: 'zoom-out' } : { display: 'contents' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={lightbox.url}
@@ -807,7 +807,7 @@ export default function ProductStudio() {
                 onClick={e => { e.stopPropagation(); setLightboxZoom(z => !z) }}
                 style={lightboxZoom
                   ? { display: 'block', maxWidth: 'none', maxHeight: 'none', width: 'auto', cursor: 'zoom-out' }
-                  : { maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 12, cursor: 'zoom-in' }}
+                  : { maxWidth: '92vw', maxHeight: '82vh', objectFit: 'contain', borderRadius: 6, cursor: 'zoom-in' }}
               />
             </div>
             <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, cursor: 'default' }}>
@@ -823,7 +823,7 @@ export default function ProductStudio() {
                     a.click()
                   } catch { window.open(lightbox.url, '_blank') }
                 }}
-                style={{ padding: '8px 16px', borderRadius: 9, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
+                style={{ padding: '8px 16px', borderRadius: 5, background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer' }}
               >
                 Download
               </button>
@@ -831,13 +831,13 @@ export default function ProductStudio() {
                 <button
                   onClick={() => removePhoto(lightbox.photoId!)}
                   disabled={removingPhoto}
-                  style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,120,120,0.55)', color: 'rgba(255,150,150,0.95)', fontSize: 12.5, fontWeight: 600, cursor: removingPhoto ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                  style={{ padding: '8px 16px', borderRadius: 5, background: 'transparent', border: '1px solid rgba(255,120,120,0.55)', color: 'rgba(255,150,150,0.95)', fontSize: 12.5, fontWeight: 600, cursor: removingPhoto ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                   title="Remove this photo permanently"
                 >
                   <Trash2 size={13} /> {removingPhoto ? 'Removing…' : 'Remove'}
                 </button>
               )}
-              <button onClick={() => setLightbox(null)} style={{ padding: '8px 16px', borderRadius: 9, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)', fontSize: 12.5, cursor: 'pointer' }}>
+              <button onClick={() => setLightbox(null)} style={{ padding: '8px 16px', borderRadius: 5, background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: 'rgba(255,255,255,0.8)', fontSize: 12.5, cursor: 'pointer' }}>
                 Close
               </button>
             </div>
@@ -851,13 +851,13 @@ export default function ProductStudio() {
   return (
     <div>
       {!showCreate && (
-        <button onClick={() => setShowCreate(true)} className="btn btn-primary" style={{ padding: '12px 22px', fontSize: 14, borderRadius: 11, marginBottom: 24, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <button onClick={() => setShowCreate(true)} className="btn btn-primary" style={{ padding: '12px 22px', fontSize: 14, borderRadius: 6, marginBottom: 24, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
           <Sparkles size={15} /> Add a product
         </button>
       )}
 
       {showCreate && (
-        <div style={{ border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', padding: 22, marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: 22, marginBottom: 28, display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
             <div>
               <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>Add a product</div>
@@ -871,7 +871,7 @@ export default function ProductStudio() {
               screenshot via /api/screenshot and prepends it to createPhotos
               as the primary reference. Users can still upload additional
               screenshots (feature pages, dashboard, mobile) manually. */}
-          <div style={{ display: 'inline-flex', padding: 3, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2, var(--surface))', alignSelf: 'flex-start' }}>
+          <div style={{ display: 'inline-flex', padding: 3, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2, var(--surface))', alignSelf: 'flex-start' }}>
             {(['physical', 'app'] as const).map(pt => {
               const active = createProductType === pt
               const isPhysical = pt === 'physical'
@@ -888,7 +888,7 @@ export default function ProductStudio() {
                   }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 7,
-                    padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+                    padding: '7px 14px', borderRadius: 5, fontSize: 12.5, fontWeight: 600,
                     border: 'none', minWidth: 148, justifyContent: 'center',
                     background: active ? 'var(--ink)' : 'transparent',
                     color: active ? 'var(--on-ink, var(--paper))' : 'var(--ink-mute, var(--ink-2))',
@@ -925,7 +925,7 @@ export default function ProductStudio() {
                   value={createWebsiteUrl}
                   onChange={e => setCreateWebsiteUrl(e.target.value)}
                   disabled={creating || websiteFetching}
-                  style={{ flex: '1 1 260px', boxSizing: 'border-box', padding: '10px 13px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+                  style={{ flex: '1 1 260px', boxSizing: 'border-box', padding: '10px 13px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
                 />
                 <button
                   type="button"
@@ -977,12 +977,12 @@ export default function ProductStudio() {
               value={createName}
               onChange={e => setCreateName(e.target.value)}
               placeholder="Product name"
-              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 13px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 13px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
             />
             <button
               onClick={aiFill}
               disabled={aiFilling}
-              style={{ padding: '10px 14px', borderRadius: 10, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
+              style={{ padding: '10px 14px', borderRadius: 6, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))', color: 'var(--ink)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}
             >
               {aiFilling ? <Loader2 size={13} className="animate-spin" /> : '✨'} {aiFilling ? 'Filling…' : 'Fill with AI (from a photo or quick note)'}
             </button>
@@ -1071,7 +1071,7 @@ export default function ProductStudio() {
                 <button
                   onClick={() => document.getElementById('productAngleInput')?.click()}
                   {...productPhotosDrop.dropzoneProps}
-                  style={{ width: 74, height: 74, borderRadius: 10, border: `1.5px dashed ${productPhotosDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: productPhotosDrop.isDragging ? 'var(--hover)' : 'var(--surface-2, var(--surface))', color: productPhotosDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                  style={{ width: 74, height: 74, borderRadius: 6, border: `1.5px dashed ${productPhotosDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: productPhotosDrop.isDragging ? 'var(--hover)' : 'var(--surface-2, var(--surface))', color: productPhotosDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'background 120ms, border-color 120ms, color 120ms' }}
                   title="Add product photos — up to 5 angles. Drag & drop images here too."
                 >
                   <ImagePlus size={20} />
@@ -1097,7 +1097,7 @@ export default function ProductStudio() {
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))', gap: 14 }}>
           {list.map(p => (
-            <button key={p.id} onClick={() => openDetail(p)} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)', cursor: 'pointer', padding: 0 }}>
+            <button key={p.id} onClick={() => openDetail(p)} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)', cursor: 'pointer', padding: 0 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={p.photo_urls?.[0]} alt={p.name} style={{ width: '100%', aspectRatio: '1', objectFit: 'cover', display: 'block' }} />
               <div style={{ padding: '10px 12px' }}>
@@ -1107,7 +1107,7 @@ export default function ProductStudio() {
             </button>
           ))}
           {/* Ghost tile keeps the grid feeling alive with few products */}
-          <button onClick={() => setShowCreate(true)} style={{ border: '1.5px dashed var(--border)', borderRadius: 14, background: 'transparent', cursor: 'pointer', minHeight: 230, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
+          <button onClick={() => setShowCreate(true)} style={{ border: '1.5px dashed var(--border)', borderRadius: 8, background: 'transparent', cursor: 'pointer', minHeight: 230, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
             <ImagePlus size={22} />
             <span style={{ fontSize: 12.5, fontWeight: 600 }}>Add another product</span>
           </button>
@@ -1152,7 +1152,7 @@ export default function ProductStudio() {
                 openDetail(list[0])
                 setDirection(String(dir))
               }}
-              style={{ textAlign: 'left', padding: '14px 16px', borderRadius: 13, border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
+              style={{ textAlign: 'left', padding: '14px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6 }}
             >
               <span style={{ fontSize: 20 }}>{emoji}</span>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{title}</span>

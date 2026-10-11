@@ -157,9 +157,9 @@ export default function BrandDashboardPage() {
         </Link>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           {brand.logo_url ? (
-            <img src={brand.logo_url} alt="Logo" style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 10, border: '1px solid var(--border)', background: '#fff', padding: 6 }} />
+            <img src={brand.logo_url} alt="Logo" style={{ width: 56, height: 56, objectFit: 'contain', borderRadius: 6, border: '1px solid var(--border)', background: '#fff', padding: 6 }} />
           ) : (
-            <div style={{ width: 56, height: 56, borderRadius: 10, background: brand.colors?.primary || 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 6, background: brand.colors?.primary || 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>{brand.name.charAt(0)}</span>
             </div>
           )}
@@ -169,7 +169,7 @@ export default function BrandDashboardPage() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={downloadKit} className="btn" style={{ fontSize: 13, padding: '8px 14px' }}>↓ Brand kit</button>
-            <button onClick={handleDelete} disabled={deleting} style={{ fontSize: 13, padding: '8px 14px', background: 'none', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', color: 'var(--danger)' }}>
+            <button onClick={handleDelete} disabled={deleting} style={{ fontSize: 13, padding: '8px 14px', background: 'none', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', color: 'var(--danger)' }}>
               {deleting ? 'Deleting…' : 'Delete'}
             </button>
           </div>
@@ -209,7 +209,7 @@ export default function BrandDashboardPage() {
             <div style={{ display: 'flex', gap: 20 }}>
               {([['primary', 'Primary'], ['accent', 'Accent'], ['bg', 'Background'], ['text', 'Text']] as const).map(([key, label]) => (
                 <div key={key} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 8, background: brand.colors![key], border: '1px solid var(--border)' }} />
+                  <div style={{ width: 44, height: 44, borderRadius: 5, background: brand.colors![key], border: '1px solid var(--border)' }} />
                   <span style={{ fontSize: 10, color: 'var(--ink-dim)', fontFamily: 'var(--font-mono)' }}>{brand.colors![key]}</span>
                   <span style={{ fontSize: 10, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
                 </div>
@@ -218,7 +218,7 @@ export default function BrandDashboardPage() {
           </div>
 
           {brand.voice && (
-            <div style={{ padding: '20px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+            <div style={{ padding: '20px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
               <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)', marginBottom: 12 }}>Brand voice</div>
               <div style={{ fontSize: 20, fontWeight: 700, fontFamily: 'var(--font-serif)', color: 'var(--ink)', marginBottom: 8 }}>&ldquo;{brand.voice.tagline}&rdquo;</div>
               <div style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 12 }}>{brand.voice.bio}</div>
@@ -235,10 +235,10 @@ export default function BrandDashboardPage() {
           <div>
             <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)', marginBottom: 12 }}>Generate more</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Link href="/generate/social" style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)', textDecoration: 'none' }}>Social posts</Link>
-              <Link href="/generate/vox" style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)', textDecoration: 'none' }}>Brand video</Link>
-              <Link href="/generate/image" style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)', textDecoration: 'none' }}>Product images</Link>
-              <Link href="/generate/podcast-ad" style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)', textDecoration: 'none' }}>Podcast ad</Link>
+              <Link href="/generate/social" style={{ padding: '9px 16px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)', textDecoration: 'none' }}>Social posts</Link>
+              <Link href="/generate/vox" style={{ padding: '9px 16px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)', textDecoration: 'none' }}>Brand video</Link>
+              <Link href="/generate/image" style={{ padding: '9px 16px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)', textDecoration: 'none' }}>Product images</Link>
+              <Link href="/generate/podcast-ad" style={{ padding: '9px 16px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', fontSize: 13, color: 'var(--ink)', textDecoration: 'none' }}>Podcast ad</Link>
             </div>
           </div>
         </div>
@@ -252,7 +252,7 @@ export default function BrandDashboardPage() {
           ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
               {brand.products.map(p => (
-                <div key={p.name} style={{ padding: '16px', borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                <div key={p.name} style={{ padding: '16px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
                   <div style={{ fontSize: 11, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>{p.category}</div>
                   <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink)', marginBottom: 6 }}>{p.name}</div>
                   <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 12 }}>{p.description}</div>
@@ -284,7 +284,7 @@ export default function BrandDashboardPage() {
                 <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)', marginBottom: 10 }}>Social Media Posts</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {brand.content.social?.map(post => (
-                    <div key={post.label} style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                    <div key={post.label} style={{ padding: '14px 16px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                         <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{post.label}</span>
                         <CopyButton text={post.caption} />
@@ -296,7 +296,7 @@ export default function BrandDashboardPage() {
               </div>
 
               {brand.content.ad && (
-                <div style={{ padding: '16px 20px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                <div style={{ padding: '16px 20px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)' }}>Paid Ad (Meta)</div>
                     <CopyButton text={`${brand.content.ad.headline}\n\n${brand.content.ad.primary_text}\n\n${brand.content.ad.cta}`} />
@@ -308,7 +308,7 @@ export default function BrandDashboardPage() {
               )}
 
               {brand.content.email && (
-                <div style={{ padding: '16px 20px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)' }}>
+                <div style={{ padding: '16px 20px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                     <div style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.07em', color: 'var(--ink-mute)' }}>Launch Email</div>
                     <CopyButton text={`Subject: ${brand.content.email.subject}\nPreview: ${brand.content.email.preview}\n\n${brand.content.email.body}`} />

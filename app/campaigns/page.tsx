@@ -271,7 +271,7 @@ export default function CampaignsPage() {
         <div style={{
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 16,
+          borderRadius: 8,
           padding: 0,
           marginBottom: 28,
           overflow: 'hidden',
@@ -285,7 +285,7 @@ export default function CampaignsPage() {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--ink)', color: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: 32, height: 32, borderRadius: 5, background: 'var(--ink)', color: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <Sparkles size={16} />
               </div>
               <div>
@@ -428,7 +428,7 @@ export default function CampaignsPage() {
                     style={{
                       border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       background: active ? 'var(--surface)' : 'var(--bg-elev, var(--surface))',
-                      borderRadius: 12,
+                      borderRadius: 6,
                       padding: 14,
                       display: 'flex', flexDirection: 'column', gap: 12,
                       transition: 'border-color 120ms, background 120ms',
@@ -450,7 +450,7 @@ export default function CampaignsPage() {
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                       padding: '6px 6px 6px 12px',
                       background: 'var(--hover, rgba(0,0,0,0.03))',
-                      borderRadius: 8,
+                      borderRadius: 5,
                     }}>
                       <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>Shots</span>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -493,7 +493,7 @@ export default function CampaignsPage() {
               })}
             </div>
             {totalShots > 40 && (
-              <div style={{ marginTop: 10, fontSize: 12, color: 'var(--warning, #b45309)' }}>
+              <div style={{ marginTop: 10, fontSize: 12, color: 'var(--warning, var(--warn))' }}>
                 40 shots max — Sonnet will cap the plan there.
               </div>
             )}
@@ -546,7 +546,7 @@ export default function CampaignsPage() {
       {loading ? (
         <div style={{ padding: 40, display: 'flex', gap: 10, alignItems: 'center', color: 'var(--ink-2)' }}><Loader2 size={16} className="animate-spin" /> Loading…</div>
       ) : campaigns.length === 0 ? (
-        <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink-2)', border: '1px dashed var(--border)', borderRadius: 14 }}>
+        <div style={{ padding: 48, textAlign: 'center', color: 'var(--ink-2)', border: '1px dashed var(--border)', borderRadius: 8 }}>
           No campaigns yet. Click <strong>New campaign</strong> to draft your first shot list.
         </div>
       ) : (
@@ -558,15 +558,15 @@ export default function CampaignsPage() {
               style={{
                 display: 'flex', alignItems: 'center', gap: 16,
                 padding: '14px 16px',
-                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12,
+                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6,
                 textDecoration: 'none', color: 'inherit',
                 transition: 'border-color 120ms',
               }}
             >
               {c.meta?.product_image_url ? (
-                <img src={c.meta.product_image_url} alt="" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover' }} />
+                <img src={c.meta.product_image_url} alt="" style={{ width: 48, height: 48, borderRadius: 5, objectFit: 'cover' }} />
               ) : (
-                <div style={{ width: 48, height: 48, borderRadius: 8, background: 'var(--surface-2)' }} />
+                <div style={{ width: 48, height: 48, borderRadius: 5, background: 'var(--surface-2)' }} />
               )}
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{c.name}</div>
@@ -610,7 +610,7 @@ const fieldInput: React.CSSProperties = {
   fontSize: 13,
   fontFamily: 'inherit',
   border: '1px solid var(--border)',
-  borderRadius: 8,
+  borderRadius: 5,
   background: 'var(--surface)',
   color: 'var(--ink)',
 }

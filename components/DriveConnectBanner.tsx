@@ -33,22 +33,22 @@ export function DriveConnectBanner() {
     <div className="drive-banner" style={{
       display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
       margin: '0 0 20px', padding: '14px 18px',
-      background: 'linear-gradient(90deg, #fef2f2, #fff1f0)',
-      border: '1px solid #f87171', borderRadius: 12,
+      background: 'var(--brand-soft)',
+      border: '1px solid var(--brand)', borderRadius: 6,
     }}>
       <span className="drive-banner-icon" style={{ fontSize: 20, lineHeight: 1 }}>⚠️</span>
       <div className="drive-banner-text" style={{ flex: 1, minWidth: 240 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#991b1b' }}>
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--brand-ink)' }}>
           <span className="drive-banner-long">Protect your videos — connect Google Drive</span>
           <span className="drive-banner-short">Back up your videos to Drive</span>
         </div>
-        <div className="drive-banner-desc" style={{ fontSize: 12.5, color: '#7f1d1d', marginTop: 2, lineHeight: 1.45 }}>
+        <div className="drive-banner-desc" style={{ fontSize: 12.5, color: 'var(--ink-2)', marginTop: 2, lineHeight: 1.45 }}>
           Finished videos are hosted temporarily and can expire. Connecting your Drive backs up
           every render automatically to your own account — free, takes 30 seconds.
         </div>
       </div>
       <Link href="/settings/integrations" className="drive-banner-cta" style={{
-        padding: '9px 16px', borderRadius: 9, background: '#991b1b', color: '#fff',
+        padding: '9px 16px', borderRadius: 5, background: 'var(--brand)', color: 'var(--on-brand)',
         fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
       }}>
         <span className="drive-banner-long">Connect Google Drive</span>
@@ -57,7 +57,7 @@ export function DriveConnectBanner() {
       <button
         onClick={() => { sessionStorage.setItem('cf-drive-banner-dismissed', '1'); setShow(false) }}
         aria-label="Dismiss"
-        style={{ background: 'none', border: 'none', color: '#991b1b', fontSize: 16, cursor: 'pointer', padding: 4 }}
+        style={{ background: 'none', border: 'none', color: 'var(--brand-ink)', fontSize: 16, cursor: 'pointer', padding: 4 }}
       >✕</button>
     </div>
   )

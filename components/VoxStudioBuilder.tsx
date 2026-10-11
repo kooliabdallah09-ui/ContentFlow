@@ -79,7 +79,7 @@ function BeatCard({ beat, frameUrl }: { beat: VoxBeat; frameUrl?: string | null 
   return (
     <div style={{
       border: '1px solid var(--border)',
-      borderRadius: 10,
+      borderRadius: 6,
       overflow: 'hidden',
       background: 'var(--surface)',
     }}>
@@ -376,8 +376,8 @@ export default function VoxStudioBuilder() {
           padding: '12px 16px',
           background: 'rgba(220,38,38,0.06)',
           border: '1px solid rgba(220,38,38,0.25)',
-          borderRadius: 8,
-          color: '#dc2626',
+          borderRadius: 5,
+          color: 'var(--danger)',
           fontSize: 13,
         }}>
           {error}
@@ -390,7 +390,7 @@ export default function VoxStudioBuilder() {
           padding: '10px 16px',
           background: 'var(--surface)',
           border: '1px solid var(--border)',
-          borderRadius: 8,
+          borderRadius: 5,
           fontSize: 13,
           color: 'var(--ink-2)',
           display: 'flex',
@@ -427,7 +427,7 @@ export default function VoxStudioBuilder() {
               style={{
                 padding: '10px 14px',
                 border: '1px solid var(--border)',
-                borderRadius: 8,
+                borderRadius: 5,
                 background: 'var(--surface)',
                 color: 'var(--ink)',
                 fontSize: 14,
@@ -513,7 +513,7 @@ export default function VoxStudioBuilder() {
                 <img
                   src={productPreview}
                   alt="product"
-                  style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)' }}
+                  style={{ width: 60, height: 60, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border)' }}
                 />
                 <button
                   onClick={() => { setProductFile(null); setProductPreview(null) }}
@@ -536,7 +536,7 @@ export default function VoxStudioBuilder() {
                 style={{
                   padding: '10px 16px',
                   border: '1px dashed var(--border)',
-                  borderRadius: 8,
+                  borderRadius: 5,
                   background: 'var(--surface)',
                   color: 'var(--ink-2)',
                   fontSize: 13,
@@ -558,7 +558,7 @@ export default function VoxStudioBuilder() {
               background: loading || !topic.trim() ? 'var(--border)' : 'var(--ink)',
               color: loading || !topic.trim() ? 'var(--ink-2)' : 'var(--on-ink)',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: 5,
               fontSize: 14,
               fontWeight: 700,
               cursor: loading || !topic.trim() ? 'not-allowed' : 'pointer',
@@ -613,7 +613,7 @@ export default function VoxStudioBuilder() {
               background: loading ? 'var(--border)' : 'var(--ink)',
               color: loading ? 'var(--ink-2)' : 'var(--on-ink)',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: 5,
               fontSize: 14,
               fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -668,7 +668,7 @@ export default function VoxStudioBuilder() {
               background: loading ? 'var(--border)' : 'var(--ink)',
               color: loading ? 'var(--ink-2)' : 'var(--on-ink)',
               border: 'none',
-              borderRadius: 8,
+              borderRadius: 5,
               fontSize: 14,
               fontWeight: 700,
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -720,7 +720,7 @@ export default function VoxStudioBuilder() {
             <div style={{
               flex: '0 0 auto',
               width: 280,
-              borderRadius: 12,
+              borderRadius: 6,
               overflow: 'hidden',
               border: '1px solid var(--border)',
               background: '#000',
@@ -744,7 +744,7 @@ export default function VoxStudioBuilder() {
                   padding: '10px 20px',
                   background: 'var(--ink)',
                   color: 'var(--on-ink)',
-                  borderRadius: 8,
+                  borderRadius: 5,
                   fontSize: 13,
                   fontWeight: 700,
                   textDecoration: 'none',
@@ -764,7 +764,7 @@ export default function VoxStudioBuilder() {
                   background: 'var(--surface)',
                   color: 'var(--ink)',
                   border: '1px solid var(--border)',
-                  borderRadius: 8,
+                  borderRadius: 5,
                   fontSize: 13,
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -780,7 +780,7 @@ export default function VoxStudioBuilder() {
                   padding: '12px 14px',
                   background: 'var(--surface)',
                   border: '1px solid var(--border)',
-                  borderRadius: 8,
+                  borderRadius: 5,
                 }}>
                   <div style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--ink-2)', marginBottom: 8 }}>
                     {beatMap.beats.length} beats · {beatMap.total_duration}s

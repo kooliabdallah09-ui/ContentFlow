@@ -75,7 +75,7 @@ export default function ToastContainer() {
             display: 'flex',
             gap: 12,
             padding: '12px 14px',
-            borderRadius: 12,
+            borderRadius: 6,
             border: `1px solid ${accent(t.type)}33`,
             borderLeft: `3px solid ${accent(t.type)}`,
             background: 'var(--surface, #ffffff)',

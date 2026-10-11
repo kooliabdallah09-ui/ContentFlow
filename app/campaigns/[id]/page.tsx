@@ -19,9 +19,9 @@ import type { CampaignFormat } from '@/lib/campaign-formats'
 // scannable at a glance. Format-specific labels ("Editorial photo",
 // "Studio still", "Carousel · 5", "Meme") beat generic category names.
 function formatBadge(fmt: CampaignFormat | undefined): { label: string; bg: string; fg: string; border: string } {
-  const green   = { bg: '#dcfce7', fg: '#166534', border: '#86efac' }
+  const green   = { bg: 'var(--good-soft)', fg: 'var(--good)', border: '#86efac' }
   const purple  = { bg: '#f3e8ff', fg: '#6b21a8', border: '#d8b4fe' }
-  const amber   = { bg: '#fef3c7', fg: '#92400e', border: '#fcd34d' }
+  const amber   = { bg: 'var(--warn-soft)', fg: 'var(--warn)', border: 'var(--border)' }
   const blue    = { bg: '#dbeafe', fg: '#1e40af', border: '#93c5fd' }
   const pink    = { bg: '#fce7f3', fg: '#9d174d', border: '#f9a8d4' }
   const gray    = { bg: 'var(--surface-2)', fg: 'var(--ink-2)', border: 'var(--border)' }
@@ -335,7 +335,7 @@ export default function CampaignDetailPage() {
               {campaign.goal ? campaign.goal + ' · ' : ''}{campaign.duration_label ?? ''} · {shots.length} shots planned
             </div>
             {campaign.brief && (
-              <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, color: 'var(--ink-2)', maxWidth: 900 }}>
+              <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 5, fontSize: 13, color: 'var(--ink-2)', maxWidth: 900 }}>
                 <strong style={{ color: 'var(--ink)' }}>Brief:</strong> {campaign.brief}
               </div>
             )}
@@ -344,7 +344,7 @@ export default function CampaignDetailPage() {
                 <summary style={{ fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer', userSelect: 'none' }}>
                   <strong style={{ color: 'var(--ink)' }}>Sources ({(campaign.meta as { trend_sources: unknown[] }).trend_sources.length})</strong> — auto-discovered trend + competitor references Sonnet used
                 </summary>
-                <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <div style={{ marginTop: 8, padding: '10px 14px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 5, fontSize: 12.5, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {((campaign.meta as { trend_sources: Array<{ url: string; title: string; query: string }> }).trend_sources).map((s, i) => (
                     <a key={i} href={s.url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--ink)', textDecoration: 'none', display: 'block' }}>
                       <div style={{ fontWeight: 600 }}>{s.title || s.url}</div>
@@ -372,10 +372,10 @@ export default function CampaignDetailPage() {
 
       {/* Expand preview banner — for campaigns created via the onboarding lite planner */}
       {(campaign.meta as { source?: string; expandable?: boolean }).source === 'onboarding' && (campaign.meta as { expandable?: boolean }).expandable && (
-        <div style={{ marginBottom: 14, padding: '14px 16px', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 10, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ marginBottom: 14, padding: '14px 16px', background: 'var(--warn-soft)', border: '1px solid var(--border)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ flex: 1, minWidth: 200 }}>
             <div style={{ fontSize: 13.5, fontWeight: 700, color: '#78350f', marginBottom: 2 }}>This is your preview campaign — expand it into a full 2-week plan.</div>
-            <div style={{ fontSize: 12.5, color: '#92400e' }}>Sonnet will draft 18 more diverse shots to round it out. Your existing 6 stay untouched.</div>
+            <div style={{ fontSize: 12.5, color: 'var(--warn)' }}>Sonnet will draft 18 more diverse shots to round it out. Your existing 6 stay untouched.</div>
           </div>
           <button
             onClick={expandCampaign}
@@ -390,7 +390,7 @@ export default function CampaignDetailPage() {
 
       {/* Research summary — Sonnet's short French-language bilan on what it learned from sources */}
       {typeof (campaign.meta as { research_summary?: string }).research_summary === 'string' && (campaign.meta as { research_summary: string }).research_summary.trim() && (
-        <div style={{ marginBottom: 14, padding: '14px 16px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 10 }}>
+        <div style={{ marginBottom: 14, padding: '14px 16px', background: 'var(--surface-2)', border: '1px solid var(--border)', borderRadius: 6 }}>
           <div style={{ fontSize: 10.5, fontWeight: 700, letterSpacing: 0.6, color: 'var(--ink-2)', marginBottom: 8, textTransform: 'uppercase' }}>Bilan de la recherche</div>
           <div style={{ fontSize: 13.5, lineHeight: 1.55, color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>
             {(campaign.meta as { research_summary: string }).research_summary}
@@ -399,7 +399,7 @@ export default function CampaignDetailPage() {
       )}
 
       {/* Totals bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, marginBottom: 14, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 16px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, marginBottom: 14, flexWrap: 'wrap' }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer' }}>
           <input
             type="checkbox"
@@ -441,7 +441,7 @@ export default function CampaignDetailPage() {
               style={{
                 background: 'var(--surface)',
                 border: `1.5px solid ${shot.selected ? 'var(--ink)' : 'var(--border)'}`,
-                borderRadius: 12,
+                borderRadius: 6,
                 padding: isExpanded ? 16 : 12,
                 opacity: shot.selected ? 1 : 0.6,
                 transition: 'opacity 0.15s, border-color 0.15s, padding 0.15s',
@@ -476,7 +476,7 @@ export default function CampaignDetailPage() {
                         <span style={{
                           fontSize: 10.5, fontWeight: 700, letterSpacing: 0.3,
                           textTransform: 'uppercase',
-                          padding: '2px 7px', borderRadius: 999,
+                          padding: '2px 7px', borderRadius: 4,
                           background: badge.bg, color: badge.fg,
                           border: `1px solid ${badge.border}`,
                           whiteSpace: 'nowrap',
@@ -523,10 +523,10 @@ export default function CampaignDetailPage() {
 
                 {/* Rendered badge */}
                 {shot.status === 'done' && (
-                  <div style={{ ...chipLabel, background: '#dcfce7', border: '1px solid #86efac', color: '#166534' }}>
-                    <span style={{ ...chipKey, color: '#166534' }}>Rendered</span>
+                  <div style={{ ...chipLabel, background: 'var(--good-soft)', border: '1px solid #86efac', color: 'var(--good)' }}>
+                    <span style={{ ...chipKey, color: 'var(--good)' }}>Rendered</span>
                     {shot.spec.rendered_video_url && (
-                      <a href={shot.spec.rendered_video_url} target="_blank" rel="noopener noreferrer" style={{ color: '#166534', textDecoration: 'underline', fontSize: 12 }}>
+                      <a href={shot.spec.rendered_video_url} target="_blank" rel="noopener noreferrer" style={{ color: 'var(--good)', textDecoration: 'underline', fontSize: 12 }}>
                         watch ↗
                       </a>
                     )}
@@ -563,7 +563,7 @@ export default function CampaignDetailPage() {
                 <div style={{
                   display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 0,
                   marginBottom: 14,
-                  border: '1px solid var(--border)', borderRadius: 10,
+                  border: '1px solid var(--border)', borderRadius: 6,
                   overflow: 'hidden', background: 'var(--surface-2)',
                 }}>
                   <InfoCell label="Category" value={fmt.category.replace(/-/g, ' ')} />
@@ -754,7 +754,7 @@ const roomyInput: React.CSSProperties = {
   lineHeight: 1.5,
   fontFamily: 'inherit',
   border: '1px solid var(--border)',
-  borderRadius: 8,
+  borderRadius: 5,
   background: 'var(--surface-2)',
   color: 'var(--ink)',
   resize: 'vertical',
@@ -767,7 +767,7 @@ const chipLabel: React.CSSProperties = {
   gap: 6,
   padding: '5px 10px',
   border: '1px solid var(--border)',
-  borderRadius: 8,
+  borderRadius: 5,
   background: 'var(--surface)',
   fontSize: 12,
 }

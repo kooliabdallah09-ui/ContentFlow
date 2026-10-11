@@ -304,15 +304,15 @@ function ImageCanvasCard({
   return (
     <div className="canvas-card canvas-card-animate">
       <div
-        style={{ position: 'relative', width: '100%', paddingBottom: pb, borderRadius: 14, overflow: 'hidden', background: 'var(--bg)', marginBottom: 12, cursor: 'zoom-in' }}
+        style={{ position: 'relative', width: '100%', paddingBottom: pb, borderRadius: 8, overflow: 'hidden', background: 'var(--bg)', marginBottom: 12, cursor: 'zoom-in' }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
         onClick={() => onOpen(item.url, item.prompt)}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={item.url} alt={item.prompt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14, transition: 'transform 0.3s ease', transform: hovered ? 'scale(1.02)' : 'scale(1)' }} />
+        <img src={item.url} alt={item.prompt} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8, transition: 'transform 0.3s ease', transform: hovered ? 'scale(1.02)' : 'scale(1)' }} />
         {/* Hover overlay */}
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 14, background: 'rgba(0,0,0,0.45)', opacity: hovered ? 1 : 0, transition: 'opacity 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, background: 'rgba(0,0,0,0.45)', opacity: hovered ? 1 : 0, transition: 'opacity 0.2s ease', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <span style={{ fontSize: 22, color: '#fff', opacity: 0.9 }}>⊕</span>
         </div>
       </div>
@@ -338,7 +338,7 @@ function SocialCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'social'
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 4 }}>
           {platforms.map(p => (
-            <button key={p} onClick={() => setActiveTab(p)} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 7, border: '1px solid var(--border)', cursor: 'pointer', background: activeTab === p ? 'var(--ink)' : 'transparent', color: activeTab === p ? 'var(--on-ink)' : 'var(--ink-dim)', transition: 'all 0.12s' }}>
+            <button key={p} onClick={() => setActiveTab(p)} style={{ fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 4, border: '1px solid var(--border)', cursor: 'pointer', background: activeTab === p ? 'var(--ink)' : 'transparent', color: activeTab === p ? 'var(--on-ink)' : 'var(--ink-dim)', transition: 'all 0.12s' }}>
               {SOCIAL_LABELS[p] ?? p.toUpperCase()}
             </button>
           ))}
@@ -348,7 +348,7 @@ function SocialCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'social'
           <button onClick={copy} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 9px', cursor: 'pointer', transition: 'all 0.12s' }}>{copied ? '✓ Copied' : 'Copy'}</button>
         </div>
       </div>
-      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--ink)', fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 14px', minHeight: 80 }}>
+      <p style={{ margin: 0, fontSize: 13, lineHeight: 1.7, color: 'var(--ink)', fontFamily: 'var(--font-mono)', whiteSpace: 'pre-wrap', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '12px 14px', minHeight: 80 }}>
         {item.posts[activeTab] ?? ''}
       </p>
       <p style={{ margin: '7px 0 0', fontSize: 10.5, color: 'var(--ink-mute)' }}>Topic: {item.topic}</p>
@@ -367,9 +367,9 @@ function VoiceCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'voice' }
         </div>
         <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 6px' }}>{item.credits} cr</span>
       </div>
-      <audio controls src={item.audioUrl} style={{ width: '100%', height: 36, borderRadius: 8, marginBottom: 10 }} />
+      <audio controls src={item.audioUrl} style={{ width: '100%', height: 36, borderRadius: 5, marginBottom: 10 }} />
       {item.duration && <p style={{ margin: '0 0 8px', fontSize: 10.5, color: 'var(--ink-mute)' }}>~{item.duration}s</p>}
-      <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.7, color: 'var(--ink-dim)', WebkitLineClamp: expanded ? undefined : 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: expanded ? 'visible' : 'hidden', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+      <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.7, color: 'var(--ink-dim)', WebkitLineClamp: expanded ? undefined : 3, display: '-webkit-box', WebkitBoxOrient: 'vertical', overflow: expanded ? 'visible' : 'hidden', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px' }}>
         {item.text}
       </p>
       {item.text.length > 120 && (
@@ -388,7 +388,7 @@ function BriefCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'brief' }
         <h3 style={{ margin: 0, fontSize: 14.5, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-serif)' }}>{item.title}</h3>
         <span style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-mute)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 7px' }}>{item.platform}</span>
       </div>
-      <div style={{ marginBottom: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+      <div style={{ marginBottom: 12, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px' }}>
         <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>Hook</p>
         <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: 'var(--ink)', fontStyle: 'italic' }}>{item.hook}</p>
       </div>
@@ -400,7 +400,7 @@ function BriefCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'brief' }
           </ol>
         </div>
       )}
-      <div style={{ marginBottom: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+      <div style={{ marginBottom: 14, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, padding: '10px 12px' }}>
         <p style={{ margin: '0 0 4px', fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>CTA</p>
         <p style={{ margin: 0, fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{item.cta}</p>
       </div>
@@ -413,8 +413,8 @@ function BriefCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'brief' }
 
 function ErrorCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'error' }> }) {
   return (
-    <div className="canvas-card canvas-card-animate" style={{ background: '#fff5f5', borderColor: '#fecaca' }}>
-      <p style={{ margin: 0, fontSize: 12.5, color: '#b91c1c', fontWeight: 500 }}>⚠ {item.message}</p>
+    <div className="canvas-card canvas-card-animate" style={{ background: 'var(--danger-soft)', borderColor: 'var(--border)' }}>
+      <p style={{ margin: 0, fontSize: 12.5, color: 'var(--danger)', fontWeight: 500 }}>⚠ {item.message}</p>
     </div>
   )
 }
@@ -432,33 +432,33 @@ function CarouselCanvasCard({ item }: { item: Extract<CanvasItem, { kind: 'carou
   return (
     <div className="canvas-card canvas-card-animate">
       {/* Slide preview with text overlay */}
-      <div style={{ position: 'relative', width: '100%', paddingBottom: pb, borderRadius: 14, overflow: 'hidden', background: '#111', marginBottom: 12 }}>
+      <div style={{ position: 'relative', width: '100%', paddingBottom: pb, borderRadius: 8, overflow: 'hidden', background: '#111', marginBottom: 12 }}>
         {slide.imageUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={slide.imageUrl} alt={slide.headline} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 14 }} />
+          <img src={slide.imageUrl} alt={slide.headline} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }} />
         )}
         {/* Gradient overlay */}
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 14, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.92) 100%)' }} />
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 8, background: 'linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.92) 100%)' }} />
         {/* Text overlay */}
         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '20px 18px' }}>
           <p style={{ margin: '0 0 6px', fontSize: 17, fontWeight: 800, color: '#fff', lineHeight: 1.25, letterSpacing: '-0.02em', textShadow: '0 1px 4px rgba(0,0,0,0.5)' }}>{slide.headline}</p>
           {slide.body && <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.8)', lineHeight: 1.5 }}>{slide.body}</p>}
-          {slide.cta && <div style={{ marginTop: 10, display: 'inline-block', background: '#fff', color: '#000', fontSize: 11, fontWeight: 700, borderRadius: 20, padding: '5px 14px', letterSpacing: '0.02em' }}>{slide.cta}</div>}
+          {slide.cta && <div style={{ marginTop: 10, display: 'inline-block', background: '#fff', color: '#000', fontSize: 11, fontWeight: 700, borderRadius: 8, padding: '5px 14px', letterSpacing: '0.02em' }}>{slide.cta}</div>}
         </div>
         {/* Slide counter */}
-        <div style={{ position: 'absolute', top: 12, right: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#fff' }}>
+        <div style={{ position: 'absolute', top: 12, right: 14, background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(6px)', borderRadius: 8, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: '#fff' }}>
           {activeSlide + 1} / {total}
         </div>
       </div>
       {/* Navigation */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-        <button onClick={() => setActiveSlide(s => Math.max(0, s - 1))} disabled={activeSlide === 0} style={{ fontSize: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: activeSlide === 0 ? 'not-allowed' : 'pointer', opacity: activeSlide === 0 ? 0.35 : 1, color: 'var(--ink)' }}>&#8249;</button>
+        <button onClick={() => setActiveSlide(s => Math.max(0, s - 1))} disabled={activeSlide === 0} style={{ fontSize: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 10px', cursor: activeSlide === 0 ? 'not-allowed' : 'pointer', opacity: activeSlide === 0 ? 0.35 : 1, color: 'var(--ink)' }}>&#8249;</button>
         <div style={{ flex: 1, display: 'flex', gap: 4, justifyContent: 'center' }}>
           {item.slides.map((_, i) => (
             <button key={i} onClick={() => setActiveSlide(i)} style={{ width: i === activeSlide ? 16 : 6, height: 6, borderRadius: 3, background: i === activeSlide ? 'var(--ink)' : 'var(--border)', border: 'none', cursor: 'pointer', transition: 'all 0.15s', padding: 0 }} />
           ))}
         </div>
-        <button onClick={() => setActiveSlide(s => Math.min(total - 1, s + 1))} disabled={activeSlide === total - 1} style={{ fontSize: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: activeSlide === total - 1 ? 'not-allowed' : 'pointer', opacity: activeSlide === total - 1 ? 0.35 : 1, color: 'var(--ink)' }}>&#8250;</button>
+        <button onClick={() => setActiveSlide(s => Math.min(total - 1, s + 1))} disabled={activeSlide === total - 1} style={{ fontSize: 16, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 10px', cursor: activeSlide === total - 1 ? 'not-allowed' : 'pointer', opacity: activeSlide === total - 1 ? 0.35 : 1, color: 'var(--ink)' }}>&#8250;</button>
       </div>
       {/* Footer */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -485,7 +485,7 @@ function CanvasItemRenderer({ item, onOpenImage }: { item: CanvasItem; onOpenIma
 function BatchGroup({ node, onOpenImage }: { node: CanvasNode; onOpenImage: (url: string, prompt: string) => void }) {
   const imageCount = node.items.filter(i => i.kind === 'image').length
   return (
-    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 20, padding: 14 }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 14 }}>
       <p style={{ margin: '0 0 12px', fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>
         {imageCount} image{imageCount !== 1 ? 's' : ''}
       </p>
@@ -557,7 +557,7 @@ function CanvasNodeWrapper({
         cursor: dragging ? 'grabbing' : 'default',
         outline: selected ? '2px solid var(--ink)' : '2px solid transparent',
         outlineOffset: 4,
-        borderRadius: 22,
+        borderRadius: 8,
         transition: 'outline 0.12s',
         userSelect: 'none',
       }}
@@ -625,7 +625,7 @@ function QuestionCard({ data, onSelect }: { data: { prompt: string; options: str
           style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontSize: 12.5, color: 'var(--ink)', fontFamily: 'inherit' }}
         />
         {custom && (
-          <button onClick={() => onSelect(custom.trim())} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 7, padding: '3px 9px', cursor: 'pointer' }}>Send</button>
+          <button onClick={() => onSelect(custom.trim())} style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 4, padding: '3px 9px', cursor: 'pointer' }}>Send</button>
         )}
       </div>
       <div style={{ padding: '5px 14px 7px', background: 'var(--surface)', borderTop: '1px solid var(--border)' }}>
@@ -1107,7 +1107,7 @@ export default function StudioPage() {
         @keyframes studio-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.45; } 30% { transform: translateY(-4px); opacity: 1; } }
         @keyframes studio-spin { to { transform: rotate(360deg); } }
         @keyframes studio-fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-        .canvas-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 2px 10px rgba(0,0,0,0.06); transition: box-shadow 0.2s ease, transform 0.2s ease; }
+        .canvas-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 2px 10px rgba(0,0,0,0.06); transition: box-shadow 0.2s ease, transform 0.2s ease; }
         .canvas-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.1), 0 1px 4px rgba(0,0,0,0.06); transform: translateY(-1px); }
         .canvas-card-animate { animation: studio-fade-up 0.24s ease forwards; }
         .studio-send-btn:hover:not(:disabled) { opacity: 0.8; }
@@ -1130,7 +1130,7 @@ export default function StudioPage() {
           <div ref={sessionPickerRef} style={{ position: 'relative' }}>
             <button
               onClick={() => setShowSessionList(s => !s)}
-              style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, maxWidth: 210, overflow: 'hidden' }}
+              style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', background: 'none', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, maxWidth: 210, overflow: 'hidden' }}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sessionName}</span>
@@ -1138,15 +1138,15 @@ export default function StudioPage() {
             </button>
 
             {showSessionList && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.14)', zIndex: 50, minWidth: 270, maxHeight: 320, overflowY: 'auto', padding: 6 }}>
-                <button onClick={newSession} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', background: 'none', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, boxShadow: '0 8px 32px rgba(0,0,0,0.14)', zIndex: 50, minWidth: 270, maxHeight: 320, overflowY: 'auto', padding: 6 }}>
+                <button onClick={newSession} style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink)', background: 'none', border: 'none', borderRadius: 5, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ width: 20, height: 20, borderRadius: 6, background: 'var(--bg)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 }}>+</span>
                   New session
                 </button>
                 {sessions.length > 0 && <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />}
                 {sessions.map(s => (
                   <button key={s.id} className="studio-session-item" onClick={() => loadSession(s)}
-                    style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 12, color: 'var(--ink-dim)', background: s.id === currentSessionId ? 'var(--bg)' : 'none', border: 'none', borderRadius: 9, cursor: 'pointer', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: s.id === currentSessionId ? 600 : 400 }}>
+                    style={{ width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: 12, color: 'var(--ink-dim)', background: s.id === currentSessionId ? 'var(--bg)' : 'none', border: 'none', borderRadius: 5, cursor: 'pointer', display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: s.id === currentSessionId ? 600 : 400 }}>
                     {s.name}
                   </button>
                 ))}
@@ -1155,7 +1155,7 @@ export default function StudioPage() {
           </div>
 
           {brandName && (
-            <span className="studio-brand-chip" style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 20, padding: '2px 10px' }}>
+            <span className="studio-brand-chip" style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-dim)', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, padding: '2px 10px' }}>
               ✦ {brandName}
             </span>
           )}
@@ -1170,7 +1170,7 @@ export default function StudioPage() {
               <path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/>
             </svg>
 
-            <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 9, padding: 2 }}>
+            <div style={{ display: 'flex', gap: 2, background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 5, padding: 2 }}>
               {([
                 { key: 'lumen',  label: 'Lumen' },
                 { key: 'animus', label: 'Animus' },
@@ -1181,7 +1181,7 @@ export default function StudioPage() {
                   onClick={() => setSelectedModel(m.key)}
                   style={{
                     fontSize: 11, fontWeight: selectedModel === m.key ? 700 : 500,
-                    padding: '3px 9px', borderRadius: 7, border: 'none', cursor: 'pointer',
+                    padding: '3px 9px', borderRadius: 4, border: 'none', cursor: 'pointer',
                     background: selectedModel === m.key ? 'var(--ink)' : 'transparent',
                     color: selectedModel === m.key ? 'var(--on-ink)' : 'var(--ink-dim)',
                     transition: 'all 0.12s',
@@ -1203,7 +1203,7 @@ export default function StudioPage() {
               </button>
               {infoOpen && <div style={{
                 position: 'absolute', top: 'calc(100% + 8px)', right: 0,
-                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14,
+                background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8,
                 boxShadow: '0 8px 24px rgba(0,0,0,0.14)', padding: '12px 14px',
                 minWidth: 250, zIndex: 60,
               }}>
@@ -1255,7 +1255,7 @@ export default function StudioPage() {
           <span style={{ fontSize: 11, color: 'var(--ink-mute)', fontWeight: 500 }}>
             <span style={{ color: 'var(--ink)', fontWeight: 700 }}>{displayBalance.toLocaleString()}</span> credits
           </span>
-          <button onClick={newSession} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', background: 'none', border: '1px solid var(--border)', borderRadius: 8, padding: '3px 10px', cursor: 'pointer' }}>
+          <button onClick={newSession} style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', background: 'none', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 10px', cursor: 'pointer' }}>
             + New
           </button>
         </div>
@@ -1291,7 +1291,7 @@ export default function StudioPage() {
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, width: '100%' }}>
                     {EXAMPLE_PROMPTS.map(p => (
                       <button key={p.label} className="studio-example-card" onClick={() => send(p.text)}
-                        style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '13px 12px 11px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s' }}>
+                        style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '13px 12px 11px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', textAlign: 'left', transition: 'all 0.12s' }}>
                         <span style={{ color: 'var(--ink-dim)' }}>{p.icon(16)}</span>
                         <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{p.label}</span>
                         <span style={{ fontSize: 10.5, color: 'var(--ink-mute)', lineHeight: 1.4 }}>{p.text.slice(0, 48)}…</span>
@@ -1305,13 +1305,13 @@ export default function StudioPage() {
                     <div key={i} style={{ display: 'flex', flexDirection: msg.role === 'user' ? 'row-reverse' : 'row', alignItems: 'flex-start', gap: 10 }}>
                       {/* AI avatar */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      {msg.role === 'assistant' && <Logo size={28} style={{ borderRadius: 8, flexShrink: 0, marginTop: 1 }} />}
+                      {msg.role === 'assistant' && <Logo size={28} style={{ borderRadius: 5, flexShrink: 0, marginTop: 1 }} />}
 
                       <div style={{ flex: msg.role === 'assistant' ? 1 : undefined, maxWidth: msg.role === 'user' ? '78%' : undefined, minWidth: 0 }}>
                         {/* Attached image preview (user only) */}
                         {msg.role === 'user' && msg.imagePreview && (
                           /* eslint-disable-next-line @next/next/no-img-element */
-                          <img src={msg.imagePreview} alt="Reference" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 10, border: '1px solid var(--border)', display: 'block', marginBottom: 6, marginLeft: 'auto' }} />
+                          <img src={msg.imagePreview} alt="Reference" style={{ width: 80, height: 80, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)', display: 'block', marginBottom: 6, marginLeft: 'auto' }} />
                         )}
 
                         {msg.question ? (
@@ -1353,7 +1353,7 @@ export default function StudioPage() {
                   {(loading || steps.length > 0) && (
                     <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                       {/* AI avatar for loading state */}
-                      <div style={{ width: 28, height: 28, borderRadius: 8, background: 'var(--ink)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
+                      <div style={{ width: 28, height: 28, borderRadius: 5, background: 'var(--ink)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>
                         <svg width="14" height="14" viewBox="0 0 32 32" fill="none">
                           <path d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2zm0 4c1.657 0 3 1.343 3 3s-1.343 3-3 3-3-1.343-3-3 1.343-3 3-3zm-7 14c0-3.866 3.134-7 7-7s7 3.134 7 7H9z" fill="white" opacity="0.9"/>
                         </svg>
@@ -1403,7 +1403,7 @@ export default function StudioPage() {
                         color: isActive ? 'var(--on-ink)' : 'var(--ink-dim)',
                         background: isActive ? 'var(--ink)' : 'var(--bg)',
                         border: `1px solid ${isActive ? 'var(--ink)' : 'var(--border)'}`,
-                        borderRadius: 20, padding: '4px 10px', cursor: 'pointer', transition: 'all 0.12s' }}>
+                        borderRadius: 8, padding: '4px 10px', cursor: 'pointer', transition: 'all 0.12s' }}>
                       {t.icon(11)}{t.label}
                     </button>
                   )
@@ -1414,7 +1414,7 @@ export default function StudioPage() {
               {attachedImage && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px 0' }}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={attachedImage.dataUrl} alt={attachedImage.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8, border: '1px solid var(--border)', flexShrink: 0 }} />
+                  <img src={attachedImage.dataUrl} alt={attachedImage.name} style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 5, border: '1px solid var(--border)', flexShrink: 0 }} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: 11, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{attachedImage.name}</p>
                     <p style={{ margin: 0, fontSize: 10.5, color: 'var(--ink-mute)' }}>Reference image attached</p>
@@ -1425,7 +1425,7 @@ export default function StudioPage() {
 
               {/* Slash command menu */}
               {slashMenuOpen && filteredSlashCommands.length > 0 && (
-                <div style={{ margin: '0 12px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
+                <div style={{ margin: '0 12px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
                   {filteredSlashCommands.map((cmd, i) => (
                     <button
                       key={cmd.id}
@@ -1433,7 +1433,7 @@ export default function StudioPage() {
                       onMouseDown={e => { e.preventDefault(); selectSlashCommand(cmd.id) }}
                       style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', background: slashFocused === i ? 'var(--bg)' : 'transparent', border: 'none', cursor: 'pointer', textAlign: 'left' }}
                     >
-                      <span style={{ width: 28, height: 28, borderRadius: 8, background: slashFocused === i ? 'var(--ink)' : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13, transition: 'background 0.1s' }}>
+                      <span style={{ width: 28, height: 28, borderRadius: 5, background: slashFocused === i ? 'var(--ink)' : 'var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 13, transition: 'background 0.1s' }}>
                         {cmd.id === 'color' ? <span style={{ fontSize: 14 }}>🎨</span> : null}
                       </span>
                       <div style={{ flex: 1 }}>
@@ -1448,7 +1448,7 @@ export default function StudioPage() {
 
               {/* Color picker popup */}
               {colorPickerOpen && (
-                <div style={{ margin: '0 12px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
+                <div style={{ margin: '0 12px 6px', background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.12)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                     <p style={{ margin: 0, fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--ink-mute)' }}>Pick a color</p>
                     <button onMouseDown={e => { e.preventDefault(); setColorPickerOpen(false) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-dim)', fontSize: 16, lineHeight: 1, padding: 0 }}>×</button>
@@ -1459,7 +1459,7 @@ export default function StudioPage() {
                         key={hex}
                         onMouseDown={e => { e.preventDefault(); insertColor(hex) }}
                         title={hex}
-                        style={{ width: '100%', aspectRatio: '1', borderRadius: 8, background: hex, border: hex === '#FFFFFF' ? '1.5px solid var(--border)' : '1.5px solid transparent', cursor: 'pointer', transition: 'transform 0.1s' }}
+                        style={{ width: '100%', aspectRatio: '1', borderRadius: 5, background: hex, border: hex === '#FFFFFF' ? '1.5px solid var(--border)' : '1.5px solid transparent', cursor: 'pointer', transition: 'transform 0.1s' }}
                         onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.12)')}
                         onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)')}
                       />
@@ -1470,12 +1470,12 @@ export default function StudioPage() {
                       type="color"
                       value={customColor}
                       onChange={e => setCustomColor(e.target.value)}
-                      style={{ width: 32, height: 32, borderRadius: 8, border: '1.5px solid var(--border)', cursor: 'pointer', padding: 2, background: 'var(--bg)' }}
+                      style={{ width: 32, height: 32, borderRadius: 5, border: '1.5px solid var(--border)', cursor: 'pointer', padding: 2, background: 'var(--bg)' }}
                     />
                     <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', fontFamily: 'monospace' }}>{customColor.toUpperCase()}</span>
                     <button
                       onMouseDown={e => { e.preventDefault(); insertColor(customColor.toUpperCase()) }}
-                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
+                      style={{ marginLeft: 'auto', padding: '5px 12px', borderRadius: 5, border: '1.5px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}
                     >
                       Use
                     </button>
@@ -1489,7 +1489,7 @@ export default function StudioPage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   title="Attach reference image"
-                  style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 10, border: '1.5px solid var(--border)', background: attachedImage ? 'var(--ink)' : 'var(--bg)', color: attachedImage ? 'var(--on-ink)' : 'var(--ink-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s' }}
+                  style={{ flexShrink: 0, width: 34, height: 34, borderRadius: 6, border: '1.5px solid var(--border)', background: attachedImage ? 'var(--ink)' : 'var(--bg)', color: attachedImage ? 'var(--on-ink)' : 'var(--ink-dim)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s' }}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
                 </button>
@@ -1503,7 +1503,7 @@ export default function StudioPage() {
                   placeholder={activeMode ? TOOL_PILLS.find(p => p.mode === activeMode)?.placeholder ?? 'Describe what you want to create…' : 'Describe what you want to create…'}
                   disabled={loading || !authToken}
                   rows={1}
-                  style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 12, padding: '8px 12px', fontSize: 13, lineHeight: 1.5, fontFamily: 'inherit', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', maxHeight: 96, overflowY: 'auto', transition: 'border-color 0.15s, box-shadow 0.15s' }}
+                  style={{ flex: 1, resize: 'none', border: '1.5px solid var(--border)', borderRadius: 6, padding: '8px 12px', fontSize: 13, lineHeight: 1.5, fontFamily: 'inherit', background: 'var(--bg)', color: 'var(--ink)', outline: 'none', maxHeight: 96, overflowY: 'auto', transition: 'border-color 0.15s, box-shadow 0.15s' }}
                   onFocus={e => { e.currentTarget.style.borderColor = 'var(--ink)'; e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,0,0,0.06)' }}
                   onBlur={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.boxShadow = 'none' }}
                 />
@@ -1511,7 +1511,7 @@ export default function StudioPage() {
                   className="studio-send-btn"
                   onClick={() => send(input)}
                   disabled={loading || !input.trim() || !authToken}
-                  style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 10, background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.15s' }}
+                  style={{ flexShrink: 0, width: 36, height: 36, borderRadius: 6, background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'opacity 0.15s' }}
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M22 2L11 13M22 2L15 22 11 13 2 9z"/>
@@ -1563,12 +1563,12 @@ export default function StudioPage() {
             </div>
 
             {/* Canvas controls */}
-            <div style={{ position: 'absolute', bottom: 14, right: 14, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 10, padding: '3px 4px', boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>
-              <button onClick={zoomOut} title="Zoom out" style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', fontSize: 16, fontWeight: 400, lineHeight: 1 }}>−</button>
-              <button onClick={resetView} title="Reset view (100%)" style={{ minWidth: 42, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', lineHeight: 1 }}>{Math.round(zoom * 100)}%</button>
-              <button onClick={zoomIn} title="Zoom in" style={{ width: 28, height: 28, borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', fontSize: 16, fontWeight: 400, lineHeight: 1 }}>+</button>
+            <div style={{ position: 'absolute', bottom: 14, right: 14, display: 'flex', alignItems: 'center', gap: 4, background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '3px 4px', boxShadow: '0 1px 6px rgba(0,0,0,0.08)' }}>
+              <button onClick={zoomOut} title="Zoom out" style={{ width: 28, height: 28, borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', fontSize: 16, fontWeight: 400, lineHeight: 1 }}>−</button>
+              <button onClick={resetView} title="Reset view (100%)" style={{ minWidth: 42, height: 28, borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', lineHeight: 1 }}>{Math.round(zoom * 100)}%</button>
+              <button onClick={zoomIn} title="Zoom in" style={{ width: 28, height: 28, borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', fontSize: 16, fontWeight: 400, lineHeight: 1 }}>+</button>
               <div style={{ width: 1, height: 16, background: 'var(--border)', margin: '0 2px' }} />
-              <button onClick={fitToContent} title="Fit content to view" style={{ height: 28, padding: '0 8px', borderRadius: 7, border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1 }}>
+              <button onClick={fitToContent} title="Fit content to view" style={{ height: 28, padding: '0 8px', borderRadius: 4, border: 'none', background: 'none', cursor: 'pointer', fontSize: 11, fontWeight: 600, color: 'var(--ink-dim)', display: 'flex', alignItems: 'center', gap: 4, lineHeight: 1 }}>
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>
                 Fit
               </button>
@@ -1594,31 +1594,31 @@ export default function StudioPage() {
             <img
               src={lightbox.url}
               alt={lightbox.prompt}
-              style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 16, boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'block' }}
+              style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8, boxShadow: '0 24px 80px rgba(0,0,0,0.5)', display: 'block' }}
             />
           </div>
 
           {/* Bottom bar */}
           <div
-            style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 14, backdropFilter: 'blur(12px)' }}
+            style={{ marginTop: 18, display: 'flex', alignItems: 'center', gap: 12, padding: '10px 18px', background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 8, backdropFilter: 'blur(12px)' }}
             onClick={e => e.stopPropagation()}
           >
             <p style={{ margin: 0, fontSize: 12, color: 'rgba(255,255,255,0.6)', maxWidth: 320, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-mono)' }}>{lightbox.prompt}</p>
             <button
               onClick={() => setLightboxZoom(z => !z)}
-              style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}
+              style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 5, padding: '5px 12px', cursor: 'pointer' }}
             >
               {lightboxZoom ? '⊖ Zoom out' : '⊕ Zoom in'}
             </button>
             <button
               onClick={() => downloadBlob(lightbox.url, 'studio-image.png')}
-              style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}
+              style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: '#fff', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 5, padding: '5px 12px', cursor: 'pointer' }}
             >
               ↓ Download
             </button>
             <button
               onClick={() => setLightbox(null)}
-              style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '5px 12px', cursor: 'pointer' }}
+              style={{ flexShrink: 0, fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.5)', background: 'none', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 5, padding: '5px 12px', cursor: 'pointer' }}
             >
               Close
             </button>

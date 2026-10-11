@@ -413,14 +413,14 @@ export default function VideoGeneratorPage() {
       <main style={{ maxWidth: 860, margin: '0 auto', padding: '42px 40px 90px' }}>
         <SectionTabs tabs={VIDEO_STUDIO_TABS} />
         <div style={{ marginTop: 60, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 16 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 16, background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>
           </div>
           <div>
             <h2 style={{ fontFamily: 'var(--font-serif)', fontWeight: 400, fontSize: 28, letterSpacing: '-0.02em', margin: '0 0 8px' }}>Video is not included in <em>Lite</em></h2>
             <p style={{ fontSize: 14, color: 'var(--ink-dim)', maxWidth: 380, margin: '0 auto', lineHeight: 1.6 }}>Upgrade to Starter to unlock AI video generation, UGC videos, and more.</p>
           </div>
-          <a href="/settings/billing" style={{ marginTop: 8, padding: '11px 28px', borderRadius: 10, background: '#111', color: '#fff', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
+          <a href="/settings/billing" style={{ marginTop: 8, padding: '11px 28px', borderRadius: 6, background: 'var(--ink)', color: 'var(--on-ink)', fontWeight: 600, fontSize: 14, textDecoration: 'none' }}>
             Upgrade to Starter →
           </a>
         </div>
@@ -468,7 +468,7 @@ export default function VideoGeneratorPage() {
                 if (m.id === 'seedance-2-5' && resolution === '4k') setResolution('1080p')
               }}
               style={{
-                flex: 1, textAlign: 'left', padding: '14px 18px', borderRadius: 14, cursor: 'pointer',
+                flex: 1, textAlign: 'left', padding: '14px 18px', borderRadius: 8, cursor: 'pointer',
                 border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                 background: active ? 'var(--ink)' : 'var(--surface)',
                 color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -478,7 +478,7 @@ export default function VideoGeneratorPage() {
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <span style={{ fontSize: 14, fontWeight: 700 }}>{m.name}</span>
-                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 999, background: active ? 'var(--on-ink)' : 'var(--surface-2)', color: active ? 'var(--ink)' : 'var(--ink-dim)' }}>{m.badge}</span>
+                <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', padding: '2px 7px', borderRadius: 4, background: active ? 'var(--on-ink)' : 'var(--surface-2)', color: active ? 'var(--ink)' : 'var(--ink-dim)' }}>{m.badge}</span>
               </div>
               <div style={{ fontSize: 11.5, opacity: 0.8 }}>{m.tagline}</div>
             </button>
@@ -488,7 +488,7 @@ export default function VideoGeneratorPage() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
         {/* Duration */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 14 }}>Duration</div>
           <div className="vid-chiprow" style={{ display: 'flex', gap: 10 }}>
             {cfg.durations.map(sec => {
@@ -501,7 +501,7 @@ export default function VideoGeneratorPage() {
                   onClick={() => setDuration(sec)}
                   disabled={generating}
                   style={{
-                    flex: 1, padding: '14px 8px', borderRadius: 10, textAlign: 'center',
+                    flex: 1, padding: '14px 8px', borderRadius: 6, textAlign: 'center',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'transparent',
                     color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -539,7 +539,7 @@ export default function VideoGeneratorPage() {
                       onClick={() => setResolution(r)}
                       disabled={generating}
                       style={{
-                        flex: 1, padding: '12px 8px', borderRadius: 10, textAlign: 'center',
+                        flex: 1, padding: '12px 8px', borderRadius: 6, textAlign: 'center',
                         border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                         background: active ? 'var(--ink)' : 'transparent',
                         color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -572,7 +572,7 @@ export default function VideoGeneratorPage() {
                       onClick={() => setWithAudio(opt.on)}
                       disabled={generating}
                       style={{
-                        flex: 1, padding: '12px 12px', borderRadius: 10, textAlign: 'left',
+                        flex: 1, padding: '12px 12px', borderRadius: 6, textAlign: 'left',
                         border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                         background: active ? 'var(--ink)' : 'transparent',
                         color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -592,7 +592,7 @@ export default function VideoGeneratorPage() {
         </div>
 
         {/* Format */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 14 }}>Format</div>
           <div style={{ display: 'flex', gap: 10 }}>
             {([
@@ -609,7 +609,7 @@ export default function VideoGeneratorPage() {
                   onClick={() => setAspect(f.id)}
                   disabled={generating}
                   style={{
-                    flex: 1, padding: '14px 8px', borderRadius: 10, textAlign: 'center',
+                    flex: 1, padding: '14px 8px', borderRadius: 6, textAlign: 'center',
                     border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                     background: active ? 'var(--ink)' : 'transparent',
                     color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -628,7 +628,7 @@ export default function VideoGeneratorPage() {
         </div>
 
         {/* Director mode */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
             <label style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)' }}>
               Director mode
@@ -642,7 +642,7 @@ export default function VideoGeneratorPage() {
               onChange={e => setIntent(e.target.value)}
               disabled={directing || generating}
               placeholder='e.g. "Skittles bag bursting open in slow motion, candy raining, luxury vibe"'
-              style={{ flex: 1, padding: '11px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+              style={{ flex: 1, padding: '11px 14px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
             />
             <button
               type="button"
@@ -673,7 +673,7 @@ export default function VideoGeneratorPage() {
                 }
               }}
               className="btn btn-primary"
-              style={{ padding: '11px 18px', fontSize: 13, borderRadius: 10, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+              style={{ padding: '11px 18px', fontSize: 13, borderRadius: 6, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6 }}
             >
               {directing ? 'Directing…' : 'Direct my video · 15 cr'}
             </button>
@@ -686,7 +686,7 @@ export default function VideoGeneratorPage() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
                 {storyboard.map((url, i) => (
-                  <a key={url} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 10, overflow: 'hidden', border: `2px solid ${i === 0 && useKeyframe ? 'var(--ink)' : 'var(--border)'}` }}>
+                  <a key={url} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', borderRadius: 6, overflow: 'hidden', border: `2px solid ${i === 0 && useKeyframe ? 'var(--ink)' : 'var(--border)'}` }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={url} alt={`Keyframe ${i + 1}`} style={{ width: '100%', display: 'block', objectFit: 'cover' }} />
                   </a>
@@ -704,7 +704,7 @@ export default function VideoGeneratorPage() {
         </div>
 
         {/* Prompt */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <label style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)' }}>
               Prompt <span style={{ color: 'var(--danger, #e84a4a)' }}>*</span>
@@ -736,7 +736,7 @@ export default function VideoGeneratorPage() {
               }}
               style={{
                 fontSize: 11.5, fontWeight: 600,
-                padding: '6px 12px', borderRadius: 8,
+                padding: '6px 12px', borderRadius: 5,
                 border: '1px dashed var(--border-strong, var(--border))',
                 background: 'var(--surface-2, var(--surface))',
                 color: 'var(--ink)',
@@ -762,7 +762,7 @@ export default function VideoGeneratorPage() {
               : 'Example: A confident woman in her 30s looking directly at camera, saying "This changed everything for me" with a warm smile. Lived-in home office background, soft window light, handheld camera feel.'}
             style={{
               width: '100%', boxSizing: 'border-box',
-              padding: '10px 12px', borderRadius: 9,
+              padding: '10px 12px', borderRadius: 5,
               border: '1px solid var(--border)',
               background: 'transparent',
               color: 'var(--ink)', fontSize: 13.5,
@@ -777,7 +777,7 @@ export default function VideoGeneratorPage() {
         </div>
 
         {/* Reference images */}
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 20 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 6 }}>
             Reference Images <span style={{ fontSize: 10, fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional · up to 4)</span>
           </div>
@@ -806,7 +806,7 @@ export default function VideoGeneratorPage() {
           )}
 
           {refImages.length < 4 && (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 9, border: '1.5px dashed var(--border)', color: 'var(--ink-dim)', fontSize: 13, cursor: generating ? 'not-allowed' : 'pointer' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '9px 16px', borderRadius: 5, border: '1.5px dashed var(--border)', color: 'var(--ink-dim)', fontSize: 13, cursor: generating ? 'not-allowed' : 'pointer' }}>
               <Upload size={14} />
               <span>{refImages.length === 0 ? 'Upload images (max 5MB each)' : 'Add another image'}</span>
               <input type="file" accept="image/*" multiple onChange={handleImageChange} disabled={generating} style={{ display: 'none' }} />
@@ -816,7 +816,7 @@ export default function VideoGeneratorPage() {
 
         {/* Error */}
         {error && (
-          <div style={{ padding: '10px 14px', borderRadius: 10, background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger, #e84a4a)', color: 'var(--danger, #e84a4a)', fontSize: 13 }}>
+          <div style={{ padding: '10px 14px', borderRadius: 6, background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger, #e84a4a)', color: 'var(--danger, #e84a4a)', fontSize: 13 }}>
             {error}
           </div>
         )}
@@ -831,7 +831,7 @@ export default function VideoGeneratorPage() {
             onClick={generate}
             disabled={!canGenerate || generating}
             style={{
-              width: '100%', padding: '14px 0', borderRadius: 12,
+              width: '100%', padding: '14px 0', borderRadius: 6,
               background: !canGenerate || generating ? 'var(--border)' : 'var(--ink)',
               color: !canGenerate || generating ? 'var(--ink-dim)' : 'var(--on-ink)',
               border: 'none', fontSize: 15, fontWeight: 700,
@@ -854,7 +854,7 @@ export default function VideoGeneratorPage() {
 
         {/* Output */}
         {video && (
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 24 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: 24 }}>
             <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 16 }}>
               Generated Video
             </div>
@@ -880,12 +880,12 @@ export default function VideoGeneratorPage() {
 
             {video.status === 'completed' && video.videoUrl && (
               <>
-                <video controls src={video.videoUrl} style={{ width: '100%', borderRadius: 10, marginBottom: 14, maxHeight: 500, background: '#000' }} />
+                <video controls src={video.videoUrl} style={{ width: '100%', borderRadius: 6, marginBottom: 14, maxHeight: 500, background: '#000' }} />
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <a href={video.videoUrl} download={`video-${Date.now()}.mp4`} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
+                  <a href={video.videoUrl} download={`video-${Date.now()}.mp4`} style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 5, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
                     <Download size={14} /> Download
                   </a>
-                  <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 9, border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
+                  <a href={video.videoUrl} target="_blank" rel="noopener noreferrer" style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '10px 0', borderRadius: 5, border: '1px solid var(--border)', color: 'var(--ink)', fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
                     <Play size={14} /> Open in tab
                   </a>
                 </div>

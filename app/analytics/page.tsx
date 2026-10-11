@@ -108,7 +108,7 @@ export default function AnalyticsPage() {
               <div key={kpi.label} style={{
                 background: 'var(--surface)',
                 border: '1px solid var(--border)',
-                borderRadius: 14,
+                borderRadius: 8,
                 padding: '18px 20px',
               }}>
                 <div style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--ink-mute)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>
@@ -124,7 +124,7 @@ export default function AnalyticsPage() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginTop: 20 }}>
             {/* Content by type */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px 22px' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Content by type</div>
               {typeEntries.length === 0 ? (
                 <div style={{ fontSize: 13, color: 'var(--ink-mute)', padding: '20px 0' }}>No content yet — start generating!</div>
@@ -151,7 +151,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Credits by type */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px 22px' }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 18 }}>Credits spent by type</div>
               {Object.keys(data?.creditsByType ?? {}).length === 0 ? (
                 <div style={{ fontSize: 13, color: 'var(--ink-mute)', padding: '20px 0' }}>No data yet.</div>
@@ -182,7 +182,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Recent activity */}
-          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginTop: 20 }}>
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px 22px', marginTop: 20 }}>
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>Recent activity</div>
             {(data?.recentActivity ?? []).length === 0 ? (
               <div style={{ fontSize: 13, color: 'var(--ink-mute)', padding: '12px 0' }}>Nothing yet — go make something!</div>
@@ -210,11 +210,11 @@ export default function AnalyticsPage() {
 
           {/* Social analytics placeholder */}
           <div style={{
-            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14,
+            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8,
             padding: '22px', marginTop: 20, display: 'flex', alignItems: 'center', gap: 18,
           }}>
             <div style={{
-              width: 44, height: 44, borderRadius: 12, background: 'var(--surface-3)',
+              width: 44, height: 44, borderRadius: 6, background: 'var(--surface-3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
             }}>
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.6">

@@ -182,7 +182,7 @@ export function EndCard(props: EndCardProps) {
   const offerP = enter(T.offer, POP)
   const offer = props.offer.trim() ? (
     <div style={{
-      padding: `${14 * u}px ${30 * u}px`, borderRadius: 999,
+      padding: `${14 * u}px ${30 * u}px`, borderRadius: 4,
       border: `${2.5 * u}px solid ${accent}`, background: withAlpha(accent, dark ? 0.16 : 0.1),
       color: ink, fontSize: (layout === 'square' ? 30 : 36) * u, fontWeight: 700, letterSpacing: '-0.01em',
       opacity: interpolate(offerP, [0, 0.4], [0, 1], CLAMP),
@@ -198,7 +198,7 @@ export function EndCard(props: EndCardProps) {
   const cta = props.cta.trim() ? (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 18 * u,
-      padding: `${30 * u}px ${68 * u}px`, borderRadius: 999,
+      padding: `${30 * u}px ${68 * u}px`, borderRadius: 4,
       background: accent, color: readableOn(accent),
       fontSize: (layout === 'square' ? 38 : 46) * u, fontWeight: 800, letterSpacing: '-0.015em',
       boxShadow: `0 ${24 * u}px ${56 * u}px ${withAlpha(accent, dark ? 0.5 : 0.38)}`,

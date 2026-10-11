@@ -180,7 +180,7 @@ export default function AppDemoTestPage() {
         </p>
       </div>
 
-      <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', marginBottom: 20 }}>
+      <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 20 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>1. Assets</div>
         <AssetRow
           label="Seedance talking-head (required)"
@@ -208,7 +208,7 @@ export default function AppDemoTestPage() {
         />
       </section>
 
-      <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', marginBottom: 20 }}>
+      <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', marginBottom: 20 }}>
         <div style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>2. Character placement</div>
         <p style={{ fontSize: 12.5, color: 'var(--ink-dim)', margin: '0 0 14px', lineHeight: 1.5 }}>
           Where the keyed avatar sits on top of the b-roll / app-UI layer. Whisper handles captions automatically from the talking-head audio.
@@ -222,7 +222,7 @@ export default function AppDemoTestPage() {
               style={{
                 flex: 1,
                 padding: '10px 12px',
-                borderRadius: 10,
+                borderRadius: 6,
                 border: '1px solid ' + (avatarSide === side ? 'var(--ink)' : 'var(--border)'),
                 background: avatarSide === side ? 'var(--ink)' : 'var(--bg)',
                 color: avatarSide === side ? 'var(--on-ink)' : 'var(--ink)',
@@ -238,7 +238,7 @@ export default function AppDemoTestPage() {
           onClick={submit}
           disabled={phase === 'analyzing' || phase === 'polling'}
           style={{
-            padding: '14px 26px', borderRadius: 12,
+            padding: '14px 26px', borderRadius: 6,
             background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
             fontSize: 14, fontWeight: 600, cursor: 'pointer',
             display: 'inline-flex', alignItems: 'center', gap: 8,
@@ -253,32 +253,32 @@ export default function AppDemoTestPage() {
         </button>
         <Link
           href="/generate/formats"
-          style={{ padding: '14px 20px', borderRadius: 12, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none', fontSize: 13.5 }}
+          style={{ padding: '14px 20px', borderRadius: 6, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none', fontSize: 13.5 }}
         >
           Back to Library
         </Link>
       </div>
 
       {status && phase !== 'done' && phase !== 'failed' && (
-        <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 12, background: 'var(--surface-2)', fontSize: 13, color: 'var(--ink-dim)', marginBottom: 20 }}>
+        <div style={{ padding: 14, border: '1px solid var(--border)', borderRadius: 6, background: 'var(--surface-2)', fontSize: 13, color: 'var(--ink-dim)', marginBottom: 20 }}>
           {status} {renderId && <> — <code style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>renderId={renderId}</code></>}
         </div>
       )}
 
       {error && (
-        <div style={{ padding: 14, border: '1px solid var(--danger)', borderRadius: 12, background: 'rgba(184,58,53,0.08)', fontSize: 13, color: 'var(--danger)', marginBottom: 20 }}>
+        <div style={{ padding: 14, border: '1px solid var(--danger)', borderRadius: 6, background: 'rgba(184,58,53,0.08)', fontSize: 13, color: 'var(--danger)', marginBottom: 20 }}>
           {error}
         </div>
       )}
 
       {finalUrl && (
-        <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)' }}>
+        <section style={{ padding: 24, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)' }}>
           <div style={{ fontSize: 15, fontWeight: 600, marginBottom: 12 }}>Rendered composite</div>
-          <video src={finalUrl} controls playsInline style={{ width: '100%', maxWidth: 400, borderRadius: 12, display: 'block', margin: '0 auto' }} />
+          <video src={finalUrl} controls playsInline style={{ width: '100%', maxWidth: 400, borderRadius: 6, display: 'block', margin: '0 auto' }} />
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 14 }}>
-            <a href={finalUrl} download style={{ padding: '10px 18px', borderRadius: 10, background: 'var(--ink)', color: 'var(--on-ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Download</a>
-            <a href={finalUrl} target="_blank" rel="noreferrer" style={{ padding: '10px 18px', borderRadius: 10, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none', fontSize: 13 }}>Open in tab</a>
-            <Link href="/library" style={{ padding: '10px 18px', borderRadius: 10, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none', fontSize: 13 }}>
+            <a href={finalUrl} download style={{ padding: '10px 18px', borderRadius: 6, background: 'var(--ink)', color: 'var(--on-ink)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>Download</a>
+            <a href={finalUrl} target="_blank" rel="noreferrer" style={{ padding: '10px 18px', borderRadius: 6, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none', fontSize: 13 }}>Open in tab</a>
+            <Link href="/library" style={{ padding: '10px 18px', borderRadius: 6, background: 'transparent', border: '1px solid var(--border)', color: 'var(--ink)', textDecoration: 'none', fontSize: 13 }}>
               {savedToLibrary ? '✓ In Library' : 'View Library'}
             </Link>
           </div>
@@ -310,7 +310,7 @@ function AssetRow({
           className="input"
           style={{ flex: 1 }}
         />
-        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 10, border: '1px solid var(--border)', cursor: uploading ? 'wait' : 'pointer', fontSize: 12.5, background: 'var(--bg)', color: 'var(--ink)' }}>
+        <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 6, border: '1px solid var(--border)', cursor: uploading ? 'wait' : 'pointer', fontSize: 12.5, background: 'var(--bg)', color: 'var(--ink)' }}>
           {uploading ? <Loader2 size={13} className="animate-spin" /> : <Upload size={13} />}
           Upload
           <input

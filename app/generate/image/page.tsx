@@ -256,7 +256,7 @@ export default function ImageGeneratorPage() {
       {/* Composer */}
       <div style={{
         background: 'var(--surface)', border: '1px solid var(--border)',
-        borderRadius: 18, padding: 20,
+        borderRadius: 8, padding: 20,
         display: 'flex', flexDirection: 'column', gap: 16,
       }}>
         <textarea
@@ -278,7 +278,7 @@ export default function ImageGeneratorPage() {
           {references.map((ref, idx) => (
             <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
               <img src={ref.preview} alt={`ref ${idx + 1}`}
-                style={{ width: 52, height: 52, borderRadius: 10, objectFit: 'cover', display: 'block', border: '1.5px solid var(--border)' }} />
+                style={{ width: 52, height: 52, borderRadius: 6, objectFit: 'cover', display: 'block', border: '1.5px solid var(--border)' }} />
               {/* Matches the "Image N:" label the model receives with this photo. */}
               {references.length > 1 && (
                 <span style={{
@@ -302,7 +302,7 @@ export default function ImageGeneratorPage() {
           {references.length < MAX_REFS && (
             <label {...referenceDrop.dropzoneProps} style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              padding: '8px 14px', borderRadius: 10,
+              padding: '8px 14px', borderRadius: 6,
               border: `1.5px dashed ${referenceDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
               background: referenceDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
               cursor: loading ? 'not-allowed' : 'pointer',
@@ -341,7 +341,7 @@ export default function ImageGeneratorPage() {
                 onClick={() => setStyle(s.id)}
                 disabled={loading}
                 style={{
-                  padding: '9px 18px', borderRadius: 999,
+                  padding: '9px 18px', borderRadius: 4,
                   background: active ? 'var(--ink)' : 'var(--surface)',
                   border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -366,7 +366,7 @@ export default function ImageGeneratorPage() {
                 disabled={loading}
                 title={m.note}
                 style={{
-                  padding: '9px 16px', borderRadius: 999,
+                  padding: '9px 16px', borderRadius: 4,
                   background: active ? 'var(--ink)' : 'var(--surface)',
                   border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -388,7 +388,7 @@ export default function ImageGeneratorPage() {
                 onClick={() => setImgResolution(r)}
                 disabled={loading}
                 style={{
-                  padding: '9px 14px', borderRadius: 999,
+                  padding: '9px 14px', borderRadius: 4,
                   background: active ? 'var(--ink)' : 'var(--surface)',
                   border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                   color: active ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -456,7 +456,7 @@ export default function ImageGeneratorPage() {
             disabled={!canGenerate || loading}
             style={{
               marginLeft: 'auto',
-              padding: '11px 26px', borderRadius: 999,
+              padding: '11px 26px', borderRadius: 4,
               background: !canGenerate || loading ? 'var(--ink-faint)' : 'var(--ink)',
               color: 'var(--on-ink)', border: 'none',
               fontSize: 14, fontWeight: 600,
@@ -477,7 +477,7 @@ export default function ImageGeneratorPage() {
       {/* Error */}
       {error && (
         <div style={{
-          marginTop: 14, padding: '10px 14px', borderRadius: 11,
+          marginTop: 14, padding: '10px 14px', borderRadius: 6,
           background: 'rgba(184,58,53,0.08)', border: '1px solid var(--danger)',
           color: 'var(--danger)', fontSize: 13,
         }}>{error}</div>
@@ -488,7 +488,7 @@ export default function ImageGeneratorPage() {
       <div style={{ marginTop: 24, columns: '4 220px', columnGap: 14 }} className="img-grid">
         {loading && Array.from({ length: count }).map((_, i) => (
           <div key={`ph-${i}`} style={{
-            breakInside: 'avoid', marginBottom: 14, borderRadius: 13,
+            breakInside: 'avoid', marginBottom: 14, borderRadius: 8,
             aspectRatio: ratio === '16:9' ? '16/9' : ratio === '1:1' ? '1' : ratio === '9:16' ? '9/16' : ratio === '3:4' ? '3/4' : '4/5',
             background: 'repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px)',
             border: '1px solid var(--border)',
@@ -499,7 +499,7 @@ export default function ImageGeneratorPage() {
         ))}
         {gallery.map((img, i) => (
           <div key={`${img.url}-${i}`} className="img-card" style={{
-            breakInside: 'avoid', marginBottom: 14, borderRadius: 13, overflow: 'hidden',
+            breakInside: 'avoid', marginBottom: 14, borderRadius: 8, overflow: 'hidden',
             border: '1px solid var(--border)', background: 'var(--surface)', position: 'relative', cursor: 'zoom-in',
           }} onClick={() => { setLightbox(img.url); setZoomed(false) }}>
             <img src={img.url} alt={img.prompt || 'generated image'} loading="lazy"
@@ -522,7 +522,7 @@ export default function ImageGeneratorPage() {
                   } catch { window.open(img.url, '_blank') }
                 }}
                 style={{
-                  width: 32, height: 32, borderRadius: 8,
+                  width: 32, height: 32, borderRadius: 5,
                   background: 'rgba(20,18,12,0.75)', color: '#fff', border: 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   backdropFilter: 'blur(4px)', cursor: 'pointer',
@@ -531,7 +531,7 @@ export default function ImageGeneratorPage() {
               </button>
               <button type="button" onClick={e => { e.stopPropagation(); setConfirmDeleteUrl(img.url) }}
                 style={{
-                  width: 32, height: 32, borderRadius: 8,
+                  width: 32, height: 32, borderRadius: 5,
                   background: 'rgba(184,58,53,0.85)', color: '#fff', border: 'none',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   backdropFilter: 'blur(4px)', cursor: 'pointer',
@@ -543,7 +543,7 @@ export default function ImageGeneratorPage() {
         ))}
         {!loading && !gallery.length && (
           <div style={{
-            breakInside: 'avoid', borderRadius: 13, aspectRatio: '4/5',
+            breakInside: 'avoid', borderRadius: 8, aspectRatio: '4/5',
             border: '1px dashed var(--border)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             color: 'var(--ink-faint)', fontFamily: 'var(--font-mono)', fontSize: 11,
@@ -562,7 +562,7 @@ export default function ImageGeneratorPage() {
           overflow: 'auto', padding: zoomed ? 0 : 32,
         }}>
           <button onClick={() => setLightbox(null)} style={{
-            position: 'fixed', top: 16, right: 16, width: 36, height: 36, borderRadius: 10,
+            position: 'fixed', top: 16, right: 16, width: 36, height: 36, borderRadius: 6,
             background: 'rgba(255,255,255,0.12)', border: 'none', color: '#fff', cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 201,
           }}><X size={18} /></button>
@@ -570,7 +570,7 @@ export default function ImageGeneratorPage() {
             onClick={e => { e.stopPropagation(); setZoomed(z => !z) }}
             style={zoomed
               ? { width: 'auto', maxWidth: 'none', cursor: 'zoom-out', margin: 'auto' }
-              : { maxWidth: '92vw', maxHeight: '92vh', borderRadius: 12, cursor: 'zoom-in' }} />
+              : { maxWidth: '92vw', maxHeight: '92vh', borderRadius: 6, cursor: 'zoom-in' }} />
         </div>
       )}
 
@@ -582,7 +582,7 @@ export default function ImageGeneratorPage() {
         }}>
           <div onClick={e => e.stopPropagation()} style={{
             background: 'var(--surface)', border: '1px solid var(--border)',
-            borderRadius: 16, padding: '24px 28px', maxWidth: 340, width: '90%',
+            borderRadius: 8, padding: '24px 28px', maxWidth: 340, width: '90%',
             display: 'flex', flexDirection: 'column', gap: 20,
           }}>
             <div>
@@ -591,11 +591,11 @@ export default function ImageGeneratorPage() {
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button type="button" onClick={() => setConfirmDeleteUrl(null)} style={{
-                padding: '8px 18px', borderRadius: 10, border: '1px solid var(--border)',
+                padding: '8px 18px', borderRadius: 6, border: '1px solid var(--border)',
                 background: 'transparent', color: 'var(--ink-2)', fontSize: 13, cursor: 'pointer', fontWeight: 500,
               }}>Cancel</button>
               <button type="button" onClick={() => { deleteImage(confirmDeleteUrl); setConfirmDeleteUrl(null) }} style={{
-                padding: '8px 18px', borderRadius: 10, border: 'none',
+                padding: '8px 18px', borderRadius: 6, border: 'none',
                 background: 'var(--danger)', color: '#fff', fontSize: 13, cursor: 'pointer', fontWeight: 600,
               }}>Delete</button>
             </div>

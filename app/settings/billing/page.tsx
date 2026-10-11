@@ -265,30 +265,30 @@ export default function BillingPage() {
 
       {/* Credits banner — amber warm gradient */}
       <div style={{
-        background: 'linear-gradient(120deg, #FBF7EC, #F3EBD6)',
-        border: '1px solid #EADFBB',
-        borderRadius: 18,
+        background: 'var(--rail-soft)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 8,
         padding: '20px 26px',
         marginBottom: 24,
         display: 'flex',
         alignItems: 'center',
         gap: 0,
         flexWrap: 'wrap',
-        color: '#2C1F0A',
+        color: 'var(--ink)',
       }}>
         <div style={{ paddingRight: 28 }}>
-          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 4 }}>Available credits</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, letterSpacing: '-0.02em', lineHeight: 1, color: '#2C1F0A' }}>{(creditsInfo?.balance ?? 0).toLocaleString()}</div>
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 4 }}>Available credits</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--ink)' }}>{(creditsInfo?.balance ?? 0).toLocaleString()}</div>
         </div>
-        <div style={{ width: 1, height: 44, background: '#E4D2A0', marginRight: 28, flexShrink: 0 }} />
+        <div style={{ width: 1, height: 44, background: 'var(--border-strong)', marginRight: 28, flexShrink: 0 }} />
         <div style={{ paddingRight: 28 }}>
-          <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 4 }}>Monthly allocation</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#2C1F0A' }}>{(creditsInfo?.monthlyCredits ?? 0).toLocaleString()} · {creditsInfo?.plan ?? 'Free plan'}</div>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginBottom: 4 }}>Monthly allocation</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>{(creditsInfo?.monthlyCredits ?? 0).toLocaleString()} · {creditsInfo?.plan ?? 'Free plan'}</div>
         </div>
-        <div style={{ width: 1, height: 44, background: '#E4D2A0', marginRight: 28, flexShrink: 0 }} />
+        <div style={{ width: 1, height: 44, background: 'var(--border-strong)', marginRight: 28, flexShrink: 0 }} />
         <div>
-          <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 4 }}>Reset date</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#2C1F0A' }}>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginBottom: 4 }}>Reset date</div>
+          <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
             {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
           </div>
         </div>
@@ -298,9 +298,9 @@ export default function BillingPage() {
             <button onClick={handleCancelAll} disabled={upgradeLoading === 'cancel-all'}
               title="Admin: cancel every active + pending Dodo subscription for this account"
               style={{
-                padding: '9px 14px', borderRadius: 9,
-                border: '1px solid #b91c1c', background: 'rgba(185,28,28,0.08)',
-                fontSize: 12, fontWeight: 600, color: '#b91c1c', cursor: 'pointer',
+                padding: '9px 14px', borderRadius: 5,
+                border: '1px solid var(--danger)', background: 'rgba(185,28,28,0.08)',
+                fontSize: 12, fontWeight: 600, color: 'var(--danger)', cursor: 'pointer',
                 opacity: upgradeLoading === 'cancel-all' ? 0.5 : 1,
               }}>
               {upgradeLoading === 'cancel-all' ? 'Cancelling…' : 'Cancel ALL subs (admin)'}
@@ -309,7 +309,7 @@ export default function BillingPage() {
           <button onClick={handleResync} disabled={upgradeLoading === 'resync'}
             title="Re-check your subscription with Dodo and top up any missed monthly credits"
             style={{
-              padding: '9px 14px', borderRadius: 9,
+              padding: '9px 14px', borderRadius: 5,
               border: '1px solid #D4B97A', background: 'rgba(255,255,255,0.6)',
               fontSize: 12.5, fontWeight: 600, color: '#6E4E17', cursor: 'pointer',
               opacity: upgradeLoading === 'resync' ? 0.5 : 1,
@@ -322,7 +322,7 @@ export default function BillingPage() {
           <button onClick={handleManageSubscription} disabled={upgradeLoading === 'portal'}
             title="Update payment method, cancel subscription, view invoices"
             style={{
-              padding: '9px 18px', borderRadius: 9,
+              padding: '9px 18px', borderRadius: 5,
               border: '1px solid #D4B97A', background: 'rgba(255,255,255,0.6)',
               fontSize: 13, fontWeight: 600, color: '#6E4E17', cursor: 'pointer',
               opacity: upgradeLoading === 'portal' ? 0.5 : 1, flexShrink: 0,
@@ -336,7 +336,7 @@ export default function BillingPage() {
           </button>
         )}
           </div>
-          <div style={{ fontSize: 10.5, color: '#8A6420', maxWidth: 260, textAlign: 'right', lineHeight: 1.4 }}>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-dim)', maxWidth: 260, textAlign: 'right', lineHeight: 1.4 }}>
             <strong>Resync</strong> if your monthly credits didn&apos;t show up after renewal — safe to click anytime, never double-credits.
           </div>
         </div>
@@ -367,12 +367,12 @@ export default function BillingPage() {
           <span style={{ fontSize: 13, fontWeight: annual ? 700 : 400, color: 'var(--ink)', transition: 'font-weight 0.15s' }}>Annual</span>
           <span style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
-            background: '#F1E6C9', color: '#8A6420',
+            background: 'var(--rail-soft)', color: 'var(--ink-dim)',
             borderRadius: 6, padding: '3px 9px',
           }}>2 months free</span>
           <span style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
-            background: 'linear-gradient(90deg,#111,#333)', color: '#fff',
+            background: 'var(--ink)', color: '#fff',
             borderRadius: 6, padding: '3px 9px',
           }}>Early launch pricing</span>
           <span style={{ fontSize: 11, color: 'var(--ink-mute)', marginLeft: 'auto' }}>All prices include taxes &amp; payment fees</span>
@@ -381,12 +381,12 @@ export default function BillingPage() {
         {/* ── Lite plan — restricted micro-tier ────────────────────────────── */}
         <div style={{
           border: isLitePlan ? '2px solid #111' : '1.5px solid var(--border)',
-          borderRadius: 16, marginBottom: 16,
+          borderRadius: 8, marginBottom: 16,
           marginTop: isLitePlan ? 14 : 0,
           background: 'var(--surface)', position: 'relative',
         }}>
           {isLitePlan && (
-            <span style={{ position: 'absolute', top: -10, left: 24, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: '#111', color: '#fff', borderRadius: 999, padding: '3px 10px' }}>
+            <span style={{ position: 'absolute', top: -10, left: 24, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 4, padding: '3px 10px' }}>
               Current plan
             </span>
           )}
@@ -404,7 +404,7 @@ export default function BillingPage() {
             {/* Included */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               {['Product photos', 'AI Influencer Studio', 'Social captions', 'Voiceover', 'Carousel'].map(f => (
-                <span key={f} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#15803d', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 7, padding: '3px 9px' }}>
+                <span key={f} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 600, color: '#15803d', background: 'var(--good-soft)', border: '1px solid var(--border)', borderRadius: 4, padding: '3px 9px' }}>
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
                   {f}
                 </span>
@@ -413,10 +413,10 @@ export default function BillingPage() {
 
             {/* CTA */}
             {isLitePlan ? (
-              <div style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: 9, border: '1px solid var(--border)', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)', flexShrink: 0 }}>Current plan</div>
+              <div style={{ marginLeft: 'auto', padding: '8px 16px', borderRadius: 5, border: '1px solid var(--border)', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)', flexShrink: 0 }}>Current plan</div>
             ) : (
               <button onClick={() => handleUpgrade('lite')} disabled={upgradeLoading === 'lite'}
-                style={{ marginLeft: 'auto', padding: '8px 20px', borderRadius: 9, border: 'none', background: '#111', color: '#fff', fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: upgradeLoading === 'lite' ? 0.5 : 1 }}>
+                style={{ marginLeft: 'auto', padding: '8px 20px', borderRadius: 5, border: 'none', background: 'var(--ink)', color: 'var(--on-ink)', fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0, opacity: upgradeLoading === 'lite' ? 0.5 : 1 }}>
                 {upgradeLoading === 'lite' ? 'Redirecting…' : 'Get Lite'}
               </button>
             )}
@@ -436,7 +436,7 @@ export default function BillingPage() {
                 position: 'relative',
                 background: 'var(--surface)',
                 border: `1.5px solid ${isCurrent || plan.popular ? '#111' : 'var(--border)'}`,
-                borderRadius: 16,
+                borderRadius: 8,
                 padding: 20,
                 display: 'flex',
                 flexDirection: 'column',
@@ -445,8 +445,8 @@ export default function BillingPage() {
                   <span style={{
                     position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
                     fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
-                    background: '#111', color: '#fff',
-                    borderRadius: 999, padding: '3px 10px', whiteSpace: 'nowrap',
+                    background: 'var(--ink)', color: 'var(--on-ink)',
+                    borderRadius: 4, padding: '3px 10px', whiteSpace: 'nowrap',
                   }}>
                     {isCurrent ? 'Current plan' : 'Most popular'}
                   </span>
@@ -465,7 +465,7 @@ export default function BillingPage() {
                 <div style={{ fontSize: 11.5, color: 'var(--ink-dim)', marginBottom: 14 }}>{plan.credits}</div>
 
                 {isCurrent ? (
-                  <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
+                  <div style={{ padding: '9px 12px', borderRadius: 5, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
                     Current plan
                   </div>
                 ) : plan.planKey !== 'free' ? (
@@ -473,8 +473,8 @@ export default function BillingPage() {
                     onClick={() => handleUpgrade(plan.planKey)}
                     disabled={isLoading}
                     style={{
-                      display: 'block', width: '100%', padding: '9px 12px', borderRadius: 9,
-                      border: 'none', background: '#111', color: '#fff',
+                      display: 'block', width: '100%', padding: '9px 12px', borderRadius: 5,
+                      border: 'none', background: 'var(--ink)', color: 'var(--on-ink)',
                       fontWeight: 600, fontSize: 13, cursor: 'pointer',
                       opacity: isLoading ? 0.5 : 1,
                     }}
@@ -482,7 +482,7 @@ export default function BillingPage() {
                     {isLoading ? 'Redirecting…' : 'Upgrade'}
                   </button>
                 ) : (
-                  <div style={{ padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
+                  <div style={{ padding: '9px 12px', borderRadius: 5, border: '1px solid var(--border)', textAlign: 'center', fontSize: 13, fontWeight: 500, color: 'var(--ink-mute)' }}>
                     Free forever
                   </div>
                 )}
@@ -513,7 +513,7 @@ export default function BillingPage() {
       />
 
       {/* Credits policy */}
-      <div style={{ marginBottom: 24, border: '1px solid var(--border)', borderRadius: 16, background: 'var(--surface)', padding: '20px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px 32px' }}>
+      <div style={{ marginBottom: 24, border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)', padding: '20px 24px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px 32px' }}>
         {[
           { icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>, title: 'Upgrading', body: "Your balance resets to the new plan's full monthly allowance. Pack credits are preserved on top." },
           { icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>, title: 'Downgrading', body: "Your current credits are kept and the new plan's credits are added. Nothing is taken away." },
@@ -521,7 +521,7 @@ export default function BillingPage() {
           { icon: <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>, title: 'Credit packs', body: 'Stack on top of your subscription. Survive plan changes and monthly resets — they never disappear.' },
         ].map(({ icon, title, body }) => (
           <div key={title} style={{ display: 'flex', gap: 12 }}>
-            <span style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 8, background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{icon}</span>
+            <span style={{ flexShrink: 0, width: 28, height: 28, borderRadius: 5, background: 'var(--surface-2)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{icon}</span>
             <div>
               <p style={{ margin: 0, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{title}</p>
               <p style={{ margin: '3px 0 0', fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.5 }}>{body}</p>
@@ -537,10 +537,10 @@ export default function BillingPage() {
           <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0 }}>One-off credit boosts for Starter and above. Credits never expire and survive plan changes.</p>
         </div>
         {(currentPlan === 'free' || currentPlan === 'lite') ? (
-          <div style={{ border: '1px solid var(--border)', borderRadius: 14, padding: '24px 20px', background: 'var(--surface)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
+          <div style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '24px 20px', background: 'var(--surface)', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
             <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>Credit packs are available on Starter and above</div>
             <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: 0, maxWidth: 340 }}>Upgrade to Starter to unlock one-off credit boosts — more credits, no subscription commitment.</p>
-            <a href="/settings/billing" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ marginTop: 4, padding: '9px 22px', borderRadius: 9, background: '#111', color: '#fff', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
+            <a href="/settings/billing" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} style={{ marginTop: 4, padding: '9px 22px', borderRadius: 5, background: 'var(--ink)', color: 'var(--on-ink)', fontWeight: 600, fontSize: 13, textDecoration: 'none' }}>
               Upgrade to Starter →
             </a>
           </div>
@@ -549,7 +549,7 @@ export default function BillingPage() {
             <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
               {creditPacks.map((pack) => (
                 <div key={pack.credits} style={{
-                  border: '1px solid var(--border)', borderRadius: 14,
+                  border: '1px solid var(--border)', borderRadius: 8,
                   padding: '16px 18px', background: 'var(--surface)',
                   display: 'flex', alignItems: 'center', gap: 12,
                 }}>
@@ -561,8 +561,8 @@ export default function BillingPage() {
                     onClick={() => handlePackCheckout(pack.packKey)}
                     disabled={packLoading === pack.packKey}
                     style={{
-                      padding: '8px 16px', borderRadius: 8,
-                      border: 'none', background: '#111', color: '#fff',
+                      padding: '8px 16px', borderRadius: 5,
+                      border: 'none', background: 'var(--ink)', color: 'var(--on-ink)',
                       fontWeight: 600, fontSize: 13, cursor: 'pointer', flexShrink: 0,
                       opacity: packLoading === pack.packKey ? 0.5 : 1,
                     }}
@@ -578,7 +578,7 @@ export default function BillingPage() {
       </div>
 
       {/* Competitor comparison table */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px', overflowX: 'auto' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px 24px', overflowX: 'auto' }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4, marginTop: 0, letterSpacing: '-0.01em' }}>How we compare</h3>
         <p style={{ fontSize: 12.5, color: 'var(--ink-mute)', marginTop: 0, marginBottom: 16 }}>ContentFlow vs. the alternatives — more features, taxes included, a fraction of the price.</p>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5 }}>
@@ -614,7 +614,7 @@ export default function BillingPage() {
       </div>
 
       {/* FAQ */}
-      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 16, padding: '20px 24px' }}>
+      <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px 24px' }}>
         <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 16, marginTop: 0, letterSpacing: '-0.01em' }}>Frequently asked questions</h3>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
@@ -796,7 +796,7 @@ function PlanRecommender({
   const usagePct = planCap ? Math.min((totalCr / planCap) * 100, 100) : 0
 
   return (
-    <div style={{ marginBottom: 24, borderRadius: 20, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)' }}>
+    <div style={{ marginBottom: 24, borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)' }}>
       {/* Header */}
       <div style={{ padding: '22px 28px', borderBottom: '1px solid var(--border-soft)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -806,12 +806,12 @@ function PlanRecommender({
         {selected.length > 0 && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
             <button onClick={() => setStep(1)} style={{
-              padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none',
-              background: step === 1 ? '#111' : 'var(--surface-2)', color: step === 1 ? '#fff' : 'var(--ink-mute)',
+              padding: '6px 14px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: step === 1 ? 'var(--ink)' : 'var(--surface-2)', color: step === 1 ? 'var(--on-ink)' : 'var(--ink-mute)',
             }}>1 · Content</button>
             <button onClick={() => setStep(2)} style={{
-              padding: '6px 14px', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none',
-              background: step === 2 ? '#111' : 'var(--surface-2)', color: step === 2 ? '#fff' : 'var(--ink-mute)',
+              padding: '6px 14px', borderRadius: 5, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: 'none',
+              background: step === 2 ? 'var(--ink)' : 'var(--surface-2)', color: step === 2 ? 'var(--on-ink)' : 'var(--ink-mute)',
             }}>2 · Volume</button>
           </div>
         )}
@@ -832,7 +832,7 @@ function PlanRecommender({
                   const crNow = getCrEach(t, opts)
                   return (
                     <div key={t.key} style={{
-                      borderRadius: 12, border: `1.5px solid ${active ? t.color : 'var(--border)'}`,
+                      borderRadius: 6, border: `1.5px solid ${active ? t.color : 'var(--border)'}`,
                       background: active ? `${t.color}12` : 'var(--surface-2)',
                       transition: 'border-color 0.15s, background 0.15s',
                       overflow: 'hidden',
@@ -887,8 +887,8 @@ function PlanRecommender({
               </div>
               {selected.length > 0 && (
                 <button onClick={() => setStep(2)} style={{
-                  marginTop: 18, padding: '9px 20px', borderRadius: 9, fontSize: 13, fontWeight: 600,
-                  background: '#111', color: '#fff', border: 'none', cursor: 'pointer',
+                  marginTop: 18, padding: '9px 20px', borderRadius: 5, fontSize: 13, fontWeight: 600,
+                  background: 'var(--ink)', color: 'var(--on-ink)', border: 'none', cursor: 'pointer',
                 }}>
                   Set quantities →
                 </button>
@@ -909,14 +909,14 @@ function PlanRecommender({
                   return (
                     <div key={t.key} style={{
                       display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px',
-                      borderRadius: 12, border: `1px solid var(--border)`, background: 'var(--surface-2)',
+                      borderRadius: 6, border: `1px solid var(--border)`, background: 'var(--surface-2)',
                     }}>
                       <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.color, flexShrink: 0 }} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 600 }}>{t.label}{optSummary ? <span style={{ fontSize: 11, fontWeight: 400, color: 'var(--ink-mute)', marginLeft: 6 }}>{optSummary}</span> : null}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink-mute)' }}>{crNow} cr × {q} = <span style={{ fontWeight: 700, color: t.color }}>{subtotal} cr</span></div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 0, border: '1px solid var(--border)', borderRadius: 5, overflow: 'hidden' }}>
                         <button onClick={() => bump(t.key, -1)} style={{ width: 32, height: 32, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>−</button>
                         <span style={{ minWidth: 28, textAlign: 'center', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-mono)' }}>{q}</span>
                         <button onClick={() => bump(t.key, 1)} style={{ width: 32, height: 32, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>+</button>
@@ -925,7 +925,7 @@ function PlanRecommender({
                   )
                 })}
               </div>
-              <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 12, background: 'var(--surface-3)', border: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 6, background: 'var(--surface-3)', border: '1px solid var(--border-soft)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>Estimated monthly credits</span>
                 <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: '-0.03em', fontFamily: 'var(--font-mono)' }}>{totalCr.toLocaleString()} cr</span>
               </div>
@@ -945,11 +945,11 @@ function PlanRecommender({
               <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-mute)', marginBottom: 14 }}>We recommend</div>
 
               {/* Plan card */}
-              <div style={{ background: 'var(--surface-2)', borderRadius: 14, padding: '18px 18px', border: '1.5px solid #111', marginBottom: 14 }}>
+              <div style={{ background: 'var(--surface-2)', borderRadius: 8, padding: '18px 18px', border: '1.5px solid #111', marginBottom: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                   <div style={{ fontSize: 14, fontWeight: 700 }}>{recPlan.name}</div>
                   {currentPlan === recPlan.planKey && (
-                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: '#111', color: '#fff', borderRadius: 999, padding: '2px 8px' }}>Current</span>
+                    <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', background: 'var(--ink)', color: 'var(--on-ink)', borderRadius: 4, padding: '2px 8px' }}>Current</span>
                   )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 3, marginBottom: 10 }}>
@@ -1004,8 +1004,8 @@ function PlanRecommender({
                   onClick={() => onUpgrade(recPlan.planKey)}
                   disabled={!!upgradeLoading}
                   style={{
-                    width: '100%', padding: '11px', borderRadius: 10, marginTop: 'auto',
-                    border: 'none', background: '#111', color: '#fff',
+                    width: '100%', padding: '11px', borderRadius: 6, marginTop: 'auto',
+                    border: 'none', background: 'var(--ink)', color: 'var(--on-ink)',
                     fontWeight: 600, fontSize: 13, cursor: 'pointer',
                     opacity: upgradeLoading ? 0.5 : 1, letterSpacing: '-0.01em',
                   }}

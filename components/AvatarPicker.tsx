@@ -61,7 +61,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
                 style={{
                   position: 'relative',
                   aspectRatio: '3/4',
-                  borderRadius: '10px',
+                  borderRadius: '6px',
                   overflow: 'hidden',
                   background: `linear-gradient(135deg, ${c1}, ${c2})`,
                 }}
@@ -95,7 +95,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
           width: '100%',
           padding: '8px 12px',
           marginBottom: '10px',
-          borderRadius: '8px',
+          borderRadius: '5px',
           border: '1px solid var(--border)',
           background: 'var(--surface)',
           color: 'var(--ink)',
@@ -134,7 +134,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
         maxHeight: '520px',
         overflowY: 'auto',
         paddingRight: '4px',
-        borderRadius: '8px',
+        borderRadius: '5px',
       }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
         {visible.map(avatar => {
@@ -151,7 +151,7 @@ export default function AvatarPicker({ selectedId, onChange, disabled }: AvatarP
               style={{
                 position: 'relative',
                 aspectRatio: '3/4',
-                borderRadius: '10px',
+                borderRadius: '6px',
                 overflow: 'hidden',
                 border: selected ? '2px solid var(--accent)' : '2px solid transparent',
                 cursor: disabled ? 'default' : 'pointer',

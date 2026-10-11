@@ -117,7 +117,7 @@ export default function DashboardPage() {
       <div className="page-meta">{dayStr} · {dateStr} · {yearStr}</div>
       <div style={{ display: 'flex', alignItems: 'flex-start', gap: 16, marginTop: 4 }}>
         {brandLogo && (
-          <div style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 12, border: '1px solid var(--border)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: 6 }}>
+          <div style={{ flexShrink: 0, width: 52, height: 52, borderRadius: 6, border: '1px solid var(--border-strong)', background: 'var(--surface)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', marginTop: 6 }}>
             <img src={brandLogo} alt={brandName ?? 'Brand'} style={{ width: '100%', height: '100%', objectFit: 'contain', padding: 6 }} />
           </div>
         )}
@@ -129,9 +129,9 @@ export default function DashboardPage() {
 
       {/* Credits banner */}
       <div style={{
-        background: 'linear-gradient(120deg, #FBF7EC, #F3EBD6)',
-        border: '1px solid #EADFBB',
-        borderRadius: 18,
+        background: 'var(--rail-soft)',
+        border: '1px solid var(--border-strong)',
+        borderRadius: 6,
         padding: '20px 24px',
         display: 'flex',
         alignItems: 'center',
@@ -139,29 +139,29 @@ export default function DashboardPage() {
         marginTop: 24,
         marginBottom: 4,
         flexWrap: 'wrap',
-        color: '#2C1F0A',
+        color: 'var(--ink)',
       }}>
         <div>
-          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 4 }}>Available credits</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 36, letterSpacing: '-0.02em', lineHeight: 1, color: '#2C1F0A' }}>{credits?.balance?.toLocaleString() ?? '—'}</div>
+          <div style={{ fontSize: 10.5, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 4 }}>Available credits</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 36, letterSpacing: '-0.02em', lineHeight: 1, color: 'var(--ink)' }}>{credits?.balance?.toLocaleString() ?? '—'}</div>
         </div>
-        <div style={{ width: 1, height: 40, background: '#E4D2A0', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 40, background: 'var(--border-strong)', flexShrink: 0 }} />
         <div>
-          <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 3 }}>Monthly allocation</div>
-          <div style={{ fontSize: 15, fontWeight: 600, color: '#2C1F0A' }}>{credits ? credits.monthlyCredits.toLocaleString() : '—'} · {credits?.plan ?? 'Free plan'}</div>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginBottom: 3 }}>Monthly allocation</div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{credits ? credits.monthlyCredits.toLocaleString() : '—'} · {credits?.plan ?? 'Free plan'}</div>
         </div>
         {credits?.resetDate && (
           <>
-            <div style={{ width: 1, height: 40, background: '#E4D2A0', flexShrink: 0 }} />
+            <div style={{ width: 1, height: 40, background: 'var(--border-strong)', flexShrink: 0 }} />
             <div>
-              <div style={{ fontSize: 10.5, color: '#8A8264', marginBottom: 3 }}>Resets</div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#2C1F0A' }}>{new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+              <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginBottom: 3 }}>Resets</div>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>{new Date(credits.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
             </div>
           </>
         )}
         <Link href="/settings/billing" style={{
-          marginLeft: 'auto', background: '#2C1F0A', color: '#F1E6C9',
-          borderRadius: 9, padding: '9px 18px', fontSize: 13, fontWeight: 600,
+          marginLeft: 'auto', background: 'var(--ink)', color: 'var(--on-ink)',
+          borderRadius: 5, padding: '9px 18px', fontSize: 13, fontWeight: 600,
           textDecoration: 'none', flexShrink: 0,
         }}>Upgrade plan</Link>
       </div>
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-2.mp4',
                 'https://hqtlrfpzgrflbnkxxvhm.supabase.co/storage/v1/object/public/ugc-assets/demo/ugc-3.mp4',
               ].map((src, i) => (
-                <div key={i} style={{ width: 54, height: i === 1 ? 108 : 96, borderRadius: 10, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', background: '#0A0A08', boxShadow: i === 1 ? '0 10px 28px rgba(0,0,0,0.55)' : '0 4px 14px rgba(0,0,0,0.4)', flexShrink: 0, position: 'relative' }}>
+                <div key={i} style={{ width: 54, height: i === 1 ? 108 : 96, borderRadius: 6, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.12)', background: '#0A0A08', boxShadow: i === 1 ? '0 10px 28px rgba(0,0,0,0.55)' : '0 4px 14px rgba(0,0,0,0.4)', flexShrink: 0, position: 'relative' }}>
                   <video src={src} autoPlay muted loop playsInline style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               ))}
@@ -235,7 +235,7 @@ export default function DashboardPage() {
               <div className="dash-recent-meta">
                 <div className="dash-recent-title">{title}</div>
                 <div className="dash-recent-status">
-                  <span className="dash-recent-dot" style={{ background: '#2F7A4E' }} />
+                  <span className="dash-recent-dot" style={{ background: 'var(--good)' }} />
                   Ready · {timeAgo(item.created_at)}
                 </div>
               </div>
@@ -255,15 +255,15 @@ export default function DashboardPage() {
           display: flex;
           flex-direction: column;
           background: var(--surface);
-          border: 1px solid var(--border);
-          border-radius: 17px;
+          border: 1px solid var(--border-strong);
+          border-radius: 6px;
           overflow: hidden;
           color: inherit;
           transition: box-shadow 160ms, transform 160ms;
         }
         .dash-card:hover {
-          box-shadow: var(--shadow-lg);
-          transform: translateY(-3px);
+          box-shadow: 3px 3px 0 var(--ink);
+          transform: translate(-2px, -2px);
         }
         .dash-art {
           height: 158px;
@@ -271,19 +271,23 @@ export default function DashboardPage() {
           display: flex;
           align-items: center;
           justify-content: center;
-          border-bottom: 1px solid var(--border);
+          border-bottom: 1px dashed var(--border-strong);
           overflow: hidden;
         }
-        .dash-art-ugc { background: var(--surface-2); }
-        .dash-art-stripe { background: repeating-linear-gradient(135deg, var(--surface-2) 0 10px, var(--surface-3) 10px 20px); }
+        .dash-art::before, .dash-art::after { content: ""; position: absolute; bottom: -7px; width: 14px; height: 14px; border-radius: 50%; background: var(--bg); border: 1px solid var(--border-strong); z-index: 2; }
+        .dash-art::before { left: -8px; } .dash-art::after { right: -8px; }
+        .dash-art-ugc, .dash-art-stripe { background-image: radial-gradient(rgba(23,32,58,0.2) 1px, transparent 1.4px); background-size: 6px 6px; }
+        .dash-art-ugc { background-color: var(--stock-coral); }
+        .dash-card:nth-child(2) .dash-art-stripe { background-color: var(--stock-butter); }
+        .dash-card:nth-child(3) .dash-art-stripe { background-color: var(--stock-mint); }
         .dash-flag {
           position: absolute;
           top: 12px; left: 12px;
-          font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+          font-family: var(--font-mono); font-size: 10px; font-weight: 500; letter-spacing: 0.08em;
           background: var(--ink); color: var(--on-ink);
-          border-radius: 6px; padding: 3px 8px;
+          border-radius: 3px; padding: 3px 8px;
         }
-        .dash-strip { width: 54px; border-radius: 8px; background: repeating-linear-gradient(135deg, #E7E3DA 0 8px, #EFEBE2 8px 16px); border: 1px solid var(--border-strong); }
+        .dash-strip { width: 54px; border-radius: 5px; background: repeating-linear-gradient(135deg, #E7E3DA 0 8px, #EFEBE2 8px 16px); border: 1px solid var(--border-strong); }
         .dash-strip-short { height: 96px; }
         .dash-strip-tall { height: 108px; background: repeating-linear-gradient(135deg, #E2DED4 0 8px, #ECE8DE 8px 16px); box-shadow: var(--shadow-md); }
         .dash-play {
@@ -305,20 +309,20 @@ export default function DashboardPage() {
         }
         .dash-recent-thumb {
           aspect-ratio: 0.5625;
-          border-radius: 13px; border: 1px solid var(--border);
+          border-radius: 6px; border: 1px solid var(--border-strong);
           background: repeating-linear-gradient(135deg, var(--surface-2) 0 9px, var(--surface-3) 9px 18px);
           position: relative; overflow: hidden;
           display: flex; align-items: flex-end; padding: 10px;
           transition: box-shadow 160ms;
         }
-        .dash-recent-thumb:hover { box-shadow: var(--shadow-lg); }
+        .dash-recent-thumb:hover { box-shadow: 3px 3px 0 var(--ink); }
         .dash-recent-play { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
         .dash-recent-play > div { width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.92); display: flex; align-items: center; justify-content: center; }
         .dash-recent-tag {
           position: absolute; top: 9px; right: 9px;
           font-family: var(--font-mono); font-size: 10px;
-          background: rgba(26,26,23,0.85); color: #fff;
-          border-radius: 5px; padding: 2px 6px;
+          background: var(--ink); color: var(--on-ink);
+          border-radius: 3px; padding: 2px 6px;
         }
         .dash-recent-meta { padding: 10px 2px 0; }
         .dash-recent-title { font-size: 13px; font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

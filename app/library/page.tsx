@@ -186,7 +186,7 @@ export default function LibraryPage() {
         <div style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 12, padding: '12px 18px', marginBottom: 16, gap: 16,
+          borderRadius: 6, padding: '12px 18px', marginBottom: 16, gap: 16,
         }}>
           <div style={{ fontSize: 13.5, color: 'var(--ink)' }}>
             Filtered to campaign: <strong>{campaignName ?? '…'}</strong>
@@ -239,7 +239,7 @@ export default function LibraryPage() {
           {!campaignId && (
             <Link
               href="/generate/ugc"
-              style={{ display: 'inline-block', marginTop: 20, padding: '10px 22px', borderRadius: 10, background: 'var(--ink)', color: '#fff', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
+              style={{ display: 'inline-block', marginTop: 20, padding: '10px 22px', borderRadius: 6, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}
             >
               Go to Video Studio
             </Link>
@@ -367,7 +367,7 @@ export default function LibraryPage() {
           onClick={() => setPreviewItem(null)}
         >
           <div
-            style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 16, maxWidth: 680, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 8, maxWidth: 680, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}
             onClick={e => e.stopPropagation()}
           >
             <div style={{
@@ -387,7 +387,7 @@ export default function LibraryPage() {
                 src={previewItem.storage_url}
                 controls
                 autoPlay
-                style={{ width: '100%', borderRadius: 12, background: '#000' }}
+                style={{ width: '100%', borderRadius: 6, background: '#000' }}
               />
               <div style={{ display: 'flex', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
                 <a

@@ -32,7 +32,7 @@ export default function VoxPage() {
       </div>
 
       {loading ? null : !canAccessVoxStudio(email) ? (
-        <div style={{ padding: '40px 24px', borderRadius: 16, border: '1px solid var(--border)', background: 'var(--surface)', textAlign: 'center' }}>
+        <div style={{ padding: '40px 24px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>🎬</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Vox Studio — Coming Soon</div>
           <div style={{ fontSize: 13.5, color: 'var(--ink-dim)', maxWidth: 340, margin: '0 auto' }}>

@@ -85,7 +85,7 @@ export function MobileHeader({
           aria-label="Home"
           data-press
           style={{
-            width: 30, height: 30, borderRadius: 9,
+            width: 30, height: 30, borderRadius: 5,
             background: 'var(--m-ink)',
             display: 'grid', placeItems: 'center',
             flexShrink: 0, textDecoration: 'none',
@@ -116,7 +116,7 @@ export function MobileHeader({
           aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
           data-press
           style={{
-            width: 34, height: 34, borderRadius: 10,
+            width: 34, height: 34, borderRadius: 6,
             background: 'transparent',
             border: '1px solid var(--m-border)',
             color: 'var(--m-ink-3)',
@@ -136,7 +136,7 @@ export function MobileHeader({
             display: 'flex', alignItems: 'center', gap: 6,
             background: 'var(--m-credits-bg)',
             border: '1px solid var(--m-credits-border)',
-            borderRadius: 99, padding: '5px 11px 5px 8px',
+            borderRadius: 4, padding: '5px 11px 5px 8px',
             flexShrink: 0, textDecoration: 'none',
           }}
         >

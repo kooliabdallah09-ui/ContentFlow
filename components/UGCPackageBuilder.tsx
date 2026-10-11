@@ -1373,7 +1373,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               disabled={animating}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 8,
+                padding: '6px 12px', borderRadius: 5,
                 border: '1px solid var(--border)', background: 'var(--surface)',
                 color: 'var(--ink-dim)', fontSize: 13, cursor: animating ? 'not-allowed' : 'pointer',
               }}
@@ -1398,7 +1398,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 onClick={() => { setPickedFrameUrl(url); runAnimate(url, editedScript || generatedScript || '') }}
                 disabled={animating}
                 style={{
-                  padding: 0, borderRadius: 12,
+                  padding: 0, borderRadius: 6,
                   border: `2px solid ${picked && animating ? 'var(--ink)' : 'var(--border)'}`,
                   background: 'var(--surface)', cursor: animating ? 'wait' : 'pointer',
                   overflow: 'hidden', position: 'relative',
@@ -1464,7 +1464,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               onClick={() => requestHeroFrames(editedScript || generatedScript || '')}
               disabled={framesLoading || animating}
               style={{
-                padding: '10px 14px', borderRadius: 10,
+                padding: '10px 14px', borderRadius: 6,
                 background: 'transparent', border: '1px solid var(--border)',
                 color: 'var(--ink)', fontSize: 13, cursor: framesLoading ? 'wait' : 'pointer',
               }}
@@ -1490,7 +1490,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   if (res.ok) setSavedFramesToGallery(true)
                 }}
                 style={{
-                  padding: '10px 14px', borderRadius: 10,
+                  padding: '10px 14px', borderRadius: 6,
                   background: savedFramesToGallery ? 'var(--surface-2, var(--surface))' : 'transparent',
                   border: '1px solid var(--border)',
                   color: savedFramesToGallery ? 'var(--ink-mute)' : 'var(--ink)',
@@ -1506,7 +1506,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               image prompt from this generation. Clicking a frame picks it
               AND saves it under the name typed here. */}
           {characterImagePrompt && !savedActorId && frames && frames.length > 0 && !isMotionBrollFormat && !isTwoPersonFormat && (
-            <div style={{ marginTop: 8, padding: 12, borderRadius: 12, border: '1px dashed var(--border-strong, var(--border))', background: 'var(--surface-2, var(--surface))' }}>
+            <div style={{ marginTop: 8, padding: 12, borderRadius: 6, border: '1px dashed var(--border-strong, var(--border))', background: 'var(--surface-2, var(--surface))' }}>
               <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 6 }}>
                 Save this actor for reuse <span style={{ color: 'var(--ink-mute)', fontWeight: 400 }}>· optional</span>
               </div>
@@ -1521,7 +1521,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 placeholder='e.g. "Mia the everyday skincare girl"'
                 style={{
                   width: '100%', boxSizing: 'border-box',
-                  padding: '8px 10px', borderRadius: 8,
+                  padding: '8px 10px', borderRadius: 5,
                   border: '1px solid var(--border)', background: 'var(--bg)',
                   color: 'var(--ink)', fontSize: 13, fontFamily: 'inherit',
                 }}
@@ -1546,7 +1546,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               disabled={isLoading}
               style={{
                 display: 'flex', alignItems: 'center', gap: 6,
-                padding: '6px 12px', borderRadius: 8,
+                padding: '6px 12px', borderRadius: 5,
                 border: '1px solid var(--border)', background: 'var(--surface)',
                 color: 'var(--ink-dim)', fontSize: 13, cursor: isLoading ? 'not-allowed' : 'pointer',
                 transition: 'all 0.15s',
@@ -1574,7 +1574,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               fontSize: 12.5,
               lineHeight: 1.65,
               padding: '14px',
-              borderRadius: 10,
+              borderRadius: 6,
               border: '1.5px solid var(--border-strong)',
               background: 'var(--bg-elev)',
               color: 'var(--ink)',
@@ -1597,7 +1597,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 disabled={isLoading || revising}
                 placeholder='e.g. "Make the hook more aggressive" · "Shorten to 3 sentences" · "Add more urgency to the CTA"'
                 style={{
-                  flex: 1, padding: '9px 12px', borderRadius: 8,
+                  flex: 1, padding: '9px 12px', borderRadius: 5,
                   border: '1px solid var(--border)', background: 'var(--bg)',
                   color: 'var(--ink)', fontSize: 13, fontFamily: 'inherit', outline: 'none',
                 }}
@@ -1607,7 +1607,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 onClick={handleRevise}
                 disabled={!reviseInput.trim() || revising || isLoading}
                 style={{
-                  padding: '9px 16px', borderRadius: 8, border: 'none',
+                  padding: '9px 16px', borderRadius: 5, border: 'none',
                   background: 'var(--ink)', color: 'var(--on-ink)',
                   fontSize: 13, fontWeight: 600, cursor: !reviseInput.trim() || revising ? 'not-allowed' : 'pointer',
                   opacity: !reviseInput.trim() || revising ? 0.5 : 1,
@@ -1641,7 +1641,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             disabled={isLoading || framesLoading || !editedScript.trim() || creditBalance < totalCredits}
             onClick={() => runGenerate(undefined, editedScript)}
             className="btn btn-primary"
-            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
+            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}
           >
             {(framesLoading || isLoading) && (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="animate-spin" aria-hidden="true">
@@ -1683,7 +1683,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           type="button"
           onClick={() => setShowFormatPicker(true)}
           className="btn btn-ghost"
-          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '9px 14px', border: '1.5px dashed var(--border)', borderRadius: 999, background: 'var(--surface)' }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, padding: '9px 14px', border: '1.5px dashed var(--border)', borderRadius: 4, background: 'var(--surface)' }}
         >
           <BookOpen size={14} />
           {activeFormatKey
@@ -1700,8 +1700,8 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {activeFormatKey === 'tv-spot' && productType === 'website' && (
         <div style={{
           display: 'flex', gap: 12, alignItems: 'flex-start',
-          padding: '12px 14px', borderRadius: 10,
-          border: '1px solid #f59e0b', background: '#fffbeb', color: '#78350f',
+          padding: '12px 14px', borderRadius: 6,
+          border: '1px solid #f59e0b', background: 'var(--warn-soft)', color: '#78350f',
         }}>
           <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>
           <div style={{ fontSize: 12.5, lineHeight: 1.5 }}>
@@ -1727,7 +1727,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         const povIncompatible = ['interview-pov', 'interview-man-on-street', 'pov-vlog', 'camera-pov'].includes(activeFormatKey ?? '')
         const selectedHook: ScrollStopHook | undefined = selectedHookKey ? SCROLL_STOP_HOOKS.find(h => h.key === selectedHookKey) : undefined
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 12px', border: '1px dashed var(--border)', borderRadius: 10, background: 'var(--surface)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', padding: '8px 12px', border: '1px dashed var(--border)', borderRadius: 6, background: 'var(--surface)' }}>
             <label
               title={povIncompatible ? 'Not compatible with POV formats' : ''}
               style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12.5, cursor: povIncompatible ? 'not-allowed' : 'pointer', opacity: povIncompatible ? 0.5 : 1 }}
@@ -1750,7 +1750,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   Choose your hook →
                 </button>
               ) : (
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, padding: '5px 10px', background: 'var(--surface-2, var(--surface))', border: '1px solid var(--border)', borderRadius: 999 }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12.5, padding: '5px 10px', background: 'var(--surface-2, var(--surface))', border: '1px solid var(--border)', borderRadius: 4 }}>
                   Hook: <strong>{selectedHook.label}</strong>
                   <button type="button" onClick={() => setShowHookPicker(true)} style={{ background: 'none', border: 'none', color: 'var(--ink-mute)', cursor: 'pointer', padding: 0, fontSize: 12 }}>· change</button>
                 </span>
@@ -1765,7 +1765,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           onClick={e => { if (e.target === e.currentTarget) setShowHookPicker(false) }}
           style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 1100, width: '100%', maxHeight: '88vh', overflow: 'auto' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', padding: 24, maxWidth: 1100, width: '100%', maxHeight: '88vh', overflow: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
               <div>
                 <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 24, lineHeight: 1.15 }}>Scroll-stop hooks</div>
@@ -1799,7 +1799,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                           onClick={() => { setSelectedHookKey(h.key); setShowHookPicker(false) }}
                           style={{
                             textAlign: 'left', padding: 0, border: `2px solid ${active ? catColor : 'var(--border)'}`,
-                            borderRadius: 12, background: 'var(--surface)', cursor: 'pointer',
+                            borderRadius: 6, background: 'var(--surface)', cursor: 'pointer',
                             display: 'flex', flexDirection: 'column', overflow: 'hidden',
                             boxShadow: active ? `0 0 0 3px ${catColor}22` : 'none',
                             transition: 'border-color 0.12s, box-shadow 0.12s',
@@ -1853,7 +1853,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           onClick={e => { if (e.target === e.currentTarget) setShowFormatPicker(false) }}
           style={{ position: 'fixed', inset: 0, zIndex: 500, background: 'rgba(0,0,0,0.72)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}
         >
-          <div style={{ background: 'var(--surface)', borderRadius: 18, border: '1px solid var(--border)', padding: 24, maxWidth: 1000, width: '100%', maxHeight: '85vh', overflow: 'auto' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: 8, border: '1px solid var(--border)', padding: 24, maxWidth: 1000, width: '100%', maxHeight: '85vh', overflow: 'auto' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 6, flexWrap: 'wrap' }}>
               <div>
                 <div style={{ fontFamily: 'var(--font-serif, serif)', fontSize: 24, lineHeight: 1.15 }}>Format Library</div>
@@ -1874,7 +1874,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                         key={fmt.key}
                         type="button"
                         onClick={() => applyFormat(fmt)}
-                        style={{ textAlign: 'left', padding: 12, border: `1.5px solid ${activeFormatKey === fmt.key ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 10, background: 'var(--surface-2, var(--surface))', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
+                        style={{ textAlign: 'left', padding: 12, border: `1.5px solid ${activeFormatKey === fmt.key ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 6, background: 'var(--surface-2, var(--surface))', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 4 }}
                       >
                         <div style={{ fontSize: 13.5, fontWeight: 700 }}>{fmt.label}</div>
                         <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.4 }}>{fmt.tagline}</div>
@@ -1898,7 +1898,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           type="button"
           onClick={() => toggleStep(2, step2Ref)}
           style={{
-            textAlign: 'left', padding: 14, borderRadius: 12,
+            textAlign: 'left', padding: 14, borderRadius: 6,
             background: 'var(--surface)', border: '1px solid var(--border)',
             cursor: 'pointer', minWidth: 0, overflow: 'hidden',
           }}
@@ -1906,7 +1906,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>Product</div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <div style={{
-              width: 44, height: 54, borderRadius: 8, flexShrink: 0,
+              width: 44, height: 54, borderRadius: 5, flexShrink: 0,
               background: productImage?.preview ? `url(${productImage.preview}) center/cover` : 'linear-gradient(135deg,#f4f2ed,#e7e4de)',
               border: '1px solid var(--border-soft)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -1927,7 +1927,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           type="button"
           onClick={() => toggleStep(3, step3Ref)}
           style={{
-            textAlign: 'left', padding: 14, borderRadius: 12,
+            textAlign: 'left', padding: 14, borderRadius: 6,
             background: 'var(--surface)',
             border: hasCreator ? '1px solid var(--border)' : '1px solid var(--danger, #b83a35)',
             cursor: 'pointer', minWidth: 0, overflow: 'hidden',
@@ -1958,7 +1958,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
       {/* Video direction — top-level card, always visible. Optional one-line
           brief that shapes the script + shot list. */}
       <div style={{
-        padding: '14px 16px', borderRadius: 12,
+        padding: '14px 16px', borderRadius: 6,
         background: 'var(--surface)', border: '1px solid var(--border)',
       }}>
         <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-fade)', marginBottom: 8 }}>
@@ -2002,7 +2002,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         return (
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '6px 6px 6px 10px', borderRadius: 999,
+            padding: '6px 6px 6px 10px', borderRadius: 4,
             background: 'var(--surface)', border: '1px solid var(--border)',
             width: 'fit-content',
           }}>
@@ -2014,7 +2014,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 title="Click to switch"
                 style={{
                   fontSize: 12, fontWeight: 600, color: 'var(--ink)',
-                  padding: '5px 11px', borderRadius: 999,
+                  padding: '5px 11px', borderRadius: 4,
                   background: 'var(--bg-elev)', border: 'none', cursor: 'pointer',
                   transition: 'background 0.12s',
                 }}
@@ -2072,7 +2072,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   style={{
                     textAlign: 'center',
                     cursor: locked ? 'not-allowed' : (isLoading ? 'not-allowed' : 'pointer'),
-                    padding: '10px 6px', borderRadius: 10,
+                    padding: '10px 6px', borderRadius: 6,
                     border: `1px solid ${(durationTouched && active) ? 'var(--ink)' : 'var(--border)'}`,
                     background: (durationTouched && active) ? 'var(--ink)' : 'var(--surface)',
                     color: (durationTouched && active) ? 'var(--on-ink)' : 'var(--ink)',
@@ -2109,7 +2109,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     disabled={isLoading}
                     style={{
                       textAlign: 'left',
-                      padding: '10px 12px', borderRadius: 11,
+                      padding: '10px 12px', borderRadius: 6,
                       border: `1.5px solid ${(aspectTouched && active) ? 'var(--ink)' : 'var(--border)'}`,
                       background: (aspectTouched && active) ? 'var(--hover)' : 'var(--surface)',
                       cursor: isLoading ? 'not-allowed' : 'pointer',
@@ -2162,7 +2162,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     }}
                     disabled={isLoading}
                     style={{
-                      flex: 1, padding: '12px 10px', borderRadius: 10, textAlign: 'center',
+                      flex: 1, padding: '12px 10px', borderRadius: 6, textAlign: 'center',
                       border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       background: active ? 'var(--ink)' : 'var(--surface)',
                       color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -2206,7 +2206,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     onClick={() => setResolution(r.id)}
                     disabled={isLoading}
                     style={{
-                      flex: 1, padding: '12px 8px', borderRadius: 10, textAlign: 'center',
+                      flex: 1, padding: '12px 8px', borderRadius: 6, textAlign: 'center',
                       border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       background: active ? 'var(--ink)' : 'var(--surface)',
                       color: active ? 'var(--on-ink)' : 'var(--ink)',
@@ -2239,7 +2239,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         {/* Product Studio import — one click fills name, description, and
             all reference angles (main photo + extras). */}
         {studioProducts.length > 0 && (
-          <div style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+          <div style={{ padding: '14px 16px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
               <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>From Product Studio</span>
               <span style={{ fontSize: 11, color: 'var(--ink-mute)', marginLeft: 'auto' }}>fills everything incl. photos</span>
@@ -2312,13 +2312,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     }}
                     style={{
                       display: 'flex', alignItems: 'center', gap: 8, padding: 6, paddingRight: 12,
-                      borderRadius: 10, cursor: 'pointer',
+                      borderRadius: 6, cursor: 'pointer',
                       border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       background: active ? 'var(--surface)' : 'var(--bg)',
                     }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: 36, height: 36, borderRadius: 7, objectFit: 'cover', display: 'block' }} />
+                    <img src={sp.photo_urls?.[0]} alt={sp.name} style={{ width: 36, height: 36, borderRadius: 4, objectFit: 'cover', display: 'block' }} />
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--ink)' }}>{sp.name}</span>
                   </button>
                 )
@@ -2329,7 +2329,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
 
         {/* Shopify Product Picker — hidden behind More details */}
         {showProductAdvanced && (
-        <div style={{ padding: '14px 16px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
+        <div style={{ padding: '14px 16px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface-2)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>Import from Shopify</span>
@@ -2342,7 +2342,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               value={shopifyUrl}
               onChange={e => setShopifyUrl(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && fetchShopifyProducts()}
-              style={{ flex: 1, padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
+              style={{ flex: 1, padding: '8px 12px', borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)', fontSize: 13, outline: 'none' }}
             />
             <button
               type="button"
@@ -2368,7 +2368,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 {shopifyProducts.map(product => {
                   const isSelected = selectedShopifyProduct?.id === product.id
                   return (
-                    <div key={product.id} onClick={() => applyShopifyProduct(product)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', borderRadius: 8, cursor: 'pointer', border: `1px solid ${isSelected ? 'var(--ink)' : 'var(--border)'}`, background: isSelected ? 'var(--accent-soft)' : 'var(--surface)', transition: 'all 0.15s' }}>
+                    <div key={product.id} onClick={() => applyShopifyProduct(product)} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 10px', borderRadius: 5, cursor: 'pointer', border: `1px solid ${isSelected ? 'var(--ink)' : 'var(--border)'}`, background: isSelected ? 'var(--accent-soft)' : 'var(--surface)', transition: 'all 0.15s' }}>
                       {product.images[0]
                         ? <img src={product.images[0]} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }} />
                         : <div style={{ width: 40, height: 40, borderRadius: 6, background: 'var(--surface-2)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>📦</div>
@@ -2393,7 +2393,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
         {brand && (
           <label style={{
             display: 'flex', alignItems: 'center', gap: 12,
-            padding: '12px 14px', borderRadius: 11,
+            padding: '12px 14px', borderRadius: 6,
             background: useBrand ? 'var(--ink)' : 'var(--surface-2)',
             border: `1px solid ${useBrand ? 'var(--ink)' : 'var(--border)'}`,
             color: useBrand ? 'var(--on-ink)' : 'var(--ink)',
@@ -2449,13 +2449,13 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     disabled={isLoading}
                     style={{
                       display: 'flex', flexDirection: 'column', gap: 6,
-                      padding: 8, borderRadius: 11,
+                      padding: 8, borderRadius: 6,
                       background: active ? 'var(--hover)' : 'var(--surface)',
                       border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                       cursor: isLoading ? 'not-allowed' : 'pointer',
                       transition: 'all 0.15s', textAlign: 'left',
                     }}>
-                    <div style={{ aspectRatio: '1', borderRadius: 7, overflow: 'hidden', background: 'var(--bg-elev)' }}>
+                    <div style={{ aspectRatio: '1', borderRadius: 4, overflow: 'hidden', background: 'var(--bg-elev)' }}>
                       {p.image_url && (
                         <img src={p.image_url} alt={p.name}
                           style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
@@ -2507,7 +2507,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           {/* Product-type segmented toggle. Website mode swaps the file
               upload for a URL input that fetches a landing-page screenshot
               via /api/screenshot and drops it into productImage. */}
-          <div style={{ display: 'inline-flex', padding: 3, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--surface)', marginBottom: 12 }}>
+          <div style={{ display: 'inline-flex', padding: 3, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--surface)', marginBottom: 12 }}>
             {(['physical', 'website'] as const).map(pt => {
               const active = productType === pt
               const isPhysical = pt === 'physical'
@@ -2525,7 +2525,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   }}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 7,
-                    padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+                    padding: '7px 14px', borderRadius: 5, fontSize: 12.5, fontWeight: 600,
                     border: 'none', minWidth: 148, justifyContent: 'center',
                     background: active ? 'var(--ink)' : 'transparent',
                     color: active ? 'var(--on-ink, var(--paper))' : 'var(--ink-mute, var(--ink-2))',
@@ -2553,7 +2553,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             })}
           </div>
           {productType === 'website' && isMotionBrollFormat && (
-            <div style={{ padding: '8px 10px', marginBottom: 10, borderRadius: 8, border: '1px solid var(--border)', background: 'var(--surface-2, var(--surface))', fontSize: 11.5, color: 'var(--ink-dim)' }}>
+            <div style={{ padding: '8px 10px', marginBottom: 10, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--surface-2, var(--surface))', fontSize: 11.5, color: 'var(--ink-dim)' }}>
               Heads up — motion-broll / product-still formats are built around physical objects. Website products render better with talking-head formats.
             </div>
           )}
@@ -2612,7 +2612,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             <div style={{ fontSize: 12, color: 'var(--danger, #c34)', marginBottom: 10 }}>{websiteError}</div>
           )}
           {productType === 'website' && productImage ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 10, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg-elev)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={productImage.preview} alt="website screenshot" style={{ width: 96, height: 60, objectFit: 'cover', borderRadius: 6, border: '1px solid var(--border)' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
@@ -2629,7 +2629,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
           ) : productType === 'physical' && (
           <label {...productDrop.dropzoneProps} style={{
             display: 'flex', alignItems: 'center', gap: '14px',
-            padding: '12px 14px', borderRadius: 12,
+            padding: '12px 14px', borderRadius: 6,
             border: `1.5px dashed ${productDrop.isDragging ? 'var(--ink)' : 'var(--border-strong)'}`,
             cursor: isLoading ? 'default' : 'pointer',
             background: productDrop.isDragging ? 'var(--hover)' : 'var(--bg-elev)',
@@ -2641,7 +2641,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             {productImage ? (
               <>
                 <img src={productImage.preview} alt="Product"
-                  style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 8, flexShrink: 0 }} />
+                  style={{ width: 48, height: 48, objectFit: 'cover', borderRadius: 5, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <p style={{ fontSize: '13px', fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Photo added</p>
                   <p style={{ fontSize: '12px', color: 'var(--ink-mute)', margin: '2px 0 0' }}>Click to change</p>
@@ -2654,7 +2654,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               </>
             ) : (
               <>
-                <div style={{ width: 48, height: 48, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 5, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
                 </div>
                 <div>
@@ -2706,7 +2706,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                     onClick={() => document.getElementById('extraProductInput')?.click()}
                     disabled={isLoading}
                     {...extraProductDrop.dropzoneProps}
-                    style={{ width: 48, height: 48, borderRadius: 8, border: `1.5px dashed ${extraProductDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: extraProductDrop.isDragging ? 'var(--hover)' : 'var(--surface)', color: extraProductDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', fontSize: 20, lineHeight: 1, transition: 'background 120ms, border-color 120ms, color 120ms' }}
+                    style={{ width: 48, height: 48, borderRadius: 5, border: `1.5px dashed ${extraProductDrop.isDragging ? 'var(--ink)' : 'var(--border)'}`, background: extraProductDrop.isDragging ? 'var(--hover)' : 'var(--surface)', color: extraProductDrop.isDragging ? 'var(--ink)' : 'var(--ink-mute)', cursor: 'pointer', fontSize: 20, lineHeight: 1, transition: 'background 120ms, border-color 120ms, color 120ms' }}
                     title="Add another photo of the same product — drag & drop works too"
                   >+</button>
                 </>
@@ -2753,7 +2753,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   type="button"
                   onClick={() => document.getElementById('packagingInput')?.click()}
                   disabled={isLoading}
-                  style={{ width: 48, height: 48, borderRadius: 8, border: '1.5px dashed var(--border)', background: 'var(--surface)', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}
+                  style={{ width: 48, height: 48, borderRadius: 5, border: '1.5px dashed var(--border)', background: 'var(--surface)', color: 'var(--ink-mute)', cursor: 'pointer', fontSize: 20, lineHeight: 1 }}
                   title="Upload a photo of the packaging / shipping box"
                 >+</button>
               )}
@@ -2776,7 +2776,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             type="button"
             onClick={() => advanceTo(3, step3Ref)}
             className="btn btn-primary"
-            style={{ padding: '12px', fontSize: 14, borderRadius: 11, marginTop: 4 }}
+            style={{ padding: '12px', fontSize: 14, borderRadius: 6, marginTop: 4 }}
           >
             Continue →
           </button>
@@ -2810,7 +2810,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   disabled={isLoading}
                   onClick={() => setSceneId(undefined)}
                   style={{
-                    padding: '6px 12px', borderRadius: 999, fontSize: 12.5, fontWeight: 600,
+                    padding: '6px 12px', borderRadius: 4, fontSize: 12.5, fontWeight: 600,
                     background: !sceneId ? 'var(--ink)' : 'var(--surface)',
                     color: !sceneId ? 'var(--on-ink)' : 'var(--ink-2)',
                     border: `1.5px solid ${!sceneId ? 'var(--ink)' : 'var(--border)'}`,
@@ -2828,7 +2828,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       title={s.name}
                       style={{
                         display: 'inline-flex', alignItems: 'center', gap: 8, padding: 0,
-                        borderRadius: 10, overflow: 'hidden', flexShrink: 0,
+                        borderRadius: 6, overflow: 'hidden', flexShrink: 0,
                         border: `2px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                         background: 'var(--surface)',
                         cursor: isLoading ? 'not-allowed' : 'pointer',
@@ -2909,7 +2909,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                         }
                       }}
                       style={{
-                        padding: 6, borderRadius: 10, textAlign: 'left',
+                        padding: 6, borderRadius: 6, textAlign: 'left',
                         border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                         background: active ? 'var(--surface-2)' : 'var(--surface)',
                         cursor: isLoading || bridgingInfluencer ? 'not-allowed' : 'pointer',
@@ -2920,7 +2920,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       <img
                         src={inf.portrait_url}
                         alt={inf.name}
-                        style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', borderRadius: 7, display: 'block' }}
+                        style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', borderRadius: 4, display: 'block' }}
                       />
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {inf.name}
@@ -2943,7 +2943,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               {/* Identity reference picker: AI uses the whole gallery by
                   default, or the user locks one specific photo. */}
               {selectedInfluencerId && influencerGallery.length > 0 && (
-                <div style={{ marginTop: 12, padding: 12, borderRadius: 12, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))' }}>
+                <div style={{ marginTop: 12, padding: 12, borderRadius: 6, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>
                     Which photo should anchor their look?
                   </div>
@@ -2956,7 +2956,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       onClick={() => setInfluencerPhotoUrl(undefined)}
                       disabled={isLoading}
                       style={{
-                        width: 74, height: 98, borderRadius: 9, fontSize: 10.5, fontWeight: 600, lineHeight: 1.35,
+                        width: 74, height: 98, borderRadius: 5, fontSize: 10.5, fontWeight: 600, lineHeight: 1.35,
                         border: `1.5px solid ${!influencerPhotoUrl ? 'var(--ink)' : 'var(--border)'}`,
                         background: !influencerPhotoUrl ? 'var(--ink)' : 'var(--surface)',
                         color: !influencerPhotoUrl ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -2975,7 +2975,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                           onClick={() => setInfluencerPhotoUrl(chosen ? undefined : p.image_url)}
                           disabled={isLoading}
                           style={{
-                            width: 74, height: 98, borderRadius: 9, overflow: 'hidden', padding: 0,
+                            width: 74, height: 98, borderRadius: 5, overflow: 'hidden', padding: 0,
                             border: `2px solid ${chosen ? 'var(--ink)' : 'var(--border)'}`,
                             cursor: 'pointer', background: 'var(--surface)',
                           }}
@@ -2993,7 +2993,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                   generate routes the whole pipeline (frames + script) to
                   two-person mode. */}
               {selectedInfluencerId && (
-                <div style={{ marginTop: 12, padding: 12, borderRadius: 12, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))' }}>
+                <div style={{ marginTop: 12, padding: 12, borderRadius: 6, border: '1px dashed var(--border)', background: 'var(--surface-2, var(--surface))' }}>
                   <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>
                     {secondInfluencerId
                       ? `Co-starring: ${influencers.find(i => i.id === secondInfluencerId)?.name ?? 'saved influencer'}`
@@ -3022,7 +3022,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       const co = secondInfluencerId ? influencers.find(i => i.id === secondInfluencerId) : null
                       if (co) {
                         return (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px 4px 4px', borderRadius: 9, border: '1.5px solid var(--ink)', background: 'var(--surface)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 10px 4px 4px', borderRadius: 5, border: '1.5px solid var(--ink)', background: 'var(--surface)' }}>
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={co.portrait_url} alt={co.name} style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover', display: 'block' }} />
                             <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)' }}>{co.name}</span>
@@ -3037,7 +3037,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                         )
                       }
                       return (
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', padding: '6px 10px', borderRadius: 9, border: '1.5px solid var(--border)', background: 'var(--surface)' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', padding: '6px 10px', borderRadius: 5, border: '1.5px solid var(--border)', background: 'var(--surface)' }}>
                           {secondCharacterRoleLabel}
                         </span>
                       )
@@ -3064,7 +3064,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                             disabled={isLoading}
                             onClick={() => { setSecondInfluencerId(active ? null : inf.id); setShowSecondPicker(false) }}
                             style={{
-                              padding: 5, borderRadius: 9, textAlign: 'left',
+                              padding: 5, borderRadius: 5, textAlign: 'left',
                               border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                               background: active ? 'var(--surface-2)' : 'var(--surface)',
                               cursor: isLoading ? 'not-allowed' : 'pointer',
@@ -3106,7 +3106,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       onClick={() => { setSavedActorId(active ? undefined : a.id); setSelectedInfluencerId(undefined) }}
                       disabled={isLoading}
                       style={{
-                        padding: 6, borderRadius: 10, textAlign: 'left',
+                        padding: 6, borderRadius: 6, textAlign: 'left',
                         border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                         background: active ? 'var(--surface-2)' : 'var(--surface)',
                         cursor: isLoading ? 'not-allowed' : 'pointer',
@@ -3116,7 +3116,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                       <img
                         src={a.hero_frame_url}
                         alt={a.name}
-                        style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', borderRadius: 7, display: 'block' }}
+                        style={{ width: '100%', aspectRatio: '3 / 4', objectFit: 'cover', borderRadius: 4, display: 'block' }}
                       />
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {a.name}
@@ -3147,7 +3147,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               type="button"
               onClick={() => advanceTo(4, step4Ref)}
               className="btn btn-primary"
-              style={{ padding: '12px', fontSize: 14, borderRadius: 11, marginTop: 4 }}
+              style={{ padding: '12px', fontSize: 14, borderRadius: 6, marginTop: 4 }}
             >
               Continue →
             </button>
@@ -3186,7 +3186,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               type="button"
               onClick={() => setMusicMood(null)}
               style={{
-                padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                padding: '7px 14px', borderRadius: 5, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
                 border: `1.5px solid ${musicMood === null ? 'var(--ink)' : 'var(--border)'}`,
                 background: musicMood === null ? 'var(--ink)' : 'var(--surface)',
                 color: musicMood === null ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -3200,7 +3200,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
                 type="button"
                 onClick={() => setMusicMood(track.mood)}
                 style={{
-                  padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
+                  padding: '7px 14px', borderRadius: 5, fontSize: 12.5, fontWeight: 600, cursor: 'pointer',
                   border: `1.5px solid ${musicMood === track.mood ? 'var(--ink)' : 'var(--border)'}`,
                   background: musicMood === track.mood ? 'var(--ink)' : 'var(--surface)',
                   color: musicMood === track.mood ? 'var(--on-ink)' : 'var(--ink-2)',
@@ -3221,7 +3221,7 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             type="button"
             onClick={() => advanceTo(5, step5Ref)}
             className="btn btn-primary"
-            style={{ padding: '12px', fontSize: 14, borderRadius: 11, marginTop: 4 }}
+            style={{ padding: '12px', fontSize: 14, borderRadius: 6, marginTop: 4 }}
           >
             Continue →
           </button>
@@ -3262,14 +3262,14 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
               activeFormat?.pipeline === 'hero-editorial' ? 'editorial' :
               activeFormat?.pipeline === 'lifestyle-photo' ? 'lifestyle' : 'studio'
             }${productName.trim() ? `&productName=${encodeURIComponent(productName.trim())}` : ''}${productDescription.trim() ? `&productDescription=${encodeURIComponent(productDescription.trim())}` : ''}`}
-            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11, textAlign: 'center', textDecoration: 'none' }}
+            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 6, textAlign: 'center', textDecoration: 'none' }}
             className="btn btn-primary"
           >
             This is a photo format — use Product Studio →
           </a>
         ) : (
           <button type="submit" disabled={!canGenerate || isLoading || scriptLoading || framesLoading} className="btn btn-primary"
-            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 11, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+            style={{ padding: '13px', fontSize: '14px', marginTop: '4px', borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
             {(scriptLoading || framesLoading || isLoading) && (
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="animate-spin" aria-hidden="true">
                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />

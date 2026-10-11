@@ -69,19 +69,19 @@ function IlluDashboard() {
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 52, fontWeight: 400, color: 'var(--ink-dim)', fontStyle: 'italic', lineHeight: 1.05, margin: '0 0 24px', letterSpacing: '-0.02em' }}>
           What are we making today?
         </h1>
-        <div style={{ background: 'linear-gradient(120deg,#FBF7EC,#F3EBD6)', border: '1px solid #EADFBB', borderRadius: 18, padding: '18px 24px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: '#2C1F0A' }}>
+        <div style={{ background: 'var(--rail-soft)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '18px 24px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: 'var(--ink)' }}>
           <div>
-            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 4 }}>Available credits</div>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 4 }}>Available credits</div>
             <div style={{ fontFamily: 'Georgia, serif', fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1 }}>30</div>
           </div>
-          <div style={{ width: 1, height: 36, background: '#E4D2A0', flexShrink: 0 }} />
+          <div style={{ width: 1, height: 36, background: 'var(--border-strong)', flexShrink: 0 }} />
           <div>
-            <div style={{ fontSize: 10, color: '#8A8264', marginBottom: 4 }}>Monthly allocation</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginBottom: 4 }}>Monthly allocation</div>
             <div style={{ fontSize: 15, fontWeight: 600 }}>0 · Free plan</div>
           </div>
-          <div style={{ width: 1, height: 36, background: '#E4D2A0', flexShrink: 0 }} />
+          <div style={{ width: 1, height: 36, background: 'var(--border-strong)', flexShrink: 0 }} />
           <div>
-            <div style={{ fontSize: 10, color: '#8A8264', marginBottom: 4 }}>Reset date</div>
+            <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginBottom: 4 }}>Reset date</div>
             <div style={{ fontSize: 15, fontWeight: 600 }}>Sep 1, 2026</div>
           </div>
         </div>
@@ -117,8 +117,8 @@ function IlluBrand() {
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Brand identity</div>
         </div>
         {/* Logo row */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 10, border: '1.5px dashed var(--border-strong)', background: 'var(--bg-elev)' }}>
-          <div style={{ width: 44, height: 44, borderRadius: 8, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 14px', borderRadius: 6, border: '1.5px dashed var(--border-strong)', background: 'var(--bg-elev)' }}>
+          <div style={{ width: 44, height: 44, borderRadius: 5, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
           </div>
           <div>
@@ -128,10 +128,10 @@ function IlluBrand() {
         </div>
         {/* Name + Description */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ height: 38, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
+          <div style={{ height: 38, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
             <span style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 600 }}>ContentFlow</span>
           </div>
-          <div style={{ height: 60, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '10px 12px' }}>
+          <div style={{ height: 60, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '10px 12px' }}>
             <span style={{ fontSize: 12.5, color: 'var(--ink-mute)' }}>AI content studio for brand marketers…</span>
           </div>
         </div>
@@ -152,11 +152,11 @@ function IlluBrand() {
           <div style={{ width: 22, height: 22, borderRadius: '50%', background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: 'var(--ink-dim)' }}>2</div>
           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Voice &amp; audience</div>
         </div>
-        <div style={{ height: 38, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ height: 38, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 13, color: 'var(--ink)' }}>Friendly &amp; Approachable</span>
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-mute)" strokeWidth="2" strokeLinecap="round"><path d="M6 9l6 6 6-6"/></svg>
         </div>
-        <div style={{ height: 38, borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
+        <div style={{ height: 38, borderRadius: 5, border: '1px solid var(--border)', background: 'var(--bg-elev)', padding: '0 12px', display: 'flex', alignItems: 'center' }}>
           <span style={{ fontSize: 13, color: 'var(--ink-mute)' }}>Busy founders in their 30s, indie creators…</span>
         </div>
       </div>
@@ -193,14 +193,14 @@ function IlluProductStudio() {
           </h1>
           <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>Add your product once — shoot it in endless aesthetics.</p>
         </div>
-        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 6, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
           ✦ Add product
         </div>
       </div>
       {/* Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {products.map((p, i) => (
-          <div key={i} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)' }}>
+          <div key={i} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)' }}>
             <div style={{ width: '100%', aspectRatio: '1', background: p.grad }} />
             <div style={{ padding: '10px 12px' }}>
               <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</div>
@@ -209,7 +209,7 @@ function IlluProductStudio() {
           </div>
         ))}
         {/* Dashed ghost tile */}
-        <div style={{ border: '1.5px dashed var(--border)', borderRadius: 14, background: 'transparent', minHeight: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
+        <div style={{ border: '1.5px dashed var(--border)', borderRadius: 8, background: 'transparent', minHeight: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, color: 'var(--ink-mute)' }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M12 8v8M8 12h8"/></svg>
           <span style={{ fontSize: 12.5, fontWeight: 600 }}>Add another</span>
         </div>
@@ -248,14 +248,14 @@ function IlluInfluencerStudio() {
           </h1>
           <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>Describe a character once — get a persistent AI influencer.</p>
         </div>
-        <div style={{ border: '1px solid var(--border)', color: 'var(--ink)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+        <div style={{ border: '1px solid var(--border)', color: 'var(--ink)', borderRadius: 6, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
           ✦ Create new influencer
         </div>
       </div>
       {/* Grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14 }}>
         {actors.map((a, i) => (
-          <div key={i} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)' }}>
+          <div key={i} style={{ textAlign: 'left', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)' }}>
             <div style={{ width: '100%', aspectRatio: '4/5', background: a.grad }} />
             <div style={{ padding: '10px 12px' }}>
               <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{a.name}</div>
@@ -284,19 +284,19 @@ function IlluCampaigns() {
           </h1>
           <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>Map out a full content strategy — the AI writes the shot list.</p>
         </div>
-        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 6, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
           New campaign
         </div>
       </div>
       {/* Campaign rows */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {campaigns.map((c, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', border: '1px solid var(--border)', borderRadius: 14, background: 'var(--surface)' }}>
-            <div style={{ width: 56, height: 56, borderRadius: 10, background: 'var(--border)', flexShrink: 0 }} />
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '16px 20px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)' }}>
+            <div style={{ width: 56, height: 56, borderRadius: 6, background: 'var(--border)', flexShrink: 0 }} />
             <div style={{ flex: 1 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{c.name}</div>
-                <div style={{ background: c.bc + '22', color: c.bc, fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 99, letterSpacing: '0.06em' }}>{c.badge}</div>
+                <div style={{ background: c.bc + '22', color: c.bc, fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 4, letterSpacing: '0.06em' }}>{c.badge}</div>
               </div>
               <div style={{ fontSize: 12.5, color: 'var(--ink-mute)' }}>{c.meta}</div>
             </div>
@@ -338,16 +338,16 @@ function IlluShooting() {
           </h1>
           <p style={{ fontSize: 13, color: 'var(--ink-mute)', margin: 0 }}>Shoot your product in any aesthetic — art-directed by AI.</p>
         </div>
-        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
+        <div style={{ background: 'var(--ink)', color: 'var(--on-ink, #fff)', borderRadius: 6, padding: '10px 20px', fontSize: 14, fontWeight: 600, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
           ✦ Shoot
         </div>
       </div>
       {/* Generated photo grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
         {shots.map((s, i) => (
-          <div key={i} style={{ borderRadius: 13, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', position: 'relative' }}>
+          <div key={i} style={{ borderRadius: 8, overflow: 'hidden', border: '1px solid var(--border)', background: 'var(--surface)', position: 'relative' }}>
             <div style={{ width: '100%', aspectRatio: '4/5', background: s.grad }} />
-            <span style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 9.5, fontWeight: 600, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '3px 8px', borderRadius: 999 }}>
+            <span style={{ position: 'absolute', bottom: 8, left: 8, fontSize: 9.5, fontWeight: 600, background: 'rgba(0,0,0,0.55)', color: '#fff', padding: '3px 8px', borderRadius: 4 }}>
               {s.label}
             </span>
           </div>
@@ -371,36 +371,36 @@ function IlluBilling() {
         Billing &amp; <em>Credits</em>
       </h1>
       {/* Credits bar */}
-      <div style={{ background: 'linear-gradient(120deg,#FBF7EC,#F3EBD6)', border: '1px solid #EADFBB', borderRadius: 16, padding: '16px 22px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: '#2C1F0A' }}>
+      <div style={{ background: 'var(--rail-soft)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '16px 22px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: 'var(--ink)' }}>
         <div>
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#8A6420', marginBottom: 3 }}>Available credits</div>
+          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 3 }}>Available credits</div>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, letterSpacing: '-0.02em', lineHeight: 1 }}>30</div>
         </div>
-        <div style={{ width: 1, height: 34, background: '#E4D2A0', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 34, background: 'var(--border-strong)', flexShrink: 0 }} />
         <div>
-          <div style={{ fontSize: 10, color: '#8A8264', marginBottom: 3 }}>Plan</div>
+          <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginBottom: 3 }}>Plan</div>
           <div style={{ fontSize: 14, fontWeight: 600 }}>Starter · $19/mo</div>
         </div>
-        <div style={{ width: 1, height: 34, background: '#E4D2A0', flexShrink: 0 }} />
+        <div style={{ width: 1, height: 34, background: 'var(--border-strong)', flexShrink: 0 }} />
         <div>
-          <div style={{ fontSize: 10, color: '#8A8264', marginBottom: 3 }}>Reset</div>
+          <div style={{ fontSize: 10, color: 'var(--ink-mute)', marginBottom: 3 }}>Reset</div>
           <div style={{ fontSize: 14, fontWeight: 600 }}>Sep 1, 2026</div>
         </div>
       </div>
       {/* Monthly/Annual toggle */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
-        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 99, display: 'flex', padding: 3, gap: 2 }}>
-          <div style={{ padding: '5px 16px', borderRadius: 99, background: 'var(--ink)', color: 'var(--on-ink, #fff)', fontSize: 12, fontWeight: 600 }}>Monthly</div>
-          <div style={{ padding: '5px 16px', borderRadius: 99, fontSize: 12, fontWeight: 500, color: 'var(--ink-mute)' }}>Annual</div>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 4, display: 'flex', padding: 3, gap: 2 }}>
+          <div style={{ padding: '5px 16px', borderRadius: 4, background: 'var(--ink)', color: 'var(--on-ink, #fff)', fontSize: 12, fontWeight: 600 }}>Monthly</div>
+          <div style={{ padding: '5px 16px', borderRadius: 4, fontSize: 12, fontWeight: 500, color: 'var(--ink-mute)' }}>Annual</div>
         </div>
-        <div style={{ fontSize: 11.5, color: '#16a34a', fontWeight: 600 }}>Save 20% with annual</div>
+        <div style={{ fontSize: 11.5, color: 'var(--good)', fontWeight: 600 }}>Save 20% with annual</div>
       </div>
       {/* Plan cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10 }}>
         {plans.map((p, i) => (
-          <div key={i} style={{ position: 'relative', border: p.pop ? '2px solid var(--ink)' : p.current ? '1.5px solid var(--ink)' : '1px solid var(--border)', borderRadius: 14, padding: '18px 14px', background: 'var(--surface)' }}>
+          <div key={i} style={{ position: 'relative', border: p.pop ? '2px solid var(--ink)' : p.current ? '1.5px solid var(--ink)' : '1px solid var(--border)', borderRadius: 8, padding: '18px 14px', background: 'var(--surface)' }}>
             {(p.pop || p.current) && (
-              <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--ink)', color: 'var(--on-ink, #fff)', fontSize: 8, fontWeight: 700, padding: '2px 9px', borderRadius: 99, whiteSpace: 'nowrap', letterSpacing: '0.06em' }}>
+              <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: 'var(--ink)', color: 'var(--on-ink, #fff)', fontSize: 8, fontWeight: 700, padding: '2px 9px', borderRadius: 4, whiteSpace: 'nowrap', letterSpacing: '0.06em' }}>
                 {p.current ? 'CURRENT PLAN' : 'MOST POPULAR'}
               </div>
             )}
@@ -409,7 +409,7 @@ function IlluBilling() {
               {p.price}<span style={{ fontSize: 12, fontWeight: 400, color: 'var(--ink-mute)' }}>/mo</span>
             </div>
             <div style={{ fontSize: 11, color: 'var(--ink-mute)', marginTop: 5, marginBottom: 14 }}>{p.credits}</div>
-            <div style={{ background: p.pop ? 'var(--ink)' : 'transparent', color: p.pop ? 'var(--on-ink, #fff)' : 'var(--ink-mute)', border: p.pop ? 'none' : '1px solid var(--border)', borderRadius: 8, padding: '8px 0', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
+            <div style={{ background: p.pop ? 'var(--ink)' : 'transparent', color: p.pop ? 'var(--on-ink, #fff)' : 'var(--ink-mute)', border: p.pop ? 'none' : '1px solid var(--border)', borderRadius: 5, padding: '8px 0', fontSize: 12, fontWeight: 600, textAlign: 'center' }}>
               {p.current ? 'Current plan' : p.pop ? 'Upgrade →' : 'Select'}
             </div>
           </div>
@@ -546,7 +546,7 @@ export default function OnboardingTour() {
         position: 'fixed', zIndex: 1000,
         bottom: 32, right: 32,
         display: 'flex', flexDirection: 'row',
-        borderRadius: 20,
+        borderRadius: 8,
         overflow: 'hidden',
         border: '1px solid var(--border)',
         boxShadow: '0 32px 80px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.1)',
@@ -595,7 +595,7 @@ export default function OnboardingTour() {
                     onClick={() => goToStep(i)}
                     title={s.label}
                     style={{
-                      padding: '3px 8px', borderRadius: 999, border: 'none', cursor: 'pointer',
+                      padding: '3px 8px', borderRadius: 4, border: 'none', cursor: 'pointer',
                       fontSize: 10.5, fontWeight: 600, fontFamily: 'var(--font-mono)',
                       letterSpacing: '0.04em', textTransform: 'uppercase',
                       background: i === step ? 'var(--ink)' : i < step ? 'var(--border)' : 'transparent',
@@ -619,19 +619,19 @@ export default function OnboardingTour() {
 
             {/* Skip confirmation */}
             {confirmSkip && (
-              <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(234,88,12,0.06)', border: '1px solid rgba(234,88,12,0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ padding: '12px 14px', borderRadius: 6, background: 'rgba(234,88,12,0.06)', border: '1px solid rgba(234,88,12,0.2)', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ fontSize: 12.5, fontWeight: 600, color: '#9a3412' }}>Not recommended</div>
-                <div style={{ fontSize: 12, color: '#92400e', lineHeight: 1.5 }}>Skipping the guide means you may miss key setup steps. Your content quality will be lower without a product and actor configured first.</div>
+                <div style={{ fontSize: 12, color: 'var(--warn)', lineHeight: 1.5 }}>Skipping the guide means you may miss key setup steps. Your content quality will be lower without a product and actor configured first.</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button
                     onClick={() => setConfirmSkip(false)}
-                    style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: '1px solid rgba(234,88,12,0.3)', background: 'transparent', fontSize: 12, fontWeight: 600, color: '#9a3412', cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '7px 0', borderRadius: 5, border: '1px solid rgba(234,88,12,0.3)', background: 'transparent', fontSize: 12, fontWeight: 600, color: '#9a3412', cursor: 'pointer' }}
                   >
                     Keep going
                   </button>
                   <button
                     onClick={dismiss}
-                    style={{ flex: 1, padding: '7px 0', borderRadius: 8, border: 'none', background: 'rgba(234,88,12,0.12)', fontSize: 12, fontWeight: 600, color: '#9a3412', cursor: 'pointer' }}
+                    style={{ flex: 1, padding: '7px 0', borderRadius: 5, border: 'none', background: 'rgba(234,88,12,0.12)', fontSize: 12, fontWeight: 600, color: '#9a3412', cursor: 'pointer' }}
                   >
                     Skip anyway
                   </button>
@@ -643,7 +643,7 @@ export default function OnboardingTour() {
             {!confirmSkip && (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 12, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', flexShrink: 0 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 6, background: 'var(--surface)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink)', flexShrink: 0 }}>
                     <current.Icon />
                   </div>
                   <div>
@@ -659,7 +659,7 @@ export default function OnboardingTour() {
 
                 {/* Tip */}
                 {current.tip && (
-                  <div style={{ padding: '10px 13px', borderRadius: 10, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.6 }}>
+                  <div style={{ padding: '10px 13px', borderRadius: 6, background: 'var(--surface)', border: '1px solid var(--border)', fontSize: 12.5, color: 'var(--ink-dim)', lineHeight: 1.6 }}>
                     <span style={{ fontWeight: 700, color: 'var(--ink)', marginRight: 4 }}>Tip.</span>
                     {current.tip.replace('Pro tip: ', '')}
                   </div>
@@ -680,7 +680,7 @@ export default function OnboardingTour() {
                   <button
                     onClick={next}
                     style={{
-                      padding: '10px 20px', borderRadius: 11, border: 'none',
+                      padding: '10px 20px', borderRadius: 6, border: 'none',
                       background: step === STEPS.length - 1 ? '#16a34a' : 'var(--ink)',
                       color: 'var(--on-ink)',
                       fontSize: 13.5, fontWeight: 700, cursor: 'pointer',

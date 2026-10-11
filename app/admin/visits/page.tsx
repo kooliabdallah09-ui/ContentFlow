@@ -87,7 +87,7 @@ export default function AdminVisitsPage() {
               key={w.hours}
               onClick={() => setHours(w.hours)}
               style={{
-                padding: '7px 14px', borderRadius: 8,
+                padding: '7px 14px', borderRadius: 5,
                 border: `1px solid ${hours === w.hours ? 'var(--ink)' : 'var(--border)'}`,
                 background: hours === w.hours ? 'var(--ink)' : 'var(--surface)',
                 color: hours === w.hours ? 'var(--on-ink)' : 'var(--ink)',
@@ -97,7 +97,7 @@ export default function AdminVisitsPage() {
           ))}
           <button onClick={load} title="Refresh" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6,
-            padding: '7px 12px', borderRadius: 8,
+            padding: '7px 12px', borderRadius: 5,
             border: '1px solid var(--border)', background: 'var(--surface)', color: 'var(--ink)',
             fontSize: 13, fontWeight: 600, cursor: 'pointer',
           }}>
@@ -107,7 +107,7 @@ export default function AdminVisitsPage() {
       </div>
 
       {error && (
-        <div style={{ padding: '14px 16px', borderRadius: 12, border: '1px solid var(--danger)', color: 'var(--danger)', background: 'rgba(220,38,38,0.06)', marginBottom: 24, fontSize: 13.5 }}>
+        <div style={{ padding: '14px 16px', borderRadius: 6, border: '1px solid var(--danger)', color: 'var(--danger)', background: 'rgba(220,38,38,0.06)', marginBottom: 24, fontSize: 13.5 }}>
           {error}
         </div>
       )}
@@ -124,7 +124,7 @@ export default function AdminVisitsPage() {
       )}
 
       {/* Visits table */}
-      <div style={{ border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', background: 'var(--surface)' }}>
+      <div style={{ border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', background: 'var(--surface)' }}>
         <div style={{
           display: 'grid', gridTemplateColumns: '140px 140px 1fr 1fr 1.5fr 160px',
           padding: '12px 18px', borderBottom: '1px solid var(--border)',
@@ -181,7 +181,7 @@ export default function AdminVisitsPage() {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ padding: '18px 20px', border: '1px solid var(--border)', borderRadius: 14, background: 'var(--surface)' }}>
+    <div style={{ padding: '18px 20px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)' }}>
       <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono, monospace)', fontWeight: 600, marginBottom: 10 }}>{label}</div>
       <div style={{ fontFamily: 'var(--font-serif)', fontSize: 42, lineHeight: 1, fontWeight: 400 }}>{value}</div>
     </div>
@@ -190,7 +190,7 @@ function StatCard({ label, value }: { label: string; value: string }) {
 
 function TopCard({ label, entries }: { label: string; entries: TopEntry[] }) {
   return (
-    <div style={{ padding: '18px 20px', border: '1px solid var(--border)', borderRadius: 14, background: 'var(--surface)' }}>
+    <div style={{ padding: '18px 20px', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--surface)' }}>
       <div style={{ fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--ink-dim)', fontFamily: 'var(--font-mono, monospace)', fontWeight: 600, marginBottom: 10 }}>{label}</div>
       {entries.length === 0 ? (
         <div style={{ color: 'var(--ink-dim)', fontSize: 13 }}>—</div>

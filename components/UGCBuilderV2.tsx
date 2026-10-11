@@ -837,7 +837,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       {dragOver && (
         <div style={{
           position: 'absolute', inset: 12, zIndex: 20,
-          borderRadius: 14, border: '2px dashed var(--ink)',
+          borderRadius: 8, border: '2px dashed var(--ink)',
           background: 'rgba(0,0,0,0.04)',
           display: 'grid', placeItems: 'center',
           pointerEvents: 'none',
@@ -1071,7 +1071,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             onClick={() => setOpenPanel(p => p === 'settings' ? null : 'settings')}
             aria-label="More settings"
             style={{
-              padding: '5px 10px', borderRadius: 999,
+              padding: '5px 10px', borderRadius: 4,
               border: '1px solid var(--border)',
               background: 'transparent', color: 'var(--ink-mute)',
               fontSize: 12, fontWeight: 600, cursor: 'pointer',
@@ -1129,7 +1129,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
                 title={`Reference ${i + 1} — mention as @image${i + 1} in the brief`}
                 style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
-                  padding: '3px 8px 3px 3px', borderRadius: 999,
+                  padding: '3px 8px 3px 3px', borderRadius: 4,
                   background: 'var(--surface-2)',
                   border: '1px solid var(--border)',
                   fontSize: 11.5, fontWeight: 600, color: 'var(--ink)',
@@ -1206,7 +1206,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
               fontSize: 14, lineHeight: 1.5, fontFamily: 'inherit',
               background: 'var(--surface)',
               border: '1px solid var(--border)',
-              borderRadius: 12,
+              borderRadius: 6,
               color: 'var(--ink)',
               outline: 'none', resize: 'none',
               maxHeight: 140,
@@ -1220,7 +1220,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             style={{
               position: 'relative',
               flexShrink: 0,
-              width: 42, height: 42, borderRadius: 12,
+              width: 42, height: 42, borderRadius: 6,
               background: parsing ? 'var(--ink)' : (canSend ? 'var(--ink)' : 'var(--surface-2)'),
               color: canSend || parsing ? 'var(--on-ink)' : 'var(--ink-mute)',
               border: 'none',
@@ -1255,7 +1255,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
             disabled={busy || isLoading || !state.productName.trim() || cost > creditBalance}
             title={busy ? 'A render is already running — wait for it to finish or pick a frame' : undefined}
             style={{
-              padding: '9px 18px', borderRadius: 10,
+              padding: '9px 18px', borderRadius: 6,
               background: !busy && state.productName.trim() && cost <= creditBalance ? 'var(--ink)' : 'var(--surface-2)',
               color: !busy && state.productName.trim() && cost <= creditBalance ? 'var(--on-ink)' : 'var(--ink-mute)',
               border: 'none',
@@ -1283,7 +1283,7 @@ function EmptyState() {
       gap: 14, padding: 24, textAlign: 'center',
     }}>
       <div style={{
-        width: 44, height: 44, borderRadius: 12,
+        width: 44, height: 44, borderRadius: 6,
         background: 'var(--surface-2, rgba(0,0,0,0.05))',
         display: 'grid', placeItems: 'center',
         color: 'var(--ink-mute)',
@@ -1305,7 +1305,7 @@ function EmptyState() {
         ].map(ex => (
           <div key={ex} style={{
             fontSize: 12.5, color: 'var(--ink-mute)',
-            padding: '8px 12px', borderRadius: 10,
+            padding: '8px 12px', borderRadius: 6,
             background: 'var(--surface-2, rgba(0,0,0,0.03))',
             border: '1px solid var(--border-soft, var(--border))',
             fontFamily: 'var(--font-serif, Georgia, serif)',
@@ -1362,7 +1362,7 @@ function ChatBubble({ message: m }: { message: Message }) {
                       onClick={() => !anyPicked && m.onPickFrame?.(f.url)}
                       style={{
                         width: '100%',
-                        padding: 4, borderRadius: 10,
+                        padding: 4, borderRadius: 6,
                         border: `2px solid ${picked ? 'var(--ink)' : 'transparent'}`,
                         background: 'var(--surface)',
                         cursor: anyPicked ? (picked ? 'default' : 'not-allowed') : 'pointer',
@@ -1421,7 +1421,7 @@ function ChatBubble({ message: m }: { message: Message }) {
               poster={m.thumbUrl}
               controls
               playsInline
-              style={{ width: '100%', maxWidth: 320, borderRadius: 10, display: 'block' }}
+              style={{ width: '100%', maxWidth: 320, borderRadius: 6, display: 'block' }}
             />
           )}
         </BubbleShell>
@@ -1452,7 +1452,7 @@ function BubbleShell({ isUser, accent, children }: { isUser: boolean; accent?: '
   return (
     <div style={{
       padding: '10px 14px',
-      borderRadius: 14,
+      borderRadius: 8,
       borderTopRightRadius: isUser ? 4 : 14,
       borderTopLeftRadius: isUser ? 14 : 4,
       background: isUser ? 'var(--ink)' : accent === 'danger' ? 'rgba(220, 38, 38, 0.06)' : 'var(--surface-2, rgba(0,0,0,0.04))',
@@ -1507,7 +1507,7 @@ function ScriptBubble({
                 textAlign: 'left', flex: 1,
               }}
             >
-              <span style={{ color: '#22c55e' }}>✓</span>
+              <span style={{ color: 'var(--good)' }}>✓</span>
               Script ready
               <span style={{ marginLeft: 4, color: 'var(--ink-mute)', fontSize: 11, fontWeight: 500 }}>
                 {scriptOpen ? 'Hide' : 'Show'}
@@ -1518,7 +1518,7 @@ function ScriptBubble({
                 type="button"
                 onClick={() => setEditing(true)}
                 style={{
-                  padding: '3px 10px', borderRadius: 999,
+                  padding: '3px 10px', borderRadius: 4,
                   border: '1px solid var(--border)', background: 'transparent',
                   color: 'var(--ink-mute)', fontSize: 11, fontWeight: 600,
                   cursor: 'pointer', fontFamily: 'inherit',
@@ -1531,7 +1531,7 @@ function ScriptBubble({
           {scriptOpen && !editing && m.script && (
             <>
               <div style={{
-                marginTop: 4, padding: 10, borderRadius: 8,
+                marginTop: 4, padding: 10, borderRadius: 5,
                 background: 'var(--surface)', border: '1px solid var(--border)',
                 fontSize: 12.5, lineHeight: 1.5, color: 'var(--ink)',
                 whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono, ui-monospace, monospace)',
@@ -1551,7 +1551,7 @@ function ScriptBubble({
                     type="button"
                     onClick={() => m.onScriptApprove?.(m.script ?? '')}
                     style={{
-                      padding: '7px 16px', borderRadius: 8, border: 'none',
+                      padding: '7px 16px', borderRadius: 5, border: 'none',
                       background: 'var(--ink)', color: 'var(--on-ink)',
                       fontSize: 12, fontWeight: 700,
                       cursor: 'pointer', fontFamily: 'inherit',
@@ -1572,7 +1572,7 @@ function ScriptBubble({
                 onChange={e => setDraft(e.target.value)}
                 rows={12}
                 style={{
-                  padding: 10, borderRadius: 8,
+                  padding: 10, borderRadius: 5,
                   background: 'var(--surface)', border: '1px solid var(--border)',
                   fontSize: 12.5, lineHeight: 1.5, color: 'var(--ink)',
                   fontFamily: 'var(--font-mono, ui-monospace, monospace)',
@@ -1585,7 +1585,7 @@ function ScriptBubble({
                   type="button"
                   onClick={() => { setEditing(false); setDraft(m.script ?? '') }}
                   style={{
-                    padding: '6px 12px', borderRadius: 8,
+                    padding: '6px 12px', borderRadius: 5,
                     border: '1px solid var(--border)', background: 'transparent',
                     color: 'var(--ink-mute)', fontSize: 12, fontWeight: 600,
                     cursor: 'pointer', fontFamily: 'inherit',
@@ -1602,7 +1602,7 @@ function ScriptBubble({
                     setEditing(false)
                   }}
                   style={{
-                    padding: '6px 14px', borderRadius: 8, border: 'none',
+                    padding: '6px 14px', borderRadius: 5, border: 'none',
                     background: draft.trim() && draft !== m.script ? 'var(--ink)' : 'var(--surface-2)',
                     color: draft.trim() && draft !== m.script ? 'var(--on-ink)' : 'var(--ink-mute)',
                     fontSize: 12, fontWeight: 700,
@@ -1655,7 +1655,7 @@ function FrameLightbox({ url, onClose }: { url: string; onClose: () => void }) {
         onClick={e => e.stopPropagation()}
         style={{
           maxWidth: '92vw', maxHeight: '92vh',
-          borderRadius: 12,
+          borderRadius: 6,
           boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
           cursor: 'default',
         }}
@@ -1713,7 +1713,7 @@ function ThinkingIndicator() {
         top: '50%', left: '50%',
         marginTop: -1.5, marginLeft: -1.5,
         width: 3, height: 3, borderRadius: '50%',
-        background: '#c8a97e',
+        background: 'var(--brand)',
         animation: 'ugc-ti-a 1.6s linear infinite',
       }} />
       <span style={{
@@ -1742,7 +1742,7 @@ function Chip({ value, onClick }: { value: string; onClick: () => void }) {
       type="button"
       onClick={onClick}
       style={{
-        padding: '5px 12px', borderRadius: 999,
+        padding: '5px 12px', borderRadius: 4,
         background: 'var(--surface-2, rgba(0,0,0,0.05))',
         border: '1px solid var(--border)',
         fontSize: 12, fontWeight: 600, color: 'var(--ink)',
@@ -1761,7 +1761,7 @@ function AttachChip({ icon, label, active, onClick }: { icon: React.ReactNode; l
       onClick={onClick}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 5,
-        padding: '5px 10px 5px 8px', borderRadius: 999,
+        padding: '5px 10px 5px 8px', borderRadius: 4,
         border: `1px ${active ? 'solid' : 'dashed'} var(--border)`,
         background: active ? 'var(--surface-2, rgba(0,0,0,0.05))' : 'transparent',
         color: active ? 'var(--ink)' : 'var(--ink-mute)',
@@ -1782,7 +1782,7 @@ function SettingsSheet({ state, onChange, onClose }: { state: BuilderState; onCh
       padding: '12px 14px',
       background: 'var(--surface)',
       border: '1px solid var(--border)',
-      borderRadius: 12,
+      borderRadius: 6,
       display: 'flex', flexDirection: 'column', gap: 10,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1874,7 +1874,7 @@ function SelectChips<T extends string>({ options, value, onChange }: { options: 
     <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
       {options.map(o => (
         <button key={o.v} type="button" onClick={() => onChange(o.v)} style={{
-          padding: '4px 10px', borderRadius: 999,
+          padding: '4px 10px', borderRadius: 4,
           border: `1px solid ${o.v === value ? 'var(--ink)' : 'var(--border)'}`,
           background: o.v === value ? 'var(--ink)' : 'var(--surface)',
           color: o.v === value ? 'var(--on-ink)' : 'var(--ink)',
@@ -1932,7 +1932,7 @@ function ProductSheet({ products, selectedName, onPick, onUpload, onClose }: {
           type="button"
           onClick={() => inputRef.current?.click()}
           style={{
-            padding: 8, borderRadius: 10,
+            padding: 8, borderRadius: 6,
             border: '1.5px dashed var(--border)',
             background: 'var(--surface)',
             cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
@@ -1940,7 +1940,7 @@ function ProductSheet({ products, selectedName, onPick, onUpload, onClose }: {
           }}
         >
           <div style={{
-            aspectRatio: '1/1', borderRadius: 8, background: 'var(--surface-2)',
+            aspectRatio: '1/1', borderRadius: 5, background: 'var(--surface-2)',
             display: 'grid', placeItems: 'center', color: 'var(--ink-mute)',
           }}>
             <Upload size={18} />
@@ -1959,14 +1959,14 @@ function ProductSheet({ products, selectedName, onPick, onUpload, onClose }: {
           const active = p.name === selectedName
           return (
             <button key={p.id} type="button" onClick={() => onPick(p)} style={{
-              padding: 8, borderRadius: 10,
+              padding: 8, borderRadius: 6,
               border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
               background: 'var(--surface)',
               cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 6,
               textAlign: 'left', fontFamily: 'inherit',
             }}>
               <div style={{
-                aspectRatio: '1/1', borderRadius: 8, background: 'var(--surface-2)',
+                aspectRatio: '1/1', borderRadius: 5, background: 'var(--surface-2)',
                 overflow: 'hidden', display: 'grid', placeItems: 'center',
               }}>
                 {p.image_url ? (
@@ -1994,12 +1994,12 @@ function ProductSheet({ products, selectedName, onPick, onUpload, onClose }: {
       {pending && (
         <div style={{
           display: 'flex', gap: 10, alignItems: 'center',
-          padding: 10, borderRadius: 10,
+          padding: 10, borderRadius: 6,
           background: 'var(--surface-2)',
           border: '1px solid var(--border)',
         }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={pending.previewUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 8, objectFit: 'cover', flexShrink: 0 }} />
+          <img src={pending.previewUrl} alt="preview" style={{ width: 48, height: 48, borderRadius: 5, objectFit: 'cover', flexShrink: 0 }} />
           <input
             value={name}
             onChange={e => setName(e.target.value)}
@@ -2008,7 +2008,7 @@ function ProductSheet({ products, selectedName, onPick, onUpload, onClose }: {
             autoFocus
             style={{
               flex: 1, minWidth: 0,
-              padding: '8px 11px', borderRadius: 8,
+              padding: '8px 11px', borderRadius: 5,
               border: '1px solid var(--border)',
               background: 'var(--surface)', color: 'var(--ink)',
               fontSize: 13, outline: 'none', fontFamily: 'inherit',
@@ -2020,7 +2020,7 @@ function ProductSheet({ products, selectedName, onPick, onUpload, onClose }: {
             disabled={!name.trim()}
             style={{
               flexShrink: 0,
-              padding: '8px 14px', borderRadius: 8, border: 'none',
+              padding: '8px 14px', borderRadius: 5, border: 'none',
               background: name.trim() ? 'var(--ink)' : 'var(--surface)',
               color: name.trim() ? 'var(--on-ink)' : 'var(--ink-mute)',
               fontSize: 12.5, fontWeight: 700,
@@ -2070,7 +2070,7 @@ function ReferencesSheet({ images, onAdd, onRemove, onClose }: {
         gap: 8,
       }}>
         {images.map((img, i) => (
-          <div key={img.previewUrl} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 8, overflow: 'hidden', background: 'var(--surface-2)' }}>
+          <div key={img.previewUrl} style={{ position: 'relative', aspectRatio: '1/1', borderRadius: 5, overflow: 'hidden', background: 'var(--surface-2)' }}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={img.previewUrl} alt={`Reference ${i + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
             <button
@@ -2094,7 +2094,7 @@ function ReferencesSheet({ images, onAdd, onRemove, onClose }: {
             type="button"
             onClick={() => inputRef.current?.click()}
             style={{
-              aspectRatio: '1/1', borderRadius: 8,
+              aspectRatio: '1/1', borderRadius: 5,
               border: '1.5px dashed var(--border)',
               background: 'transparent',
               cursor: 'pointer',
@@ -2145,13 +2145,13 @@ function SceneSheet({ scenes, selectedId, onPick, onClose }: {
         gap: 8, maxHeight: 280, overflowY: 'auto',
       }}>
         <button type="button" onClick={() => onPick(null)} style={{
-          padding: 6, borderRadius: 10,
+          padding: 6, borderRadius: 6,
           border: `1.5px solid ${!selectedId ? 'var(--ink)' : 'var(--border)'}`,
           background: 'var(--surface)', cursor: 'pointer',
           display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
         }}>
           <div style={{
-            aspectRatio: '4/3', borderRadius: 8, background: 'var(--surface-2)',
+            aspectRatio: '4/3', borderRadius: 5, background: 'var(--surface-2)',
             display: 'grid', placeItems: 'center', color: 'var(--ink-mute)',
           }}>
             <Sparkles size={18} />
@@ -2163,13 +2163,13 @@ function SceneSheet({ scenes, selectedId, onPick, onClose }: {
           const active = sc.id === selectedId
           return (
             <button key={sc.id} type="button" onClick={() => onPick(sc)} title={sc.description ?? sc.name} style={{
-              padding: 6, borderRadius: 10,
+              padding: 6, borderRadius: 6,
               border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
               background: 'var(--surface)', cursor: 'pointer',
               display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
             }}>
               <div style={{
-                aspectRatio: '4/3', borderRadius: 8, background: 'var(--surface-2)',
+                aspectRatio: '4/3', borderRadius: 5, background: 'var(--surface-2)',
                 overflow: 'hidden', display: 'grid', placeItems: 'center', color: 'var(--ink-mute)',
               }}>
                 {sc.hero_image_url ? (
@@ -2218,7 +2218,7 @@ function FormatSheet({ selectedKey, onPick, onClose }: {
           type="button"
           onClick={() => onPick(null)}
           style={{
-            textAlign: 'left', padding: '9px 11px', borderRadius: 10, cursor: 'pointer',
+            textAlign: 'left', padding: '9px 11px', borderRadius: 6, cursor: 'pointer',
             border: `1.5px solid ${!selectedKey ? 'var(--ink)' : 'var(--border)'}`,
             background: 'var(--surface)', fontFamily: 'inherit',
             display: 'flex', alignItems: 'center', gap: 9,
@@ -2259,7 +2259,7 @@ function FormatSheet({ selectedKey, onPick, onClose }: {
                       onClick={() => onPick(f)}
                       title={f.tagline}
                       style={{
-                        textAlign: 'left', padding: '8px 10px', borderRadius: 10, cursor: 'pointer',
+                        textAlign: 'left', padding: '8px 10px', borderRadius: 6, cursor: 'pointer',
                         border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
                         background: 'var(--surface)', fontFamily: 'inherit',
                       }}
@@ -2305,13 +2305,13 @@ function CreatorSheet({ creators, selectedId, onPick, onClose }: {
       }}>
         {/* Auto option */}
         <button type="button" onClick={() => onPick(null)} style={{
-          padding: 6, borderRadius: 10,
+          padding: 6, borderRadius: 6,
           border: `1.5px solid ${!selectedId ? 'var(--ink)' : 'var(--border)'}`,
           background: 'var(--surface)', cursor: 'pointer',
           display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
         }}>
           <div style={{
-            aspectRatio: '9/16', borderRadius: 8, background: 'var(--surface-2)',
+            aspectRatio: '9/16', borderRadius: 5, background: 'var(--surface-2)',
             display: 'grid', placeItems: 'center', color: 'var(--ink-mute)',
           }}>
             <Sparkles size={20} />
@@ -2322,14 +2322,14 @@ function CreatorSheet({ creators, selectedId, onPick, onClose }: {
           const active = c.id === selectedId
           return (
             <button key={c.id} type="button" onClick={() => onPick(c)} style={{
-              padding: 6, borderRadius: 10,
+              padding: 6, borderRadius: 6,
               border: `1.5px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
               background: 'var(--surface)', cursor: 'pointer',
               display: 'flex', flexDirection: 'column', gap: 6, fontFamily: 'inherit',
               position: 'relative',
             }}>
               <div style={{
-                aspectRatio: '9/16', borderRadius: 8, background: 'var(--surface-2)',
+                aspectRatio: '9/16', borderRadius: 5, background: 'var(--surface-2)',
                 overflow: 'hidden', position: 'relative',
               }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -2368,7 +2368,7 @@ const sheetShellStyle: React.CSSProperties = {
   padding: '12px 14px',
   background: 'var(--surface)',
   border: '1px solid var(--border)',
-  borderRadius: 12,
+  borderRadius: 6,
   display: 'flex', flexDirection: 'column', gap: 10,
 }
 

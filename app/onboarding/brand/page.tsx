@@ -414,7 +414,7 @@ export default function OnboardingBrandPage() {
                     onClick={handleAnalyzeSite}
                     disabled={analyzingSite || !siteUrl.trim()}
                     style={{
-                      padding: '10px 18px', borderRadius: 10,
+                      padding: '10px 18px', borderRadius: 6,
                       background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
                       fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
                       cursor: analyzingSite || !siteUrl.trim() ? 'not-allowed' : 'pointer',
@@ -451,7 +451,7 @@ export default function OnboardingBrandPage() {
                   onClick={handleAiFill}
                   disabled={aiFilling || aiSeed.trim().length < 5}
                   style={{
-                    marginTop: 10, padding: '10px 18px', borderRadius: 10,
+                    marginTop: 10, padding: '10px 18px', borderRadius: 6,
                     background: 'var(--ink)', color: 'var(--on-ink)', border: 'none',
                     fontSize: 13, fontWeight: 600,
                     cursor: aiFilling || aiSeed.trim().length < 5 ? 'not-allowed' : 'pointer',
@@ -726,12 +726,12 @@ export default function OnboardingBrandPage() {
                   return (
                     <div style={{
                       marginTop: 18, padding: '16px 18px',
-                      borderRadius: 12, border: '1px solid var(--border)',
+                      borderRadius: 6, border: '1px solid var(--border)',
                       background: 'linear-gradient(180deg, var(--surface), var(--bg-elev))',
                       display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap',
                     }}>
                       <div style={{
-                        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
+                        width: 40, height: 40, borderRadius: 6, flexShrink: 0,
                         background: 'var(--ink)', color: 'var(--on-ink)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                         fontFamily: 'var(--font-serif)', fontWeight: 600, fontSize: 18,

@@ -42,7 +42,7 @@ export default function CharacterBuilder({ value, onChange, disabled, saveName, 
   const fieldStyle: React.CSSProperties = {
     width: '100%',
     padding: '8px 10px',
-    borderRadius: '8px',
+    borderRadius: '5px',
     border: '1px solid var(--border)',
     background: 'var(--surface)',
     color: 'var(--ink)',

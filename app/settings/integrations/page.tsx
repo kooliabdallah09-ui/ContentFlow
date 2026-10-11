@@ -216,14 +216,14 @@ function IntegrationCard({
     <div style={{
       background: 'var(--surface)',
       border: `1px solid ${connected ? 'var(--good, #10b981)' : 'var(--border)'}`,
-      borderRadius: 14,
+      borderRadius: 8,
       padding: '18px 20px',
       display: 'flex',
       alignItems: 'flex-start',
       gap: 16,
     }}>
       <div style={{
-        width: 44, height: 44, borderRadius: 10,
+        width: 44, height: 44, borderRadius: 6,
         background: 'var(--bg)',
         border: '1px solid var(--border)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -238,7 +238,7 @@ function IntegrationCard({
           {badge && (
             <span style={{
               fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em',
-              textTransform: 'uppercase', padding: '2px 7px', borderRadius: 20,
+              textTransform: 'uppercase', padding: '2px 7px', borderRadius: 8,
               background: 'var(--accent, #6366f1)', color: '#fff',
             }}>
               {badge}
@@ -247,7 +247,7 @@ function IntegrationCard({
           {comingSoon && (
             <span style={{
               fontSize: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.08em',
-              textTransform: 'uppercase', padding: '2px 7px', borderRadius: 20,
+              textTransform: 'uppercase', padding: '2px 7px', borderRadius: 8,
               background: 'var(--border)', color: 'var(--ink-dim)',
             }}>
               Soon
@@ -271,7 +271,7 @@ function IntegrationCard({
             onClick={onDisconnect}
             disabled={disconnecting}
             style={{
-              padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+              padding: '7px 14px', borderRadius: 5, fontSize: 12.5, fontWeight: 600,
               border: '1.5px solid var(--border)', background: 'transparent',
               color: 'var(--ink-dim)', cursor: disconnecting ? 'not-allowed' : 'pointer',
               opacity: disconnecting ? 0.5 : 1, whiteSpace: 'nowrap',
@@ -283,8 +283,8 @@ function IntegrationCard({
           <button
             onClick={onConnect}
             style={{
-              padding: '7px 14px', borderRadius: 8, fontSize: 12.5, fontWeight: 600,
-              border: 'none', background: 'var(--ink)', color: '#fff',
+              padding: '7px 14px', borderRadius: 5, fontSize: 12.5, fontWeight: 600,
+              border: 'none', background: 'var(--ink)', color: 'var(--on-ink)',
               cursor: 'pointer', whiteSpace: 'nowrap',
             }}
           >

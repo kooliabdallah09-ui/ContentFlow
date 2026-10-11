@@ -142,11 +142,17 @@ export default function RootLayout({
   // keeps the marketing chrome even for signed-in users. The in-app version
   // with the sidebar lives at /generate/teardown.
   const isStandalonePage = ['/privacy', '/terms', '/refunds', '/cookies', '/about', '/blog', '/contact', '/help', '/pricing', '/teardown'].some(p => pathname === p || pathname.startsWith(p + '/'))
+  // The landing page and the public marketing pages keep the original look.
+  // Everything else (the app, auth, onboarding) uses the Press Proof design,
+  // which is scoped under html[data-ui="press"] in globals.css.
+  const keepsLegacyUi = isLandingPage || isStandalonePage || isPresentationPage
+    || ['/try', '/vs'].some(p => pathname === p || pathname.startsWith(p + '/'))
+  const uiAttr = keepsLegacyUi ? undefined : 'press'
   const showLayout = user && !isAuthPage && !isLandingPage && !isOnboarding && !isPresentationPage && !isStandalonePage
 
   if (loading) {
     return (
-      <html lang="en">
+      <html lang="en" data-ui={uiAttr}>
         <body style={{ background: 'var(--bg)', color: 'var(--ink)' }}>
           <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
@@ -163,7 +169,7 @@ export default function RootLayout({
   }
 
   return (
-    <html lang="en">
+    <html lang="en" data-ui={uiAttr}>
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
@@ -177,7 +183,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
           rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&family=Archivo:wdth,wght@100..125,400..900&family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
         />
 
         {/* Primary meta */}

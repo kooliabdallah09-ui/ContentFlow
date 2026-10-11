@@ -95,7 +95,7 @@ export function ShootProgress({ active, estimatedSeconds, size = 'compact', labe
           flexDirection: 'column',
           gap: 4,
           padding: '9px 16px',
-          borderRadius: 11,
+          borderRadius: 6,
           background: 'var(--ink)',
           color: 'var(--on-ink)',
           minWidth: 180,
@@ -130,7 +130,7 @@ export function ShootProgress({ active, estimatedSeconds, size = 'compact', labe
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 16px', borderRadius: 12, background: 'var(--surface-2, var(--surface))', border: '1px solid var(--border)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 16px', borderRadius: 6, background: 'var(--surface-2, var(--surface))', border: '1px solid var(--border)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <Camera size={16} />
         <span style={{ fontWeight: 600, fontSize: 13.5 }}>{label}</span>

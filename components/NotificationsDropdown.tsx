@@ -149,7 +149,7 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
         {unread > 0 && (
-          <span style={{ position: 'absolute', top: 7, right: 8, minWidth: 8, height: 8, padding: '0 3px', borderRadius: 8, background: '#EF4444', border: '1.5px solid var(--bg)' }} />
+          <span style={{ position: 'absolute', top: 7, right: 8, minWidth: 8, height: 8, padding: '0 3px', borderRadius: 5, background: '#EF4444', border: '1.5px solid var(--bg)' }} />
         )}
       </button>
 
@@ -158,7 +158,7 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
           position: 'absolute', top: '100%', right: 0, marginTop: 8,
           width: 360, maxHeight: 480,
           background: 'var(--surface)', border: '1px solid var(--border)',
-          borderRadius: 13, boxShadow: 'var(--shadow-lg)',
+          borderRadius: 8, boxShadow: 'var(--shadow-lg)',
           overflow: 'hidden', zIndex: 200, display: 'flex', flexDirection: 'column',
         }}>
           <div style={{
@@ -198,7 +198,7 @@ export function NotificationsDropdown({ onUnreadChange }: { onUnreadChange?: (n:
                   }}
                 >
                   <div style={{
-                    width: 32, height: 32, borderRadius: 9,
+                    width: 32, height: 32, borderRadius: 5,
                     background: `${COLORS[n.icon]}18`, color: COLORS[n.icon],
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     flexShrink: 0,
