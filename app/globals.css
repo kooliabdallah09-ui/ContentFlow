@@ -2483,3 +2483,6 @@ html[data-ui="press"] .rail-collapsed .nav-item svg { margin: 0; width: 18px; he
   max-height: calc(100dvh - 130px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)) !important;
   min-height: 0 !important;
 }
+
+.mx-back { display: flex; align-items: center; gap: 4px; padding: 2px 0 4px; background: none; border: 0; color: var(--ink-dim); font: 500 10px var(--font-mono); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; align-self: flex-start; }
+.mx-row-cost { display: inline-flex; align-items: center; gap: 2px; }

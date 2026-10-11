@@ -7,11 +7,13 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { useState } from 'react'
-import { House, Library, Plus, CalendarDays, User } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { getSupabase } from '@/lib/auth'
+import { House, Library, Plus, CalendarDays, User, ChevronRight, ChevronLeft } from 'lucide-react'
 import { Sheet } from './Sheet'
 import { Icon } from '@/components/Icons'
 import { CREATE_OPTIONS } from '@/lib/create-options'
+import { canAccessInfluencerStudio } from '@/lib/pov-access'
 
 interface Tab {
   href: string
@@ -30,10 +32,31 @@ const RIGHT_TABS: Tab[] = [
   { href: '/you',       label: 'You',  Glyph: User,         match: p => p.startsWith('/you') || p.startsWith('/settings') },
 ]
 
+// Studios groups three beta tools behind one row in the Create sheet.
+const STUDIOS: { href: string; label: string; sub: string; icon: keyof typeof Icon; tint: string }[] = [
+  { href: '/influencers',       label: 'Influencers', sub: 'Persistent AI characters',  icon: 'Brand',   tint: 'var(--stock-coral)' },
+  { href: '/generate/products', label: 'Products',    sub: 'Product shots and videos',  icon: 'Package', tint: 'var(--stock-butter)' },
+  { href: '/scenes',            label: 'Scenes',      sub: 'Reusable places and sets',  icon: 'Image',   tint: 'var(--stock-mint)' },
+]
+
 export function BottomNav() {
   const pathname = usePathname() ?? ''
   const router = useRouter()
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [studiosView, setStudiosView] = useState(false)
+  const [studiosAccess, setStudiosAccess] = useState(false)
+
+  useEffect(() => {
+    (async () => {
+      const supabase = getSupabase()
+      if (!supabase) return
+      const { data } = await supabase.auth.getSession()
+      setStudiosAccess(canAccessInfluencerStudio(data?.session?.user?.email))
+    })()
+  }, [])
+
+  const closeSheet = () => { setSheetOpen(false); setStudiosView(false) }
+  const go = (href: string) => { closeSheet(); router.push(href) }
 
   return (
     <>
@@ -41,7 +64,7 @@ export function BottomNav() {
         {LEFT_TABS.map(t => <TabItem key={t.href} tab={t} active={t.match(pathname)} />)}
 
         <div className="mx-nav-mid">
-          <button onClick={() => setSheetOpen(v => !v)} data-press aria-label="Create" className="mx-fab">
+          <button onClick={() => { setStudiosView(false); setSheetOpen(v => !v) }} data-press aria-label="Create" className="mx-fab">
             <Plus size={24} strokeWidth={2.6} aria-hidden />
           </button>
         </div>
@@ -49,23 +72,39 @@ export function BottomNav() {
         {RIGHT_TABS.map(t => <TabItem key={t.href} tab={t} active={t.match(pathname)} />)}
       </nav>
 
-      <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="What are we making?" height="auto">
+      <Sheet open={sheetOpen} onClose={closeSheet} title={studiosView ? 'Studios' : 'What are we making?'} height="auto">
         <div className="mx-sheet-list">
-          {CREATE_OPTIONS.map(o => (
-            <button
-              key={o.href}
-              onClick={() => { setSheetOpen(false); router.push(o.href) }}
-              data-press
-              className="mx-row"
-            >
-              <OptionIcon name={o.icon} tint={o.tint} size={38} />
-              <span className="mx-row-text">
-                <b>{o.label}</b>
-                <small>{o.sub}</small>
-              </span>
-              <span className="mx-row-cost">{o.cost}</span>
-            </button>
-          ))}
+          {studiosView ? (
+            <>
+              <button onClick={() => setStudiosView(false)} data-press className="mx-back">
+                <ChevronLeft size={15} aria-hidden /> Back to create
+              </button>
+              {STUDIOS.map(o => (
+                <button key={o.href} onClick={() => go(o.href)} data-press className="mx-row">
+                  <OptionIcon name={o.icon} tint={o.tint} size={38} />
+                  <span className="mx-row-text"><b>{o.label}</b><small>{o.sub}</small></span>
+                  <span className="mx-row-cost">Open</span>
+                </button>
+              ))}
+            </>
+          ) : (
+            <>
+              {CREATE_OPTIONS.map(o => (
+                <button key={o.href} onClick={() => go(o.href)} data-press className="mx-row">
+                  <OptionIcon name={o.icon} tint={o.tint} size={38} />
+                  <span className="mx-row-text"><b>{o.label}</b><small>{o.sub}</small></span>
+                  <span className="mx-row-cost">{o.cost}</span>
+                </button>
+              ))}
+              {studiosAccess && (
+                <button onClick={() => setStudiosView(true)} data-press className="mx-row">
+                  <OptionIcon name="Package" tint="var(--stock-lilac)" size={38} />
+                  <span className="mx-row-text"><b>Studios</b><small>Influencers, products and scenes</small></span>
+                  <span className="mx-row-cost">3 <ChevronRight size={13} aria-hidden /></span>
+                </button>
+              )}
+            </>
+          )}
         </div>
       </Sheet>
     </>
