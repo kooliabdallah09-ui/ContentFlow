@@ -69,7 +69,7 @@ function IlluDashboard() {
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 52, fontWeight: 400, color: 'var(--ink-dim)', fontStyle: 'italic', lineHeight: 1.05, margin: '0 0 24px', letterSpacing: '-0.02em' }}>
           What are we making today?
         </h1>
-        <div style={{ background: 'var(--rail-soft)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '18px 24px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: 'var(--ink)' }}>
+        <div style={{ background: 'var(--soft-fill)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '18px 24px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: 'var(--ink)' }}>
           <div>
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 4 }}>Available credits</div>
             <div style={{ fontFamily: 'Georgia, serif', fontSize: 30, letterSpacing: '-0.02em', lineHeight: 1 }}>30</div>
@@ -371,7 +371,7 @@ function IlluBilling() {
         Billing &amp; <em>Credits</em>
       </h1>
       {/* Credits bar */}
-      <div style={{ background: 'var(--rail-soft)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '16px 22px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: 'var(--ink)' }}>
+      <div style={{ background: 'var(--soft-fill)', border: '1px solid var(--border-strong)', borderRadius: 8, padding: '16px 22px', marginBottom: 22, display: 'flex', gap: 24, alignItems: 'center', color: 'var(--ink)' }}>
         <div>
           <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-dim)', marginBottom: 3 }}>Available credits</div>
           <div style={{ fontFamily: 'Georgia, serif', fontSize: 26, letterSpacing: '-0.02em', lineHeight: 1 }}>30</div>

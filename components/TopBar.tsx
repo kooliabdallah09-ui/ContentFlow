@@ -108,7 +108,7 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
         onClick={() => router.push('/settings/billing')}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
-          background: 'var(--rail-soft)', border: '1px solid var(--border-strong)',
+          background: 'var(--soft-fill)', border: '1px solid var(--border-strong)',
           borderRadius: 4, padding: '5px 12px 5px 9px',
           cursor: 'pointer', flexShrink: 0,
         }}

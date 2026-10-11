@@ -265,7 +265,7 @@ export default function BillingPage() {
 
       {/* Credits banner — amber warm gradient */}
       <div style={{
-        background: 'var(--rail-soft)',
+        background: 'var(--soft-fill)',
         border: '1px solid var(--border-strong)',
         borderRadius: 8,
         padding: '20px 26px',
@@ -367,7 +367,7 @@ export default function BillingPage() {
           <span style={{ fontSize: 13, fontWeight: annual ? 700 : 400, color: 'var(--ink)', transition: 'font-weight 0.15s' }}>Annual</span>
           <span style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
-            background: 'var(--rail-soft)', color: 'var(--ink-dim)',
+            background: 'var(--soft-fill)', color: 'var(--ink-dim)',
             borderRadius: 6, padding: '3px 9px',
           }}>2 months free</span>
           <span style={{

@@ -129,7 +129,7 @@ export default function DashboardPage() {
 
       {/* Credits banner */}
       <div style={{
-        background: 'var(--rail-soft)',
+        background: 'var(--soft-fill)',
         border: '1px solid var(--border-strong)',
         borderRadius: 6,
         padding: '20px 24px',
