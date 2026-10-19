@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST } from '@/lib/ai-models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -36,7 +37,7 @@ Output ONLY the prompt text, no explanation, no quotes.`
     : textPrompt
 
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 350,
     messages: [{ role: 'user', content }],
   })

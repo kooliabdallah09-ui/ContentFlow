@@ -336,7 +336,7 @@ Each object: { "headline": "...", "body": "...", "cta": "...", "imagePrompt": ".
 - imagePrompt: detailed NanoBanana image prompt (cinematic, specific scene, no text/logos)`
 
       const planResponse = await anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: 'claude-haiku-5-5', thinking: { type: 'disabled' },
         max_tokens: 1500,
         messages: [{ role: 'user', content: planPrompt }],
       })
@@ -397,7 +397,7 @@ Each object: { "headline": "...", "body": "...", "cta": "...", "imagePrompt": ".
 
       const anthropic = getAnthropic()
       const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: 'claude-haiku-5-5', thinking: { type: 'disabled' },
         max_tokens: 1200,
         messages: [{
           role: 'user',
@@ -444,7 +444,7 @@ Format each as:
 
       const anthropic = getAnthropic()
       const response = await anthropic.messages.create({
-        model: 'claude-haiku-4-5',
+        model: 'claude-haiku-5-5', thinking: { type: 'disabled' },
         max_tokens: 1000,
         messages: [{
           role: 'user',

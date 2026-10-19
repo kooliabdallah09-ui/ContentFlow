@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { extractBrand } from '@/lib/brand-assets'
+import { FAST } from '@/lib/ai-models'
 
 export const maxDuration = 30
 
@@ -114,7 +115,7 @@ export async function GET(request: NextRequest) {
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 400,
     messages: [
       {

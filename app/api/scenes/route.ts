@@ -17,6 +17,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { deductCredits } from '@/lib/deduct-credits'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 120
 
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
         : `Client's freeform description of the place: ${description}`,
     })
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 900,
       system: SCENE_SYSTEM,
       messages: [{ role: 'user', content: userContent }],

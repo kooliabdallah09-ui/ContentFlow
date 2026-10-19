@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST } from '@/lib/ai-models'
 
 export const maxDuration = 30
 
@@ -53,7 +54,7 @@ export async function POST(request: NextRequest) {
       text: `${contextBits.join('\n\n')}\n\nReturn ONLY JSON: {"name": "short product/app name", "whatItIs": "one plain sentence: what the ${productType === 'app' ? 'app or website does and who it\'s for' : 'product is and what it\'s for'}"}. If a name was already provided, keep it verbatim unless clearly typo\'d.`,
     })
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 200,
       messages: [{ role: 'user', content }],
     })

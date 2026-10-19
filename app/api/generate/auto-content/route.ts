@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { deductCredits } from '@/lib/deduct-credits'
+import { FAST } from '@/lib/ai-models'
 
-const MODEL = 'claude-haiku-4-5-20251001'
 const CREDIT_COST = 2
 
 const supabase = createClient(
@@ -149,7 +149,7 @@ Preview: [preheader, max 100 chars]
     }
 
     const message = await client.messages.create({
-      model: MODEL,
+      ...FAST,
       max_tokens: 800,
       messages: [{ role: 'user', content: prompt }],
     })

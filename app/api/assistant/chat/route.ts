@@ -6,6 +6,7 @@ import { createClient } from '@supabase/supabase-js'
 import { deductCredits } from '@/lib/deduct-credits'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { loadBrandContext, formatBrandPrompt } from '@/lib/brand-context'
+import { FAST } from '@/lib/ai-models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -232,7 +233,7 @@ async function runTool(name: string, input: any, userId: string): Promise<ChatRe
 
     try {
       const msg = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        ...FAST,
         max_tokens: 1500,
         messages: [{
           role: 'user',
@@ -352,7 +353,7 @@ export async function POST(request: NextRequest) {
 
     for (let round = 0; round < 3; round++) {
       const msg = await anthropic.messages.create({
-        model: 'claude-haiku-4-5-20251001',
+        ...FAST,
         max_tokens: 800,
         system: systemPrompt
           ? systemPrompt + (tools.length ? '\n\nYou have tools available. When the user asks you to generate an image or captions, CALL THE TOOL immediately with a strong prompt derived from what they said — do NOT ask clarifying questions unless the prompt is truly unusable. After a tool has run, reply with ONE short natural-language sentence confirming what happened. Never wrap that confirmation in JSON, never use markdown code fences, never repeat the tool output.' : '')

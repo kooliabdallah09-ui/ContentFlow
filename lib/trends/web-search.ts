@@ -13,6 +13,7 @@
 // just brand + product + user brief + user-pasted URLs.
 
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST } from '@/lib/ai-models'
 
 const TAVILY_URL = 'https://api.tavily.com/search'
 const MAX_QUERIES = 4
@@ -45,7 +46,7 @@ async function generateQueries(params: {
   try {
     const anthropic = new Anthropic({ apiKey })
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 400,
       system: `You draft targeted web-search queries for a UGC / social ad campaign planner.
 

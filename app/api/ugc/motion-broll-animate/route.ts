@@ -6,6 +6,7 @@ import { submitSeedanceJob } from '@/lib/seedance'
 import { getCampaignFormat } from '@/lib/campaign-formats'
 import { buildMotionBrollSeedancePrompt } from '@/lib/motion-broll-prompt'
 import { ugcPackageCost, type UGCResolution, type UGCEngine } from '@/lib/ugc-pricing'
+import { SMART } from '@/lib/ai-models'
 import {
   DEFAULT_DURATION,
   DURATION_OPTIONS,
@@ -106,7 +107,7 @@ export async function POST(request: NextRequest) {
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
         const mime = (typeof productImageMimeType === 'string' ? productImageMimeType : 'image/png') as 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif'
         const msg = await anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
+          ...SMART,
           max_tokens: 1000,
           messages: [{
             role: 'user',

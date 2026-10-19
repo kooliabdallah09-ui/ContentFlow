@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { deductCredits } from '@/lib/deduct-credits'
 import { loadBrandContext, formatBrandPrompt } from '@/lib/brand-context'
+import { FAST } from '@/lib/ai-models'
 
 const CREDIT_COST = 5
 
@@ -107,7 +108,7 @@ Return ONLY valid JSON (no markdown fences):
 }`
 
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 2000,
     messages: [{ role: 'user', content: prompt }],
   })

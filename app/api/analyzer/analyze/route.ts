@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { transcribeAudioUrl } from '@/lib/scribe'
 import { checkRateLimit, getClientIp, formatRetryAfter } from '@/lib/rate-limit'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 300
 
@@ -185,7 +186,7 @@ Rules for videoPrompt:
     }
 
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 2000,
       messages: [{ role: 'user', content }],
     })

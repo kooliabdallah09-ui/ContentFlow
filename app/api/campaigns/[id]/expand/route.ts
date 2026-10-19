@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { CAMPAIGN_FORMATS, CAMPAIGN_FORMAT_KEYS, getCampaignFormat } from '@/lib/campaign-formats'
 import { loadBrandContext } from '@/lib/brand-context'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 300
 
@@ -80,7 +81,7 @@ CAMPAIGN BRIEF: ${campaign.brief ?? '(none)'}
 Return exactly 18 new shots that COMPLEMENT the preview.`
 
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 4500,
       system,
       messages: [{ role: 'user', content: userMsg }],

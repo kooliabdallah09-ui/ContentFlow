@@ -12,6 +12,7 @@
 // them into the mouth of the character.
 
 import Anthropic from '@anthropic-ai/sdk'
+import { SMART } from '@/lib/ai-models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -198,7 +199,7 @@ Draft the polished Seedance 2.0 prompt now.`,
   })
 
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    ...SMART,
     max_tokens: 3000,
     system: SYSTEM,
     messages: [{ role: 'user', content: parts }],

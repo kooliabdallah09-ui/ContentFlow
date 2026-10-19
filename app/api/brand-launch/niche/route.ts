@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { deductCredits } from '@/lib/deduct-credits'
+import { FAST } from '@/lib/ai-models'
 
 export const maxDuration = 30
 
@@ -65,7 +66,7 @@ Output ONLY valid JSON:
 }`
 
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 800,
       messages: [{ role: 'user', content: prompt }],
     })

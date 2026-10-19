@@ -4,6 +4,7 @@ import { scrapeProductUrl } from '@/lib/preview-scraper'
 import { submitSeedanceJob } from '@/lib/seedance'
 import { createClient } from '@supabase/supabase-js'
 import { checkRateLimit, releaseRateLimit, getClientIp, formatRetryAfter } from '@/lib/rate-limit'
+import { FAST } from '@/lib/ai-models'
 
 export const maxDuration = 60
 
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
     // Claude Haiku writes a 5-second UGC-style prompt from the product info.
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const promptMsg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 400,
       messages: [{
         role: 'user',

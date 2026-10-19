@@ -13,6 +13,7 @@ export const maxDuration = 300
 // Rendering individual shots is charged separately, per-shot, from the
 // shot table page.
 import { CAMPAIGN_PLAN_CREDITS } from '@/lib/create-options'
+import { SMART } from '@/lib/ai-models'
 
 const PLAN_COST = CAMPAIGN_PLAN_CREDITS
 
@@ -393,7 +394,7 @@ Return the JSON shot list now.`
     // ~1500-char research summary can exceed 12K output tokens. Room to spare
     // matters more than latency here — Sonnet only bills used tokens.
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 16000,
       system,
       messages: [{ role: 'user', content: userMsg }],

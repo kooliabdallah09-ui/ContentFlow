@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { isAdminEmail } from '@/lib/pov-access'
+import { FAST } from '@/lib/ai-models'
 
 export async function POST(req: NextRequest) {
   try {
@@ -37,7 +38,7 @@ export async function POST(req: NextRequest) {
 
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 400,
       messages: [{
         role: 'user',

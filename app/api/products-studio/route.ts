@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { deductCredits } from '@/lib/deduct-credits'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 120
 
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
       ].filter(Boolean).join('\n'),
     })
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 700,
       system: SHEET_SYSTEM,
       messages: [{ role: 'user', content }],

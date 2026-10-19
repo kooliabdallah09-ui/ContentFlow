@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { PovFormat } from './pov-formats'
+import { FAST } from '@/lib/ai-models'
 
 // Composes a Seedance 2.0 cinematic prompt in the Arcads/Claude-ad style:
 // - Timestamp + UGC POV tag opening
@@ -73,7 +74,7 @@ ${input.extraDirection ? `Extra direction: ${input.extraDirection}` : ''}
 Return ONLY the final Seedance prompt paragraph. No preamble, no explanation.`
 
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 900,
     messages: [{ role: 'user', content: prompt }],
   })

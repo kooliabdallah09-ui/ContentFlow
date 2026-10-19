@@ -2,23 +2,21 @@
 // The code it returns runs only inside the motion sandbox iframe.
 
 import Anthropic from '@anthropic-ai/sdk'
+import { SONNET } from '@/lib/ai-models'
 import { MOTION_TONES, motionTrack, type MotionTone } from './music'
 import { MOTION_PLAN_PROMPT, MOTION_REVIEW_PROMPT, MOTION_SYSTEM_PROMPT } from './prompt'
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
 // Haiku can't reliably write several hundred lines of timed animation code,
-// so this is the one generation path that uses a larger model. Measured on
-// the same brief: Opus 5.5 $0.40-0.49 per ad (write + review) and clearly
-// better; Sonnet 5 $0.20-0.25.
-export type MotionModel = 'claude-sonnet-5' | 'claude-opus-5-5'
-export const MOTION_MODEL: MotionModel = 'claude-opus-5-5'
+// so this is the one generation path that runs Sonnet with adaptive thinking.
+export type MotionModel = typeof SONNET
+export const MOTION_MODEL: MotionModel = SONNET
 
 // $ per million tokens: [input, output]. Cache writes bill at 1.25× input,
 // cache reads at 0.1×. Thinking tokens bill as output.
 const PRICE: Record<MotionModel, [number, number]> = {
-  'claude-sonnet-5': [2, 10],
-  'claude-opus-5-5': [4, 20],
+  [SONNET]: [2, 10],
 }
 
 export type MotionStoryboard = {

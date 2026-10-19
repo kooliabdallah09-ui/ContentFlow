@@ -15,6 +15,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { deductCredits } from '@/lib/deduct-credits'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 300
 
@@ -267,7 +268,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = shots.length ? null : await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       // Ad mode concepts are dense multi-clause sentences per shot — 900 tokens
       // truncated mid-JSON on 3-4 shot batches. Aesthetic mode fits comfortably.
       max_tokens: mode === 'ad' ? 2000 : 1200,

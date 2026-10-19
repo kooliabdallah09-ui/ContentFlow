@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST } from '@/lib/ai-models'
 
 export const maxDuration = 30
 
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
     // already stores clean strings. Goal we infer from brand mission.
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const goalMsg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 40,
       messages: [{
         role: 'user',

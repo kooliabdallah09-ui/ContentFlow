@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { FormatPreferences, buildFormatInstruction } from "@/lib/planConfig";
+import { FAST } from '@/lib/ai-models'
 
 export interface BrandContext {
   name?: string
@@ -180,7 +181,7 @@ Return ONLY a valid JSON array. No markdown. No extra text.`;
 
   try {
     const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      ...FAST,
       max_tokens: 8000,
       messages: [
         {

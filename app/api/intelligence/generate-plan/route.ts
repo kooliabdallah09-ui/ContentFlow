@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { gatherTrends } from '@/lib/intelligence/trends'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 300
 
@@ -187,7 +188,7 @@ Respond ONLY with valid JSON, no preamble, no markdown:
     let msg
     try {
       msg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        ...SMART,
         // 30-day calendar with hook + main_idea + hashtags per entry +
         // top_formats + hooks-per-format regularly blows past 3k tokens.
         // 6000 gives Sonnet room to actually close the JSON.

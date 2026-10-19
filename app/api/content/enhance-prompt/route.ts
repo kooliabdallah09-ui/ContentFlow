@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST } from '@/lib/ai-models'
 
 export const maxDuration = 30
 
@@ -129,7 +130,7 @@ Output ONLY the finished prompt. No preamble. No 'Here is…'. No markdown.`
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: target === 'ugc' ? 120 : 500,
       messages: [{ role: 'user', content: prompt }],
     })

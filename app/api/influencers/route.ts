@@ -15,6 +15,7 @@ import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { generateCharacterSheet } from '@/lib/character-sheet'
 import { deductCredits } from '@/lib/deduct-credits'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 300
 
@@ -288,7 +289,7 @@ export async function POST(request: NextRequest) {
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         msg = await anthropic.messages.create({
-          model: 'claude-sonnet-4-6',
+          ...SMART,
           max_tokens: 1500,
           system: IDENTITY_SYSTEM,
           messages: [{ role: 'user', content: userContent }],

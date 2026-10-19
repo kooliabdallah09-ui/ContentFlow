@@ -14,6 +14,7 @@ import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { deductCredits } from '@/lib/deduct-credits'
 import { canAccessInfluencerStudio } from '@/lib/pov-access'
 import { CANDIDATE_VIBES, INFLUENCER_CANDIDATES_CR, INFLUENCER_CANDIDATES_NB2_CR } from '@/app/api/influencers/route'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 300
 
@@ -130,7 +131,7 @@ Niche: ${influencer.niche ?? '(none)'}
 Current appearance description (rewrite this — preserve the physical traits, refresh the language):
 ${influencer.appearance_prompt}`
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 800,
       system: systemPrompt,
       messages: [{ role: 'user', content: contextBlock }],

@@ -12,6 +12,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { getCampaignFormat } from '@/lib/campaign-formats'
+import { FAST, SMART } from '@/lib/ai-models'
 
 // Two-person shot-direction overrides per format. Mirrors the solo
 // SHOT_DIRECTIONS map in ugc-character-prompt.ts.
@@ -110,7 +111,7 @@ export async function draftSecondCharacter(input: {
 
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 100,
       system: SECOND_CHARACTER_SYSTEM,
       messages: [{
@@ -152,7 +153,7 @@ export async function buildTwoPersonPrompt(input: TwoPersonPromptInput): Promise
   let imagePrompt = fallbackPrompt
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 900,
       system: TWO_PERSON_IMAGE_SYSTEM,
       messages: [{

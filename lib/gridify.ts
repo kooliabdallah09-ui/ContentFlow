@@ -149,6 +149,7 @@ export async function attachProductReference(
 // the pipeline continue.
 
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST } from '@/lib/ai-models'
 
 const anthropicSingleton = process.env.ANTHROPIC_API_KEY
   ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -179,7 +180,7 @@ export async function validateGrid(gridBase64: string, gridMimeType = 'image/png
   if (!anthropicSingleton) return { ok: true, reason: 'no ANTHROPIC_API_KEY, skipping validation' }
   try {
     const msg = await anthropicSingleton.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 80,
       system: VALIDATOR_SYSTEM,
       messages: [{

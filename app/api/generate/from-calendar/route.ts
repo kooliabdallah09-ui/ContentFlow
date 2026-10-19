@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import { deductCredits } from "@/lib/deduct-credits";
+import { FAST } from '@/lib/ai-models'
 
 const CREDIT_COST = 2;
 
@@ -83,7 +84,7 @@ Generate a 30-60 second video script that:
 Return ONLY the script text, no additional formatting.`;
 
       const message = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        ...FAST,
         max_tokens: 500,
         messages: [{ role: "user", content: prompt }],
       });
@@ -114,7 +115,7 @@ Generate a social post that:
 Return ONLY the post text, no additional formatting.`;
 
       const message = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        ...FAST,
         max_tokens: 300,
         messages: [{ role: "user", content: prompt }],
       });
@@ -144,7 +145,7 @@ Generate a blog post outline (not full article) with:
 Return as a structured outline that the user can expand.`;
 
       const message = await client.messages.create({
-        model: "claude-haiku-4-5-20251001",
+        ...FAST,
         max_tokens: 600,
         messages: [{ role: "user", content: prompt }],
       });

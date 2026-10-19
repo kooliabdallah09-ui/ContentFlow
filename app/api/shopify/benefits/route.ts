@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { FAST } from '@/lib/ai-models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
   const descHint = productDescription ? `\nDescription: ${productDescription.slice(0, 600)}` : ''
 
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 200,
     messages: [{
       role: 'user',

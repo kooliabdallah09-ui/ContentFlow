@@ -14,6 +14,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import type { CharacterProfile } from '@/components/CharacterBuilder'
 import { getCampaignFormat } from '@/lib/campaign-formats'
+import { FAST, SMART } from '@/lib/ai-models'
 
 // Hard-coded shot-direction overrides per solo format. Sonnet writes the
 // image prompt around this framing instead of defaulting to a generic
@@ -170,7 +171,7 @@ export async function buildCharacterPrompt(input: CharacterPromptInput): Promise
   let characterIdea = fallbackIdea
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 90,
       system: HAIKU_SYSTEM,
       messages: [{
@@ -187,7 +188,7 @@ export async function buildCharacterPrompt(input: CharacterPromptInput): Promise
   let imagePrompt = fallbackImagePrompt
   try {
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 700,
       system: SONNET_SYSTEM,
       messages: [{

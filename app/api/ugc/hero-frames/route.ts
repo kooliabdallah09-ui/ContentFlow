@@ -6,6 +6,7 @@ import type { CharacterProfile } from '@/lib/character'
 import { buildCharacterPrompt as buildCharacterImagePrompt, shotDirectionFor, SHOT_DIRECTIONS, websiteProductDirection } from '@/lib/ugc-character-prompt'
 import { inferProductCategory } from '@/lib/multi-shot'
 import { getCampaignFormat } from '@/lib/campaign-formats'
+import { FAST } from '@/lib/ai-models'
 
 // Vercel Fluid Compute ceiling — Nano Banana Pro character generation
 // occasionally spikes over 180s under load. 300s is the platform max.
@@ -222,7 +223,7 @@ export async function POST(request: NextRequest) {
         const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
         const scriptText = typeof body.script === 'string' ? body.script.slice(0, 2000) : ''
         const msg = await anthropic.messages.create({
-          model: 'claude-haiku-4-5-20251001',
+          ...FAST,
           max_tokens: 120,
           system: `You read a UGC ad script + direction and decide whether a SPECIFIC on-camera location or activity setting is required. Reply ONLY JSON: {"important": true|false, "scene": "one-line description of the required setting"}.
 important=true when the script/direction clearly implies a place or activity environment (in a car, on a mountain trail, at the gym, cooking in a kitchen, at the beach, unboxing at a desk…).

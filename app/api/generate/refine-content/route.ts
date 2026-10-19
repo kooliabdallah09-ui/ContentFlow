@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { deductCredits } from '@/lib/deduct-credits'
+import { FAST } from '@/lib/ai-models'
 
 const CREDIT_COST = 2
 
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
     const client = new Anthropic()
 
     const message = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 2000,
       messages: [
         {

@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import sharp from 'sharp'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 120
 
@@ -184,7 +185,7 @@ HARD RULES:
 OUTPUT: return ONLY valid JSON, no markdown:
 {"prompt": "the full timestamped Seedance prompt", "openingFrame": "one dense sentence describing EXACTLY the first still of Scene 1 — the product placed in the designed environment, its position/angle, the lighting, the camera framing — consistent with Scene 1 of the prompt"}`
       const msg = await anthropic.messages.create({
-        model: 'claude-sonnet-4-6',
+        ...SMART,
         max_tokens: 1500,
         system: HYPER_SYSTEM,
         messages: [{

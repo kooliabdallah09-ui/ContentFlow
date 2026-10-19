@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST, SMART } from '@/lib/ai-models'
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -186,7 +187,7 @@ TV AD TONE — the difference between a TV spot and a social UGC:
       : tvSpotPrompt
 
     const tvMsg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 700,
       messages: [{ role: 'user', content: tvContent }],
     })
@@ -335,7 +336,7 @@ Before you commit each line, ask: "Could a marketer have written this exact sent
   // ad-copy CTAs). Sonnet catches the pattern-level "don'ts" that
   // Haiku ignores. ~$0.03 more per script; huge quality lift.
   const msg = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    ...SMART,
     max_tokens: 700,
     temperature: 1,
     messages: [{ role: 'user', content }],

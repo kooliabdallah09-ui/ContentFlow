@@ -3,6 +3,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { deductCredits } from '@/lib/deduct-credits'
 import { loadBrandContext, formatBrandPrompt } from '@/lib/brand-context'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
+import { FAST } from '@/lib/ai-models'
 
 // MCP tool definitions. Each tool exposes a portion of ContentFlow's capabilities
 // to any MCP client (Claude Desktop, Cursor, Claude Code, custom agents).
@@ -131,7 +132,7 @@ const generateSocialCaptions: McpTool = {
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 1500,
       messages: [{
         role: 'user',

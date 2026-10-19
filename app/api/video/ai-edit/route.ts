@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { EditSpec, MUSIC_LIBRARY } from '@/lib/edit-spec'
+import { FAST } from '@/lib/ai-models'
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function POST(request: NextRequest) {
     const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
     const msg = await client.messages.create({
-      model: 'claude-haiku-4-5',
+      ...FAST,
       max_tokens: 1500,
       messages: [{
         role: 'user',

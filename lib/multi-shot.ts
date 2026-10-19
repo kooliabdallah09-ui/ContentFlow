@@ -22,6 +22,7 @@
 // the anchor's middle (leaves 1s intro + 1s outro of the anchor visible).
 
 import { pickCrushMethods, type CrushMethod } from './motion-broll-prompt'
+import { FAST } from '@/lib/ai-models'
 
 // Crush-Test multi-shot planner. Split total duration into N distinct
 // crush-method shots per the budget:
@@ -131,7 +132,7 @@ export async function inferProductCategory(input: {
   try {
     const anthropic = new Anthropic({ apiKey: key })
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 20,
       messages: [{
         role: 'user',

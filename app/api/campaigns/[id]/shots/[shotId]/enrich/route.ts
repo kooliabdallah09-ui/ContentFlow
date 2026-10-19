@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { getCampaignFormat } from '@/lib/campaign-formats'
 import { loadBrandContext } from '@/lib/brand-context'
+import { FAST } from '@/lib/ai-models'
 
 export const maxDuration = 60
 
@@ -71,7 +72,7 @@ Caption: ${shot.spec?.caption ?? ''}
 Return the JSON now.`
 
     const msg = await anthropic.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 900,
       system,
       messages: [{ role: 'user', content: userMsg }],

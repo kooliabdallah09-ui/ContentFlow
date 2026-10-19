@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST } from '@/lib/ai-models'
 
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -26,7 +27,7 @@ Length: ${length === 'long' ? '2000-3000 words' : length === 'medium' ? '1200-18
 Write compelling, engaging content that ranks in search results.`
 
   const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 4000,
     system: systemPrompt,
     messages: [
@@ -64,7 +65,7 @@ export async function generateSocialContent(
   const platformsText = platforms.map((p) => `${p}: ${prompts[p as keyof typeof prompts]}`).join('\n')
 
   const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 2000,
     system: `You are a social media expert. Generate content for each platform.
 
@@ -112,7 +113,7 @@ export async function generateEmailSequence(
   }
 
   const message = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 3000,
     system: `You are an expert email copywriter. Generate a ${emailCount}-email ${sequenceType} sequence.
 

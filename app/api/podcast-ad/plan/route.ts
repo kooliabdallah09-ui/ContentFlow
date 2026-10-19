@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js'
 import Anthropic from '@anthropic-ai/sdk'
 import { loadBrandContext } from '@/lib/brand-context'
 import type { PodcastScript } from '@/lib/podcast-ad'
+import { SMART } from '@/lib/ai-models'
 
 export const maxDuration = 60
 
@@ -104,7 +105,7 @@ CAMPAIGN BRIEF: ${typeof brief === 'string' && brief.trim() ? brief.trim() : `A 
 Return the JSON script now.`
 
     const msg = await anthropic.messages.create({
-      model: 'claude-sonnet-4-6',
+      ...SMART,
       max_tokens: 1500,
       system,
       messages: [{ role: 'user', content: userMsg }],

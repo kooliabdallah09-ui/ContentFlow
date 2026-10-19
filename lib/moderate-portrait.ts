@@ -10,6 +10,7 @@
 // outage never blocks legit creators. Log and monitor.
 
 import Anthropic from '@anthropic-ai/sdk'
+import { FAST } from '@/lib/ai-models'
 
 export interface ModerationResult {
   allow: boolean
@@ -39,7 +40,7 @@ export async function moderatePortrait(input: { base64: string; mimeType: string
   try {
     const client = new Anthropic({ apiKey })
     const res = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+      ...FAST,
       max_tokens: 200,
       system: SYSTEM,
       messages: [{

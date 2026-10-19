@@ -4,6 +4,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { deductCredits } from '@/lib/deduct-credits'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { loadBrandContext, formatBrandPrompt } from '@/lib/brand-context'
+import { FAST } from '@/lib/ai-models'
 
 export const maxDuration = 300
 
@@ -202,7 +203,7 @@ Return ONLY a JSON object (no markdown, no extra text) with this exact shape:
 The slides array must have exactly ${safeSlideCount} objects.`
 
   const msg = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    ...FAST,
     max_tokens: 2000,
     messages: [{ role: 'user', content: copyPrompt }],
   })

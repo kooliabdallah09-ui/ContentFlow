@@ -59,6 +59,7 @@ async function fetchImageAsBase64(url: string): Promise<{ base64: string; mimeTy
 }
 
 import { isAdminEmail } from '@/lib/pov-access'
+import { FAST, SMART, DEEP } from '@/lib/ai-models'
 
 export type CanvasItem =
   | { kind: 'image'; id: string; url: string; prompt: string; ratio: string; credits: number }
@@ -128,12 +129,10 @@ export async function POST(req: NextRequest) {
   const referenceImageMimeType: string = body.referenceImageMimeType ?? 'image/jpeg'
   const selectedItemContext = body.selectedItemContext as { kind: string; imageUrl?: string; prompt?: string; text?: string } | undefined
   const modelKey: string = body.model ?? 'studio'
-  const MODEL_MAP: Record<string, string> = {
-    lumen:  'claude-haiku-4-5-20251001',
-    animus: 'claude-sonnet-4-6',
-    aether: 'claude-opus-4-7',
-  }
-  const claudeModel = MODEL_MAP[modelKey] ?? 'claude-sonnet-4-6'
+  // Lumen = quick (Haiku), Animus = balanced (Sonnet), Aether = deep (Sonnet + thinking)
+  const MODEL_TIERS = { lumen: FAST, animus: SMART, aether: DEEP } as const
+  const tier = MODEL_TIERS[modelKey as keyof typeof MODEL_TIERS] ?? SMART
+  const isDeep = tier === DEEP
   if (!message.trim()) return Response.json({ error: 'Message required' }, { status: 400 })
 
   const encoder = new TextEncoder()
@@ -445,7 +444,7 @@ Skip clarification ONLY when the user has given an explicit number AND a clear f
 
               const haikuClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
               const copyRes = await haikuClient.messages.create({
-                model: 'claude-haiku-4-5-20251001',
+                ...FAST,
                 max_tokens: 2000,
                 messages: [{
                   role: 'user',
@@ -546,7 +545,7 @@ Return ONLY a JSON array of exactly ${slideCount} objects (no markdown):
 
               const haikuClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
               const captionRes = await haikuClient.messages.create({
-                model: 'claude-haiku-4-5-20251001',
+                ...FAST,
                 max_tokens: 1200,
                 messages: [{
                   role: 'user',
@@ -591,7 +590,7 @@ Return ONLY a JSON array of exactly ${slideCount} objects (no markdown):
 
               const briefClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
               const briefRes = await briefClient.messages.create({
-                model: 'claude-haiku-4-5-20251001',
+                ...FAST,
                 max_tokens: 1000,
                 messages: [{
                   role: 'user',
@@ -626,8 +625,8 @@ Return ONLY a JSON array of exactly ${slideCount} objects (no markdown):
 
         // Agentic loop — keep calling Claude with tools until it stops calling tools
         let loopResponse = await anthropic.messages.create({
-          model: claudeModel,
-          max_tokens: 4096,
+          ...tier,
+          max_tokens: isDeep ? 16000 : 4096,
           system: systemPrompt,
           tools,
           messages: agentMessages,
@@ -661,8 +660,8 @@ Return ONLY a JSON array of exactly ${slideCount} objects (no markdown):
 
           // Call Claude again — WITH tools so it can continue (e.g. search then generate)
           loopResponse = await anthropic.messages.create({
-            model: claudeModel,
-            max_tokens: 4096,
+            ...tier,
+            max_tokens: isDeep ? 16000 : 4096,
             system: systemPrompt,
             tools,
             messages: agentMessages,
@@ -682,7 +681,7 @@ Return ONLY a JSON array of exactly ${slideCount} objects (no markdown):
           // If Claude still narrated without generating (no canvas items and no reply), force a real reply
           if (!replyText && canvasItems.length === 0) {
             const fallback = await anthropic.messages.create({
-              model: claudeModel,
+              ...(isDeep ? SMART : tier),
               max_tokens: 256,
               system: systemPrompt,
               messages: [...agentMessages, { role: 'assistant', content: loopResponse.content }, { role: 'user', content: [{ type: 'text', text: 'Please respond to my request now.' }] }],
