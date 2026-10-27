@@ -24,6 +24,8 @@ export async function GET(request: Request) {
       .from('ugc_content')
       .select('content_type, credit_cost, created_at')
       .eq('user_id', userData.user.id)
+      .order('created_at', { ascending: false })
+      .limit(2000)
 
     if (error) {
       console.error('Database error:', error)
@@ -51,7 +53,16 @@ export async function GET(request: Request) {
       }
     })
 
+    // Every row (newest first, capped at 2000) so the page can draw charts
+    // over any date range without another request.
+    const items = (content ?? []).map((item) => ({
+      type: item.content_type as string,
+      date: item.created_at as string,
+      credits: (item.credit_cost as number) || 0,
+    }))
+
     return Response.json({
+      items,
       totalGenerated,
       totalCreditsUsed,
       generationsByType,

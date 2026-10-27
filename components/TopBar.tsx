@@ -35,6 +35,15 @@ const TITLES: Record<string, string> = {
   '/analytics': 'Analytics',
   '/ask': 'Chat',
   '/pricing': 'Pricing',
+  '/campaigns': 'Campaigns',
+  '/influencers': 'Creators',
+  '/generate/products': 'Products',
+  '/scenes': 'Scenes',
+  '/watchlist': 'Watchlist',
+  '/editor': 'Video editor',
+  '/generate/teardown': 'Ad teardown',
+  '/studio': 'Studio',
+  '/brand-launch': 'Brand launch',
 }
 
 export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: TopBarProps) {
@@ -104,19 +113,9 @@ export function TopBar({ currentPath, onMenuToggle, isDark, onToggleTheme }: Top
         <span style={{ flex: 1, color: 'var(--ink-mute)', fontSize: 13 }}>Search…</span>
         <span className="kbd">⌘K</span>
       </button>
-      <button
-        onClick={() => router.push('/settings/billing')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          background: 'var(--soft-fill)', border: '1px solid var(--border-strong)',
-          borderRadius: 4, padding: '5px 12px 5px 9px',
-          cursor: 'pointer', flexShrink: 0,
-        }}
-      >
-        <div style={{ width: 7, height: 7, borderRadius: '50%', background: '#B8862F', flexShrink: 0 }} />
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 600, color: '#6E4E17', whiteSpace: 'nowrap' }}>
-          {displayBalance.toLocaleString()} cr
-        </span>
+      <button className="topbar-credits" onClick={() => router.push('/settings/billing')} title="Credits">
+        <span className="topbar-credits-dot" />
+        <span>{displayBalance.toLocaleString()} cr</span>
       </button>
       <button className="icon-btn" title={isDark ? 'Switch to light' : 'Switch to dark'} onClick={onToggleTheme}>
         {isDark ? (

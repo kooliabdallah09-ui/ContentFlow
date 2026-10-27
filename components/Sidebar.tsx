@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import { Icon } from '@/components/Icons'
 import Link from 'next/link'
 import { useCredits } from '@/lib/CreditsContext'
@@ -17,6 +17,23 @@ interface SidebarProps {
   onToggleCollapse?: () => void
 }
 
+// Small inline icons for the few nav items the shared icon set doesn't cover.
+const UserIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+)
+const ImageIconSmall = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/></svg>
+)
+const PaletteIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><circle cx="13.5" cy="6.5" r="1.5"/><circle cx="17.5" cy="11.5" r="1.5"/><circle cx="7.5" cy="10.5" r="1.5"/><path d="M12 22a10 10 0 1 1 10-10c0 2.2-1.6 3.5-3.5 3.5H16a2 2 0 0 0-1.4 3.4A2 2 0 0 1 12 22z"/></svg>
+)
+const PlusIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+)
+const EyeIcon = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+)
+
 export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onToggleCollapse }: SidebarProps) {
   const isActive = (path: string) => currentPath === path || currentPath.startsWith(path + '/')
   const handleNavClick = () => onMobileClose?.()
@@ -25,7 +42,6 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
   const displayBalance = creditBalance ?? 0
   const planLabel = creditPlan ? creditPlan.charAt(0).toUpperCase() + creditPlan.slice(1) + ' plan' : 'Free plan'
   const isPaidPlan = creditPlan && creditPlan !== 'free'
-
   const creditPercentage = Math.min((displayBalance / 500) * 100, 100)
 
   const [influencerAccess, setInfluencerAccess] = useState(false)
@@ -34,12 +50,20 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
   const [businessCardAccess, setBusinessCardAccess] = useState(false)
   const [motionAdsAccess, setMotionAdsAccess] = useState(false)
   const [screenshotMode, setScreenshotMode] = useState(false)
+  const [userName, setUserName] = useState('')
+  const [toolsOpen, setToolsOpen] = useState(() => {
+    try { return typeof window !== 'undefined' && localStorage.getItem('cf-sidebar-tools') === '1' } catch { return false }
+  })
+
   useEffect(() => {
     (async () => {
       const supabase = getSupabase()
       if (!supabase) return
       const { data: sess } = await supabase.auth.getSession()
-      const email = sess?.session?.user?.email
+      const user = sess?.session?.user
+      const email = user?.email
+      const full = (user?.user_metadata as { full_name?: string } | undefined)?.full_name
+      setUserName(full || email?.split('@')[0] || '')
       setInfluencerAccess(canAccessInfluencerStudio(email))
       setBrandLaunchAccess(canAccessBrandLaunch(email))
       setStudioAccess(canAccessStudio(email))
@@ -48,6 +72,28 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
     })()
   }, [])
 
+  // The "More tools" section remembers whether it was open (see the initial state above).
+  const toggleTools = () => {
+    setToolsOpen(o => {
+      const next = !o
+      try { localStorage.setItem('cf-sidebar-tools', next ? '1' : '0') } catch { /* private mode */ }
+      return next
+    })
+  }
+
+  // N opens a new ad from anywhere (not while typing).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey || e.key.toLowerCase() !== 'n') return
+      const el = e.target as HTMLElement | null
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable)) return
+      e.preventDefault()
+      router.push('/generate/ugc')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [router])
+
   const toggleScreenshotMode = () => {
     const next = !screenshotMode
     setScreenshotMode(next)
@@ -55,206 +101,133 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
     else document.documentElement.removeAttribute('data-screenshot')
   }
 
+  const toolItems: { href: string; label: string; icon: React.ReactNode; show: boolean; match?: string[] }[] = [
+    { href: '/generate/ugc', label: 'Video studio', icon: <Icon.Video />, show: true, match: ['/generate/ugc', '/generate/video', '/generate/screen-demo'] },
+    { href: '/generate/image', label: 'Image', icon: <Icon.Image />, show: true },
+    { href: '/generate/voice', label: 'Voiceover', icon: <Icon.Voice />, show: true },
+    { href: '/generate/social', label: 'Captions & social', icon: <Icon.Social />, show: true },
+    { href: '/editor', label: 'Video editor', icon: <Icon.Scissors />, show: true },
+    { href: '/generate/motion', label: 'Motion ads', icon: <Icon.Sparkle />, show: motionAdsAccess },
+    { href: '/ask', label: 'Chat', icon: <Icon.Ask />, show: true },
+    { href: '/studio', label: 'Studio', icon: <Icon.Sparkle />, show: studioAccess },
+    { href: '/brand-launch', label: 'Brand launch', icon: <Icon.Sparkle />, show: brandLaunchAccess },
+    { href: '/generate/business-card', label: 'Business card', icon: <Icon.Card />, show: businessCardAccess },
+  ]
+  const toolActive = (t: { href: string; match?: string[] }) => (t.match ?? [t.href]).some(isActive)
+  const anyToolActive = toolItems.some(t => t.show && toolActive(t))
+  const showTools = collapsed || toolsOpen || anyToolActive
+
+  const link = (href: string, label: string, icon: React.ReactNode, active: boolean) => (
+    <Link href={href} className={`nav-item ${active ? 'active' : ''}`} onClick={handleNavClick} title={collapsed ? label : undefined}>
+      {icon}
+      <span style={{ flex: 1 }}>{label}</span>
+    </Link>
+  )
+
   return (
     <aside className={`rail${mobileOpen ? ' mobile-open' : ''}${collapsed ? ' rail-collapsed' : ''}`}>
       {collapsed ? (
-        /* Collapsed: logo + expand button, each centered like nav items */
         <div style={{ width: 56, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 0 6px', gap: 4 }}>
           <Link href="/" style={{ width: 56, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span className="brand-mark" style={{ width: 44, height: 44, flexShrink: 0 }}><Logo size={44} /></span>
+            <span className="brand-mark" style={{ width: 28, height: 28, flexShrink: 0 }}><Logo size={28} /></span>
           </Link>
           {!mobileOpen && (
             <button
               onClick={onToggleCollapse}
               title="Expand sidebar"
-              style={{ width: 32, height: 18, borderRadius: 5, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', transition: 'all 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--ink)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--ink-dim)' }}
+              style={{ width: 32, height: 18, borderRadius: 5, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)' }}
             >
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="9 18 15 12 9 6"/>
-              </svg>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
             </button>
           )}
         </div>
       ) : (
-        /* Expanded: logo + name + collapse chevron in one row */
-        <div style={{ display: 'flex', alignItems: 'center', padding: '20px 18px 12px', gap: 10 }}>
-          <Link href="/" className="brand" style={{ padding: 0, flex: 1 }}>
-            <span className="brand-mark"><Logo size={44} /></span>
+        <div style={{ display: 'flex', alignItems: 'center', padding: '16px 14px 12px', gap: 10 }}>
+          <Link href="/" className="brand" style={{ padding: 0, flex: 1, gap: 9 }}>
+            <span className="brand-mark" style={{ width: 26, height: 26 }}><Logo size={26} /></span>
             <div className="brand-name">Content<em>flow</em></div>
           </Link>
           {!mobileOpen && (
             <button
               onClick={onToggleCollapse}
               title="Collapse sidebar"
-              style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)', transition: 'all 0.15s' }}
-              onMouseEnter={e => { e.currentTarget.style.background = 'var(--surface)'; e.currentTarget.style.color = 'var(--ink)' }}
-              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--ink-dim)' }}
+              style={{ flexShrink: 0, width: 24, height: 24, borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-dim)' }}
             >
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="15 18 9 12 15 6"/>
-              </svg>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
             </button>
           )}
         </div>
       )}
 
-      <div className="rail-section">
-        <div className="rail-label">Workspace</div>
-        <Link href="/dashboard" className={`nav-item ${isActive('/dashboard') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Dashboard />
-          <span style={{ flex: 1 }}>Dashboard</span>
-          <span className="kbd">D</span>
-        </Link>
-        <Link href="/library" className={`nav-item ${isActive('/library') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Library />
-          <span style={{ flex: 1 }}>Library</span>
-          <span className="kbd">L</span>
-        </Link>
-        <Link href="/settings/brand" className={`nav-item ${isActive('/settings/brand') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Brand />
-          <span style={{ flex: 1 }}>Brand</span>
-          <span className="kbd">B</span>
-        </Link>
-        <Link href="/ask" className={`nav-item ${isActive('/ask') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Ask />
-          <span style={{ flex: 1 }}>Chat</span>
-          <span className="kbd">A</span>
-        </Link>
-        <Link href="/analytics" className={`nav-item ${isActive('/analytics') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.TrendUp />
-          <span style={{ flex: 1 }}>Analytics</span>
+      <div className="rail-section" style={{ paddingTop: 2 }}>
+        <Link href="/generate/ugc" className="new-ad" onClick={handleNavClick} title="New ad (N)">
+          <PlusIcon />
+          <span style={{ flex: 1 }}>New ad</span>
+          <span className="kbd">N</span>
         </Link>
       </div>
 
+      <nav className="rail-section" style={{ marginTop: 10 }}>
+        {link('/dashboard', 'Home', <Icon.Dashboard />, isActive('/dashboard'))}
+        {link('/library', 'Library', <Icon.Library />, isActive('/library'))}
+        {link('/campaigns', 'Campaigns', <Icon.Calendar />, isActive('/campaigns'))}
+      </nav>
+
       <div className="rail-section">
-        <div className="rail-label">Create</div>
-        {studioAccess && (
-          <Link href="/studio" className={`nav-item ${isActive('/studio') ? 'active' : ''}`} onClick={handleNavClick}>
-            <Icon.Sparkle />
-            <span style={{ flex: 1 }}>Studio</span>
-            <span className="admin-beta-label" style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: '#1e3a5f', background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Alpha</span>
-          </Link>
-        )}
-        {brandLaunchAccess && (
-          <Link href="/brand-launch" className={`nav-item ${isActive('/brand-launch') ? 'active' : ''}`} onClick={handleNavClick}>
-            <Icon.Sparkle />
-            <span style={{ flex: 1 }}>Brand Launch</span>
-            <span className="flagship-badge">New</span>
-          </Link>
-        )}
-        <Link href="/campaigns" className={`nav-item ${isActive('/campaigns') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Calendar />
-          <span style={{ flex: 1 }}>Campaigns</span>
-          <span className="flagship-badge">New</span>
-        </Link>
-        {/* Fused Video Studio — 3 tabs at the top of the destination page:
-            UGC Package · Video · Screen Demo. Sidebar links to the default
-            UGC tab; the tab bar switches between them. Format Library also
-            lives inside the UGC tab (inline picker). */}
-        <Link
-          href="/generate/ugc"
-          className={`nav-item ${(isActive('/generate/ugc') || isActive('/generate/video') || isActive('/generate/screen-demo')) ? 'active' : ''}`}
-          onClick={handleNavClick}
-        >
-          <Icon.Video />
-          <span style={{ flex: 1 }}>Video Studio</span>
-          <span className="flagship-badge">Flagship</span>
-        </Link>
-        {motionAdsAccess && (
-          <Link href="/generate/motion" className={`nav-item ${isActive('/generate/motion') ? 'active' : ''}`} onClick={handleNavClick}>
-            <Icon.Sparkle />
-            <span style={{ flex: 1 }}>Motion Ads</span>
-            <span className="flagship-badge">Alpha</span>
-          </Link>
-        )}
-        {/* Fused Studios — 3 tabs: Influencers · Products · Scenes.
-            Sidebar links to Influencers as default. */}
-        {influencerAccess && (
-          <Link
-            href="/influencers"
-            className={`nav-item ${(isActive('/influencers') || isActive('/generate/products') || isActive('/scenes')) ? 'active' : ''}`}
-            onClick={handleNavClick}
-          >
-            <Icon.Package />
-            <span style={{ flex: 1 }}>Studios</span>
-            <span className="flagship-badge">Beta</span>
-          </Link>
-        )}
-        <Link href="/generate/image" className={`nav-item ${isActive('/generate/image') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Image />
-          <span style={{ flex: 1 }}>Image</span>
-        </Link>
-        <Link href="/generate/voice" className={`nav-item ${isActive('/generate/voice') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Voice />
-          <span style={{ flex: 1 }}>Voiceover</span>
-        </Link>
-        <Link href="/generate/social" className={`nav-item ${isActive('/generate/social') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Social />
-          <span style={{ flex: 1 }}>Social</span>
-        </Link>
-        <Link href="/generate/teardown" className={`nav-item ${isActive('/generate/teardown') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Search />
-          <span style={{ flex: 1 }}>Ad Teardown</span>
-          <span className="flagship-badge">Free</span>
-        </Link>
-        <Link href="/watchlist" className={`nav-item ${isActive('/watchlist') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.TrendUp />
-          <span style={{ flex: 1 }}>Watchlist</span>
-          <span className="flagship-badge">New</span>
-        </Link>
-        {businessCardAccess && (
-          <Link href="/generate/business-card" className={`nav-item ${isActive('/generate/business-card') ? 'active' : ''}`} onClick={handleNavClick}>
-            <Icon.Card />
-            <span style={{ flex: 1 }}>Business Card</span>
-          </Link>
-        )}
-        <Link href="/editor" className={`nav-item ${isActive('/editor') ? 'active' : ''}`} onClick={handleNavClick}>
-          <Icon.Scissors />
-          <span style={{ flex: 1 }}>Video Editor</span>
-          <span className="admin-beta-label" style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--warn)', background: 'var(--warn-soft)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', lineHeight: 1.6, flexShrink: 0 }}>Beta</span>
-        </Link>
+        <div className="rail-label">Assets</div>
+        {influencerAccess && link('/influencers', 'Creators', <UserIcon />, isActive('/influencers'))}
+        {influencerAccess && link('/generate/products', 'Products', <Icon.Package />, isActive('/generate/products'))}
+        {influencerAccess && link('/scenes', 'Scenes', <ImageIconSmall />, isActive('/scenes'))}
+        {link('/settings/brand', 'Brand kit', <PaletteIcon />, isActive('/settings/brand'))}
+      </div>
+
+      <div className="rail-section">
+        <div className="rail-label">Research</div>
+        {link('/generate/teardown', 'Ad teardown', <Icon.Search />, isActive('/generate/teardown'))}
+        {link('/watchlist', 'Watchlist', <EyeIcon />, isActive('/watchlist'))}
+        {link('/analytics', 'Analytics', <Icon.TrendUp />, isActive('/analytics'))}
+      </div>
+
+      <div className="rail-section">
+        <button type="button" className="rail-label rail-toggle" onClick={toggleTools} aria-expanded={showTools}>
+          <span>More tools</span>
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: showTools ? 'rotate(90deg)' : 'none', transition: 'transform .15s' }}><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        {showTools && toolItems.filter(t => t.show).map(t => (
+          <Fragment key={t.href}>{link(t.href, t.label, t.icon, toolActive(t))}</Fragment>
+        ))}
       </div>
 
       <div className="rail-footer">
-        <div className="credits-card-dark" onClick={() => router.push('/settings/billing')} style={{ cursor: 'pointer' }}>
-          <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#B8A97A', marginBottom: 5 }}>Credit balance</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, letterSpacing: '-0.02em', color: '#fff', lineHeight: 1, marginBottom: 8 }}>{displayBalance.toLocaleString()}</div>
-          <div style={{ height: 4, background: 'rgba(255,255,255,0.14)', borderRadius: 99, marginBottom: 10 }}>
-            <div style={{ height: '100%', width: `${creditPercentage}%`, background: '#D8B978', borderRadius: 99 }} />
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: '#B5B29E' }}>
+        <div className="rail-credits" onClick={() => router.push('/settings/billing')} role="link" tabIndex={0}
+          onKeyDown={e => { if (e.key === 'Enter') router.push('/settings/billing') }}>
+          <div className="rail-credits-row"><span>Credits</span><b>{displayBalance.toLocaleString()}</b></div>
+          <div className="rail-meter"><i style={{ width: `${creditPercentage}%` }} /></div>
+          <div className="rail-credits-row">
             <span>{planLabel}</span>
-            {!isPaidPlan && <span style={{ color: '#fff', fontWeight: 600 }}>Upgrade →</span>}
+            {!isPaidPlan && <span className="rail-upgrade">Upgrade</span>}
           </div>
         </div>
-        <button
-          onClick={() => {
-            localStorage.setItem('cf-new-user', '1')
-            window.location.reload()
-          }}
-          style={{ width: '100%', marginTop: 8, padding: '6px 0', background: 'none', border: 'none', cursor: 'pointer', fontSize: 11.5, color: 'var(--ink-mute)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, letterSpacing: '0.01em', transition: 'color 0.15s' }}
-          onMouseEnter={e => (e.currentTarget.style.color = 'var(--ink-dim)')}
-          onMouseLeave={e => (e.currentTarget.style.color = 'var(--ink-mute)')}
-        >
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-4"/>
-          </svg>
-          Restart guide
-        </button>
+        <Link href="/settings/account" className="rail-user" onClick={handleNavClick}>
+          <span className="rail-avatar">{(userName || 'A').charAt(0).toUpperCase()}</span>
+          <span className="rail-user-name">{userName ? userName.charAt(0).toUpperCase() + userName.slice(1) : 'Account'}</span>
+        </Link>
         {studioAccess && (
           <button
             onClick={toggleScreenshotMode}
-            title={screenshotMode ? 'Exit screenshot mode' : 'Screenshot mode — hides admin labels'}
-            style={{ width: '100%', marginTop: 4, padding: '6px 0', background: screenshotMode ? 'rgba(185,28,28,0.12)' : 'none', border: screenshotMode ? '1px solid rgba(185,28,28,0.3)' : 'none', borderRadius: 5, cursor: 'pointer', fontSize: 11.5, color: screenshotMode ? '#b91c1c' : 'var(--ink-mute)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, letterSpacing: '0.01em', transition: 'all 0.15s' }}
+            title={screenshotMode ? 'Exit screenshot mode' : 'Screenshot mode: hides admin labels'}
+            className="rail-ghost"
+            style={screenshotMode ? { color: 'var(--danger)' } : undefined}
           >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
-            </svg>
             {screenshotMode ? 'Exit screenshot mode' : 'Screenshot mode'}
           </button>
         )}
+        <button
+          onClick={() => { localStorage.setItem('cf-new-user', '1'); window.location.reload() }}
+          className="rail-ghost"
+        >
+          Restart guide
+        </button>
       </div>
     </aside>
   )

@@ -18,7 +18,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn, Images, Clapperboard, MapPin } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
-import { showError } from '@/lib/notifications'
+import { showError, showSuccess } from '@/lib/notifications'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
 import { UGC_FORMAT_GROUPS, getUgcFormat, isMotionBrollFormat, type CampaignFormat } from '@/lib/campaign-formats'
 import { saveUgcSession, loadUgcSession } from '@/lib/ugc-session'
@@ -146,6 +146,37 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
   // second Generate would stack a competing pipeline in the thread.
   const [busy, setBusy] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
+
+  // Arriving from the dashboard with ?url=<product page>: read the page and
+  // fill in the product, so the user lands one step from Generate.
+  const importedUrlRef = useRef(false)
+  useEffect(() => {
+    if (importedUrlRef.current) return
+    const raw = new URLSearchParams(window.location.search).get('url')
+    if (!raw) return
+    importedUrlRef.current = true
+    ;(async () => {
+      try {
+        const supabase = getSupabase()
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: { session: null } }
+        const res = await fetch(`/api/product-url?url=${encodeURIComponent(raw)}`, {
+          headers: { Authorization: `Bearer ${sess.session?.access_token ?? ''}` },
+        })
+        const data = await res.json()
+        if (!res.ok) throw new Error(data.error || 'Could not read that page')
+        const description = [data.productDescription, data.benefits].filter(Boolean).join('\n')
+        setState(s => ({ ...s, productName: data.productName || s.productName, productDescription: description || s.productDescription }))
+        showSuccess(`Imported ${data.productName || 'your product'}`, 'Describe the ad you want, then Generate.')
+      } catch (err) {
+        showError("Couldn't read that page", err instanceof Error ? err.message : 'Try describing the product in the chat instead.')
+      } finally {
+        // Drop ?url= so a refresh doesn't import again.
+        const u = new URL(window.location.href)
+        u.searchParams.delete('url')
+        window.history.replaceState(null, '', u.toString())
+      }
+    })()
+  }, [])
 
   // Persist the transcript so leaving the page and coming back doesn't drop it.
   // Callbacks and base64 blobs are stripped on the way out — see lib/ugc-session.
