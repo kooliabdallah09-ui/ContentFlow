@@ -1,0 +1,835 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ContentFlow — One product page. A week of ads.</title>
+<meta name="description" content="Paste a product link. ContentFlow writes the script, casts an AI creator, adds voice and captions, and renders a ready-to-post video ad.">
+<link rel="canonical" href="https://contentflow-web.com/">
+<meta name="theme-color" content="#F5F2EC">
+<link rel="icon" type="image/png" sizes="32x32" href="/lp/assets/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/lp/assets/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/lp/assets/apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="ContentFlow">
+<meta property="og:title" content="ContentFlow: One product page. A week of ads.">
+<meta property="og:description" content="Paste a product link. ContentFlow writes the script, casts an AI creator, adds voice and captions, and renders a ready-to-post video ad.">
+<meta property="og:url" content="https://contentflow-web.com/">
+<meta property="og:image" content="https://contentflow-web.com/assets/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ContentFlow: One product page. A week of ads.">
+<meta name="twitter:description" content="Paste a product link. ContentFlow writes the script, casts an AI creator, adds voice and captions, and renders a ready-to-post video ad.">
+<meta name="twitter:image" content="https://contentflow-web.com/assets/og-image.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&family=Geist+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F5F2EC; --paper:#FBFAF7; --card:#FFFFFF; --sand:#ECE7DE;
+  --ink:#1A1714; --ink-2:#4A443D; --ink-3:#857D72; --line:#E2DCD1;
+  --accent:#A3231F; --accent-soft:#F6E4E1;
+  --peach:#F3C9A3;
+  --r:28px;
+  --sans:"Geist",system-ui,sans-serif; --serif:"Instrument Serif",Georgia,serif; --mono:"Geist Mono",ui-monospace,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+img{display:block;max-width:100%}
+a{color:inherit;text-decoration:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+em,.serif{font-family:var(--serif);font-style:italic;font-weight:400;letter-spacing:-.01em}
+.mono{font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase}
+.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 22px;border-radius:999px;font-weight:500;font-size:15px;transition:transform .4s var(--ease),background .3s,box-shadow .3s}
+.btn .arr{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;transition:transform .4s var(--ease)}
+.btn:hover .arr{transform:rotate(-45deg)}
+.btn:hover{transform:translateY(-2px)}
+.btn-light{background:#FFFDF9;color:var(--ink);box-shadow:0 10px 30px -10px rgba(60,30,10,.35)}
+.btn-light .arr{background:var(--ink);color:#fff}
+.btn-dark{background:var(--ink);color:#fff}
+.btn-dark .arr{background:#fff;color:var(--ink)}
+.btn-ghost{padding:0 22px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.btn-ghost svg{width:14px;height:14px}
+
+/* ---------- Hero ---------- */
+.hero-shell{padding:12px}
+.hero{position:relative;border-radius:var(--r);overflow:hidden;overflow:clip;min-height:min(980px,max(760px,100svh - 24px));color:#fff;isolation:isolate;display:flex;flex-direction:column}
+.hero-bg{position:absolute;inset:0;z-index:-2;background:url(/lp/assets/hero.jpg) center 35%/cover no-repeat;transform:scale(1.08);animation:drift 26s var(--ease) infinite alternate}
+@keyframes drift{to{transform:scale(1.14) translate3d(-1.5%,1%,0)}}
+.hero::before{content:"";position:absolute;inset:0;z-index:-1;background:
+  linear-gradient(180deg,rgba(24,30,40,.38) 0%,rgba(24,30,40,.05) 32%,rgba(40,20,10,0) 55%,rgba(26,18,12,.55) 100%)}
+.hero::after{content:"";position:absolute;inset:0;z-index:-1;opacity:.05;pointer-events:none;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+nav.top{display:flex;align-items:center;justify-content:space-between;padding:22px 28px;position:relative;z-index:5}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;letter-spacing:-.02em}
+.logo .mark{width:30px;height:30px;border-radius:9px;background:#fff;display:grid;place-items:center}
+.logo .mark svg{stroke:var(--ink);width:16px;height:16px;stroke-width:2.2}
+.logo em{font-size:21px;opacity:.85;margin-left:-6px}
+.links{display:flex;gap:4px;padding:5px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
+.links a{font-size:14px;padding:8px 16px;border-radius:999px;transition:background .3s}
+.links a:hover{background:rgba(255,255,255,.18)}
+.nav-cta{display:flex;align-items:center;gap:18px;font-size:14px}
+.nav-cta .btn{height:42px;font-size:14px;padding:0 6px 0 18px}
+.nav-cta .btn .arr{width:30px;height:30px}
+.signin{opacity:.9}
+.menu-btn{display:none;width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);place-items:center}
+
+.hero-copy{text-align:center;padding:56px 24px 0;max-width:920px;margin:0 auto;position:relative;z-index:3}
+.hero-copy::before{content:"";position:absolute;inset:-10% -20% -30%;z-index:-1;background:radial-gradient(50% 50% at 50% 55%,rgba(52,28,14,.34),transparent 100%);pointer-events:none}
+.badge{display:inline-flex;align-items:center;gap:10px;padding:6px 14px 6px 6px;border-radius:999px;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.28);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);font-size:13.5px}
+.badge .faces{display:flex}
+.badge .faces img{width:24px;height:24px;border-radius:50%;object-fit:cover;object-position:center 30%;border:2px solid rgba(255,255,255,.9);margin-left:-8px}
+.badge .faces img:first-child{margin-left:0}
+h1{font-weight:400;font-size:clamp(46px,7.4vw,104px);line-height:.96;letter-spacing:-.045em;margin:26px 0 22px;text-wrap:balance;text-shadow:0 2px 40px rgba(60,30,10,.25)}
+h1 em{font-size:1.1em;letter-spacing:-.02em;color:#FFE9D4}
+.hero-copy p{font-size:clamp(16px,1.5vw,19px);max-width:560px;margin:0 auto;color:#fff;text-wrap:pretty;text-shadow:0 1px 18px rgba(50,25,10,.45)}
+.rating{margin-top:22px;font-size:13.5px;color:rgba(255,255,255,.88);text-shadow:0 1px 12px rgba(50,25,10,.5)}
+.rating .stars{color:#FFE2B8;letter-spacing:2px;margin-right:8px}
+.hero-actions{display:flex;gap:12px;justify-content:center;margin-top:32px;flex-wrap:wrap}
+
+/* Floating ad fan */
+.fan{position:relative;flex:1;min-height:340px;margin-top:40px;perspective:1600px;--s:1}
+.fan-inner{position:absolute;left:50%;bottom:-40px;width:0;height:0;transform-style:preserve-3d}
+.f{position:absolute;left:0;bottom:0;transform-origin:center bottom;border-radius:18px;overflow:hidden;
+   box-shadow:0 30px 60px -20px rgba(30,15,5,.55),0 0 0 1px rgba(255,255,255,.25) inset;
+   transform:translateX(calc(var(--x) * var(--s,1) - 50%)) translateY(var(--y)) rotateY(var(--ry)) rotateZ(var(--rz));
+   opacity:0;animation:rise 1.2s var(--ease) forwards;animation-delay:var(--d)}
+@keyframes rise{from{opacity:0;transform:translateX(calc(var(--x) * var(--s,1) - 50%)) translateY(calc(var(--y) + 120px)) rotateY(var(--ry)) rotateZ(var(--rz))}
+  to{opacity:1;transform:translateX(calc(var(--x) * var(--s,1) - 50%)) translateY(var(--y)) rotateY(var(--ry)) rotateZ(var(--rz))}}
+.f.float{animation:rise 1.2s var(--ease) forwards, bob 7s ease-in-out infinite;animation-delay:var(--d),calc(var(--d) + 1.2s)}
+@keyframes bob{0%,100%{translate:0 0}50%{translate:0 -10px}}
+
+.ad{width:200px;aspect-ratio:9/16;background:#222 center/cover}
+.ad video,.motion video,.gal video,.gal img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.motion{position:relative}
+.ad::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.25),transparent 22%,transparent 55%,rgba(0,0,0,.6))}
+.ad .ad-top{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;align-items:center;z-index:2;font-size:10.5px}
+.ad .pill{padding:3px 8px;border-radius:999px;background:rgba(0,0,0,.35);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:var(--mono);letter-spacing:.03em}
+.ad .cap{position:absolute;left:12px;right:12px;bottom:22px;z-index:2;font-size:13px;font-weight:600;line-height:1.25;text-shadow:0 1px 8px rgba(0,0,0,.4)}
+.ad .bar{position:absolute;left:12px;right:12px;bottom:12px;height:3px;border-radius:3px;background:rgba(255,255,255,.3);z-index:2;overflow:hidden}
+.ad .bar i{display:block;height:100%;width:40%;background:#fff;animation:play 6s linear infinite}
+@keyframes play{from{width:0}to{width:100%}}
+
+.ui{background:rgba(255,253,249,.94);color:var(--ink);padding:16px;width:190px;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.ui .lbl{font-size:11px;color:var(--ink-3);display:flex;align-items:center;gap:6px}
+.ui .big{font-size:34px;letter-spacing:-.04em;line-height:1;margin:10px 0 4px}
+.ui .up{color:#15803D;font-size:12px;font-weight:500}
+.spark{margin-top:12px;height:46px;width:100%}
+.spark path{stroke:var(--accent);stroke-width:2;fill:none}
+.spark .area{fill:url(#g);stroke:none}
+.ui.dark{background:rgba(26,23,20,.9);color:#fff}
+.ui.dark .lbl{color:rgba(255,255,255,.6)}
+.hookline{font-family:var(--serif);font-size:20px;line-height:1.15;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;margin-top:12px;padding:5px 10px;border-radius:999px;background:var(--accent);color:#fff;font-size:11.5px;font-weight:500}
+.render-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.render-row img{width:30px;height:40px;border-radius:6px;object-fit:cover}
+.render-row .t{font-size:12px;font-weight:500;line-height:1.3}
+.render-row .s{font-size:11px;color:var(--ink-3)}
+.prog{height:4px;border-radius:4px;background:var(--sand);margin-top:12px;overflow:hidden}
+.prog i{display:block;height:100%;width:30%;background:var(--ink);animation:fill 4s var(--ease) infinite}
+@keyframes fill{0%{width:8%}70%,100%{width:92%}}
+
+.hero-foot{position:absolute;left:28px;right:28px;bottom:22px;display:flex;justify-content:space-between;align-items:flex-end;font-size:13px;color:rgba(255,255,255,.8);z-index:4;pointer-events:none}
+.hero-foot .stars{color:#FFE2B8;letter-spacing:2px}
+
+/* ---------- Logos ---------- */
+.logos{padding:44px 0 20px;overflow:hidden}
+.logos p{text-align:center;color:var(--ink-3);font-size:14px;margin-bottom:26px}
+.marquee{display:flex;gap:72px;width:max-content;animation:scroll 40s linear infinite;-webkit-mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.marquee-shell{-webkit-mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);mask:linear-gradient(90deg,transparent,#000 10%,#000 90%,transparent);overflow:hidden}
+.marquee{-webkit-mask:none;mask:none}
+.marquee span{font-size:26px;color:#A49C90;white-space:nowrap;display:flex;align-items:center;gap:8px}
+@keyframes scroll{to{transform:translateX(-50%)}}
+.l1{font-weight:800;letter-spacing:.14em}
+.l2{font-family:var(--serif);font-style:italic;font-size:32px!important}
+.l3{font-weight:300;letter-spacing:-.04em}
+.l4{font-family:var(--mono);font-size:21px!important;letter-spacing:.08em}
+.l5{font-weight:600;letter-spacing:-.05em}
+.l6{font-family:var(--serif);font-size:30px!important;letter-spacing:.02em}
+
+/* ---------- Section basics ---------- */
+section{padding:120px 0}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;color:var(--ink-2)}
+.eyebrow::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--accent)}
+h2{font-weight:400;font-size:clamp(36px,5vw,64px);line-height:1.02;letter-spacing:-.04em;text-wrap:balance}
+h2 em{font-size:1.08em}
+.lead{color:var(--ink-2);font-size:18px;max-width:520px;text-wrap:pretty}
+.center{text-align:center}
+.center .lead{margin-left:auto;margin-right:auto}
+
+/* Statement */
+.statement{padding:130px 0 70px}
+.statement h2{font-size:clamp(34px,4.8vw,62px);max-width:1040px;margin:22px auto 0;line-height:1.12}
+.statement .muted{color:#ADA597}
+.inl{display:inline-block;vertical-align:middle;height:.9em;border-radius:999px;overflow:hidden;margin:0 .08em;position:relative;top:-.06em}
+.inl img{height:100%;width:auto;aspect-ratio:1.9;object-fit:cover}
+.inl-icon{display:inline-grid;place-items:center;vertical-align:middle;width:.95em;height:.95em;border-radius:50%;background:var(--accent);color:#fff;position:relative;top:-.06em;margin:0 .06em}
+.inl-icon svg{width:.45em;height:.45em;stroke-width:2.4}
+
+/* Bento stats (Aeline-style) */
+.bento{text-align:left;display:grid;grid-template-columns:1.05fr 1fr 1fr;grid-template-rows:auto auto;gap:14px;margin-top:70px}
+.b{border-radius:24px;padding:26px;position:relative;overflow:hidden;min-height:200px}
+.b .k{font-size:13px;color:var(--ink-3)}
+.b .v{font-size:clamp(46px,5vw,68px);letter-spacing:-.05em;line-height:1;font-weight:300}
+.b-photo{grid-row:span 2;background:#C9B8A6 url(/lp/assets/feat-influencer-portrait-marco.jpg) center 25%/cover;min-height:440px;color:#fff;display:flex;flex-direction:column;justify-content:flex-end;padding:14px}
+.b-photo .inset{background:rgba(255,253,249,.96);color:var(--ink);border-radius:18px;padding:22px}
+.b-photo .inset p{font-size:14px;color:var(--ink-2);margin-top:8px}
+.b-photo .tag{position:absolute;top:16px;left:16px;font-size:11px;padding:5px 10px;border-radius:999px;background:rgba(20,14,10,.45);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.b-grey{background:var(--sand);grid-row:span 2;display:flex;flex-direction:column;justify-content:space-between}
+.b-grey blockquote{font-size:17px;line-height:1.45;color:var(--ink);margin-top:18px}
+.b-grey .who{display:flex;align-items:center;gap:12px;margin-top:20px;font-size:13px;color:var(--ink-3)}
+.b-grey .who img{width:40px;height:40px;border-radius:50%;object-fit:cover;object-position:center 25%}
+.b-grey .who b{display:block;color:var(--ink);font-weight:500;font-size:14px}
+.b-peach{background:linear-gradient(160deg,#F7D7B8,#F0B98F);display:flex;flex-direction:column;justify-content:space-between}
+.b-peach p{font-size:14px;color:#5B3A22;max-width:240px}
+.b-ink{background:var(--ink);color:#fff;min-height:140px;display:flex;justify-content:space-between;align-items:flex-end}
+.b-ink .k{color:rgba(255,255,255,.6)}
+
+/* How it works */
+.steps-head{display:flex;justify-content:space-between;align-items:flex-end;gap:40px;flex-wrap:wrap;margin-bottom:56px}
+.steps-head h2{margin-top:18px;max-width:640px}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.step{background:var(--paper);border:1px solid var(--line);border-radius:24px;padding:14px;display:flex;flex-direction:column}
+.step .vis{height:260px;border-radius:16px;background:var(--sand);position:relative;overflow:hidden;display:grid;place-items:center}
+.step .txt{padding:22px 12px 12px}
+.step .n{font-family:var(--mono);font-size:12px;color:var(--accent)}
+.step h3{font-weight:500;font-size:22px;letter-spacing:-.02em;margin:8px 0 8px}
+.step p{color:var(--ink-2);font-size:15px}
+/* step 1 visual */
+.urlbox{width:82%;background:#fff;border-radius:999px;display:flex;align-items:center;gap:8px;padding:6px 6px 6px 16px;box-shadow:0 12px 30px -12px rgba(60,40,20,.3);font-size:13px;color:var(--ink-2)}
+.urlbox .u{flex:1;min-width:0;white-space:nowrap;overflow:hidden}
+.urlbox .go{width:32px;height:32px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center}
+.caret{display:inline-block;width:1px;height:14px;background:var(--ink);margin-left:1px;vertical-align:-2px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.step .vis-1{background:linear-gradient(180deg,#E9E2D6,#DDD3C4)}
+.vis-1 .found{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);display:flex;gap:8px}
+.vis-1 .found span{font-size:11.5px;background:rgba(255,255,255,.7);padding:5px 10px;border-radius:999px;color:var(--ink-2);white-space:nowrap}
+/* step 2 visual */
+.step .vis-2{background:#2A2622;padding:18px;display:flex;flex-direction:column;gap:8px;place-items:stretch;justify-content:center}
+.hk{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:10px 12px;color:#fff;font-size:13px;transition:background .3s}
+.hk .pct{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:#7EE2A0}
+.hk .box{width:16px;height:16px;border-radius:5px;border:1.5px solid rgba(255,255,255,.4);display:grid;place-items:center;flex-shrink:0}
+.hk.on{background:rgba(255,255,255,.14)}
+.hk.on .box{background:#fff;border-color:#fff}
+.hk.on .box svg{stroke:var(--ink);width:11px;height:11px;stroke-width:3}
+/* step 3 visual */
+.step .vis-3{background:linear-gradient(180deg,#F3D4B6,#EBB892)}
+.mini-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;width:86%}
+.mini-grid div{aspect-ratio:9/16;border-radius:8px;background:#fff center/cover;box-shadow:0 8px 16px -8px rgba(80,40,10,.4)}
+.mini-grid div:nth-child(n+6){opacity:.85}
+
+/* Features */
+.features{background:var(--paper);border-radius:var(--r);margin:0 12px;padding:110px 0}
+.feat-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-top:60px}
+.fc{border-radius:24px;padding:28px;background:var(--bg);border:1px solid var(--line);position:relative;overflow:hidden;min-height:300px;display:flex;flex-direction:column}
+.fc h3{font-weight:500;font-size:22px;letter-spacing:-.02em}
+.fc p{color:var(--ink-2);font-size:15px;margin-top:8px;max-width:360px}
+.fc .ico{width:40px;height:40px;border-radius:12px;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;margin-bottom:auto}
+.fc .ico svg{width:18px;height:18px}
+.fc .body{margin-top:60px}
+.span-4{grid-column:span 4}.span-2{grid-column:span 2}.span-3{grid-column:span 3}
+.fc-creators{flex-direction:row;gap:28px;align-items:stretch}
+.fc-creators .body{margin-top:0;display:flex;flex-direction:column;justify-content:space-between;flex:1}
+.creators{display:flex;gap:10px;flex-shrink:0}
+.creators .c{width:130px;border-radius:16px;overflow:hidden;position:relative;aspect-ratio:9/16}
+.creators .c img{width:100%;height:100%;object-fit:cover}
+.creators .c span{position:absolute;left:8px;bottom:8px;font-size:11px;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.9)}
+.creators .c:nth-child(2){margin-top:28px}
+.langs{display:flex;flex-wrap:wrap;gap:6px;margin-top:22px}
+.langs span{font-size:12.5px;padding:5px 11px;border-radius:999px;background:var(--card);border:1px solid var(--line)}
+.langs span.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fc-ink{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fc-ink p{color:rgba(255,255,255,.7)}
+.fc-ink .ico{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.12)}
+.teardown{margin-top:22px;display:grid;gap:8px}
+.td{display:flex;gap:12px;align-items:center;font-size:13px;color:rgba(255,255,255,.85)}
+.td i{font-style:normal;font-family:var(--mono);font-size:11px;width:68px;color:rgba(255,255,255,.5)}
+.td .tb{flex:1;height:6px;border-radius:6px;background:rgba(255,255,255,.1);overflow:hidden}
+.td .tb b{display:block;height:100%;background:linear-gradient(90deg,#F0B98F,#E5484D);border-radius:6px}
+.site-to-ad{display:flex;align-items:center;gap:16px;margin-top:22px}
+.site{flex:1;border-radius:12px;background:var(--card);border:1px solid var(--line);padding:10px}
+.site .dots{display:flex;gap:4px;margin-bottom:8px}.site .dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}
+.site .ln{height:6px;border-radius:4px;background:var(--sand);margin-top:6px}
+.site .im{height:46px;border-radius:8px;background:url(/lp/assets/product-2.jpg) center 40%/cover;margin-top:8px}
+.to-arrow{color:var(--accent)}
+.to-arrow svg{width:22px;height:22px}
+.motion{width:74px;aspect-ratio:9/16;border-radius:12px;overflow:hidden;background:#ddd;box-shadow:0 12px 24px -10px rgba(0,0,0,.3);animation:pulse 3s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.04) rotate(-2deg)}}
+
+/* Watchlist */
+.watch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:56px}
+.hook{background:var(--card);border:1px solid var(--line);border-radius:24px;padding:24px;display:flex;flex-direction:column;gap:18px;transition:transform .5s var(--ease),box-shadow .5s var(--ease)}
+.hook:hover{transform:translateY(-6px);box-shadow:0 30px 50px -30px rgba(60,40,20,.35)}
+.hook .meta{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-3)}
+.hook .meta b{color:#15803D;font-weight:500}
+.hook q{font-family:var(--serif);font-size:28px;line-height:1.12;letter-spacing:-.01em;quotes:"“" "”"}
+.hook .foot{margin-top:auto;display:flex;justify-content:space-between;align-items:center}
+.hook .type{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--sand);color:var(--ink-2)}
+.hook .use{font-size:13.5px;font-weight:500;display:flex;gap:6px;align-items:center}
+.hook .use svg{width:14px;height:14px}
+
+/* Pricing */
+.pricing{padding-top:40px}
+.toggle{display:inline-flex;padding:4px;border-radius:999px;background:var(--sand);margin-top:30px;font-size:14px}
+.toggle button{padding:8px 18px;border-radius:999px;color:var(--ink-2);transition:background .3s,color .3s}
+.toggle button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.toggle small{color:var(--accent);font-weight:500;margin-left:4px}
+.plans{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:48px;align-items:stretch}
+.plan{background:var(--paper);border:1px solid var(--line);border-radius:28px;padding:32px;display:flex;flex-direction:column}
+.plan h3{font-weight:500;font-size:18px}
+.plan .desc{color:var(--ink-3);font-size:14px;margin-top:4px}
+.plan .price{font-size:58px;letter-spacing:-.05em;font-weight:300;margin:28px 0 2px;line-height:1}
+.plan .price small{font-size:15px;color:var(--ink-3);letter-spacing:0;font-weight:400}
+.plan .cr{font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.plan ul{list-style:none;margin:28px 0 32px;display:grid;gap:12px;font-size:15px}
+.plan li{display:flex;gap:10px;align-items:flex-start;color:var(--ink-2)}
+.plan li svg{margin-top:4px;color:var(--accent);stroke-width:2.4;width:14px;height:14px}
+.plan .btn{margin-top:auto;justify-content:space-between}
+.plan.pro{background:var(--ink);color:#fff;border-color:var(--ink);position:relative;overflow:hidden}
+.plan.pro::before{content:"";position:absolute;inset:-40% -40% auto auto;width:420px;height:420px;background:radial-gradient(circle,rgba(240,185,143,.4),transparent 65%);pointer-events:none}
+.plan.pro .desc,.plan.pro .price small,.plan.pro .cr{color:rgba(255,255,255,.6)}
+.plan.pro li{color:rgba(255,255,255,.85)}
+.plan.pro li svg{color:#F0B98F}
+.plan .tagp{position:absolute;top:28px;right:28px;font-size:12px;padding:4px 10px;border-radius:999px;background:#F0B98F;color:var(--ink);font-weight:500}
+
+/* FAQ */
+.faq-wrap{display:grid;grid-template-columns:1fr 1.4fr;gap:60px;align-items:start}
+.faq-wrap h2{margin-top:18px}
+.faq-wrap .lead{margin-top:18px}
+details{border-bottom:1px solid var(--line);padding:24px 0}
+details:first-child{border-top:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:20px;font-size:19px;font-weight:450;letter-spacing:-.01em}
+summary::-webkit-details-marker{display:none}
+summary .pm{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);display:grid;place-items:center;flex-shrink:0;transition:transform .4s var(--ease),background .3s}
+details[open] summary .pm{transform:rotate(45deg);background:var(--ink);color:#fff;border-color:var(--ink)}
+details p{color:var(--ink-2);margin-top:14px;max-width:620px}
+
+/* Final CTA */
+.cta-shell{padding:0 12px 12px}
+.cta{position:relative;border-radius:var(--r);overflow:hidden;overflow:clip;color:#fff;text-align:center;padding:150px 24px 170px;isolation:isolate}
+.cta-bg{position:absolute;inset:0;z-index:-2;background:url(/lp/assets/hero.jpg) center 70%/cover;transform:scale(1.25) scaleX(-1)}
+.cta::before{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(26,18,12,.25),rgba(26,18,12,.55))}
+.cta h2{font-size:clamp(42px,6.4vw,92px);max-width:900px;margin:0 auto}
+.cta h2 em{color:#FFE9D4}
+.cta p{color:rgba(255,255,255,.85);margin:22px auto 34px;max-width:480px;font-size:18px;text-wrap:balance}
+footer{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap;padding:28px 36px 36px;color:var(--ink-3);font-size:14px}
+footer .logo{color:var(--ink);font-size:16px}
+footer .logo .mark{background:var(--ink)}
+footer .logo .mark svg{stroke:#fff}
+footer nav{display:flex;gap:24px;flex-wrap:wrap}
+footer nav a:hover{color:var(--ink)}
+
+
+/* Product shot thumbnails */
+.shots{display:flex;gap:8px;margin:22px 0 0}
+.shots img{flex:1;min-width:0;aspect-ratio:3/4;object-fit:cover;border-radius:12px;box-shadow:0 10px 20px -12px rgba(60,40,20,.35)}
+.shots img:nth-child(2){transform:translateY(-10px)}
+/* Studio screenshot */
+.studio{margin-top:60px;border-radius:24px;background:var(--card);border:1px solid var(--line);padding:10px;box-shadow:0 40px 80px -40px rgba(60,40,20,.35)}
+.studio .chrome{display:flex;align-items:center;gap:6px;padding:6px 8px 12px}
+.studio .chrome i{width:10px;height:10px;border-radius:50%;background:var(--line)}
+.studio .chrome span{margin:0 auto;font-size:12px;color:var(--ink-3);background:var(--bg);padding:4px 14px;border-radius:999px}
+.studio img{width:100%;border-radius:14px;border:1px solid var(--line)}
+.studio-cap{display:flex;justify-content:space-between;gap:20px;align-items:center;flex-wrap:wrap;padding:18px 10px 8px}
+.studio-cap p{color:var(--ink-2);font-size:15px;max-width:620px}
+.studio-cap b{font-weight:500;color:var(--ink)}
+/* Made with ContentFlow gallery */
+.gallery-head{display:flex;justify-content:space-between;align-items:flex-end;gap:30px;flex-wrap:wrap;margin-bottom:40px}
+.gallery-head h2{margin-top:18px}
+.gal-track{display:flex;gap:14px;width:max-content;animation:scroll 70s linear infinite}
+.gal-track:hover{animation-play-state:paused}
+.gal{position:relative;width:240px;aspect-ratio:3/4;border-radius:20px;overflow:hidden;background:var(--sand);flex-shrink:0}
+.gal::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 55%,rgba(0,0,0,.55))}
+.gal .gm{position:absolute;left:14px;right:14px;bottom:12px;z-index:2;color:#fff;font-size:13px;line-height:1.3}
+.gal .gm b{display:inline-block;font-family:var(--mono);font-weight:400;font-size:10.5px;letter-spacing:.06em;padding:3px 8px;border-radius:999px;background:rgba(255,255,255,.2);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);margin-bottom:6px}
+@media (max-width:640px){.gal{width:180px}}
+
+/* Reveal */
+.rv{opacity:0;transform:translateY(28px);transition:opacity 1s var(--ease),transform 1s var(--ease);transition-delay:var(--rd,0s)}
+.rv.in{opacity:1;transform:none}
+
+/* ---------- Responsive ---------- */
+@media (max-width:1080px){
+  .links{display:none}
+  .bento{grid-template-columns:1fr 1fr}
+  .b-photo{grid-row:span 2}
+  .b-grey{grid-row:auto}
+  .feat-grid{grid-template-columns:1fr 1fr}
+  .span-4,.span-2,.span-3{grid-column:span 1}
+  .fc-creators{grid-column:span 2}
+}
+@media (max-width:860px){
+  section{padding:84px 0}
+  .steps,.watch-grid,.plans{grid-template-columns:1fr}
+  .faq-wrap{grid-template-columns:1fr;gap:30px}
+  .fan{--s:.66}
+  .ad{width:150px}.ui{width:160px;padding:13px}.ui .big{font-size:28px}
+  .hide-md{display:none}
+}
+@media (max-width:640px){
+  .wrap{padding:0 16px}
+  .hero-shell{padding:8px}
+  nav.top{padding:16px 16px}
+  .signin{display:none}
+  .nav-cta .btn{display:none}
+  .menu-btn{display:grid}
+  nav.top.open .links{display:flex;flex-direction:column;position:absolute;top:70px;left:12px;right:12px;padding:8px;border-radius:20px;background:rgba(40,26,18,.72)}
+  nav.top.open .links a{padding:14px 16px;font-size:16px}
+  .hero-copy{padding-top:32px}
+  h1{font-size:clamp(36px,10.4vw,56px)}
+  .fan{min-height:300px}
+  .fan{--s:.6}
+  .ad{width:130px}.ui{width:140px}
+  .hide-sm{display:none}
+  .hero-foot{left:16px;right:16px;font-size:12px}
+  .hero-foot .hf-r{display:none}
+  .bento{grid-template-columns:1fr}
+  .b-photo{grid-row:auto;min-height:420px}
+  .feat-grid{grid-template-columns:1fr}
+  .fc-creators{grid-column:auto;flex-direction:column}
+  .creators .c{width:calc(50% - 5px)}
+  .features{margin:0 8px;padding:84px 0}
+  .fc{padding:22px}
+  .cta-shell{padding:0 8px 8px}
+  .cta{padding:110px 20px 120px}
+  footer{padding:24px 16px 30px}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  .rv{opacity:1;transform:none}
+}
+
+/* publish pass */
+.plans{grid-template-columns:repeat(4,1fr)}
+@media (max-width:1180px){.plans{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:860px){.plans{grid-template-columns:1fr}}
+.note{margin-top:24px;font-size:14px;color:var(--ink-3)}
+.note a,.lead a{text-decoration:underline;text-underline-offset:3px;color:var(--ink-2)}
+.fine{text-align:center;font-size:12px;color:var(--ink-3);padding:0 24px 40px}
+.b-grey .b-note{font-size:17px;line-height:1.45;color:var(--ink);margin-top:18px}
+.site .im{margin-top:0}
+</style>
+</head>
+<body>
+
+<!-- ============ HERO ============ -->
+<div class="hero-shell" id="top">
+  <header class="hero">
+    <div class="hero-bg" aria-hidden="true"></div>
+
+    <nav class="top">
+      <a href="#top" class="logo" aria-label="ContentFlow home">
+        <span class="mark"><svg viewBox="0 0 24 24"><path d="M4 17c3-6 6-10 8-10s3 4 4 6 2 3 4 0"/></svg></span>
+        Content <em>flow</em>
+      </a>
+      <div class="links">
+        <a href="#how">How it works</a>
+        <a href="#features">Features</a>
+        <a href="#trends">Watchlist</a>
+        <a href="#pricing">Pricing</a>
+      </div>
+      <div class="nav-cta">
+        <a href="https://contentflow-web.com/auth/login" class="signin">Sign in</a>
+        <a href="https://contentflow-web.com/auth/signup" class="btn btn-light">Start free <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        <button class="menu-btn" aria-label="Open menu"><svg viewBox="0 0 24 24"><path d="M4 8h16M4 16h16"/></svg></button>
+      </div>
+    </nav>
+
+    <div class="hero-copy">
+      <span class="badge rv">
+        <span class="faces">
+          <img src="/lp/assets/feat-influencer-portrait.jpg" alt="">
+          <img src="/lp/assets/feat-influencer-portrait-marco.jpg" alt="">
+          <img src="/lp/assets/influencer-2.jpg" alt="">
+        </span>
+        <span>Your AI ad studio<span class="hide-sm">, for e-commerce brands</span></span>
+      </span>
+      <h1 class="rv" style="--rd:.08s">One product page.<br><em>A week of ads.</em></h1>
+      <p class="rv" style="--rd:.16s">Paste a link. ContentFlow writes the script, casts an AI creator, adds voice and captions, and renders a ready-to-post video ad. Test several hooks and keep the winners.</p>
+      <div class="hero-actions rv" style="--rd:.24s">
+        <a href="https://contentflow-web.com/auth/signup" class="btn btn-light">Make my first ad <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+        <a href="#how" class="btn btn-ghost">See how it works</a>
+      </div>
+      <div class="rating rv" style="--rd:.32s">30 free credits. No card required.</div>
+    </div>
+
+    <!-- Floating ads, arranged in an arc -->
+    <div class="fan" aria-hidden="true">
+      <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A3231F" stop-opacity=".25"/><stop offset="1" stop-color="#A3231F" stop-opacity="0"/></linearGradient></defs></svg>
+      <div class="fan-inner">
+        <div class="f float ui hide-sm" style="--x:-700px;--y:-190px;--ry:-20deg;--rz:-6deg;--d:.7s">
+          <div class="lbl">Voice and captions</div>
+          <div class="big">18</div>
+          <div class="up">languages to choose from</div>
+        </div>
+        <div class="f float ad hide-md" style="--x:-470px;--y:-40px;--ry:-13deg;--rz:-3deg;--d:.55s;background-image:url(/lp/assets/product-ice.jpg)">
+          <div class="ad-top"><span class="pill">PRODUCT</span><span class="pill">4:5</span></div>
+          <div class="cap">JAMU Lemon &amp; Basil. Served ice cold.</div>
+          <div class="bar"><i style="animation-delay:-2s"></i></div>
+        </div>
+        <div class="f float ad" style="--x:-235px;--y:-10px;--ry:-6deg;--rz:-1deg;--d:.4s">
+          <video src="/lp/assets/ugc-1.mp4" poster="/lp/assets/ugc-1.jpg" autoplay muted loop playsinline preload="metadata"></video>
+          <div class="ad-top"><span class="pill">UGC</span><span class="pill">0:15</span></div>
+          <div class="cap">Okay, I didn't expect to love this this much.</div>
+          <div class="bar"><i></i></div>
+        </div>
+        <div class="f float ui dark" style="--x:0px;--y:-150px;--ry:0deg;--rz:0deg;--d:.3s">
+          <div class="lbl">Saved from your watchlist</div>
+          <div class="hookline">“POV: you found the drink that tastes like summer.”</div>
+          <span class="chip">Live for 23 days</span>
+        </div>
+        <div class="f float ad" style="--x:235px;--y:-10px;--ry:6deg;--rz:1deg;--d:.45s">
+          <video src="/lp/assets/ugc-3.mp4" poster="/lp/assets/ugc-3.jpg" autoplay muted loop playsinline preload="metadata"></video>
+          <div class="ad-top"><span class="pill">UGC</span><span class="pill">0:10</span></div>
+          <div class="cap">My honest review after two weeks.</div>
+          <div class="bar"><i style="animation-delay:-4s"></i></div>
+        </div>
+        <div class="f float ui hide-md" style="--x:470px;--y:-150px;--ry:13deg;--rz:3deg;--d:.6s">
+          <div class="lbl">In progress</div>
+          <div class="render-row">
+            <img src="/lp/assets/influencer-poolside.jpg" alt="">
+            <div><div class="t">Poolside pour</div><div class="s">AI creator · rendering</div></div>
+          </div>
+          <div class="prog"><i></i></div>
+        </div>
+        <div class="f float ui hide-sm" style="--x:700px;--y:-200px;--ry:20deg;--rz:6deg;--d:.75s">
+          <div class="lbl">Free to start</div>
+          <div class="big">30</div>
+          <div class="lbl" style="margin-top:6px">credits, no card needed</div>
+        </div>
+      </div>
+    </div>
+
+  </header>
+</div>
+
+<!-- ============ STATEMENT + BENTO ============ -->
+<section class="statement">
+  <div class="wrap center">
+    <span class="eyebrow mono rv">Why ContentFlow</span>
+    <h2 class="rv" style="--rd:.08s">Your product deserves <span class="inl"><img src="/lp/assets/product-ice.jpg" alt=""></span> more than one ad. Make a batch, <span class="inl-icon"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span> test every hook, <span class="muted">and keep only the <em>winners.</em></span></h2>
+
+    <div class="bento">
+      <div class="b b-photo rv">
+        <span class="tag mono">AI creators</span>
+        <div class="inset">
+          <div class="v">Same face</div>
+          <p>Build an AI creator once, then reuse the same face and style in every ad. Marco is an example.</p>
+        </div>
+      </div>
+      <div class="b b-grey rv" style="--rd:.08s">
+        <div>
+          <div class="k">Cost per ad</div>
+          <div class="v">49 cr</div>
+        </div>
+        <div>
+          <p class="b-note">A 5-second UGC ad at 720p costs about 49 credits, and a 10-second one about 92. Test your hooks as drafts from 21 credits. You see the cost before you render, and failed renders are refunded automatically.</p>
+        </div>
+      </div>
+      <div class="b b-peach rv" style="--rd:.16s">
+        <div class="k" style="color:#7A5236">Ad teardown</div>
+        <div><div class="v">Free</div><p>Drop in any competitor ad to see its hook and structure, plus a prompt to rebuild it for your product.</p></div>
+      </div>
+      <div class="b b-ink rv" style="--rd:.24s">
+        <div class="k">Languages in the ad builder</div>
+        <div class="v">18</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ HOW IT WORKS ============ -->
+<section id="how">
+  <div class="wrap">
+    <div class="steps-head">
+      <div>
+        <span class="eyebrow mono rv">How it works</span>
+        <h2 class="rv" style="--rd:.08s">From product link to posted ad, <em>in three steps.</em></h2>
+      </div>
+      <p class="lead rv" style="--rd:.16s">No briefs, no shoots, no back-and-forth. ContentFlow reads your page, drafts the script and does the rest.</p>
+    </div>
+
+    <div class="steps">
+      <article class="step rv">
+        <div class="vis vis-1">
+          <div class="urlbox"><svg viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1"/></svg><span class="u"><span id="typed"></span><span class="caret"></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></div>
+          <div class="found"><span>✓ Name</span><span>✓ Description</span><span>✓ Benefits</span></div>
+        </div>
+        <div class="txt"><span class="n">01</span><h3>Paste your product page</h3><p>Link any public product page and we read the name, description and benefits. Prefer not to? Upload photos and write a short brief instead.</p></div>
+      </article>
+      <article class="step rv" style="--rd:.1s">
+        <div class="vis vis-2" id="hooks">
+          <div class="hk on"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span>Problem → Solution</div>
+          <div class="hk on"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span>Before / after</div>
+          <div class="hk"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span>Curiosity hook</div>
+          <div class="hk on"><span class="box"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg></span>Social proof</div>
+        </div>
+        <div class="txt"><span class="n">02</span><h3>Pick the hooks to test</h3><p>Choose the angles you want, like problem to solution, before and after, curiosity or social proof. Or start from a competitor ad you saved.</p></div>
+      </article>
+      <article class="step rv" style="--rd:.2s">
+        <div class="vis vis-3">
+          <div class="mini-grid">
+            <div style="background-image:url(/lp/assets/ugc-1.jpg)"></div><div style="background-image:url(/lp/assets/product-ice.jpg)"></div><div style="background-image:url(/lp/assets/ugc-3.jpg)"></div><div style="background-image:url(/lp/assets/product-2.jpg)"></div><div style="background-image:url(/lp/assets/influencer-poolside.jpg)"></div><div style="background-image:url(/lp/assets/product-4.jpg)"></div><div style="background-image:url(/lp/assets/feat-influencer-portrait-marco.jpg)"></div><div style="background-image:url(/lp/assets/feat-influencer-portrait.jpg)"></div><div style="background-image:url(/lp/assets/influencer-2.jpg)"></div><div style="background-image:url(/lp/assets/cinemotion-carthys.jpg)"></div>
+          </div>
+        </div>
+        <div class="txt"><span class="n">03</span><h3>Get ads ready to post</h3><p>Voiceover and captions are included. Export in 9:16, 4:5, 1:1 or 16:9, and back everything up to your Google Drive.</p></div>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FEATURES ============ -->
+<div class="features" id="features">
+  <div class="wrap">
+    <div class="center">
+      <span class="eyebrow mono rv">Everything in one studio</span>
+      <h2 class="rv" style="--rd:.08s">Every format your feed needs, <em>from one link.</em></h2>
+    </div>
+
+    <figure class="studio rv">
+      <div class="chrome"><i></i><i></i><i></i><span>contentflow-web.com/influencers</span></div>
+      <img src="/lp/assets/feat-influencer-studio.jpg" alt="ContentFlow Influencer Studio showing Sloane Mercer's profile and generated photos" loading="lazy">
+      <figcaption class="studio-cap"><p><b>Influencer Studio.</b> Build a creator once, then shoot them with your product in any scene, any format, as many times as you like.</p><a href="https://contentflow-web.com/auth/signup" class="btn btn-dark">Create your creator <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a></figcaption>
+    </figure>
+
+    <div class="feat-grid">
+      <article class="fc span-4 fc-creators rv">
+        <div class="body">
+          <span class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg></span>
+          <div style="margin-top:40px"><h3>AI creators you build once</h3><p>Selfie reviews, unboxings and talking heads from AI creators who keep the same face from ad to ad. No scheduling, no reshoots.</p></div>
+        </div>
+        <div class="creators">
+          <div class="c"><img src="/lp/assets/feat-influencer-portrait.jpg" alt="Sloane Mercer, AI creator"><span>Sloane</span></div>
+          <div class="c"><img src="/lp/assets/feat-influencer-portrait-marco.jpg" alt="Marco, AI creator"><span>Marco</span></div>
+        </div>
+      </article>
+
+      <article class="fc span-2 rv" style="--rd:.08s">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M12 3v3M5 12H2M22 12h-3M6 6 4 4M18 6l2-2"/><circle cx="12" cy="14" r="5"/></svg></span>
+        <div class="shots"><img src="/lp/assets/product-4.jpg" alt="Carthys tee, studio drop"><img src="/lp/assets/product-ice.jpg" alt="JAMU can in an ice garden"><img src="/lp/assets/product-2.jpg" alt="Carthys tee, flat lay on grass"></div>
+        <div class="body" style="margin-top:22px"><h3>Studio product shots</h3><p>Studio drops, ice gardens and flat lays, without the photographer.</p></div>
+      </article>
+
+      <article class="fc span-2 fc-ink rv">
+        <span class="ico"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+        <div class="body">
+          <h3>Competitor ad teardown</h3><p>Drop in any ad. See its hook and structure, then rebuild it for your product.</p>
+          <div class="teardown">
+            <div class="td"><i>Hook</i><span class="tb"><b style="width:100%"></b></span></div>
+            <div class="td"><i>Structure</i><span class="tb"><b style="width:100%"></b></span></div>
+            <div class="td"><i>Rebuild</i><span class="tb"><b style="width:100%"></b></span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="fc span-2 rv" style="--rd:.08s">
+        <span class="ico"><svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0M3 12h18M12 3c2.5 3 2.5 15 0 18M12 3c-2.5 3-2.5 15 0 18"/></svg></span>
+        <div class="body">
+          <h3>Voice and captions in 18 languages</h3>
+          <div class="langs"><span class="on">English</span><span>Français</span><span>العربية</span><span>Español</span><span>Deutsch</span><span>+13</span></div>
+        </div>
+      </article>
+
+      <article class="fc span-2 rv" style="--rd:.16s">
+        <span class="ico"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M8 21h8"/></svg></span>
+        <div class="body">
+          <h3>CineMotion product ads</h3>
+          <p style="font-size:14px;color:var(--ink-2);margin-top:8px">Turn a product photo into a motion ad with designed environments and sound.</p>
+          <div class="site-to-ad">
+            <div class="site"><div class="im" style="height:96px"></div></div>
+            <span class="to-arrow"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span>
+            <div class="motion"><video src="/lp/assets/cinemotion-carthys.mp4" poster="/lp/assets/cinemotion-carthys.jpg" autoplay muted loop playsinline preload="metadata"></video></div>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</div>
+
+<!-- ============ MADE WITH CONTENTFLOW ============ -->
+<section id="made" style="padding-bottom:40px">
+  <div class="wrap gallery-head">
+    <div>
+      <span class="eyebrow mono rv">Made with ContentFlow</span>
+      <h2 class="rv" style="--rd:.08s">Real outputs. <em>No reshoots.</em></h2>
+    </div>
+    <p class="lead rv" style="--rd:.16s">Every ad below was made with ContentFlow: UGC, product shots, AI creators and CineMotion.</p>
+  </div>
+  <div class="marquee-shell"><div class="gal-track"><div class="gal"><video src="/lp/assets/ugc-1.mp4" poster="/lp/assets/ugc-1.jpg" autoplay muted loop playsinline preload="metadata"></video><div class="gm"><b>UGC</b><br>UGC creator ad</div></div><div class="gal"><img src="/lp/assets/product-4.jpg" alt="Studio drop" loading="lazy"><div class="gm"><b>PRODUCT</b><br>Studio drop</div></div><div class="gal"><img src="/lp/assets/influencer-2.jpg" alt="AI creator, candid" loading="lazy"><div class="gm"><b>INFLUENCER</b><br>AI creator, candid</div></div><div class="gal"><img src="/lp/assets/product-ice.jpg" alt="Submerged ice garden" loading="lazy"><div class="gm"><b>PRODUCT</b><br>Submerged ice garden</div></div><div class="gal"><video src="/lp/assets/ugc-3.mp4" poster="/lp/assets/ugc-3.jpg" autoplay muted loop playsinline preload="metadata"></video><div class="gm"><b>UGC</b><br>Creator review</div></div><div class="gal"><img src="/lp/assets/product-2.jpg" alt="Flat lay on grass" loading="lazy"><div class="gm"><b>PRODUCT</b><br>Flat lay on grass</div></div><div class="gal"><video src="/lp/assets/cinemotion-carthys.mp4" poster="/lp/assets/cinemotion-carthys.jpg" autoplay muted loop playsinline preload="metadata"></video><div class="gm"><b>CINEMOTION</b><br>CineMotion product ad</div></div><div class="gal"><img src="/lp/assets/influencer-poolside.jpg" alt="Poolside pour" loading="lazy"><div class="gm"><b>INFLUENCER</b><br>Poolside pour</div></div><div class="gal" aria-hidden="true"><video src="/lp/assets/ugc-1.mp4" poster="/lp/assets/ugc-1.jpg" autoplay muted loop playsinline preload="metadata"></video><div class="gm"><b>UGC</b><br>UGC creator ad</div></div><div class="gal" aria-hidden="true"><img src="/lp/assets/product-4.jpg" alt="Studio drop" loading="lazy"><div class="gm"><b>PRODUCT</b><br>Studio drop</div></div><div class="gal" aria-hidden="true"><img src="/lp/assets/influencer-2.jpg" alt="AI creator, candid" loading="lazy"><div class="gm"><b>INFLUENCER</b><br>AI creator, candid</div></div><div class="gal" aria-hidden="true"><img src="/lp/assets/product-ice.jpg" alt="Submerged ice garden" loading="lazy"><div class="gm"><b>PRODUCT</b><br>Submerged ice garden</div></div><div class="gal" aria-hidden="true"><video src="/lp/assets/ugc-3.mp4" poster="/lp/assets/ugc-3.jpg" autoplay muted loop playsinline preload="metadata"></video><div class="gm"><b>UGC</b><br>Creator review</div></div><div class="gal" aria-hidden="true"><img src="/lp/assets/product-2.jpg" alt="Flat lay on grass" loading="lazy"><div class="gm"><b>PRODUCT</b><br>Flat lay on grass</div></div><div class="gal" aria-hidden="true"><video src="/lp/assets/cinemotion-carthys.mp4" poster="/lp/assets/cinemotion-carthys.jpg" autoplay muted loop playsinline preload="metadata"></video><div class="gm"><b>CINEMOTION</b><br>CineMotion product ad</div></div><div class="gal" aria-hidden="true"><img src="/lp/assets/influencer-poolside.jpg" alt="Poolside pour" loading="lazy"><div class="gm"><b>INFLUENCER</b><br>Poolside pour</div></div></div></div>
+</section>
+
+<!-- ============ TRENDS / WATCHLIST ============ -->
+<section id="trends">
+  <div class="wrap">
+    <div class="steps-head">
+      <div>
+        <span class="eyebrow mono rv">Competitor watchlist</span>
+        <h2 class="rv" style="--rd:.08s">Know what's working <em>before you post.</em></h2>
+      </div>
+      <p class="lead rv" style="--rd:.16s">Save the competitor ads you admire and check back on them. ContentFlow counts how many days each one has been live, because an ad that keeps running is a hook worth borrowing.</p>
+    </div>
+    <div class="watch-grid">
+      <article class="hook rv">
+        <div class="meta"><span>Competitor · TikTok</span><b>Live 23 days</b></div>
+        <q>I stopped drinking coffee for 7 days. Here's what happened.</q>
+        <div class="foot"><span class="type">Before / after</span><a href="https://contentflow-web.com/auth/signup" class="use">Use this hook <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+      </article>
+      <article class="hook rv" style="--rd:.08s">
+        <div class="meta"><span>Competitor · Reels</span><b>Live 17 days</b></div>
+        <q>POV: you found the drink that actually tastes like summer.</q>
+        <div class="foot"><span class="type">POV</span><a href="https://contentflow-web.com/auth/signup" class="use">Use this hook <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+      </article>
+      <article class="hook rv" style="--rd:.16s">
+        <div class="meta"><span>Competitor · TikTok</span><b>Live 11 days</b></div>
+        <q>Rating every lemon drink at the store so you don't have to.</q>
+        <div class="foot"><span class="type">Ranking</span><a href="https://contentflow-web.com/auth/signup" class="use">Use this hook <svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></a></div>
+      </article>
+    </div>
+    <p class="note center" style="text-align:center">Examples shown. Your watchlist holds the ads you save.</p>
+  </div>
+</section>
+
+<!-- ============ PRICING ============ -->
+<section class="pricing" id="pricing">
+  <div class="wrap center">
+    <span class="eyebrow mono rv">Pricing</span>
+    <h2 class="rv" style="--rd:.08s">Start free. <em>Scale when it sells.</em></h2>
+    <div class="toggle rv" style="--rd:.16s" role="group" aria-label="Billing period">
+      <button class="on" data-period="m">Monthly</button>
+      <button data-period="y">Yearly <small>2 months free</small></button>
+    </div>
+
+    <div class="plans" style="text-align:left">
+      <article class="plan rv">
+        <h3>Free</h3><p class="desc">Try it on your best seller.</p>
+        <div class="price">$0</div><div class="cr">30 credits at signup</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>One preview ad from any product link</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>One draft ad, or images and captions</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>No card required</li>
+        </ul>
+        <a href="https://contentflow-web.com/auth/signup" class="btn btn-dark">Start free <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+      </article>
+      <article class="plan rv">
+        <h3>Starter</h3><p class="desc">Test several hooks a month.</p>
+        <div class="price"><span data-m="$19" data-y="$16">$19</span><small> /month</small></div><div class="cr">800 credits a month</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>About 16 ads a month (5s, 720p)</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Batch generation of hook variants</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Full Product Studio and video editor</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Credits roll over</li>
+        </ul>
+        <a href="https://contentflow-web.com/pricing" class="btn btn-dark">Get Starter <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+      </article>
+      <article class="plan pro rv">
+        <span class="tagp">Best for weekly ads</span>
+        <h3>Pro</h3><p class="desc">Ship a week of ads at a time.</p>
+        <div class="price"><span data-m="$49" data-y="$41">$49</span><small> /month</small></div><div class="cr">2,000 credits a month</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>About 40 ads a month (5s, 720p)</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Campaign planner for a month of shots</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Everything in Starter</li>
+        </ul>
+        <a href="https://contentflow-web.com/pricing" class="btn btn-light">Get Pro <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+      </article>
+      <article class="plan rv">
+        <h3>Agency</h3><p class="desc">High volume, every format.</p>
+        <div class="price"><span data-m="$149" data-y="$124">$149</span><small> /month</small></div><div class="cr">6,500 credits a month</div>
+        <ul>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>About 132 ads a month (5s, 720p)</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Priority email support</li>
+          <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Everything in Pro</li>
+        </ul>
+        <a href="https://contentflow-web.com/pricing" class="btn btn-dark">Get Agency <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+      </article>
+    </div>
+    <p class="note">Also available: Lite at $8 a month with 300 credits. <a href="https://contentflow-web.com/pricing">Compare all plans</a></p>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section style="padding-top:20px">
+  <div class="wrap faq-wrap">
+    <div>
+      <span class="eyebrow mono rv">FAQ</span>
+      <h2 class="rv" style="--rd:.08s">Questions, <em>answered.</em></h2>
+      <p class="lead rv" style="--rd:.16s">Still curious? Email <a href="mailto:contentflow.web@gmail.com">contentflow.web@gmail.com</a>. We reply within one business day.</p>
+    </div>
+    <div class="rv" style="--rd:.1s">
+      <details open><summary>What counts as a credit?<span class="pm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Credits pay for rendering. A 5-second UGC video at 720p costs about 49 credits, a 10-second one about 92, and a product image 5 to 10. Draft ads for testing hooks start at 21 credits. Captions and social posts are free with every ad you make (3 per ad). Longer or higher-resolution ads cost more, and you see the cost before you render.</p></details>
+      <details><summary>Do credits expire?<span class="pm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Subscription credits roll over for one billing cycle, up to twice your monthly amount. If you cancel, unused subscription credits stay in your account for 60 days.</p></details>
+      <details><summary>Are the creators real people?<span class="pm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>No. Every creator is AI-generated, built to look natural in phone-style videos, and you can preview each one before you render. Ad platforms like Meta and TikTok require AI-generated ads to be labelled, so add the disclosure when you publish.</p></details>
+      <details><summary>Can I use the ads on paid campaigns?<span class="pm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Yes. Under our Terms you own the AI-generated output made from your inputs, subject to the terms of the AI providers we use. Check each platform's advertising rules before you publish.</p></details>
+      <details><summary>Which product pages work?<span class="pm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Any public product page. We read the name, description and benefits. If a page can't be read, upload photos and write a short brief instead.</p></details>
+      <details><summary>What if a render fails?<span class="pm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Credits for a failed render are refunded automatically, so you only pay for ads you can use.</p></details>
+      <details><summary>Can I cancel anytime?<span class="pm"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span></summary><p>Yes, from your account settings. You keep access until the end of the billing period. Refund eligibility is in our refund policy.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FINAL CTA ============ -->
+<div class="cta-shell">
+  <div class="cta">
+    <div class="cta-bg" aria-hidden="true"></div>
+    <h2 class="rv">Your next winning ad is <em>one link away.</em></h2>
+    <p class="rv" style="--rd:.08s">30 free credits. No card required.</p>
+    <a href="https://contentflow-web.com/auth/signup" class="btn btn-light rv" style="--rd:.16s">Make my first ad <span class="arr"><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg></span></a>
+  </div>
+  <footer>
+    <a href="#top" class="logo"><span class="mark"><svg viewBox="0 0 24 24"><path d="M4 17c3-6 6-10 8-10s3 4 4 6 2 3 4 0"/></svg></span>Content <em>flow</em></a>
+    <nav><a href="#how">How it works</a><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="https://contentflow-web.com/teardown">Free ad teardown</a><a href="https://contentflow-web.com/privacy">Privacy</a><a href="https://contentflow-web.com/terms">Terms</a><a href="mailto:contentflow.web@gmail.com">Contact</a></nav>
+    <span>© 2026 ContentFlow</span>
+  </footer>
+  <p class="fine">Product mockups on this page use example data. Ads shown were generated with ContentFlow.</p>
+</div>
+
+<script>
+// Scroll reveal
+const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }), { threshold: .15 });
+document.querySelectorAll('.rv').forEach(el => io.observe(el));
+
+// Typed product URL in step 1
+const urls = ['yourstore.com/products/best-seller', 'yourbrand.com/products/new-arrival', 'shop.example.com/products/hoodie'];
+const typed = document.getElementById('typed');
+let ui = 0, ci = 0, del = false;
+(function tick() {
+  const u = urls[ui];
+  typed.textContent = u.slice(0, ci);
+  if (!del && ci < u.length) ci++;
+  else if (!del) { del = true; return setTimeout(tick, 1800); }
+  else if (ci > 0) ci -= 2;
+  else { del = false; ci = 0; ui = (ui + 1) % urls.length; }
+  setTimeout(tick, del ? 25 : 55);
+})();
+
+// Hook picker toggles itself
+const hks = [...document.querySelectorAll('#hooks .hk')];
+let hi = 0;
+setInterval(() => { hks[hi % hks.length].classList.toggle('on'); hi++; }, 1400);
+hks.forEach(h => h.addEventListener('click', () => h.classList.toggle('on')));
+
+// Mobile menu
+const navTop = document.querySelector('nav.top');
+document.querySelector('.menu-btn').addEventListener('click', () => navTop.classList.toggle('open'));
+navTop.querySelectorAll('.links a').forEach(a => a.addEventListener('click', () => navTop.classList.remove('open')));
+
+// Pricing toggle
+document.querySelectorAll('.toggle button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.toggle button').forEach(x => x.classList.toggle('on', x === b));
+  document.querySelectorAll('[data-m]').forEach(p => p.textContent = p.dataset[b.dataset.period]);
+}));
+
+// Gentle parallax on the hero sky
+const bg = document.querySelector('.hero-bg');
+addEventListener('scroll', () => { const y = scrollY; if (y < 1000) bg.style.translate = `0 ${y * .25}px`; }, { passive: true });
+</script>
+</body>
+</html>

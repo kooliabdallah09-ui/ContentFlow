@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
       },
     ]
   },
+  async rewrites() {
+    // New marketing landing is a static page in public/lp
+    return {
+      beforeFiles: [
+        { source: '/', destination: '/lp/index.html' },
+        { source: '/landing', destination: '/lp/index.html' },
+      ],
+    }
+  },
   async redirects() {
     return [
       { source: '/refund', destination: '/refunds', permanent: true },
