@@ -7,7 +7,10 @@ function getResend(): Resend {
   if (!_resend) _resend = new Resend(process.env.RESEND_API_KEY)
   return _resend
 }
-const FROM = 'ContentFlow <hello@contentflow.app>'
+// Must be an address on a domain verified in Resend (contentflow-web.com).
+// Replies go to the support inbox.
+const FROM = process.env.RESEND_FROM ?? 'ContentFlow <hello@contentflow-web.com>'
+const REPLY_TO = 'contentflow.web@gmail.com'
 
 // ─── Welcome ─────────────────────────────────────────────────────────────────
 
@@ -16,6 +19,7 @@ export async function sendWelcomeEmail(email: string, name: string) {
   const first = name.split(' ')[0]
   await getResend().emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to: email,
     subject: 'Your ContentFlow account is ready',
     html: `
@@ -85,6 +89,7 @@ export async function sendSubscriptionEmail(email: string, name: string, plan: s
   const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
   await getResend().emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to: email,
     subject: `You're on the ${planLabel} plan 🎉`,
     html: `
@@ -149,6 +154,7 @@ export async function sendCreditPackEmail(email: string, name: string, credits: 
   const first = name?.split(' ')[0] || 'there'
   await getResend().emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to: email,
     subject: `${credits.toLocaleString()} credits added to your account`,
     html: `
@@ -204,6 +210,7 @@ export async function sendCreditsRenewedEmail(email: string, name: string, credi
   const planLabel = plan.charAt(0).toUpperCase() + plan.slice(1)
   await getResend().emails.send({
     from: FROM,
+    replyTo: REPLY_TO,
     to: email,
     subject: `Your ${credits.toLocaleString()} credits just renewed`,
     html: `
