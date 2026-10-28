@@ -36,6 +36,7 @@ const TITLES: Record<string, string> = {
   '/ask': 'Chat',
   '/pricing': 'Pricing',
   '/campaigns': 'Campaigns',
+  '/generate/hooks': 'Hook batch',
   '/influencers': 'Creators',
   '/generate/products': 'Products',
   '/scenes': 'Scenes',

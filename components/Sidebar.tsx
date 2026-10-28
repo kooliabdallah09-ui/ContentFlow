@@ -171,6 +171,7 @@ export function Sidebar({ currentPath, mobileOpen, onMobileClose, collapsed, onT
         {link('/dashboard', 'Home', <Icon.Dashboard />, isActive('/dashboard'))}
         {link('/library', 'Library', <Icon.Library />, isActive('/library'))}
         {link('/campaigns', 'Campaigns', <Icon.Calendar />, isActive('/campaigns'))}
+        {link('/generate/hooks', 'Hook batch', <Icon.Grid />, isActive('/generate/hooks'))}
       </nav>
 
       <div className="rail-section">
