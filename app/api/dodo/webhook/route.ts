@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import DodoPayments from 'dodopayments'
 import { createHmac, timingSafeEqual } from 'crypto'
+import { PACK_CREDITS } from '@/lib/credit-packs'
 
 export const maxDuration = 60
 
@@ -44,13 +45,6 @@ const PLAN_CREDITS: Record<string, number> = {
   enterprise: 25000,
 }
 
-// Credits granted per one-time credit pack
-const PACK_CREDITS: Record<string, number> = {
-  pack_250:  250,
-  pack_500:  500,
-  pack_1500: 1500,
-  pack_5000: 5000,
-}
 
 // Build reverse map: Dodo product ID → pack key (checked at runtime so env vars are resolved)
 function getProductIdToPackKey(): Record<string, string> {

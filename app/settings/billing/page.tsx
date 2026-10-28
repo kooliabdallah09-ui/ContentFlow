@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { getSupabase } from '@/lib/auth'
 
 import { isAdminEmail } from '@/lib/pov-access'
+import { CREDIT_PACKS, packPerCredit } from '@/lib/credit-packs'
 
 interface CreditsInfo {
   balance: number
@@ -224,12 +225,9 @@ export default function BillingPage() {
     },
   ]
 
-  const creditPacks = [
-    { credits: 350,  price: '$8',   perCr: '$0.023/cr', packKey: 'pack_250' },
-    { credits: 700,  price: '$15',  perCr: '$0.021/cr', packKey: 'pack_500' },
-    { credits: 2000, price: '$45',  perCr: '$0.023/cr', packKey: 'pack_1500' },
-    { credits: 6000, price: '$130', perCr: '$0.022/cr', packKey: 'pack_5000' },
-  ]
+  const creditPacks = CREDIT_PACKS.map(p => ({
+    credits: p.credits, price: `$${p.priceUSD}`, perCr: `$${packPerCredit(p).toFixed(3)}/cr`, packKey: p.key,
+  }))
 
   // Used by the recommender — includes Lite so `plans.find(p => p.planKey === 'lite')` works
   const allPlans = [

@@ -30,7 +30,7 @@ ContentFlow generates short-form social media content with AI: UGC videos (Sora 
 - Starter: $19/month, 800cr (~9 Standard 8s or 7 Hero 8s)
 - Pro: $49/month, 2,000cr (~23 Standard 8s)
 - Agency: $149/month, 6,500cr (~77 Standard 8s)
-- Credit packs (no subscription): 500cr/$15, 1,500cr/$40, 5,000cr/$120
+- Credit packs (no subscription): 350cr/$8, 700cr/$15, 2,000cr/$45, 6,000cr/$130
 
 # CUSTOM INSTRUCTIONS FIELD
 Optional textarea on the UGC form. Users can paste their own script ("Use this script: ...") or set tone/audience/constraint ("Make it funny", "Mention 30% off", "Target busy moms"). Influences script, hooks, character pose, B-roll choices, AND Sora prompt.

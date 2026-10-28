@@ -24,13 +24,8 @@ export const PLAN_CREDITS = {
   agency: { monthly: 6500 },
 } as const
 
-// Pay-as-you-go credit packs. Sold on the billing page, no subscription.
-// Per-credit price intentionally above subscription rate to push commit.
-export const CREDIT_PACKS = [
-  { id: 'small',  credits: 500,  priceUSD: 15,  perCredit: 0.030 },
-  { id: 'medium', credits: 1500, priceUSD: 45,  perCredit: 0.030 },
-  { id: 'large',  credits: 5000, priceUSD: 120, perCredit: 0.024 },
-] as const
+// Credit packs live in lib/credit-packs.ts
+export { CREDIT_PACKS } from './credit-packs'
 
 export async function getUserCredits(userId: string) {
   const supabase = getSupabase()

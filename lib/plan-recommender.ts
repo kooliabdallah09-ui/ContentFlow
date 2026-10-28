@@ -105,6 +105,6 @@ export function recommendPlan(opts: {
     planName: 'Agency',
     planPrice: '$149/mo',
     reason: `Your mix needs ~${monthlyCredits.toLocaleString()} credits/month — beyond any plan alone.`,
-    suggestPack: { credits: 5000, price: '$120', reason: 'Top up with a 5,000-credit pack (best per-credit rate).' },
+    suggestPack: { credits: 6000, price: '$130', reason: 'Top up with a 6,000-credit pack (best per-credit rate).' },
   }
 }
