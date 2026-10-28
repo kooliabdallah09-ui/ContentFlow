@@ -32,6 +32,8 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       { source: '/refund', destination: '/refunds', permanent: true },
+      // Comparison pages are paused until their competitor claims are verified
+      { source: '/vs/:path*', destination: '/pricing', permanent: false },
     ]
   },
 };

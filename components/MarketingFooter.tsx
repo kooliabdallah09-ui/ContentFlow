@@ -25,15 +25,6 @@ const COLUMNS: Array<{ heading: string; links: Array<{ label: string; href: stri
     ],
   },
   {
-    heading: 'Compare',
-    links: [
-      { label: 'vs Higgsfield', href: '/vs/higgsfield' },
-      { label: 'vs Arcads', href: '/vs/arcads' },
-      { label: 'vs HeyGen', href: '/vs/heygen' },
-      { label: 'vs Runway', href: '/vs/runway' },
-    ],
-  },
-  {
     heading: 'Legal',
     links: [
       { label: 'Privacy', href: '/privacy' },

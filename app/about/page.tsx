@@ -36,21 +36,6 @@ export default function AboutPage() {
         </p>
       </div>
 
-      <div style={{ marginTop: 56, paddingTop: 32, borderTop: '1px solid var(--border)' }}>
-        <p style={{ fontSize: 13, color: 'var(--ink-dim)', margin: '0 0 16px' }}>See how we compare</p>
-        <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-          {[
-            { label: 'vs Higgsfield', href: '/vs/higgsfield' },
-            { label: 'vs Arcads', href: '/vs/arcads' },
-            { label: 'vs HeyGen', href: '/vs/heygen' },
-            { label: 'vs Runway', href: '/vs/runway' },
-          ].map(({ label, href }) => (
-            <Link key={href} href={href} style={{ fontSize: 13, color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 8, padding: '6px 14px', textDecoration: 'none' }}>
-              {label}
-            </Link>
-          ))}
-        </div>
-      </div>
       </main>
       <MarketingFooter />
     </>
