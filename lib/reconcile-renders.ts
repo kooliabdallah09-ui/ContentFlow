@@ -162,6 +162,39 @@ export async function reconcileRenders(limit = 40, userId?: string): Promise<Rec
 
   if (error) throw new Error(`reconcile query failed: ${error.message}`)
 
+  // Renders that never got a provider job id (the submit failed or the client
+  // vanished first) can't be polled, so they'd sit on "Rendering..." forever.
+  // Fail them once they're clearly dead. Refund only recent ones: anything
+  // older than a day was settled long ago.
+  {
+    const cutoff = new Date(Date.now() - STALE_AFTER_MINUTES * 60_000).toISOString()
+    let q = supabase
+      .from('ugc_content')
+      .select('id, user_id, provider, provider_job_id, storage_url, credit_cost, poll_attempts, created_at, refunded_at')
+      .eq('status', 'generating')
+      .is('provider_job_id', null)
+      .lt('created_at', cutoff)
+    if (userId) q = q.eq('user_id', userId)
+    const { data: orphans } = await q.limit(limit)
+    for (const row of (orphans ?? []) as PendingRow[]) {
+      stats.scanned++
+      try {
+        const ageHours = (Date.now() - new Date(row.created_at).getTime()) / 3_600_000
+        const credited = ageHours < 24 ? await refundOnce(supabase, row, 'render never started') : 0
+        await supabase.from('ugc_content').update({
+          status: 'failed',
+          failure_reason: 'render never started',
+          completed_at: new Date().toISOString(),
+        }).eq('id', row.id)
+        stats.failed++
+        if (credited > 0) { stats.refunded++; stats.refundedCredits += credited }
+      } catch (err) {
+        stats.errors++
+        console.warn('[reconcile] orphan fail', row.id, err instanceof Error ? err.message : err)
+      }
+    }
+  }
+
   for (const row of (rows ?? []) as PendingRow[]) {
     stats.scanned++
     const attempts = (row.poll_attempts ?? 0) + 1

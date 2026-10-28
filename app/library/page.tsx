@@ -79,7 +79,23 @@ export default function LibraryPage() {
   }
 
   useEffect(() => {
-    fetchLibrary()
+    // Settle any render that is still marked "generating" (finished, or dead
+    // and refunded), then load the library so it shows the true state.
+    void (async () => {
+      try {
+        const supabase = getSupabase()
+        const { data: sess } = supabase ? await supabase.auth.getSession() : { data: null }
+        const token = sess?.session?.access_token
+        if (token) {
+          await fetch('/api/ugc/renders/reconcile', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => null)
+        }
+      } finally {
+        fetchLibrary()
+      }
+    })()
   }, [])
 
   useEffect(() => {
