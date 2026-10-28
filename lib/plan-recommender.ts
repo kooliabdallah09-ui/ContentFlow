@@ -38,7 +38,7 @@ export interface Recommendation {
   planName: 'Starter' | 'Pro' | 'Agency'
   planPrice: string
   reason: string
-  suggestPack?: { credits: 500 | 1500 | 5000; price: string; reason: string }
+  suggestPack?: { credits: 350 | 700 | 2000 | 6000; price: string; reason: string }
 }
 
 export function recommendPlan(opts: {
