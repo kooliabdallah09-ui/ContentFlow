@@ -544,7 +544,7 @@ export default function BillingPage() {
           </div>
         ) : (
           <>
-            <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+            <div className="billing-pack-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 12 }}>
               {creditPacks.map((pack) => (
                 <div key={pack.credits} style={{
                   border: '1px solid var(--border)', borderRadius: 8,

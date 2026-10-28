@@ -38,6 +38,14 @@ export async function POST(request: NextRequest) {
     const plan = DODO_PRODUCTS[planKey]
     if (!plan) return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
 
+    // Credit packs are for Starter and above only.
+    if (planKey.startsWith('pack_')) {
+      const { data: row } = await supabase.from('user_credits').select('plan').eq('user_id', userData.user.id).maybeSingle()
+      if (!['starter', 'pro', 'agency', 'enterprise'].includes(row?.plan ?? 'free')) {
+        return NextResponse.json({ error: 'Credit packs are available on Starter and above.' }, { status: 403 })
+      }
+    }
+
     const productId = annual ? plan.annual : plan.monthly
     if (!productId) {
       return NextResponse.json({ error: 'Plan not configured yet — try again soon.' }, { status: 503 })
