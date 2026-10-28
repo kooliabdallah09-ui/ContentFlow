@@ -70,11 +70,11 @@ export default function TermsPage() {
           <li>
             <strong>Subscriptions:</strong> Monthly and annual subscription plans renew automatically. You may cancel at
             any time via the billing portal; cancellation takes effect at the end of the current billing period. Monthly
-            credits do not roll over to the next billing cycle.
+            credits that you do not use roll over and do not expire.
           </li>
           <li>
             <strong>Credit Packs:</strong> One-time credit pack purchases do not expire and do not auto-renew. Credits
-            from packs roll over and persist until used.
+            from packs persist until used.
           </li>
           <li>
             <strong>Payments:</strong> Payments are processed by our merchant of record, Dodo Payments

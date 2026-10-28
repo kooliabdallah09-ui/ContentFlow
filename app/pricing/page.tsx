@@ -270,10 +270,10 @@ function PlanRecommenderPub({ annual }: { annual: boolean }) {
 }
 
 const faqs = [
-  { q: 'Do credits expire?', a: 'Subscription credits roll over for one billing cycle (capped at 2× your monthly grant). Pack credits are valid 12 months from purchase. If you cancel, unused subscription credits stay in your account for 60 days. This is not legal advice; check our refund policy for full terms.' },
+  { q: 'Do credits expire?', a: 'No. Unused credits roll over every month and never expire, including pack credits and credits left after you cancel. Check our refund policy for refund terms.' },
   { q: 'Do I need to label my ads as AI-generated?', a: 'Every creator and video you make here is AI-generated, and ad platforms such as Meta and TikTok require AI-generated ads to be labelled. Add the platform\'s AI disclosure when you publish, and check its current advertising rules before you spend. This is not legal advice.' },
   { q: 'What happens if a render fails?', a: 'Credits for a failed render are refunded automatically, so you only pay for ads you can use.' },
-  { q: 'Can I cancel anytime?', a: 'Yes, from your account settings. You keep access until the end of the billing period. Unused subscription credits stay in your account for 60 days after cancellation; pack credits stay valid until their 12-month window closes.' },
+  { q: 'Can I cancel anytime?', a: 'Yes, from your account settings. You keep access until the end of the billing period. Unused credits stay in your account after you cancel.' },
   { q: 'What languages do you support?', a: 'Voice and captions in 18 languages: English, Spanish, French, German, Italian, Portuguese, Dutch, Polish, Russian, Turkish, Arabic, Hindi, Japanese, Korean, Chinese, Indonesian, Vietnamese and Thai.' },
   { q: 'Do I need to know how to edit video?', a: 'No. Outputs come with voiceover and captions, ready to post in 9:16, 4:5, 1:1 or 16:9. If you want to tweak, our editor is included. No third-party tool required.' },
   { q: 'How many ads can I actually make?', a: `On Pro ($49/mo, 2,000 credits) you can render about ${Math.floor(2000 / UGC5)} UGC ads a month at 5 seconds and 720p vertical, roughly ${Math.round(Math.floor(2000 / UGC5) / 4.3)} a week. A 5-second ad costs about ${UGC5} credits and a 10-second one about ${UGC10}. Draft ads for testing hooks cost about ${DRAFT5}. Longer or higher-resolution ads cost proportionally more. Use the plan recommender for your exact mix.` },
@@ -496,7 +496,7 @@ export default function PricingPage() {
         <section className="pp-section pp-packs">
           <div>
             <h2>Need more credits?</h2>
-            <p>One-off credit top-ups for when you need more than your monthly allowance. Pack credits are valid for 12 months from purchase. Available on Starter and above. Pack sizes and prices are shown in Billing once you&apos;re signed in.</p>
+            <p>One-off credit top-ups for when you need more than your monthly allowance. Pack credits never expire. Available on Starter and above. Pack sizes and prices are shown in Billing once you&apos;re signed in.</p>
           </div>
           <Link href="/settings/billing" className="pp-btn pp-btn-ghost">See credit packs in Billing <span className="arr"><ArrowIcon /></span></Link>
         </section>

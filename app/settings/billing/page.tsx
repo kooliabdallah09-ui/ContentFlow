@@ -617,7 +617,7 @@ export default function BillingPage() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {[
             { q: 'What are credits used for?', a: 'Credits are consumed when you generate content — images, UGC videos, influencer photos, voiceovers, and more. Each type has a fixed credit cost.' },
-            { q: 'Do unused monthly credits roll over?', a: 'Monthly plan credits reset each billing period. One-time pack credits never expire and survive plan changes and renewals.' },
+            { q: 'Do unused monthly credits roll over?', a: 'Yes. Unused credits roll over every month, and no credits expire, including pack credits.' },
             { q: 'Can I change my plan anytime?', a: 'Yes — upgrade or downgrade at any time. Changes take effect immediately.' },
           ].map(({ q, a }) => (
             <div key={q} style={{ paddingBottom: 14, borderBottom: '1px solid var(--border-soft)' }}>
