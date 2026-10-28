@@ -466,6 +466,12 @@ export async function POST(request: NextRequest) {
         tier,
         selectedFrameUrl,
         refinedFrameUrl,
+        // Kept so a draft can be remade in full quality later.
+        engine,
+        resolution,
+        duration: Math.min(60, Math.max(3, Number(duration) || 10)),
+        aspect: typeof aspectRaw === 'string' ? aspectRaw : 'portrait',
+        language: typeof languageRaw === 'string' ? languageRaw : 'English',
         productRefined: !!refinedFrameUrl,
         multiShot: cutawayJobs.length > 0,
         cutawayCount: cutawayJobs.filter(c => c.predictionId).length,

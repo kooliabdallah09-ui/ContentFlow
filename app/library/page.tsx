@@ -6,6 +6,7 @@ import { getSupabase } from '@/lib/auth'
 import { Icon } from '@/components/Icons'
 import { showError, showSuccess } from '@/lib/notifications'
 import Link from 'next/link'
+import { ugcPackageCost } from '@/lib/ugc-pricing'
 
 interface LibraryItem {
   id: string
@@ -40,6 +41,49 @@ export default function LibraryPage() {
   const [previewItem, setPreviewItem] = useState<LibraryItem | null>(null)
   const [campaignName, setCampaignName] = useState<string | null>(null)
   const [campaignAssetIds, setCampaignAssetIds] = useState<Set<string> | null>(null)
+
+  // Remake a Draft ad in full quality, reusing its script and starting frame.
+  const [remaking, setRemaking] = useState<string | null>(null)
+  const remakeFull = async (item: LibraryItem) => {
+    const m = item.metadata ?? {}
+    const duration = Number(m.duration) || 5
+    const cost = ugcPackageCost(duration, m.resolution === '480p' ? '480p' : '720p')
+    if (!window.confirm(`Remake this ad in full quality for ${cost} credits?`)) return
+    setRemaking(item.id)
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: null }
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Please sign in again')
+      const res = await fetch('/api/ugc/animate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          selectedFrameUrl: m.selectedFrameUrl,
+          script: m.script,
+          ugcType: 'image-with-voiceover',
+          duration,
+          productName: m.productName,
+          productDescription: m.productDescription,
+          benefits: m.benefits,
+          callToAction: m.callToAction || 'Shop now',
+          avatarGender: 'Female',
+          language: m.language || 'English',
+          aspect: m.aspect || 'portrait',
+          resolution: m.resolution === '480p' ? '480p' : '720p',
+          engine: 'seedance-2',
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Could not start the full-quality render')
+      showSuccess('Full-quality render started', 'It will appear in your Library when it finishes.')
+      fetchLibrary()
+    } catch (err) {
+      showError('Remake failed', err instanceof Error ? err.message : 'Try again')
+    } finally {
+      setRemaking(null)
+    }
+  }
 
   const fetchLibrary = async () => {
     try {
@@ -370,6 +414,15 @@ export default function LibraryPage() {
                   )}
                 </div>
                 <p className="lib-title">{getVideoTitle(item)}</p>
+                {item.metadata?.engine === 'seedance-mini' && item.metadata?.selectedFrameUrl && item.metadata?.script && (
+                  <button
+                    onClick={e => { e.stopPropagation(); void remakeFull(item) }}
+                    disabled={remaking === item.id}
+                    style={{ marginTop: 8, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-strong)', background: 'var(--bg)', color: 'var(--ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer', opacity: remaking === item.id ? 0.5 : 1 }}
+                  >
+                    {remaking === item.id ? 'Starting…' : `Remake in full quality · ${ugcPackageCost(Number(item.metadata?.duration) || 5, item.metadata?.resolution === '480p' ? '480p' : '720p')} cr`}
+                  </button>
+                )}
                 <p className="lib-meta-row">{new Date(item.created_at).toLocaleDateString()}</p>
               </div>
             </div>
