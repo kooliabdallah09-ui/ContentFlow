@@ -5,6 +5,10 @@ import { getSupabase } from '@/lib/auth'
 
 import { isAdminEmail } from '@/lib/pov-access'
 import { CREDIT_PACKS, packPerCredit } from '@/lib/credit-packs'
+import { ugcPackageCost } from '@/lib/ugc-pricing'
+
+const UGC5 = ugcPackageCost(5, '720p')
+const DRAFT5 = ugcPackageCost(5, '720p', 'seedance-mini')
 
 interface CreditsInfo {
   balance: number
@@ -191,37 +195,33 @@ export default function BillingPage() {
   const currentPlan = creditsInfo?.plan ?? 'free'
   const isAdmin = isAdminEmail(userEmail)
 
+  const ads = (credits: number) => Math.floor(credits / UGC5)
+  const drafts = (credits: number) => Math.floor(credits / DRAFT5)
   const plans = [
     {
       name: 'Free', price: { monthly: '$0', annual: '$0' }, annualTotal: null,
       credits: '0/month · +30 signup',
-      features: ['30 one-time signup credits', '~6 product images', '~3 AI influencer / product photos', 'Try every studio', 'No UGC videos (cheapest is 95cr)'],
+      features: ['30 one-time signup credits', `About ${drafts(30)} draft ad (${DRAFT5} credits), or images and captions`, 'Free captions with every ad', 'No card required'],
       planKey: 'free',
     },
     {
       name: 'Starter', price: { monthly: '$19', annual: '$16' }, annualTotal: '$190/yr',
       credits: '800/month',
-      features: ['~6 UGC videos/mo at 5s · ~4 at 10s', '~8 budget UGC videos (Seedance Mini)', '~160 images · ~100 influencer/product photos', 'AI Influencer Studio & Product Studio', 'No watermark · Video editor · Priority support'],
+      features: [`About ${ads(800)} UGC ads a month (5 s, 720p)`, `About ${drafts(800)} draft ads for testing hooks`, 'Free captions with every ad', 'AI Influencer Studio & Product Studio', 'Video editor · credit packs'],
       planKey: 'starter',
     },
     {
       name: 'Pro', price: { monthly: '$49', annual: '$41' }, annualTotal: '$490/yr',
       credits: '2,000/month',
-      features: ['~16 UGC videos/mo at 5s · ~10 at 10s', '~21 budget UGC videos (Seedance Mini)', '~400 images · ~250 influencer/product photos', 'Everything in Starter', 'Shopify product import'],
+      features: [`About ${ads(2000)} UGC ads a month (5 s, 720p)`, `About ${drafts(2000)} draft ads for testing hooks`, 'Everything in Starter'],
       planKey: 'pro',
       popular: true,
     },
     {
       name: 'Agency', price: { monthly: '$149', annual: '$124' }, annualTotal: '$1,490/yr',
       credits: '6,500/month',
-      features: ['~52 UGC videos/mo at 5s · ~35 at 10s', '~1,300 images · ~800 influencer/product photos', 'Everything in Pro', 'Multiple brand profiles · Dedicated support'],
+      features: [`About ${ads(6500)} UGC ads a month (5 s, 720p)`, `About ${drafts(6500)} draft ads for testing hooks`, 'Everything in Pro'],
       planKey: 'agency',
-    },
-    {
-      name: 'Enterprise', price: { monthly: '$605', annual: '$500' }, annualTotal: '$6,000/yr',
-      credits: '25,000/month',
-      features: ['~200 UGC videos/mo at 5s · ~130 at 10s', '~5,000 images · ~3,000 influencer/product photos', 'Everything in Agency', 'API access · White-label (no ContentFlow branding)', '5 team seats · Priority render queue · Dedicated Slack'],
-      planKey: 'enterprise',
     },
   ]
 
@@ -285,7 +285,7 @@ export default function BillingPage() {
         </div>
         <div style={{ width: 1, height: 44, background: 'var(--border-strong)', marginRight: 28, flexShrink: 0 }} />
         <div>
-          <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginBottom: 4 }}>Reset date</div>
+          <div style={{ fontSize: 10.5, color: 'var(--ink-mute)', marginBottom: 4 }}>Next renewal</div>
           <div style={{ fontSize: 16, fontWeight: 600, color: 'var(--ink)' }}>
             {creditsInfo?.resetDate ? new Date(creditsInfo.resetDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
           </div>
@@ -661,23 +661,20 @@ const DUR_SECS: Record<string, number> = { '5s': 5, '10s': 10, '15s': 15, '30s':
 const CONTENT_TYPES: ContentType[] = [
   {
     key: 'ugc', label: 'UGC Video', sub: 'Talking-head · 9:16', color: '#D97706',
-    crBase: 48,
+    crBase: UGC5,
     opts: [
       { key: 'duration', choices: ['5s', '10s', '15s', '30s'], default: '5s' },
       { key: 'quality',  choices: ['480p', '720p', '1080p', '4K'], default: '720p' },
     ],
-    crMod: (s) => {
-      const perS = s.quality === '4K' ? _SD_PER_S_4K : s.quality === '1080p' ? _SD_PER_S_1080P : s.quality === '480p' ? _SD_PER_S_480P : _SD_PER_S_720P
-      return sdCr(DUR_SECS[s.duration] ?? 5, perS)
-    },
+    crMod: (s) => ugcPackageCost(DUR_SECS[s.duration] ?? 5, (s.quality === '4K' ? '4k' : (s.quality as '480p' | '720p' | '1080p')) ?? '720p'),
   },
   {
     key: 'budget-ugc', label: 'Budget UGC', sub: 'Seedance Mini · 9:16', color: '#7C3AED',
-    crBase: 40,
+    crBase: DRAFT5,
     opts: [
-      { key: 'duration', choices: ['5s', '8s', '10s'], default: '5s' },
+      { key: 'duration', choices: ['5s', '10s'], default: '5s' },
     ],
-    crMod: (s) => s.duration === '10s' ? 72 : s.duration === '8s' ? 60 : 40,
+    crMod: (s) => ugcPackageCost(DUR_SECS[s.duration] ?? 5, '720p', 'seedance-mini'),
   },
   {
     key: 'image', label: 'Product Image', sub: 'AI photo · studio shot', color: '#0EA5E9',
@@ -780,7 +777,6 @@ function PlanRecommender({
 
   function getRecKey(): string {
     if (!selected.length) return ''
-    if (totalCr > PLAN_CAPS.agency) return 'enterprise'
     if (totalCr > PLAN_CAPS.pro) return 'agency'
     if (totalCr > PLAN_CAPS.starter) return 'pro'
     if (totalCr > PLAN_CAPS.lite) return 'starter'
