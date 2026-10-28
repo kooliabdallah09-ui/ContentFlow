@@ -19,7 +19,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Send, Loader2, Package, User2, Sparkles, X, Upload, ZoomIn, Images, Clapperboard, MapPin } from 'lucide-react'
 import { getSupabase } from '@/lib/auth'
 import { showError, showSuccess } from '@/lib/notifications'
-import { ugcPackageCost } from '@/lib/ugc-pricing'
+import { ugcPackageCost, heroFrameCount, isDraft } from '@/lib/ugc-pricing'
 import { UGC_FORMAT_GROUPS, getUgcFormat, isMotionBrollFormat, type CampaignFormat } from '@/lib/campaign-formats'
 import { saveUgcSession, loadUgcSession } from '@/lib/ugc-session'
 
@@ -636,7 +636,7 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
       // savedActorIdOut / influencerIdOut / token — the identity + auth
       // context stays consistent across re-runs.
       const runFramesAndAnimate = async (activeScript: string) => {
-        const framesMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: 'Casting your creator and rendering 4 starting frames…' })
+        const framesMsgId = pushMsg({ role: 'assistant', kind: 'rendering', text: `Casting your creator and rendering ${heroFrameCount(state.engine)} starting ${heroFrameCount(state.engine) === 1 ? 'frame' : 'frames'}…` })
         return _runFramesAndAnimate(activeScript, framesMsgId)
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -667,6 +667,8 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
           // it the frame renders at the legacy 1K size and the video model
           // upscales from a source softer than its own output.
           resolution: state.resolution,
+          // Decides how many frames are made (and billed): 2 for full quality, 1 for draft.
+          engine: state.engine,
         }),
       })
       const framesRaw = await framesRes.text()
@@ -760,14 +762,19 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
         }
       }
 
+      const onlyFrame = frames.length === 1
       patchMsg(framesMsgId, {
         kind: 'frames',
-        text: debugCaption
-          ? `Pick your favourite starting frame — I'll animate it into a full video.\n\n${debugCaption}`
-          : 'Pick your favourite starting frame — I\'ll animate it into a full video.',
+        text: onlyFrame
+          ? 'Draft mode: using this starting frame and animating it now.'
+          : debugCaption
+            ? `Pick your favourite starting frame — I'll animate it into a full video.\n\n${debugCaption}`
+            : 'Pick your favourite starting frame — I\'ll animate it into a full video.',
         frames,
         onPickFrame,
       })
+      // A draft has a single frame, so there is nothing to choose: go straight to the video.
+      if (onlyFrame) void onPickFrame(frames[0].url)
       } // end _runFramesAndAnimate
 
       // PAUSE for user validation. The pipeline used to auto-chain script →
@@ -1063,6 +1070,14 @@ export function UGCBuilderV2({ onGenerate, isLoading, creditBalance }: UGCBuilde
 
         {/* Chip toolbar — always visible, tap to cycle */}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <Chip
+            value="Draft"
+            active={isDraft(state.engine)}
+            title="Draft: a cheap test render (Seedance Mini, 720p, one starting frame). Test your hooks here, then make the winners in full quality."
+            onClick={() => setState(s => isDraft(s.engine)
+              ? { ...s, engine: 'seedance-2', resolution: '720p' }
+              : { ...s, engine: 'seedance-mini', resolution: '720p', duration: Math.min(s.duration, 10) as BuilderState['duration'] })}
+          />
           <Chip
             value={`${state.duration}s`}
             onClick={() => setState(s => ({ ...s, duration: cycle([5, 10, 15, 20, 30], s.duration) as BuilderState['duration'] }))}
@@ -1767,16 +1782,18 @@ function ThinkingIndicator() {
   )
 }
 
-function Chip({ value, onClick }: { value: string; onClick: () => void }) {
+function Chip({ value, onClick, active, title }: { value: string; onClick: () => void; active?: boolean; title?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
+      title={title}
+      aria-pressed={active}
       style={{
         padding: '5px 12px', borderRadius: 4,
-        background: 'var(--surface-2, rgba(0,0,0,0.05))',
-        border: '1px solid var(--border)',
-        fontSize: 12, fontWeight: 600, color: 'var(--ink)',
+        background: active ? 'var(--ink)' : 'var(--surface-2, rgba(0,0,0,0.05))',
+        border: `1px solid ${active ? 'var(--ink)' : 'var(--border)'}`,
+        fontSize: 12, fontWeight: 600, color: active ? 'var(--on-ink)' : 'var(--ink)',
         fontFamily: 'inherit', cursor: 'pointer',
       }}
     >

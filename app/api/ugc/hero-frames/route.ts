@@ -7,13 +7,14 @@ import { buildCharacterPrompt as buildCharacterImagePrompt, shotDirectionFor, SH
 import { inferProductCategory } from '@/lib/multi-shot'
 import { getCampaignFormat } from '@/lib/campaign-formats'
 import { FAST } from '@/lib/ai-models'
+import { heroFrameCount, type UGCEngine } from '@/lib/ugc-pricing'
 
 // Vercel Fluid Compute ceiling — Nano Banana Pro character generation
 // occasionally spikes over 180s under load. 300s is the platform max.
 export const maxDuration = 300
 
-// UGC pipeline — phase A. Generates 4 hero-frame options with Nano Banana in
-// parallel, uploads them all, returns their public URLs so the client can show
+// UGC pipeline — phase A. Generates the hero-frame options (2 for full-quality
+// ads, 1 for draft/Mini ads; see heroFrameCount) with Nano Banana in parallel, uploads them all, returns their public URLs so the client can show
 // the user a picker. No credits deducted here — the video-only cost is charged
 // later at /api/ugc/animate against the frame the user chose.
 export async function POST(request: NextRequest) {
@@ -49,6 +50,7 @@ export async function POST(request: NextRequest) {
       formatKey,            // campaign format key — drives shot-type-aware first frame
       productType,          // 'physical' | 'website' — website = the product image is a landing-page screenshot
       resolution,           // the video's output resolution — the frame is sized to stay ahead of it
+      engine,               // the video engine: decides how many frames to make (and bill)
     } = body as Record<string, unknown>
 
     const safeFormatKey = typeof formatKey === 'string' && formatKey.length > 0 ? formatKey : undefined
@@ -389,9 +391,14 @@ ${directionBlock}
       return { base64: f.imageBase64, mimeType: f.mimeType }
     }
 
-    // Fan out 4 in parallel. Each Nano Banana call uses different noise so
-    // the outputs come back visibly distinct.
-    const settled = await Promise.allSettled([generateOne(), generateOne(), generateOne(), generateOne()])
+    // Fan out in parallel: 2 candidates for full-quality ads, 1 for drafts.
+    // This must match what /api/ugc/animate bills (ugcPackageCost uses the same
+    // heroFrameCount). Each Nano Banana call uses different noise so the
+    // outputs come back visibly distinct.
+    const ENGINES: UGCEngine[] = ['seedance-2', 'seedance-2-5', 'seedance-mini', 'omni-flash']
+    const frameEngine = ENGINES.find(e => e === engine) ?? 'seedance-2'
+    const frameTotal = heroFrameCount(frameEngine)
+    const settled = await Promise.allSettled(Array.from({ length: frameTotal }, () => generateOne()))
     const successes = settled.filter((r): r is PromiseFulfilledResult<{ base64: string; mimeType: string }> => r.status === 'fulfilled')
     if (successes.length === 0) {
       const first = settled.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined

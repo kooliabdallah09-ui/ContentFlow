@@ -24,14 +24,20 @@ const CR_VALUE  = 0.025  // 1 credit = $0.025 USD
 // the user gets a picker (hero-frames, motion-broll-frames and two-person-frames
 // all do this). Pricing counted a single frame, leaving roughly $0.22 of real
 // spend per generation unbilled.
-export const HERO_FRAME_COUNT = 4
+// Starting frames: full-quality ads generate and bill 2 candidates (was 4);
+// the draft tier generates and bills a single frame (no picker).
+export const HERO_FRAME_COUNT = 2
+export const DRAFT_FRAME_COUNT = 1
+// Draft ads (any Seedance Mini render, 720p by default) are a deliberately
+// thin-margin entry price: about 10% over cost instead of the usual 40% on video.
+const MARKUP_DRAFT = 1.1
 
 // Nano Banana Pro bills 1K and 2K identically; 4K is about 1.7x.
 const NB_PRO_4K_MULT = 1.7
 
 // Raw Seedance 2.0 cost per second at portrait 9:16 (actual BytePlus rates)
 const SEEDANCE_RAW_PER_S: Record<UGCResolution, number> = {
-  '480p':  (480  * 854   * 24) / 1024 / 1_000_000 * 5.5,  // ~$0.0529/s (est. $5.50/M)
+  '480p':  (496  * 864   * 24) / 1024 / 1_000_000 * 7.0,  //  $0.0703/s (official: 864x496 at $7.00/M)
   '720p':  (720  * 1280  * 24) / 1024 / 1_000_000 * 7.0,  //  $0.1512/s ($7.00/M)
   '1080p': (1080 * 1920  * 24) / 1024 / 1_000_000 * 7.7,  //  $0.3742/s ($7.70/M)
   '4k':    (2160 * 3840  * 24) / 1024 / 1_000_000 * 4.0,  //  $0.7776/s ($4.00/M)
@@ -62,7 +68,7 @@ const OMNI_FLASH_RAW_PER_S: Record<'720p' | '1080p', number> = {
 
 // Derived cr/s table (for display in the resolution picker)
 export const SEEDANCE_CR_PER_SECOND: Record<UGCResolution, number> = {
-  '480p':  Math.ceil(SEEDANCE_RAW_PER_S['480p']  * MARKUP / CR_VALUE),  // ~3 cr/s
+  '480p':  Math.ceil(SEEDANCE_RAW_PER_S['480p']  * MARKUP / CR_VALUE),  // ~4 cr/s
   '720p':  Math.ceil(SEEDANCE_RAW_PER_S['720p']  * MARKUP / CR_VALUE),  // ~9 cr/s
   '1080p': Math.ceil(SEEDANCE_RAW_PER_S['1080p'] * MARKUP / CR_VALUE),  // ~21 cr/s
   '4k':    Math.ceil(SEEDANCE_RAW_PER_S['4k']    * MARKUP / CR_VALUE),  // ~44 cr/s
@@ -80,14 +86,26 @@ export const SEEDANCE_2_5_CR_PER_SECOND: Record<'480p' | '720p' | '1080p', numbe
   '1080p': Math.ceil(SEEDANCE_2_5_RAW_PER_S['1080p'] * MARKUP / CR_VALUE),  // ~32 cr/s
 }
 
+// The draft tier: any Seedance Mini render (720p by default, 480p allowed).
+// Mini's $3.50/M tokens is confirmed against the official BytePlus calculator
+// (5s: $0.378 at 720p, $0.1758 at 480p).
+export function isDraft(engine: UGCEngine): boolean {
+  return engine === 'seedance-mini'
+}
+
+// How many starting frames a render generates (and is billed for).
+export function heroFrameCount(engine: UGCEngine = 'seedance-2'): number {
+  return isDraft(engine) ? DRAFT_FRAME_COUNT : HERO_FRAME_COUNT
+}
+
 export function ugcPackageCost(
   durationSeconds: number,
   resolution: UGCResolution,
   engine: UGCEngine = 'seedance-2',
-  // How many starting frames this render actually pays for. Defaults to the
-  // picker fan-out; multishot renders one frame per shot and already sums this
-  // per shot, so it passes 1.
-  frameCount: number = HERO_FRAME_COUNT,
+  // How many starting frames this render actually pays for. Defaults to what
+  // the render generates (see heroFrameCount); multishot renders one frame per
+  // shot and already sums this per shot, so it passes 1.
+  frameCount: number = heroFrameCount(engine),
 ): number {
   let rawPerS: number
   // What the video actually renders at, after per-engine caps. Frame cost keys
@@ -118,6 +136,7 @@ export function ugcPackageCost(
   const framesUSD = NB_PRO * Math.max(0, frameCount)
     * (effectiveResolution === '4k' ? NB_PRO_4K_MULT : 1)
 
-  const totalUSD = (rawPerS * durationSeconds + CLAUDE) * MARKUP + framesUSD
+  const markup = isDraft(engine) ? MARKUP_DRAFT : MARKUP
+  const totalUSD = (rawPerS * durationSeconds + CLAUDE) * markup + framesUSD
   return Math.ceil(totalUSD / CR_VALUE)
 }

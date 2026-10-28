@@ -345,11 +345,13 @@ export default function SocialPage() {
   // ── Derived ──
   const IMAGE_COST  = 3
   const includeImage = postType === 'image'
-  const capCost     = CAPTION_COST + (includeImage ? IMAGE_COST : 0)
   const carCost     = slideCount * (carModel === 'nb2' ? CAROUSEL_CREDIT_PER_SLIDE_NB2 : CAROUSEL_CREDIT_PER_SLIDE)
   const isSquare    = false // Only Instagram now (4:5)
 
-  const canCaption  = capTopic.trim().length >= 3 && selPlatforms.length > 0 && balance >= capCost && !capLoading
+  // Caption text is free with every ad (3 per ad, enforced by the server), so only
+  // the optional image needs credits up front. If the free allowance is used up the
+  // server answers 'Insufficient credits' when the balance can't cover the 5 cr.
+  const canCaption  = capTopic.trim().length >= 3 && selPlatforms.length > 0 && balance >= (includeImage ? IMAGE_COST : 0) && !capLoading
   useEffect(() => {
     (async () => {
       try {
@@ -839,7 +841,7 @@ export default function SocialPage() {
       {/* Mode switcher */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 28 }}>
         {([
-          { id: 'caption',  label: 'Caption / Post', desc: 'Platform-native captions + hashtags', cost: `${CAPTION_COST} cr` },
+          { id: 'caption',  label: 'Caption / Post', desc: 'Platform-native captions + hashtags', cost: 'Free with your ads' },
           { id: 'carousel', label: 'Image Carousel',  desc: 'AI-generated image per slide',        cost: `${CAROUSEL_CREDIT_PER_SLIDE} cr / slide` },
         ] as const).map(ct => {
           const active = contentType === ct.id
@@ -1042,8 +1044,8 @@ export default function SocialPage() {
             </button>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12, color: 'var(--ink-mute)', paddingTop: 6, borderTop: '1px solid var(--border-soft)' }}>
-              <span>{capCost} credits · all platforms in one generation</span>
-              <span>Balance: <strong style={{ color: balance >= capCost ? 'var(--good)' : 'var(--danger)' }}>{balance}</strong></span>
+              <span>Free with every ad you make (3 per ad), then {CAPTION_COST} credits{includeImage ? ` · +${IMAGE_COST} credits for the image` : ''} · all platforms in one generation</span>
+              <span>Balance: <strong style={{ color: 'var(--good)' }}>{balance}</strong></span>
             </div>
           </div>
 

@@ -880,6 +880,9 @@ export default function UGCPackageBuilder({ onGenerate, isLoading, creditBalance
             extraProductImages: combinedExtraProductImages.map(i => ({ base64: i.base64, mimeType: i.mimeType })),
             productPhotoAngles,
             formatKey: activeFormatKey,
+            // Engine decides how many starting frames are made (and billed); resolution sizes them.
+            engine,
+            resolution,
           }
       const res = await fetch(endpoint, {
         method: 'POST',

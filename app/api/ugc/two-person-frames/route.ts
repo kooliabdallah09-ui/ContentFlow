@@ -4,6 +4,7 @@ import sharp from 'sharp'
 import { generateNanoBananaImage } from '@/lib/nanobanana'
 import { buildTwoPersonPrompt } from '@/lib/ugc-two-person-prompt'
 import { getCampaignFormat } from '@/lib/campaign-formats'
+import { HERO_FRAME_COUNT } from '@/lib/ugc-pricing'
 import { websiteProductDirection } from '@/lib/ugc-character-prompt'
 
 export const maxDuration = 180
@@ -203,7 +204,8 @@ export async function POST(request: NextRequest) {
       return { base64: f.imageBase64, mimeType: f.mimeType }
     }
 
-    const settled = await Promise.allSettled([generateOne(), generateOne(), generateOne(), generateOne()])
+    // Same number of candidates as the solo path, so what we generate matches what /api/ugc/animate bills.
+    const settled = await Promise.allSettled(Array.from({ length: HERO_FRAME_COUNT }, () => generateOne()))
     const successes = settled.filter((r): r is PromiseFulfilledResult<{ base64: string; mimeType: string }> => r.status === 'fulfilled')
     if (successes.length === 0) {
       const first = settled.find(r => r.status === 'rejected') as PromiseRejectedResult | undefined

@@ -6,6 +6,10 @@ import { loadBrandContext, formatBrandPrompt } from '@/lib/brand-context'
 import { FAST } from '@/lib/ai-models'
 
 const CREDIT_COST = 5
+// Captions cost us cents, so they are free with every ad: 3 free caption sets
+// for each finished ad in the last 30 days. After that, normal price.
+const FREE_PER_AD = 3
+const FREE_WINDOW_DAYS = 30
 
 const PLATFORM_GUIDES: Record<string, string> = {
   instagram: 'Instagram caption (max 2200 chars). Hook in line 1, short punchy paragraphs, end with 5–10 relevant hashtags on a new line.',
@@ -50,6 +54,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'No valid platforms selected' }, { status: 400 })
   }
 
+  const since = new Date(Date.now() - FREE_WINDOW_DAYS * 86_400_000).toISOString()
+  const [{ count: adCount }, { count: freeUsed }] = await Promise.all([
+    supabase.from('ugc_content').select('id', { count: 'exact', head: true })
+      .eq('user_id', userId).in('content_type', ['ugc', 'video']).eq('status', 'completed').gte('created_at', since),
+    supabase.from('ugc_content').select('id', { count: 'exact', head: true })
+      .eq('user_id', userId).eq('content_type', 'social').eq('credit_cost', 0).gte('created_at', since),
+  ])
+  const freeAllowance = (adCount ?? 0) * FREE_PER_AD
+  const isFree = freeAllowance > (freeUsed ?? 0)
+  const cost = isFree ? 0 : CREDIT_COST
+
   let balance = 0
   let packCredits = 0
   {
@@ -71,11 +86,12 @@ export async function POST(request: NextRequest) {
     }
   }
 
-  if (balance < CREDIT_COST) {
-    return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 })
+  if (!isFree) {
+    if (balance < CREDIT_COST) {
+      return NextResponse.json({ error: 'Insufficient credits' }, { status: 402 })
+    }
+    await deductCredits(supabase, userId, CREDIT_COST, balance, packCredits)
   }
-
-  await deductCredits(supabase, userId, CREDIT_COST, balance, packCredits)
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -136,9 +152,15 @@ Return ONLY valid JSON (no markdown fences):
       posts,
       generatedAt: new Date().toISOString(),
     },
-    credit_cost: CREDIT_COST,
+    credit_cost: cost,
     status: 'completed',
   }]).select('id').maybeSingle()
 
-  return NextResponse.json({ id: saved?.id ?? null, posts, creditsUsed: CREDIT_COST })
+  return NextResponse.json({
+    id: saved?.id ?? null,
+    posts,
+    creditsUsed: cost,
+    free: isFree,
+    freeLeft: isFree ? freeAllowance - (freeUsed ?? 0) - 1 : 0,
+  })
 }
