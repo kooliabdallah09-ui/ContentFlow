@@ -7,10 +7,11 @@ import { Logo } from '@/components/Logo'
 import { MarketingHeader } from '@/components/MarketingHeader'
 import { MarketingFooter } from '@/components/MarketingFooter'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
+import { CREDIT_PACKS } from '@/lib/credit-packs'
 
 // ─── Plans ─────────────────────────────────────────────────────────────────
 // Prices and credit allowances mirror lib/credits.ts and the Dodo products.
-// Everything shown about value ($ per credit, $ per ad) is calculated from these.
+// Value shown (ads per plan, which plan has the lowest cost per ad) is calculated from these. Per-ad dollar costs are deliberately NOT shown to users.
 type Plan = {
   name: string
   planKey: string
@@ -51,6 +52,31 @@ function metrics(p: Plan, annual: boolean) {
   return { eff, perCredit, perAd: perCredit * UGC5, ads: Math.floor(p.credits / UGC5) }
 }
 const usd = (n: number, d = 2) => `$${n.toFixed(d)}`
+
+// Packs are for Starter and above (same rule as Billing).
+const PACK_MIN_PLANS = ['starter', 'pro', 'agency']
+
+// Best top-up for what's left of a budget: the pack mix (whole dollars) with the
+// most credits. Unbounded knapsack over the four pack sizes.
+function bestPacks(leftover: number) {
+  const n = Math.max(0, Math.floor(leftover))
+  const best: number[] = new Array(n + 1).fill(0)
+  const pick: number[] = new Array(n + 1).fill(-2) // -2 = same as s-1
+  for (let s = 1; s <= n; s++) {
+    best[s] = best[s - 1]
+    CREDIT_PACKS.forEach((pk, i) => {
+      if (pk.priceUSD <= s && best[s - pk.priceUSD] + pk.credits > best[s]) { best[s] = best[s - pk.priceUSD] + pk.credits; pick[s] = i }
+    })
+  }
+  const counts = CREDIT_PACKS.map(() => 0)
+  let spend = 0
+  for (let s = n; s > 0;) {
+    if (pick[s] === -2) { s--; continue }
+    const pk = CREDIT_PACKS[pick[s]]
+    counts[pick[s]]++; spend += pk.priceUSD; s -= pk.priceUSD
+  }
+  return { credits: best[n], spend, counts }
+}
 const shownPrice = (p: Plan, annual: boolean) => (p.monthly === 0 ? '$0' : `$${Math.round(annual && p.annualTotal ? p.annualTotal / 12 : p.monthly)}`)
 
 type PubCTOption = { key: string; choices: string[]; default: string }
@@ -286,7 +312,6 @@ const faqs = [
 function ValueTable({ annual }: { annual: boolean }) {
   const rows = paidPlans.map(p => ({ p, m: metrics(p, annual) }))
   const best = rows.reduce((a, b) => (b.m.perAd < a.m.perAd ? b : a))
-  const worst = Math.max(...rows.map(r => r.m.perAd))
   // A bigger plan that costs MORE per credit than a smaller one is volume, not a discount.
   const notes: string[] = []
   const bySize = [...rows].sort((a, b) => a.p.credits - b.p.credits)
@@ -299,9 +324,6 @@ function ValueTable({ annual }: { annual: boolean }) {
   }
   const monthlyBest = rows.map(r => ({ ...r, mm: metrics(r.p, false).perAd, ym: metrics(r.p, true).perAd }))
   const yearSave = Math.round((1 - monthlyBest.reduce((s, r) => s + r.ym / r.mm, 0) / monthlyBest.length) * 100)
-  const perCredits = rows.map(r => r.m.perCredit)
-  const draftLow = DRAFT5 * Math.min(...perCredits)
-  const draftHigh = DRAFT5 * Math.max(...perCredits)
   return (
     <div className="pp-card pp-value">
       <div className="pp-card-h">
@@ -309,10 +331,10 @@ function ValueTable({ annual }: { annual: boolean }) {
           <h2>Which plan is the best value?</h2>
           <p>Cost of one 5-second UGC ad ({UGC5} credits), {annual ? 'billed yearly' : 'billed monthly'}.</p>
         </div>
-        <div className="pp-best"><span>Lowest cost per ad</span><b>{best.p.name} · {usd(best.m.perAd)}</b></div>
+        <div className="pp-best"><span>Lowest cost per ad</span><b>{best.p.name}</b></div>
       </div>
       <div className="pp-vt" role="table" aria-label="Plan value comparison">
-        <div className="pp-vt-head" role="row"><span>Plan</span><span>Price</span><span>Credits</span><span>5s ads / month</span><span>$ per credit</span><span>$ per ad</span></div>
+        <div className="pp-vt-head" role="row"><span>Plan</span><span>Price</span><span>Credits</span><span>5s ads / month</span></div>
         {rows.map(({ p, m }) => {
           const isBest = p.planKey === best.p.planKey
           return (
@@ -321,14 +343,12 @@ function ValueTable({ annual }: { annual: boolean }) {
               <span>{usd(m.eff, m.eff % 1 ? 2 : 0)}<small>/mo</small></span>
               <span>{p.credits.toLocaleString()}</span>
               <span>{m.ads}</span>
-              <span className="mono">{m.perCredit.toFixed(4)}</span>
-              <span className="pp-vt-ad"><i style={{ width: `${(m.perAd / worst) * 100}%` }} /><b>{usd(m.perAd)}</b></span>
             </div>
           )
         })}
       </div>
       <ul className="pp-notes">
-        <li>Draft ads for testing hooks (Seedance Mini, 720p) cost {DRAFT5} credits, about {usd(draftLow)} to {usd(draftHigh)} each. Re-make the winners in full quality.</li>
+        <li>Draft ads for testing hooks (Seedance Mini, 720p) cost {DRAFT5} credits each. Re-make the winners in full quality.</li>
         <li>Yearly billing lowers the cost per ad by about {yearSave}% on every plan.</li>
         {notes.map(n => <li key={n}>{n}</li>)}
       </ul>
@@ -342,34 +362,41 @@ function BudgetFinder({ annual }: { annual: boolean }) {
   const rows = paidPlans.map(p => ({ p, m: metrics(p, annual) }))
   const cheapest = Math.min(...rows.map(r => r.m.eff))
   const afford = rows.filter(r => r.m.eff <= budget)
-  const mostAds = afford.length ? afford.reduce((a, b) => (b.p.credits > a.p.credits ? b : a)) : null
   const lowestPerAd = afford.length ? afford.reduce((a, b) => (b.m.perAd < a.m.perAd ? b : a)) : null
-  const same = mostAds && lowestPerAd && mostAds.p.planKey === lowestPerAd.p.planKey
+  // Most ads: every plan that fits, plus packs with whatever is left (Starter+).
+  const combos = afford.map(r => {
+    const top = PACK_MIN_PLANS.includes(r.p.planKey) ? bestPacks(budget - r.m.eff) : { credits: 0, spend: 0, counts: CREDIT_PACKS.map(() => 0) }
+    const credits = r.p.credits + top.credits
+    return { ...r, top, credits, ads: Math.floor(credits / UGC5), spend: r.m.eff + top.spend }
+  })
+  const bestCombo = combos.length ? combos.reduce((a, b) => (b.credits > a.credits || (b.credits === a.credits && b.spend < a.spend) ? b : a)) : null
+  const same = !!bestCombo && !!lowestPerAd && bestCombo.p.planKey === lowestPerAd.p.planKey && bestCombo.top.spend === 0
+  const packText = bestCombo ? CREDIT_PACKS.map((pk, i) => bestCombo.top.counts[i] ? `${bestCombo.top.counts[i] > 1 ? bestCombo.top.counts[i] + ' × ' : ''}${pk.credits.toLocaleString()}-credit pack` : null).filter(Boolean).join(' + ') : ''
   return (
     <div className="pp-card pp-budget">
       <div className="pp-card-h">
         <div>
           <h2>What fits your budget?</h2>
-          <p>Slide to your monthly budget and see which plan gives you the most.</p>
+          <p>Slide to your monthly budget and see which plan, plus credit packs, gives you the most.</p>
         </div>
         <div className="pp-budget-n">{usd(budget, 0)}<small>/mo</small></div>
       </div>
       <input className="pp-range" type="range" min={5} max={160} step={1} value={budget} onChange={e => setBudget(Number(e.target.value))} aria-label="Monthly budget in dollars" />
       <div className="pp-range-scale"><span>$5</span><span>$40</span><span>$80</span><span>$120</span><span>$160</span></div>
-      {!mostAds || !lowestPerAd ? (
+      {!bestCombo || !lowestPerAd ? (
         <div className="pp-none">Paid plans start at {usd(cheapest, cheapest % 1 ? 2 : 0)} a month. The free plan gives you 30 credits to try.</div>
       ) : (
         <div className="pp-results">
           <div className="pp-res">
             <small>{same ? 'Best match' : 'Most ads for your budget'}</small>
-            <b>{mostAds.p.name}</b>
-            <span>{mostAds.m.ads} ads a month · {usd(mostAds.m.eff, mostAds.m.eff % 1 ? 2 : 0)}/mo · {usd(mostAds.m.perAd)} per ad</span>
+            <b>{bestCombo.p.name}{packText && ` + ${packText}`}</b>
+            <span>{bestCombo.ads} ads this month · {usd(bestCombo.spend, bestCombo.spend % 1 ? 2 : 0)} total</span>
           </div>
           {!same && (
             <div className="pp-res">
-              <small>Cheapest per ad within budget</small>
+              <small>Cheapest plan per ad within budget</small>
               <b>{lowestPerAd.p.name}</b>
-              <span>{lowestPerAd.m.ads} ads a month · {usd(lowestPerAd.m.eff, lowestPerAd.m.eff % 1 ? 2 : 0)}/mo · {usd(lowestPerAd.m.perAd)} per ad</span>
+              <span>{lowestPerAd.m.ads} ads a month · {usd(lowestPerAd.m.eff, lowestPerAd.m.eff % 1 ? 2 : 0)}/mo</span>
             </div>
           )}
         </div>
@@ -430,12 +457,7 @@ export default function PricingPage() {
         <header className="pp-hero">
           <div className="pp-eyebrow">The AI ad engine for e-commerce brands</div>
           <h1>Pricing that doesn&apos;t <em>punish testing.</em></h1>
-          <p>One wallet. Every format your store needs. Credits that roll over, and failed renders refund automatically.</p>
-          <div className="pp-pills">
-            <span><CheckIcon /> Credits roll over</span>
-            <span><CheckIcon /> Failed renders refund</span>
-            <span><CheckIcon /> Cancel anytime</span>
-          </div>
+          <p>One wallet for every format your store needs. Credits roll over, failed renders refund automatically, and you can cancel anytime.</p>
           <div className="pp-toggle" role="group" aria-label="Billing period">
             <button className={!annual ? 'on' : ''} onClick={() => setAnnual(false)}>Monthly</button>
             <button className={annual ? 'on' : ''} onClick={() => setAnnual(true)}>Yearly <small>2 months free</small></button>
@@ -461,7 +483,7 @@ export default function PricingPage() {
                 <div className="pp-cr">{plan.monthly === 0 ? '30 credits at signup' : `${plan.credits.toLocaleString()} credits a month`}</div>
                 {annual && plan.monthly > 0 && <div className="pp-bill">billed ${plan.annualTotal.toLocaleString()}/yr</div>}
                 <div className="pp-value-line">
-                  {plan.monthly === 0 ? 'One-time, no card' : <><b>{usd(m.perAd)}</b> per 5s ad · about {m.ads} ads a month</>}
+                  {plan.monthly === 0 ? 'One-time, no card' : <>About <b>{m.ads}</b> ads a month</>}
                 </div>
                 <ul>
                   {plan.features.map(f => <li key={f}><CheckIcon />{f}</li>)}
@@ -474,21 +496,33 @@ export default function PricingPage() {
           })}
         </section>
 
-        <section className="pp-two">
-          <ValueTable annual={annual} />
+        <section className="pp-section pp-narrow">
           <BudgetFinder annual={annual} />
         </section>
 
         <section className="pp-section">
-          <PlanRecommenderPub annual={annual} />
+          <h2 className="pp-h2">Need more credits? Top up anytime.</h2>
+          <div className="pp-packgrid">
+            {CREDIT_PACKS.map(pk => (
+              <div key={pk.key} className="pp-card pp-pack">
+                <div className="pp-pack-c">{pk.credits.toLocaleString()}<small> credits</small></div>
+                <div className="pp-pack-p">{usd(pk.priceUSD, 0)}</div>
+                <div className="pp-pack-m">About {Math.floor(pk.credits / UGC5)} ads</div>
+              </div>
+            ))}
+          </div>
+          <p className="pp-pack-note">One-off packs for when you need more than your monthly allowance. Pack credits never expire. Available on Starter and above. Buy them in <Link href="/settings/billing">Billing</Link>.</p>
         </section>
 
-        <section className="pp-section pp-packs">
-          <div>
-            <h2>Need more credits?</h2>
-            <p>One-off credit top-ups for when you need more than your monthly allowance. Pack credits never expire. Available on Starter and above. Pack sizes and prices are shown in Billing once you&apos;re signed in.</p>
-          </div>
-          <Link href="/settings/billing" className="pp-btn pp-btn-ghost">See credit packs in Billing <span className="arr"><ArrowIcon /></span></Link>
+        <section className="pp-section pp-more">
+          <details>
+            <summary>Compare plans in detail<span className="pm">+</span></summary>
+            <ValueTable annual={annual} />
+          </details>
+          <details>
+            <summary>Estimate by content mix<span className="pm">+</span></summary>
+            <PlanRecommenderPub annual={annual} />
+          </details>
         </section>
 
         <section className="pp-card pp-included">
@@ -506,7 +540,7 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="pp-card pp-fit">
+        <section className="pp-fit">
           <div>
             <div className="pp-eyebrow">Skip us if</div>
             <ul>
@@ -529,14 +563,6 @@ export default function PricingPage() {
           </div>
         </section>
 
-        <section className="pp-card pp-contact">
-          <div>
-            <h3>Higher volume, multiple seats, or white-label?</h3>
-            <p>Custom pricing for real usage, no shelf tier.</p>
-          </div>
-          <a href="mailto:contentflow.web@gmail.com?subject=Custom%20plan%20inquiry" className="pp-btn pp-btn-ghost">Contact us <span className="arr"><ArrowIcon /></span></a>
-        </section>
-
         <section className="pp-cta">
           <h2>Try it on <em>your own product</em></h2>
           <p>Paste a product URL and see a preview ad. No card, no signup.</p>
@@ -544,6 +570,7 @@ export default function PricingPage() {
             <Link href="/try" className="pp-btn pp-btn-light">Try it free <span className="arr"><ArrowIcon /></span></Link>
             <Link href="/auth/signup" className="pp-btn pp-btn-outline">Create free account</Link>
           </div>
+          <p className="pp-cta-contact">Higher volume, multiple seats or white-label? <a href="mailto:contentflow.web@gmail.com?subject=Custom%20plan%20inquiry">Contact us</a> for custom pricing.</p>
         </section>
       </main>
 
@@ -592,7 +619,7 @@ const PRICING_CSS = `
 .pp-toggle small{color:var(--accent);font-weight:500;margin-left:4px}
 .pp-sub{margin-top:12px;font-size:12.5px;color:var(--ink-3)}
 
-.pp-plans{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:40px;align-items:stretch}
+.pp-plans{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:48px;align-items:stretch}
 .pp-plan{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:28px;padding:28px 24px;display:flex;flex-direction:column}
 .pp-plan.dark{background:var(--ink);color:#fff;border-color:var(--ink)}
 .pp-tag{position:absolute;top:18px;right:18px;font-size:11px;padding:4px 10px;border-radius:999px;background:var(--peach);color:var(--ink);font-weight:500;white-space:nowrap}
@@ -605,9 +632,9 @@ const PRICING_CSS = `
 .pp-price s{font-size:16px;color:var(--ink-3);margin-right:2px}
 .pp-cr{font-family:"Geist Mono",monospace;font-size:12px;color:var(--ink-3)}.pp-plan.dark .pp-cr{color:rgba(255,255,255,.6)}
 .pp-bill{font-size:11.5px;color:var(--ink-3);margin-top:2px}.pp-plan.dark .pp-bill{color:rgba(255,255,255,.55)}
-.pp-value-line{margin-top:14px;padding:9px 12px;border-radius:12px;background:var(--sand);font-size:12.5px;color:var(--ink-2);line-height:1.35}
+.pp-value-line{margin-top:14px;padding:0;font-size:12.5px;color:var(--ink-2);line-height:1.35}
 .pp-value-line b{font-family:"Geist Mono",monospace;font-weight:500;color:var(--ink)}
-.pp-plan.dark .pp-value-line{background:rgba(255,255,255,.08);color:rgba(255,255,255,.75)}.pp-plan.dark .pp-value-line b{color:#fff}
+.pp-plan.dark .pp-value-line{color:rgba(255,255,255,.75)}.pp-plan.dark .pp-value-line b{color:#fff}
 .pp-plan ul{list-style:none;margin:20px 0 26px;padding:0;display:grid;gap:10px;font-size:14px}
 .pp-plan li{display:flex;gap:9px;align-items:flex-start;color:var(--ink-2)}.pp-plan.dark li{color:rgba(255,255,255,.82)}
 .pp-plan li svg{margin-top:4px;color:var(--accent);flex-shrink:0}.pp-plan.dark li svg{color:var(--peach)}
@@ -622,7 +649,7 @@ const PRICING_CSS = `
 .pp-best b{font-family:"Geist Mono",monospace;font-weight:500;font-size:14px;color:var(--ink)}
 
 .pp-vt{display:grid;gap:0}
-.pp-vt-head,.pp-vt-row{display:grid;grid-template-columns:1.1fr .9fr .9fr 1fr 1fr 1.5fr;gap:12px;align-items:center;padding:12px 10px;font-size:13.5px}
+.pp-vt-head,.pp-vt-row{display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:12px;align-items:center;padding:12px 10px;font-size:13.5px}
 .pp-vt-head{font-family:"Geist Mono",monospace;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--line);padding-top:0}
 .pp-vt-row{border-bottom:1px solid var(--line)}.pp-vt-row:last-child{border-bottom:0}
 .pp-vt-row.best{background:var(--accent-soft,#F6E4E1);border-radius:14px;border-bottom-color:transparent}
@@ -645,11 +672,29 @@ const PRICING_CSS = `
 .pp-res span{font-size:13px;color:var(--ink-2)}
 .pp-none{margin-top:20px;padding:16px;border-radius:18px;background:var(--sand);font-size:13.5px;color:var(--ink-2)}
 
-.pp-section{margin-top:56px}
+.pp-section{margin-top:96px}
 .pp-h2{font-size:28px;font-weight:400;letter-spacing:-.03em;margin:0 0 22px}
-.pp-packs{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:26px 28px;border:1px dashed var(--line);border-radius:28px}
+
+.pp-narrow{max-width:760px;margin-left:auto;margin-right:auto}
+.pp-more{display:grid;gap:0;max-width:960px;margin-left:auto;margin-right:auto}
+.pp-more details{border-top:1px solid var(--line);padding:18px 0}
+.pp-more details:last-child{border-bottom:1px solid var(--line)}
+.pp-more summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:16px;font-size:18px;font-weight:500;letter-spacing:-.02em}
+.pp-more summary::-webkit-details-marker{display:none}
+.pp-more .pm{color:var(--ink-3);font-size:22px;line-height:1;transition:transform .3s}
+.pp-more details[open] .pm{transform:rotate(45deg)}
+.pp-more details>*:not(summary){margin-top:20px}
+.pp-cta-contact{margin:26px 0 0!important;font-size:14px!important;color:rgba(255,255,255,.6)!important}.pp-cta-contact a{color:#fff;text-decoration:underline}
+.pp-packgrid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.pp-pack{padding:22px 24px}
+.pp-pack-c{font-size:26px;font-weight:500;letter-spacing:-.03em}.pp-pack-c small{font-size:13px;color:var(--ink-3);font-weight:400;letter-spacing:0}
+.pp-pack-p{font-family:"Geist Mono",monospace;font-size:20px;margin-top:6px}
+.pp-pack-m{font-size:13px;color:var(--ink-2);margin-top:8px}
+.pp-pack-note{margin:16px 4px 0;font-size:14px;color:var(--ink-2);max-width:680px}.pp-pack-note a{text-decoration:underline}
+@media (max-width:900px){.pp-packgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.pp-packs-old{display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap;padding:26px 28px;border:1px dashed var(--line);border-radius:28px}
 .pp-packs p{margin:6px 0 0;font-size:14px;color:var(--ink-2);max-width:640px}
-.pp-included{margin-top:56px}
+.pp-included{margin-top:96px;background:none;border:0;padding:0}
 .pp-included p{margin:4px 0 16px;font-size:13.5px;color:var(--ink-3)}
 .pp-included ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
 .pp-included li{display:flex;gap:9px;align-items:flex-start;font-size:14px;color:var(--ink-2)}.pp-included li svg{margin-top:4px;color:var(--accent);flex-shrink:0}
@@ -662,13 +707,13 @@ const PRICING_CSS = `
 .pp-faq details[open] .pm{transform:rotate(45deg)}
 .pp-faq p{margin:10px 0 0;font-size:14px;color:var(--ink-2);line-height:1.6}
 
-.pp-fit{margin-top:56px;display:grid;grid-template-columns:1fr 1fr;gap:40px}
+.pp-fit{margin-top:96px;display:grid;grid-template-columns:1fr 1fr;gap:40px}
 .pp-fit ul{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:9px;font-size:14px;color:var(--ink-3);line-height:1.5}
 .pp-fit ul.strong{color:var(--ink)}
 .pp-contact{margin-top:14px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 .pp-contact h3{margin:0 0 4px;font-size:17px;font-weight:500}.pp-contact p{margin:0;font-size:14px;color:var(--ink-3)}
 
-.pp-cta{margin-top:56px;text-align:center;padding:64px 28px;border-radius:32px;background:var(--ink);color:#fff;background-image:radial-gradient(60% 80% at 50% 0%,rgba(163,35,31,.35),transparent 70%)}
+.pp-cta{margin-top:96px;text-align:center;padding:64px 28px;border-radius:32px;background:var(--ink);color:#fff;background-image:radial-gradient(60% 80% at 50% 0%,rgba(163,35,31,.35),transparent 70%)}
 .pp-cta h2{font-size:clamp(30px,4.5vw,52px);font-weight:400;letter-spacing:-.035em;margin:0 0 12px;line-height:1.1}
 .pp-cta h2 em{color:#F3C9A3}
 .pp-cta p{margin:0 0 28px;color:rgba(255,255,255,.7);font-size:16px}
