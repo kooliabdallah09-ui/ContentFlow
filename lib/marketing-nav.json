@@ -1,0 +1,7 @@
+[
+  { "label": "How it works", "href": "/#how" },
+  { "label": "Features", "href": "/#features" },
+  { "label": "Pricing", "href": "/pricing" },
+  { "label": "Free ad teardown", "href": "/teardown" },
+  { "label": "Docs", "href": "/help" }
+]

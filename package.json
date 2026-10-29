@@ -3,11 +3,12 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "node scripts/build-motion-sandbox.mjs && next dev",
-    "build": "node scripts/build-motion-sandbox.mjs && next build",
+    "dev": "node scripts/sync-landing-nav.mjs && node scripts/build-motion-sandbox.mjs && next dev",
+    "build": "node scripts/sync-landing-nav.mjs && node scripts/build-motion-sandbox.mjs && next build",
     "start": "next start",
     "lint": "eslint",
     "actors:portraits": "node scripts/generate-actor-portraits.mjs",
+    "sync:nav": "node scripts/sync-landing-nav.mjs",
     "build:sandbox": "node scripts/build-motion-sandbox.mjs"
   },
   "dependencies": {

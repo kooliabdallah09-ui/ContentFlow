@@ -5,21 +5,16 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { Menu, X } from 'lucide-react'
 import { Logo } from '@/components/Logo'
+import navList from '@/lib/marketing-nav.json'
 
 // The ONE header for every public page. It mirrors the nav on the static
-// landing (public/lp/index.html), which can't import React: if you change a
-// label, link or style here, change `nav.top` in that file too. Both use the
-// same links, in the same order, with the same pill look.
+// landing (public/lp/index.html), which can't import React. The links live in
+// lib/marketing-nav.json; `npm run sync:nav` (run automatically by dev/build)
+// copies them into the landing. Only the styling is duplicated by hand.
 //
 // Section links use "/#id" so they work from any page; on the landing itself
 // the browser just scrolls.
-export const MARKETING_NAV: Array<{ label: string; href: string }> = [
-  { label: 'How it works', href: '/#how' },
-  { label: 'Features', href: '/#features' },
-  { label: 'Pricing', href: '/pricing' },
-  { label: 'Free ad teardown', href: '/teardown' },
-  { label: 'Docs', href: '/help' },
-]
+export const MARKETING_NAV: Array<{ label: string; href: string }> = navList
 
 export function MarketingHeader() {
   const pathname = usePathname() ?? '/'
