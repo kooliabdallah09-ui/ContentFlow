@@ -12,7 +12,7 @@ export default function TeardownPage() {
   return (
     <>
       <MarketingHeader />
-      <AdTeardown signupNext="/generate/teardown" />
+      <AdTeardown signupNext="/generate/teardown" variant="public" />
       <MarketingFooter />
     </>
   )

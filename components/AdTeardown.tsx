@@ -48,12 +48,16 @@ const FRAME_MAX_EDGE_ANON = 512
 
 const STEPS = ['Sampling frames', 'Reading composition', 'Mapping the beats', 'Writing your prompt'] as const
 
-const ACCENT = '#b91c1c'
+const ACCENT_APP = '#b91c1c'
 
 // Shared by the public /teardown page (marketing chrome) and the in-app
 // /generate/teardown page (app shell). `signupNext` is where a converting
 // anonymous visitor should land after creating an account.
-export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?: string }) {
+export function AdTeardown({ signupNext = '/generate/teardown', variant = 'app' }: { signupNext?: string; variant?: 'app' | 'public' }) {
+  // 'public' = the /teardown marketing page: same look as /pricing (centered
+  // hero, soft pill shapes). 'app' = the in-app tool, unchanged.
+  const pub = variant === 'public'
+  const ACCENT = pub ? '#A3231F' : ACCENT_APP
   const router = useRouter()
   const [signedIn, setSignedIn] = useState<boolean | null>(null)
   const [file, setFile] = useState<File | null>(null)
@@ -295,7 +299,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
             className="td-drop"
             style={{
               position: 'relative', display: 'block', cursor: 'pointer',
-              borderRadius: 8, overflow: 'hidden',
+              borderRadius: pub ? 28 : 8, overflow: 'hidden',
               border: `1.5px dashed ${dragging ? ACCENT : 'var(--border)'}`,
               background: 'var(--surface)',
               transform: dragging ? 'scale(1.01)' : 'none',
@@ -336,12 +340,24 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
                 Nothing uploads until you hit analyze.
               </div>
 
-              <span style={{
-                display: 'inline-block', padding: '12px 26px', borderRadius: 6,
-                background: ACCENT, color: '#fff', fontSize: 14, fontWeight: 600,
-              }}>
-                Choose a video
-              </span>
+              {pub ? (
+                <span style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 10, height: 48, padding: '0 8px 0 22px',
+                  borderRadius: 999, background: 'var(--ink)', color: '#fff', fontSize: 15, fontWeight: 500,
+                }}>
+                  Choose a video
+                  <span style={{ width: 34, height: 34, borderRadius: '50%', background: '#fff', color: 'var(--ink)', display: 'grid', placeItems: 'center' }}>
+                    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                  </span>
+                </span>
+              ) : (
+                <span style={{
+                  display: 'inline-block', padding: '12px 26px', borderRadius: 6,
+                  background: ACCENT, color: '#fff', fontSize: 14, fontWeight: 600,
+                }}>
+                  Choose a video
+                </span>
+              )}
 
               <div style={{
                 marginTop: 30, paddingTop: 22, borderTop: '1px solid var(--border-soft)',
@@ -351,7 +367,7 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
                   <span key={t} style={{
                     fontSize: 11.5, fontFamily: 'var(--font-mono)', letterSpacing: '0.04em',
                     color: 'var(--ink-mute)', border: '1px solid var(--border)',
-                    borderRadius: 4, padding: '5px 12px', background: 'var(--bg)',
+                    borderRadius: pub ? 999 : 4, padding: '5px 12px', background: 'var(--bg)',
                   }}>{t}</span>
                 ))}
               </div>
@@ -779,15 +795,19 @@ export function AdTeardown({ signupNext = '/generate/teardown' }: { signupNext?:
   )
 
   return (
-    <main style={{ maxWidth: 960, margin: '0 auto', padding: '44px 24px 100px' }}>
-      <div style={{ marginBottom: 30 }}>
-        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', color: 'var(--ink-fade)', textTransform: 'uppercase', marginBottom: 12 }}>
-          Free tool / Ad teardown
+    <main style={{ maxWidth: pub ? 1040 : 960, margin: '0 auto', padding: pub ? '56px 24px 100px' : '44px 24px 100px' }}>
+      <div style={{ marginBottom: pub ? 40 : 30, textAlign: pub ? 'center' : undefined }}>
+        <div style={{ fontSize: pub ? 11.5 : 11, fontFamily: 'var(--font-mono)', letterSpacing: pub ? '0.14em' : '0.14em', color: 'var(--ink-fade)', textTransform: 'uppercase', marginBottom: pub ? 0 : 12 }}>
+          {pub ? 'Free tool · Ad teardown' : 'Free tool / Ad teardown'}
         </div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 52, fontWeight: 400, margin: '0 0 12px', letterSpacing: '-0.02em', lineHeight: 1.05 }}>
-          Why does <em style={{ color: ACCENT }}>that</em> ad work?
+        <h1 style={{
+          fontFamily: pub ? 'inherit' : 'var(--font-serif)',
+          fontSize: pub ? 'clamp(40px, 6vw, 72px)' : 52, fontWeight: pub ? 500 : 400,
+          margin: pub ? '16px 0' : '0 0 12px', letterSpacing: pub ? '-0.04em' : '-0.02em', lineHeight: pub ? 1.04 : 1.05,
+        }}>
+          Why does <em style={{ color: pub ? '#A3231F' : ACCENT, fontFamily: 'var(--font-serif)', fontWeight: 400 }}>that</em> ad work?
         </h1>
-        <p style={{ fontSize: 16.5, color: 'var(--ink-dim)', margin: 0, maxWidth: 600, lineHeight: 1.65 }}>
+        <p style={{ fontSize: pub ? 18 : 16.5, color: 'var(--ink-dim)', margin: pub ? '0 auto' : 0, maxWidth: pub ? 600 : 600, lineHeight: pub ? 1.55 : 1.65 }}>
           Drop in any TikTok or Reels ad. We name the hook, map the beat structure, count the cuts,
           read the caption style — then hand you a prompt that rebuilds it for your product.
           {signedIn === false && ' Free, no account needed.'}

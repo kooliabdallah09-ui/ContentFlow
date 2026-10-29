@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { getSupabase } from '@/lib/auth'
 import { Logo } from '@/components/Logo'
+import { MarketingHeader } from '@/components/MarketingHeader'
+import { MarketingFooter } from '@/components/MarketingFooter'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
 
 // ─── Plans ─────────────────────────────────────────────────────────────────
@@ -422,19 +424,7 @@ export default function PricingPage() {
 
   return (
     <div className="pp">
-      <nav className="pp-nav">
-        <Link href="/" className="pp-logo" aria-label="ContentFlow home"><Logo size={26} /><span>Content<em>flow</em></span></Link>
-        <div className="pp-links">
-          <Link href="/#features">Features</Link>
-          <Link href="/teardown">Free ad teardown</Link>
-          <Link href="/pricing" className="on">Pricing</Link>
-          <Link href="/help">Docs</Link>
-        </div>
-        <div className="pp-nav-cta">
-          <Link href="/auth/login" className="pp-signin">Sign in</Link>
-          <Link href="/auth/signup" className="pp-btn pp-btn-dark pp-btn-sm">Start free <span className="arr"><ArrowIcon /></span></Link>
-        </div>
-      </nav>
+      <MarketingHeader />
 
       <main className="pp-wrap">
         <header className="pp-hero">
@@ -557,14 +547,7 @@ export default function PricingPage() {
         </section>
       </main>
 
-      <footer className="pp-footer">
-        <Link href="/" className="pp-logo"><Logo size={22} /><span>Content<em>flow</em></span></Link>
-        <nav>
-          <Link href="/teardown">Free ad teardown</Link><Link href="/help">Docs</Link><Link href="/about">About</Link><Link href="/blog">Blog</Link><Link href="/contact">Contact</Link>
-          <Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/refunds">Refund policy</Link><Link href="/cookies">Cookies</Link>
-        </nav>
-        <span>© 2026 ContentFlow</span>
-      </footer>
+      <MarketingFooter />
 
       <style>{PRICING_CSS}</style>
     </div>
@@ -581,15 +564,8 @@ const PRICING_CSS = `
 .pp .mono{font-family:"Geist Mono",ui-monospace,monospace}
 .pp-wrap{max-width:1240px;margin:0 auto;padding:0 24px 40px}
 
-.pp-nav{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1240px;margin:0 auto;padding:22px 24px}
 .pp-logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:18px;letter-spacing:-.02em}
 .pp-logo em{font-size:21px;color:var(--ink-3);margin-left:1px}
-.pp-links{display:flex;gap:4px;padding:5px;border-radius:999px;background:rgba(26,23,20,.05);border:1px solid var(--line)}
-.pp-links a{font-size:14px;padding:8px 16px;border-radius:999px;color:var(--ink-2)}
-.pp-links a:hover{background:rgba(255,255,255,.8)}
-.pp-links a.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
-.pp-nav-cta{display:flex;align-items:center;gap:14px}
-.pp-signin{font-size:14px;color:var(--ink-2)}
 
 .pp-btn{display:inline-flex;align-items:center;justify-content:space-between;gap:10px;height:48px;padding:0 8px 0 22px;border-radius:999px;font-weight:500;font-size:15px;cursor:pointer;border:0;font-family:inherit;transition:transform .4s cubic-bezier(.22,1,.36,1),background .3s}
 .pp-btn:hover{transform:translateY(-2px)}
@@ -698,13 +674,7 @@ const PRICING_CSS = `
 .pp-cta p{margin:0 0 28px;color:rgba(255,255,255,.7);font-size:16px}
 .pp-cta-row{display:inline-flex;gap:12px;flex-wrap:wrap;justify-content:center}
 
-.pp-footer{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;max-width:1240px;margin:0 auto;padding:28px 24px 40px;color:var(--ink-3);font-size:14px}
-.pp-footer .pp-logo{font-size:16px;color:var(--ink)}
-.pp-footer nav{display:flex;gap:8px 22px;flex-wrap:wrap}
-.pp-footer nav a:hover{color:var(--ink)}
 
 @media (max-width:1180px){.pp-plans{grid-template-columns:repeat(3,minmax(0,1fr))}.pp-two{grid-template-columns:1fr}}
-@media (max-width:860px){.pp-links{display:none}.pp-plans{grid-template-columns:repeat(2,minmax(0,1fr))}.pp-faq{grid-template-columns:1fr}.pp-fit{grid-template-columns:1fr;gap:28px}
-  .pp-vt-head,.pp-vt-row{grid-template-columns:1.1fr .9fr .9fr 1.4fr}.pp-vt-head span:nth-child(3),.pp-vt-row span:nth-child(3),.pp-vt-head span:nth-child(5),.pp-vt-row span:nth-child(5){display:none}}
-@media (max-width:560px){.pp-vt-name em{display:none}.pp-plans{grid-template-columns:1fr}.pp-wrap{padding:0 16px 32px}.pp-nav{padding:16px}.pp-signin{display:none}.pp-card{padding:20px}}
-`
+@media (max-width:860px){  .pp-vt-head,.pp-vt-row{grid-template-columns:1.1fr .9fr .9fr 1.4fr}.pp-vt-head span:nth-child(3),.pp-vt-row span:nth-child(3),.pp-vt-head span:nth-child(5),.pp-vt-row span:nth-child(5){display:none}}
+@media (max-width:560px){.pp-vt-name em{display:none}.pp-plans{grid-template-columns:1fr}.pp-wrap{padding:0 16px 32px}`

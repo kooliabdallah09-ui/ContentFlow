@@ -359,6 +359,9 @@ footer nav a:hover{color:var(--ink)}
 /* ---------- Responsive ---------- */
 @media (max-width:1080px){
   .links{display:none}
+  .menu-btn{display:grid}
+  nav.top.open .links{display:flex;flex-direction:column;position:absolute;top:70px;left:12px;right:12px;padding:8px;border-radius:20px;background:rgba(40,26,18,.72)}
+  nav.top.open .links a{padding:14px 16px;font-size:16px}
   .bento{grid-template-columns:1fr 1fr}
   .b-photo{grid-row:span 2}
   .b-grey{grid-row:auto}
@@ -433,8 +436,9 @@ footer nav a:hover{color:var(--ink)}
       <div class="links">
         <a href="#how">How it works</a>
         <a href="#features">Features</a>
-        <a href="#trends">Watchlist</a>
-        <a href="#pricing">Pricing</a>
+        <a href="/pricing">Pricing</a>
+        <a href="/teardown">Free ad teardown</a>
+        <a href="/help">Docs</a>
       </div>
       <div class="nav-cta">
         <a href="https://contentflow-web.com/auth/login" class="signin">Sign in</a>
