@@ -118,6 +118,10 @@ export async function POST(request: NextRequest) {
   const rawBody = await request.text()
   const headers: Record<string, string> = {}
   request.headers.forEach((v, k) => { headers[k] = v })
+  // Set once a payment event is claimed, so a failure can release it for retry.
+  let claimedEventId: string | null = null
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let claimClient: any = null
 
   try {
     const dodo = new DodoPayments({
@@ -214,6 +218,31 @@ export async function POST(request: NextRequest) {
     }
 
     if (event.type === 'payment.succeeded') {
+      // Idempotency: a retried or replayed delivery carries the same webhook-id
+      // (and the signature check has no timestamp window), so claim the event
+      // before touching credits. Duplicate = already paid out, answer 200.
+      const eventId = (headers['webhook-id'] ?? '').toString()
+      if (eventId) {
+        const { error: claimErr } = await supabase.from('dodo_webhook_events').insert({ event_id: eventId, event_type: event.type })
+        if (claimErr) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const code = (claimErr as any).code as string | undefined
+          if (code === '23505') {
+            console.log(`[dodo/webhook] duplicate payment.succeeded ${eventId}, ignoring`)
+            return NextResponse.json({ ok: true, duplicate: true })
+          }
+          if (code === '42P01' || code === 'PGRST205') {
+            // Migration 022 not run yet. Don't block real payments over it, but shout.
+            console.error('[dodo/webhook] dodo_webhook_events table missing: run migrations/022_dodo_webhook_events.sql. Processing WITHOUT replay protection.')
+          } else {
+            console.error('[dodo/webhook] dedupe insert failed', claimErr)
+            return NextResponse.json({ error: 'dedupe failed' }, { status: 500 })
+          }
+        } else {
+          claimedEventId = eventId
+          claimClient = supabase
+        }
+      }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payment = event.data as any
       const meta = payment.metadata as Record<string, string> | undefined
@@ -275,6 +304,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true })
   } catch (err) {
     console.error('[dodo/webhook] failed:', err)
+    // Release the claim so Dodo's retry can pay out (the credits were not granted).
+    if (claimedEventId && claimClient) {
+      await claimClient.from('dodo_webhook_events').delete().eq('event_id', claimedEventId)
+    }
     return NextResponse.json({ error: 'Webhook handling failed' }, { status: 400 })
   }
 }

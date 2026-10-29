@@ -3,6 +3,7 @@ import { initializeUserCredits } from '@/lib/credits'
 import { sendWelcomeEmail } from '@/lib/email'
 import { NextRequest } from 'next/server'
 import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
+import { isAdminEmail } from '@/lib/pov-access'
 
 // Seed source: whichever admin owns the canonical Sloane Mercer record.
 // Overridable via env for staging / test environments.
@@ -75,6 +76,14 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'Invalid email address' }, { status: 400 })
     }
 
+    // Signups here are auto-confirmed (no email check), and admin rights are
+    // granted by address. So an admin address must never be registrable by a
+    // stranger: admin accounts are created from the Supabase dashboard / Google
+    // sign-in only. Same message as a taken email, so this leaks nothing.
+    if (isAdminEmail(email)) {
+      return Response.json({ error: 'This email is already registered. Try signing in.' }, { status: 400 })
+    }
+
     if (typeof password !== 'string' || password.length < 8) {
       return Response.json({ error: 'Password must be at least 8 characters' }, { status: 400 })
     }
@@ -105,7 +114,9 @@ export async function POST(request: NextRequest) {
     })
 
     if (authError) {
-      return Response.json({ error: authError.message }, { status: 400 })
+      console.error('[signup] createUser failed:', authError.message)
+      const taken = /already|registered|exists/i.test(authError.message)
+      return Response.json({ error: taken ? 'This email is already registered. Try signing in.' : 'Could not create the account. Please try again.' }, { status: 400 })
     }
 
     if (!authData.user) {
