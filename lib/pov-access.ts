@@ -2,9 +2,10 @@
 // can enable features independently (POV first, then scheduling, then chat).
 
 // Admin list is driven by the ADMIN_EMAILS env var (comma-separated).
-// Fallback covers the founding team until the env var is set in every env.
+// Fallback is the one real admin account. Never list an address that has no
+// account: signups are auto-confirmed, so a stranger could register it.
 const ADMIN_EMAILS = new Set<string>(
-  (process.env.ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? 'abdallah.kooli@icloud.com,abdallah@icloud.com,kooliabdallah09@gmail.com')
+  (process.env.ADMIN_EMAILS ?? process.env.NEXT_PUBLIC_ADMIN_EMAILS ?? 'abdallah.kooli@icloud.com')
     .split(',')
     .map(e => e.trim().toLowerCase())
     .filter(Boolean),
