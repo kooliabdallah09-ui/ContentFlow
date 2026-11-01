@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { revokeToken } from '@/lib/integrations/tiktok'
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,6 +21,13 @@ export async function POST(request: NextRequest) {
 
     const { platform } = await request.json()
     if (!platform) return NextResponse.json({ error: 'Missing platform' }, { status: 400 })
+
+    // Revoke TikTok's token too, so the app really loses access.
+    if (platform === 'tiktok') {
+      const { data: row } = await supabase.from('integrations').select('access_token')
+        .eq('user_id', userData.user.id).eq('platform', 'tiktok').maybeSingle()
+      if (row?.access_token) await revokeToken(row.access_token)
+    }
 
     const { error } = await supabase
       .from('integrations')

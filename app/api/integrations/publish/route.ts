@@ -3,7 +3,6 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { initializeTwitterPublisher } from '@/lib/integrations/twitter'
 import { publishToInstagram, publishToFacebook } from '@/lib/integrations/instagram'
-import { publishToTikTok, refreshTikTokToken } from '@/lib/integrations/tiktok'
 import { initializeWordPressPublisher } from '@/lib/integrations/wordpress'
 import { createClient } from '@supabase/supabase-js'
 
@@ -123,26 +122,8 @@ export async function POST(request: NextRequest) {
 
     // --- TIKTOK ---
     else if (platform === 'tiktok') {
-      if (!videoUrl) {
-        return NextResponse.json(
-          { error: 'TikTok requires a video. Generate one first.' },
-          { status: 400 }
-        )
-      }
-      if (integration.refresh_token) {
-        try {
-          accessToken = await refreshTikTokToken(integration.refresh_token)
-          await supabase.from('integrations')
-            .update({ access_token: accessToken })
-            .eq('id', integration.id)
-        } catch {}
-      }
-      const result = await publishToTikTok({
-        accessToken,
-        videoUrl,
-        title: caption,
-      })
-      publishedId = result.postId
+      // TikTok has its own flow with the consent screen TikTok requires: /api/tiktok/post
+      return NextResponse.json({ error: 'Use Post to TikTok in the Library.' }, { status: 400 })
     }
 
     // --- WORDPRESS ---

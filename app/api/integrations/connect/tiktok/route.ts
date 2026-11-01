@@ -1,23 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
+import { newOAuthState, setStateCookie, userFromBearer } from '@/lib/oauth-state'
+import { tiktokAuthorizeUrl } from '@/lib/integrations/tiktok'
 
-export async function GET(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get('userId') || ''
-  const clientKey = process.env.TIKTOK_CLIENT_KEY
-  const base = process.env.NEXT_PUBLIC_APP_URL
-  if (!clientKey) return NextResponse.redirect(`${base}/settings/integrations?error=tiktok_not_configured`)
-
-  const nonce = crypto.randomBytes(16).toString('hex')
-  const statePayload = Buffer.from(JSON.stringify({ nonce, userId })).toString('base64url')
-  const redirectUri = `${base}/api/integrations/callback/tiktok`
-
-  const url = `https://www.tiktok.com/v2/auth/authorize/?${new URLSearchParams({
-    client_key: clientKey,
-    response_type: 'code',
-    scope: 'user.info.basic,video.upload',
-    redirect_uri: redirectUri,
-    state: statePayload,
-  })}`
-
-  return NextResponse.redirect(url)
+// Signed-in users only: returns the TikTok authorize URL and sets the state
+// cookie. The page then navigates to the URL.
+export async function POST(req: NextRequest) {
+  const userId = await userFromBearer(req)
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!process.env.TIKTOK_CLIENT_KEY || !process.env.TIKTOK_CLIENT_SECRET) {
+    return NextResponse.json({ error: 'TikTok is not configured yet.' }, { status: 503 })
+  }
+  const { state, nonce } = newOAuthState(userId, 'tiktok')
+  const res = NextResponse.json({ url: tiktokAuthorizeUrl(state) })
+  setStateCookie(res, 'tiktok', nonce)
+  return res
 }

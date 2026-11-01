@@ -1,63 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { clearOAuthState, verifyOAuthState } from '@/lib/oauth-state'
+import { adminDb, appUrl, exchangeCode, fetchTikTokUser, saveTikTokTokens } from '@/lib/integrations/tiktok'
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = new URL(request.url)
-  const code = searchParams.get('code')
-  const statePayload = searchParams.get('state')
-  const error = searchParams.get('error')
-  const base = process.env.NEXT_PUBLIC_APP_URL
-
-  if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
-  if (!code || !statePayload) return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
-
-  let userId: string
-  try {
-    const decoded = JSON.parse(Buffer.from(statePayload, 'base64url').toString('utf8'))
-    userId = decoded.userId
-  } catch {
-    return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
+export async function GET(req: NextRequest) {
+  const back = (q: string) => {
+    const res = NextResponse.redirect(`${appUrl()}/settings/integrations?${q}`)
+    clearOAuthState(res, 'tiktok')
+    return res
   }
-  if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=not_authenticated`)
+  const sp = req.nextUrl.searchParams
+  if (sp.get('error')) return back('error=tiktok_denied')
+  const code = sp.get('code')
+  const userId = verifyOAuthState(req, sp.get('state'), 'tiktok')
+  if (!code) return back('error=missing_params')
+  if (!userId) return back('error=invalid_state')
 
   try {
-    const redirectUri = `${base}/api/integrations/callback/tiktok`
-    const tokenRes = await fetch('https://open.tiktokapis.com/v2/oauth/token/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        client_key: process.env.TIKTOK_CLIENT_KEY!,
-        client_secret: process.env.TIKTOK_CLIENT_SECRET!,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-      }),
-    })
-    const tokenData = await tokenRes.json()
-    const token = tokenData.data ?? tokenData
-    if (!token.access_token) throw new Error(`No access token: ${JSON.stringify(tokenData)}`)
-
-    const userRes = await fetch('https://open.tiktokapis.com/v2/user/info/?fields=display_name,avatar_url', {
-      headers: { Authorization: `Bearer ${token.access_token}` },
-    })
-    const userData = await userRes.json()
-    const displayName = userData.data?.user?.display_name || token.open_id
-
-    const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
-    await supabase.from('integrations').upsert({
-      user_id: userId,
-      platform: 'tiktok',
-      account_id: token.open_id,
-      account_name: displayName,
-      access_token: token.access_token,
-      refresh_token: token.refresh_token || null,
-      is_connected: true,
-      connected_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,platform' })
-
-    return NextResponse.redirect(`${base}/settings/integrations?success=tiktok`)
+    const tokens = await exchangeCode(code)
+    const scopes = tokens.scope?.split(',') ?? []
+    if (!scopes.includes('video.publish')) return back('error=tiktok_missing_permission')
+    const profile = await fetchTikTokUser(tokens.access_token)
+    await saveTikTokTokens(adminDb(), userId, tokens, profile)
+    return back('success=tiktok')
   } catch (err) {
-    console.error('TikTok callback error:', err)
-    return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)
+    console.error('[tiktok/callback]', err instanceof Error ? err.message : err)
+    return back('error=callback_error')
   }
 }

@@ -7,6 +7,7 @@ import { Icon } from '@/components/Icons'
 import { showError, showSuccess } from '@/lib/notifications'
 import Link from 'next/link'
 import { ugcPackageCost } from '@/lib/ugc-pricing'
+import { TikTokPostModal } from '@/components/TikTokPostModal'
 
 interface LibraryItem {
   id: string
@@ -35,6 +36,7 @@ export default function LibraryPage() {
   const searchParams = useSearchParams()
   const campaignId = searchParams?.get('campaign') ?? null
   const [items, setItems] = useState<LibraryItem[]>([])
+  const [tiktokItem, setTiktokItem] = useState<LibraryItem | null>(null)
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set())
@@ -423,12 +425,20 @@ export default function LibraryPage() {
                     {remaking === item.id ? 'Starting…' : `Remake in full quality · ${ugcPackageCost(Number(item.metadata?.duration) || 5, item.metadata?.resolution === '480p' ? '480p' : '720p')} cr`}
                   </button>
                 )}
+                <button
+                  onClick={e => { e.stopPropagation(); setTiktokItem(item) }}
+                  style={{ marginTop: 8, padding: '6px 10px', borderRadius: 999, border: 0, background: 'var(--ink)', color: 'var(--on-ink)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+                >
+                  Post to TikTok
+                </button>
                 <p className="lib-meta-row">{new Date(item.created_at).toLocaleDateString()}</p>
               </div>
             </div>
           ))}
         </div>
       )}
+
+      {tiktokItem && <TikTokPostModal item={tiktokItem} onClose={() => setTiktokItem(null)} />}
 
       {previewItem && (
         <div
@@ -477,6 +487,13 @@ export default function LibraryPage() {
                 >
                   Edit in Editor
                 </Link>
+                <button
+                  onClick={() => { setTiktokItem(previewItem); setPreviewItem(null) }}
+                  className="btn btn-ghost"
+                  style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                >
+                  Post to TikTok
+                </button>
                 <button
                   onClick={() => handleDelete(previewItem.id)}
                   className="btn btn-ghost"

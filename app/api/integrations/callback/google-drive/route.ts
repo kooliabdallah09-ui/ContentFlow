@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { clearOAuthState, verifyOAuthState } from '@/lib/oauth-state'
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
@@ -11,14 +12,8 @@ export async function GET(request: NextRequest) {
   if (error) return NextResponse.redirect(`${base}/settings/integrations?error=${error}`)
   if (!code || !statePayload) return NextResponse.redirect(`${base}/settings/integrations?error=missing_params`)
 
-  let userId: string
-  try {
-    const decoded = JSON.parse(Buffer.from(statePayload, 'base64url').toString('utf8'))
-    userId = decoded.userId
-  } catch {
-    return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
-  }
-  if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=not_authenticated`)
+  const userId = verifyOAuthState(request, statePayload, 'google-drive')
+  if (!userId) return NextResponse.redirect(`${base}/settings/integrations?error=invalid_state`)
 
   try {
     const redirectUri = `${base}/api/integrations/callback/google-drive`
@@ -53,7 +48,9 @@ export async function GET(request: NextRequest) {
       connected_at: new Date().toISOString(),
     }, { onConflict: 'user_id,platform' })
 
-    return NextResponse.redirect(`${base}/settings/integrations?success=google-drive`)
+    const ok = NextResponse.redirect(`${base}/settings/integrations?success=google-drive`)
+    clearOAuthState(ok, 'google-drive')
+    return ok
   } catch (err) {
     console.error('[google-drive callback]', err)
     return NextResponse.redirect(`${base}/settings/integrations?error=callback_error`)

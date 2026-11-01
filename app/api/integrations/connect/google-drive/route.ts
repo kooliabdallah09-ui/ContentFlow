@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import crypto from 'crypto'
+import { newOAuthState, setStateCookie, userFromBearer } from '@/lib/oauth-state'
 
-export async function GET(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get('userId') || ''
+// Signed-in users only: returns the Google authorize URL and sets the state
+// cookie (see lib/oauth-state.ts). The page then navigates to the URL.
+export async function POST(request: NextRequest) {
+  const userId = await userFromBearer(request)
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const clientId = process.env.GOOGLE_CLIENT_ID
   const base = process.env.NEXT_PUBLIC_APP_URL
-  if (!clientId) return NextResponse.redirect(`${base}/settings/integrations?error=drive_not_configured`)
+  if (!clientId) return NextResponse.json({ error: 'Google Drive is not configured.' }, { status: 503 })
 
-  const nonce = crypto.randomBytes(16).toString('hex')
-  const statePayload = Buffer.from(JSON.stringify({ nonce, userId })).toString('base64url')
+  const { state, nonce } = newOAuthState(userId, 'google-drive')
   const redirectUri = `${base}/api/integrations/callback/google-drive`
 
   const url = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
@@ -18,9 +20,11 @@ export async function GET(request: NextRequest) {
     // drive.file — only access files created by ContentFlow (least-privilege)
     scope: 'https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.profile',
     access_type: 'offline',
-    state: statePayload,
+    state,
     prompt: 'consent',
   })}`
 
-  return NextResponse.redirect(url)
+  const res = NextResponse.json({ url })
+  setStateCookie(res, 'google-drive', nonce)
+  return res
 }

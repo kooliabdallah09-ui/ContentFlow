@@ -74,7 +74,6 @@ const LOGOS: Record<string, React.ReactNode> = {
 
 export default function IntegrationsPage() {
   const [integrations, setIntegrations] = useState<Record<string, Integration>>({})
-  const [userId, setUserId] = useState('')
   const [loading, setLoading] = useState(true)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
 
@@ -85,7 +84,6 @@ export default function IntegrationsPage() {
 
       const { data: { session } } = await supabase.auth.getSession()
       if (!session?.user) { setLoading(false); return }
-      setUserId(session.user.id)
 
       const { data } = await supabase
         .from('integrations')
@@ -102,11 +100,17 @@ export default function IntegrationsPage() {
       const success = params.get('success')
       const error = params.get('error')
       if (success) {
-        showSuccess(success === 'google-drive' ? 'Google Drive connected' : 'Connected successfully')
+        showSuccess(success === 'google-drive' ? 'Google Drive connected' : success === 'tiktok' ? 'TikTok connected' : 'Connected successfully')
         window.history.replaceState({}, '', window.location.pathname)
       }
       if (error) {
-        showError(`Connection failed: ${error}`)
+        const messages: Record<string, string> = {
+          invalid_state: 'The connection link expired or was opened in another browser. Try again.',
+          tiktok_denied: 'TikTok access was not granted.',
+          tiktok_missing_permission: 'Please allow posting to TikTok when connecting.',
+          callback_error: 'Something went wrong while connecting. Try again.',
+        }
+        showError(messages[error] ?? `Connection failed: ${error}`)
         window.history.replaceState({}, '', window.location.pathname)
       }
 
@@ -114,6 +118,23 @@ export default function IntegrationsPage() {
     }
     load()
   }, [])
+
+  // Connect routes need the session (they sign the OAuth state for this user),
+  // so ask for the authorize URL first, then go there.
+  async function connect(platform: string) {
+    try {
+      const supabase = getSupabase()
+      const { data: sess } = supabase ? await supabase.auth.getSession() : { data: null }
+      const token = sess?.session?.access_token
+      if (!token) throw new Error('Sign in again to connect.')
+      const res = await fetch(`/api/integrations/connect/${platform}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok || !json.url) throw new Error(json.error || 'Could not start the connection.')
+      window.location.href = json.url
+    } catch (e) {
+      showError(e instanceof Error ? e.message : 'Could not start the connection.')
+    }
+  }
 
   async function disconnect(platform: string) {
     setDisconnecting(platform)
@@ -171,12 +192,23 @@ export default function IntegrationsPage() {
           accountName={integrations['google-drive']?.account_name}
           connectedAt={integrations['google-drive']?.connected_at}
           disconnecting={disconnecting === 'google-drive'}
-          onConnect={() => { window.location.href = `/api/integrations/connect/google-drive?userId=${userId}` }}
+          onConnect={() => connect('google-drive')}
           onDisconnect={() => disconnect('google-drive')}
         />
 
+        <IntegrationCard
+          platformKey="tiktok"
+          title="TikTok"
+          description="Post your finished videos straight to your TikTok account from the Library."
+          connected={!!integrations['tiktok']}
+          accountName={integrations['tiktok']?.account_name}
+          connectedAt={integrations['tiktok']?.connected_at}
+          disconnecting={disconnecting === 'tiktok'}
+          onConnect={() => connect('tiktok')}
+          onDisconnect={() => disconnect('tiktok')}
+        />
+
         {([
-          { key: 'tiktok', title: 'TikTok', desc: 'Publish and schedule content directly to TikTok.' },
           { key: 'instagram', title: 'Instagram', desc: 'Publish Reels and posts directly to your Instagram account.' },
           { key: 'facebook', title: 'Facebook', desc: 'Post videos and content directly to your Facebook page.' },
         ] as const).map(({ key, title, desc }) => (
