@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimit, getClientIp, formatRetryAfter } from '@/lib/rate-limit'
 
 export const maxDuration = 30
 
@@ -12,6 +13,15 @@ export const maxDuration = 30
 // type path can drop straight into the existing pipeline with no new
 // plumbing downstream.
 export async function POST(request: NextRequest) {
+  // Each call costs a Microlink request, so cap it per IP.
+  const limit = await checkRateLimit('screenshot', getClientIp(request), 30, 60 * 60 * 1000)
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: `Too many screenshots. Try again in ${formatRetryAfter(limit.retryAfterSeconds)}.` },
+      { status: 429 },
+    )
+  }
+
   try {
     const body = await request.json().catch(() => ({}))
     const rawUrl = typeof body?.url === 'string' ? body.url.trim() : ''
@@ -97,7 +107,7 @@ export async function POST(request: NextRequest) {
       sourceUrl: normalised,
     })
   } catch (err) {
-    const msg = err instanceof Error ? err.message : 'Screenshot failed'
-    return NextResponse.json({ error: msg }, { status: 500 })
+    console.error('[screenshot]', err)
+    return NextResponse.json({ error: 'Screenshot failed. Try again or use a different URL.' }, { status: 500 })
   }
 }

@@ -146,8 +146,9 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
+    console.error('[signup] unexpected error:', error)
     return Response.json(
-      { error: error instanceof Error ? error.message : 'Signup failed' },
+      { error: 'Could not create the account. Please try again.' },
       { status: 500 }
     )
   }

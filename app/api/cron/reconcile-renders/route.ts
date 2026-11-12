@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { timingSafeEqual } from 'crypto'
 import { reconcileRenders } from '@/lib/reconcile-renders'
 
 // Optional backstop. Finishes renders whose browser navigated away
@@ -14,18 +15,20 @@ import { reconcileRenders } from '@/lib/reconcile-renders'
 // On Pro, add this back for renders that finish with nobody watching:
 //   { "path": "/api/cron/reconcile-renders", "schedule": "* * * * *" }
 //
-// Auth: Vercel Cron sends `Authorization: Bearer $CRON_SECRET` when CRON_SECRET
-// is set in the project env. Any other caller must present the same secret.
+// Auth: Vercel Cron sends `Authorization: Bearer $CRON_SECRET`. Any other
+// caller must present the same secret. Fails closed if CRON_SECRET is unset.
 
 export const maxDuration = 300
 
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET
-  if (secret) {
-    const auth = request.headers.get('authorization') ?? ''
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
+  if (!secret) {
+    return NextResponse.json({ error: 'Cron not configured' }, { status: 500 })
+  }
+  const auth = Buffer.from(request.headers.get('authorization') ?? '')
+  const expected = Buffer.from(`Bearer ${secret}`)
+  if (auth.length !== expected.length || !timingSafeEqual(auth, expected)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   try {

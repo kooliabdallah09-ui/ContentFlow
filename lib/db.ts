@@ -1,32 +1,5 @@
 import { getSupabase } from './auth'
 
-export async function saveContent(
-  contentType: string,
-  title: string,
-  body: string,
-  metadata: any = {}
-) {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not initialized')
-
-  const { data: user } = await supabase.auth.getUser()
-  if (!user.user) throw new Error('User not authenticated')
-
-  const { data, error } = await supabase
-    .from('content')
-    .insert({
-      user_id: user.user.id,
-      content_type: contentType,
-      title,
-      body,
-      metadata,
-    })
-    .select()
-
-  if (error) throw error
-  return data?.[0]
-}
-
 export async function getUserContent(contentType?: string) {
   const supabase = getSupabase()
   if (!supabase) throw new Error('Supabase not initialized')
@@ -48,30 +21,6 @@ export async function getUserContent(contentType?: string) {
 
   if (error) throw error
   return data || []
-}
-
-export async function updateContent(
-  contentId: string,
-  title: string,
-  body: string,
-  metadata: any = {}
-) {
-  const supabase = getSupabase()
-  if (!supabase) throw new Error('Supabase not initialized')
-
-  const { data, error } = await supabase
-    .from('content')
-    .update({
-      title,
-      body,
-      metadata,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('id', contentId)
-    .select()
-
-  if (error) throw error
-  return data?.[0]
 }
 
 export async function deleteContent(contentId: string) {

@@ -8,31 +8,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sanitizeUserPrompt } from '@/lib/sanitize-prompt'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const maxDuration = 15
 
-// Very simple in-memory rate limit: 3 reports per IP per hour.
-// Good enough to stop a script from spamming; real abuse rides through anyway
-// (we want the report), but a queue in front of it wouldn't hurt long-term.
-const attempts = new Map<string, { count: number; resetAt: number }>()
-const RATE_LIMIT = 3
-const RATE_WINDOW_MS = 60 * 60 * 1000
-
-function ipFromRequest(req: NextRequest): string {
-  return (req.headers.get('x-forwarded-for') ?? 'unknown').split(',')[0].trim()
-}
-
 export async function POST(request: NextRequest) {
-  const ip = ipFromRequest(request)
-  const now = Date.now()
-  const entry = attempts.get(ip)
-  if (entry && entry.resetAt > now) {
-    if (entry.count >= RATE_LIMIT) {
-      return NextResponse.json({ error: 'Too many reports. Try again in an hour.' }, { status: 429 })
-    }
-    entry.count += 1
-  } else {
-    attempts.set(ip, { count: 1, resetAt: now + RATE_WINDOW_MS })
+  // 3 reports per IP per hour, shared across all server instances.
+  const ip = getClientIp(request)
+  const limit = await checkRateLimit('abuse-report', ip, 3, 60 * 60 * 1000)
+  if (!limit.ok) {
+    return NextResponse.json({ error: 'Too many reports. Try again in an hour.' }, { status: 429 })
   }
 
   try {

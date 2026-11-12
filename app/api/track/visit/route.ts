@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
+import { checkRateLimit, getClientIp } from '@/lib/rate-limit'
 
 export const runtime = 'nodejs'
 
@@ -40,6 +41,10 @@ export async function POST(request: NextRequest) {
     if (!ua || BOT_UA_RE.test(ua)) {
       return new NextResponse(null, { status: 204 })
     }
+
+    // Drop floods quietly: a real visitor never loads 60 pages a minute.
+    const limit = await checkRateLimit('track-visit', getClientIp(request), 60, 60 * 1000)
+    if (!limit.ok) return new NextResponse(null, { status: 204 })
 
     const body = await request.json().catch(() => ({}))
     const path = typeof body?.path === 'string' ? body.path.slice(0, 500) : null

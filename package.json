@@ -9,7 +9,8 @@
     "lint": "eslint",
     "actors:portraits": "node scripts/generate-actor-portraits.mjs",
     "sync:nav": "node scripts/sync-landing-nav.mjs",
-    "build:sandbox": "node scripts/build-motion-sandbox.mjs"
+    "build:sandbox": "node scripts/build-motion-sandbox.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.91.1",
@@ -17,7 +18,7 @@
     "@remotion/media": "4.0.529",
     "@remotion/player": "4.0.529",
     "@remotion/web-renderer": "4.0.529",
-    "@sentry/nextjs": "^10.70.0",
+    "@sentry/nextjs": "^10.78.0",
     "@stripe/stripe-js": "^9.8.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
@@ -28,8 +29,7 @@
     "html2canvas": "^1.4.1",
     "lucide-react": "^1.14.0",
     "mediabunny": "^1.50.8",
-    "next": "16.2.4",
-    "next-auth": "^4.24.14",
+    "next": "16.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-markdown": "^10.1.0",
@@ -50,9 +50,10 @@
     "@types/react-dom": "^19",
     "esbuild": "0.28.2",
     "eslint": "^9",
-    "eslint-config-next": "16.2.4",
+    "eslint-config-next": "16.4.6",
     "sucrase": "3.35.1",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.12"
   }
 }

@@ -11,7 +11,7 @@
 // identity info is destroyed. The retry ladder below has been calibrated
 // in testing.
 
-import sharp from 'sharp'
+import sharp, { type OverlayOptions } from 'sharp'
 
 export interface GridParams {
   cols: number
@@ -58,7 +58,7 @@ export async function gridify(sourceBuf: Buffer, params: GridParams): Promise<Bu
   const tileH = Math.max(1, Math.floor((canvasH - (rows + 1) * gap) / rows))
 
   // Build white bars as pre-rendered PNG buffers.
-  const overlays: sharp.OverlayOptions[] = []
+  const overlays: OverlayOptions[] = []
 
   const hBar = await sharp({
     create: { width: canvasW, height: gap, channels: 3, background: { r: 255, g: 255, b: 255 } },
