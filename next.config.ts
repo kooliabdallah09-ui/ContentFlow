@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { withSentryConfig } from '@sentry/nextjs';
+import { CSP_SOURCE, cspReportOnlyHeaders } from './lib/csp';
 
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
@@ -17,6 +18,14 @@ const nextConfig: NextConfig = {
       {
         source: '/(.*)',
         headers: securityHeaders,
+      },
+      {
+        // Report-only: nothing is blocked, violations go to /api/csp-report
+        source: CSP_SOURCE,
+        headers: cspReportOnlyHeaders({
+          supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+          isDev: process.env.NODE_ENV !== 'production',
+        }),
       },
     ]
   },
